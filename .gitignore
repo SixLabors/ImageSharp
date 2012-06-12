@@ -1,4 +1,3 @@
-
 #################
 ## Eclipse
 #################
@@ -163,3 +162,7 @@ pip-log.txt
 
 # Mac crap
 .DS_Store
+
+
+# cached images
+/src/Test/Test/cache/*

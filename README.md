@@ -10,7 +10,7 @@ Core plugins at present include:
  - Resize 
  - Crop
  - Quality (The quality to set the output for jpeg files)
- - Filter (Image filters including sepia, greyscale, blackwhite, lomograph)
+ - Filter (Image filters including sepia, greyscale, blackwhite, lomograph, comic)
  - Vignette 
  - Format (Sets the output format)
  - Alpha (Sets opacity)
@@ -56,4 +56,10 @@ e.g.
 
 Will resize your image to 200px wide whilst keeping the correct aspect ratio.
 
+Remote files can also be requested and cached by prefixing the src with a value set in the web.config 
 
+e.g.
+
+    <img src="remote.axd/http://url/images.yourimage.jpg?width=200" alt="your resized image"/>
+
+Will resize your remote image to 200px wide whilst keeping the correct aspect ratio.

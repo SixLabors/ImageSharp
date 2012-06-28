@@ -23,13 +23,10 @@ e.g.
 
     // Read a file and resize it.
     var photoBytes = File.ReadAllBytes(file);
-    var before = DateTime.Now;
-    var quality = 90;
-    var format = ImageFormat.Jpeg;
-    var thumbnailSize = 150;
-    
-    byte[] resized;
-    
+    int quality = 90;
+    ImageFormat format = ImageFormat.Jpeg;
+    int thumbnailSize = 150;
+        
     using (var inStream = new MemoryStream(photoBytes))
     {
         using (var outStream = new MemoryStream())
@@ -39,8 +36,6 @@ e.g.
                 // Load, resize and save an image.
                 imageFactory.Load(inStream).Format(format).Quality(quality).Resize(thumbnailSize, 0).Save(outStream);
             }
-    
-            resized = outStream.ToArray();
         }
     }
 

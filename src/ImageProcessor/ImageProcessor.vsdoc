@@ -91,13 +91,15 @@
     <add key="VBdocman_comModules_Imaging...OctreeQuantizer.cs"><![CDATA[On]]></add>
     <add key="VBdocman_comModules_Imaging...Quantizer.cs"><![CDATA[On]]></add>
     <add key="VBdocman_comModules_Imaging...ResponseType.cs"><![CDATA[On]]></add>
+    <add key="VBdocman_comModules_Imaging...TextLayer.cs"><![CDATA[On]]></add>
     <add key="VBdocman_comModules_Processors...Alpha.cs"><![CDATA[On]]></add>
-    <add key="VBdocman_comModules_Processors...Class1.cs"><![CDATA[On]]></add>
+    <add key="VBdocman_comModules_Processors...Copy of Watermark.cs"><![CDATA[On]]></add>
     <add key="VBdocman_comModules_Processors...Crop.cs"><![CDATA[On]]></add>
     <add key="VBdocman_comModules_Processors...Filter.cs"><![CDATA[On]]></add>
     <add key="VBdocman_comModules_Processors...Quality.cs"><![CDATA[On]]></add>
     <add key="VBdocman_comModules_Processors...Resize.cs"><![CDATA[On]]></add>
     <add key="VBdocman_comModules_Processors...Vignette.cs"><![CDATA[On]]></add>
+    <add key="VBdocman_comModules_Processors...Watermark.cs"><![CDATA[On]]></add>
     <add key="VBdocman_comModules_Properties...AssemblyInfo.cs"><![CDATA[On]]></add>
   </appSettings>
 </configuration>

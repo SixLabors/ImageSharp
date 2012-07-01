@@ -34,8 +34,10 @@ namespace ImageProcessor.Web
             {
                 // Get a list of all graphics processors that have parsed and matched the querystring.
                 List<IGraphicsProcessor> list =
-                    ImageProcessorConfig.Instance.GraphicsProcessors.Where(x => x.MatchRegexIndex(factory.QueryString) != int.MaxValue).OrderBy(
-                        y => y.SortOrder).ToList();
+                    ImageProcessorConfig.Instance.GraphicsProcessors
+                    .Where(x => x.MatchRegexIndex(factory.QueryString) != int.MaxValue)
+                    .OrderBy(y => y.SortOrder)
+                    .ToList();
 
                 // Loop through and process the image.
                 foreach (IGraphicsProcessor graphicsProcessor in list)

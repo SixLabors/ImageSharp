@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-// <copyright file="EnumExtensions.cs" company="Peach James South">
+// <copyright file="EnumExtensions.cs" company="James South">
 // TODO: Update copyright text.
 // </copyright>
 // -----------------------------------------------------------------------

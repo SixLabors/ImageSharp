@@ -137,7 +137,9 @@ namespace ImageProcessor.Processors
 
             try
             {
-                newImage = new Bitmap(image) { Tag = image.Tag };
+                // Dont use an object initializer here.
+                newImage = new Bitmap(image);
+                newImage.Tag = image.Tag;
 
                 using (Graphics graphics = Graphics.FromImage(newImage))
                 {

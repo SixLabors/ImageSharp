@@ -60,11 +60,11 @@
     <Compile Include="Helpers\Extensions\EnumExtensions.cs" />
     <Compile Include="Helpers\Extensions\StringExtensions.cs" />
     <Compile Include="ImageFactory.cs" />
-    <Compile Include="Imaging\PaletteQuantizer.cs" />
     <Compile Include="Imaging\ImageUtils.cs" />
     <Compile Include="Imaging\OctreeQuantizer.cs" />
     <Compile Include="Imaging\Quantizer.cs" />
     <Compile Include="Imaging\ResponseType.cs" />
+    <Compile Include="Imaging\TextLayer.cs" />
     <Compile Include="Processors\Alpha.cs" />
     <Compile Include="Processors\Crop.cs" />
     <Compile Include="Processors\Filter.cs" />
@@ -73,6 +73,7 @@
     <Compile Include="Processors\Resize.cs" />
     <Compile Include="Processors\Format.cs" />
     <Compile Include="Processors\Vignette.cs" />
+    <Compile Include="Processors\Watermark.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup />

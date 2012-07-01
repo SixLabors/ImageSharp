@@ -141,7 +141,9 @@ namespace ImageProcessor.Processors
             {
                 int alphaPercent = this.DynamicParameter;
 
-                newImage = new Bitmap(image.Width, image.Height, PixelFormat.Format32bppPArgb) { Tag = image.Tag };
+                // Dont use an object initializer here.
+                newImage = new Bitmap(image.Width, image.Height, PixelFormat.Format32bppPArgb);
+                newImage.Tag = image.Tag;
 
                 ColorMatrix colorMatrix = new ColorMatrix();
                 colorMatrix.Matrix00 = colorMatrix.Matrix11 = colorMatrix.Matrix22 = colorMatrix.Matrix44 = 1;

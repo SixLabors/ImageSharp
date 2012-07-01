@@ -35,9 +35,24 @@ namespace ImageProcessor.Processors
         /// </summary>
         private enum ChannelArgb
         {
+            /// <summary>
+            /// The blue channel
+            /// </summary>
             Blue = 0,
+
+            /// <summary>
+            /// The green channel
+            /// </summary>
             Green = 1,
+
+            /// <summary>
+            /// The red channel
+            /// </summary>
             Red = 2,
+
+            /// <summary>
+            /// The alpha channel
+            /// </summary>
             Alpha = 3
         }
 
@@ -150,9 +165,15 @@ namespace ImageProcessor.Processors
         {
             Bitmap newImage = null;
             Image image = factory.Image;
+            // Bitmaps for comic pattern
+            Bitmap hisatchBitmap = null;
+            Bitmap patternBitmap = null;
+
             try
             {
-                newImage = new Bitmap(image.Width, image.Height, PixelFormat.Format32bppPArgb) { Tag = image.Tag };
+                // Dont use an object initializer here.
+                newImage = new Bitmap(image.Width, image.Height, PixelFormat.Format32bppPArgb);
+                newImage.Tag = image.Tag;
 
                 ColorMatrix colorMatrix = null;
 
@@ -207,7 +228,7 @@ namespace ImageProcessor.Processors
                             graphics.DrawImage(image, rectangle, 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, attributes);
 
                             // Create a bitmap for overlaying.
-                            Bitmap hisatchBitmap = new Bitmap(rectangle.Width, rectangle.Height, PixelFormat.Format32bppPArgb);
+                            hisatchBitmap = new Bitmap(rectangle.Width, rectangle.Height, PixelFormat.Format32bppPArgb);
 
                             // Set the color matrix
                             attributes.SetColorMatrix(ColorMatrixes.HiSatch);
@@ -220,7 +241,7 @@ namespace ImageProcessor.Processors
 
                             // We need to create a new image now with the hi saturation colormatrix and a pattern mask to paint it
                             // onto the other image with.
-                            Bitmap patternBitmap = new Bitmap(rectangle.Width, rectangle.Height, PixelFormat.Format32bppPArgb);
+                            patternBitmap = new Bitmap(rectangle.Width, rectangle.Height, PixelFormat.Format32bppPArgb);
 
                             // Create the pattern mask.
                             using (var g = Graphics.FromImage(patternBitmap))
@@ -317,6 +338,16 @@ namespace ImageProcessor.Processors
                 if (newImage != null)
                 {
                     newImage.Dispose();
+                }
+
+                if (hisatchBitmap != null)
+                {
+                    hisatchBitmap.Dispose();
+                }
+
+                if (patternBitmap != null)
+                {
+                    patternBitmap.Dispose();
                 }
             }
 

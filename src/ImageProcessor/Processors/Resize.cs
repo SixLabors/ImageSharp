@@ -176,7 +176,9 @@ namespace ImageProcessor.Processors
 
                 if (width > 0 && height > 0 && width <= maxWidth && height <= maxHeight)
                 {
-                    newImage = new Bitmap(width, height, PixelFormat.Format32bppPArgb) { Tag = image.Tag };
+                    // Dont use an object initializer here.
+                    newImage = new Bitmap(width, height, PixelFormat.Format32bppPArgb);
+                    newImage.Tag = image.Tag;
 
                     using (Graphics graphics = Graphics.FromImage(newImage))
                     {

@@ -20,7 +20,6 @@ namespace ImageProcessor
 
     /// <summary>
     /// Encapsulates methods for processing image files.
-    /// http://csharpindepth.com/Articles/General/Singleton.aspx
     /// </summary>
     public class ImageFactory : IDisposable
     {
@@ -177,7 +176,6 @@ namespace ImageProcessor
         }
 
         #region Manipulation
-
         /// <summary>
         /// Adds a querystring to the image factory to allow autoprocessing of remote files.
         /// </summary>
@@ -206,7 +204,7 @@ namespace ImageProcessor
         {
             if (this.ShouldProcess)
             {
-                var alpha = new Alpha { DynamicParameter = percentage };
+                Alpha alpha = new Alpha { DynamicParameter = percentage };
 
                 this.Image = alpha.ProcessImage(this);
             }
@@ -227,7 +225,7 @@ namespace ImageProcessor
         {
             if (this.ShouldProcess)
             {
-                var crop = new Crop { DynamicParameter = rectangle };
+                Crop crop = new Crop { DynamicParameter = rectangle };
 
                 this.Image = crop.ProcessImage(this);
             }
@@ -248,7 +246,7 @@ namespace ImageProcessor
         {
             if (this.ShouldProcess)
             {
-                var filter = new Filter { DynamicParameter = filterName };
+                Filter filter = new Filter { DynamicParameter = filterName };
 
                 this.Image = filter.ProcessImage(this);
             }
@@ -304,7 +302,7 @@ namespace ImageProcessor
             {
                 var resizeSettings = new Dictionary<string, string> { { "MaxWidth", width.ToString("G") }, { "MaxHeight", height.ToString("G") } };
 
-                var resize = new Resize { DynamicParameter = new Size(width, height), Settings = resizeSettings };
+                Resize resize = new Resize { DynamicParameter = new Size(width, height), Settings = resizeSettings };
 
                 this.Image = resize.ProcessImage(this);
             }
@@ -322,9 +320,30 @@ namespace ImageProcessor
         {
             if (this.ShouldProcess)
             {
-                var vignette = new Vignette();
+                Vignette vignette = new Vignette();
 
                 this.Image = vignette.ProcessImage(this);
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Adds a text based watermark to the image
+        /// </summary>
+        /// <param name="textLayer">
+        /// The text layer containing the properties necessary to add the text based watermark to the image.
+        /// </param>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory Watermark(TextLayer textLayer)
+        {
+            if (this.ShouldProcess)
+            {
+                Watermark watermark = new Watermark { DynamicParameter = textLayer };
+
+                this.Image = watermark.ProcessImage(this);
             }
 
             return this;
@@ -448,36 +467,6 @@ namespace ImageProcessor
             this.isDisposed = true;
         }
         #endregion
-
-        /// <summary>
-        /// Saves the current image to the specified file path and resets any internal parameters.
-        /// </summary>
-        /// <param name="filePath">The path to save the image to.</param>
-        private void SaveFile(string filePath)
-        {
-            // Fix the colour palette of gif images.
-            this.FixGifs();
-
-            if (this.ImageFormat == ImageFormat.Jpeg)
-            {
-                // Jpegs can be saved with different settings to include a quality setting for the JPEG compression.
-                // This improves output compression and quality. 
-                using (EncoderParameters encoderParameters = ImageUtils.GetEncodingParameters(this.JpegQuality))
-                {
-                    ImageCodecInfo imageCodecInfo = ImageCodecInfo.GetImageEncoders()
-                    .FirstOrDefault(ici => ici.MimeType.Equals("image/jpeg", StringComparison.OrdinalIgnoreCase));
-
-                    if (imageCodecInfo != null)
-                    {
-                        this.Image.Save(filePath, imageCodecInfo, encoderParameters);
-                    }
-                }
-            }
-            else
-            {
-                this.Image.Save(filePath, this.ImageFormat);
-            }
-        }
 
         /// <summary>
         /// Uses the <see cref="T:ImageProcessor.Imaging.OctreeQuantizer"/>

@@ -97,7 +97,6 @@ namespace ImageProcessor
         #endregion
 
         #region Methods
-
         /// <summary>
         /// Loads the image to process. Always call this method first.
         /// </summary>
@@ -358,6 +357,12 @@ namespace ImageProcessor
         {
             if (this.ShouldProcess)
             {
+                // We need to check here if the path has an extension and remove it if so.
+                // This is so we can add the correct image format.
+                int length = filePath.LastIndexOf(".", StringComparison.Ordinal);
+                string extension = ImageUtils.GetExtensionFromImageFormat(this.ImageFormat);
+                filePath = length == -1 ? filePath + extension : filePath.Substring(0, length) + extension;
+
                 // Fix the colour palette of gif images.
                 this.FixGifs();
 

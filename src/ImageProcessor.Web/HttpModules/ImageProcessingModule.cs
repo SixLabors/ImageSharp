@@ -83,7 +83,7 @@ namespace ImageProcessor.Web.HttpModules
             if (isRemote)
             {
                 // We need to split the querystring to get the actual values we want.
-                string[] paths = HttpUtility.UrlDecode(context.Request.QueryString.ToString()).Replace("%7c", "|").Split('?');
+                string[] paths = HttpUtility.UrlDecode(context.Request.QueryString.ToString()).Split('?');
 
                 path = paths[0];
 

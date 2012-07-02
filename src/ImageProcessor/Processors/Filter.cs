@@ -165,6 +165,7 @@ namespace ImageProcessor.Processors
         {
             Bitmap newImage = null;
             Image image = factory.Image;
+
             // Bitmaps for comic pattern
             Bitmap hisatchBitmap = null;
             Bitmap patternBitmap = null;
@@ -327,6 +328,15 @@ namespace ImageProcessor.Processors
                             }
                         }
                     }
+                }
+
+                // Add a vignette to finish the effect.
+                // TODO: This feels a bit mucky so I might chop it out.
+                if (this.DynamicParameter == "polaroid" || this.DynamicParameter == "lomograph")
+                {
+                    factory.Image = newImage;
+                    Vignette vignette = new Vignette();
+                    newImage = (Bitmap)vignette.ProcessImage(factory);
                 }
 
                 // Reassign the image.

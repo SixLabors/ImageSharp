@@ -51,7 +51,7 @@ namespace ImageProcessor.Imaging
         public string Text { get; set; }
 
         /// <summary>
-        /// Gets or sets TextColor.
+        /// Gets or sets the Color to render the font.
         /// </summary>
         public Color TextColor
         {
@@ -74,7 +74,7 @@ namespace ImageProcessor.Imaging
         }
 
         /// <summary>
-        /// Gets or sets the FontStyle.
+        /// Gets or sets the FontStyle of the textlayer.
         /// </summary>
         public FontStyle Style
         {
@@ -83,7 +83,7 @@ namespace ImageProcessor.Imaging
         }
 
         /// <summary>
-        /// Gets or sets the Opacity.
+        /// Gets or sets the Opacity of the textlayer.
         /// </summary>
         public int Opacity
         {
@@ -101,13 +101,18 @@ namespace ImageProcessor.Imaging
         }
 
         /// <summary>
-        /// Gets or sets Position.
+        /// Gets or sets the Position of the textlayer.
         /// </summary>
         public Point Position
         {
             get { return this.position; }
             set { this.position = value; }
         }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether a DropShadow should be drawn.
+        /// </summary>
+        public bool DropShadow { get; set; }
         #endregion
     }
 }

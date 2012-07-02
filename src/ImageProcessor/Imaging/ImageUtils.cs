@@ -74,8 +74,33 @@ namespace ImageProcessor.Imaging
                         return ImageFormat.Jpeg;
                 }
             }
-            // TODO: SHow custom exception??
+
+            // TODO: Show custom exception??
             return null;
+        }
+
+        /// <summary>
+        /// Returns the correct file extension for the given <see cref="T:System.Drawing.Imaging.ImageFormat"/>.
+        /// </summary>
+        /// <param name="imageFormat">
+        /// The <see cref="T:System.Drawing.Imaging.ImageFormat"/> to return the extension for.
+        /// </param>
+        /// <returns>
+        /// The correct file extension for the given <see cref="T:System.Drawing.Imaging.ImageFormat"/>.
+        /// </returns>
+        public static string GetExtensionFromImageFormat(ImageFormat imageFormat)
+        {
+            switch (imageFormat.ToString())
+            {
+                case "Gif":
+                    return ".gif";
+                case "Bmp":
+                    return ".bmp";
+                case "Png":
+                    return ".png";
+                default:
+                    return ".jpg";
+            }
         }
 
         /// <summary>

@@ -114,7 +114,7 @@ e.g.
 Watermark
 =========
 
-Imageprocessor can add watermark text to your images with a wide range of options:
+Imageprocessor can add watermark text to your images with a wide range of options. Each option can be ommited and can be added in any order. Just ensure that they are pipe "|" separated:
 
   - text
   - size (px)

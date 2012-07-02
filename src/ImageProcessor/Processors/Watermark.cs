@@ -7,9 +7,12 @@
 namespace ImageProcessor.Processors
 {
     #region Using
+
+    using System;
     using System.Collections.Generic;
     using System.Drawing;
     using System.Drawing.Text;
+    using System.Linq;
     using System.Text.RegularExpressions;
     using ImageProcessor.Helpers.Extensions;
     using ImageProcessor.Imaging;
@@ -59,6 +62,11 @@ namespace ImageProcessor.Processors
         /// The regular expression to search strings for the opacity attribute.
         /// </summary>
         private static readonly Regex OpacityRegex = new Regex(@"opacity-\d{1,2}(?!\d)|opacity-100", RegexOptions.Compiled);
+
+        /// <summary>
+        /// The regular expression to search strings for the shadow attribute.
+        /// </summary>
+        private static readonly Regex ShadowRegex = new Regex(@"shadow-true", RegexOptions.Compiled);
 
         #region IGraphicsProcessor Members
         /// <summary>
@@ -157,6 +165,7 @@ namespace ImageProcessor.Processors
                         textLayer.Font = this.ParseFontFamily(toParse);
                         textLayer.Style = this.ParseFontStyle(toParse);
                         textLayer.Opacity = this.ParseOpacity(toParse);
+                        textLayer.DropShadow = this.ParseDropShadow(toParse);
 
                         this.DynamicParameter = textLayer;
                     }
@@ -218,6 +227,23 @@ namespace ImageProcessor.Processors
 
                                 // Set the hinting and draw the text.
                                 graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
+
+                                if (textLayer.DropShadow)
+                                {
+                                    // Shadow opacity should change with the base opacity.
+                                    int shadowOpacity = opacity - (int)Math.Ceiling((30 / 100f) * 255);
+                                    int finalShadowOpacity = shadowOpacity > 0 ? shadowOpacity : 0;
+
+                                    using (Brush shadowBrush = new SolidBrush(Color.FromArgb(finalShadowOpacity, Color.Black)))
+                                    {
+                                        // Scale the shadow position to match the font size.
+                                        // Magic number but it's based on artistic preference.
+                                        int shadowDiff = (int)Math.Ceiling(fontSize / 24f);
+                                        Point shadowPoint = new Point(origin.X + shadowDiff, origin.Y + shadowDiff);
+                                        graphics.DrawString(text, font, shadowBrush, shadowPoint, drawFormat);
+                                    }
+                                }
+
                                 graphics.DrawString(text, font, brush, origin, drawFormat);
                             }
                         }
@@ -439,6 +465,21 @@ namespace ImageProcessor.Processors
             // full opacity - matches the Textlayer default.
             return 100;
         }
+
+        /// <summary>
+        /// Returns a value indicating whether the watermark is to have a shadow.
+        /// </summary>
+        /// <param name="input">
+        /// The input string containing the value to parse.
+        /// </param>
+        /// <returns>
+        /// The true if the watermark is to have a shadow; otherwise false.
+        /// </returns>
+        private bool ParseDropShadow(string input)
+        {
+            return ShadowRegex.Matches(input).Cast<Match>().Any();
+        }
+
         #endregion
     }
 }

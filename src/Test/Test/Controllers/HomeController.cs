@@ -14,7 +14,7 @@ namespace Test.Controllers
     {
         public ActionResult Index()
         {
-            ViewBag.Message = "Welcome to ASP.NET MVC!";
+            ViewBag.Message = "ImageProcessor test website";
 
             return View();
         }

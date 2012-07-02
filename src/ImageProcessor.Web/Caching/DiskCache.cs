@@ -11,6 +11,7 @@ namespace ImageProcessor.Web.Caching
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
+    using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
     using System.Web;
@@ -43,6 +44,20 @@ namespace ImageProcessor.Web.Caching
         internal static readonly int MaxFileCachedDuration = ImageProcessorConfig.Instance.MaxCacheDays;
 
         /// <summary>
+        /// The maximum number of files allowed in the directory.
+        /// </summary>
+        /// <remarks>
+        /// NTFS Folder can handle up to 8000 files in a directory. 
+        /// This buffer will help us to ensure that we rarely hit anywhere near that limit.
+        /// </remarks>
+        private const int MaxFilesCount = 6000;
+
+        /// <summary>
+        /// The regular expression to search strings for extension changes.
+        /// </summary>
+        private static readonly Regex FormatRegex = new Regex(@"format=(jpeg|png|bmp|gif)", RegexOptions.Compiled);
+
+        /// <summary>
         ///     The object to lock against.
         /// </summary>
         private static readonly object SyncRoot = new object();
@@ -51,15 +66,6 @@ namespace ImageProcessor.Web.Caching
         ///     The default paths for Cached folders on the server.
         /// </summary>
         private static readonly string CachePath = ImageProcessorConfig.Instance.VirtualCachePath;
-
-        /// <summary>
-        /// The maximum number of files allowed in the directory.
-        /// </summary>
-        /// <remarks>
-        /// NTFS Folder can handle up to 8000 files in a directory. 
-        /// This buffer will help us to ensure that we rarely hit anywhere near that limit.
-        /// </remarks>
-        private const int MaxFilesCount = 6000;
         #endregion
 
         #region Methods
@@ -85,7 +91,13 @@ namespace ImageProcessor.Web.Caching
                     Directory.CreateDirectory(absoluteCachePath);
                 }
 
-                string cachedFileName = string.Format("{0}{1}", imagePath.ToMD5Fingerprint(), imageName.Substring(imageName.LastIndexOf(".", StringComparison.Ordinal)));
+                string parsedExtension = ParseExtension(imagePath);
+                string fallbackExtension = imageName.Substring(imageName.LastIndexOf(".", StringComparison.Ordinal));
+
+                string cachedFileName = string.Format(
+                    "{0}{1}",
+                    imagePath.ToMD5Fingerprint(),
+                    !string.IsNullOrWhiteSpace(parsedExtension) ? parsedExtension : fallbackExtension);
                 cachedPath = Path.Combine(absoluteCachePath, cachedFileName);
             }
 
@@ -207,6 +219,28 @@ namespace ImageProcessor.Web.Caching
                         });
                 }
             }
+        }
+
+        /// <summary>
+        /// Returns the correct file extension for the given string input
+        /// </summary>
+        /// <param name="input">
+        /// The string to parse.
+        /// </param>
+        /// <returns>
+        /// The correct file extension for the given string input if it can find one; otherwise an empty string.
+        /// </returns>
+        private static string ParseExtension(string input)
+        {
+            foreach (Match match in FormatRegex.Matches(input))
+            {
+                if (match.Success)
+                {
+                    return "." + match.Value.Split('=')[1];
+                }
+            }
+
+            return string.Empty;
         }
         #endregion
     }

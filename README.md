@@ -73,6 +73,10 @@ e.g.
 
 Will resize your remote image to 200px wide whilst keeping the correct aspect ratio.
 
+Changing both width and height requires the following syntax:
+
+    <img src="/images.yourimage.jpg?resize=width-200|height-200" alt="your resized image"/>
+
 Crop
 ====
 

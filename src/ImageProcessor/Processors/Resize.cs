@@ -8,7 +8,6 @@ namespace ImageProcessor.Processors
 {
     #region Using
     using System;
-    using System.Collections;
     using System.Collections.Generic;
     using System.Drawing;
     using System.Drawing.Drawing2D;
@@ -25,7 +24,7 @@ namespace ImageProcessor.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"(width|height)=\d+", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"((width|height)=\d+|resize=width-\d+\|height-\d+)", RegexOptions.Compiled);
 
         #region IGraphicsProcessor Members
         /// <summary>
@@ -60,7 +59,7 @@ namespace ImageProcessor.Processors
                 return QueryRegex;
             }
         }
-        
+
         /// <summary>
         /// Gets or sets DynamicParameter.
         /// </summary>
@@ -99,22 +98,31 @@ namespace ImageProcessor.Processors
         /// </returns>
         public int MatchRegexIndex(string queryString)
         {
-                int index = 0;
+            int index = 0;
 
-                // Set the sort order to max to allow filtering.
-                this.SortOrder = int.MaxValue;
-                Size size = new Size();
+            // Set the sort order to max to allow filtering.
+            this.SortOrder = int.MaxValue;
+            Size size = new Size();
 
-                foreach (Match match in this.RegexPattern.Matches(queryString))
+            foreach (Match match in this.RegexPattern.Matches(queryString))
+            {
+                if (match.Success)
                 {
-                    if (match.Success)
+                    if (index == 0)
                     {
-                        if (index == 0)
-                        {
-                            // Set the index on the first instance only.
-                            this.SortOrder = match.Index;
-                        }
+                        // Set the index on the first instance only.
+                        this.SortOrder = match.Index;
+                    }
 
+                    if (match.Value.Contains("resize"))
+                    {
+                        int[] values = match.Value.ToIntegerArray();
+
+                        size.Width = values[0];
+                        size.Height = values[1];
+                    }
+                    else
+                    {
                         if (match.Value.Contains("width"))
                         {
                             size.Width = match.Value.ToIntegerArray()[0];
@@ -123,13 +131,14 @@ namespace ImageProcessor.Processors
                         {
                             size.Height = match.Value.ToIntegerArray()[0];
                         }
-
-                        index += 1;
                     }
-                }
 
-                this.DynamicParameter = size;
-                return this.SortOrder;
+                    index += 1;
+                }
+            }
+
+            this.DynamicParameter = size;
+            return this.SortOrder;
         }
 
         /// <summary>

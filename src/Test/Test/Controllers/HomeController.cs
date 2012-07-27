@@ -44,5 +44,10 @@ namespace Test.Controllers
 
             return View(images);
         }
+
+        public ActionResult Responsive()
+        {
+            return this.View();
+        }
     }
 }

@@ -95,7 +95,7 @@ namespace ImageProcessor.Web.HttpModules
             else
             {
                 path = HostingEnvironment.MapPath(context.Request.Path);
-                queryString = context.Request.QueryString.ToString();
+                queryString = HttpUtility.UrlDecode(context.Request.QueryString.ToString());
             }
 
             if (ImageUtils.IsValidImageExtension(path) && !string.IsNullOrWhiteSpace(queryString))

@@ -310,6 +310,25 @@ namespace ImageProcessor
         }
 
         /// <summary>
+        /// Rotates the current image by the given angle.
+        /// </summary>
+        /// <param name="angle">The angle by which to rotate the image.</param>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory Rotate(int angle)
+        {
+            if (this.ShouldProcess)
+            {
+                Rotate rotate = new Rotate { DynamicParameter = angle };
+
+                this.Image = rotate.ProcessImage(this);
+            }
+
+            return this;
+        }
+
+        /// <summary>
         /// Adds a vignette image effect to the current image.
         /// </summary>
         /// <returns>

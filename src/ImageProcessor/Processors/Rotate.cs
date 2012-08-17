@@ -1,0 +1,282 @@
+﻿// -----------------------------------------------------------------------
+// <copyright file="Rotate.cs" company="James South">
+// TODO: Update copyright text.
+// </copyright>
+// -----------------------------------------------------------------------
+
+namespace ImageProcessor.Processors
+{
+    #region Using
+    using System.Collections.Generic;
+    using System.Drawing;
+    using System.Drawing.Imaging;
+    using System.Text.RegularExpressions;
+    using ImageProcessor.Helpers.Extensions;
+    using System;
+    using System.Drawing.Drawing2D;
+    #endregion
+
+    /// <summary>
+    /// Encapsulates methods to rotate an image.
+    /// </summary>
+    public class Rotate : IGraphicsProcessor
+    {
+        /// <summary>
+        /// The regular expression to search strings for.
+        /// </summary>
+        //private static readonly Regex QueryRegex = new Regex(@"rotate=-*([1-9][0-7][0-9]|\d{1,2}(?!\d)|180)|rotate=[^&]*", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"rotate=-*([1-2][0-9][0-9]|3[0-5][0-9]|\d{1}(?!\d)|\d{1,2}(?!\d)|360)|rotate=[^&]*", RegexOptions.Compiled);
+
+        /// <summary>
+        /// The regular expression to search strings for the angle attribute.
+        /// </summary>
+        private static readonly Regex AngleRegex = new Regex(@"rotate=\[-*([1-9][0-7][0-9]|\d{1,2}(?!\d)|180)\]", RegexOptions.Compiled);
+
+        /// <summary>
+        /// The regular expression to search strings for the color attribute.
+        /// </summary>
+        private static readonly Regex ColorRegex = new Regex(@"bgcolor-([0-9a-fA-F]{3}){1,2}", RegexOptions.Compiled);
+
+        /// <summary>
+        /// The format of the image to rotate.
+        /// </summary>
+        private ImageFormat imageFormat;
+
+        #region IGraphicsProcessor Members
+        /// <summary>
+        /// Gets the name.
+        /// </summary>
+        public string Name
+        {
+            get
+            {
+                return "Rotate";
+            }
+        }
+
+        /// <summary>
+        /// Gets the description.
+        /// </summary>
+        public string Description
+        {
+            get
+            {
+                return "Rotates an image at the given angle.";
+            }
+        }
+
+        /// <summary>
+        /// Gets the regular expression to search strings for.
+        /// </summary>
+        public Regex RegexPattern
+        {
+            get
+            {
+                return QueryRegex;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets DynamicParameter.
+        /// </summary>
+        public dynamic DynamicParameter
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Gets the order in which this processor is to be used in a chain.
+        /// </summary>
+        public int SortOrder
+        {
+            get;
+            private set;
+        }
+
+        /// <summary>
+        /// Gets or sets any additional settings required by the processor.
+        /// </summary>
+        public Dictionary<string, string> Settings
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// The position in the original string where the first character of the captured substring was found.
+        /// </summary>
+        /// <param name="queryString">
+        /// The query string to search.
+        /// </param>
+        /// <returns>
+        /// The zero-based starting position in the original string where the captured substring was found.
+        /// </returns>
+        public int MatchRegexIndex(string queryString)
+        {
+            int index = 0;
+
+            // Set the sort order to max to allow filtering.
+            this.SortOrder = int.MaxValue;
+
+            foreach (Match match in this.RegexPattern.Matches(queryString))
+            {
+                if (match.Success)
+                {
+                    if (index == 0)
+                    {
+                        // Set the index on the first instance only.
+                        this.SortOrder = match.Index;
+                        int degrees;
+
+                        int.TryParse(match.Value.Split('=')[1], out degrees);
+
+                        this.DynamicParameter = degrees;
+                    }
+
+                    index += 1;
+                }
+            }
+
+            return this.SortOrder;
+        }
+
+        /// <summary>
+        /// Processes the image.
+        /// </summary>
+        /// <param name="factory">
+        /// The the current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class containing
+        /// the image to process.
+        /// </param>
+        /// <returns>
+        /// The processed image from the current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public Image ProcessImage(ImageFactory factory)
+        {
+            Bitmap newImage = null;
+            Image image = factory.Image;
+
+            try
+            {
+                int angle = this.DynamicParameter;
+
+                // Center of the image
+                float rotateAtX = image.Width / 2;
+                float rotateAtY = image.Height / 2;
+
+                this.imageFormat = factory.ImageFormat;
+
+                // Create a rotated image.
+                newImage = RotateImage(image, rotateAtX, rotateAtY, angle);
+                newImage.Tag = image.Tag;
+
+                image.Dispose();
+                image = newImage;
+
+            }
+            catch
+            {
+                if (newImage != null)
+                {
+                    newImage.Dispose();
+                }
+            }
+
+            return image;
+        }
+        #endregion
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="image"></param>
+        /// <param name="rotateAtX"></param>
+        /// <param name="rotateAtY"></param>
+        /// <param name="angle"></param>
+        /// <returns></returns>
+        /// <remarks> Based on http://www.codeproject.com/Articles/58815/C-Image-PictureBox-Rotations?msg=4155374#xx4155374xx</remarks>
+        private Bitmap RotateImage(Image image, float rotateAtX, float rotateAtY, float angle)
+        {
+            int width, height, X, Y;
+
+            // Degrees to radians according to Google. 
+            const double degreeToRadian = 0.0174532925;
+
+            double widthAsDouble = (double)image.Width;
+            double heightAsDouble = (double)image.Height;
+
+            // Allow for angles over 180
+            if (angle > 180)
+            {
+                angle = angle - 360;
+            }   
+
+            double degrees = Math.Abs(angle);        
+
+            if (degrees <= 90)
+            {
+                double radians = degreeToRadian * degrees;
+                double radiansSin = Math.Sin(radians);
+                double radiansCos = Math.Cos(radians);
+                width = (int)(heightAsDouble * radiansSin + widthAsDouble * radiansCos);
+                height = (int)(widthAsDouble * radiansSin + heightAsDouble * radiansCos);
+                X = (width - image.Width) / 2;
+                Y = (height - image.Height) / 2;
+            }
+            else
+            {
+                degrees -= 90;
+                double radians = degreeToRadian * degrees;
+                double radiansSin = Math.Sin(radians);
+                double radiansCos = Math.Cos(radians);
+
+                // Fix the 270 bug
+                if (radiansCos == -1)
+                {
+                    radiansCos = -1 * -1;
+                }
+
+                width = (int)(widthAsDouble * radiansSin + heightAsDouble * radiansCos);
+                height = (int)(heightAsDouble * radiansSin + widthAsDouble * radiansCos);
+                X = (width - image.Width) / 2;
+                Y = (height - image.Height) / 2;
+            }
+
+            //create a new empty bitmap to hold rotated image
+            Bitmap newImage = new Bitmap(width, height);
+            newImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
+
+            //make a graphics object from the empty bitmap
+            using (Graphics graphics = Graphics.FromImage(newImage))
+            {
+                // Reduce the jagged edge.
+                graphics.SmoothingMode = SmoothingMode.HighQuality;
+
+                // Contrary to everything I have read bicubic is producing the best results.
+                graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                graphics.CompositingQuality = CompositingQuality.HighSpeed;
+
+                // Fill the background TODO: Set a color
+                if (this.imageFormat == ImageFormat.Jpeg)
+                {
+                    graphics.Clear(Color.White);
+                }
+
+                // Put the rotation point in the "center" of the image
+                graphics.TranslateTransform(rotateAtX + X, rotateAtY + Y);
+
+                // Rotate the image
+                graphics.RotateTransform(angle);
+
+                // Move the image back
+                graphics.TranslateTransform(-rotateAtX - X, -rotateAtY - Y);
+
+                // Draw passed in image onto graphics object
+                graphics.DrawImage(image, new PointF(0 + X, 0 + Y));
+
+            }
+            return newImage;
+        }
+    }
+}

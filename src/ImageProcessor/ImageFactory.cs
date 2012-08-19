@@ -312,15 +312,33 @@ namespace ImageProcessor
         /// <summary>
         /// Rotates the current image by the given angle.
         /// </summary>
-        /// <param name="angle">The angle by which to rotate the image.</param>
+        /// <param name="angle">
+        /// The angle by which to rotate the image.
+        /// </param>
+        /// <param name="backgroundColour">
+        /// The background Colour.
+        /// </param>
         /// <returns>
         /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
         /// </returns>
-        public ImageFactory Rotate(int angle)
+        public ImageFactory Rotate(int angle, Color backgroundColour = default(Color))
         {
             if (this.ShouldProcess)
             {
-                Rotate rotate = new Rotate { DynamicParameter = angle };
+                // Sanitize the input.
+                if (angle > 360 || angle < 0)
+                {
+                    angle = 0;
+                }
+
+                RotateLayer rotateLayer = new RotateLayer { Angle = angle };
+
+                if (backgroundColour != default(Color))
+                {
+                    rotateLayer.BackgroundColor = backgroundColour;
+                }
+
+                Rotate rotate = new Rotate { DynamicParameter = rotateLayer };
 
                 this.Image = rotate.ProcessImage(this);
             }
@@ -385,7 +403,7 @@ namespace ImageProcessor
                 // Fix the colour palette of gif images.
                 this.FixGifs();
 
-                if (this.ImageFormat == ImageFormat.Jpeg)
+                if (object.Equals(this.ImageFormat, ImageFormat.Jpeg))
                 {
                     // Jpegs can be saved with different settings to include a quality setting for the JPEG compression.
                     // This improves output compression and quality. 
@@ -418,7 +436,7 @@ namespace ImageProcessor
                 // Fix the colour palette of gif images.
                 this.FixGifs();
 
-                if (this.ImageFormat == ImageFormat.Jpeg)
+                if (object.Equals(this.ImageFormat, ImageFormat.Jpeg))
                 {
                     // Jpegs can be saved with different settings to include a quality setting for the JPEG compression.
                     // This improves output compression and quality. 
@@ -500,7 +518,7 @@ namespace ImageProcessor
         {
             // Fix the colour palette of gif images.
             // TODO: Why does the palette not get fixed when resized to the same dimensions.
-            if (this.ImageFormat == ImageFormat.Gif)
+            if (object.Equals(this.ImageFormat, ImageFormat.Gif))
             {
                 OctreeQuantizer quantizer = new OctreeQuantizer(255, 8);
                 this.Image = quantizer.Quantize(this.Image);

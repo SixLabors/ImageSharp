@@ -7,13 +7,12 @@
 namespace ImageProcessor.Processors
 {
     #region Using
+    using System;
     using System.Collections.Generic;
     using System.Drawing;
-    using System.Drawing.Imaging;
-    using System.Text.RegularExpressions;
-    using ImageProcessor.Helpers.Extensions;
-    using System;
     using System.Drawing.Drawing2D;
+    using System.Text.RegularExpressions;
+    using ImageProcessor.Imaging;
     #endregion
 
     /// <summary>
@@ -24,23 +23,17 @@ namespace ImageProcessor.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        //private static readonly Regex QueryRegex = new Regex(@"rotate=-*([1-9][0-7][0-9]|\d{1,2}(?!\d)|180)|rotate=[^&]*", RegexOptions.Compiled);
-        private static readonly Regex QueryRegex = new Regex(@"rotate=-*([1-2][0-9][0-9]|3[0-5][0-9]|\d{1}(?!\d)|\d{1,2}(?!\d)|360)|rotate=[^&]*", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"rotate=([1-2][0-9][0-9]|3[0-5][0-9]|\d{1}(?!\d)|\d{1,2}(?!\d)|360)|rotate=[^&]*", RegexOptions.Compiled);
 
         /// <summary>
         /// The regular expression to search strings for the angle attribute.
         /// </summary>
-        private static readonly Regex AngleRegex = new Regex(@"rotate=\[-*([1-9][0-7][0-9]|\d{1,2}(?!\d)|180)\]", RegexOptions.Compiled);
+        private static readonly Regex AngleRegex = new Regex(@"rotate=angle-\[([1-2][0-9][0-9]|3[0-5][0-9]|\d{1}(?!\d)|\d{1,2}(?!\d)|360)\]", RegexOptions.Compiled);
 
         /// <summary>
         /// The regular expression to search strings for the color attribute.
         /// </summary>
         private static readonly Regex ColorRegex = new Regex(@"bgcolor-([0-9a-fA-F]{3}){1,2}", RegexOptions.Compiled);
-
-        /// <summary>
-        /// The format of the image to rotate.
-        /// </summary>
-        private ImageFormat imageFormat;
 
         #region IGraphicsProcessor Members
         /// <summary>
@@ -127,11 +120,25 @@ namespace ImageProcessor.Processors
                     {
                         // Set the index on the first instance only.
                         this.SortOrder = match.Index;
-                        int degrees;
 
-                        int.TryParse(match.Value.Split('=')[1], out degrees);
+                        RotateLayer rotateLayer = new RotateLayer();
 
-                        this.DynamicParameter = degrees;
+                        string toParse = match.Value;
+
+                        if (toParse.Contains("bgcolor"))
+                        {
+                            rotateLayer.Angle = this.ParseAngle(toParse);
+                            rotateLayer.BackgroundColor = this.ParseColor(toParse);
+                        }
+                        else
+                        {
+                            int degrees;
+                            int.TryParse(match.Value.Split('=')[1], out degrees);
+
+                            rotateLayer.Angle = degrees;
+                        }
+
+                        this.DynamicParameter = rotateLayer;
                     }
 
                     index += 1;
@@ -158,21 +165,20 @@ namespace ImageProcessor.Processors
 
             try
             {
-                int angle = this.DynamicParameter;
+                RotateLayer rotateLayer = this.DynamicParameter;
+                int angle = rotateLayer.Angle;
+                Color backgroundColor = rotateLayer.BackgroundColor;
 
                 // Center of the image
-                float rotateAtX = image.Width / 2;
-                float rotateAtY = image.Height / 2;
-
-                this.imageFormat = factory.ImageFormat;
+                float rotateAtX = Math.Abs(image.Width / 2);
+                float rotateAtY = Math.Abs(image.Height / 2);
 
                 // Create a rotated image.
-                newImage = RotateImage(image, rotateAtX, rotateAtY, angle);
+                newImage = this.RotateImage(image, rotateAtX, rotateAtY, angle, backgroundColor);
                 newImage.Tag = image.Tag;
 
                 image.Dispose();
                 image = newImage;
-
             }
             catch
             {
@@ -186,67 +192,71 @@ namespace ImageProcessor.Processors
         }
         #endregion
 
+        #region Private Methods
         /// <summary>
-        /// 
+        /// Rotates an image to the given angle at the given position.
         /// </summary>
-        /// <param name="image"></param>
-        /// <param name="rotateAtX"></param>
-        /// <param name="rotateAtY"></param>
-        /// <param name="angle"></param>
-        /// <returns></returns>
-        /// <remarks> Based on http://www.codeproject.com/Articles/58815/C-Image-PictureBox-Rotations?msg=4155374#xx4155374xx</remarks>
-        private Bitmap RotateImage(Image image, float rotateAtX, float rotateAtY, float angle)
+        /// <param name="image">The image to rotate</param>
+        /// <param name="rotateAtX">The horizontal pixel coordinate at which to rotate the image.</param>
+        /// <param name="rotateAtY">The vertical pixel coordinate at which to rotate the image.</param>
+        /// <param name="angle">The angle in degress at which to rotate the image.</param>
+        /// <param name="backgroundColor">The background color to fill an image with.</param>
+        /// <returns>The image rotated to the given angle at the given position.</returns>
+        /// <remarks> 
+        /// Based on http://www.codeproject.com/Articles/58815/C-Image-PictureBox-Rotations?msg=4155374#xx4155374xx
+        /// </remarks>
+        private Bitmap RotateImage(Image image, float rotateAtX, float rotateAtY, float angle, Color backgroundColor)
         {
-            int width, height, X, Y;
+            int width, height, x, y;
 
             // Degrees to radians according to Google. 
-            const double degreeToRadian = 0.0174532925;
+            const double DegreeToRadian = 0.0174532925;
 
-            double widthAsDouble = (double)image.Width;
-            double heightAsDouble = (double)image.Height;
+            double widthAsDouble = image.Width;
+            double heightAsDouble = image.Height;
 
             // Allow for angles over 180
             if (angle > 180)
             {
                 angle = angle - 360;
-            }   
+            }
 
-            double degrees = Math.Abs(angle);        
+            double degrees = Math.Abs(angle);
 
             if (degrees <= 90)
             {
-                double radians = degreeToRadian * degrees;
+                double radians = DegreeToRadian * degrees;
                 double radiansSin = Math.Sin(radians);
                 double radiansCos = Math.Cos(radians);
-                width = (int)(heightAsDouble * radiansSin + widthAsDouble * radiansCos);
-                height = (int)(widthAsDouble * radiansSin + heightAsDouble * radiansCos);
-                X = (width - image.Width) / 2;
-                Y = (height - image.Height) / 2;
+                width = (int)((heightAsDouble * radiansSin) + (widthAsDouble * radiansCos));
+                height = (int)((widthAsDouble * radiansSin) + (heightAsDouble * radiansCos));
+                x = (width - image.Width) / 2;
+                y = (height - image.Height) / 2;
             }
             else
             {
                 degrees -= 90;
-                double radians = degreeToRadian * degrees;
+                double radians = DegreeToRadian * degrees;
                 double radiansSin = Math.Sin(radians);
                 double radiansCos = Math.Cos(radians);
 
-                // Fix the 270 bug
-                if (radiansCos == -1)
+                // Fix the 270 error
+                if (Math.Abs(radiansCos - -1.0D) < 0.00001)
                 {
-                    radiansCos = -1 * -1;
+                    radiansCos = 1;
                 }
 
-                width = (int)(widthAsDouble * radiansSin + heightAsDouble * radiansCos);
-                height = (int)(heightAsDouble * radiansSin + widthAsDouble * radiansCos);
-                X = (width - image.Width) / 2;
-                Y = (height - image.Height) / 2;
+                width = (int)((widthAsDouble * radiansSin) + (heightAsDouble * radiansCos));
+                height = (int)((heightAsDouble * radiansSin) + (widthAsDouble * radiansCos));
+                x = (width - image.Width) / 2;
+                y = (height - image.Height) / 2;
             }
 
-            //create a new empty bitmap to hold rotated image
+            // Create a new empty bitmap to hold rotated image
             Bitmap newImage = new Bitmap(width, height);
             newImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
 
-            //make a graphics object from the empty bitmap
+            // Make a graphics object from the empty bitmap
             using (Graphics graphics = Graphics.FromImage(newImage))
             {
                 // Reduce the jagged edge.
@@ -257,26 +267,67 @@ namespace ImageProcessor.Processors
                 graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
                 graphics.CompositingQuality = CompositingQuality.HighSpeed;
 
-                // Fill the background TODO: Set a color
-                if (this.imageFormat == ImageFormat.Jpeg)
-                {
-                    graphics.Clear(Color.White);
-                }
+                // Fill the background.
+                graphics.Clear(backgroundColor);
 
                 // Put the rotation point in the "center" of the image
-                graphics.TranslateTransform(rotateAtX + X, rotateAtY + Y);
+                graphics.TranslateTransform(rotateAtX + x, rotateAtY + y);
 
                 // Rotate the image
                 graphics.RotateTransform(angle);
 
                 // Move the image back
-                graphics.TranslateTransform(-rotateAtX - X, -rotateAtY - Y);
+                graphics.TranslateTransform(-rotateAtX - x, -rotateAtY - y);
 
                 // Draw passed in image onto graphics object
-                graphics.DrawImage(image, new PointF(0 + X, 0 + Y));
-
+                graphics.DrawImage(image, new PointF(0 + x, 0 + y));
             }
+
             return newImage;
         }
+
+        /// <summary>
+        /// Returns the correct <see cref="T:System.Int32"/> containing the angle for the given string.
+        /// </summary>
+        /// <param name="input">
+        /// The input string containing the value to parse.
+        /// </param>
+        /// <returns>
+        /// The correct <see cref="T:System.Int32"/> containing the angle for the given string.
+        /// </returns>
+        private int ParseAngle(string input)
+        {
+            foreach (Match match in AngleRegex.Matches(input))
+            {
+                // Split on angle-
+                int angle;
+                int.TryParse(match.Value.Replace("[", string.Empty).Replace("]", string.Empty).Split('-')[1], out angle);
+                return angle;
+            }
+
+            // No rotate - matches the RotateLayer default.
+            return 0;
+        }
+
+        /// <summary>
+        /// Returns the correct <see cref="T:System.Drawing.Color"/> for the given string.
+        /// </summary>
+        /// <param name="input">
+        /// The input string containing the value to parse.
+        /// </param>
+        /// <returns>
+        /// The correct <see cref="T:System.Drawing.Color"/>
+        /// </returns>
+        private Color ParseColor(string input)
+        {
+            foreach (Match match in ColorRegex.Matches(input))
+            {
+                // split on color-hex
+                return ColorTranslator.FromHtml("#" + match.Value.Split('-')[1]);
+            }
+
+            return Color.Transparent;
+        }
+        #endregion
     }
 }

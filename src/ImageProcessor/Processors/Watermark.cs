@@ -452,7 +452,7 @@ namespace ImageProcessor.Processors
         /// The input string containing the value to parse.
         /// </param>
         /// <returns>
-        /// The correct <see cref="T:System.Int32"/> containing the font family for the given string.
+        /// The correct <see cref="T:System.Int32"/> containing the opacity for the given string.
         /// </returns>
         private int ParseOpacity(string input)
         {

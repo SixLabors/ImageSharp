@@ -28,7 +28,7 @@ namespace ImageProcessor.Processors
         /// <summary>
         /// The regular expression to search strings for the angle attribute.
         /// </summary>
-        private static readonly Regex AngleRegex = new Regex(@"rotate=angle-\[([1-2][0-9][0-9]|3[0-5][0-9]|\d{1}(?!\d)|\d{1,2}(?!\d)|360)\]", RegexOptions.Compiled);
+        private static readonly Regex AngleRegex = new Regex(@"rotate=angle-([1-2][0-9][0-9]|3[0-5][0-9]|\d{1}(?!\d)|\d{1,2}(?!\d)|360)", RegexOptions.Compiled);
 
         /// <summary>
         /// The regular expression to search strings for the color attribute.
@@ -301,7 +301,7 @@ namespace ImageProcessor.Processors
             {
                 // Split on angle-
                 int angle;
-                int.TryParse(match.Value.Replace("[", string.Empty).Replace("]", string.Empty).Split('-')[1], out angle);
+                int.TryParse(match.Value.Split('-')[1], out angle);
                 return angle;
             }
 

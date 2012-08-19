@@ -7,18 +7,11 @@
 namespace ImageProcessor.Processors
 {
     #region Using
-
-    using System;
     using System.Collections.Generic;
     using System.Drawing;
-    using System.Drawing.Drawing2D;
     using System.Drawing.Imaging;
-    using System.IO;
     using System.Text.RegularExpressions;
-    using System.Web;
-    using System.Web.Hosting;
     using ImageProcessor.Imaging.Filters;
-
     #endregion
 
     /// <summary>
@@ -183,8 +176,10 @@ namespace ImageProcessor.Processors
                         break;
                 }
 
-                return matrix.ProcessImage(factory, image, newImage);
-
+                if (matrix != null)
+                {
+                    return matrix.ProcessImage(factory, image, newImage);
+                }
             }
             catch
             {

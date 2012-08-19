@@ -76,6 +76,7 @@
     <Compile Include="Imaging\OctreeQuantizer.cs" />
     <Compile Include="Imaging\Quantizer.cs" />
     <Compile Include="Imaging\ResponseType.cs" />
+    <Compile Include="Imaging\RotateLayer.cs" />
     <Compile Include="Imaging\TextLayer.cs" />
     <Compile Include="Processors\Alpha.cs" />
     <Compile Include="Processors\Rotate.cs" />

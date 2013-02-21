@@ -1,6 +1,7 @@
 ﻿// -----------------------------------------------------------------------
-// <copyright file="Quality.cs" company="">
-// TODO: Update copyright text.
+// <copyright file="Quality.cs" company="James South">
+//     Copyright (c) James South.
+//     Dual licensed under the MIT or GPL Version 2 licenses.
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -21,7 +22,7 @@ namespace ImageProcessor.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"quality=\d{1,2}(?!\d)|quality=100", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"quality=(?:100|[1-9]?[0-9])", RegexOptions.Compiled);
 
         #region IGraphicsProcessor Members
         /// <summary>

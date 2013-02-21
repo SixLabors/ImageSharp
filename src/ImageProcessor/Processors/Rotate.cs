@@ -1,6 +1,7 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="Rotate.cs" company="James South">
-// TODO: Update copyright text.
+//     Copyright (c) James South.
+//     Dual licensed under the MIT or GPL Version 2 licenses.
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -23,12 +24,12 @@ namespace ImageProcessor.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"rotate=([1-2][0-9][0-9]|3[0-5][0-9]|\d{1}(?!\d)|\d{1,2}(?!\d)|360)|rotate=[^&]*", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"rotate=((?:3[0-5][0-9]|[12][0-9]{2}|[1-9][0-9]?)|angle-(?:3[0-5][0-9]|[12][0-9]{2}|[1-9][0-9]?)\|bgcolor=([0-9a-fA-F]{3}){1,2})", RegexOptions.Compiled);
 
         /// <summary>
         /// The regular expression to search strings for the angle attribute.
         /// </summary>
-        private static readonly Regex AngleRegex = new Regex(@"rotate=angle-([1-2][0-9][0-9]|3[0-5][0-9]|\d{1}(?!\d)|\d{1,2}(?!\d)|360)", RegexOptions.Compiled);
+        private static readonly Regex AngleRegex = new Regex(@"angle-(?:3[0-5][0-9]|[12][0-9]{2}|[1-9][0-9]?)", RegexOptions.Compiled);
 
         /// <summary>
         /// The regular expression to search strings for the color attribute.

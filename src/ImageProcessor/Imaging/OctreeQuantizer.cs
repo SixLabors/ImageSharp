@@ -1,6 +1,7 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="OctreeQuantizer.cs" company="James South">
-// TODO: Update copyright text.
+//     Copyright (c) James South.
+//     Dual licensed under the MIT or GPL Version 2 licenses.
 // </copyright>
 // -----------------------------------------------------------------------
 

@@ -1,6 +1,7 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="Watermark.cs" company="James South">
-// TODO: Update copyright text.
+//     Copyright (c) James South.
+//     Dual licensed under the MIT or GPL Version 2 licenses.
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -23,50 +24,50 @@ namespace ImageProcessor.Processors
     /// </summary>
     public class Watermark : IGraphicsProcessor
     {
-        /// <summary>
-        /// The regular expression to search strings for.
-        /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"watermark=[^&]*", RegexOptions.Compiled);
+/// <summary>
+/// The regular expression to search strings for.
+/// </summary>
+private static readonly Regex QueryRegex = new Regex(@"watermark=[^&]*", RegexOptions.Compiled);
 
-        /// <summary>
-        /// The regular expression to search strings for the text attribute.
-        /// </summary>
-        private static readonly Regex TextRegex = new Regex(@"text-[^/:?#\[\]@!$&'()*%\|,;=]+", RegexOptions.Compiled);
+/// <summary>
+/// The regular expression to search strings for the text attribute.
+/// </summary>
+private static readonly Regex TextRegex = new Regex(@"text-[^/:?#\[\]@!$&'()*%\|,;=]+", RegexOptions.Compiled);
 
-        /// <summary>
-        /// The regular expression to search strings for the position attribute.
-        /// </summary>
-        private static readonly Regex PositionRegex = new Regex(@"position-\d+-\d+", RegexOptions.Compiled);
+/// <summary>
+/// The regular expression to search strings for the position attribute.
+/// </summary>
+private static readonly Regex PositionRegex = new Regex(@"position-\d+-\d+", RegexOptions.Compiled);
 
-        /// <summary>
-        /// The regular expression to search strings for the color attribute.
-        /// </summary>
-        private static readonly Regex ColorRegex = new Regex(@"color-([0-9a-fA-F]{3}){1,2}", RegexOptions.Compiled);
+/// <summary>
+/// The regular expression to search strings for the color attribute.
+/// </summary>
+private static readonly Regex ColorRegex = new Regex(@"color-([0-9a-fA-F]{3}){1,2}", RegexOptions.Compiled);
 
-        /// <summary>
-        /// The regular expression to search strings for the fontsize attribute.
-        /// </summary>
-        private static readonly Regex FontSizeRegex = new Regex(@"size-\d{1,3}", RegexOptions.Compiled);
+/// <summary>
+/// The regular expression to search strings for the fontsize attribute.
+/// </summary>
+private static readonly Regex FontSizeRegex = new Regex(@"size-\d{1,3}", RegexOptions.Compiled);
 
-        /// <summary>
-        /// The regular expression to search strings for the fontstyle attribute.
-        /// </summary>
-        private static readonly Regex FontStyleRegex = new Regex(@"style-(bold|italic|regular|strikeout|underline)", RegexOptions.Compiled);
+/// <summary>
+/// The regular expression to search strings for the fontstyle attribute.
+/// </summary>
+private static readonly Regex FontStyleRegex = new Regex(@"style-(bold|italic|regular|strikeout|underline)", RegexOptions.Compiled);
 
-        /// <summary>
-        /// The regular expression to search strings for the font family attribute.
-        /// </summary>
-        private static readonly Regex FontFamilyRegex = new Regex(@"font-[^/:?#\[\]@!$&'()*%\|,;=0-9]+", RegexOptions.Compiled);
+/// <summary>
+/// The regular expression to search strings for the font family attribute.
+/// </summary>
+private static readonly Regex FontFamilyRegex = new Regex(@"font-[^/:?#\[\]@!$&'()*%\|,;=0-9]+", RegexOptions.Compiled);
 
-        /// <summary>
-        /// The regular expression to search strings for the opacity attribute.
-        /// </summary>
-        private static readonly Regex OpacityRegex = new Regex(@"opacity-\d{1,2}(?!\d)|opacity-100", RegexOptions.Compiled);
+/// <summary>
+/// The regular expression to search strings for the opacity attribute.
+/// </summary>
+private static readonly Regex OpacityRegex = new Regex(@"opacity-(?:100|[1-9]?[0-9])", RegexOptions.Compiled);
 
-        /// <summary>
-        /// The regular expression to search strings for the shadow attribute.
-        /// </summary>
-        private static readonly Regex ShadowRegex = new Regex(@"shadow-true", RegexOptions.Compiled);
+/// <summary>
+/// The regular expression to search strings for the shadow attribute.
+/// </summary>
+private static readonly Regex ShadowRegex = new Regex(@"shadow-true", RegexOptions.Compiled);
 
         #region IGraphicsProcessor Members
         /// <summary>

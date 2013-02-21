@@ -1,6 +1,7 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="Resize.cs" company="James South">
-// TODO: Update copyright text.
+//     Copyright (c) James South.
+//     Dual licensed under the MIT or GPL Version 2 licenses.
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -24,7 +25,7 @@ namespace ImageProcessor.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"(resize=width-\d+\|height-\d+|width=\d+\&height=\d+|height=\d+\&width=\d+|(width|height)=\d+)", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"(width|height)=\d+", RegexOptions.Compiled);
 
         #region IGraphicsProcessor Members
         /// <summary>
@@ -113,48 +114,17 @@ namespace ImageProcessor.Processors
                         // Set the index on the first instance only.
                         this.SortOrder = match.Index;
                     }
-
-                    // Resize syntax
-                    if (match.Value.Contains("resize"))
+                    
+                    // Match syntax
+                    if (match.Value.Contains("width"))
                     {
-                        int[] values = match.Value.ToIntegerArray();
-
-                        size.Width = values[0];
-                        size.Height = values[1];
-                    }
-                    else if (match.Value.Contains("width") && match.Value.Contains("height"))
-                    {
-                        // Combined width/height syntax
-                        int widthPosition = match.Value.IndexOf("width");
-                        int heightPosition = match.Value.IndexOf("height");
-
-                        int[] values = match.Value.ToIntegerArray();
-
-                        if (widthPosition < heightPosition)
-                        {
-                            size.Width = values[0];
-                            size.Height = values[1];
-
-                        }
-                        else
-                        {
-                            size.Width = values[1];
-                            size.Height = values[0];
-                        }
+                        size.Width = match.Value.ToIntegerArray()[0];
                     }
                     else
                     {
-                        // Inividual syntax
-                        if (match.Value.Contains("width"))
-                        {
-                            size.Width = match.Value.ToIntegerArray()[0];
-                        }
-                        else
-                        {
-                            size.Height = match.Value.ToIntegerArray()[0];
-                        }
+                        size.Height = match.Value.ToIntegerArray()[0];
                     }
-
+                    
                     index += 1;
                 }
             }

@@ -1,6 +1,7 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="Alpha.cs" company="James South">
-// TODO: Update copyright text.
+//     Copyright (c) James South.
+//     Dual licensed under the MIT or GPL Version 2 licenses.
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -23,7 +24,7 @@ namespace ImageProcessor.Processors
         /// The regular expression to search strings for.
         /// http://stackoverflow.com/a/6400969/427899
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"alpha=\d{1,2}(?!\d)|alpha=100", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"alpha=(?:100|[1-9]?[0-9])", RegexOptions.Compiled);
 
         #region IGraphicsProcessor Members
         /// <summary>

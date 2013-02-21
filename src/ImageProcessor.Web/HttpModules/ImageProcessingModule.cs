@@ -1,6 +1,7 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="ImageProcessingModule.cs" company="James South">
-// TODO: Update copyright text.
+//     Copyright (c) James South.
+//     Dual licensed under the MIT or GPL Version 2 licenses.
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -20,7 +21,7 @@ namespace ImageProcessor.Web.HttpModules
     #endregion
 
     /// <summary>
-    /// TODO: Update summary.
+    /// Processes any image requests within the web application.
     /// </summary>
     public class ImageProcessingModule : IHttpModule
     {
@@ -121,7 +122,7 @@ namespace ImageProcessor.Web.HttpModules
                             isFirstRun = false;
                         }
 
-                        // ImageFactory.Instance.Load(fullPath).AutoProcess().Save(cachedPath);
+                        // Process the image.
                         using (ImageFactory imageFactory = new ImageFactory())
                         {
                             if (isRemote)

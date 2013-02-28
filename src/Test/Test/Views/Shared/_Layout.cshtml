@@ -3,30 +3,23 @@
 <head>
     <meta charset="utf-8" />
     <title>@ViewBag.Title</title>
-    <link href="@Url.Content("~/Content/Site.css")" rel="stylesheet" type="text/css" />
+    <link href="@Url.Content("~/Content/flexo.css")" rel="stylesheet" type="text/css" />
+    <link href="@Url.Content("~/Content/style.css")" rel="stylesheet" type="text/css" />
 </head>
 <body>
     <div class="page">
-        <header>
-            <div id="title">
-                <h1>
-                    ImageProcessor Test Website</h1>
-            </div>
-            <div id="logindisplay">
-            </div>
-            <nav>
-                <ul id="menu">
-                    <li>@Html.ActionLink("Home", "Index", "Home")</li>
-                    <li>@Html.ActionLink("About", "About", "Home")</li>
-                    <li>@Html.ActionLink("Responsive", "Responsive", "Home")</li>
-                </ul>
-            </nav>
-        </header>
-        <section id="main">
-            @RenderBody()
-        </section>
-        <footer>
-        </footer>
+        <div class="container">
+            <header>
+                <div>
+                    <h1>ImageProcessor Test Website</h1>
+                </div>
+            </header>
+            <section id="main">
+                @RenderBody()
+            </section>
+        </div>
     </div>
+    <footer class="page-footer">
+    </footer>
 </body>
 </html>

@@ -8,10 +8,15 @@
 namespace ImageProcessor.Web
 {
     #region Using
+
+    using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Reflection;
+
     using ImageProcessor.Processors;
     using ImageProcessor.Web.Config;
+    using ImageProcessor.Web.Helpers;
     #endregion
 
     /// <summary>
@@ -43,11 +48,34 @@ namespace ImageProcessor.Web
                 // Loop through and process the image.
                 foreach (IGraphicsProcessor graphicsProcessor in list)
                 {
-                    factory.Image = graphicsProcessor.ProcessImage(factory);
+                    try
+                    {
+                        // TODO: This is going to be a bottleneck for speed. Find a faster way.
+                        IGraphicsProcessor processor =
+                            (IGraphicsProcessor)Activator.CreateInstance(graphicsProcessor.GetType());
+                        // Get the dynamic parameter.
+                        processor.MatchRegexIndex(factory.QueryString);
+                        // Process.
+                        factory.Image = processor.ProcessImage(factory);
+
+                        //// TODO: This is going to be a bottleneck for speed. Find a faster way.
+                        //IGraphicsProcessor processor =
+                        //    (IGraphicsProcessor)Activator.CreateInstance(graphicsProcessor.GetType());
+                        //// Get the dynamic parameter.
+                        //processor.MatchRegexIndex(factory.QueryString);
+                        //// Process.
+                        //factory.Image = processor.ProcessImage(factory);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw ex;
+                    }
                 }
             }
 
             return factory;
         }
+
+
     }
 }

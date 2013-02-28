@@ -318,7 +318,7 @@ namespace ImageProcessor
         /// Rotates the current image by the given angle.
         /// </summary>
         /// <param name="rotateLayer">
-        /// The RotateLayer containing the properties to rotate the image.
+        /// The <see cref="T:ImageProcessor.Imaging.RotateLayer"/> containing the properties to rotate the image.
         /// </param>
         /// <returns>
         /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
@@ -363,7 +363,8 @@ namespace ImageProcessor
         /// Adds a text based watermark to the image
         /// </summary>
         /// <param name="textLayer">
-        /// The text layer containing the properties necessary to add the text based watermark to the image.
+        /// The <see cref="T:ImageProcessor.Imaging.TextLayer"/> containing the properties necessary to add 
+        /// the text based watermark to the image.
         /// </param>
         /// <returns>
         /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.

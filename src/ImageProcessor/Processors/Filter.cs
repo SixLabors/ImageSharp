@@ -134,14 +134,13 @@ namespace ImageProcessor.Processors
         {
             Bitmap newImage = null;
             Image image = factory.Image;
+            IMatrixFilter matrix = null;
 
             try
             {
                 // Dont use an object initializer here.
                 newImage = new Bitmap(image.Width, image.Height, PixelFormat.Format32bppPArgb);
                 newImage.Tag = image.Tag;
-
-                IMatrixFilter matrix = null;
 
                 switch ((string)this.DynamicParameter)
                 {
@@ -180,6 +179,7 @@ namespace ImageProcessor.Processors
                 if (matrix != null)
                 {
                     return matrix.ProcessImage(factory, image, newImage);
+                  
                 }
             }
             catch

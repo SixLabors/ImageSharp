@@ -291,15 +291,19 @@ namespace ImageProcessor
         /// <summary>
         /// Resizes an image to the given dimensions.
         /// </summary>
-        /// <param name="width">The width to set the image to.</param>
-        /// <param name="height">The height to set the image to.</param>
+        /// <param name="size">
+        /// The <see cref="T:System.Drawing.Size"/> containing the width and height to set the image to.
+        /// </param>
         /// <returns>
         /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
         /// </returns>
-        public ImageFactory Resize(int width, int height)
+        public ImageFactory Resize(Size size)
         {
             if (this.ShouldProcess)
             {
+                int width = size.Width;
+                int height = size.Height;
+
                 var resizeSettings = new Dictionary<string, string> { { "MaxWidth", width.ToString("G") }, { "MaxHeight", height.ToString("G") } };
 
                 Resize resize = new Resize { DynamicParameter = new Size(width, height), Settings = resizeSettings };
@@ -313,30 +317,20 @@ namespace ImageProcessor
         /// <summary>
         /// Rotates the current image by the given angle.
         /// </summary>
-        /// <param name="angle">
-        /// The angle by which to rotate the image.
-        /// </param>
-        /// <param name="backgroundColour">
-        /// The background Colour.
+        /// <param name="rotateLayer">
+        /// The RotateLayer containing the properties to rotate the image.
         /// </param>
         /// <returns>
         /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
         /// </returns>
-        public ImageFactory Rotate(int angle, Color backgroundColour = default(Color))
+        public ImageFactory Rotate(RotateLayer rotateLayer)
         {
             if (this.ShouldProcess)
             {
                 // Sanitize the input.
-                if (angle > 360 || angle < 0)
+                if (rotateLayer.Angle > 360 || rotateLayer.Angle < 0)
                 {
-                    angle = 0;
-                }
-
-                RotateLayer rotateLayer = new RotateLayer { Angle = angle };
-
-                if (backgroundColour != default(Color))
-                {
-                    rotateLayer.BackgroundColor = backgroundColour;
+                    rotateLayer.Angle = 0;
                 }
 
                 Rotate rotate = new Rotate { DynamicParameter = rotateLayer };

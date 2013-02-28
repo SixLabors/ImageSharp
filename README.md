@@ -1,20 +1,21 @@
 ImageProcessor
 ===============
 
-ImageProcessor is a library for on the fly processing of image files using Asp.Net 4 written in c#.
+Imageprocessor is a lightweight library written in C# that allows you to manipulate images on-the-fly using ASP.NET 4.0.
 
-The library architecture is highly extensible and allows for easy extension.
+It's fast, extensible, easy to use, comes bundled with some great features and is fully open source.
 
 Core plugins at present include:
 
  - Resize 
  - Crop
- - Quality (The quality to set the output for jpeg files)
- - Filter (Image filters including sepia, greyscale, blackwhite, lomograph, comic)
- - Vignette (Adds a vignette effect to images)
- - Format (Sets the output format)
  - Alpha (Sets opacity)
+ - Filter (Image filters including sepia, greyscale, blackwhite, lomograph, polaroid, comic, gotham, hisatch, losatch)
  - Watermark (Set a text watermark)
+ - Format (Sets the output format)
+ - Rotate (Rotate the image)
+ - Quality (The quality to set the output for jpeg files)
+ - Vignette (Adds a vignette effect to images)
 
 The library consists of two binaries: **ImageProcessor.dll** and **ImageProcessor.Web.dll**.
 
@@ -24,9 +25,9 @@ e.g.
 
     // Read a file and resize it.
     byte[] photoBytes = File.ReadAllBytes(file);
-    int quality = 90;
+    int quality = 70;
     ImageFormat format = ImageFormat.Jpeg;
-    int thumbnailSize = 150;
+	Size size = new Size(150, 0)
         
     using (var inStream = new MemoryStream(photoBytes))
     {
@@ -34,9 +35,15 @@ e.g.
         {
             using (ImageFactory imageFactory = new ImageFactory())
             {
-                // Load, resize and save an image.
-                imageFactory.Load(inStream).Format(format).Quality(quality).Resize(thumbnailSize, 0).Save(outStream);
+                // Load, resize, set the format and quality and save an image.
+                imageFactory.Load(inStream)
+				            .Resize(size)
+							.Format(format)
+							.Quality(quality)
+							.Save(outStream);
             }
+
+			// Do something with the stream.
         }
     }
 
@@ -44,14 +51,18 @@ e.g.
 
 Using the HttpModule requires no code writing at all. Just reference the binaries and add the relevant sections to the web.config
 
-Image requests suffixed with QueryString parameters will then be processed and cached to the server allowing for easy and efficient parsing of following requests.
+Image requests suffixed with querystring parameters will then be processed and cached to the server allowing for easy and efficient parsing of following requests.
 
 The parsing engine for the HttpModule is incredibly flexible and will **allow you to add querystring parameters in any order.**
 
 Installation
 ============
 
-Installation is simple. Download the zip file from the downloads section and copy the two binaries into your bin folder. Then copy the example configuration values from the `config.txt` into your `web.config` to enable the processor. A Nuget package will be created once I've read the manual to allow simpler installation in the future.
+Installation is simple. A Nuget package is available [here][1]. 
+
+  [1]: http://nuget.org/packages/ImageProcessor/
+
+Alternatively you can download and build the project and reference the binaries. Then copy the example configuration values from the demo project into your `web.config` to enable the processor. 
 
 Usage
 =====
@@ -144,10 +155,37 @@ Supported file format just now are:
   - jpg
   - bmp
   - png
-  - gif
+  - gif (requires full trust)
 
 e.g.
 
     <img src="/images.yourimage.jpg?format=gif" alt="your image as a gif"/>
     
 
+Rotate
+======
+
+Imageprocessor can rotate your images without clipping. You can also optionally fill the background color for image types without transparency.
+
+e.g.
+
+    <img src="/images.yourimage.jpg?rotate=26" alt="your image rotated"/>
+	<img src="/images.yourimage.jpg?rotate=angle-54|bgcolor-fff" alt="your image rotated"/>
+
+Quality
+======
+
+Whilst Imageprocessor delivers an excellent quality/filesize ratio it also allows you to change the quality of jpegs on-the-fly.
+
+e.g.
+
+    <img src="/images.yourimage.jpg?quality=65" alt="your image at quality 30"/>
+
+Vignette
+======
+
+Imageprocessor can also add a vignette effect to images.
+
+e.g.
+
+    <img src="/images.yourimage.jpg?vignette=true" alt="your image vignetted"/>

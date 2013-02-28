@@ -13,11 +13,29 @@ h1 {
     font-size: 3em;
 }
 
+section section {
+    padding-bottom: 1em;
+    margin-bottom: 2em;
+}
+
+    section section:nth-child(2n) {
+        color: #fff;
+    }
+
+
+    section section:nth-child(2) {
+        background-color: #00a9ec;
+    }
+
+    section section:nth-child(4) {
+        background-color: #ED1C24;
+    }
+
 img {
-    background: #fff;
+    /*background: #fff;
     padding: 3px;
     -webkit-box-shadow: 0 0 5px rgb(0, 0, 0, 0.4);
-    box-shadow: 0 0 5px rgb(0, 0, 0, 0.4);
+    box-shadow: 0 0 5px rgb(0, 0, 0, 0.4);*/
 }
 
 .no-bullets {

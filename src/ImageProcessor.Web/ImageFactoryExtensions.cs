@@ -24,6 +24,8 @@ namespace ImageProcessor.Web
     /// </summary>
     public static class ImageFactoryExtensions
     {
+        private static readonly object SyncLock = new object();
+
         /// <summary>
         /// Auto processes image files based on any querystring parameters added to the image path.
         /// </summary>
@@ -38,42 +40,26 @@ namespace ImageProcessor.Web
         {
             if (factory.ShouldProcess)
             {
-                // Get a list of all graphics processors that have parsed and matched the querystring.
-                List<IGraphicsProcessor> list =
-                    ImageProcessorConfig.Instance.GraphicsProcessors
-                    .Where(x => x.MatchRegexIndex(factory.QueryString) != int.MaxValue)
-                    .OrderBy(y => y.SortOrder)
-                    .ToList();
-
-                // Loop through and process the image.
-                foreach (IGraphicsProcessor graphicsProcessor in list)
+                // TODO: This is going to be a bottleneck for speed. Find a faster way.
+                lock (SyncLock)
                 {
-                    try
-                    {
-                        // TODO: This is going to be a bottleneck for speed. Find a faster way.
-                        IGraphicsProcessor processor =
-                            (IGraphicsProcessor)Activator.CreateInstance(graphicsProcessor.GetType());
-                        // Get the dynamic parameter.
-                        processor.MatchRegexIndex(factory.QueryString);
-                        // Process.
-                        factory.Image = processor.ProcessImage(factory);
+                    // Get a list of all graphics processors that have parsed and matched the querystring.
+                    List<IGraphicsProcessor> list =
+                        ImageProcessorConfig.Instance.GraphicsProcessors
+                        .Where(x => x.MatchRegexIndex(factory.QueryString) != int.MaxValue)
+                        .OrderBy(y => y.SortOrder)
+                        .ToList();
 
-                        //// TODO: This is going to be a bottleneck for speed. Find a faster way.
-                        //IGraphicsProcessor processor =
-                        //    (IGraphicsProcessor)Activator.CreateInstance(graphicsProcessor.GetType());
-                        //// Get the dynamic parameter.
-                        //processor.MatchRegexIndex(factory.QueryString);
-                        //// Process.
-                        //factory.Image = processor.ProcessImage(factory);
-                    }
-                    catch (Exception ex)
+                    // Loop through and process the image.
+                    foreach (IGraphicsProcessor graphicsProcessor in list)
                     {
-                        throw ex;
+                        factory.Image = graphicsProcessor.ProcessImage(factory);
                     }
                 }
             }
 
             return factory;
+
         }
 
 

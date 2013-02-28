@@ -14,7 +14,7 @@ namespace ImageProcessor.Imaging
     /// <summary>
     /// Enacapsulates the properties required to rotate an image.
     /// </summary>
-    internal class RotateLayer
+    public class RotateLayer
     {
         #region Constructors
         /// <summary>

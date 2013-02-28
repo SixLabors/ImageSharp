@@ -1,0 +1,212 @@
+﻿/* ==|== Flexo 2.0.1 =============================================================
+    Author: James South
+    twitter : http://twitter.com/James_M_South
+    github : https://github.com/JimBobSquarePants/Flexo
+    Copyright (c) James South.
+    Licensed under the Apache License v2.0.
+    ============================================================================== */
+
+/* =============================================================================
+   Base
+   ========================================================================== */
+html {
+    /*Use the iOS devices hardware accelerator to provide native scrolling*/
+    -webkit-overflow-scrolling: touch;
+    /* Prevents iOS text size adjust after orientation change, without disabling user zoom. */
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+    position: relative;
+}
+
+.page {
+    min-height: 100%;
+    position: relative;
+    margin-bottom: -150px;
+    padding-bottom: 150px;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    -ms-box-sizing: border-box;
+    box-sizing: border-box;
+}
+
+    .page.no-box {
+        padding-bottom: 0;
+    }
+
+.page-push, .page-footer {
+    height: 150px;
+}
+
+.page-footer {
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+}
+
+.container {
+    margin: 0 auto;
+    /* Manages width in a single place */
+    width: 95%;
+    max-width: 1140px;
+}
+
+    /* Contains floats so all columns can float left*/
+    .container:before,
+    .container:after,
+    .row:before,
+    .row:after {
+        content: "";
+        display: table;
+    }
+
+    .container:after,
+    .row:after {
+        clear: both;
+    }
+
+/* =============================================================================
+   Grid
+   ========================================================================== */
+
+[class*="clmn"] {
+    display: block;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    -ms-box-sizing: border-box;
+    box-sizing: border-box;
+    min-height: 1px;
+    float: left;
+}
+
+/* ==|== media queries ===================================================
+Portrait phone viewport to Landscape phone < 767px
+========================================================================== */
+@media screen and (max-width: 767px) {
+    body:not(.flexo-fixed) [class*="clmn"],
+    body:not(.flexo-fixed) [class*="offset"] {
+        float: none;
+        width: 100%;
+        margin-left: 0!important;
+    }
+}
+
+/* =============================================================================
+    Grid
+    ========================================================================== */
+[class*="clmn"] + [class*="clmn"]:not([class*="offset"]) {
+    margin-left: 2%;
+}
+
+/* Columns */
+
+/* Full width calculated with margins */
+.clmn1 {
+    width: 100%;
+}
+
+/* 2 column */
+.clmn2 {
+    width: 49%;
+}
+
+/* 3 column */
+.clmn3 {
+    width: 32%;
+}
+
+/* 4 column */
+.clmn4 {
+    width: 23.5%;
+}
+
+/* 5 column */
+.clmn5 {
+    width: 18.4%;
+}
+
+/* Fillers*/
+/* 2/3 column */
+.clmn2-3 {
+    width: 66%;
+}
+
+/* 3/4 column */
+.clmn3-4 {
+    width: 74.5%;
+}
+
+/* 2/5 column */
+.clmn2-5 {
+    width: 38.8%;
+}
+
+/* 3/5 column */
+.clmn3-5 {
+    width: 59.2%;
+}
+
+/* 4/5 column */
+.clmn4-5 {
+    width: 79.6%;
+}
+
+/* Offsetting columns */
+
+/*offset 1/2*/
+.offset2 {
+    margin-left: 51%;
+}
+
+/*offset 1/3 */
+.offset3 {
+    margin-left: 34%;
+}
+
+/*offset 1/4 */
+.offset4 {
+    margin-left: 25.5%;
+}
+
+/*offset 1/5 */
+.offset5 {
+    margin-left: 20.4%;
+}
+
+/* offset 2/3 */
+.offset2-3 {
+    margin-left: 68%;
+}
+
+/* offset 3/4 */
+.offset3-4 {
+    margin-left: 76.5%;
+}
+
+/* offset 2/5 */
+.offset2-5 {
+    margin-left: 40.8%;
+}
+
+/* offset 3/5 */
+.offset3-5 {
+    margin-left: 61.2%;
+}
+
+/* offset 4/5 */
+.offset4-5 {
+    margin-left: 81.6%;
+}
+
+
+/* =============================================================================
+   Fixed Grid 
+   ========================================================================== */
+.flexo-fixed .container {
+    /* Manages width in a single place */
+    width: 1140px;
+}

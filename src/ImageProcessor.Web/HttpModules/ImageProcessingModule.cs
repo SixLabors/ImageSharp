@@ -123,34 +123,39 @@ namespace ImageProcessor.Web.HttpModules
                         }
 
                         // Process the image.
-                        using (ImageFactory imageFactory = new ImageFactory())
+                        if (isRemote)
                         {
-                            if (isRemote)
+                            Uri uri = new Uri(path);
+                            RemoteFile remoteFile = new RemoteFile(uri, false);
+
+                            using (MemoryStream memoryStream = new MemoryStream())
                             {
-                                Uri uri = new Uri(path);
-                                RemoteFile remoteFile = new RemoteFile(uri, false);
-
-                                using (MemoryStream memoryStream = new MemoryStream())
+                                using (Stream responseStream = remoteFile.GetWebResponse().GetResponseStream())
                                 {
-                                    using (Stream responseStream = remoteFile.GetWebResponse().GetResponseStream())
+                                    if (responseStream != null)
                                     {
-                                        if (responseStream != null)
+                                        responseStream.CopyTo(memoryStream);
+                                        // Process the image.
+                                        using (ImageFactory imageFactory = new ImageFactory())
                                         {
-                                            responseStream.CopyTo(memoryStream);
-
                                             imageFactory.Load(memoryStream)
-                                                .AddQueryString(queryString)
-                                                .Format(ImageUtils.GetImageFormat(imageName))
-                                                .AutoProcess().Save(cachedPath);
+                                                        .AddQueryString(queryString)
+                                                        .Format(ImageUtils.GetImageFormat(imageName))
+                                                        .AutoProcess()
+                                                        .Save(cachedPath);
                                         }
                                     }
                                 }
                             }
-                            else
+                        }
+                        else
+                        {
+                            using (ImageFactory imageFactory = new ImageFactory())
                             {
                                 imageFactory.Load(fullPath).AutoProcess().Save(cachedPath);
                             }
                         }
+
 
                         // Add 1 to the counter
                         cachedImageCounter += 1;

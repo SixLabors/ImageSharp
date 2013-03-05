@@ -28,7 +28,7 @@ namespace ImageProcessor.Web.Helpers
         /// </returns>
         public static DateTime ToMinute(DateTime value)
         {
-            return new DateTime(value.Year, value.Month, value.Day, value.Hour, value.Minute, 0, value.Kind);
+            return new DateTime(value.Year, value.Month, value.Day, value.Hour, value.Minute, 0, value.Kind).ToUniversalTime();
         }
 
         /// <summary>
@@ -43,7 +43,7 @@ namespace ImageProcessor.Web.Helpers
         /// <returns>true if the specified objects are equal; otherwise, false.</returns>
         public bool Equals(System.IO.FileInfo f1, System.IO.FileInfo f2)
         {
-            return ToMinute(f1.LastWriteTime) == ToMinute(f2.LastWriteTime);
+            return ToMinute(f1.LastWriteTime.ToUniversalTime()) == ToMinute(f2.LastWriteTime.ToUniversalTime());
         }
 
         /// <summary>
@@ -53,7 +53,7 @@ namespace ImageProcessor.Web.Helpers
         /// <returns>A hash code for the specified <see cref="T:System.IO.FileInfo"/>.</returns>
         public int GetHashCode(System.IO.FileInfo fi)
         {
-            return ToMinute(fi.LastWriteTime).GetHashCode();
+            return ToMinute(fi.LastWriteTime.ToUniversalTime()).GetHashCode();
         }
     }
 }

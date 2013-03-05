@@ -49,7 +49,7 @@ namespace ImageProcessor.Web.Helpers
         /// <summary>
         /// Returns a hash code for the specified <see cref="T:System.IO.FileInfo"/>.
         /// </summary>
-        /// <param name="fi">The FileInfo to return the hashcode for.</param>
+        /// <param name="fi">The FileInfo to return the hash code for.</param>
         /// <returns>A hash code for the specified <see cref="T:System.IO.FileInfo"/>.</returns>
         public int GetHashCode(System.IO.FileInfo fi)
         {

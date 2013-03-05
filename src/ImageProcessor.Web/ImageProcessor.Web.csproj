@@ -56,8 +56,6 @@
     <Compile Include="Config\ImageProcessingSection.cs" />
     <Compile Include="Config\ImageProcessorConfig.cs" />
     <Compile Include="Config\ImageSecuritySection.cs" />
-    <Compile Include="Helpers\Class1.cs" />
-    <Compile Include="Helpers\ProcessorFactory.cs" />
     <Compile Include="Helpers\FileCompareLastwritetime.cs" />
     <Compile Include="Helpers\RemoteFile.cs" />
     <Compile Include="HttpModules\ImageProcessingModule.cs" />

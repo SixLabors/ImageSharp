@@ -43,7 +43,7 @@ namespace ImageProcessor.Web.Helpers
         /// <returns>true if the specified objects are equal; otherwise, false.</returns>
         public bool Equals(System.IO.FileInfo f1, System.IO.FileInfo f2)
         {
-            return ToMinute(f1.LastWriteTime.ToUniversalTime()) == ToMinute(f2.LastWriteTime.ToUniversalTime());
+            return ToMinute(f1.LastWriteTimeUtc) == ToMinute(f2.LastWriteTimeUtc);
         }
 
         /// <summary>
@@ -53,7 +53,7 @@ namespace ImageProcessor.Web.Helpers
         /// <returns>A hash code for the specified <see cref="T:System.IO.FileInfo"/>.</returns>
         public int GetHashCode(System.IO.FileInfo fi)
         {
-            return ToMinute(fi.LastWriteTime.ToUniversalTime()).GetHashCode();
+            return ToMinute(fi.LastWriteTimeUtc).GetHashCode();
         }
     }
 }

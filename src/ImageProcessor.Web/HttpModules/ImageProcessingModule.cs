@@ -106,6 +106,16 @@ namespace ImageProcessor.Web.HttpModules
 
             if (ImageUtils.IsValidImageExtension(path) && !string.IsNullOrWhiteSpace(queryString))
             {
+                // Check to see if this is the first run and if so run the cache controller.
+                if (isFirstRun)
+                {
+                    // Trim the cache.
+                    DiskCache.PurgeCachedFolders();
+
+                    // Disable the controller.
+                    isFirstRun = false;
+                }
+
                 string fullPath = string.Format("{0}?{1}", path, queryString);
                 string imageName = Path.GetFileName(path);
                 string cachedPath = DiskCache.GetCachePath(fullPath, imageName);
@@ -117,16 +127,6 @@ namespace ImageProcessor.Web.HttpModules
 
                     if ((exists == false) || (!isRemote && updated))
                     {
-                        // Check to see if this is the first run and if so run the cache controller.
-                        if (isFirstRun)
-                        {
-                            // Trim the cache.
-                            DiskCache.PurgeCachedFolders();
-
-                            // Disable the controller.
-                            isFirstRun = false;
-                        }
-
                         // Process the image.
                         using (ImageFactory imageFactory = new ImageFactory())
                         {
@@ -171,20 +171,22 @@ namespace ImageProcessor.Web.HttpModules
 
                         // Ensure that the LastWriteTime property of the source and cached file match.
                         DiskCache.SetCachedLastWriteTime(path, cachedPath);
-
-                        // If the number of cached imaged hits the maximum allowed for this session then we clear
-                        // the cache again and reset the counter
-                        if (cachedImageCounter >= DiskCache.MaxRunsBeforeCacheClear)
-                        {
-                            DiskCache.PurgeCachedFolders();
-                            cachedImageCounter = 0;
-                        }
                     }
 
                     context.Items[CachedResponseTypeKey] = ImageUtils.GetResponseType(imageName).ToDescription();
 
                     // The cached file is valid so just rewrite the path.
                     context.RewritePath(DiskCache.GetVirtualPath(cachedPath, context.Request), false);
+
+                    // If the number of cached imaged hits the maximum allowed for this session then we clear
+                    // the cache again and reset the counter.
+                    // TODO: There is a potential concurrency issue here but collision probability is very low#
+                    // it would be nice to nail it though.
+                    if (cachedImageCounter >= DiskCache.MaxRunsBeforeCacheClear)
+                    {
+                        DiskCache.PurgeCachedFolders();
+                        cachedImageCounter = 0;
+                    }
                 }
             }
         }

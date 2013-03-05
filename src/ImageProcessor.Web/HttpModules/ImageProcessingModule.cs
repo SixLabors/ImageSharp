@@ -78,19 +78,24 @@ namespace ImageProcessor.Web.HttpModules
 
             // Is this a remote file.
             bool isRemote = context.Request.Path.Equals(RemotePrefix, StringComparison.OrdinalIgnoreCase);
-            string path;
+            string path = string.Empty;
             string queryString = string.Empty;
 
             if (isRemote)
             {
                 // We need to split the querystring to get the actual values we want.
-                string[] paths = HttpUtility.UrlDecode(context.Request.QueryString.ToString()).Split('?');
+                string urlDecode = HttpUtility.UrlDecode(context.Request.QueryString.ToString());
 
-                path = paths[0];
-
-                if (paths.Length > 1)
+                if (urlDecode != null)
                 {
-                    queryString = paths[1];
+                    string[] paths = urlDecode.Split('?');
+
+                    path = paths[0];
+
+                    if (paths.Length > 1)
+                    {
+                        queryString = paths[1];
+                    }
                 }
             }
             else
@@ -148,7 +153,16 @@ namespace ImageProcessor.Web.HttpModules
                             }
                             else
                             {
-                                imageFactory.Load(fullPath).AutoProcess().Save(cachedPath);
+                                try
+                                {
+                                    imageFactory.Load(fullPath).AutoProcess().Save(cachedPath);
+                                }
+                                catch (Exception ex)
+                                {
+
+                                    throw ex;
+                                }
+
                             }
                         }
 

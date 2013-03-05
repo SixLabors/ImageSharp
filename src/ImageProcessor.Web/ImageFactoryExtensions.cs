@@ -15,14 +15,17 @@ namespace ImageProcessor.Web
     #endregion
 
     /// <summary>
-    /// Extends the ImageFactory class to provide a fluent api.
+    /// Extends the ImageFactory class to provide a fluent API.
     /// </summary>
     public static class ImageFactoryExtensions
     {
+        /// <summary>
+        /// The object to lock against.
+        /// </summary>
         private static readonly object SyncRoot = new object();
 
         /// <summary>
-        /// Auto processes image files based on any querystring parameters added to the image path.
+        /// Auto processes image files based on any query string parameters added to the image path.
         /// </summary>
         /// <param name="factory">
         /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class
@@ -31,32 +34,29 @@ namespace ImageProcessor.Web
         /// <returns>
         /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
         /// </returns>
-public static ImageFactory AutoProcess(this ImageFactory factory)
-{
-    if (factory.ShouldProcess)
-    {
-        // TODO: This is going to be a bottleneck for speed. Find a faster way.
-        lock (SyncRoot)
+        public static ImageFactory AutoProcess(this ImageFactory factory)
         {
-            // Get a list of all graphics processors that have parsed and matched the querystring.
-            List<IGraphicsProcessor> list =
-                ImageProcessorConfig.Instance.GraphicsProcessors
-                .Where(x => x.MatchRegexIndex(factory.QueryString) != int.MaxValue)
-                .OrderBy(y => y.SortOrder)
-                .ToList();
-
-            // Loop through and process the image.
-            foreach (IGraphicsProcessor graphicsProcessor in list)
+            if (factory.ShouldProcess)
             {
-                factory.Image = graphicsProcessor.ProcessImage(factory);
+                // TODO: This is going to be a bottleneck for speed. Find a faster way.
+                lock (SyncRoot)
+                {
+                    // Get a list of all graphics processors that have parsed and matched the querystring.
+                    List<IGraphicsProcessor> list =
+                        ImageProcessorConfig.Instance.GraphicsProcessors
+                        .Where(x => x.MatchRegexIndex(factory.QueryString) != int.MaxValue)
+                        .OrderBy(y => y.SortOrder)
+                        .ToList();
+
+                    // Loop through and process the image.
+                    foreach (IGraphicsProcessor graphicsProcessor in list)
+                    {
+                        factory.Image = graphicsProcessor.ProcessImage(factory);
+                    }
+                }
             }
+
+            return factory;
         }
-    }
-
-    return factory;
-
-}
-
-
     }
 }

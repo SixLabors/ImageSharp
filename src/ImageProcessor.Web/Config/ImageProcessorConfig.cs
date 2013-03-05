@@ -10,14 +10,16 @@ namespace ImageProcessor.Web.Config
     #region Using
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using ImageProcessor.Processors;
     #endregion
 
     /// <summary>
-    /// Encapsulates methods to allow the retrieval of imageprocessor settings.
+    /// Encapsulates methods to allow the retrieval of ImageProcessor settings.
     /// http://csharpindepth.com/Articles/General/Singleton.aspx
     /// </summary>
+    [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1650:ElementDocumentationMustBeSpelledCorrectly", Justification = "Reviewed. Suppression is OK here.")]
     public class ImageProcessorConfig
     {
         #region Fields
@@ -107,6 +109,7 @@ namespace ImageProcessor.Web.Config
         /// <summary>
         /// Gets a list of whitelisted urls that images can be downloaded from.
         /// </summary>
+        [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1650:ElementDocumentationMustBeSpelledCorrectly", Justification = "Reviewed. Suppression is OK here.")]
         public Uri[] RemoteFileWhiteList
         {
             get

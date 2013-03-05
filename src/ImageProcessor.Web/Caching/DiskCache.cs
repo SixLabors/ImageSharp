@@ -131,7 +131,7 @@ namespace ImageProcessor.Web.Caching
         }
 
         /// <summary>
-        /// Purges any files from the filesystem cache in a background thread.
+        /// Purges any files from the file-system cache in a background thread.
         /// </summary>
         internal static void PurgeCachedFolders()
         {
@@ -184,7 +184,7 @@ namespace ImageProcessor.Web.Caching
         }
 
         /// <summary>
-        /// Purges any files from the filesystem cache in the given folders.
+        /// Purges any files from the file-system cache in the given folders.
         /// </summary>
         private static void PurgeFolders()
         {
@@ -231,7 +231,6 @@ namespace ImageProcessor.Web.Caching
                                             }
                                         }
                                     }
-
                                 });
                         });
                 }

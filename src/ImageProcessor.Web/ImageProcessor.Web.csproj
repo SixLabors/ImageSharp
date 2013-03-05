@@ -51,7 +51,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Caching\CachedImage.cs" />
     <Compile Include="Caching\DiskCache.cs" />
+    <Compile Include="Caching\LockedDictionary.cs" />
+    <Compile Include="Caching\PersistantDictionary.cs" />
     <Compile Include="Config\ImageCacheSection.cs" />
     <Compile Include="Config\ImageProcessingSection.cs" />
     <Compile Include="Config\ImageProcessorConfig.cs" />

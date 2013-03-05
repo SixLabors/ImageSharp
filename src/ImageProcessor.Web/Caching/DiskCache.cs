@@ -84,22 +84,28 @@ namespace ImageProcessor.Web.Caching
 
             if (absoluteCachePath != null)
             {
-                DirectoryInfo di = new DirectoryInfo(absoluteCachePath);
-
-                if (!di.Exists)
-                {
-                    // Create the directory.
-                    Directory.CreateDirectory(absoluteCachePath);
-                }
-
                 string parsedExtension = ParseExtension(imagePath);
-                string fallbackExtension = imageName.Substring(imageName.LastIndexOf(".", StringComparison.Ordinal));
+                string fallbackExtension = imageName.Substring(imageName.LastIndexOf(".", StringComparison.Ordinal) + 1);
+                string subpath = !string.IsNullOrWhiteSpace(parsedExtension) ? parsedExtension : fallbackExtension;
 
                 string cachedFileName = string.Format(
-                    "{0}{1}",
+                    "{0}.{1}",
                     imagePath.ToMD5Fingerprint(),
                     !string.IsNullOrWhiteSpace(parsedExtension) ? parsedExtension : fallbackExtension);
-                cachedPath = Path.Combine(absoluteCachePath, cachedFileName);
+                cachedPath = Path.Combine(absoluteCachePath, subpath, cachedFileName);
+
+                string cachedDirectory = Path.GetDirectoryName(cachedPath);
+
+                if (cachedDirectory != null)
+                {
+                    DirectoryInfo directoryInfo = new DirectoryInfo(cachedDirectory);
+
+                    if (!directoryInfo.Exists)
+                    {
+                        // Create the directory.
+                        Directory.CreateDirectory(cachedDirectory);
+                    }
+                }
             }
 
             return cachedPath;
@@ -190,33 +196,42 @@ namespace ImageProcessor.Web.Caching
 
                 if (directoryInfo.Exists)
                 {
-                    // Get all the files in the cache ordered by LastAccessTime - oldest first.
-                    List<FileInfo> fileInfos = directoryInfo.EnumerateFiles("*", SearchOption.AllDirectories)
-                        .OrderBy(x => x.LastAccessTime).ToList();
-
-                    int counter = fileInfos.Count;
+                    List<DirectoryInfo> directoryInfos = directoryInfo
+                        .EnumerateDirectories("*", SearchOption.AllDirectories)
+                        .ToList();
 
                     Parallel.ForEach(
-                        fileInfos,
-                        fileInfo =>
+                        directoryInfos,
+                        dir =>
                         {
-                            lock (SyncRoot)
-                            {
-                                try
+                            // Get all the files in the cache ordered by LastAccessTime - oldest first.
+                            List<FileInfo> fileInfos = dir.EnumerateFiles("*", SearchOption.AllDirectories)
+                                .OrderBy(x => x.LastAccessTime).ToList();
+
+                            int counter = fileInfos.Count;
+
+                            Parallel.ForEach(
+                                fileInfos,
+                                fileInfo =>
                                 {
-                                    // Delete the file if we are nearing our limit buffer.
-                                    if (counter >= MaxFilesCount || fileInfo.LastAccessTime < DateTime.Now.AddDays(-MaxFileCachedDuration))
+                                    lock (SyncRoot)
                                     {
-                                        fileInfo.Delete();
-                                        counter -= 1;
+                                        try
+                                        {
+                                            // Delete the file if we are nearing our limit buffer.
+                                            if (counter >= MaxFilesCount && fileInfo.LastAccessTime.ToUniversalTime() < DateTime.UtcNow.AddHours(1)
+                                                || fileInfo.LastAccessTime.ToUniversalTime() < DateTime.UtcNow.AddDays(-MaxFileCachedDuration))
+                                            {
+                                                fileInfo.Delete();
+                                                counter -= 1;
+                                            }
+                                        }
+                                        catch (IOException)
+                                        {
+                                            // Do Nothing, skip to the next.
+                                        }
                                     }
-                                }
-                                catch
-                                {
-                                    // TODO: Sort out the try/catch.
-                                    throw;
-                                }
-                            }
+                                });
                         });
                 }
             }
@@ -237,7 +252,7 @@ namespace ImageProcessor.Web.Caching
             {
                 if (match.Success)
                 {
-                    return "." + match.Value.Split('=')[1];
+                    return match.Value.Split('=')[1];
                 }
             }
 

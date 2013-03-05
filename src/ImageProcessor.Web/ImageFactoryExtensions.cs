@@ -19,7 +19,7 @@ namespace ImageProcessor.Web
     /// </summary>
     public static class ImageFactoryExtensions
     {
-        private static readonly object SyncLock = new object();
+        private static readonly object SyncRoot = new object();
 
         /// <summary>
         /// Auto processes image files based on any querystring parameters added to the image path.
@@ -36,7 +36,7 @@ public static ImageFactory AutoProcess(this ImageFactory factory)
     if (factory.ShouldProcess)
     {
         // TODO: This is going to be a bottleneck for speed. Find a faster way.
-        lock (SyncLock)
+        lock (SyncRoot)
         {
             // Get a list of all graphics processors that have parsed and matched the querystring.
             List<IGraphicsProcessor> list =

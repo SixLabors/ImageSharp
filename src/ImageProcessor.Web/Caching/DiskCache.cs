@@ -51,7 +51,7 @@ namespace ImageProcessor.Web.Caching
         /// NTFS Folder can handle up to 8000 files in a directory. 
         /// This buffer will help us to ensure that we rarely hit anywhere near that limit.
         /// </remarks>
-        private const int MaxFilesCount = 6000;
+        private const int MaxFilesCount = 6500;
 
         /// <summary>
         /// The regular expression to search strings for extension changes.
@@ -177,8 +177,8 @@ namespace ImageProcessor.Web.Caching
             {
                 lock (SyncRoot)
                 {
-                    DateTime dateTime = File.GetLastWriteTime(imagePath);
-                    File.SetLastWriteTime(cachedImagePath, dateTime);
+                    DateTime dateTime = File.GetLastWriteTimeUtc(imagePath);
+                    File.SetLastWriteTimeUtc(cachedImagePath, dateTime);
                 }
             }
         }
@@ -202,11 +202,11 @@ namespace ImageProcessor.Web.Caching
 
                     Parallel.ForEach(
                         directoryInfos,
-                        dir =>
+                        subDirectoryInfo =>
                         {
                             // Get all the files in the cache ordered by LastAccessTime - oldest first.
-                            List<FileInfo> fileInfos = dir.EnumerateFiles("*", SearchOption.AllDirectories)
-                                .OrderBy(x => x.LastAccessTime).ToList();
+                            List<FileInfo> fileInfos = subDirectoryInfo.EnumerateFiles("*", SearchOption.AllDirectories)
+                                .OrderBy(x => x.LastAccessTimeUtc).ToList();
 
                             int counter = fileInfos.Count;
 
@@ -214,23 +214,24 @@ namespace ImageProcessor.Web.Caching
                                 fileInfos,
                                 fileInfo =>
                                 {
-                                    lock (SyncRoot)
+                                    // Delete the file if we are nearing our limit buffer.
+                                    if (counter >= MaxFilesCount || fileInfo.LastAccessTimeUtc < DateTime.UtcNow.AddDays(-MaxFileCachedDuration))
                                     {
-                                        try
+                                        lock (SyncRoot)
                                         {
-                                            // Delete the file if we are nearing our limit buffer.
-                                            if (counter >= MaxFilesCount && fileInfo.LastAccessTime.ToUniversalTime() < DateTime.UtcNow.AddHours(1)
-                                                || fileInfo.LastAccessTime.ToUniversalTime() < DateTime.UtcNow.AddDays(-MaxFileCachedDuration))
+                                            try
                                             {
                                                 fileInfo.Delete();
                                                 counter -= 1;
                                             }
-                                        }
-                                        catch (IOException)
-                                        {
-                                            // Do Nothing, skip to the next.
+                                            catch (IOException)
+                                            {
+                                                // Do Nothing, skip to the next.                                           
+                                                // TODO: Should we handle this?
+                                            }
                                         }
                                     }
+
                                 });
                         });
                 }

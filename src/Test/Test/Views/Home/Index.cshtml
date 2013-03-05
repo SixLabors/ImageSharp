@@ -1,94 +1,367 @@
 ﻿@{
     ViewBag.Title = "Home Page";
 }
-<section>
-    <div class="container">
-        <div class="clmn2">
-            <h2>Resized</h2>
-            <img src="/images/Penguins.jpg?width=300" />
+<article>
+    <h1 class="container">Jpg</h1>
+    <section>
+        <div class="container">
+            <div class="clmn2">
+                <h2>Resized</h2>
+                <img src="/images/Penguins.jpg?width=300" />
+            </div>
+            <div class="clmn2">
+                <h2>Cropped </h2>
+                <img src="/images/Penguins.jpg?crop=0-0-300-225" />
+            </div>
         </div>
-        <div class="clmn2">
-            <h2>Cropped </h2>
-            <img src="/images/Penguins.jpg?crop=0-0-300-225" />
+    </section>
+    <section>
+        <div class="container">
+            <h2>Filter</h2>
+            <ul class="no-bullets clearfix">
+                <li>
+                    <h3>blackwhite</h3>
+                    <img src="/images/Penguins.jpg?width=300&filter=blackwhite" />
+                </li>
+                <li>
+                    <h3>comic</h3>
+                    <img src="/images/Penguins.jpg?width=300&filter=comic" />
+                </li>
+                <li>
+                    <h3>lomograph</h3>
+                    <img src="/images/Penguins.jpg?width=300&filter=lomograph" />
+                </li>
+                <li>
+                    <h3>greyscale</h3>
+                    <img src="/images/Penguins.jpg?width=300&filter=greyscale" />
+                </li>
+                <li>
+                    <h3>polaroid</h3>
+                    <img src="/images/Penguins.jpg?width=300&filter=polaroid" />
+                </li>
+                <li>
+                    <h3>sepia</h3>
+                    <img src="/images/Penguins.jpg?width=300&filter=sepia" />
+                </li>
+                <li>
+                    <h3>gotham</h3>
+                    <img src="/images/Penguins.jpg?width=300&filter=gotham" />
+                </li>
+                <li>
+                    <h3>hisatch</h3>
+                    <img src="/images/Penguins.jpg?width=300&filter=hisatch" />
+                </li>
+                <li>
+                    <h3>losatch</h3>
+                    <img src="/images/Penguins.jpg?width=300&filter=losatch" />
+                </li>
+            </ul>
         </div>
-    </div>
-</section>
-<section>
-    <div class="container">
-        <h2>Filter</h2>
-        <ul class="no-bullets clearfix">
-            <li>
-                <h3>blackwhite</h3>
-                <img src="/images/Penguins.jpg?width=300&filter=blackwhite" />
-            </li>
-            <li>
-                <h3>comic</h3>
-                <img src="/images/Penguins.jpg?width=300&filter=comic" />
-            </li>
-            <li>
-                <h3>lomograph</h3>
-                <img src="/images/Penguins.jpg?width=300&filter=lomograph" />
-            </li>
-            <li>
-                <h3>greyscale</h3>
-                <img src="/images/Penguins.jpg?width=300&filter=greyscale" />
-            </li>
-            <li>
-                <h3>polaroid</h3>
-                <img src="/images/Penguins.jpg?width=300&filter=polaroid" />
-            </li>
-            <li>
-                <h3>sepia</h3>
-                <img src="/images/Penguins.jpg?width=300&filter=sepia" />
-            </li>
-            <li>
-                <h3>gotham</h3>
-                <img src="/images/Penguins.jpg?width=300&filter=gotham" />
-            </li>
-            <li>
-                <h3>hisatch</h3>
-                <img src="/images/Penguins.jpg?width=300&filter=hisatch" />
-            </li>
-            <li>
-                <h3>losatch</h3>
-                <img src="/images/Penguins.jpg?width=300&filter=losatch" />
-            </li>
-        </ul>
-    </div>
-</section>
-<section>
-    <div class="container">
-        <div class="clmn2">
-            <h2>Watermark</h2>
-            <img src="/images/Penguins.jpg?width=300&watermark=text-test|color-fff|size-48|style-italic|opacity-100|position-100-100|shadow-true|font-arial" />
+    </section>
+    <section>
+        <div class="container">
+            <div class="clmn2">
+                <h2>Watermark</h2>
+                <img src="/images/Penguins.jpg?width=300&watermark=text-test|color-fff|size-48|style-italic|opacity-100|position-100-100|shadow-true|font-arial" />
+            </div>
+            <div class="clmn2">
+                <h2>Format</h2>
+                <img src="/images/Penguins.jpg?width=300&format=gif" />
+            </div>
         </div>
-        <div class="clmn2">
-            <h2>Format</h2>
-            <img src="/images/Penguins.jpg?width=300&format=gif" />
+    </section>
+    <section>
+        <div class="container">
+            <div class="clmn2">
+                <h2>Rotate</h2>
+                <img src="/images/Penguins.jpg?width=300&rotate=angle-54|bgcolor-fff" />
+            </div>
+            <div class="clmn2">
+                <h2>Quality</h2>
+                <img src="/images/Penguins.jpg?width=300&quality=5" />
+            </div>
         </div>
-    </div>
-</section>
-<section>
-    <div class="container">
-        <div class="clmn2">
-            <h2>Rotate</h2>
-            <img src="/images/Penguins.jpg?width=300&rotate=angle-54|bgcolor-fff" />
+    </section>
+    <section>
+        <div class="container">
+            <div class="clmn2">
+                <h2>Alpha</h2>
+                <img src="/images/Penguins.jpg?width=300&format=png&alpha=50" />
+            </div>
+            <div class="clmn2">
+                <h2>Remote</h2>
+                <img src="/remote.axd?http://images.mymovies.net/images/film/cin/500x377/fid11707.jpg?width=300" />
+            </div>
         </div>
-        <div class="clmn2">
-            <h2>Quality</h2>
-            <img src="/images/Penguins.jpg?width=300&quality=5" />
+    </section>
+</article>
+<article>
+    <h1 class="container">Gif</h1>
+    <section>
+        <div class="container">
+            <div class="clmn2">
+                <h2>Resized</h2>
+                <img src="/images/Penguins.gif?width=300" />
+            </div>
+            <div class="clmn2">
+                <h2>Cropped </h2>
+                <img src="/images/Penguins.gif?crop=0-0-300-225" />
+            </div>
         </div>
-    </div>
-</section>
-<section>
-    <div class="container">
-        <div class="clmn2">
-            <h2>Alpha</h2>
-            <img src="/images/Penguins.jpg?width=300&format=png&alpha=50" />
+    </section>
+    <section>
+        <div class="container">
+            <h2>Filter</h2>
+            <ul class="no-bullets clearfix">
+                <li>
+                    <h3>blackwhite</h3>
+                    <img src="/images/Penguins.gif?width=300&filter=blackwhite" />
+                </li>
+                <li>
+                    <h3>comic</h3>
+                    <img src="/images/Penguins.gif?width=300&filter=comic" />
+                </li>
+                <li>
+                    <h3>lomograph</h3>
+                    <img src="/images/Penguins.gif?width=300&filter=lomograph" />
+                </li>
+                <li>
+                    <h3>greyscale</h3>
+                    <img src="/images/Penguins.gif?width=300&filter=greyscale" />
+                </li>
+                <li>
+                    <h3>polaroid</h3>
+                    <img src="/images/Penguins.gif?width=300&filter=polaroid" />
+                </li>
+                <li>
+                    <h3>sepia</h3>
+                    <img src="/images/Penguins.gif?width=300&filter=sepia" />
+                </li>
+                <li>
+                    <h3>gotham</h3>
+                    <img src="/images/Penguins.gif?width=300&filter=gotham" />
+                </li>
+                <li>
+                    <h3>hisatch</h3>
+                    <img src="/images/Penguins.gif?width=300&filter=hisatch" />
+                </li>
+                <li>
+                    <h3>losatch</h3>
+                    <img src="/images/Penguins.gif?width=300&filter=losatch" />
+                </li>
+            </ul>
         </div>
-        <div class="clmn2">
-            <h2>Remote</h2>
-            <img src="/remote.axd?http://images.mymovies.net/images/film/cin/500x377/fid11707.jpg?width=300" />
+    </section>
+    <section>
+        <div class="container">
+            <div class="clmn2">
+                <h2>Watermark</h2>
+                <img src="/images/Penguins.gif?width=300&watermark=text-test|color-fff|size-48|style-italic|opacity-100|position-100-100|shadow-true|font-arial" />
+            </div>
+            <div class="clmn2">
+                <h2>Format</h2>
+                <img src="/images/Penguins.gif?width=300&format=png" />
+            </div>
         </div>
-    </div>
-</section>
+    </section>
+    <section>
+        <div class="container">
+            <div class="clmn2">
+                <h2>Rotate</h2>
+                <img src="/images/Penguins.gif?width=300&rotate=angle-54|bgcolor-fff" />
+            </div>
+            <div class="clmn2">
+                <h2>Quality</h2>
+                <img src="/images/Penguins.gif?width=300&quality=5" />
+            </div>
+        </div>
+    </section>
+    <section>
+        <div class="container">
+            <div class="clmn2">
+                <h2>Alpha</h2>
+                <img src="/images/Penguins.gif?width=300&alpha=50" />
+            </div>
+        </div>
+    </section>
+</article>
+<article>
+    <h1 class="container">Png</h1>
+    <section>
+        <div class="container">
+            <div class="clmn2">
+                <h2>Resized</h2>
+                <img src="/images/Penguins.png?width=300" />
+            </div>
+            <div class="clmn2">
+                <h2>Cropped </h2>
+                <img src="/images/Penguins.png?crop=0-0-300-225" />
+            </div>
+        </div>
+    </section>
+    <section>
+        <div class="container">
+            <h2>Filter</h2>
+            <ul class="no-bullets clearfix">
+                <li>
+                    <h3>blackwhite</h3>
+                    <img src="/images/Penguins.png?width=300&filter=blackwhite" />
+                </li>
+                <li>
+                    <h3>comic</h3>
+                    <img src="/images/Penguins.png?width=300&filter=comic" />
+                </li>
+                <li>
+                    <h3>lomograph</h3>
+                    <img src="/images/Penguins.png?width=300&filter=lomograph" />
+                </li>
+                <li>
+                    <h3>greyscale</h3>
+                    <img src="/images/Penguins.png?width=300&filter=greyscale" />
+                </li>
+                <li>
+                    <h3>polaroid</h3>
+                    <img src="/images/Penguins.png?width=300&filter=polaroid" />
+                </li>
+                <li>
+                    <h3>sepia</h3>
+                    <img src="/images/Penguins.png?width=300&filter=sepia" />
+                </li>
+                <li>
+                    <h3>gotham</h3>
+                    <img src="/images/Penguins.png?width=300&filter=gotham" />
+                </li>
+                <li>
+                    <h3>hisatch</h3>
+                    <img src="/images/Penguins.png?width=300&filter=hisatch" />
+                </li>
+                <li>
+                    <h3>losatch</h3>
+                    <img src="/images/Penguins.png?width=300&filter=losatch" />
+                </li>
+            </ul>
+        </div>
+    </section>
+    <section>
+        <div class="container">
+            <div class="clmn2">
+                <h2>Watermark</h2>
+                <img src="/images/Penguins.png?width=300&watermark=text-test|color-fff|size-48|style-italic|opacity-100|position-100-100|shadow-true|font-arial" />
+            </div>
+            <div class="clmn2">
+                <h2>Format</h2>
+                <img src="/images/Penguins.png?width=300&format=bmp" />
+            </div>
+        </div>
+    </section>
+    <section>
+        <div class="container">
+            <div class="clmn2">
+                <h2>Rotate</h2>
+                <img src="/images/Penguins.png?width=300&rotate=angle-54|bgcolor-fff" />
+            </div>
+            <div class="clmn2">
+                <h2>Quality</h2>
+                <img src="/images/Penguins.png?width=300&quality=5" />
+            </div>
+        </div>
+    </section>
+    <section>
+        <div class="container">
+            <div class="clmn2">
+                <h2>Alpha</h2>
+                <img src="/images/Penguins.png?width=300&alpha=50" />
+            </div>
+        </div>
+    </section>
+</article>
+<article>
+    <h1 class="container">Bmp</h1>
+    <section>
+        <div class="container">
+            <div class="clmn2">
+                <h2>Resized</h2>
+                <img src="/images/Penguins.bmp?width=300" />
+            </div>
+            <div class="clmn2">
+                <h2>Cropped </h2>
+                <img src="/images/Penguins.bmp?crop=0-0-300-225" />
+            </div>
+        </div>
+    </section>
+    <section>
+        <div class="container">
+            <h2>Filter</h2>
+            <ul class="no-bullets clearfix">
+                <li>
+                    <h3>blackwhite</h3>
+                    <img src="/images/Penguins.bmp?width=300&filter=blackwhite" />
+                </li>
+                <li>
+                    <h3>comic</h3>
+                    <img src="/images/Penguins.bmp?width=300&filter=comic" />
+                </li>
+                <li>
+                    <h3>lomograph</h3>
+                    <img src="/images/Penguins.bmp?width=300&filter=lomograph" />
+                </li>
+                <li>
+                    <h3>greyscale</h3>
+                    <img src="/images/Penguins.bmp?width=300&filter=greyscale" />
+                </li>
+                <li>
+                    <h3>polaroid</h3>
+                    <img src="/images/Penguins.bmp?width=300&filter=polaroid" />
+                </li>
+                <li>
+                    <h3>sepia</h3>
+                    <img src="/images/Penguins.bmp?width=300&filter=sepia" />
+                </li>
+                <li>
+                    <h3>gotham</h3>
+                    <img src="/images/Penguins.bmp?width=300&filter=gotham" />
+                </li>
+                <li>
+                    <h3>hisatch</h3>
+                    <img src="/images/Penguins.bmp?width=300&filter=hisatch" />
+                </li>
+                <li>
+                    <h3>losatch</h3>
+                    <img src="/images/Penguins.bmp?width=300&filter=losatch" />
+                </li>
+            </ul>
+        </div>
+    </section>
+    <section>
+        <div class="container">
+            <div class="clmn2">
+                <h2>Watermark</h2>
+                <img src="/images/Penguins.bmp?width=300&watermark=text-test|color-fff|size-48|style-italic|opacity-100|position-100-100|shadow-true|font-arial" />
+            </div>
+            <div class="clmn2">
+                <h2>Format</h2>
+                <img src="/images/Penguins.bmp?width=300&format=jpg" />
+            </div>
+        </div>
+    </section>
+    <section>
+        <div class="container">
+            <div class="clmn2">
+                <h2>Rotate</h2>
+                <img src="/images/Penguins.bmp?width=300&rotate=angle-54|bgcolor-fff" />
+            </div>
+            <div class="clmn2">
+                <h2>Quality</h2>
+                <img src="/images/Penguins.bmp?width=300&quality=5" />
+            </div>
+        </div>
+    </section>
+    <section>
+        <div class="container">
+            <div class="clmn2">
+                <h2>Alpha</h2>
+                <img src="/images/Penguins.bmp?width=300&alpha=50" />
+            </div>
+        </div>
+    </section>
+</article>

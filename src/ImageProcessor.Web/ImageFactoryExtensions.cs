@@ -8,15 +8,10 @@
 namespace ImageProcessor.Web
 {
     #region Using
-
-    using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Reflection;
-
     using ImageProcessor.Processors;
     using ImageProcessor.Web.Config;
-    using ImageProcessor.Web.Helpers;
     #endregion
 
     /// <summary>
@@ -36,31 +31,31 @@ namespace ImageProcessor.Web
         /// <returns>
         /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
         /// </returns>
-        public static ImageFactory AutoProcess(this ImageFactory factory)
+public static ImageFactory AutoProcess(this ImageFactory factory)
+{
+    if (factory.ShouldProcess)
+    {
+        // TODO: This is going to be a bottleneck for speed. Find a faster way.
+        lock (SyncLock)
         {
-            if (factory.ShouldProcess)
+            // Get a list of all graphics processors that have parsed and matched the querystring.
+            List<IGraphicsProcessor> list =
+                ImageProcessorConfig.Instance.GraphicsProcessors
+                .Where(x => x.MatchRegexIndex(factory.QueryString) != int.MaxValue)
+                .OrderBy(y => y.SortOrder)
+                .ToList();
+
+            // Loop through and process the image.
+            foreach (IGraphicsProcessor graphicsProcessor in list)
             {
-                // TODO: This is going to be a bottleneck for speed. Find a faster way.
-                lock (SyncLock)
-                {
-                    // Get a list of all graphics processors that have parsed and matched the querystring.
-                    List<IGraphicsProcessor> list =
-                        ImageProcessorConfig.Instance.GraphicsProcessors
-                        .Where(x => x.MatchRegexIndex(factory.QueryString) != int.MaxValue)
-                        .OrderBy(y => y.SortOrder)
-                        .ToList();
-
-                    // Loop through and process the image.
-                    foreach (IGraphicsProcessor graphicsProcessor in list)
-                    {
-                        factory.Image = graphicsProcessor.ProcessImage(factory);
-                    }
-                }
+                factory.Image = graphicsProcessor.ProcessImage(factory);
             }
-
-            return factory;
-
         }
+    }
+
+    return factory;
+
+}
 
 
     }

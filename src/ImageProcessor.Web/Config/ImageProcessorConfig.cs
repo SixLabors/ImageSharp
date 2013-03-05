@@ -76,7 +76,7 @@ namespace ImageProcessor.Web.Config
         /// <summary>
         /// Gets the list of available GraphicsProcessors.
         /// </summary>
-        public List<IGraphicsProcessor> GraphicsProcessors { get; private set; }
+        public IList<IGraphicsProcessor> GraphicsProcessors { get; private set; }
 
         #region Caching
         /// <summary>

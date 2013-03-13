@@ -21,7 +21,7 @@ namespace ImageProcessor.Web.Caching
     /// <typeparam name="TVal">
     /// The type of the values in the dictionary.
     /// </typeparam>
-    public class LockedDictionary<TKey, TVal> : IDictionary<TKey, TVal>
+    internal class LockedDictionary<TKey, TVal> : IDictionary<TKey, TVal>
     {
         /// <summary>
         /// The _inner.

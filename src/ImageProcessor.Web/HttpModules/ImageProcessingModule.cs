@@ -37,14 +37,9 @@ namespace ImageProcessor.Web.HttpModules
         private static readonly string RemotePrefix = ImageProcessorConfig.Instance.RemotePrefix;
 
         /// <summary>
-        /// Whether this is the first run of the handler.
+        /// The object to lock against.
         /// </summary>
-        private static bool isFirstRun = true;
-
-        /// <summary>
-        /// A counter for keeping track of how many images have been added to the cache.
-        /// </summary>
-        private static int cachedImageCounter;
+        private static readonly object SyncRoot = new object();
         #endregion
 
         #region IHttpModule Members
@@ -106,16 +101,6 @@ namespace ImageProcessor.Web.HttpModules
 
             if (ImageUtils.IsValidImageExtension(path) && !string.IsNullOrWhiteSpace(queryString))
             {
-                // Check to see if this is the first run and if so run the cache controller.
-                if (isFirstRun)
-                {
-                    // Trim the cache.
-                    DiskCache.PurgeCachedFolders();
-
-                    // Disable the controller.
-                    isFirstRun = false;
-                }
-
                 string fullPath = string.Format("{0}?{1}", path, queryString);
                 string imageName = Path.GetFileName(path);
                 string cachedPath = DiskCache.GetCachePath(fullPath, imageName);
@@ -141,46 +126,51 @@ namespace ImageProcessor.Web.HttpModules
                                     {
                                         if (responseStream != null)
                                         {
-                                            responseStream.CopyTo(memoryStream);
+                                            lock (SyncRoot)
+                                            {
+                                                // Trim the cache.
+                                                DiskCache.PurgeFolders();
 
-                                            imageFactory.Load(memoryStream)
-                                                .AddQueryString(queryString)
-                                                .Format(ImageUtils.GetImageFormat(imageName))
-                                                .AutoProcess().Save(cachedPath);
+                                                responseStream.CopyTo(memoryStream);
+
+                                                imageFactory.Load(memoryStream)
+                                                    .AddQueryString(queryString)
+                                                    .Format(ImageUtils.GetImageFormat(imageName))
+                                                    .AutoProcess().Save(cachedPath);
+
+                                                // Ensure that the LastWriteTime property of the source and cached file match.
+                                                DateTime dateTime = DiskCache.SetCachedLastWriteTime(path, cachedPath);
+
+                                                // Add to the cache.
+                                                DiskCache.AddImageToCache(cachedPath, dateTime);
+                                            }
                                         }
                                     }
                                 }
                             }
                             else
                             {
-                                imageFactory.Load(fullPath).AutoProcess().Save(cachedPath);
+                                lock (SyncRoot)
+                                {
+                                    // Trim the cache.
+                                    DiskCache.PurgeFolders();
+
+                                    imageFactory.Load(fullPath).AutoProcess().Save(cachedPath);
+
+                                    // Ensure that the LastWriteTime property of the source and cached file match.
+                                    DateTime dateTime = DiskCache.SetCachedLastWriteTime(path, cachedPath);
+
+                                    // Add to the cache.
+                                    DiskCache.AddImageToCache(cachedPath, dateTime);
+                                }
                             }
                         }
-
-                        // Add 1 to the counter
-                        cachedImageCounter += 1;
-
-                        // Ensure that the LastWriteTime property of the source and cached file match.
-                        DateTime dateTime = DiskCache.SetCachedLastWriteTime(path, cachedPath);
-
-                        // Add to the cache.
-                        DiskCache.AddImageToCache(cachedPath, dateTime);
                     }
 
                     context.Items[CachedResponseTypeKey] = ImageUtils.GetResponseType(imageName).ToDescription();
 
                     // The cached file is valid so just rewrite the path.
                     context.RewritePath(DiskCache.GetVirtualPath(cachedPath, context.Request), false);
-
-                    // If the number of cached imaged hits the maximum allowed for this session then we clear
-                    // the cache again and reset the counter.
-                    // TODO: There is a potential concurrency issue here but collision probability is very low
-                    // it would be nice to nail it though.
-                    if (cachedImageCounter >= DiskCache.MaxRunsBeforeCacheClear)
-                    {
-                        DiskCache.PurgeCachedFolders();
-                        cachedImageCounter = 0;
-                    }
                 }
             }
         }

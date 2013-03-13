@@ -14,53 +14,40 @@ namespace ImageProcessor.Web.Caching
     /// <summary>
     /// Describes a cached image 
     /// </summary>
-    public class CachedImage
+    internal sealed class CachedImage
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="CachedImage"/> class.
         /// </summary>
-        /// <param name="value">
+        /// <param name="path">
         /// The value of the cached item.
         /// </param>
         /// <param name="lastWriteTimeUtc">
         /// The last write time of the cached item.
         /// </param>
-        public CachedImage(string value, DateTime lastWriteTimeUtc)
+        /// <param name="expiresTimeUtc">
+        /// The expires time.
+        /// </param>
+        public CachedImage(string path, DateTime lastWriteTimeUtc, DateTime expiresTimeUtc)
         {
-            this.Value = value;
+            this.Path = path;
             this.LastWriteTimeUtc = lastWriteTimeUtc;
+            this.ExpiresUtc = expiresTimeUtc;
         }
 
         /// <summary>
-        /// Gets the value date time delimiter.
+        /// Gets or sets the value of the cached image
         /// </summary>
-        public static string ValueLastWriteTimeDelimiter
-        {
-            get
-            {
-                return "|*|";
-            }
-        }
+        public string Path { get; set; }
 
         /// <summary>
-        /// Gets or sets the value of the cached item
-        /// </summary>
-        public string Value { get; set; }
-
-        /// <summary>
-        /// Gets or sets the last write time of the cached item
+        /// Gets or sets the last write time of the cached image
         /// </summary>
         public DateTime LastWriteTimeUtc { get; set; }
 
         /// <summary>
-        /// The value and last write time as a string.
+        /// Gets or sets when the cached image should expire from the cache.
         /// </summary>
-        /// <returns>
-        /// The <see cref="string"/>.
-        /// </returns>
-        public string ValueAndLastWriteTimeUtcToString()
-        {
-            return string.Format("{0}{1}{2}", this.Value, ValueLastWriteTimeDelimiter, this.LastWriteTimeUtc);
-        }
+        public DateTime ExpiresUtc { get; set; }
     }
 }

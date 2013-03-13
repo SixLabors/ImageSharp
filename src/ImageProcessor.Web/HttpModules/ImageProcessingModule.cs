@@ -27,14 +27,14 @@ namespace ImageProcessor.Web.HttpModules
     {
         #region Fields
         /// <summary>
-        /// The value to prefix any remote image requests with to ensure they get captured.
-        /// </summary>
-        private static readonly string RemotePrefix = ImageProcessorConfig.Instance.RemotePrefix;
-
-        /// <summary>
         /// The key for storing the response type of the current image.
         /// </summary>
         private const string CachedResponseTypeKey = "CACHED_IMAGE_RESPONSE_TYPE";
+
+        /// <summary>
+        /// The value to prefix any remote image requests with to ensure they get captured.
+        /// </summary>
+        private static readonly string RemotePrefix = ImageProcessorConfig.Instance.RemotePrefix;
 
         /// <summary>
         /// Whether this is the first run of the handler.
@@ -153,16 +153,7 @@ namespace ImageProcessor.Web.HttpModules
                             }
                             else
                             {
-                                try
-                                {
-                                    imageFactory.Load(fullPath).AutoProcess().Save(cachedPath);
-                                }
-                                catch (Exception ex)
-                                {
-
-                                    throw ex;
-                                }
-
+                                imageFactory.Load(fullPath).AutoProcess().Save(cachedPath);
                             }
                         }
 
@@ -170,7 +161,10 @@ namespace ImageProcessor.Web.HttpModules
                         cachedImageCounter += 1;
 
                         // Ensure that the LastWriteTime property of the source and cached file match.
-                        DiskCache.SetCachedLastWriteTime(path, cachedPath);
+                        DateTime dateTime = DiskCache.SetCachedLastWriteTime(path, cachedPath);
+
+                        // Add to the cache.
+                        DiskCache.AddImageToCache(cachedPath, dateTime);
                     }
 
                     context.Items[CachedResponseTypeKey] = ImageUtils.GetResponseType(imageName).ToDescription();
@@ -180,7 +174,7 @@ namespace ImageProcessor.Web.HttpModules
 
                     // If the number of cached imaged hits the maximum allowed for this session then we clear
                     // the cache again and reset the counter.
-                    // TODO: There is a potential concurrency issue here but collision probability is very low#
+                    // TODO: There is a potential concurrency issue here but collision probability is very low
                     // it would be nice to nail it though.
                     if (cachedImageCounter >= DiskCache.MaxRunsBeforeCacheClear)
                     {
@@ -192,7 +186,7 @@ namespace ImageProcessor.Web.HttpModules
         }
 
         /// <summary>
-        /// Occurs just before ASP.NET send Httpheaders to the client.
+        /// Occurs just before ASP.NET send HttpHeaders to the client.
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">An <see cref="T:System.EventArgs">EventArgs</see> that contains the event data.</param>

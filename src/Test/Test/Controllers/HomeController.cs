@@ -10,6 +10,8 @@ namespace Test.Controllers
     using System.Threading.Tasks;
     using System.Web.Hosting;
 
+    using ImageProcessor.Web.Caching;
+
     public class HomeController : Controller
     {
         public ActionResult Index()
@@ -47,7 +49,37 @@ namespace Test.Controllers
 
         public ActionResult Responsive()
         {
+
+
             return this.View();
+        }
+
+        public ActionResult Speed()
+        {
+            DateTime start = DateTime.Now;
+
+            //PersistantDictionary persistantDictionary = PersistantDictionary.Instance;
+
+            //for (int i = 0; i < 1000; i++)
+            //{
+            //    string random = Path.GetRandomFileName();
+            //    random = random + random;
+
+            //    CachedImage cachedImage = new CachedImage(random, DateTime.UtcNow, DateTime.UtcNow);
+            //    persistantDictionary.GetOrAdd(random, x => cachedImage);
+            //}
+
+            //KeyValuePair<string, CachedImage> pair = persistantDictionary.First();
+
+            //CachedImage image;
+
+            //persistantDictionary.TryRemove(pair.Key, out image);
+
+            TimeSpan timeSpan = DateTime.Now - start;
+
+            //ViewBag.Count = persistantDictionary.Count();
+
+            return this.View(timeSpan);
         }
     }
 }

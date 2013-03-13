@@ -9,16 +9,15 @@ namespace ImageProcessor.Web.Caching
 {
     #region Using
     using System;
-    using System.IO;
-    using System.Web.Hosting;
-    using ImageProcessor.Web.Config;
+    using System.Collections.Generic;
     #endregion
 
     /// <summary>
     /// Represents a collection of keys and values whose operations are concurrent.
     /// </summary>
-    public class PersistantDictionary : LockedDictionary<string, CachedImage>
+    internal sealed class PersistantDictionary : LockedDictionary<string, CachedImage>
     {
+        #region Fields
         /// <summary>
         /// A new instance Initializes a new instance of the <see cref="T:ImageProcessor.Web.Caching.PersistantDictionary"/> class.
         /// initialized lazily.
@@ -27,19 +26,10 @@ namespace ImageProcessor.Web.Caching
                         new Lazy<PersistantDictionary>(() => new PersistantDictionary());
 
         /// <summary>
-        /// The default path for cached folders on the server.
-        /// </summary>
-        private static readonly string CachePath = ImageProcessorConfig.Instance.VirtualCachePath;
-
-        /// <summary>
         /// The object to lock against.
         /// </summary>
         private static readonly object SyncRoot = new object();
-
-        /// <summary>
-        /// The cached index location.
-        /// </summary>
-        private readonly string cachedIndexFile = Path.Combine(HostingEnvironment.MapPath(CachePath), "imagecache.bin");
+        #endregion
 
         #region Constructors
         /// <summary>
@@ -92,7 +82,7 @@ namespace ImageProcessor.Web.Caching
                 value = this[key];
                 this.Remove(key);
 
-                this.SaveCache();
+                this.SaveCache(key, value, true);
 
                 return true;
             }
@@ -104,29 +94,23 @@ namespace ImageProcessor.Web.Caching
         /// <param name="key">
         /// The key.
         /// </param>
-        /// <param name="factory">
-        /// The delegate method that returns the value.
+        /// <param name="cachedImage">
+        /// The cached image to add.
         /// </param>
         /// <returns>
         /// The value of the item to add or get.
         /// </returns>
-        public CachedImage GetOrAdd(string key, Func<string, CachedImage> factory)
+        public new CachedImage Add(string key, CachedImage cachedImage)
         {
-            // Get the CachedImage.
-            if (this.ContainsKey(key))
-            {
-                return this[key];
-            }
-
             lock (SyncRoot)
             {
                 // Add the CachedImage.
-                CachedImage ret = factory(key);
-                this[key] = ret;
+                if (this.SaveCache(key, cachedImage, false))
+                {
+                    this[key] = cachedImage;
+                }
 
-                this.SaveCache();
-
-                return ret;
+                return cachedImage;
             }
         }
         #endregion
@@ -134,22 +118,32 @@ namespace ImageProcessor.Web.Caching
         /// <summary>
         /// Saves the in memory cache to the file-system.
         /// </summary>
-        private void SaveCache()
+        /// <param name="key">
+        /// The key.
+        /// </param>
+        /// <param name="cachedImage">
+        /// The cached Image.
+        /// </param>
+        /// <param name="remove">
+        /// The remove.
+        /// </param>
+        /// <returns>
+        /// true, if the dictionary is saved to the file-system; otherwise, false.
+        /// </returns>
+        private bool SaveCache(string key, CachedImage cachedImage, bool remove)
         {
-            using (FileStream fileStream = File.Create(this.cachedIndexFile))
+            try
             {
-                using (BinaryWriter binaryWriter = new BinaryWriter(fileStream))
+                if (remove)
                 {
-                    // Put the count.
-                    binaryWriter.Write(this.Count);
-
-                    // Put the values.
-                    foreach (var pair in this)
-                    {
-                        binaryWriter.Write(pair.Key);
-                        binaryWriter.Write(pair.Value.ValueAndLastWriteTimeUtcToString());
-                    }
+                    return SQLContext.RemoveImage(key);
                 }
+
+                return SQLContext.AddImage(key, cachedImage);
+            }
+            catch (Exception)
+            {
+                return false;
             }
         }
 
@@ -160,32 +154,13 @@ namespace ImageProcessor.Web.Caching
         {
             lock (SyncRoot)
             {
-                if (File.Exists(this.cachedIndexFile))
+                SQLContext.CreateDatabase();
+
+                Dictionary<string, CachedImage> dictionary = SQLContext.GetImages();
+
+                foreach (KeyValuePair<string, CachedImage> pair in dictionary)
                 {
-                    using (FileStream fileStream = File.OpenRead(this.cachedIndexFile))
-                    {
-                        using (BinaryReader binaryReader = new BinaryReader(fileStream))
-                        {
-                            // Get the count.
-                            int count = binaryReader.ReadInt32();
-
-                            // Read in all pairs.
-                            for (int i = 0; i < count; i++)
-                            {
-                                // Read the key/value strings
-                                string key = binaryReader.ReadString();
-                                string value = binaryReader.ReadString();
-
-                                // Create a CachedImage
-                                string[] valueAndLastWriteTime = value.Split(new[] { CachedImage.ValueLastWriteTimeDelimiter }, StringSplitOptions.None);
-                                DateTime lastWriteTime = DateTime.Parse(valueAndLastWriteTime[1]);
-                                CachedImage cachedImage = new CachedImage(valueAndLastWriteTime[0], lastWriteTime);
-                                
-                                // Assign the value
-                                this[key] = cachedImage;
-                            }
-                        }
-                    }
+                    this.Add(pair);
                 }
             }
         }

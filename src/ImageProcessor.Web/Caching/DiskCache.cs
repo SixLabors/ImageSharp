@@ -28,17 +28,6 @@ namespace ImageProcessor.Web.Caching
     {
         #region Fields
         /// <summary>
-        /// The maximum number or time a new file should be cached before checking the 
-        /// cache controller and running any clearing mechanisms.
-        /// </summary>
-        /// <remarks>
-        /// NTFS file systems can handle up to 8000 files in one directory. The Cache controller will clear out any 
-        /// time we hit 6000 so if we tell the handler to run at every 1000 times an image is added to the cache we 
-        /// should have a 1000 file buffer.
-        /// </remarks>
-        internal const int MaxRunsBeforeCacheClear = 1000;
-
-        /// <summary>
         ///     The maximum number of days to cache files on the system for.
         /// </summary>
         internal static readonly int MaxFileCachedDuration = ImageProcessorConfig.Instance.MaxCacheDays;
@@ -47,10 +36,10 @@ namespace ImageProcessor.Web.Caching
         /// The maximum number of files allowed in the directory.
         /// </summary>
         /// <remarks>
-        /// NTFS Folder can handle up to 8000 files in a directory. 
+        /// NTFS directories can handle up to 8000 files in the directory before slowing down. 
         /// This buffer will help us to ensure that we rarely hit anywhere near that limit.
         /// </remarks>
-        private const int MaxFilesCount = 6500;
+        private const int MaxFilesCount = 7500;
 
         /// <summary>
         /// The regular expression to search strings for extension changes.
@@ -58,12 +47,7 @@ namespace ImageProcessor.Web.Caching
         private static readonly Regex FormatRegex = new Regex(@"format=(jpeg|png|bmp|gif)", RegexOptions.Compiled);
 
         /// <summary>
-        ///     The object to lock against.
-        /// </summary>
-        private static readonly object SyncRoot = new object();
-
-        /// <summary>
-        ///     The default paths for Cached folders on the server.
+        /// The default paths for Cached folders on the server.
         /// </summary>
         private static readonly string CachePath = ImageProcessorConfig.Instance.VirtualCachePath;
         #endregion
@@ -122,8 +106,8 @@ namespace ImageProcessor.Web.Caching
         internal static void AddImageToCache(string cachedPath, DateTime lastWriteTimeUtc)
         {
             string key = Path.GetFileNameWithoutExtension(cachedPath);
-            DateTime expires = lastWriteTimeUtc.AddDays(MaxFileCachedDuration).ToUniversalTime();
-            CachedImage cachedImage = new CachedImage(key, lastWriteTimeUtc, expires);
+            DateTime expires = DateTime.UtcNow.AddDays(MaxFileCachedDuration).ToUniversalTime();
+            CachedImage cachedImage = new CachedImage(cachedPath, lastWriteTimeUtc, expires);
             PersistantDictionary.Instance.Add(key, cachedImage);
         }
 
@@ -171,17 +155,27 @@ namespace ImageProcessor.Web.Caching
         /// </returns>
         internal static bool IsUpdatedFile(string imagePath, string cachedImagePath)
         {
+            string key = Path.GetFileNameWithoutExtension(cachedImagePath);
+            CachedImage cachedImage;
+            bool isUpdated = false;
+
             if (File.Exists(imagePath))
             {
-                CachedImage image;
-                string key = Path.GetFileNameWithoutExtension(cachedImagePath);
-                PersistantDictionary.Instance.TryGetValue(key, out image);
                 FileInfo imageFileInfo = new FileInfo(imagePath);
 
-                return image != null && imageFileInfo.LastWriteTimeUtc.Equals(image.LastWriteTimeUtc);
+                if (PersistantDictionary.Instance.TryGetValue(key, out cachedImage))
+                {
+                    if (!imageFileInfo.LastWriteTimeUtc.Equals(cachedImage.LastWriteTimeUtc))
+                    {
+                        if (PersistantDictionary.Instance.TryRemove(key, out cachedImage))
+                        {
+                            isUpdated = true;
+                        }
+                    }
+                }
             }
 
-            return true;
+            return isUpdated;
         }
 
         /// <summary>
@@ -198,99 +192,124 @@ namespace ImageProcessor.Web.Caching
         /// </returns>
         internal static DateTime SetCachedLastWriteTime(string imagePath, string cachedImagePath)
         {
-            lock (SyncRoot)
+            if (File.Exists(imagePath) && File.Exists(cachedImagePath))
             {
-                if (File.Exists(imagePath) && File.Exists(cachedImagePath))
-                {
-                    DateTime dateTime = File.GetLastWriteTimeUtc(imagePath);
-                    File.SetLastWriteTimeUtc(cachedImagePath, dateTime);
-                    return dateTime;
-                }
+                DateTime dateTime = File.GetLastWriteTimeUtc(imagePath);
+                File.SetLastWriteTimeUtc(cachedImagePath, dateTime);
+                return dateTime;
             }
 
-            return DateTime.MinValue;
+            return DateTime.MinValue.ToUniversalTime();
         }
 
         /// <summary>
         /// Purges any files from the file-system cache in the given folders.
         /// </summary>
-        private static void PurgeFolders()
+        internal static void PurgeFolders()
         {
+            // Group each cache folder and clear any expired items or any that exeed
+            // the maximum allowable count.
             Regex searchTerm = new Regex(@"(jpeg|png|bmp|gif)");
-            var list = PersistantDictionary.Instance.ToList()
-                .GroupBy(x => searchTerm.Match(x.Value.Path))
-                .Select(y => new
-                                 {
-                                     Path = y.Key,
-                                     Expires = y.Select(z => z.Value.ExpiresUtc),
-                                     Count = y.Sum(z => z.Key.Count())
-                                 })
-                .AsEnumerable();
+            var groups = PersistantDictionary.Instance.ToList()
+                .GroupBy(x => searchTerm.Match(x.Value.Path).Value)
+                .Where(g => g.Count() > MaxFilesCount);
+            //.Where(g => g.Count() > MaxFilesCount
+            //    || g.Select(a => a.Value.ExpiresUtc < DateTime.UtcNow.AddDays(-MaxFileCachedDuration)).Count() > 0);
 
-            foreach (var path in list)
+            foreach (var group in groups)
             {
+                int groupCount = group.Count();
 
-            }
-
-
-
-            string folder = HostingEnvironment.MapPath(CachePath);
-
-            if (folder != null)
-            {
-                DirectoryInfo directoryInfo = new DirectoryInfo(folder);
-
-                if (directoryInfo.Exists)
+                foreach (KeyValuePair<string, CachedImage> pair in group.OrderBy(x => x.Value.ExpiresUtc))
                 {
-                    List<DirectoryInfo> directoryInfos = directoryInfo
-                        .EnumerateDirectories("*", SearchOption.TopDirectoryOnly)
-                        .ToList();
+                    // If the group count is equal to the max count minus 1 then we know we
+                    // are counting down from a full directory not simply clearing out 
+                    // expired items.
+                    if (groupCount == MaxFilesCount - 1)
+                    {
+                        break;
+                    }
 
-                    Parallel.ForEach(
-                        directoryInfos,
-                        subDirectoryInfo =>
+                    // Delete each CachedImage.
+                    try
+                    {
+                        FileInfo fileInfo = new FileInfo(pair.Value.Path);
+                        // Remove from the cache.
+                        string key = Path.GetFileNameWithoutExtension(fileInfo.Name);
+                        CachedImage cachedImage;
+
+                        if (PersistantDictionary.Instance.TryRemove(key, out cachedImage))
                         {
-                            // Get all the files in the cache ordered by LastAccessTime - oldest first.
-                            List<FileInfo> fileInfos = subDirectoryInfo.EnumerateFiles("*", SearchOption.TopDirectoryOnly)
-                                .OrderBy(x => x.LastAccessTimeUtc).ToList();
-
-                            int counter = fileInfos.Count;
-
-                            Parallel.ForEach(
-                                fileInfos,
-                                fileInfo =>
-                                {
-                                    // Delete the file if we are nearing our limit buffer.
-                                    if (counter >= MaxFilesCount || fileInfo.LastAccessTimeUtc < DateTime.UtcNow.AddDays(-MaxFileCachedDuration))
-                                    {
-                                        lock (SyncRoot)
-                                        {
-                                            try
-                                            {
-                                                // Remove from the cache.
-                                                string key = Path.GetFileNameWithoutExtension(fileInfo.Name);
-                                                CachedImage cachedImage;
-
-                                                if (PersistantDictionary.Instance.TryGetValue(key, out cachedImage))
-                                                {
-                                                    if (PersistantDictionary.Instance.TryRemove(key, out cachedImage))
-                                                    {
-                                                        fileInfo.Delete();
-                                                        counter -= 1;
-                                                    }
-                                                }
-                                            }
-                                            catch (IOException)
-                                            {
-                                                // Do Nothing, skip to the next.                                           
-                                                // TODO: Should we handle this?
-                                            }
-                                        }
-                                    }
-                                });
-                        });
+                            fileInfo.Delete();
+                            groupCount -= 1;
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        // Do Nothing, skip to the next.
+                        // TODO: Should we handle this?               
+                        continue;
+                    }
                 }
             }
+
+            //string folder = HostingEnvironment.MapPath(CachePath);
+
+            //if (folder != null)
+            //{
+            //    DirectoryInfo directoryInfo = new DirectoryInfo(folder);
+
+            //    if (directoryInfo.Exists)
+            //    {
+            //        List<DirectoryInfo> directoryInfos = directoryInfo
+            //            .EnumerateDirectories("*", SearchOption.TopDirectoryOnly)
+            //            .ToList();
+
+            //        Parallel.ForEach(
+            //            directoryInfos,
+            //            subDirectoryInfo =>
+            //            {
+            //                // Get all the files in the cache ordered by LastAccessTime - oldest first.
+            //                List<FileInfo> fileInfos = subDirectoryInfo.EnumerateFiles("*", SearchOption.TopDirectoryOnly)
+            //                    .OrderBy(x => x.LastAccessTimeUtc).ToList();
+
+            //                int counter = fileInfos.Count;
+
+            //                Parallel.ForEach(
+            //                    fileInfos,
+            //                    fileInfo =>
+            //                    {
+            //                        // Delete the file if we are nearing our limit buffer.
+            //                        if (counter >= MaxFilesCount || fileInfo.LastAccessTimeUtc < DateTime.UtcNow.AddDays(-MaxFileCachedDuration))
+            //                        {
+            //                            lock (SyncRoot)
+            //                            {
+            //                                try
+            //                                {
+            //                                    // Remove from the cache.
+            //                                    string key = Path.GetFileNameWithoutExtension(fileInfo.Name);
+            //                                    CachedImage cachedImage;
+
+            //                                    if (PersistantDictionary.Instance.TryGetValue(key, out cachedImage))
+            //                                    {
+            //                                        if (PersistantDictionary.Instance.TryRemove(key, out cachedImage))
+            //                                        {
+            //                                            fileInfo.Delete();
+            //                                            counter -= 1;
+            //                                        }
+            //                                    }
+            //                                }
+            //                                catch (IOException)
+            //                                {
+            //                                    // Do Nothing, skip to the next.                                           
+            //                                    // TODO: Should we handle this?
+            //                                }
+            //                            }
+            //                        }
+            //                    });
+            //            });
+            //    }
+            //}
         }
 
         /// <summary>

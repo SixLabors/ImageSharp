@@ -72,7 +72,7 @@ namespace ImageProcessor.Web.Caching
                                     LastWriteTimeUtc TEXT,
                                     ExpiresUtc TEXT,
                                     PRIMARY KEY (Key),
-                                    UNIQUE (Value));";
+                                    UNIQUE (Path));";
 
                             command.ExecuteNonQuery();
                         }
@@ -198,7 +198,7 @@ namespace ImageProcessor.Web.Caching
                             CachedImage image = new CachedImage(
                                     reader["Path"].ToString(),
                                     DateTime.Parse(reader["LastWriteTimeUtc"].ToString()).ToUniversalTime(),
-                                    DateTime.Parse(reader["LastWriteTimeUtc"].ToString()).ToUniversalTime());
+                                    DateTime.Parse(reader["ExpiresUtc"].ToString()).ToUniversalTime());
 
                             dictionary.Add(key, image);
                         }

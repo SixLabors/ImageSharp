@@ -39,8 +39,8 @@ namespace ImageProcessor.Web
             if (factory.ShouldProcess)
             {
                 // TODO: This is going to be a bottleneck for speed. Find a faster way.
-                lock (SyncRoot)
-                {
+                //lock (SyncRoot)
+                //{
                     // Get a list of all graphics processors that have parsed and matched the querystring.
                     List<IGraphicsProcessor> list =
                         ImageProcessorConfig.Instance.GraphicsProcessors
@@ -53,7 +53,7 @@ namespace ImageProcessor.Web
                     {
                         factory.Image = graphicsProcessor.ProcessImage(factory);
                     }
-                }
+                //}
             }
 
             return factory;

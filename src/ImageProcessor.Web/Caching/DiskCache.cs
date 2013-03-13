@@ -19,7 +19,6 @@ namespace ImageProcessor.Web.Caching
     using System.Web.Hosting;
     using ImageProcessor.Helpers.Extensions;
     using ImageProcessor.Web.Config;
-    using ImageProcessor.Web.Helpers;
     #endregion
 
     /// <summary>
@@ -112,6 +111,23 @@ namespace ImageProcessor.Web.Caching
         }
 
         /// <summary>
+        /// Adds an image to the cache.
+        /// </summary>
+        /// <param name="cachedPath">
+        /// The cached path.
+        /// </param>
+        /// <param name="lastWriteTimeUtc">
+        /// The last write time.
+        /// </param>
+        internal static void AddImageToCache(string cachedPath, DateTime lastWriteTimeUtc)
+        {
+            string key = Path.GetFileNameWithoutExtension(cachedPath);
+            DateTime expires = lastWriteTimeUtc.AddDays(MaxFileCachedDuration).ToUniversalTime();
+            CachedImage cachedImage = new CachedImage(key, lastWriteTimeUtc, expires);
+            PersistantDictionary.Instance.Add(key, cachedImage);
+        }
+
+        /// <summary>
         /// Converts an absolute file path 
         /// </summary>
         /// <param name="absolutePath">The absolute path to convert.</param>
@@ -155,12 +171,14 @@ namespace ImageProcessor.Web.Caching
         /// </returns>
         internal static bool IsUpdatedFile(string imagePath, string cachedImagePath)
         {
-            if (File.Exists(imagePath) && File.Exists(cachedImagePath))
+            if (File.Exists(imagePath))
             {
+                CachedImage image;
+                string key = Path.GetFileNameWithoutExtension(cachedImagePath);
+                PersistantDictionary.Instance.TryGetValue(key, out image);
                 FileInfo imageFileInfo = new FileInfo(imagePath);
-                FileInfo cachedImageFileInfo = new FileInfo(cachedImagePath);
 
-                return !new FileCompareLastwritetime().Equals(imageFileInfo, cachedImageFileInfo);
+                return image != null && imageFileInfo.LastWriteTimeUtc.Equals(image.LastWriteTimeUtc);
             }
 
             return true;
@@ -169,18 +187,28 @@ namespace ImageProcessor.Web.Caching
         /// <summary>
         /// Sets the LastWriteTime of the cached file to match the original file.
         /// </summary>
-        /// <param name="imagePath">The original image path.</param>
-        /// <param name="cachedImagePath">The cached image path.</param>
-        internal static void SetCachedLastWriteTime(string imagePath, string cachedImagePath)
+        /// <param name="imagePath">
+        /// The original image path.
+        /// </param>
+        /// <param name="cachedImagePath">
+        /// The cached image path.
+        /// </param>
+        /// <returns>
+        /// The <see cref="System.DateTime"/> set to the last write time of the file.
+        /// </returns>
+        internal static DateTime SetCachedLastWriteTime(string imagePath, string cachedImagePath)
         {
-            if (File.Exists(imagePath) && File.Exists(cachedImagePath))
+            lock (SyncRoot)
             {
-                lock (SyncRoot)
+                if (File.Exists(imagePath) && File.Exists(cachedImagePath))
                 {
                     DateTime dateTime = File.GetLastWriteTimeUtc(imagePath);
                     File.SetLastWriteTimeUtc(cachedImagePath, dateTime);
+                    return dateTime;
                 }
             }
+
+            return DateTime.MinValue;
         }
 
         /// <summary>
@@ -188,6 +216,24 @@ namespace ImageProcessor.Web.Caching
         /// </summary>
         private static void PurgeFolders()
         {
+            Regex searchTerm = new Regex(@"(jpeg|png|bmp|gif)");
+            var list = PersistantDictionary.Instance.ToList()
+                .GroupBy(x => searchTerm.Match(x.Value.Path))
+                .Select(y => new
+                                 {
+                                     Path = y.Key,
+                                     Expires = y.Select(z => z.Value.ExpiresUtc),
+                                     Count = y.Sum(z => z.Key.Count())
+                                 })
+                .AsEnumerable();
+
+            foreach (var path in list)
+            {
+
+            }
+
+
+
             string folder = HostingEnvironment.MapPath(CachePath);
 
             if (folder != null)
@@ -197,7 +243,7 @@ namespace ImageProcessor.Web.Caching
                 if (directoryInfo.Exists)
                 {
                     List<DirectoryInfo> directoryInfos = directoryInfo
-                        .EnumerateDirectories("*", SearchOption.AllDirectories)
+                        .EnumerateDirectories("*", SearchOption.TopDirectoryOnly)
                         .ToList();
 
                     Parallel.ForEach(
@@ -205,7 +251,7 @@ namespace ImageProcessor.Web.Caching
                         subDirectoryInfo =>
                         {
                             // Get all the files in the cache ordered by LastAccessTime - oldest first.
-                            List<FileInfo> fileInfos = subDirectoryInfo.EnumerateFiles("*", SearchOption.AllDirectories)
+                            List<FileInfo> fileInfos = subDirectoryInfo.EnumerateFiles("*", SearchOption.TopDirectoryOnly)
                                 .OrderBy(x => x.LastAccessTimeUtc).ToList();
 
                             int counter = fileInfos.Count;
@@ -221,8 +267,18 @@ namespace ImageProcessor.Web.Caching
                                         {
                                             try
                                             {
-                                                fileInfo.Delete();
-                                                counter -= 1;
+                                                // Remove from the cache.
+                                                string key = Path.GetFileNameWithoutExtension(fileInfo.Name);
+                                                CachedImage cachedImage;
+
+                                                if (PersistantDictionary.Instance.TryGetValue(key, out cachedImage))
+                                                {
+                                                    if (PersistantDictionary.Instance.TryRemove(key, out cachedImage))
+                                                    {
+                                                        fileInfo.Delete();
+                                                        counter -= 1;
+                                                    }
+                                                }
                                             }
                                             catch (IOException)
                                             {

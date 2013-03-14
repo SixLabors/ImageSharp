@@ -105,7 +105,7 @@ namespace ImageProcessor.Web.Caching
         {
             string key = Path.GetFileNameWithoutExtension(cachedPath);
             DateTime expires = DateTime.UtcNow.AddDays(MaxFileCachedDuration).ToUniversalTime();
-            CachedImage cachedImage = new CachedImage(cachedPath, lastWriteTimeUtc, expires);
+            CachedImage cachedImage = new CachedImage(cachedPath, MaxFileCachedDuration, lastWriteTimeUtc, expires);
             PersistantDictionary.Instance.Add(key, cachedImage);
         }
 
@@ -149,8 +149,10 @@ namespace ImageProcessor.Web.Caching
                 if (PersistantDictionary.Instance.TryGetValue(key, out cachedImage))
                 {
                     // Check to see if the last write time is different of whether the
-                    // chached image is set to expire.
-                    if (imageFileInfo.LastWriteTimeUtc != cachedImage.LastWriteTimeUtc || cachedImage.ExpiresUtc < DateTime.UtcNow.AddDays(-MaxFileCachedDuration))
+                    // cached image is set to expire or if the max age is different.
+                    if (imageFileInfo.LastWriteTimeUtc != cachedImage.LastWriteTimeUtc
+                        || cachedImage.ExpiresUtc < DateTime.UtcNow.AddDays(-MaxFileCachedDuration)
+                        || cachedImage.MaxAge != MaxFileCachedDuration)
                     {
                         if (PersistantDictionary.Instance.TryRemove(key, out cachedImage))
                         {

@@ -69,6 +69,7 @@ namespace ImageProcessor.Web.Caching
                             command.CommandText = @"CREATE TABLE names
                                     (Key TEXT,
                                     Path TEXT,
+                                    MaxAge INTEGER,
                                     LastWriteTimeUtc TEXT,
                                     ExpiresUtc TEXT,
                                     PRIMARY KEY (Key),
@@ -107,12 +108,13 @@ namespace ImageProcessor.Web.Caching
                     {
                         using (SQLiteCommand command = new SQLiteCommand(connection))
                         {
-                            command.CommandText = "INSERT INTO names VALUES(?, ?, ?, ?)";
+                            command.CommandText = "INSERT INTO names VALUES(?, ?, ?, ?, ?)";
 
                             SQLiteParameter[] parameters = new[]
                                                                {
                                                                    new SQLiteParameter("Key", key), 
                                                                    new SQLiteParameter("Path", image.Path),
+                                                                   new SQLiteParameter("MaxAge", image.MaxAge),
                                                                    new SQLiteParameter("LastWriteTimeUtc", image.LastWriteTimeUtc),
                                                                    new SQLiteParameter("ExpiresUtc", image.ExpiresUtc)
                                                                };
@@ -198,6 +200,7 @@ namespace ImageProcessor.Web.Caching
                             string key = reader["Key"].ToString();
                             CachedImage image = new CachedImage(
                                     reader["Path"].ToString(),
+                                    int.Parse(reader["MaxAge"].ToString()),
                                     DateTime.Parse(reader["LastWriteTimeUtc"].ToString()).ToUniversalTime(),
                                     DateTime.Parse(reader["ExpiresUtc"].ToString()).ToUniversalTime());
 

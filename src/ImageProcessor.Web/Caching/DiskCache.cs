@@ -13,8 +13,6 @@ namespace ImageProcessor.Web.Caching
     using System.IO;
     using System.Linq;
     using System.Text.RegularExpressions;
-    using System.Threading;
-    using System.Threading.Tasks;
     using System.Web;
     using System.Web.Hosting;
     using ImageProcessor.Helpers.Extensions;
@@ -44,7 +42,7 @@ namespace ImageProcessor.Web.Caching
         /// <summary>
         /// The regular expression to search strings for extension changes.
         /// </summary>
-        private static readonly Regex FormatRegex = new Regex(@"format=(jpeg|png|bmp|gif)", RegexOptions.Compiled);
+        private static readonly Regex FormatRegex = new Regex(@"(jpeg|png|bmp|gif)", RegexOptions.RightToLeft | RegexOptions.Compiled);
 
         /// <summary>
         /// The default paths for Cached folders on the server.
@@ -131,21 +129,6 @@ namespace ImageProcessor.Web.Caching
         }
 
         /// <summary>
-        /// Purges any files from the file-system cache in a background thread.
-        /// </summary>
-        internal static void PurgeCachedFolders()
-        {
-            ThreadStart threadStart = PurgeFolders;
-
-            Thread thread = new Thread(threadStart)
-            {
-                IsBackground = true
-            };
-
-            thread.Start();
-        }
-
-        /// <summary>
         /// Returns a value indicating whether the original file has been updated.
         /// </summary>
         /// <param name="imagePath">The original image path.</param>
@@ -156,16 +139,18 @@ namespace ImageProcessor.Web.Caching
         internal static bool IsUpdatedFile(string imagePath, string cachedImagePath)
         {
             string key = Path.GetFileNameWithoutExtension(cachedImagePath);
-            CachedImage cachedImage;
             bool isUpdated = false;
 
             if (File.Exists(imagePath))
             {
                 FileInfo imageFileInfo = new FileInfo(imagePath);
+                CachedImage cachedImage;
 
                 if (PersistantDictionary.Instance.TryGetValue(key, out cachedImage))
                 {
-                    if (!imageFileInfo.LastWriteTimeUtc.Equals(cachedImage.LastWriteTimeUtc))
+                    // Check to see if the last write time is different of whether the
+                    // chached image is set to expire.
+                    if (imageFileInfo.LastWriteTimeUtc != cachedImage.LastWriteTimeUtc || cachedImage.ExpiresUtc < DateTime.UtcNow.AddDays(-MaxFileCachedDuration))
                     {
                         if (PersistantDictionary.Instance.TryRemove(key, out cachedImage))
                         {
@@ -205,16 +190,13 @@ namespace ImageProcessor.Web.Caching
         /// <summary>
         /// Purges any files from the file-system cache in the given folders.
         /// </summary>
-        internal static void PurgeFolders()
+        internal static void TrimCachedFolders()
         {
             // Group each cache folder and clear any expired items or any that exeed
             // the maximum allowable count.
-            Regex searchTerm = new Regex(@"(jpeg|png|bmp|gif)");
             var groups = PersistantDictionary.Instance.ToList()
-                .GroupBy(x => searchTerm.Match(x.Value.Path).Value)
+                .GroupBy(x => FormatRegex.Match(x.Value.Path).Value)
                 .Where(g => g.Count() > MaxFilesCount);
-            //.Where(g => g.Count() > MaxFilesCount
-            //    || g.Select(a => a.Value.ExpiresUtc < DateTime.UtcNow.AddDays(-MaxFileCachedDuration)).Count() > 0);
 
             foreach (var group in groups)
             {
@@ -230,11 +212,10 @@ namespace ImageProcessor.Web.Caching
                         break;
                     }
 
-                    // Delete each CachedImage.
                     try
                     {
+                        // Remove from the cache and delete each CachedImage.
                         FileInfo fileInfo = new FileInfo(pair.Value.Path);
-                        // Remove from the cache.
                         string key = Path.GetFileNameWithoutExtension(fileInfo.Name);
                         CachedImage cachedImage;
 
@@ -252,64 +233,6 @@ namespace ImageProcessor.Web.Caching
                     }
                 }
             }
-
-            //string folder = HostingEnvironment.MapPath(CachePath);
-
-            //if (folder != null)
-            //{
-            //    DirectoryInfo directoryInfo = new DirectoryInfo(folder);
-
-            //    if (directoryInfo.Exists)
-            //    {
-            //        List<DirectoryInfo> directoryInfos = directoryInfo
-            //            .EnumerateDirectories("*", SearchOption.TopDirectoryOnly)
-            //            .ToList();
-
-            //        Parallel.ForEach(
-            //            directoryInfos,
-            //            subDirectoryInfo =>
-            //            {
-            //                // Get all the files in the cache ordered by LastAccessTime - oldest first.
-            //                List<FileInfo> fileInfos = subDirectoryInfo.EnumerateFiles("*", SearchOption.TopDirectoryOnly)
-            //                    .OrderBy(x => x.LastAccessTimeUtc).ToList();
-
-            //                int counter = fileInfos.Count;
-
-            //                Parallel.ForEach(
-            //                    fileInfos,
-            //                    fileInfo =>
-            //                    {
-            //                        // Delete the file if we are nearing our limit buffer.
-            //                        if (counter >= MaxFilesCount || fileInfo.LastAccessTimeUtc < DateTime.UtcNow.AddDays(-MaxFileCachedDuration))
-            //                        {
-            //                            lock (SyncRoot)
-            //                            {
-            //                                try
-            //                                {
-            //                                    // Remove from the cache.
-            //                                    string key = Path.GetFileNameWithoutExtension(fileInfo.Name);
-            //                                    CachedImage cachedImage;
-
-            //                                    if (PersistantDictionary.Instance.TryGetValue(key, out cachedImage))
-            //                                    {
-            //                                        if (PersistantDictionary.Instance.TryRemove(key, out cachedImage))
-            //                                        {
-            //                                            fileInfo.Delete();
-            //                                            counter -= 1;
-            //                                        }
-            //                                    }
-            //                                }
-            //                                catch (IOException)
-            //                                {
-            //                                    // Do Nothing, skip to the next.                                           
-            //                                    // TODO: Should we handle this?
-            //                                }
-            //                            }
-            //                        }
-            //                    });
-            //            });
-            //    }
-            //}
         }
 
         /// <summary>
@@ -323,16 +246,11 @@ namespace ImageProcessor.Web.Caching
         /// </returns>
         private static string ParseExtension(string input)
         {
-            foreach (Match match in FormatRegex.Matches(input))
-            {
-                if (match.Success)
-                {
-                    return match.Value.Split('=')[1];
-                }
-            }
+            Match match = FormatRegex.Match(input);
 
-            return string.Empty;
+            return match.Success ? match.Value : string.Empty;
         }
+
         #endregion
     }
 }

@@ -129,7 +129,7 @@ namespace ImageProcessor.Web.HttpModules
                                             lock (SyncRoot)
                                             {
                                                 // Trim the cache.
-                                                DiskCache.PurgeFolders();
+                                                DiskCache.TrimCachedFolders();
 
                                                 responseStream.CopyTo(memoryStream);
 
@@ -153,7 +153,7 @@ namespace ImageProcessor.Web.HttpModules
                                 lock (SyncRoot)
                                 {
                                     // Trim the cache.
-                                    DiskCache.PurgeFolders();
+                                    DiskCache.TrimCachedFolders();
 
                                     imageFactory.Load(fullPath).AutoProcess().Save(cachedPath);
 

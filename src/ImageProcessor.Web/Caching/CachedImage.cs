@@ -14,7 +14,7 @@ namespace ImageProcessor.Web.Caching
     /// <summary>
     /// Describes a cached image 
     /// </summary>
-    internal sealed class CachedImage : IComparable<CachedImage>
+    internal sealed class CachedImage 
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="CachedImage"/> class.
@@ -49,15 +49,5 @@ namespace ImageProcessor.Web.Caching
         /// Gets or sets when the cached image should expire from the cache.
         /// </summary>
         public DateTime ExpiresUtc { get; set; }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="other"></param>
-        /// <returns></returns>
-        public int CompareTo(CachedImage other)
-        {
-            return this.ExpiresUtc.CompareTo(other.ExpiresUtc);
-        }
     }
 }

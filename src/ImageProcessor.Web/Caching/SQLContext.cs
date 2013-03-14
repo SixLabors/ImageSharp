@@ -154,7 +154,8 @@ namespace ImageProcessor.Web.Caching
                     {
                         using (SQLiteCommand command = new SQLiteCommand(connection))
                         {
-                            command.CommandText = string.Format("DELETE FROM names WHERE key = '{0}';", key);
+                            command.CommandText = "DELETE FROM names WHERE key = @searchParam;";
+                            command.Parameters.Add(new SQLiteParameter("searchParam", key));
                             command.ExecuteNonQuery();
                         }
 

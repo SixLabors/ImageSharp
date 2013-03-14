@@ -14,34 +14,43 @@ namespace ImageProcessor.Web.Caching
     /// <summary>
     /// Describes a cached image 
     /// </summary>
-    internal sealed class CachedImage 
+    internal sealed class CachedImage
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="CachedImage"/> class.
         /// </summary>
         /// <param name="path">
-        /// The value of the cached item.
+        /// The value of the cached image.
+        /// </param>
+        /// <param name="naxAge">
+        /// The maximum age in days cached image.
         /// </param>
         /// <param name="lastWriteTimeUtc">
-        /// The last write time of the cached item.
+        /// The last write time of the cached image.
         /// </param>
         /// <param name="expiresTimeUtc">
         /// The expires time.
         /// </param>
-        public CachedImage(string path, DateTime lastWriteTimeUtc, DateTime expiresTimeUtc)
+        public CachedImage(string path, int maxAge, DateTime lastWriteTimeUtc, DateTime expiresTimeUtc)
         {
             this.Path = path;
+            this.MaxAge = maxAge;
             this.LastWriteTimeUtc = lastWriteTimeUtc;
             this.ExpiresUtc = expiresTimeUtc;
         }
 
         /// <summary>
-        /// Gets or sets the value of the cached image
+        /// Gets or sets the value of the cached image.
         /// </summary>
         public string Path { get; set; }
 
         /// <summary>
-        /// Gets or sets the last write time of the cached image
+        /// The maximum age of the cached image in days.
+        /// </summary>
+        public int MaxAge { get; set; }
+
+        /// <summary>
+        /// Gets or sets the last write time of the cached image.
         /// </summary>
         public DateTime LastWriteTimeUtc { get; set; }
 

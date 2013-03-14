@@ -35,7 +35,7 @@ namespace ImageProcessor.Web.Caching
         /// <param name="val">
         /// The value to initialize the LockedDictionary with.
         /// </param>
-        public LockedDictionary(IDictionary<TKey, TVal> val = null)
+        public LockedDictionary(IEnumerable<KeyValuePair<TKey, TVal>> val = null)
         {
             if (val != null)
             {

@@ -99,18 +99,18 @@ namespace ImageProcessor.Web.HttpModules
                 queryString = HttpUtility.UrlDecode(context.Request.QueryString.ToString());
             }
 
+            // Only process requests that pass our sanitizing filter.
             if (ImageUtils.IsValidImageExtension(path) && !string.IsNullOrWhiteSpace(queryString))
             {
-                string fullPath = string.Format("{0}?{1}", path, queryString);
-                string imageName = Path.GetFileName(path);
-                string cachedPath = DiskCache.GetCachePath(fullPath, imageName);
-
-                if (path != null && this.FileExists(path, isRemote))
+                if (this.FileExists(path, isRemote))
                 {
-                    bool exists = File.Exists(cachedPath);
-                    bool updated = DiskCache.IsUpdatedFile(path, cachedPath);
+                    string fullPath = string.Format("{0}?{1}", path, queryString);
+                    string imageName = Path.GetFileName(path);
+                    string cachedPath = DiskCache.GetCachePath(fullPath, imageName);
+                    bool isUpdated = DiskCache.IsUpdatedFile(path, cachedPath, isRemote);
 
-                    if ((exists == false) || (!isRemote && updated))
+                    // Only process if the file has been updated.
+                    if (isUpdated)
                     {
                         // Process the image.
                         using (ImageFactory imageFactory = new ImageFactory())
@@ -139,7 +139,7 @@ namespace ImageProcessor.Web.HttpModules
                                                     .AutoProcess().Save(cachedPath);
 
                                                 // Ensure that the LastWriteTime property of the source and cached file match.
-                                                DateTime dateTime = DiskCache.SetCachedLastWriteTime(path, cachedPath);
+                                                DateTime dateTime = DiskCache.SetCachedLastWriteTime(path, cachedPath, isRemote);
 
                                                 // Add to the cache.
                                                 DiskCache.AddImageToCache(cachedPath, dateTime);
@@ -158,7 +158,7 @@ namespace ImageProcessor.Web.HttpModules
                                     imageFactory.Load(fullPath).AutoProcess().Save(cachedPath);
 
                                     // Ensure that the LastWriteTime property of the source and cached file match.
-                                    DateTime dateTime = DiskCache.SetCachedLastWriteTime(path, cachedPath);
+                                    DateTime dateTime = DiskCache.SetCachedLastWriteTime(path, cachedPath, isRemote);
 
                                     // Add to the cache.
                                     DiskCache.AddImageToCache(cachedPath, dateTime);
@@ -201,12 +201,18 @@ namespace ImageProcessor.Web.HttpModules
         /// returns a value indicating whether a file exists.
         /// </summary>
         /// <param name="path">The path to the file to check.</param>
-        /// <param name="remote">Whether the file is remote.</param>
+        /// <param name="isRemote">Whether the file is remote.</param>
         /// <returns>True if the file exists, otherwise false.</returns>
         /// <remarks>If the file is remote the method will always return true.</remarks>
-        private bool FileExists(string path, bool remote)
+        private bool FileExists(string path, bool isRemote)
         {
-            return remote || File.Exists(path);
+            if (isRemote)
+            {
+                return true;
+            }
+
+            FileInfo fileInfo = new FileInfo(path);
+            return fileInfo.Exists;
         }
 
         /// <summary>

@@ -84,7 +84,7 @@ namespace ImageProcessor.Web.Caching
                     if (!directoryInfo.Exists)
                     {
                         // Create the directory.
-                        Directory.CreateDirectory(cachedDirectory);
+                        directoryInfo.Create();
                     }
                 }
             }
@@ -120,6 +120,7 @@ namespace ImageProcessor.Web.Caching
             string applicationPath = request.PhysicalApplicationPath;
             string virtualDir = request.ApplicationPath;
             virtualDir = virtualDir == "/" ? virtualDir : (virtualDir + "/");
+
             if (applicationPath != null)
             {
                 return absolutePath.Replace(applicationPath, virtualDir).Replace(@"\", "/");
@@ -133,19 +134,43 @@ namespace ImageProcessor.Web.Caching
         /// </summary>
         /// <param name="imagePath">The original image path.</param>
         /// <param name="cachedImagePath">The cached image path.</param>
+        /// <param name="isRemote">Whether the file is a remote request.</param>
         /// <returns>
         /// True if the the original file has been updated; otherwise, false.
         /// </returns>
-        internal static bool IsUpdatedFile(string imagePath, string cachedImagePath)
+        internal static bool IsUpdatedFile(string imagePath, string cachedImagePath, bool isRemote)
         {
             string key = Path.GetFileNameWithoutExtension(cachedImagePath);
-            bool isUpdated = false;
+            CachedImage cachedImage;
 
-            if (File.Exists(imagePath))
+            if (isRemote)
             {
-                FileInfo imageFileInfo = new FileInfo(imagePath);
-                CachedImage cachedImage;
+                if (PersistantDictionary.Instance.TryGetValue(key, out cachedImage))
+                {
+                    // Can't check the last write time so Check to see if the cached image is set to expire 
+                    // or if the max age is different.
+                    if (cachedImage.ExpiresUtc < DateTime.UtcNow.AddDays(-MaxFileCachedDuration)
+                        || cachedImage.MaxAge != MaxFileCachedDuration)
+                    {
+                        if (PersistantDictionary.Instance.TryRemove(key, out cachedImage))
+                        {
+                            // We can jump out here.
+                            return true;
+                        }
+                    }
 
+                    return false;
+                }
+                else
+                {
+                    // Nothing in the cache so we should return true.
+                    return true;
+                }
+            }
+
+            FileInfo imageFileInfo = new FileInfo(imagePath);
+            if (imageFileInfo.Exists)
+            {
                 if (PersistantDictionary.Instance.TryGetValue(key, out cachedImage))
                 {
                     // Check to see if the last write time is different of whether the
@@ -156,13 +181,18 @@ namespace ImageProcessor.Web.Caching
                     {
                         if (PersistantDictionary.Instance.TryRemove(key, out cachedImage))
                         {
-                            isUpdated = true;
+                            return true;
                         }
                     }
                 }
+                else
+                {
+                    // Nothing in the cache so we should return true.
+                    return true;
+                }
             }
 
-            return isUpdated;
+            return false;
         }
 
         /// <summary>
@@ -174,15 +204,29 @@ namespace ImageProcessor.Web.Caching
         /// <param name="cachedImagePath">
         /// The cached image path.
         /// </param>
+        /// <param name="isRemote">Whether the file is remote.</param>
         /// <returns>
         /// The <see cref="System.DateTime"/> set to the last write time of the file.
         /// </returns>
-        internal static DateTime SetCachedLastWriteTime(string imagePath, string cachedImagePath)
+        internal static DateTime SetCachedLastWriteTime(string imagePath, string cachedImagePath, bool isRemote)
         {
-            if (File.Exists(imagePath) && File.Exists(cachedImagePath))
+            FileInfo cachedFileInfo = new FileInfo(cachedImagePath);
+
+            if (isRemote)
             {
-                DateTime dateTime = File.GetLastWriteTimeUtc(imagePath);
-                File.SetLastWriteTimeUtc(cachedImagePath, dateTime);
+                if (cachedFileInfo.Exists)
+                {
+                    return cachedFileInfo.LastWriteTimeUtc;
+                }
+            }
+
+            FileInfo imageFileInfo = new FileInfo(imagePath);
+
+            if (imageFileInfo.Exists && cachedFileInfo.Exists)
+            {
+                DateTime dateTime = imageFileInfo.LastWriteTimeUtc;
+                cachedFileInfo.LastWriteTimeUtc = dateTime;
+
                 return dateTime;
             }
 

@@ -22,8 +22,8 @@ namespace ImageProcessor.Web.Caching
         /// <param name="path">
         /// The value of the cached image.
         /// </param>
-        /// <param name="naxAge">
-        /// The maximum age in days cached image.
+        /// <param name="maxAge">
+        /// The max age of the cached image.
         /// </param>
         /// <param name="lastWriteTimeUtc">
         /// The last write time of the cached image.
@@ -45,7 +45,7 @@ namespace ImageProcessor.Web.Caching
         public string Path { get; set; }
 
         /// <summary>
-        /// The maximum age of the cached image in days.
+        /// Gets or sets the maximum age of the cached image in days.
         /// </summary>
         public int MaxAge { get; set; }
 

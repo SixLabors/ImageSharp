@@ -147,7 +147,7 @@ namespace ImageProcessor.Web.Caching
             {
                 if (PersistantDictionary.Instance.TryGetValue(key, out cachedImage))
                 {
-                    // Can't check the last write time so Check to see if the cached image is set to expire 
+                    // Can't check the last write time so check to see if the cached image is set to expire 
                     // or if the max age is different.
                     if (cachedImage.ExpiresUtc < DateTime.UtcNow.AddDays(-MaxFileCachedDuration)
                         || cachedImage.MaxAge != MaxFileCachedDuration)
@@ -161,11 +161,9 @@ namespace ImageProcessor.Web.Caching
 
                     return false;
                 }
-                else
-                {
-                    // Nothing in the cache so we should return true.
-                    return true;
-                }
+
+                // Nothing in the cache so we should return true.
+                return true;
             }
 
             FileInfo imageFileInfo = new FileInfo(imagePath);
@@ -271,10 +269,11 @@ namespace ImageProcessor.Web.Caching
                             groupCount -= 1;
                         }
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
                         // Do Nothing, skip to the next.
-                        // TODO: Should we handle this?               
+                        // TODO: Should we handle this?   
+                        throw ex;
                         continue;
                     }
                 }

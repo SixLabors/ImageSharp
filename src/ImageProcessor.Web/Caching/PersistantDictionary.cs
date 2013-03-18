@@ -141,9 +141,8 @@ namespace ImageProcessor.Web.Caching
 
                 return SQLContext.AddImage(key, cachedImage);
             }
-            catch (Exception ex)
+            catch
             {
-                throw ex;
                 return false;
             }
         }

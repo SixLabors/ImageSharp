@@ -139,7 +139,7 @@ namespace ImageProcessor.Web.HttpModules
                                                     .AutoProcess().Save(cachedPath);
 
                                                 // Ensure that the LastWriteTime property of the source and cached file match.
-                                                DateTime dateTime = DiskCache.SetCachedLastWriteTime(path, cachedPath, isRemote);
+                                                DateTime dateTime = DiskCache.SetCachedLastWriteTime(path, cachedPath, true);
 
                                                 // Add to the cache.
                                                 DiskCache.AddImageToCache(cachedPath, dateTime);
@@ -158,7 +158,7 @@ namespace ImageProcessor.Web.HttpModules
                                     imageFactory.Load(fullPath).AutoProcess().Save(cachedPath);
 
                                     // Ensure that the LastWriteTime property of the source and cached file match.
-                                    DateTime dateTime = DiskCache.SetCachedLastWriteTime(path, cachedPath, isRemote);
+                                    DateTime dateTime = DiskCache.SetCachedLastWriteTime(path, cachedPath, false);
 
                                     // Add to the cache.
                                     DiskCache.AddImageToCache(cachedPath, dateTime);

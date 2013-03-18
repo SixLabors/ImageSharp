@@ -10,6 +10,7 @@ namespace Test.Controllers
     using System.Threading.Tasks;
     using System.Web.Hosting;
 
+    using ImageProcessor.Helpers.Extensions;
     using ImageProcessor.Web.Caching;
 
     public class HomeController : Controller
@@ -58,6 +59,29 @@ namespace Test.Controllers
         {
             DateTime start = DateTime.Now;
 
+            List<double> collisions = new List<double>();
+const int Iterations = 1;
+const int Maxitems = 360000;
+
+for (int i = 0; i < Iterations; i++)
+{
+    List<string> paths = new List<string>();
+
+    for (int j = 0; j < Maxitems; j++)
+    {
+        string path = Path.GetRandomFileName().ToSHA256Fingerprint().Substring(0, 8);
+
+        paths.Add(path);
+    }
+
+    int count = paths.Distinct().Count();
+
+    double collisionRate = ((Maxitems - count) * 100D) / Maxitems;
+    collisions.Add(collisionRate);
+}
+
+double averageCollisionRate = collisions.Average();
+
             //PersistantDictionary persistantDictionary = PersistantDictionary.Instance;
 
             //for (int i = 0; i < 1000; i++)
@@ -77,7 +101,8 @@ namespace Test.Controllers
 
             TimeSpan timeSpan = DateTime.Now - start;
 
-            //ViewBag.Count = persistantDictionary.Count();
+            //ViewBag.Count = count;
+            ViewBag.Collision = averageCollisionRate;
 
             return this.View(timeSpan);
         }

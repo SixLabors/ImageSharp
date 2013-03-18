@@ -24,7 +24,7 @@ namespace ImageProcessor.Web.Helpers
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The purpose of this class is so there's one core way of downloading remote files with urls that are from
+    /// The purpose of this class is so there's one core way of downloading remote files with url[s] that are from
     /// outside users. There's various areas in application where an attacker could supply an external url to the server
     /// and tie up resources.
     /// </para>
@@ -43,7 +43,7 @@ namespace ImageProcessor.Web.Helpers
     {
         #region Fields
         /// <summary>
-        /// The white-list of urls from which to download remote files.
+        /// The white-list of url[s] from which to download remote files.
         /// </summary>
         private static readonly Uri[] RemoteFileWhiteList = ImageProcessorConfig.Instance.RemoteFileWhiteList;
 

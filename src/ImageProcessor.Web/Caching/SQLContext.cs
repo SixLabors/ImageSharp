@@ -129,9 +129,8 @@ namespace ImageProcessor.Web.Caching
 
                 return true;
             }
-            catch (Exception ex)
+            catch
             {
-                throw ex;
                 return false;
             }
         }
@@ -168,9 +167,8 @@ namespace ImageProcessor.Web.Caching
 
                 return true;
             }
-            catch (Exception ex)
+            catch
             {
-                throw ex;
                 return false;
             }
         }
@@ -213,9 +211,8 @@ namespace ImageProcessor.Web.Caching
 
                 return dictionary;
             }
-            catch (Exception ex)
+            catch
             {
-                throw ex;
                 return new Dictionary<string, CachedImage>();
             }
         }

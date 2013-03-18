@@ -13,7 +13,7 @@ namespace ImageProcessor.Web.Config
     #endregion
 
     /// <summary>
-    /// Represents an imagecache section within a configuration file.
+    /// Represents an image cache section within a configuration file.
     /// </summary>
     public class ImageCacheSection : ConfigurationSection
     {

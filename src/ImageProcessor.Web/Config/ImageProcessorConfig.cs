@@ -10,22 +10,20 @@ namespace ImageProcessor.Web.Config
     #region Using
     using System;
     using System.Collections.Generic;
-    using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using ImageProcessor.Processors;
     #endregion
 
     /// <summary>
     /// Encapsulates methods to allow the retrieval of ImageProcessor settings.
-    /// http://csharpindepth.com/Articles/General/Singleton.aspx
+    /// <see cref="http://csharpindepth.com/Articles/General/Singleton.aspx"/>
     /// </summary>
-    [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1650:ElementDocumentationMustBeSpelledCorrectly", Justification = "Reviewed. Suppression is OK here.")]
     public class ImageProcessorConfig
     {
         #region Fields
         /// <summary>
         /// A new instance Initializes a new instance of the <see cref="T:ImageProcessor.Web.Config.ImageProcessorConfig"/> class.
-        /// intitialized lazily.
+        /// with lazy initialization.
         /// </summary>
         private static readonly Lazy<ImageProcessorConfig> Lazy =
                         new Lazy<ImageProcessorConfig>(() => new ImageProcessorConfig());
@@ -107,9 +105,8 @@ namespace ImageProcessor.Web.Config
 
         #region Security
         /// <summary>
-        /// Gets a list of whitelisted urls that images can be downloaded from.
+        /// Gets a list of whitelisted url[s] that images can be downloaded from.
         /// </summary>
-        [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1650:ElementDocumentationMustBeSpelledCorrectly", Justification = "Reviewed. Suppression is OK here.")]
         public Uri[] RemoteFileWhiteList
         {
             get

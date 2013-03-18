@@ -49,6 +49,7 @@ namespace ImageProcessor.Web.HttpModules
         /// <param name="context">An <see cref="T:System.Web.HttpApplication"/> that provides access to the methods, properties, and events common to all application objects within an ASP.NET application </param>
         public void Init(HttpApplication context)
         {
+            DiskCache.CreateCacheDirectories();
             context.BeginRequest += this.ContextBeginRequest;
             context.PreSendRequestHeaders += this.ContextPreSendRequestHeaders;
         }

@@ -126,12 +126,12 @@ namespace ImageProcessor.Imaging
             /// <summary>
             /// Mask used when getting the appropriate pixels for a given node
             /// </summary>
-            private static int[] mask = new int[8] { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
+            private static readonly int[] mask = new int[8] { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
 
             /// <summary>
             /// The root of the octree
             /// </summary>
-            private OctreeNode root;
+            private readonly OctreeNode root;
 
             /// <summary>
             /// Number of leaves in the tree

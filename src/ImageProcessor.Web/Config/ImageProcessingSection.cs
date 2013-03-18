@@ -13,8 +13,8 @@ namespace ImageProcessor.Web.Config
     #endregion
 
     /// <summary>
-    /// Represents an imageprocessing section within a configuration file.
-    /// Nested syntax adapted from http://tneustaedter.blogspot.co.uk/2011/09/how-to-create-one-or-more-nested.html
+    /// Represents an image processing section within a configuration file.
+    /// Nested syntax adapted from <see cref="http://tneustaedter.blogspot.co.uk/2011/09/how-to-create-one-or-more-nested.html"/>
     /// </summary>
     public class ImageProcessingSection : ConfigurationSection
     {
@@ -132,12 +132,12 @@ namespace ImageProcessor.Web.Config
 
                 set
                 {
-                    if (BaseGet(index) != null)
+                    if (this.BaseGet(index) != null)
                     {
-                        BaseRemoveAt(index);
+                        this.BaseRemoveAt(index);
                     }
 
-                    BaseAdd(index, value);
+                   this.BaseAdd(index, value);
                 }
             }
 
@@ -253,20 +253,20 @@ namespace ImageProcessor.Web.Config
 
                 set
                 {
-                    if (BaseGet(index) != null)
+                    if (this.BaseGet(index) != null)
                     {
-                        BaseRemoveAt(index);
+                       this.BaseRemoveAt(index);
                     }
 
-                    BaseAdd(index, value);
+                   this.BaseAdd(index, value);
                 }
             }
 
             /// <summary>
             /// Returns the setting element with the specified key.
             /// </summary>
-            /// <param name="key">knkn knk</param>
-            /// <returns>jn jnj </returns>
+            /// <param name="key">the key representing the element</param>
+            /// <returns>the setting element</returns>
             public new SettingElement this[string key]
             {
                 get { return (SettingElement)BaseGet(key); }

@@ -15,7 +15,7 @@ namespace ImageProcessor.Imaging
     #endregion
 
     /// <summary>
-    /// Encapsulates methods to calulate the colour pallete of an image.
+    /// Encapsulates methods to calculate the color palette of an image.
     /// </summary>
     internal abstract class Quantizer
     {
@@ -250,11 +250,11 @@ namespace ImageProcessor.Imaging
         /// Retrieve the palette for the quantized image
         /// </summary>
         /// <param name="original">Any old palette, this is overwritten</param>
-        /// <returns>The new colour palette</returns>
+        /// <returns>The new color palette</returns>
         protected abstract ColorPalette GetPalette(ColorPalette original);
 
         /// <summary>
-        /// Structure that defines a 32 bpp colour
+        /// Structure that defines a 32 bit color
         /// </summary>
         /// <remarks>
         /// This structure is used to read data from a 32 bits per pixel image
@@ -265,31 +265,31 @@ namespace ImageProcessor.Imaging
         public struct Color32
         {
             /// <summary>
-            /// Holds the blue component of the colour
+            /// Holds the blue component of the color
             /// </summary>
             [FieldOffset(0)]
             public byte Blue;
 
             /// <summary>
-            /// Holds the green component of the colour
+            /// Holds the green component of the color
             /// </summary>
             [FieldOffset(1)]
             public byte Green;
 
             /// <summary>
-            /// Holds the red component of the colour
+            /// Holds the red component of the color
             /// </summary>
             [FieldOffset(2)]
             public byte Red;
 
             /// <summary>
-            /// Holds the alpha component of the colour
+            /// Holds the alpha component of the color
             /// </summary>
             [FieldOffset(3)]
             public byte Alpha;
 
             /// <summary>
-            /// Permits the color32 to be treated as an int32
+            /// Permits the color32 to be treated as a 32 bit integer.
             /// </summary>
             [FieldOffset(0)]
             public int ARGB;
@@ -304,7 +304,7 @@ namespace ImageProcessor.Imaging
             }
 
             /// <summary>
-            /// Gets the colour for this Color32 object
+            /// Gets the color for this Color32 object
             /// </summary>
             public Color Color
             {

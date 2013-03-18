@@ -1,6 +1,7 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="StringExtensions.cs" company="James South">
-// TODO: Update copyright text.
+//     Copyright (c) James South.
+//     Dual licensed under the MIT or GPL Version 2 licenses.
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -29,8 +30,6 @@ namespace ImageProcessor.Helpers.Extensions
         /// <returns>An MD5 fingerprint of the String.</returns>
         public static string ToMD5Fingerprint(this string expression)
         {
-            Contract.Requires(!string.IsNullOrWhiteSpace(expression));
-
             byte[] bytes = Encoding.Unicode.GetBytes(expression.ToCharArray());
 
             using (MD5CryptoServiceProvider md5 = new MD5CryptoServiceProvider())
@@ -41,7 +40,49 @@ namespace ImageProcessor.Helpers.Extensions
                 return hash.Aggregate(
                     new StringBuilder(32),
                     (sb, b) => sb.Append(b.ToString("X2", CultureInfo.InvariantCulture)))
-                    .ToString();
+                    .ToString().ToLowerInvariant();
+            }
+        }
+
+        /// <summary>
+        /// Creates an SHA1 fingerprint of the String.
+        /// </summary>
+        /// <param name="expression">The <see cref="T:System.String">String</see> instance that this method extends.</param>
+        /// <returns>An SHA1 fingerprint of the String.</returns>
+        public static string ToSHA1Fingerprint(this string expression)
+        {
+            byte[] bytes = Encoding.ASCII.GetBytes(expression.ToCharArray());
+
+            using (SHA1CryptoServiceProvider sha1 = new SHA1CryptoServiceProvider())
+            {
+                byte[] hash = sha1.ComputeHash(bytes);
+
+                // Concatenate the hash bytes into one long String.
+                return hash.Aggregate(
+                    new StringBuilder(40),
+                    (sb, b) => sb.Append(b.ToString("X2", CultureInfo.InvariantCulture)))
+                    .ToString().ToLowerInvariant();
+            }
+        }
+
+        /// <summary>
+        /// Creates an SHA256 fingerprint of the String.
+        /// </summary>
+        /// <param name="expression">The <see cref="T:System.String">String</see> instance that this method extends.</param>
+        /// <returns>An SHA256 fingerprint of the String.</returns>
+        public static string ToSHA256Fingerprint(this string expression)
+        {
+            byte[] bytes = Encoding.ASCII.GetBytes(expression.ToCharArray());
+
+            using (SHA256CryptoServiceProvider sha256 = new SHA256CryptoServiceProvider())
+            {
+                byte[] hash = sha256.ComputeHash(bytes);
+
+                // Concatenate the hash bytes into one long String.
+                return hash.Aggregate(
+                    new StringBuilder(64),
+                    (sb, b) => sb.Append(b.ToString("X2", CultureInfo.InvariantCulture)))
+                    .ToString().ToLowerInvariant();
             }
         }
         #endregion
@@ -82,8 +123,6 @@ namespace ImageProcessor.Helpers.Extensions
         /// <returns>True if the given string is a valid virtual path name</returns>
         public static bool IsValidVirtualPathName(this string expression)
         {
-            Contract.Requires(!string.IsNullOrWhiteSpace(expression));
-
             // Check the start of the string.
             if (expression.StartsWith("~/"))
             {
@@ -97,14 +136,15 @@ namespace ImageProcessor.Helpers.Extensions
 
         /// <summary>
         /// Checks the string to see whether the value is a valid path name.
-        /// http://stackoverflow.com/questions/62771/how-check-if-given-string-is-legal-allowed-file-name-under-windows/
         /// </summary>
+        /// <remarks>
+        /// For an explanation 
+        /// <see cref="http://stackoverflow.com/questions/62771/how-check-if-given-string-is-legal-allowed-file-name-under-windows"/>
+        /// </remarks>
         /// <param name="expression">The <see cref="T:System.String">String</see> instance that this method extends.</param>
         /// <returns>True if the given string is a valid path name</returns>
         public static bool IsValidPathName(this string expression)
         {
-            Contract.Requires(!string.IsNullOrWhiteSpace(expression));
-
             // Create a regex of invalid characters and test it.
             string invalidPathNameChars = new string(Path.GetInvalidFileNameChars());
             Regex regFixPathName = new Regex("[" + Regex.Escape(invalidPathNameChars) + "]");

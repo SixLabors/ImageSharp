@@ -9,12 +9,9 @@ namespace ImageProcessor.Imaging.Filters
 {
     #region Using
     using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
     using System.Drawing;
-    using System.Drawing.Imaging;
     using System.Drawing.Drawing2D;
+    using System.Drawing.Imaging;
     #endregion
 
     /// <summary>
@@ -49,7 +46,7 @@ namespace ImageProcessor.Imaging.Filters
         }
 
         /// <summary>
-        /// Gets the <see cref="T:System.Drawing.Imaging.ColoMatrix"/> for this filter instance.
+        /// Gets the <see cref="T:System.Drawing.Imaging.ColorMatrix"/> for this filter instance.
         /// </summary>
         public ColorMatrix Matrix
         {

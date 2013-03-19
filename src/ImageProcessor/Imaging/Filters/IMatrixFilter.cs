@@ -18,7 +18,7 @@ namespace ImageProcessor.Imaging.Filters
     interface IMatrixFilter
     {
         /// <summary>
-        /// Gets the <see cref="T:System.Drawing.ColoMatrix"/> for this filter instance.
+        /// Gets the <see cref="T:System.Drawing.ColorMatrix"/> for this filter instance.
         /// </summary>
         ColorMatrix Matrix { get; }
 

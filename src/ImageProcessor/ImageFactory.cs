@@ -77,7 +77,7 @@ namespace ImageProcessor
         public string ImagePath { get; private set; }
 
         /// <summary>
-        /// Gets the querystring params for web image manipulation.
+        /// Gets the query-string parameters for web image manipulation.
         /// </summary>
         public string QueryString { get; private set; }
 
@@ -177,9 +177,9 @@ namespace ImageProcessor
 
         #region Manipulation
         /// <summary>
-        /// Adds a querystring to the image factory to allow autoprocessing of remote files.
+        /// Adds a query-string to the image factory to allow auto-processing of remote files.
         /// </summary>
-        /// <param name="query">The querystring parameter to process.</param>
+        /// <param name="query">The query-string parameter to process.</param>
         /// <returns>
         /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
         /// </returns>
@@ -533,7 +533,7 @@ namespace ImageProcessor
 
         /// <summary>
         /// Uses the <see cref="T:ImageProcessor.Imaging.OctreeQuantizer"/>
-        /// to fix the colour palette of gif images.
+        /// to fix the color palette of gif images.
         /// </summary>
         private void FixGifs()
         {

@@ -19,10 +19,10 @@ namespace ImageProcessor.Imaging.Filters
     /// <summary>
     /// Encapsulates methods with which to add a sepia filter to an image.
     /// </summary>
-    class SepiaMatrixFilter : IMatrixFilter
+    internal class SepiaMatrixFilter : IMatrixFilter
     {
         /// <summary>
-        /// Gets the <see cref="T:System.Drawing.Imaging.ColoMatrix"/> for this filter instance.
+        /// Gets the <see cref="T:System.Drawing.Imaging.ColorMatrix"/> for this filter instance.
         /// </summary>
         public ColorMatrix Matrix
         {

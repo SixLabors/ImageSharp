@@ -17,7 +17,7 @@ namespace ImageProcessor.Imaging.Filters
     /// <summary>
     /// Encapsulates methods with which to add a comic filter to an image.
     /// </summary>
-    class ComicMatrixFilter : IMatrixFilter
+    internal class ComicMatrixFilter : IMatrixFilter
     {
         /// <summary>
         /// Enumurates Argb colour channels.

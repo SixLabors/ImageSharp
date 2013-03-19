@@ -21,10 +21,10 @@ namespace ImageProcessor.Imaging.Filters
     /// <summary>
     /// Encapsulates methods with which to add a polaroid filter to an image.
     /// </summary>
-    class PolaroidMatrixFilter : IMatrixFilter
+    internal class PolaroidMatrixFilter : IMatrixFilter
     {
         /// <summary>
-        /// Gets the <see cref="T:System.Drawing.Imaging.ColoMatrix"/> for this filter instance.
+        /// Gets the <see cref="T:System.Drawing.Imaging.ColorMatrix"/> for this filter instance.
         /// </summary>
         public ColorMatrix Matrix
         {

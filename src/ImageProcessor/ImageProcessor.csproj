@@ -110,6 +110,7 @@
     <Compile Include="Imaging\RotateLayer.cs" />
     <Compile Include="Imaging\TextLayer.cs" />
     <Compile Include="Processors\Alpha.cs" />
+    <Compile Include="Processors\Flip.cs" />
     <Compile Include="Processors\Rotate.cs" />
     <Compile Include="Processors\Crop.cs" />
     <Compile Include="Processors\Filter.cs" />

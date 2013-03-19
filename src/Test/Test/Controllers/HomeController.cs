@@ -60,27 +60,29 @@ namespace Test.Controllers
             DateTime start = DateTime.Now;
 
             List<double> collisions = new List<double>();
-const int Iterations = 1;
-const int Maxitems = 360000;
+            const int Iterations = 1;
+            const int Maxitems = 360000;
 
-for (int i = 0; i < Iterations; i++)
-{
-    List<string> paths = new List<string>();
+            for (int i = 0; i < Iterations; i++)
+            {
+                List<string> paths = new List<string>();
 
-    for (int j = 0; j < Maxitems; j++)
-    {
-        string path = Path.GetRandomFileName().ToSHA256Fingerprint().Substring(0, 8);
+                for (int j = 0; j < Maxitems; j++)
+                {
+                    string path = Path.GetRandomFileName().ToMD5Fingerprint();
 
-        paths.Add(path);
-    }
+                    path = string.Format("{0}{1}", path.Substring(0, 4), path.Substring(16, 4));
 
-    int count = paths.Distinct().Count();
+                    paths.Add(path);
+                }
 
-    double collisionRate = ((Maxitems - count) * 100D) / Maxitems;
-    collisions.Add(collisionRate);
-}
+                int count = paths.Distinct().Count();
 
-double averageCollisionRate = collisions.Average();
+                double collisionRate = ((Maxitems - count) * 100D) / Maxitems;
+                collisions.Add(collisionRate);
+            }
+
+            double averageCollisionRate = collisions.Average();
 
             //PersistantDictionary persistantDictionary = PersistantDictionary.Instance;
 

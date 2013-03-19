@@ -85,6 +85,27 @@ namespace ImageProcessor.Helpers.Extensions
                     .ToString().ToLowerInvariant();
             }
         }
+
+        /// <summary>
+        /// Creates an SHA512 fingerprint of the String.
+        /// </summary>
+        /// <param name="expression">The <see cref="T:System.String">String</see> instance that this method extends.</param>
+        /// <returns>An SHA256 fingerprint of the String.</returns>
+        public static string ToSHA512Fingerprint(this string expression)
+        {
+            byte[] bytes = Encoding.ASCII.GetBytes(expression.ToCharArray());
+
+            using (SHA512CryptoServiceProvider sha512 = new SHA512CryptoServiceProvider())
+            {
+                byte[] hash = sha512.ComputeHash(bytes);
+
+                // Concatenate the hash bytes into one long String.
+                return hash.Aggregate(
+                    new StringBuilder(70),
+                    (sb, b) => sb.Append(b.ToString("X2", CultureInfo.InvariantCulture)))
+                    .ToString().ToLowerInvariant();
+            }
+        }
         #endregion
 
         #region Numbers

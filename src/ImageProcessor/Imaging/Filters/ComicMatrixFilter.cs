@@ -65,7 +65,7 @@ namespace ImageProcessor.Imaging.Filters
         /// <returns>
         /// The processed image from the current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
         /// </returns>
-        public Image ProcessImage(ImageFactory factory, Image image, Image newImage)
+        public Image TransformImage(ImageFactory factory, Image image, Image newImage)
         {
             // Bitmaps for comic pattern
             Bitmap hisatchBitmap = null;

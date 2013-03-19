@@ -121,10 +121,21 @@ Current filters include:
   - gotham
   - hisatch
   - losatch
+  - invert
 
 e.g.
 
     <img src="/images.yourimage.jpg?filter=polaroid" alt="classic polaroid look"/>
+
+Flip
+=======
+
+Imageprocessor can flip your image either horizontally or vertically.
+
+e.g.
+
+    <img src="/images.yourimage.jpg?flip=horizontal" alt="horizontal"/>
+    <img src="/images.yourimage.jpg?flip=vertical" alt="vertical"/>
 
 Watermark
 =========

@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-// <copyright file="Crop.cs" company="James South">
+// <copyright file="Flip.cs" company="James South">
 //     Copyright (c) James South.
 //     Dual licensed under the MIT or GPL Version 2 licenses.
 // </copyright>
@@ -10,22 +10,19 @@ namespace ImageProcessor.Processors
     #region Using
     using System.Collections.Generic;
     using System.Drawing;
-    using System.Drawing.Drawing2D;
-    using System.Drawing.Imaging;
     using System.Text.RegularExpressions;
-    using ImageProcessor.Helpers.Extensions;
     #endregion
 
     /// <summary>
-    /// Crops an image to the given directions.
+    /// Flips an image horizontally or vertically.
     /// </summary>
-    public class Crop : IGraphicsProcessor
+    public class Flip : IGraphicsProcessor
     {
         /// <summary>
         /// The regular expression to search strings for.
         /// <see cref="http://stackoverflow.com/a/6400969/427899"/>
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"crop=\d+-\d+-\d+-\d+", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"flip=(horizontal|vertical)", RegexOptions.Compiled);
 
         #region IGraphicsProcessor Members
         /// <summary>
@@ -35,7 +32,7 @@ namespace ImageProcessor.Processors
         {
             get
             {
-                return "Crop";
+                return "Flip";
             }
         }
 
@@ -46,7 +43,7 @@ namespace ImageProcessor.Processors
         {
             get
             {
-                return "Crops an image to the given directions.";
+                return "Flips an image either horizontally or vertically.";
             }
         }
 
@@ -112,15 +109,11 @@ namespace ImageProcessor.Processors
                     {
                         // Set the index on the first instance only.
                         this.SortOrder = match.Index;
-                        int[] coordinates = match.Value.ToIntegerArray();
+                        string direction = match.Value;
 
-                        int x = coordinates[0];
-                        int y = coordinates[1];
-                        int width = coordinates[2];
-                        int height = coordinates[3];
-
-                        Rectangle rectangle = new Rectangle(x, y, width, height);
-                        this.DynamicParameter = rectangle;
+                        this.DynamicParameter = direction == "horizontal"
+                            ? RotateFlipType.RotateNoneFlipX
+                            : RotateFlipType.RotateNoneFlipY;
                     }
 
                     index += 1;
@@ -144,59 +137,19 @@ namespace ImageProcessor.Processors
         {
             Bitmap newImage = null;
             Image image = factory.Image;
+
             try
             {
-                Rectangle rectangle = this.DynamicParameter;
+                RotateFlipType rotateFlipType = this.DynamicParameter;
 
-                int sourceWidth = image.Width;
-                int sourceHeight = image.Height;
+                newImage = (Bitmap)image.Clone();
 
-                if (rectangle.X < sourceWidth && rectangle.Y < sourceHeight)
-                {
-                    if (rectangle.Width > (sourceWidth - rectangle.X))
-                    {
-                        rectangle.Width = sourceWidth - rectangle.X;
-                    }
+                // Might not need this.
+                newImage.Tag = image.Tag;
+                newImage.RotateFlip(rotateFlipType);
 
-                    if (rectangle.Height > (sourceHeight - rectangle.Y))
-                    {
-                        rectangle.Height = sourceHeight - rectangle.Y;
-                    }
-
-                    // Dont use an object initializer here.
-                    newImage = new Bitmap(rectangle.Width, rectangle.Height, PixelFormat.Format32bppPArgb);
-                    newImage.Tag = image.Tag;
-
-                    using (Graphics graphics = Graphics.FromImage(newImage))
-                    {
-                        graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                        graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                        graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-                        graphics.CompositingQuality = CompositingQuality.HighQuality;
-
-                        // An unwanted border appears when using InterpolationMode.HighQualityBicubic to resize the image
-                        // as the algorithm appears to be pulling averaging detail from surrounding pixels beyond the edge 
-                        // of the image. Using the ImageAttributes class to specify that the pixels beyond are simply mirror 
-                        // images of the pixels within solves this problem.
-                        using (ImageAttributes wrapMode = new ImageAttributes())
-                        {
-                            wrapMode.SetWrapMode(WrapMode.TileFlipXY);
-                            graphics.DrawImage(
-                                image,
-                                new Rectangle(0, 0, rectangle.Width, rectangle.Height),
-                                rectangle.X,
-                                rectangle.Y,
-                                rectangle.Width,
-                                rectangle.Height,
-                                GraphicsUnit.Pixel,
-                                wrapMode);
-                        }
-
-                        // Reassign the image.
-                        image.Dispose();
-                        image = newImage;
-                    }
-                }
+                image.Dispose();
+                image = newImage;
             }
             catch
             {

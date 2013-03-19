@@ -255,6 +255,31 @@ namespace ImageProcessor
         }
 
         /// <summary>
+        /// Flips an image either horizontally or vertically.
+        /// </summary>
+        /// <param name="flipVertically">
+        /// Whether to flip the image vertically.
+        /// </param>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory Flip(bool flipVertically)
+        {
+            if (this.ShouldProcess)
+            {
+                RotateFlipType rotateFlipType = flipVertically == false
+                    ? RotateFlipType.RotateNoneFlipX
+                    : RotateFlipType.RotateNoneFlipY;
+
+                Flip flip = new Flip { DynamicParameter = rotateFlipType };
+
+                this.Image = flip.ProcessImage(this);
+            }
+
+            return this;
+        }
+
+        /// <summary>
         /// Sets the output format of the image to the matching <see cref="T:System.Drawing.Imaging.ImageFormat"/>.
         /// </summary>
         /// <param name="imageFormat">The <see cref="T:System.Drawing.Imaging.ImageFormat"/>. to set the image to.</param>

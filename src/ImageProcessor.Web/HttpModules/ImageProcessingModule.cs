@@ -11,6 +11,7 @@ namespace ImageProcessor.Web.HttpModules
     using System;
     using System.IO;
     using System.Net;
+    using System.Reflection;
     using System.Web;
     using System.Web.Hosting;
     using ImageProcessor.Helpers.Extensions;
@@ -40,6 +41,11 @@ namespace ImageProcessor.Web.HttpModules
         /// The object to lock against.
         /// </summary>
         private static readonly object SyncRoot = new object();
+
+        /// <summary>
+        /// The assembly version.
+        /// </summary>
+        private static readonly string AssemblyVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
         #endregion
 
         #region IHttpModule Members
@@ -231,6 +237,8 @@ namespace ImageProcessor.Web.HttpModules
             HttpResponse response = context.Response;
 
             response.ContentType = responseType;
+
+            response.AddHeader("Image-Served-By", "ImageProcessor/" + AssemblyVersion);
 
             HttpCachePolicy cache = response.Cache;
 

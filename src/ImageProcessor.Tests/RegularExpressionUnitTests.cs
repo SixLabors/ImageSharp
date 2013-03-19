@@ -18,8 +18,8 @@
         [TestMethod]
         public void TestAlphaRegex()
         {
-            string querystring = "alpha=56";
-            int expected = 56;
+            const string querystring = "alpha=56";
+            const int expected = 56;
 
             Alpha alpha = new Alpha();
             alpha.MatchRegexIndex(querystring);
@@ -60,6 +60,7 @@
         [TestMethod]
         public void TestRotateRegex()
         {
+            // Why does this fail?
             string querystring = "rotate=270";
             RotateLayer expected = new RotateLayer
             {
@@ -71,8 +72,6 @@
             rotate.MatchRegexIndex(querystring);
 
             RotateLayer actual = rotate.DynamicParameter;
-
-            Debug.Print("{0}{1}", actual.Angle, actual.BackgroundColor);
 
             Assert.AreEqual<RotateLayer>(expected, actual);
         }

@@ -29,7 +29,7 @@ namespace ImageProcessor.Web.Caching
         /// <summary>
         /// The cached index location.
         /// </summary>
-        private static readonly string IndexLocation = Path.Combine(HostingEnvironment.MapPath(VirtualCachePath), "imagecache.sqlite");
+        private static readonly string IndexLocation = Path.Combine(HostingEnvironment.MapPath(VirtualCachePath), "cache.db");
 
         /// <summary>
         /// The connection string.

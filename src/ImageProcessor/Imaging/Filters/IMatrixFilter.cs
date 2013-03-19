@@ -35,7 +35,7 @@ namespace ImageProcessor.Imaging.Filters
         /// <returns>
         /// The processed image from the current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
         /// </returns>
-        Image ProcessImage(ImageFactory factory, Image image, Image newImage);
+        Image TransformImage(ImageFactory factory, Image image, Image newImage);
         #endregion
     }
 }

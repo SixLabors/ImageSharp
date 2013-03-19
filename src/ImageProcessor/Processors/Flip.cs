@@ -109,7 +109,7 @@ namespace ImageProcessor.Processors
                     {
                         // Set the index on the first instance only.
                         this.SortOrder = match.Index;
-                        string direction = match.Value;
+                        string direction = match.Value.Split('=')[1];
 
                         this.DynamicParameter = direction == "horizontal"
                             ? RotateFlipType.RotateNoneFlipX
@@ -143,9 +143,10 @@ namespace ImageProcessor.Processors
                 RotateFlipType rotateFlipType = this.DynamicParameter;
 
                 newImage = (Bitmap)image.Clone();
-
-                // Might not need this.
+                // Tag doesn't get cloned.
                 newImage.Tag = image.Tag;
+
+                // Flip
                 newImage.RotateFlip(rotateFlipType);
 
                 image.Dispose();

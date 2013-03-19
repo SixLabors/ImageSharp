@@ -53,7 +53,9 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Microsoft.CSharp" />
     <Reference Include="System" />
+    <Reference Include="System.Drawing" />
   </ItemGroup>
   <Choose>
     <When Condition="('$(VisualStudioVersion)' == '10.0' or '$(VisualStudioVersion)' == '') and '$(TargetFrameworkVersion)' == 'v3.5'">
@@ -68,8 +70,18 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
-    <Compile Include="UnitTest1.cs" />
+    <Compile Include="RegularExpressionUnitTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ImageProcessor.Web\ImageProcessor.Web.csproj">
+      <Project>{4f7050f2-465f-4e10-8db2-2fb97ac6aa43}</Project>
+      <Name>ImageProcessor.Web</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ImageProcessor\ImageProcessor.csproj">
+      <Project>{3b5dd734-fb7a-487d-8ce6-55e7af9aea7e}</Project>
+      <Name>ImageProcessor</Name>
+    </ProjectReference>
   </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">

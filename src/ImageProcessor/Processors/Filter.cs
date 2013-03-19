@@ -178,7 +178,7 @@ namespace ImageProcessor.Processors
 
                 if (matrix != null)
                 {
-                    return matrix.ProcessImage(factory, image, newImage);
+                    return matrix.TransformImage(factory, image, newImage);
                 }
             }
             catch

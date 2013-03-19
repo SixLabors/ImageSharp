@@ -22,7 +22,7 @@ namespace ImageProcessor.Processors
     {
         /// <summary>
         /// The regular expression to search strings for.
-        /// http://stackoverflow.com/a/6400969/427899
+        /// <see cref="http://stackoverflow.com/a/6400969/427899"/> 
         /// </summary>
         private static readonly Regex QueryRegex = new Regex(@"alpha=(?:100|[1-9]?[0-9])", RegexOptions.Compiled);
 

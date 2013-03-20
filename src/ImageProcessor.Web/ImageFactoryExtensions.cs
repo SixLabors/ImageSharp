@@ -20,6 +20,11 @@ namespace ImageProcessor.Web
     public static class ImageFactoryExtensions
     {
         /// <summary>
+        /// The object to lock against.
+        /// </summary>
+        private static readonly object SyncRoot = new object();
+
+        /// <summary>
         /// Auto processes image files based on any query string parameters added to the image path.
         /// </summary>
         /// <param name="factory">
@@ -33,17 +38,20 @@ namespace ImageProcessor.Web
         {
             if (factory.ShouldProcess)
             {
-                // Get a list of all graphics processors that have parsed and matched the querystring.
-                List<IGraphicsProcessor> list =
-                    ImageProcessorConfig.Instance.GraphicsProcessors
-                    .Where(x => x.MatchRegexIndex(factory.QueryString) != int.MaxValue)
-                    .OrderBy(y => y.SortOrder)
-                    .ToList();
-
-                // Loop through and process the image.
-                foreach (IGraphicsProcessor graphicsProcessor in list)
+                lock (SyncRoot)
                 {
-                    factory.Image = graphicsProcessor.ProcessImage(factory);
+                    // Get a list of all graphics processors that have parsed and matched the querystring.
+                    List<IGraphicsProcessor> list =
+                        ImageProcessorConfig.Instance.GraphicsProcessors
+                        .Where(x => x.MatchRegexIndex(factory.QueryString) != int.MaxValue)
+                        .OrderBy(y => y.SortOrder)
+                        .ToList();
+
+                    // Loop through and process the image.
+                    foreach (IGraphicsProcessor graphicsProcessor in list)
+                    {
+                        factory.Image = graphicsProcessor.ProcessImage(factory);
+                    }
                 }
             }
 

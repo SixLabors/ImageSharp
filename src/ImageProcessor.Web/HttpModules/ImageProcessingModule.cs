@@ -19,6 +19,9 @@ namespace ImageProcessor.Web.HttpModules
     using ImageProcessor.Web.Caching;
     using ImageProcessor.Web.Config;
     using ImageProcessor.Web.Helpers;
+    using System.Collections.Concurrent;
+    using System.Threading.Tasks;
+    using System.Threading;
     #endregion
 
     /// <summary>
@@ -46,18 +49,46 @@ namespace ImageProcessor.Web.HttpModules
         /// The assembly version.
         /// </summary>
         private static readonly string AssemblyVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+
+        /// <summary>
+        /// The thread safe fifo queue.
+        /// </summary>
+        private static ConcurrentQueue<Action> imageOperations;
+
+        /// <summary>
+        /// A value indicating whether the application has started.
+        /// </summary>
+        private static bool hasAppStarted = false;
         #endregion
 
         #region IHttpModule Members
         /// <summary>
         /// Initializes a module and prepares it to handle requests.
         /// </summary>
-        /// <param name="context">An <see cref="T:System.Web.HttpApplication"/> that provides access to the methods, properties, and events common to all application objects within an ASP.NET application </param>
+        /// <param name="context">
+        /// An <see cref="T:System.Web.HttpApplication"/> that provides 
+        /// access to the methods, properties, and events common to all 
+        /// application objects within an ASP.NET application
+        /// </param>
         public void Init(HttpApplication context)
         {
-            DiskCache.CreateCacheDirectories();
-            context.BeginRequest += this.ContextBeginRequest;
+            if (!hasAppStarted)
+            {
+                lock (SyncRoot)
+                {
+                    if (!hasAppStarted)
+                    {
+                        imageOperations = new ConcurrentQueue<Action>();
+                        DiskCache.CreateCacheDirectories();
+                        hasAppStarted = true;
+                    }
+                }
+            }
+
+            context.AddOnBeginRequestAsync(OnBeginAsync, OnEndAsync);
+            //context.BeginRequest += this.ContextBeginRequest;
             context.PreSendRequestHeaders += this.ContextPreSendRequestHeaders;
+
         }
 
         /// <summary>
@@ -70,6 +101,77 @@ namespace ImageProcessor.Web.HttpModules
         #endregion
 
         /// <summary>
+        /// The <see cref="T:System.Web.BeginEventHandler"/>  that starts asynchronous processing 
+        /// of the <see cref="T:System.Web.HttpApplication.BeginRequest"/>.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">
+        /// An <see cref="T:System.EventArgs">EventArgs</see> that contains 
+        /// the event data.
+        /// </param>
+        /// <param name="cb">
+        /// The delegate to call when the asynchronous method call is complete. 
+        /// If cb is null, the delegate is not called.
+        /// </param>
+        /// <param name="extraData">
+        /// Any additional data needed to process the request.
+        /// </param>
+        /// <returns></returns>
+        IAsyncResult OnBeginAsync(object sender, EventArgs e, AsyncCallback cb, object extraData)
+        {
+            HttpContext context = ((HttpApplication)sender).Context;
+            EnqueueDelegate enqueueDelegate = new EnqueueDelegate(Enqueue);
+
+            return enqueueDelegate.BeginInvoke(context, cb, extraData);
+
+        }
+
+        /// <summary>
+        /// The method that handles asynchronous events such as application events.
+        /// </summary>
+        /// <param name="result">
+        /// The <see cref="T:System.IAsyncResult"/> that is the result of the 
+        /// <see cref="T:System.Web.BeginEventHandler"/> operation.
+        /// </param>
+        public void OnEndAsync(IAsyncResult result)
+        {
+            // An action to consume the ConcurrentQueue.
+            Action action = () =>
+            {
+                Action op;
+
+                while (imageOperations.TryDequeue(out op))
+                {
+                    op();
+                }
+            };
+
+            // Start 4 concurrent consuming actions.
+            Parallel.Invoke(action, action, action, action);
+        }
+
+        /// <summary>
+        /// The delegate void representing the Enqueue method.
+        /// </summary>
+        /// <param name="context">
+        /// the <see cref="T:System.Web.HttpContext">HttpContext</see> object that provides 
+        /// references to the intrinsic server objects 
+        /// </param>
+        private delegate void EnqueueDelegate(HttpContext context);
+
+        /// <summary>
+        /// Adds the method to the queue.
+        /// </summary>
+        /// <param name="context">
+        /// the <see cref="T:System.Web.HttpContext">HttpContext</see> object that provides 
+        /// references to the intrinsic server objects 
+        /// </param>
+        private void Enqueue(HttpContext context)
+        {
+            imageOperations.Enqueue(() => ProcessImage(context));
+        }
+
+        /// <summary>
         /// Occurs as the first event in the HTTP pipeline chain of execution when ASP.NET responds to a request.
         /// </summary>
         /// <param name="sender">The source of the event.</param>
@@ -77,7 +179,40 @@ namespace ImageProcessor.Web.HttpModules
         private void ContextBeginRequest(object sender, EventArgs e)
         {
             HttpContext context = ((HttpApplication)sender).Context;
+            imageOperations.Enqueue(() => ProcessImage(context));
+        }
 
+        /// <summary>
+        /// Occurs just before ASP.NET send HttpHeaders to the client.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">An <see cref="T:System.EventArgs">EventArgs</see> that contains the event data.</param>
+        private void ContextPreSendRequestHeaders(object sender, EventArgs e)
+        {
+            HttpContext context = ((HttpApplication)sender).Context;
+
+            object responseTypeObject = context.Items[CachedResponseTypeKey];
+
+            if (responseTypeObject != null)
+            {
+                string responseType = (string)responseTypeObject;
+
+                this.SetHeaders(context, responseType);
+
+                context.Items[CachedResponseTypeKey] = null;
+            }
+        }
+
+        #region Private
+        /// <summary>
+        /// Processes the image.
+        /// </summary>
+        /// <param name="context">
+        /// the <see cref="T:System.Web.HttpContext">HttpContext</see> object that provides 
+        /// references to the intrinsic server objects 
+        /// </param>
+        private void ProcessImage(HttpContext context)
+        {
             // Is this a remote file.
             bool isRemote = context.Request.Path.Equals(RemotePrefix, StringComparison.OrdinalIgnoreCase);
             string path = string.Empty;
@@ -133,43 +268,43 @@ namespace ImageProcessor.Web.HttpModules
                                     {
                                         if (responseStream != null)
                                         {
-                                            lock (SyncRoot)
-                                            {
-                                                // Trim the cache.
-                                                DiskCache.TrimCachedFolders();
+                                            //lock (SyncRoot)
+                                            //{
+                                            // Trim the cache.
+                                            DiskCache.TrimCachedFolders();
 
-                                                responseStream.CopyTo(memoryStream);
+                                            responseStream.CopyTo(memoryStream);
 
-                                                imageFactory.Load(memoryStream)
-                                                    .AddQueryString(queryString)
-                                                    .Format(ImageUtils.GetImageFormat(imageName))
-                                                    .AutoProcess().Save(cachedPath);
+                                            imageFactory.Load(memoryStream)
+                                                .AddQueryString(queryString)
+                                                .Format(ImageUtils.GetImageFormat(imageName))
+                                                .AutoProcess().Save(cachedPath);
 
-                                                // Ensure that the LastWriteTime property of the source and cached file match.
-                                                DateTime dateTime = DiskCache.SetCachedLastWriteTime(path, cachedPath, true);
+                                            // Ensure that the LastWriteTime property of the source and cached file match.
+                                            DateTime dateTime = DiskCache.SetCachedLastWriteTime(path, cachedPath, true);
 
-                                                // Add to the cache.
-                                                DiskCache.AddImageToCache(cachedPath, dateTime);
-                                            }
+                                            // Add to the cache.
+                                            DiskCache.AddImageToCache(cachedPath, dateTime);
+                                            //}
                                         }
                                     }
                                 }
                             }
                             else
                             {
-                                lock (SyncRoot)
-                                {
-                                    // Trim the cache.
-                                    DiskCache.TrimCachedFolders();
+                                //lock (SyncRoot)
+                                //{
+                                // Trim the cache.
+                                DiskCache.TrimCachedFolders();
 
-                                    imageFactory.Load(fullPath).AutoProcess().Save(cachedPath);
+                                imageFactory.Load(fullPath).AutoProcess().Save(cachedPath);
 
-                                    // Ensure that the LastWriteTime property of the source and cached file match.
-                                    DateTime dateTime = DiskCache.SetCachedLastWriteTime(path, cachedPath, false);
+                                // Ensure that the LastWriteTime property of the source and cached file match.
+                                DateTime dateTime = DiskCache.SetCachedLastWriteTime(path, cachedPath, false);
 
-                                    // Add to the cache.
-                                    DiskCache.AddImageToCache(cachedPath, dateTime);
-                                }
+                                // Add to the cache.
+                                DiskCache.AddImageToCache(cachedPath, dateTime);
+                                //}
                             }
                         }
                     }
@@ -182,28 +317,6 @@ namespace ImageProcessor.Web.HttpModules
             }
         }
 
-        /// <summary>
-        /// Occurs just before ASP.NET send HttpHeaders to the client.
-        /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="e">An <see cref="T:System.EventArgs">EventArgs</see> that contains the event data.</param>
-        private void ContextPreSendRequestHeaders(object sender, EventArgs e)
-        {
-            HttpContext context = ((HttpApplication)sender).Context;
-
-            object responseTypeObject = context.Items[CachedResponseTypeKey];
-
-            if (responseTypeObject != null)
-            {
-                string responseType = (string)responseTypeObject;
-
-                this.SetHeaders(context, responseType);
-
-                context.Items[CachedResponseTypeKey] = null;
-            }
-        }
-
-        #region Private
         /// <summary>
         /// returns a value indicating whether a file exists.
         /// </summary>

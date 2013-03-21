@@ -5,7 +5,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace ImageProcessor.Web.Caching
+namespace ImageProcessor.Web.Helpers
 {
     #region Using
     using System.Collections.Generic;

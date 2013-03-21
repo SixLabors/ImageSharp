@@ -10,6 +10,9 @@ namespace ImageProcessor.Web.Caching
     #region Using
     using System;
     using System.Collections.Generic;
+
+    using ImageProcessor.Web.Helpers;
+
     #endregion
 
     /// <summary>

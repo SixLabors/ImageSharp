@@ -19,9 +19,6 @@ namespace ImageProcessor.Web.HttpModules
     using ImageProcessor.Web.Caching;
     using ImageProcessor.Web.Config;
     using ImageProcessor.Web.Helpers;
-    using System.Collections.Concurrent;
-    using System.Threading.Tasks;
-    using System.Threading;
     #endregion
 
     /// <summary>
@@ -51,15 +48,19 @@ namespace ImageProcessor.Web.HttpModules
         private static readonly string AssemblyVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
 
         /// <summary>
-        /// The thread safe fifo queue.
-        /// </summary>
-        private static ConcurrentQueue<Action> imageOperations;
-
-        /// <summary>
         /// A value indicating whether the application has started.
         /// </summary>
-        private static bool hasAppStarted = false;
+        private static bool hasModuleInitialized;
         #endregion
+
+        /// <summary>
+        /// The delegate void representing the ProcessImage method.
+        /// </summary>
+        /// <param name="context">
+        /// the <see cref="T:System.Web.HttpContext">HttpContext</see> object that provides 
+        /// references to the intrinsic server objects 
+        /// </param>
+        private delegate void ProcessImageDelegate(HttpContext context);
 
         #region IHttpModule Members
         /// <summary>
@@ -72,23 +73,20 @@ namespace ImageProcessor.Web.HttpModules
         /// </param>
         public void Init(HttpApplication context)
         {
-            if (!hasAppStarted)
+            if (!hasModuleInitialized)
             {
                 lock (SyncRoot)
                 {
-                    if (!hasAppStarted)
+                    if (!hasModuleInitialized)
                     {
-                        imageOperations = new ConcurrentQueue<Action>();
                         DiskCache.CreateCacheDirectories();
-                        hasAppStarted = true;
+                        hasModuleInitialized = true;
                     }
                 }
             }
 
-            context.AddOnBeginRequestAsync(OnBeginAsync, OnEndAsync);
-            //context.BeginRequest += this.ContextBeginRequest;
+            context.AddOnBeginRequestAsync(this.OnBeginAsync, this.OnEndAsync);
             context.PreSendRequestHeaders += this.ContextPreSendRequestHeaders;
-
         }
 
         /// <summary>
@@ -102,28 +100,30 @@ namespace ImageProcessor.Web.HttpModules
 
         /// <summary>
         /// The <see cref="T:System.Web.BeginEventHandler"/>  that starts asynchronous processing 
-        /// of the <see cref="T:System.Web.HttpApplication.BeginRequest"/>.
+        /// of the <see cref="System.Web.HttpApplication.BeginRequest"/>.
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">
         /// An <see cref="T:System.EventArgs">EventArgs</see> that contains 
         /// the event data.
         /// </param>
-        /// <param name="cb">
+        /// <param name="callBack">
         /// The delegate to call when the asynchronous method call is complete. 
-        /// If cb is null, the delegate is not called.
+        /// If the callback is null, the delegate is not called.
         /// </param>
-        /// <param name="extraData">
+        /// <param name="state">
         /// Any additional data needed to process the request.
         /// </param>
-        /// <returns></returns>
-        IAsyncResult OnBeginAsync(object sender, EventArgs e, AsyncCallback cb, object extraData)
+        /// <returns>
+        /// The status of the asynchronous operation.
+        /// </returns>
+        private IAsyncResult OnBeginAsync(object sender, EventArgs e, AsyncCallback callBack, object state)
         {
             HttpContext context = ((HttpApplication)sender).Context;
-            EnqueueDelegate enqueueDelegate = new EnqueueDelegate(Enqueue);
 
-            return enqueueDelegate.BeginInvoke(context, cb, extraData);
+            ProcessImageDelegate processImage = this.ProcessImage;
 
+            return processImage.BeginInvoke(context, callBack, state);
         }
 
         /// <summary>
@@ -133,53 +133,13 @@ namespace ImageProcessor.Web.HttpModules
         /// The <see cref="T:System.IAsyncResult"/> that is the result of the 
         /// <see cref="T:System.Web.BeginEventHandler"/> operation.
         /// </param>
-        public void OnEndAsync(IAsyncResult result)
+        private void OnEndAsync(IAsyncResult result)
         {
-            // An action to consume the ConcurrentQueue.
-            Action action = () =>
+            // Ensure our ProcessImage has completed in the background.
+            while (!result.IsCompleted)
             {
-                Action op;
-
-                while (imageOperations.TryDequeue(out op))
-                {
-                    op();
-                }
-            };
-
-            // Start 4 concurrent consuming actions.
-            Parallel.Invoke(action, action, action, action);
-        }
-
-        /// <summary>
-        /// The delegate void representing the Enqueue method.
-        /// </summary>
-        /// <param name="context">
-        /// the <see cref="T:System.Web.HttpContext">HttpContext</see> object that provides 
-        /// references to the intrinsic server objects 
-        /// </param>
-        private delegate void EnqueueDelegate(HttpContext context);
-
-        /// <summary>
-        /// Adds the method to the queue.
-        /// </summary>
-        /// <param name="context">
-        /// the <see cref="T:System.Web.HttpContext">HttpContext</see> object that provides 
-        /// references to the intrinsic server objects 
-        /// </param>
-        private void Enqueue(HttpContext context)
-        {
-            imageOperations.Enqueue(() => ProcessImage(context));
-        }
-
-        /// <summary>
-        /// Occurs as the first event in the HTTP pipeline chain of execution when ASP.NET responds to a request.
-        /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="e">An <see cref="T:System.EventArgs">EventArgs</see> that contains the event data.</param>
-        private void ContextBeginRequest(object sender, EventArgs e)
-        {
-            HttpContext context = ((HttpApplication)sender).Context;
-            imageOperations.Enqueue(() => ProcessImage(context));
+                System.Threading.Thread.Sleep(1);
+            }
         }
 
         /// <summary>
@@ -197,6 +157,7 @@ namespace ImageProcessor.Web.HttpModules
             {
                 string responseType = (string)responseTypeObject;
 
+                // Set the headers
                 this.SetHeaders(context, responseType);
 
                 context.Items[CachedResponseTypeKey] = null;
@@ -270,21 +231,21 @@ namespace ImageProcessor.Web.HttpModules
                                         {
                                             //lock (SyncRoot)
                                             //{
-                                            // Trim the cache.
-                                            DiskCache.TrimCachedFolders();
+                                                // Trim the cache.
+                                                DiskCache.TrimCachedFolders();
 
-                                            responseStream.CopyTo(memoryStream);
+                                                responseStream.CopyTo(memoryStream);
 
-                                            imageFactory.Load(memoryStream)
-                                                .AddQueryString(queryString)
-                                                .Format(ImageUtils.GetImageFormat(imageName))
-                                                .AutoProcess().Save(cachedPath);
+                                                imageFactory.Load(memoryStream)
+                                                    .AddQueryString(queryString)
+                                                    .Format(ImageUtils.GetImageFormat(imageName))
+                                                    .AutoProcess().Save(cachedPath);
 
-                                            // Ensure that the LastWriteTime property of the source and cached file match.
-                                            DateTime dateTime = DiskCache.SetCachedLastWriteTime(path, cachedPath, true);
+                                                // Ensure that the LastWriteTime property of the source and cached file match.
+                                                DateTime dateTime = DiskCache.SetCachedLastWriteTime(path, cachedPath, true);
 
-                                            // Add to the cache.
-                                            DiskCache.AddImageToCache(cachedPath, dateTime);
+                                                // Add to the cache.
+                                                DiskCache.AddImageToCache(cachedPath, dateTime);
                                             //}
                                         }
                                     }
@@ -294,16 +255,16 @@ namespace ImageProcessor.Web.HttpModules
                             {
                                 //lock (SyncRoot)
                                 //{
-                                // Trim the cache.
-                                DiskCache.TrimCachedFolders();
+                                    // Trim the cache.
+                                    DiskCache.TrimCachedFolders();
 
-                                imageFactory.Load(fullPath).AutoProcess().Save(cachedPath);
+                                    imageFactory.Load(fullPath).AutoProcess().Save(cachedPath);
 
-                                // Ensure that the LastWriteTime property of the source and cached file match.
-                                DateTime dateTime = DiskCache.SetCachedLastWriteTime(path, cachedPath, false);
+                                    // Ensure that the LastWriteTime property of the source and cached file match.
+                                    DateTime dateTime = DiskCache.SetCachedLastWriteTime(path, cachedPath, false);
 
-                                // Add to the cache.
-                                DiskCache.AddImageToCache(cachedPath, dateTime);
+                                    // Add to the cache.
+                                    DiskCache.AddImageToCache(cachedPath, dateTime);
                                 //}
                             }
                         }

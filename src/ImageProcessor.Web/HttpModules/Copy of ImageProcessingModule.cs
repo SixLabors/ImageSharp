@@ -19,8 +19,6 @@ namespace ImageProcessor.Web.HttpModules
     using ImageProcessor.Web.Caching;
     using ImageProcessor.Web.Config;
     using ImageProcessor.Web.Helpers;
-    using System.Threading.Tasks;
-    using System.Collections.Generic;
     #endregion
 
     /// <summary>
@@ -55,6 +53,15 @@ namespace ImageProcessor.Web.HttpModules
         private static bool hasModuleInitialized;
         #endregion
 
+        /// <summary>
+        /// The delegate void representing the ProcessImage method.
+        /// </summary>
+        /// <param name="context">
+        /// the <see cref="T:System.Web.HttpContext">HttpContext</see> object that provides 
+        /// references to the intrinsic server objects 
+        /// </param>
+        private delegate void ProcessImageDelegate(HttpContext context);
+
         #region IHttpModule Members
         /// <summary>
         /// Initializes a module and prepares it to handle requests.
@@ -72,14 +79,13 @@ namespace ImageProcessor.Web.HttpModules
                 {
                     if (!hasModuleInitialized)
                     {
-                        Cache.CreateDirectoriesAsync();
-                        //DiskCache.CreateCacheDirectories();
+                        DiskCache.CreateCacheDirectories();
                         hasModuleInitialized = true;
                     }
                 }
             }
 
-            context.BeginRequest += this.ContextBeginRequest;
+            context.AddOnBeginRequestAsync(this.OnBeginAsync, this.OnEndAsync);
             context.PreSendRequestHeaders += this.ContextPreSendRequestHeaders;
         }
 
@@ -93,14 +99,47 @@ namespace ImageProcessor.Web.HttpModules
         #endregion
 
         /// <summary>
-        /// Occurs as the first event in the HTTP pipeline chain of execution when ASP.NET responds to a request.
+        /// The <see cref="T:System.Web.BeginEventHandler"/>  that starts asynchronous processing 
+        /// of the <see cref="System.Web.HttpApplication.BeginRequest"/>.
         /// </summary>
         /// <param name="sender">The source of the event.</param>
-        /// <param name="e">An <see cref="T:System.EventArgs">EventArgs</see> that contains the event data.</param>
-        private void ContextBeginRequest(object sender, EventArgs e)
+        /// <param name="e">
+        /// An <see cref="T:System.EventArgs">EventArgs</see> that contains 
+        /// the event data.
+        /// </param>
+        /// <param name="callBack">
+        /// The delegate to call when the asynchronous method call is complete. 
+        /// If the callback is null, the delegate is not called.
+        /// </param>
+        /// <param name="state">
+        /// Any additional data needed to process the request.
+        /// </param>
+        /// <returns>
+        /// The status of the asynchronous operation.
+        /// </returns>
+        private IAsyncResult OnBeginAsync(object sender, EventArgs e, AsyncCallback callBack, object state)
         {
             HttpContext context = ((HttpApplication)sender).Context;
-            this.ProcessImage(context);
+
+            ProcessImageDelegate processImage = this.ProcessImage;
+
+            return processImage.BeginInvoke(context, callBack, state);
+        }
+
+        /// <summary>
+        /// The method that handles asynchronous events such as application events.
+        /// </summary>
+        /// <param name="result">
+        /// The <see cref="T:System.IAsyncResult"/> that is the result of the 
+        /// <see cref="T:System.Web.BeginEventHandler"/> operation.
+        /// </param>
+        private void OnEndAsync(IAsyncResult result)
+        {
+            // Ensure our ProcessImage has completed in the background.
+            while (!result.IsCompleted)
+            {
+                System.Threading.Thread.Sleep(1);
+            }
         }
 
         /// <summary>
@@ -135,36 +174,9 @@ namespace ImageProcessor.Web.HttpModules
         /// </param>
         private void ProcessImage(HttpContext context)
         {
-            this.ProcessImageAsync(context);
-        }
-
-        /// <summary>
-        /// Processes the image.
-        /// </summary>
-        /// <param name="context">
-        /// the <see cref="T:System.Web.HttpContext">HttpContext</see> object that provides 
-        /// references to the intrinsic server objects 
-        /// </param>
-        private /*async*/ Task ProcessImageAsync(HttpContext context)
-        {
-            return this.ProcessImageAsyncTask(context).ToTask();
-        }
-
-        /// <summary>
-        /// Processes the image.
-        /// </summary>
-        /// <param name="context">
-        /// the <see cref="T:System.Web.HttpContext">HttpContext</see> object that provides 
-        /// references to the intrinsic server objects 
-        /// </param>
-        /// <returns>
-        /// The <see cref="IEnumerable{Task}"/>.
-        /// </returns>
-        private IEnumerable<Task> ProcessImageAsyncTask(HttpContext context)
-        {
             // Is this a remote file.
             bool isRemote = context.Request.Path.Equals(RemotePrefix, StringComparison.OrdinalIgnoreCase);
-            string requestPath = string.Empty;
+            string path = string.Empty;
             string queryString = string.Empty;
 
             if (isRemote)
@@ -176,7 +188,7 @@ namespace ImageProcessor.Web.HttpModules
                 {
                     string[] paths = urlDecode.Split('?');
 
-                    requestPath = paths[0];
+                    path = paths[0];
 
                     if (paths.Length > 1)
                     {
@@ -186,96 +198,74 @@ namespace ImageProcessor.Web.HttpModules
             }
             else
             {
-                requestPath = HostingEnvironment.MapPath(context.Request.Path);
+                path = HostingEnvironment.MapPath(context.Request.Path);
                 queryString = HttpUtility.UrlDecode(context.Request.QueryString.ToString());
             }
 
             // Only process requests that pass our sanitizing filter.
-            if (ImageUtils.IsValidImageExtension(requestPath) && !string.IsNullOrWhiteSpace(queryString))
+            if (ImageUtils.IsValidImageExtension(path) && !string.IsNullOrWhiteSpace(queryString))
             {
-                if (this.FileExists(requestPath, isRemote))
+                if (this.FileExists(path, isRemote))
                 {
-
-                    string fullPath = string.Format("{0}?{1}", requestPath, queryString);
-                    string imageName = Path.GetFileName(requestPath);
-
-                    // Create a new cache to help process and cache the request.
-                    Cache cache = new Cache(requestPath, fullPath, imageName, isRemote);
-
-                    // Is the file new or updated?
-                    Task<bool> isUpdatedTask = cache.isNewOrUpdatedFileAsync();
-                    yield return isUpdatedTask;
-                    bool isNewOrUpdated = isUpdatedTask.Result;
+                    string fullPath = string.Format("{0}?{1}", path, queryString);
+                    string imageName = Path.GetFileName(path);
+                    string cachedPath = DiskCache.GetCachePath(fullPath, imageName);
+                    bool isUpdated = DiskCache.IsUpdatedFile(path, cachedPath, isRemote);
 
                     // Only process if the file has been updated.
-                    if (isNewOrUpdated)
+                    if (isUpdated)
                     {
                         // Process the image.
                         using (ImageFactory imageFactory = new ImageFactory())
                         {
                             if (isRemote)
                             {
-                                Uri uri = new Uri(requestPath);
-
-                                HttpWebRequest webRequest = (HttpWebRequest)WebRequest.Create(uri);
-
-                                Task<WebResponse> responseTask = webRequest.GetResponseAsync();
-                                yield return responseTask;
-                                //RemoteFile remoteFile = new RemoteFile(uri, false);
-
-                                //Task<WebResponse> getWebResponseTask = remoteFile.GetWebResponseAsync();
-                                //yield return getWebResponseTask;
+                                Uri uri = new Uri(path);
+                                RemoteFile remoteFile = new RemoteFile(uri, false);
 
                                 using (MemoryStream memoryStream = new MemoryStream())
                                 {
-                                    using (WebResponse response = responseTask.Result)
+                                    using (Stream responseStream = remoteFile.GetWebResponse().GetResponseStream())
                                     {
-                                        using (Stream responseStream = response.GetResponseStream())
+                                        if (responseStream != null)
                                         {
-                                            if (responseStream != null)
-                                            {
+                                            //lock (SyncRoot)
+                                            //{
                                                 // Trim the cache.
-                                                Task trimCachedFoldersTask = cache.TrimCachedFoldersAsync();
-                                                yield return trimCachedFoldersTask;
+                                                DiskCache.TrimCachedFolders();
 
                                                 responseStream.CopyTo(memoryStream);
 
                                                 imageFactory.Load(memoryStream)
                                                     .AddQueryString(queryString)
                                                     .Format(ImageUtils.GetImageFormat(imageName))
-                                                    .AutoProcess().Save(cache.CachedPath);
+                                                    .AutoProcess().Save(cachedPath);
 
                                                 // Ensure that the LastWriteTime property of the source and cached file match.
-                                                Task<DateTime> setCachedLastWriteTimeTask = cache.SetCachedLastWriteTimeAsync();
-                                                yield return setCachedLastWriteTimeTask;
-                                                DateTime dateTime = setCachedLastWriteTimeTask.Result;
+                                                DateTime dateTime = DiskCache.SetCachedLastWriteTime(path, cachedPath, true);
 
                                                 // Add to the cache.
-                                                Task addImageToCacheTask = cache.AddImageToCacheAsync(dateTime);
-                                                yield return addImageToCacheTask;
-                                            }
+                                                DiskCache.AddImageToCache(cachedPath, dateTime);
+                                            //}
                                         }
-
                                     }
                                 }
                             }
                             else
                             {
-                                // Trim the cache.
-                                Task trimCachedFoldersTask = cache.TrimCachedFoldersAsync();
-                                yield return trimCachedFoldersTask;
+                                //lock (SyncRoot)
+                                //{
+                                    // Trim the cache.
+                                    DiskCache.TrimCachedFolders();
 
-                                imageFactory.Load(fullPath).AutoProcess().Save(cache.CachedPath);
+                                    imageFactory.Load(fullPath).AutoProcess().Save(cachedPath);
 
-                                // Ensure that the LastWriteTime property of the source and cached file match.
-                                Task<DateTime> setCachedLastWriteTimeTask = cache.SetCachedLastWriteTimeAsync();
-                                yield return setCachedLastWriteTimeTask;
-                                DateTime dateTime = setCachedLastWriteTimeTask.Result;
+                                    // Ensure that the LastWriteTime property of the source and cached file match.
+                                    DateTime dateTime = DiskCache.SetCachedLastWriteTime(path, cachedPath, false);
 
-                                // Add to the cache.
-                                Task addImageToCacheTask = cache.AddImageToCacheAsync(dateTime);
-                                yield return addImageToCacheTask;
-
+                                    // Add to the cache.
+                                    DiskCache.AddImageToCache(cachedPath, dateTime);
+                                //}
                             }
                         }
                     }
@@ -283,15 +273,10 @@ namespace ImageProcessor.Web.HttpModules
                     context.Items[CachedResponseTypeKey] = ImageUtils.GetResponseType(imageName).ToDescription();
 
                     // The cached file is valid so just rewrite the path.
-                    context.RewritePath(cache.GetVirtualPath(cache.CachedPath, context.Request), false);
-                    yield break;
-
+                    context.RewritePath(DiskCache.GetVirtualPath(cachedPath, context.Request), false);
                 }
             }
-
-            yield break;
         }
-
 
         /// <summary>
         /// returns a value indicating whether a file exists.

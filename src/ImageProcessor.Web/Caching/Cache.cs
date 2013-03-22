@@ -1,4 +1,9 @@
-﻿
+﻿// -----------------------------------------------------------------------
+// <copyright file="Cache.cs" company="James South">
+//     Copyright (c) James South.
+//     Dual licensed under the MIT or GPL Version 2 licenses.
+// </copyright>
+// -----------------------------------------------------------------------
 
 namespace ImageProcessor.Web.Caching
 {
@@ -8,6 +13,7 @@ namespace ImageProcessor.Web.Caching
     using System.Collections.Generic;
     using System.Globalization;
     using System.IO;
+    using System.Linq;
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
     using System.Web;
@@ -22,7 +28,6 @@ namespace ImageProcessor.Web.Caching
     internal sealed class Cache
     {
         #region Fields
-
         /// <summary>
         /// The maximum number of days to cache files on the system for.
         /// </summary>
@@ -71,23 +76,43 @@ namespace ImageProcessor.Web.Caching
         /// <summary>
         /// The concurrent dictionary.
         /// </summary>
-        private ConcurrentDictionary<string, CachedImage> concurrentDictionary =
+        private static ConcurrentDictionary<string, CachedImage> concurrentDictionary =
             new ConcurrentDictionary<string, CachedImage>();
 
+        /// <summary>
+        /// The request path for the image.
+        /// </summary>
+        private string requestPath;
+
+        /// <summary>
+        /// The image name
+        /// </summary>
+        private string imageName;
+
+        /// <summary>
+        /// Whether the request is for a remote image.
+        /// </summary>
+        private bool isRemote;
+        #endregion
+
+        #region Constructors
+        public Cache(string requestPath, string fullPath, string imageName, bool isRemote)
+        {
+            this.requestPath = requestPath;
+            this.imageName = imageName;
+            this.isRemote = isRemote;
+            this.CachedPath = this.GetCachePath(fullPath, imageName);
+        }
+        #endregion
+
+        #region Properties
+        /// <summary>
+        /// Gets the cached path.
+        /// </summary>
+        internal string CachedPath { get; private set; }
         #endregion
 
         #region Methods
-
-        public void Test()
-        {
-            Task<bool> task = this.CreateDirectoriesAsync();
-            if (task.Result)
-            {
-
-            }
-
-        }
-
         #region Internal
         /// <summary>
         /// Converts an absolute file path 
@@ -111,47 +136,14 @@ namespace ImageProcessor.Web.Caching
         }
 
         /// <summary>
-        /// Gets the full transformed cached path for the image.
-        /// The file names are stored as MD5 encrypted versions of the full request path.
-        /// This should make them unique enough to 
-        /// </summary>
-        /// <param name="imagePath">The original image path.</param>
-        /// <param name="imageName">The original image name.</param>
-        /// <returns>The full cached path for the image.</returns>
-        internal string GetCachePath(string imagePath, string imageName)
-        {
-            string cachedPath = string.Empty;
-
-            if (AbsoluteCachePath != null)
-            {
-                // Use an md5 hash of the full path including the querystring to create the image name. 
-                // That name can also be used as a key for the cached image and we should be able to use 
-                // The first character of that hash as a subfolder.
-                string parsedExtension = this.ParseExtension(imagePath);
-                string fallbackExtension = imageName.Substring(imageName.LastIndexOf(".", StringComparison.Ordinal) + 1);
-                string encryptedName = imagePath.ToMD5Fingerprint();
-                string subpath = encryptedName.Substring(0, 1);
-
-                string cachedFileName = string.Format(
-                    "{0}.{1}",
-                    encryptedName,
-                    !string.IsNullOrWhiteSpace(parsedExtension) ? parsedExtension : fallbackExtension);
-
-                cachedPath = Path.Combine(AbsoluteCachePath, subpath, cachedFileName);
-            }
-
-            return cachedPath;
-        }
-
-        /// <summary>
         /// Creates the cache directories for storing images.
         /// </summary>
         /// <returns>
         /// The true if the cache directories are created successfully; otherwise, false.
         /// </returns>
-        internal /*async*/ Task<bool> CreateDirectoriesAsync()
+        internal static /*async*/ Task<bool> CreateDirectoriesAsync()
         {
-            return this.CreateDirectoriesAsyncTasks().ToTask<bool>();
+            return CreateDirectoriesAsyncTasks().ToTask<bool>();
         }
 
         /// <summary>
@@ -166,43 +158,39 @@ namespace ImageProcessor.Web.Caching
         /// <returns>
         /// The task.
         /// </returns>
-        internal Task /*async*/ AddImageToCacheAsync(string cachedPath, DateTime lastWriteTimeUtc)
+        internal Task /*async*/ AddImageToCacheAsync(DateTime lastWriteTimeUtc)
         {
-            return this.AddImageToCacheAsyncTask(cachedPath, lastWriteTimeUtc).ToTask();
+            return this.AddImageToCacheAsyncTask(lastWriteTimeUtc).ToTask();
         }
 
         /// <summary>
-        /// Returns a value indicating whether the original file has been updated.
+        /// Returns a value indicating whether the original file is new or has been updated.
         /// </summary>
-        /// <param name="imagePath">The original image path.</param>
-        /// <param name="cachedImagePath">The cached image path.</param>
-        /// <param name="isRemote">Whether the file is a remote request.</param>
         /// <returns>
-        /// True if the the original file has been updated; otherwise, false.
+        /// True if the the original file is new or has been updated; otherwise, false.
         /// </returns>
-        internal /*async*/ Task<bool> IsUpdatedFileAsync(string imagePath, string cachedImagePath, bool isRemote)
+        internal /*async*/ Task<bool> isNewOrUpdatedFileAsync()
         {
-            return this.IsUpdatedFileAsyncTask(imagePath, cachedImagePath, isRemote).ToTask<bool>();
+            return this.isNewOrUpdatedFileAsyncTask().ToTask<bool>();
         }
 
         /// <summary>
         /// Sets the LastWriteTime of the cached file to match the original file.
         /// </summary>
-        /// <param name="imagePath">
-        /// The original image path.
-        /// </param>
-        /// <param name="cachedImagePath">
-        /// The cached image path.
-        /// </param>
-        /// <param name="isRemote">Whether the file is remote.</param>
-        /// <returns>
         /// The <see cref="System.DateTime"/> set to the last write time of the file.
         /// </returns>
-        internal /*async*/ Task<DateTime> SetCachedLastWriteTimeAsync(string imagePath, string cachedImagePath, bool isRemote)
+        internal /*async*/ Task<DateTime> SetCachedLastWriteTimeAsync()
         {
-            return this.SetCachedLastWriteTimeAsyncTask(imagePath, cachedImagePath, isRemote).ToTask<DateTime>();
+            return this.SetCachedLastWriteTimeAsyncTask().ToTask<DateTime>();
         }
 
+        /// <summary>
+        /// Purges any files from the file-system cache in the given folders.
+        /// </summary>
+        internal /*async*/ Task TrimCachedFoldersAsync()
+        {
+            return this.TrimCachedFoldersAsyncTask().ToTask();
+        }
         #endregion
 
         #region Private
@@ -212,7 +200,7 @@ namespace ImageProcessor.Web.Caching
         /// <returns>
         /// The <see cref="IEnumerable{Task}"/>.
         /// </returns>
-        private IEnumerable<Task> CreateDirectoriesAsyncTasks()
+        private static IEnumerable<Task> CreateDirectoriesAsyncTasks()
         {
             bool success = true;
 
@@ -242,41 +230,35 @@ namespace ImageProcessor.Web.Caching
         /// <summary>
         /// Adds an image to the cache.
         /// </summary>
-        /// <param name="cachedPath">
-        /// The cached path.
-        /// </param>
         /// <param name="lastWriteTimeUtc">
         /// The last write time.
         /// </param>
         /// <returns>
         /// The <see cref="IEnumerable{Task}"/>.
         /// </returns>
-        private IEnumerable<Task> AddImageToCacheAsyncTask(string cachedPath, DateTime lastWriteTimeUtc)
+        private IEnumerable<Task> AddImageToCacheAsyncTask(DateTime lastWriteTimeUtc)
         {
-            string key = Path.GetFileNameWithoutExtension(cachedPath);
+            string key = Path.GetFileNameWithoutExtension(this.CachedPath);
             DateTime expires = DateTime.UtcNow.AddDays(MaxFileCachedDuration).ToUniversalTime();
-            CachedImage cachedImage = new CachedImage(cachedPath, MaxFileCachedDuration, lastWriteTimeUtc, expires);
+            CachedImage cachedImage = new CachedImage(this.CachedPath, MaxFileCachedDuration, lastWriteTimeUtc, expires);
             PersistantDictionary.Instance.Add(key, cachedImage);
 
             yield break;
         }
 
         /// <summary>
-        /// Returns a value indicating whether the original file has been updated.
+        /// Returns a value indicating whether the original file is new or has been updated.
         /// </summary>
-        /// <param name="imagePath">The original image path.</param>
-        /// <param name="cachedImagePath">The cached image path.</param>
-        /// <param name="isRemote">Whether the file is a remote request.</param>
         /// <returns>
         /// The <see cref="IEnumerable{Task}"/>.
         /// </returns>
-        private IEnumerable<Task> IsUpdatedFileAsyncTask(string imagePath, string cachedImagePath, bool isRemote)
+        private IEnumerable<Task> isNewOrUpdatedFileAsyncTask()
         {
-            string key = Path.GetFileNameWithoutExtension(cachedImagePath);
+            string key = Path.GetFileNameWithoutExtension(this.CachedPath);
             CachedImage cachedImage;
             bool isUpdated = false;
 
-            if (isRemote)
+            if (this.isRemote)
             {
                 if (PersistantDictionary.Instance.TryGetValue(key, out cachedImage))
                 {
@@ -301,7 +283,7 @@ namespace ImageProcessor.Web.Caching
             // Test now for locally requested files.
             if (PersistantDictionary.Instance.TryGetValue(key, out cachedImage))
             {
-                FileInfo imageFileInfo = new FileInfo(imagePath);
+                FileInfo imageFileInfo = new FileInfo(this.requestPath);
 
                 if (imageFileInfo.Exists)
                 {
@@ -340,9 +322,9 @@ namespace ImageProcessor.Web.Caching
         /// <returns>
         /// The <see cref="IEnumerable{Task}"/>.
         /// </returns>
-        private IEnumerable<Task> SetCachedLastWriteTimeAsyncTask(string imagePath, string cachedImagePath, bool isRemote)
+        private IEnumerable<Task> SetCachedLastWriteTimeAsyncTask()
         {
-            FileInfo cachedFileInfo = new FileInfo(cachedImagePath);
+            FileInfo cachedFileInfo = new FileInfo(this.CachedPath);
             DateTime lastWriteTime = DateTime.MinValue.ToUniversalTime();
 
             if (isRemote)
@@ -354,7 +336,7 @@ namespace ImageProcessor.Web.Caching
             }
             else
             {
-                FileInfo imageFileInfo = new FileInfo(imagePath);
+                FileInfo imageFileInfo = new FileInfo(this.requestPath);
 
                 if (imageFileInfo.Exists && cachedFileInfo.Exists)
                 {
@@ -366,6 +348,92 @@ namespace ImageProcessor.Web.Caching
             }
 
             yield return TaskEx.FromResult(lastWriteTime);
+        }
+
+        /// <summary>
+        /// Purges any files from the file-system cache in the given folders.
+        /// </summary>
+        /// <returns>
+        /// The <see cref="IEnumerable{Task}"/>.
+        /// </returns>
+        private IEnumerable<Task> TrimCachedFoldersAsyncTask()
+        {
+            // Group each cache folder and clear any expired items or any that exeed
+            // the maximum allowable count.
+            var groups = PersistantDictionary.Instance.ToList()
+                .GroupBy(x => SubFolderRegex.Match(x.Value.Path).Value)
+                .Where(g => g.Count() > MaxFilesCount);
+
+            foreach (var group in groups)
+            {
+                int groupCount = group.Count();
+
+                foreach (KeyValuePair<string, CachedImage> pair in group.OrderBy(x => x.Value.ExpiresUtc))
+                {
+                    // If the group count is equal to the max count minus 1 then we know we
+                    // are counting down from a full directory not simply clearing out 
+                    // expired items.
+                    if (groupCount == MaxFilesCount - 1)
+                    {
+                        break;
+                    }
+
+                    try
+                    {
+                        // Remove from the cache and delete each CachedImage.
+                        FileInfo fileInfo = new FileInfo(pair.Value.Path);
+                        string key = Path.GetFileNameWithoutExtension(fileInfo.Name);
+                        CachedImage cachedImage;
+
+                        if (PersistantDictionary.Instance.TryRemove(key, out cachedImage))
+                        {
+                            fileInfo.Delete();
+                            groupCount -= 1;
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        // Do Nothing, skip to the next.
+                        // TODO: Should we handle this?   
+                        continue;
+                    }
+                }
+            }
+
+            yield break;
+        }
+
+        /// <summary>
+        /// Gets the full transformed cached path for the image.
+        /// The file names are stored as MD5 encrypted versions of the full request path.
+        /// This should make them unique enough to 
+        /// </summary>
+        /// <param name="fullPath">The original image path.</param>
+        /// <param name="imageName">The original image name.</param>
+        /// <returns>The full cached path for the image.</returns>
+        private string GetCachePath(string fullPath, string imageName)
+        {
+            string cachedPath = string.Empty;
+
+            if (AbsoluteCachePath != null)
+            {
+                // Use an md5 hash of the full path including the querystring to create the image name. 
+                // That name can also be used as a key for the cached image and we should be able to use 
+                // The first character of that hash as a subfolder.
+                string parsedExtension = this.ParseExtension(fullPath);
+                string fallbackExtension = imageName.Substring(imageName.LastIndexOf(".", StringComparison.Ordinal) + 1);
+                string encryptedName = fullPath.ToMD5Fingerprint();
+                string subpath = encryptedName.Substring(0, 1);
+
+                string cachedFileName = string.Format(
+                    "{0}.{1}",
+                    encryptedName,
+                    !string.IsNullOrWhiteSpace(parsedExtension) ? parsedExtension : fallbackExtension);
+
+                cachedPath = Path.Combine(AbsoluteCachePath, subpath, cachedFileName);
+            }
+
+            return cachedPath;
         }
 
         /// <summary>

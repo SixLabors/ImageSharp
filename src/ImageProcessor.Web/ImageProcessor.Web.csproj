@@ -87,8 +87,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Caching\CachedImage.cs" />
-    <Compile Include="Caching\Cacher.cs" />
+    <Compile Include="Caching\Cache.cs" />
     <Compile Include="Caching\DiskCache.cs" />
+    <Compile Include="Helpers\AsyncIoExtensions.cs" />
     <Compile Include="Helpers\TaskEx.cs" />
     <Compile Include="Helpers\LockedDictionary.cs" />
     <Compile Include="Caching\PersistantDictionary.cs" />

@@ -10,7 +10,11 @@ namespace ImageProcessor.Web.Config
     #region Using
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
+    using System.Reflection;
+    using System.Text;
+
     using ImageProcessor.Processors;
     #endregion
 
@@ -234,20 +238,49 @@ namespace ImageProcessor.Web.Config
         {
             if (this.GraphicsProcessors == null)
             {
-                // Build a list of native IGraphicsProcessor instances.
-                Type type = typeof(IGraphicsProcessor);
-                IEnumerable<Type> types =
-                    AppDomain.CurrentDomain.GetAssemblies().SelectMany(s => s.GetTypes()).Where(
-                        p => type.IsAssignableFrom(p) && p.IsClass && !p.IsAbstract).ToList();
-
-                // Create them and add.
-                this.GraphicsProcessors =
-                    types.Select(x => (Activator.CreateInstance(x) as IGraphicsProcessor)).ToList();
-
-                // Add the available settings.
-                foreach (IGraphicsProcessor processor in this.GraphicsProcessors)
+                try
                 {
-                    processor.Settings = this.GetPluginSettings(processor.Name);
+                    // Build a list of native IGraphicsProcessor instances.
+                    Type type = typeof(IGraphicsProcessor);
+                    IEnumerable<Type> types =
+                        AppDomain.CurrentDomain.GetAssemblies()
+                                 .SelectMany(s => s.GetTypes())
+                                 .Where(p => type.IsAssignableFrom(p) && p.IsClass && !p.IsAbstract)
+                                 .ToList();
+
+                    // Create them and add.
+                    this.GraphicsProcessors =
+                        types.Select(x => (Activator.CreateInstance(x) as IGraphicsProcessor)).ToList();
+
+                    // Add the available settings.
+                    foreach (IGraphicsProcessor processor in this.GraphicsProcessors)
+                    {
+                        processor.Settings = this.GetPluginSettings(processor.Name);
+                    }
+                }
+                catch (ReflectionTypeLoadException ex)
+                {
+                    StringBuilder sb = new StringBuilder();
+                    foreach (Exception exception in ex.LoaderExceptions)
+                    {
+                        sb.AppendLine(exception.Message);
+                        if (exception is FileNotFoundException)
+                        {
+                            FileNotFoundException fileNotFoundException = exception as FileNotFoundException;
+                            if (!string.IsNullOrEmpty(fileNotFoundException.FusionLog))
+                            {
+                                sb.AppendLine("Fusion Log:");
+                                sb.AppendLine(fileNotFoundException.FusionLog);
+                            }
+                        }
+
+                        sb.AppendLine();
+                    }
+
+                    string errorMessage = sb.ToString();
+
+                    // Display or log the error based on your application.
+                    throw new Exception(errorMessage);
                 }
             }
         }

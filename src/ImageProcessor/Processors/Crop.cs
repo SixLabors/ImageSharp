@@ -1,7 +1,7 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="Crop.cs" company="James South">
 //     Copyright (c) James South.
-//     Dual licensed under the MIT or GPL Version 2 licenses.
+//     Licensed under the Apache License, Version 2.0.
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -46,7 +46,7 @@ namespace ImageProcessor.Processors
         {
             get
             {
-                return "Crops an image to the given directions.";
+                return "Crops an image to the given dimensions.";
             }
         }
 

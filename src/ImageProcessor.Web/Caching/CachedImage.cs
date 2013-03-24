@@ -1,7 +1,7 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="CachedImage.cs" company="James South">
 //     Copyright (c) James South.
-//     Dual licensed under the MIT or GPL Version 2 licenses.
+//     Licensed under the Apache License, Version 2.0.
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -42,21 +42,21 @@ namespace ImageProcessor.Web.Caching
         /// <summary>
         /// Gets or sets the value of the cached image.
         /// </summary>
-        public string Path { get; set; }
+        internal string Path { get; set; }
 
         /// <summary>
         /// Gets or sets the maximum age of the cached image in days.
         /// </summary>
-        public int MaxAge { get; set; }
+        internal int MaxAge { get; set; }
 
         /// <summary>
         /// Gets or sets the last write time of the cached image.
         /// </summary>
-        public DateTime LastWriteTimeUtc { get; set; }
+        internal DateTime LastWriteTimeUtc { get; set; }
 
         /// <summary>
         /// Gets or sets when the cached image should expire from the cache.
         /// </summary>
-        public DateTime ExpiresUtc { get; set; }
+        internal DateTime ExpiresUtc { get; set; }
     }
 }

@@ -1,7 +1,7 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="ImageProcessorConfig.cs" company="James South">
 //     Copyright (c) James South.
-//     Dual licensed under the MIT or GPL Version 2 licenses.
+//     Licensed under the Apache License, Version 2.0.
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -18,7 +18,7 @@ namespace ImageProcessor.Web.Config
     /// Encapsulates methods to allow the retrieval of ImageProcessor settings.
     /// <see cref="http://csharpindepth.com/Articles/General/Singleton.aspx"/>
     /// </summary>
-    public class ImageProcessorConfig
+    public sealed class ImageProcessorConfig
     {
         #region Fields
         /// <summary>
@@ -111,7 +111,7 @@ namespace ImageProcessor.Web.Config
         {
             get
             {
-                return GetImageSecuritySection().WhiteList.Cast<ImageSecuritySection.SafeURL>().Select(x => x.Url).ToArray();
+                return GetImageSecuritySection().WhiteList.Cast<ImageSecuritySection.SafeUrl>().Select(x => x.Url).ToArray();
             }
         }
 

@@ -1,7 +1,7 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="ImageProcessingModule.cs" company="James South">
 //     Copyright (c) James South.
-//     Dual licensed under the MIT or GPL Version 2 licenses.
+//     Licensed under the Apache License, Version 2.0.
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -12,6 +12,8 @@ namespace ImageProcessor.Web.HttpModules
     using System.IO;
     using System.Net;
     using System.Reflection;
+    using System.Threading;
+    using System.Threading.Tasks;
     using System.Web;
     using System.Web.Hosting;
     using ImageProcessor.Helpers.Extensions;
@@ -19,20 +21,18 @@ namespace ImageProcessor.Web.HttpModules
     using ImageProcessor.Web.Caching;
     using ImageProcessor.Web.Config;
     using ImageProcessor.Web.Helpers;
-    using System.Threading.Tasks;
-    using System.Collections.Generic;
     #endregion
 
     /// <summary>
     /// Processes any image requests within the web application.
     /// </summary>
-    public class ImageProcessingModule : IHttpModule
+    public sealed class ImageProcessingModule : IHttpModule
     {
         #region Fields
         /// <summary>
         /// The key for storing the response type of the current image.
         /// </summary>
-        private const string CachedResponseTypeKey = "CACHED_IMAGE_RESPONSE_TYPE";
+        private const string CachedResponseTypeKey = "CACHED_IMAGE_RESPONSE_TYPE_054F217C-11CF-49FF-8D2F-698E8E6EB58F";
 
         /// <summary>
         /// The value to prefix any remote image requests with to ensure they get captured.
@@ -40,19 +40,19 @@ namespace ImageProcessor.Web.HttpModules
         private static readonly string RemotePrefix = ImageProcessorConfig.Instance.RemotePrefix;
 
         /// <summary>
-        /// The object to lock against.
-        /// </summary>
-        private static readonly object SyncRoot = new object();
-
-        /// <summary>
         /// The assembly version.
         /// </summary>
         private static readonly string AssemblyVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
 
         /// <summary>
+        /// The value that acts as a basis to check that the startup code has only been ran once.
+        /// </summary>
+        private static int initCheck;
+
+        /// <summary>
         /// A value indicating whether the application has started.
         /// </summary>
-        private static bool hasModuleInitialized;
+        private readonly bool hasModuleInitialized = initCheck == 1;
         #endregion
 
         #region IHttpModule Members
@@ -66,17 +66,11 @@ namespace ImageProcessor.Web.HttpModules
         /// </param>
         public void Init(HttpApplication context)
         {
-            if (!hasModuleInitialized)
+            if (!this.hasModuleInitialized)
             {
-                lock (SyncRoot)
-                {
-                    if (!hasModuleInitialized)
-                    {
-                        Cache.CreateDirectoriesAsync();
-                        //DiskCache.CreateCacheDirectories();
-                        hasModuleInitialized = true;
-                    }
-                }
+                Interlocked.CompareExchange(ref initCheck, 1, 0);
+
+                DiskCache.CreateDirectories();
             }
 
             context.BeginRequest += this.ContextBeginRequest;
@@ -97,10 +91,10 @@ namespace ImageProcessor.Web.HttpModules
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">An <see cref="T:System.EventArgs">EventArgs</see> that contains the event data.</param>
-        private void ContextBeginRequest(object sender, EventArgs e)
+        private async void ContextBeginRequest(object sender, EventArgs e)
         {
             HttpContext context = ((HttpApplication)sender).Context;
-            this.ProcessImage(context);
+            await this.ProcessImageAsync(context);
         }
 
         /// <summary>
@@ -133,44 +127,20 @@ namespace ImageProcessor.Web.HttpModules
         /// the <see cref="T:System.Web.HttpContext">HttpContext</see> object that provides 
         /// references to the intrinsic server objects 
         /// </param>
-        private void ProcessImage(HttpContext context)
-        {
-            this.ProcessImageAsync(context);
-        }
-
-        /// <summary>
-        /// Processes the image.
-        /// </summary>
-        /// <param name="context">
-        /// the <see cref="T:System.Web.HttpContext">HttpContext</see> object that provides 
-        /// references to the intrinsic server objects 
-        /// </param>
-        private /*async*/ Task ProcessImageAsync(HttpContext context)
-        {
-            return this.ProcessImageAsyncTask(context).ToTask();
-        }
-
-        /// <summary>
-        /// Processes the image.
-        /// </summary>
-        /// <param name="context">
-        /// the <see cref="T:System.Web.HttpContext">HttpContext</see> object that provides 
-        /// references to the intrinsic server objects 
-        /// </param>
         /// <returns>
-        /// The <see cref="IEnumerable{Task}"/>.
+        /// The <see cref="T:System.Threading.Tasks.Task"/>.
         /// </returns>
-        private IEnumerable<Task> ProcessImageAsyncTask(HttpContext context)
+        private async Task ProcessImageAsync(HttpContext context)
         {
-            // Is this a remote file.
-            bool isRemote = context.Request.Path.Equals(RemotePrefix, StringComparison.OrdinalIgnoreCase);
+            HttpRequest request = context.Request;
+            bool isRemote = request.Path.Equals(RemotePrefix, StringComparison.OrdinalIgnoreCase);
             string requestPath = string.Empty;
             string queryString = string.Empty;
 
             if (isRemote)
             {
                 // We need to split the querystring to get the actual values we want.
-                string urlDecode = HttpUtility.UrlDecode(context.Request.QueryString.ToString());
+                string urlDecode = HttpUtility.UrlDecode(request.QueryString.ToString());
 
                 if (urlDecode != null)
                 {
@@ -186,129 +156,87 @@ namespace ImageProcessor.Web.HttpModules
             }
             else
             {
-                requestPath = HostingEnvironment.MapPath(context.Request.Path);
-                queryString = HttpUtility.UrlDecode(context.Request.QueryString.ToString());
+                requestPath = HostingEnvironment.MapPath(request.Path);
+                queryString = HttpUtility.UrlDecode(request.QueryString.ToString());
             }
 
             // Only process requests that pass our sanitizing filter.
             if (ImageUtils.IsValidImageExtension(requestPath) && !string.IsNullOrWhiteSpace(queryString))
             {
-                if (this.FileExists(requestPath, isRemote))
+                string fullPath = string.Format("{0}?{1}", requestPath, queryString);
+                string imageName = Path.GetFileName(requestPath);
+
+                // Create a new cache to help process and cache the request.
+                DiskCache cache = new DiskCache(request, requestPath, fullPath, imageName, isRemote);
+
+                // Is the file new or updated?
+                bool isNewOrUpdated = await cache.IsNewOrUpdatedFileAsync();
+
+                // Only process if the file has been updated.
+                if (isNewOrUpdated)
                 {
-
-                    string fullPath = string.Format("{0}?{1}", requestPath, queryString);
-                    string imageName = Path.GetFileName(requestPath);
-
-                    // Create a new cache to help process and cache the request.
-                    Cache cache = new Cache(requestPath, fullPath, imageName, isRemote);
-
-                    // Is the file new or updated?
-                    Task<bool> isUpdatedTask = cache.isNewOrUpdatedFileAsync();
-                    yield return isUpdatedTask;
-                    bool isNewOrUpdated = isUpdatedTask.Result;
-
-                    // Only process if the file has been updated.
-                    if (isNewOrUpdated)
+                    // Process the image.
+                    using (ImageFactory imageFactory = new ImageFactory())
                     {
-                        // Process the image.
-                        using (ImageFactory imageFactory = new ImageFactory())
+                        if (isRemote)
                         {
-                            if (isRemote)
+                            Uri uri = new Uri(requestPath);
+
+                            RemoteFile remoteFile = new RemoteFile(uri, false);
+
+                            // Prevent response blocking.
+                            WebResponse webResponse = await remoteFile.GetWebResponseAsync().ConfigureAwait(false);
+
+                            using (MemoryStream memoryStream = new MemoryStream())
                             {
-                                Uri uri = new Uri(requestPath);
-
-                                HttpWebRequest webRequest = (HttpWebRequest)WebRequest.Create(uri);
-
-                                Task<WebResponse> responseTask = webRequest.GetResponseAsync();
-                                yield return responseTask;
-                                //RemoteFile remoteFile = new RemoteFile(uri, false);
-
-                                //Task<WebResponse> getWebResponseTask = remoteFile.GetWebResponseAsync();
-                                //yield return getWebResponseTask;
-
-                                using (MemoryStream memoryStream = new MemoryStream())
+                                using (WebResponse response = webResponse)
                                 {
-                                    using (WebResponse response = responseTask.Result)
+                                    using (Stream responseStream = response.GetResponseStream())
                                     {
-                                        using (Stream responseStream = response.GetResponseStream())
+                                        if (responseStream != null)
                                         {
-                                            if (responseStream != null)
-                                            {
-                                                // Trim the cache.
-                                                Task trimCachedFoldersTask = cache.TrimCachedFoldersAsync();
-                                                yield return trimCachedFoldersTask;
+                                            // Trim the cache.
+                                            await cache.TrimCachedFoldersAsync();
 
-                                                responseStream.CopyTo(memoryStream);
+                                            responseStream.CopyTo(memoryStream);
 
-                                                imageFactory.Load(memoryStream)
-                                                    .AddQueryString(queryString)
-                                                    .Format(ImageUtils.GetImageFormat(imageName))
-                                                    .AutoProcess().Save(cache.CachedPath);
+                                            imageFactory.Load(memoryStream)
+                                                .AddQueryString(queryString)
+                                                .Format(ImageUtils.GetImageFormat(imageName))
+                                                .AutoProcess().Save(cache.CachedPath);
 
-                                                // Ensure that the LastWriteTime property of the source and cached file match.
-                                                Task<DateTime> setCachedLastWriteTimeTask = cache.SetCachedLastWriteTimeAsync();
-                                                yield return setCachedLastWriteTimeTask;
-                                                DateTime dateTime = setCachedLastWriteTimeTask.Result;
+                                            // Ensure that the LastWriteTime property of the source and cached file match.
+                                            DateTime dateTime = await cache.SetCachedLastWriteTimeAsync();
 
-                                                // Add to the cache.
-                                                Task addImageToCacheTask = cache.AddImageToCacheAsync(dateTime);
-                                                yield return addImageToCacheTask;
-                                            }
+                                            // Add to the cache.
+                                            await cache.AddImageToCacheAsync(dateTime);
                                         }
-
                                     }
                                 }
                             }
-                            else
-                            {
-                                // Trim the cache.
-                                Task trimCachedFoldersTask = cache.TrimCachedFoldersAsync();
-                                yield return trimCachedFoldersTask;
+                        }
+                        else
+                        {
+                            // Trim the cache.
+                            await cache.TrimCachedFoldersAsync();
 
-                                imageFactory.Load(fullPath).AutoProcess().Save(cache.CachedPath);
+                            imageFactory.Load(fullPath).AutoProcess().Save(cache.CachedPath);
 
-                                // Ensure that the LastWriteTime property of the source and cached file match.
-                                Task<DateTime> setCachedLastWriteTimeTask = cache.SetCachedLastWriteTimeAsync();
-                                yield return setCachedLastWriteTimeTask;
-                                DateTime dateTime = setCachedLastWriteTimeTask.Result;
+                            // Ensure that the LastWriteTime property of the source and cached file match.
+                            DateTime dateTime = await cache.SetCachedLastWriteTimeAsync();
 
-                                // Add to the cache.
-                                Task addImageToCacheTask = cache.AddImageToCacheAsync(dateTime);
-                                yield return addImageToCacheTask;
-
-                            }
+                            // Add to the cache.
+                            await cache.AddImageToCacheAsync(dateTime);
                         }
                     }
-
-                    context.Items[CachedResponseTypeKey] = ImageUtils.GetResponseType(imageName).ToDescription();
-
-                    // The cached file is valid so just rewrite the path.
-                    context.RewritePath(cache.GetVirtualPath(cache.CachedPath, context.Request), false);
-                    yield break;
-
                 }
+
+                // Store the response type in the context for later retrieval.
+                context.Items[CachedResponseTypeKey] = ImageUtils.GetResponseType(imageName).ToDescription();
+
+                // The cached file is valid so just rewrite the path.
+                context.RewritePath(cache.GetVirtualCachedPath(), false);
             }
-
-            yield break;
-        }
-
-
-        /// <summary>
-        /// returns a value indicating whether a file exists.
-        /// </summary>
-        /// <param name="path">The path to the file to check.</param>
-        /// <param name="isRemote">Whether the file is remote.</param>
-        /// <returns>True if the file exists, otherwise false.</returns>
-        /// <remarks>If the file is remote the method will always return true.</remarks>
-        private bool FileExists(string path, bool isRemote)
-        {
-            if (isRemote)
-            {
-                return true;
-            }
-
-            FileInfo fileInfo = new FileInfo(path);
-            return fileInfo.Exists;
         }
 
         /// <summary>
@@ -327,7 +255,7 @@ namespace ImageProcessor.Web.HttpModules
 
             response.ContentType = responseType;
 
-            response.AddHeader("Image-Served-By", "ImageProcessor/" + AssemblyVersion);
+            response.AddHeader("Image-Served-By", "ImageProcessor.Web/" + AssemblyVersion);
 
             HttpCachePolicy cache = response.Cache;
 

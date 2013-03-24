@@ -1,7 +1,7 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="PersistantDictionary.cs" company="James South">
 //     Copyright (c) James South.
-//     Dual licensed under the MIT or GPL Version 2 licenses.
+//     Licensed under the Apache License, Version 2.0.
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -10,9 +10,8 @@ namespace ImageProcessor.Web.Caching
     #region Using
     using System;
     using System.Collections.Generic;
-
+    using System.Threading.Tasks;
     using ImageProcessor.Web.Helpers;
-
     #endregion
 
     /// <summary>
@@ -63,32 +62,24 @@ namespace ImageProcessor.Web.Caching
         /// <param name="key">
         /// The key of the item to remove.
         /// </param>
-        /// <param name="value">
-        /// The value to assign the returned value to.
-        /// </param>
         /// <returns>
         /// true if the <see cref="PersistantDictionary"/> removes an element with 
         /// the specified key; otherwise, false.
         /// </returns>
-        public bool TryRemove(string key, out CachedImage value)
+        public async Task<bool> TryRemoveAsync(string key)
         {
             // No CachedImage to remove.
             if (!this.ContainsKey(key))
             {
-                value = default(CachedImage);
                 return false;
             }
 
             // Remove the CachedImage.
-            lock (SyncRoot)
-            {
-                value = this[key];
-                this.Remove(key);
+            CachedImage value = this[key];
+            this.Remove(key);
 
-                this.SaveCache(key, value, true);
-
-                return true;
-            }
+            await this.SaveCacheAsync(key, value, true);
+            return true;
         }
 
         /// <summary>
@@ -103,18 +94,15 @@ namespace ImageProcessor.Web.Caching
         /// <returns>
         /// The value of the item to add or get.
         /// </returns>
-        public new CachedImage Add(string key, CachedImage cachedImage)
+        public async Task<CachedImage> AddAsync(string key, CachedImage cachedImage)
         {
-            lock (SyncRoot)
+            // Add the CachedImage.
+            if (await this.SaveCacheAsync(key, cachedImage, false))
             {
-                // Add the CachedImage.
-                if (this.SaveCache(key, cachedImage, false))
-                {
-                    this[key] = cachedImage;
-                }
-
-                return cachedImage;
+                this.Add(key, cachedImage);
             }
+
+            return cachedImage;
         }
         #endregion
 
@@ -133,16 +121,16 @@ namespace ImageProcessor.Web.Caching
         /// <returns>
         /// true, if the dictionary is saved to the file-system; otherwise, false.
         /// </returns>
-        private bool SaveCache(string key, CachedImage cachedImage, bool remove)
+        private async Task<bool> SaveCacheAsync(string key, CachedImage cachedImage, bool remove)
         {
             try
             {
                 if (remove)
                 {
-                    return SQLContext.RemoveImage(key);
+                    return await SQLContext.RemoveImageAsync(key);
                 }
 
-                return SQLContext.AddImage(key, cachedImage);
+                return await SQLContext.AddImageAsync(key, cachedImage);
             }
             catch
             {

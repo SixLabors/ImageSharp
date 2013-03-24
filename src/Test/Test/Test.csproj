@@ -122,7 +122,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\ImageProcessor.Web\ImageProcessor.Web.csproj">
-      <Project>{4F7050F2-465F-4E10-8DB2-2FB97AC6AA43}</Project>
+      <Project>{4f7050f2-465f-4e10-8db2-2fb97ac6aa43}</Project>
       <Name>ImageProcessor.Web</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\ImageProcessor\ImageProcessor.csproj">
@@ -134,7 +134,7 @@
     <Content Include="Views\Home\Responsive.cshtml" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Views\Home\Speed.cshtml" />
+    <Content Include="Views\Home\Collisions.cshtml" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

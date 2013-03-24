@@ -1,7 +1,7 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="ImageProcessingSection.cs" company="James South">
 //     Copyright (c) James South.
-//     Dual licensed under the MIT or GPL Version 2 licenses.
+//     Licensed under the Apache License, Version 2.0.
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -16,7 +16,7 @@ namespace ImageProcessor.Web.Config
     /// Represents an image processing section within a configuration file.
     /// Nested syntax adapted from <see cref="http://tneustaedter.blogspot.co.uk/2011/09/how-to-create-one-or-more-nested.html"/>
     /// </summary>
-    public class ImageProcessingSection : ConfigurationSection
+    public sealed class ImageProcessingSection : ConfigurationSection
     {
         #region Properties
         /// <summary>

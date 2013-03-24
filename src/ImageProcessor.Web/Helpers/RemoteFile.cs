@@ -1,7 +1,7 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="RemoteFile.cs" company="James South">
 //     Copyright (c) James South.
-//     Dual licensed under the MIT or GPL Version 2 licenses.
+//     Licensed under the Apache License, Version 2.0.
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -9,16 +9,15 @@ namespace ImageProcessor.Web.Helpers
 {
     #region Using
     using System;
-    using System.Diagnostics.Contracts;
+    using System.Collections.Generic;
     using System.Globalization;
     using System.IO;
     using System.Linq;
     using System.Net;
     using System.Security;
     using System.Text;
-    using ImageProcessor.Web.Config;
     using System.Threading.Tasks;
-    using System.Collections.Generic;
+    using ImageProcessor.Web.Config;
     #endregion
 
     /// <summary>
@@ -231,59 +230,9 @@ namespace ImageProcessor.Web.Helpers
         /// <returns>
         /// The <see cref="IEnumerable{Task}"/>.
         /// </returns>
-        internal /*async*/ Task<WebResponse> GetWebResponseAsync()
+        internal async Task<WebResponse> GetWebResponseAsync()
         {
-            return this.GetWebResponseAsyncTask().ToTask<WebResponse>();
-        }
-
-        /// <summary>
-        /// Returns the remote file as a String.       
-        /// <remarks>
-        /// This returns the resulting stream as a string as passed through a StreamReader.
-        /// </remarks>
-        /// </summary>
-        /// <returns>The remote file as a String.</returns>
-        public string GetFileAsString()
-        {
-            Task<WebResponse> responseTask = this.GetWebResponseAsync();
-
-            using (WebResponse response = responseTask.Result)
-            {
-                Stream responseStream = response.GetResponseStream();
-
-                if (responseStream != null)
-                {
-                    // Pipe the stream to a stream reader with the required encoding format.
-                    using (StreamReader reader = new StreamReader(responseStream, Encoding.UTF8))
-                    {
-                        return reader.ReadToEnd();
-                    }
-                }
-
-                return string.Empty;
-            }
-        }
-        #endregion
-
-        #region Private
-        /// <summary>
-        /// Returns the <see cref="T:System.Net.WebResponse">WebResponse</see> used to download this file.
-        /// <remarks>
-        /// <para>
-        /// This method is meant for outside users who need specific access to the WebResponse this class
-        /// generates. They're responsible for disposing of it.
-        /// </para>
-        /// </remarks>
-        /// </summary>
-        /// <returns>
-        /// The <see cref="IEnumerable{Task}"/>.
-        /// </returns>
-        private IEnumerable<Task> GetWebResponseAsyncTask()
-        {
-            Task<WebResponse> responseTask = this.GetWebRequest().GetResponseAsync();
-            yield return responseTask;
-
-            WebResponse response = responseTask.Result;
+            WebResponse response = await this.GetWebRequest().GetResponseAsync();
 
             long contentLength = response.ContentLength;
 
@@ -306,9 +255,39 @@ namespace ImageProcessor.Web.Helpers
                 throw new SecurityException("An attempt to download a remote file has been halted because the file is larger than allowed.");
             }
 
-            yield return TaskEx.FromResult(response);
+            return response;
         }
 
+        /// <summary>
+        /// Returns the remote file as a String.       
+        /// <remarks>
+        /// This returns the resulting stream as a string as passed through a StreamReader.
+        /// </remarks>
+        /// </summary>
+        /// <returns>The remote file as a String.</returns>
+        internal string GetFileAsString()
+        {
+            Task<WebResponse> responseTask = this.GetWebResponseAsync();
+
+            using (WebResponse response = responseTask.Result)
+            {
+                Stream responseStream = response.GetResponseStream();
+
+                if (responseStream != null)
+                {
+                    // Pipe the stream to a stream reader with the required encoding format.
+                    using (StreamReader reader = new StreamReader(responseStream, Encoding.UTF8))
+                    {
+                        return reader.ReadToEnd();
+                    }
+                }
+
+                return string.Empty;
+            }
+        }
+        #endregion
+
+        #region Private
         /// <summary>
         /// Performs a check to see whether the application is able to download remote files.
         /// </summary>
@@ -373,5 +352,3 @@ namespace ImageProcessor.Web.Helpers
         #endregion
     }
 }
-
-

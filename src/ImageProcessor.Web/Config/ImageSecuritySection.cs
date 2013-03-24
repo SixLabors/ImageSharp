@@ -1,7 +1,7 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="ImageSecuritySection.cs" company="James South">
 //     Copyright (c) James South.
-//     Dual licensed under the MIT or GPL Version 2 licenses.
+//     Licensed under the Apache License, Version 2.0.
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -13,9 +13,9 @@ namespace ImageProcessor.Web.Config
     #endregion
 
     /// <summary>
-    /// Represents an imagecache section within a configuration file.
+    /// Represents an image security section within a configuration file.
     /// </summary>
-    public class ImageSecuritySection : ConfigurationSection
+    public sealed class ImageSecuritySection : ConfigurationSection
     {
         #region Properties
         /// <summary>
@@ -122,11 +122,11 @@ namespace ImageProcessor.Web.Config
             /// </summary>
             /// <param name="index">The index of the whitelist item to get.</param>
             /// <returns>The whitelist item at the given index.</returns>
-            public SafeURL this[int index]
+            public SafeUrl this[int index]
             {
                 get
                 {
-                    return this.BaseGet(index) as SafeURL;
+                    return this.BaseGet(index) as SafeUrl;
                 }
 
                 set
@@ -148,7 +148,7 @@ namespace ImageProcessor.Web.Config
             /// </returns>
             protected override ConfigurationElement CreateNewElement()
             {
-                return new SafeURL();
+                return new SafeUrl();
             }
 
             /// <summary>
@@ -158,14 +158,14 @@ namespace ImageProcessor.Web.Config
             /// <returns>The element key for a specified whitelist configuration element.</returns>
             protected override object GetElementKey(ConfigurationElement element)
             {
-                return ((SafeURL)element).Url;
+                return ((SafeUrl)element).Url;
             }
         }
 
         /// <summary>
         /// Represents a whitelist configuration element within the configuration.
         /// </summary>
-        public class SafeURL : ConfigurationElement
+        public class SafeUrl : ConfigurationElement
         {
             /// <summary>
             /// Gets or sets the url of the whitelisted file.

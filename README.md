@@ -52,7 +52,7 @@ e.g.
 
 Using the HttpModule requires no code writing at all. Just reference the binaries and add the relevant sections to the web.config
 
-Image requests suffixed with querystring parameters will then be processed and **cached to the server - up to 360,000 images** allowing for easy and efficient parsing of following requests.
+Image requests suffixed with querystring parameters will then be processed and **cached to the server - up to 12,960,000 images** allowing for easy and efficient parsing of following requests.
 
 The parsing engine for the HttpModule is incredibly flexible and will **allow you to add querystring parameters in any order.**
 

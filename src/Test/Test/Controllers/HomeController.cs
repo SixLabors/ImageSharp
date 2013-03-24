@@ -11,7 +11,7 @@ namespace Test.Controllers
     using System.Web.Hosting;
 
     using ImageProcessor.Helpers.Extensions;
-    using ImageProcessor.Web.Caching;
+    //using ImageProcessor.Web.Caching;
 
     public class HomeController : Controller
     {
@@ -55,13 +55,13 @@ namespace Test.Controllers
             return this.View();
         }
 
-        public ActionResult Speed()
+        public ActionResult Collisions()
         {
             DateTime start = DateTime.Now;
 
             List<double> collisions = new List<double>();
             const int Iterations = 1;
-            const int Maxitems = 360000;
+            const int Maxitems = 3600000;
 
             for (int i = 0; i < Iterations; i++)
             {
@@ -71,7 +71,7 @@ namespace Test.Controllers
                 {
                     string path = Path.GetRandomFileName().ToMD5Fingerprint();
 
-                    path = string.Format("{0}{1}", path.Substring(0, 4), path.Substring(16, 4));
+                    path = string.Format("/{0}/{1}/{2}", path.Substring(0, 1), path.Substring(31, 1), path.Substring(0, 8));
 
                     paths.Add(path);
                 }
@@ -84,26 +84,9 @@ namespace Test.Controllers
 
             double averageCollisionRate = collisions.Average();
 
-            //PersistantDictionary persistantDictionary = PersistantDictionary.Instance;
-
-            //for (int i = 0; i < 1000; i++)
-            //{
-            //    string random = Path.GetRandomFileName();
-            //    random = random + random;
-
-            //    CachedImage cachedImage = new CachedImage(random, DateTime.UtcNow, DateTime.UtcNow);
-            //    persistantDictionary.GetOrAdd(random, x => cachedImage);
-            //}
-
-            //KeyValuePair<string, CachedImage> pair = persistantDictionary.First();
-
-            //CachedImage image;
-
-            //persistantDictionary.TryRemove(pair.Key, out image);
 
             TimeSpan timeSpan = DateTime.Now - start;
 
-            //ViewBag.Count = count;
             ViewBag.Collision = averageCollisionRate;
 
             return this.View(timeSpan);

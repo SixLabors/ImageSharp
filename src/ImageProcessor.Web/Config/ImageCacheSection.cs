@@ -1,7 +1,7 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="ImageCacheSection.cs" company="James South">
 //     Copyright (c) James South.
-//     Dual licensed under the MIT or GPL Version 2 licenses.
+//     Licensed under the Apache License, Version 2.0.
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -15,7 +15,7 @@ namespace ImageProcessor.Web.Config
     /// <summary>
     /// Represents an image cache section within a configuration file.
     /// </summary>
-    public class ImageCacheSection : ConfigurationSection
+    public sealed class ImageCacheSection : ConfigurationSection
     {
         /// <summary>
         /// Gets or sets the virtual path of the cache folder.

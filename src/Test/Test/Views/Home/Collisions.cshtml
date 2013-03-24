@@ -1,0 +1,20 @@
+﻿@model TimeSpan
+@{
+    Layout = null;
+
+    double s = Model.TotalMilliseconds;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <title>@s</title>
+</head>
+<body>
+    <div>
+        Speed In Milliseconds: @s<br/>
+        Collision Rate: @ViewBag.Collision%
+    </div>
+</body>
+</html>

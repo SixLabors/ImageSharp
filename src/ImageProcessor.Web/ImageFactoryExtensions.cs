@@ -1,7 +1,7 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="ImageFactoryExtensions.cs" company="James South">
 //     Copyright (c) James South.
-//     Dual licensed under the MIT or GPL Version 2 licenses.
+//     Licensed under the Apache License, Version 2.0.
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -38,17 +38,18 @@ namespace ImageProcessor.Web
         {
             if (factory.ShouldProcess)
             {
+                // It's faster to lock and run through our activated list than to create new instances.
                 lock (SyncRoot)
                 {
                     // Get a list of all graphics processors that have parsed and matched the querystring.
-                    List<IGraphicsProcessor> list =
+                    List<IGraphicsProcessor> graphicsProcessors =
                         ImageProcessorConfig.Instance.GraphicsProcessors
                         .Where(x => x.MatchRegexIndex(factory.QueryString) != int.MaxValue)
                         .OrderBy(y => y.SortOrder)
                         .ToList();
 
                     // Loop through and process the image.
-                    foreach (IGraphicsProcessor graphicsProcessor in list)
+                    foreach (IGraphicsProcessor graphicsProcessor in graphicsProcessors)
                     {
                         factory.Image = graphicsProcessor.ProcessImage(factory);
                     }

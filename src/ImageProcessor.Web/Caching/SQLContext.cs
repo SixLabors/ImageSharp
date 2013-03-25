@@ -16,7 +16,6 @@ namespace ImageProcessor.Web.Caching
     using System.Web.Hosting;
     using ImageProcessor.Web.Config;
     using ImageProcessor.Web.Helpers;
-
     #endregion
 
     /// <summary>
@@ -38,7 +37,7 @@ namespace ImageProcessor.Web.Caching
         /// <summary>
         /// The connection string.
         /// </summary>
-        private static readonly string ConnectionString = string.Format("Data Source={0};Version=3;", IndexLocation); 
+        private static readonly string ConnectionString = string.Format("Data Source={0};Version=3;", IndexLocation);
         #endregion
 
         #region Methods
@@ -62,7 +61,7 @@ namespace ImageProcessor.Web.Caching
                         Directory.CreateDirectory(absolutePath);
                     }
                 }
-
+                
                 SQLiteConnection.CreateFile(IndexLocation);
 
                 using (SQLiteConnection connection = new SQLiteConnection(ConnectionString))
@@ -258,7 +257,7 @@ namespace ImageProcessor.Web.Caching
                 return false;
             }
         }
-        #endregion 
+        #endregion
         #endregion
     }
 }

@@ -16,6 +16,8 @@ namespace ImageProcessor.Web.Config
     using System.Text;
 
     using ImageProcessor.Processors;
+    using ImageProcessor.Web.Helpers;
+
     #endregion
 
     /// <summary>

@@ -69,7 +69,6 @@ namespace ImageProcessor.Web.HttpModules
             if (!this.hasModuleInitialized)
             {
                 Interlocked.CompareExchange(ref initCheck, 1, 0);
-
                 DiskCache.CreateDirectories();
             }
 

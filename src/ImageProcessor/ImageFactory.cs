@@ -196,7 +196,10 @@ namespace ImageProcessor
         /// <summary>
         /// Changes the opacity of the current image.
         /// </summary>
-        /// <param name="percentage">The percentage by which to alter the images opacity.</param>
+        /// <param name="percentage">
+        /// The percentage by which to alter the images opacity.
+        /// Any integer between 0 and 100.
+        /// </param>
         /// <returns>
         /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
         /// </returns>
@@ -204,9 +207,71 @@ namespace ImageProcessor
         {
             if (this.ShouldProcess)
             {
+                // Sanitize the input.
+                if (percentage > 100 || percentage < 0)
+                {
+                    percentage = 0;
+                }
+
                 Alpha alpha = new Alpha { DynamicParameter = percentage };
 
                 this.Image = alpha.ProcessImage(this);
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Changes the brightness of the current image.
+        /// </summary>
+        /// <param name="percentage">
+        /// The percentage by which to alter the images brightness.
+        /// Any integer between -100 and 100.
+        /// </param>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory Brightness(int percentage)
+        {
+            if (this.ShouldProcess)
+            {
+                // Sanitize the input.
+                if (percentage > 100 || percentage < -100)
+                {
+                    percentage = 0;
+                }
+
+                Brightness brightness = new Brightness { DynamicParameter = percentage };
+
+                this.Image = brightness.ProcessImage(this);
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Changes the contrast of the current image.
+        /// </summary>
+        /// <param name="percentage">
+        /// The percentage by which to alter the images contrast.
+        /// Any integer between -100 and 100.
+        /// </param>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory Contrast(int percentage)
+        {
+            if (this.ShouldProcess)
+            {
+                // Sanitize the input.
+                if (percentage > 100 || percentage < -100)
+                {
+                    percentage = 0;
+                }
+
+                Contrast contrast = new Contrast { DynamicParameter = percentage };
+
+                this.Image = contrast.ProcessImage(this);
             }
 
             return this;

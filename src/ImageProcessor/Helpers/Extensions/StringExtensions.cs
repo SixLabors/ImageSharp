@@ -118,7 +118,7 @@ namespace ImageProcessor.Helpers.Extensions
         {
             Contract.Requires(!string.IsNullOrWhiteSpace(expression));
 
-            Regex regex = new Regex(@"\d+", RegexOptions.Compiled);
+            Regex regex = new Regex(@"(-|)\d+", RegexOptions.Compiled);
 
             MatchCollection matchCollection = regex.Matches(expression);
 

@@ -432,6 +432,34 @@ namespace ImageProcessor
         }
 
         /// <summary>
+        /// Changes the saturation of the current image.
+        /// </summary>
+        /// <param name="percentage">
+        /// The percentage by which to alter the images saturation.
+        /// Any integer between -100 and 100.
+        /// </param>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory Saturate(int percentage)
+        {
+            if (this.ShouldProcess)
+            {
+                // Sanitize the input.
+                if (percentage > 100 || percentage < -100)
+                {
+                    percentage = 0;
+                }
+
+                Saturate saturate = new Saturate { DynamicParameter = percentage };
+
+                this.Image = saturate.ProcessImage(this);
+            }
+
+            return this;
+        }
+
+        /// <summary>
         /// Adds a vignette image effect to the current image.
         /// </summary>
         /// <returns>
@@ -499,7 +527,9 @@ namespace ImageProcessor
                             ImageCodecInfo.GetImageEncoders().FirstOrDefault(
                                 ici => ici.MimeType.Equals("image/jpeg", StringComparison.OrdinalIgnoreCase));
 
+// ReSharper disable AssignNullToNotNullAttribute
                         this.Image.Save(filePath, imageCodecInfo, encoderParameters);
+// ReSharper restore AssignNullToNotNullAttribute
                     }
                 }
                 else

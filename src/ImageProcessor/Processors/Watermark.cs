@@ -45,12 +45,12 @@ private static readonly Regex PositionRegex = new Regex(@"position-\d+-\d+", Reg
 private static readonly Regex ColorRegex = new Regex(@"color-([0-9a-fA-F]{3}){1,2}", RegexOptions.Compiled);
 
 /// <summary>
-/// The regular expression to search strings for the fontsize attribute.
+/// The regular expression to search strings for the font size attribute.
 /// </summary>
 private static readonly Regex FontSizeRegex = new Regex(@"size-\d{1,3}", RegexOptions.Compiled);
 
 /// <summary>
-/// The regular expression to search strings for the fontstyle attribute.
+/// The regular expression to search strings for the font style attribute.
 /// </summary>
 private static readonly Regex FontStyleRegex = new Regex(@"style-(bold|italic|regular|strikeout|underline)", RegexOptions.Compiled);
 
@@ -70,28 +70,6 @@ private static readonly Regex OpacityRegex = new Regex(@"opacity-(?:100|[1-9]?[0
 private static readonly Regex ShadowRegex = new Regex(@"shadow-true", RegexOptions.Compiled);
 
         #region IGraphicsProcessor Members
-        /// <summary>
-        /// Gets the name.
-        /// </summary>
-        public string Name
-        {
-            get
-            {
-                return "Watermark";
-            }
-        }
-
-        /// <summary>
-        /// Gets the description.
-        /// </summary>
-        public string Description
-        {
-            get
-            {
-                return "Adds a watermark containing text to the image.";
-            }
-        }
-
         /// <summary>
         /// Gets the regular expression to search strings for.
         /// </summary>
@@ -333,7 +311,7 @@ private static readonly Regex ShadowRegex = new Regex(@"shadow-true", RegexOptio
         {
             foreach (Match match in PositionRegex.Matches(input))
             {
-                int[] position = match.Value.ToIntegerArray();
+                int[] position = match.Value.ToPositiveIntegerArray();
 
                 if (position != null)
                 {
@@ -392,7 +370,7 @@ private static readonly Regex ShadowRegex = new Regex(@"shadow-true", RegexOptio
         /// Returns the correct <see cref="T:System.Drawing.FontStyle"/> for the given string.
         /// </summary>
         /// <param name="input">
-        /// The string containing the respective fontstyle.
+        /// The string containing the respective font style.
         /// </param>
         /// <returns>
         /// The correct <see cref="T:System.Drawing.FontStyle"/>

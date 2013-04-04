@@ -31,6 +31,11 @@ namespace ImageProcessor
         private const int DefaultJpegQuality = 90;
 
         /// <summary>
+        /// The backup image format.
+        /// </summary>
+        private ImageFormat backupImageFormat;
+
+        /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.
         /// </summary>
         /// <value><see langword="true"/> if this instance has been disposed; otherwise, <see langword="false"/>.</value>
@@ -117,6 +122,7 @@ namespace ImageProcessor
 
             // Set the other properties.
             this.JpegQuality = DefaultJpegQuality;
+            this.backupImageFormat = ImageFormat.Jpeg;
             this.ImageFormat = ImageFormat.Jpeg;
             this.ShouldProcess = true;
 
@@ -167,13 +173,46 @@ namespace ImageProcessor
 
                     // Set the other properties.
                     this.JpegQuality = DefaultJpegQuality;
-                    this.ImageFormat = ImageUtils.GetImageFormat(imageName);
+                    ImageFormat imageFormat = ImageUtils.GetImageFormat(imageName);
+                    this.backupImageFormat = imageFormat;
+                    this.ImageFormat = imageFormat;
                     this.ShouldProcess = true;
                 }
             }
 
             return this;
         }
+
+        /// <summary>
+        /// Resets the ImageFactory to its original loaded state.
+        /// </summary>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory Reset()
+        {
+            if (this.ShouldProcess)
+            {
+                MemoryStream memoryStream = (MemoryStream)this.Image.Tag;
+
+                // Set our new image as the memorystream value.
+                Image newImage = Image.FromStream(memoryStream);
+
+                // Store the stream in the image Tag property so we can dispose of it later.
+                newImage.Tag = memoryStream;
+
+                // Dispose and reassign the image.
+                this.Image.Dispose();
+                this.Image = newImage;
+
+                // Set the other properties.
+                this.JpegQuality = DefaultJpegQuality;
+                this.ImageFormat = this.backupImageFormat;
+            }
+
+            return this;
+        }
+
 
         #region Manipulation
         /// <summary>
@@ -441,7 +480,7 @@ namespace ImageProcessor
         /// <returns>
         /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
         /// </returns>
-        public ImageFactory Saturate(int percentage)
+        public ImageFactory Saturation(int percentage)
         {
             if (this.ShouldProcess)
             {
@@ -451,7 +490,7 @@ namespace ImageProcessor
                     percentage = 0;
                 }
 
-                Saturate saturate = new Saturate { DynamicParameter = percentage };
+                Saturation saturate = new Saturation { DynamicParameter = percentage };
 
                 this.Image = saturate.ProcessImage(this);
             }
@@ -504,7 +543,10 @@ namespace ImageProcessor
         /// Saves the current image to the specified file path.
         /// </summary>
         /// <param name="filePath">The path to save the image to.</param>
-        public void Save(string filePath)
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory Save(string filePath)
         {
             if (this.ShouldProcess)
             {
@@ -527,9 +569,9 @@ namespace ImageProcessor
                             ImageCodecInfo.GetImageEncoders().FirstOrDefault(
                                 ici => ici.MimeType.Equals("image/jpeg", StringComparison.OrdinalIgnoreCase));
 
-// ReSharper disable AssignNullToNotNullAttribute
+                        // ReSharper disable AssignNullToNotNullAttribute
                         this.Image.Save(filePath, imageCodecInfo, encoderParameters);
-// ReSharper restore AssignNullToNotNullAttribute
+                        // ReSharper restore AssignNullToNotNullAttribute
                     }
                 }
                 else
@@ -537,6 +579,8 @@ namespace ImageProcessor
                     this.Image.Save(filePath, this.ImageFormat);
                 }
             }
+
+            return this;
         }
 
         /// <summary>
@@ -545,7 +589,10 @@ namespace ImageProcessor
         /// <param name="memoryStream">
         /// The <see cref="T:System.IO.MemoryStream"/> to save the image information to.
         /// </param>
-        public void Save(MemoryStream memoryStream)
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory Save(MemoryStream memoryStream)
         {
             if (this.ShouldProcess)
             {
@@ -573,6 +620,8 @@ namespace ImageProcessor
                     this.Image.Save(memoryStream, this.ImageFormat);
                 }
             }
+
+            return this;
         }
 
         #region IDisposable Members

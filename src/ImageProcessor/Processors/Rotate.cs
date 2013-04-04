@@ -38,28 +38,6 @@ namespace ImageProcessor.Processors
 
         #region IGraphicsProcessor Members
         /// <summary>
-        /// Gets the name.
-        /// </summary>
-        public string Name
-        {
-            get
-            {
-                return "Rotate";
-            }
-        }
-
-        /// <summary>
-        /// Gets the description.
-        /// </summary>
-        public string Description
-        {
-            get
-            {
-                return "Rotates an image at the given angle.";
-            }
-        }
-
-        /// <summary>
         /// Gets the regular expression to search strings for.
         /// </summary>
         public Regex RegexPattern

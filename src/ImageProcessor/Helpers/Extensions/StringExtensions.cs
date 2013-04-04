@@ -114,11 +114,11 @@ namespace ImageProcessor.Helpers.Extensions
         /// </summary>
         /// <param name="expression">The <see cref="T:System.String">String</see> instance that this method extends.</param>
         /// <returns>An array of integers scraped from the String.</returns>
-        public static int[] ToIntegerArray(this string expression)
+        public static int[] ToPositiveIntegerArray(this string expression)
         {
             Contract.Requires(!string.IsNullOrWhiteSpace(expression));
 
-            Regex regex = new Regex(@"(-|)\d+", RegexOptions.Compiled);
+            Regex regex = new Regex(@"\d+", RegexOptions.Compiled);
 
             MatchCollection matchCollection = regex.Matches(expression);
 

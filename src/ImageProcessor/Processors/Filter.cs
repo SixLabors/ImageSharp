@@ -27,28 +27,6 @@ namespace ImageProcessor.Processors
 
         #region IGraphicsProcessor Members
         /// <summary>
-        /// Gets the name.
-        /// </summary>
-        public string Name
-        {
-            get
-            {
-                return "Filter";
-            }
-        }
-
-        /// <summary>
-        /// Gets the description.
-        /// </summary>
-        public string Description
-        {
-            get
-            {
-                return "Encapsulates methods with which to add filters to an image. e.g polaroid, lomograph";
-            }
-        }
-
-        /// <summary>
         /// Gets the regular expression to search strings for.
         /// </summary>
         public Regex RegexPattern

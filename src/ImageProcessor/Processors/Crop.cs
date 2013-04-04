@@ -29,28 +29,6 @@ namespace ImageProcessor.Processors
 
         #region IGraphicsProcessor Members
         /// <summary>
-        /// Gets the name.
-        /// </summary>
-        public string Name
-        {
-            get
-            {
-                return "Crop";
-            }
-        }
-
-        /// <summary>
-        /// Gets the description.
-        /// </summary>
-        public string Description
-        {
-            get
-            {
-                return "Crops an image to the given dimensions.";
-            }
-        }
-
-        /// <summary>
         /// Gets the regular expression to search strings for.
         /// </summary>
         public Regex RegexPattern
@@ -112,7 +90,7 @@ namespace ImageProcessor.Processors
                     {
                         // Set the index on the first instance only.
                         this.SortOrder = match.Index;
-                        int[] coordinates = match.Value.ToIntegerArray();
+                        int[] coordinates = match.Value.ToPositiveIntegerArray();
 
                         int x = coordinates[0];
                         int y = coordinates[1];

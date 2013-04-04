@@ -29,28 +29,6 @@ namespace ImageProcessor.Processors
 
         #region IGraphicsProcessor Members
         /// <summary>
-        /// Gets the name.
-        /// </summary>
-        public string Name
-        {
-            get
-            {
-                return "Resize";
-            }
-        }
-
-        /// <summary>
-        /// Gets the description.
-        /// </summary>
-        public string Description
-        {
-            get
-            {
-                return "Resizes an image to the given dimensions.";
-            }
-        }
-
-        /// <summary>
         /// Gets the regular expression to search strings for.
         /// </summary>
         public Regex RegexPattern
@@ -118,11 +96,11 @@ namespace ImageProcessor.Processors
                     // Match syntax
                     if (match.Value.Contains("width"))
                     {
-                        size.Width = match.Value.ToIntegerArray()[0];
+                        size.Width = match.Value.ToPositiveIntegerArray()[0];
                     }
                     else
                     {
-                        size.Height = match.Value.ToIntegerArray()[0];
+                        size.Height = match.Value.ToPositiveIntegerArray()[0];
                     }
                     
                     index += 1;

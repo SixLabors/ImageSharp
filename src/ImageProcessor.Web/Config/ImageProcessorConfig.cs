@@ -257,7 +257,7 @@ namespace ImageProcessor.Web.Config
                     // Add the available settings.
                     foreach (IGraphicsProcessor processor in this.GraphicsProcessors)
                     {
-                        processor.Settings = this.GetPluginSettings(processor.Name);
+                        processor.Settings = this.GetPluginSettings(processor.GetType().Name);
                     }
                 }
                 catch (ReflectionTypeLoadException ex)

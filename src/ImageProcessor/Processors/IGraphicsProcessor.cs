@@ -8,9 +8,7 @@
 namespace ImageProcessor.Processors
 {
     #region Using
-    using System.Collections;
     using System.Collections.Generic;
-    using System.Collections.Specialized;
     using System.Drawing;
     using System.Text.RegularExpressions;
     #endregion
@@ -20,18 +18,7 @@ namespace ImageProcessor.Processors
     /// </summary>
     public interface IGraphicsProcessor
     {
-        #region MetaData
-        /// <summary>
-        /// Gets the name.
-        /// </summary>
-        string Name { get; }
-
-        /// <summary>
-        /// Gets the description.
-        /// </summary>
-        string Description { get; }
-        #endregion
-
+        #region Properties
         /// <summary>
         /// Gets the regular expression to search strings for.
         /// </summary>
@@ -50,7 +37,8 @@ namespace ImageProcessor.Processors
         /// <summary>
         /// Gets or sets any additional settings required by the processor.
         /// </summary>
-        Dictionary<string, string> Settings { get; set; }
+        Dictionary<string, string> Settings { get; set; } 
+        #endregion
 
         #region Methods
         /// <summary>

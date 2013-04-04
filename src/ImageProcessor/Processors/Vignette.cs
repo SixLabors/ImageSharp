@@ -27,28 +27,6 @@ namespace ImageProcessor.Processors
 
         #region IGraphicsProcessor Members
         /// <summary>
-        /// Gets the name.
-        /// </summary>
-        public string Name
-        {
-            get
-            {
-                return "Vignette";
-            }
-        }
-
-        /// <summary>
-        /// Gets the description.
-        /// </summary>
-        public string Description
-        {
-            get
-            {
-                return "Adds a vignette image effect to the image.";
-            }
-        }
-
-        /// <summary>
         /// Gets the regular expression to search strings for.
         /// </summary>
         public Regex RegexPattern

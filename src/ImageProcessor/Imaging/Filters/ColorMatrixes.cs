@@ -10,6 +10,7 @@ namespace ImageProcessor.Imaging.Filters
     #region Using
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using System.Text;
     using System.Drawing.Imaging; 
@@ -80,6 +81,7 @@ namespace ImageProcessor.Imaging.Filters
         /// <summary>
         /// Gets Lomograph.
         /// </summary>
+        [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1650:ElementDocumentationMustBeSpelledCorrectly", Justification = "Reviewed. Suppression is OK here.")]
         internal static ColorMatrix Lomograph
         {
             get
@@ -116,25 +118,6 @@ namespace ImageProcessor.Imaging.Filters
         }
 
         /// <summary>
-        /// Gets Gotham.
-        /// </summary>
-        internal static ColorMatrix Gotham
-        {
-            get
-            {
-                return new ColorMatrix(
-                    new float[][]
-                            {
-                                new float[] { .9f, .9f, .9f, 0, 0 }, 
-                                new float[] { .9f, .9f, .9f, 0, 0 }, 
-                                new float[] { .9f, .9f, .9f, 0, 0 }, 
-                                new float[] { 0, 0, 0, 1, 0 },
-                                new float[] { -.5f, -.5f, -.45f, 0, 1 }
-                            });
-            }
-        }
-
-        /// <summary>
         /// Gets Invert.
         /// </summary>
         internal static ColorMatrix Invert
@@ -156,6 +139,7 @@ namespace ImageProcessor.Imaging.Filters
         /// <summary>
         /// Gets HiSatch.
         /// </summary>
+        [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1650:ElementDocumentationMustBeSpelledCorrectly", Justification = "Reviewed. Suppression is OK here.")]
         internal static ColorMatrix HiSatch
         {
             get
@@ -175,6 +159,7 @@ namespace ImageProcessor.Imaging.Filters
         /// <summary>
         /// Gets LoSatch.
         /// </summary>
+        [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1650:ElementDocumentationMustBeSpelledCorrectly", Justification = "Reviewed. Suppression is OK here.")]
         internal static ColorMatrix LoSatch
         {
             get

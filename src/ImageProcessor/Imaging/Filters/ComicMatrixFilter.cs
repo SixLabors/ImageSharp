@@ -9,9 +9,11 @@ namespace ImageProcessor.Imaging.Filters
 {
     #region Using
     using System;
+    using System.Diagnostics.CodeAnalysis;
     using System.Drawing;
     using System.Drawing.Drawing2D;
     using System.Drawing.Imaging;
+    using System.Runtime.InteropServices;
     #endregion
 
     /// <summary>
@@ -20,8 +22,9 @@ namespace ImageProcessor.Imaging.Filters
     internal class ComicMatrixFilter : IMatrixFilter
     {
         /// <summary>
-        /// Enumurates Argb colour channels.
+        /// Enumerates Argb color channels.
         /// </summary>
+        [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1650:ElementDocumentationMustBeSpelledCorrectly", Justification = "Reviewed. Suppression is OK here.")]
         private enum ChannelArgb
         {
             /// <summary>
@@ -148,6 +151,7 @@ namespace ImageProcessor.Imaging.Filters
                     patternBitmap.Dispose();
                 }
             }
+
             return image;
         }
 
@@ -185,7 +189,7 @@ namespace ImageProcessor.Imaging.Filters
             byte[] sourceRgbValues = new byte[bytes];
 
             // Copy the RGB values into the array.
-            System.Runtime.InteropServices.Marshal.Copy(bitmapDataSource.Scan0, sourceRgbValues, 0, bytes);
+            Marshal.Copy(bitmapDataSource.Scan0, sourceRgbValues, 0, bytes);
 
             // Unlockbits the source.
             source.UnlockBits(bitmapDataSource);
@@ -197,7 +201,7 @@ namespace ImageProcessor.Imaging.Filters
             byte[] destinationRgbValues = new byte[bytes];
 
             // Copy the RGB values into the array.
-            System.Runtime.InteropServices.Marshal.Copy(bitmapDataDestination.Scan0, destinationRgbValues, 0, bytes);
+            Marshal.Copy(bitmapDataDestination.Scan0, destinationRgbValues, 0, bytes);
 
             int s = (int)sourceChannel;
             int d = (int)destinationChannel;
@@ -210,11 +214,10 @@ namespace ImageProcessor.Imaging.Filters
             }
 
             // Copy the RGB values back to the bitmap
-            System.Runtime.InteropServices.Marshal.Copy(destinationRgbValues, 0, bitmapDataDestination.Scan0, bytes);
+            Marshal.Copy(destinationRgbValues, 0, bitmapDataDestination.Scan0, bytes);
 
             // Unlock bits the destination.
             destination.UnlockBits(bitmapDataDestination);
         }
-
     }
 }

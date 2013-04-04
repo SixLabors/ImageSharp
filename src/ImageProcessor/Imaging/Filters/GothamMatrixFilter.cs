@@ -8,13 +8,12 @@
 namespace ImageProcessor.Imaging.Filters
 {
     #region Using
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
     using System.Drawing;
-    using System.Drawing.Imaging;
     using System.Drawing.Drawing2D;
+    using System.Drawing.Imaging;
+
+    using ImageProcessor.Processors;
+
     #endregion
 
     /// <summary>
@@ -27,7 +26,7 @@ namespace ImageProcessor.Imaging.Filters
         /// </summary>
         public ColorMatrix Matrix
         {
-            get { return ColorMatrixes.Gotham; }
+            get { return ColorMatrixes.GreyScale; }
         }
 
         /// <summary>
@@ -61,20 +60,29 @@ namespace ImageProcessor.Imaging.Filters
 
                         // Paint a burgundy rectangle with a transparency of ~30% over the image.
                         // Paint a blue rectangle with a transparency of 20% over the image.
-                        using (SolidBrush brush = new SolidBrush(Color.FromArgb(77, 43, 4, 18)))
+                        using (SolidBrush brush = new SolidBrush(Color.FromArgb(77, 38, 14, 28)))
                         {
                             Region oldClip = graphics.Clip;
                             graphics.Clip = new Region(rectangle);
                             graphics.FillRectangle(brush, rectangle);
 
                             // Fill the blue.
-                            brush.Color = Color.FromArgb(51, 12, 22, 88);
+                            brush.Color = Color.FromArgb(51, 29, 32, 59);
                             graphics.FillRectangle(brush, rectangle);
                             graphics.Clip = oldClip;
                         }
                     }
                 }
             }
+
+            // Add brightness and contrast to finish the effect.
+            factory.Image = newImage;
+            Brightness brightness = new Brightness { DynamicParameter = 5 };
+            newImage = (Bitmap)brightness.ProcessImage(factory);
+
+            factory.Image = newImage;
+            Contrast contrast = new Contrast { DynamicParameter = 85 };
+            newImage = (Bitmap)contrast.ProcessImage(factory);
 
             // Reassign the image.
             image.Dispose();

@@ -21,37 +21,15 @@ namespace ImageProcessor.Processors
     /// <remarks>
     /// <see cref="http://www.bobpowell.net/imagesaturation.htm"/> 
     /// </remarks>
-    public class Saturate : IGraphicsProcessor
+    public class Saturation : IGraphicsProcessor
     {
         /// <summary>
         /// The regular expression to search strings for.
         /// <see cref="http://stackoverflow.com/a/6400969/427899"/> 
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"saturate=(-|)(?:100|[1-9]?[0-9])", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"saturation=(-?(?:100)|-?([1-9]?[0-9]))", RegexOptions.Compiled);
 
         #region IGraphicsProcessor Members
-        /// <summary>
-        /// Gets the name.
-        /// </summary>
-        public string Name
-        {
-            get
-            {
-                return "Saturate";
-            }
-        }
-
-        /// <summary>
-        /// Gets the description.
-        /// </summary>
-        public string Description
-        {
-            get
-            {
-                return "Changes the the saturation component of the image.";
-            }
-        }
-
         /// <summary>
         /// Gets the regular expression to search strings for.
         /// </summary>
@@ -114,7 +92,7 @@ namespace ImageProcessor.Processors
                     {
                         // Set the index on the first instance only.
                         this.SortOrder = match.Index;
-                        int percentage = match.Value.ToIntegerArray()[0];
+                        int percentage = int.Parse(match.Value.Split('=')[1]);
 
                         this.DynamicParameter = percentage;
                     }

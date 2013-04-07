@@ -304,7 +304,7 @@ namespace ImageProcessor.Web.Caching
         /// </returns>
         internal async Task<DateTime> SetCachedLastWriteTimeAsync()
         {
-            // Create Action delegate for IsNewOrUpdatedFile.
+            // Create Action delegate for SetCachedLastWriteTime.
             return await TaskHelpers.Run(() => this.SetCachedLastWriteTime());
         }
 

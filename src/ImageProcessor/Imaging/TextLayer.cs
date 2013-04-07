@@ -14,7 +14,7 @@ namespace ImageProcessor.Imaging
     #endregion
 
     /// <summary>
-    /// Enacapsulates the properties required to add a layer of text to an image.
+    /// Encapsulates the properties required to add a layer of text to an image.
     /// </summary>
     public class TextLayer
     {

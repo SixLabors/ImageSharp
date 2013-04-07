@@ -184,7 +184,7 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Resets the ImageFactory to its original loaded state.
+        /// Resets the current image to its original loaded state.
         /// </summary>
         /// <returns>
         /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
@@ -212,7 +212,6 @@ namespace ImageProcessor
 
             return this;
         }
-
 
         #region Manipulation
         /// <summary>
@@ -317,7 +316,7 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Crops an image to the given coordinates.
+        /// Crops the current image to the given location and size.
         /// </summary>
         /// <param name="rectangle">
         /// The <see cref="T:System.Drawing.Rectangle"/> containing the coordinates to crop the image to.
@@ -338,7 +337,7 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Applies a filter to an image.
+        /// Applies a filter to the current image.
         /// </summary>
         /// <param name="filterName">
         /// The name of the filter to add to the image.
@@ -359,7 +358,7 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Flips an image either horizontally or vertically.
+        /// Flips the current image either horizontally or vertically.
         /// </summary>
         /// <param name="flipVertically">
         /// Whether to flip the image vertically.
@@ -384,7 +383,7 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Sets the output format of the image to the matching <see cref="T:System.Drawing.Imaging.ImageFormat"/>.
+        /// Sets the output format of the current image to the matching <see cref="T:System.Drawing.Imaging.ImageFormat"/>.
         /// </summary>
         /// <param name="imageFormat">The <see cref="T:System.Drawing.Imaging.ImageFormat"/>. to set the image to.</param>
         /// <returns>
@@ -401,7 +400,10 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Applies a filter to an image.
+        /// Alters the output quality of the current image.
+        /// <remarks>
+        /// This method will only effect the output quality of jpeg images
+        /// </remarks>
         /// </summary>
         /// <param name="percentage">A value between 1 and 100 to set the quality to.</param>
         /// <returns>
@@ -418,7 +420,7 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Resizes an image to the given dimensions.
+        /// Resizes the current image to the given dimensions.
         /// </summary>
         /// <param name="size">
         /// The <see cref="T:System.Drawing.Size"/> containing the width and height to set the image to.
@@ -517,7 +519,7 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Adds a text based watermark to the image
+        /// Adds a text based watermark to the current image.
         /// </summary>
         /// <param name="textLayer">
         /// The <see cref="T:ImageProcessor.Imaging.TextLayer"/> containing the properties necessary to add 

@@ -100,21 +100,20 @@ namespace ImageProcessor.Processors
                         // Set the index on the first instance only.
                         this.SortOrder = match.Index;
 
-                        RotateLayer rotateLayer = new RotateLayer();
+                        RotateLayer rotateLayer;
 
                         string toParse = match.Value;
 
                         if (toParse.Contains("bgcolor"))
                         {
-                            rotateLayer.Angle = this.ParseAngle(toParse);
-                            rotateLayer.BackgroundColor = this.ParseColor(toParse);
+                            rotateLayer = new RotateLayer(this.ParseAngle(toParse), this.ParseColor(toParse));
                         }
                         else
                         {
                             int degrees;
                             int.TryParse(match.Value.Split('=')[1], out degrees);
 
-                            rotateLayer.Angle = degrees;
+                            rotateLayer = new RotateLayer(degrees);
                         }
 
                         this.DynamicParameter = rotateLayer;

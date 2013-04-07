@@ -132,11 +132,7 @@ namespace ImageProcessor.Tests
         public void TestRotateRegex()
         {
             const string Querystring = "rotate=270";
-            RotateLayer expected = new RotateLayer
-            {
-                Angle = 270,
-                BackgroundColor = Color.Transparent
-            };
+            RotateLayer expected = new RotateLayer(270, Color.Transparent);
 
             Rotate rotate = new Rotate();
             rotate.MatchRegexIndex(Querystring);

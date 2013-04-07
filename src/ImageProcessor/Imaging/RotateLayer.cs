@@ -26,6 +26,34 @@ namespace ImageProcessor.Imaging
         {
             this.BackgroundColor = Color.Transparent;
         }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RotateLayer"/> class.
+        /// </summary>
+        /// <param name="angle">
+        /// The angle at which to rotate the image.
+        /// </param>
+        public RotateLayer(int angle)
+        {
+            this.Angle = angle;
+            this.BackgroundColor = Color.Transparent;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RotateLayer"/> class.
+        /// </summary>
+        /// <param name="angle">
+        /// The angle at which to rotate the image.
+        /// </param>
+        /// <param name="backgroundColor">
+        /// The <see cref="T:System.Drawing.Color"/> to set as the background color.
+        /// <remarks>Used for image formats that do not support transparency</remarks>
+        /// </param>
+        public RotateLayer(int angle, Color backgroundColor)
+        {
+            this.Angle = angle;
+            this.BackgroundColor = backgroundColor;
+        }
         #endregion
 
         #region Properties

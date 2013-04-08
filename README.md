@@ -1,26 +1,33 @@
 ImageProcessor
 ===============
 
-Imageprocessor is a lightweight library written in C# that allows you to manipulate images on-the-fly using ASP.NET 4.0.
+Imageprocessor is a lightweight library written in C# that allows you to manipulate images on-the-fly using .NET 4.0.
 
 It's fast, extensible, easy to use, comes bundled with some great features and is fully open source.
 
 Core plugins at present include:
 
- - Resize 
- - Crop
  - Alpha (Sets opacity)
+ - Brightness
+ - Contrast
+ - Crop
  - Filter (Image filters including sepia, greyscale, blackwhite, lomograph, polaroid, comic, gotham, hisatch, losatch)
- - Watermark (Set a text watermark)
+ - Flip (Flip the image) 
  - Format (Sets the output format)
- - Rotate (Rotate the image)
- - Flip (Flip the image)
  - Quality (The quality to set the output for jpeg files)
+ - Reset (Resets the image to its original loaded state)
+ - Resize 
+ - Rotate (Rotate the image through 360º)
+ - Saturation
  - Vignette (Adds a vignette effect to images)
+ - Watermark (Set a text watermark)
 
 The library consists of two binaries: **ImageProcessor.dll** and **ImageProcessor.Web.dll**.
 
-**ImageProcessor.dll** contains all the core functionality that allows for image manipulation via the `ImageFactory` class. This has a fluent API which allows you to easily chain methods to deliver the desired output.
+ImageProcessor.dll
+==================
+
+**ImageProcessor.dll** contains all the core functionality that allows for image manipulation via the `ImageFactory` class. This has a fluent API which allows you to easily chain methods to deliver the desired output. This library contains no web specific componenets so is suitable for both desktop and web applications.
 
 e.g.
 
@@ -38,19 +45,22 @@ e.g.
             {
                 // Load, resize, set the format and quality and save an image.
                 imageFactory.Load(inStream)
-				            .Resize(size)
-							.Format(format)
-							.Quality(quality)
-							.Save(outStream);
+			    		    .Resize(size)
+			    		    .Format(format)
+			    		    .Quality(quality)
+			    		    .Save(outStream);
             }
 
 			// Do something with the stream.
         }
     }
 
-**ImageProcessor.Web.dll** contains a HttpModule which captures internal and external requests automagically processing them based on values captured through querystring parameters.
+ImageProcessor.Web.dll
+======================
 
-Using the HttpModule requires no code writing at all. Just reference the binaries and add the relevant sections to the web.config
+**ImageProcessor.Web.dll** contains an ASP.NET HttpModule which captures internal and external requests automagically processing them based on values captured through querystring parameters.
+
+Using the HttpModule requires no code writing at all. Just install the package references the binaries relevant sections in the web.config will be automatically created.
 
 Image requests suffixed with querystring parameters will then be processed and **cached to the server - up to 12,960,000 images** allowing for easy and efficient parsing of following requests.
 
@@ -59,9 +69,10 @@ The parsing engine for the HttpModule is incredibly flexible and will **allow yo
 Installation
 ============
 
-Installation is simple. A Nuget package is available [here][1]. 
+Installation is simple. A Nuget package for the full web version is available [here][1] and the standalone library [here][2]. 
 
-  [1]: http://nuget.org/packages/ImageProcessor/
+  [1]: http://nuget.org/packages/ImageProcessor.Web/
+  [2]: http://nuget.org/packages/ImageProcessor/
 
 Alternatively you can download and build the project and reference the binaries. Then copy the example configuration values from the demo project into your `web.config` to enable the processor. 
 
@@ -70,25 +81,30 @@ Usage
 
 Heres a few examples of the syntax for processing images.
 
-Resize
-======
-
-    <img src="/images.yourimage.jpg?width=200" alt="your resized image"/>
-
-Will resize your image to 200px wide whilst keeping the correct aspect ratio.
-
-Remote files can also be requested and cached by prefixing the src with a value set in the web.config 
+Alpha Transparency
+==================
+Imageprocessor can adjust the alpha transparency of png images. Simply pass the desired percentage value (without the '%') to the processor.
 
 e.g.
 
-    <img src="remote.axd/http://url/images.yourimage.jpg?width=200" alt="your resized image"/>
+    <img src="/images.yourimage.jpg?alpha=60" alt="60% alpha image"/>
 
-Will resize your remote image to 200px wide whilst keeping the correct aspect ratio.
+Brightness
+==================
+Imageprocessor can adjust the brightness of images. Simply pass the desired value (-100 to 100) to the processor.
 
-Changing both width and height requires the following syntax:
+e.g.
 
-    <img src="/images.yourimage.jpg?resize=width-200|height-200" alt="your resized image"/>
+    <img src="/images.yourimage.jpg?brightness=60" alt="60 brightness"/>
+    
+Contrast
+==================
+Imageprocessor can adjust the contrast of images. Simply pass the desired value (-100 to 100) to the processor.
 
+e.g.
+
+    <img src="/images.yourimage.jpg?contrast=60" alt="60 contrast"/>
+    
 Crop
 ====
 
@@ -98,14 +114,6 @@ e.g.
 
     <img src="/images.yourimage.jpg?crop=5-5-200-200" alt="your cropped image"/>
     
-Alpha Transparency
-==================
-Imageprocessor can adjust the alpha transparency of png images. Simply pass the desired percentage value (without the '%') to the processor.
-
-e.g.
-
-    <img src="/images.yourimage.jpg?alpha=60" alt="60% alpha image"/>
-    
 Filters
 =======
 
@@ -114,7 +122,7 @@ Everybody loves adding filter effects to photgraphs so we've baked some popular 
 Current filters include:
 
   - blackwhite
-  - comic
+  - comic (requires full trust)
   - lomograph
   - greyscale
   - polaroid
@@ -138,6 +146,79 @@ e.g.
     <img src="/images.yourimage.jpg?flip=horizontal" alt="horizontal"/>
     <img src="/images.yourimage.jpg?flip=vertical" alt="vertical"/>
 
+
+Format
+======
+
+Imageprocessor will also allow you to change the format of image on-the-fly. This can be handy for reducing the size of requests.
+
+Supported file format just now are:
+
+  - jpg
+  - bmp
+  - png
+  - gif (requires full trust)
+
+e.g.
+
+    <img src="/images.yourimage.jpg?format=gif" alt="your image as a gif"/>
+
+Quality
+======
+
+Whilst Imageprocessor delivers an excellent quality/filesize ratio it also allows you to change the quality of jpegs on-the-fly.
+
+e.g.
+
+    <img src="/images.yourimage.jpg?quality=65" alt="your image at quality 30"/>
+    
+Resize
+======
+
+    <img src="/images.yourimage.jpg?width=200" alt="your resized image"/>
+
+Will resize your image to 200px wide whilst keeping the correct aspect ratio.
+
+Remote files can also be requested and cached by prefixing the src with a value set in the web.config 
+
+e.g.
+
+    <img src="remote.axd/http://url/images.yourimage.jpg?width=200" alt="your resized image"/>
+
+Will resize your remote image to 200px wide whilst keeping the correct aspect ratio.
+
+Changing both width and height requires the following syntax:
+
+    <img src="/images.yourimage.jpg?width=200&height=200" alt="your resized image"/>
+
+
+Rotate
+======
+
+Imageprocessor can rotate your images without clipping. You can also optionally fill the background color for image types without transparency.
+
+e.g.
+
+    <img src="/images.yourimage.jpg?rotate=26" alt="your image rotated"/>
+    <img src="/images.yourimage.jpg?rotate=angle-54|bgcolor-fff" alt="your image rotated"/>
+
+Saturation
+==================
+Imageprocessor can adjust the saturation of images. Simply pass the desired value (-100 to 100) to the processor.
+
+e.g.
+
+    <img src="/images.yourimage.jpg?saturation=60" alt="60 saturation"/>
+    
+Vignette
+======
+
+Imageprocessor can also add a vignette effect to images.
+
+e.g.
+
+    <img src="/images.yourimage.jpg?vignette=true" alt="your image vignetted"/>
+
 Watermark
 =========
 
@@ -156,48 +237,3 @@ e.g.
     <img src="/images.yourimage.jpg?watermark=watermark=text-test text|color-fff|size-36|style-italic|opacity-80|position-30-150|shadow-true|font-arial" alt="watermark"/>
     
 Internally it uses a class named `TextLayer` to add the watermark text.
-
-Format
-======
-
-Imageprocessor will also allow you to change the format of image on-the-fly. This can be handy for reducing the size of requests.
-
-Supported file format just now are:
-
-  - jpg
-  - bmp
-  - png
-  - gif (requires full trust)
-
-e.g.
-
-    <img src="/images.yourimage.jpg?format=gif" alt="your image as a gif"/>
-    
-
-Rotate
-======
-
-Imageprocessor can rotate your images without clipping. You can also optionally fill the background color for image types without transparency.
-
-e.g.
-
-    <img src="/images.yourimage.jpg?rotate=26" alt="your image rotated"/>
-	<img src="/images.yourimage.jpg?rotate=angle-54|bgcolor-fff" alt="your image rotated"/>
-
-Quality
-======
-
-Whilst Imageprocessor delivers an excellent quality/filesize ratio it also allows you to change the quality of jpegs on-the-fly.
-
-e.g.
-
-    <img src="/images.yourimage.jpg?quality=65" alt="your image at quality 30"/>
-
-Vignette
-======
-
-Imageprocessor can also add a vignette effect to images.
-
-e.g.
-
-    <img src="/images.yourimage.jpg?vignette=true" alt="your image vignetted"/>

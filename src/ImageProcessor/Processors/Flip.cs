@@ -22,7 +22,7 @@ namespace ImageProcessor.Processors
         /// The regular expression to search strings for.
         /// <see cref="http://stackoverflow.com/a/6400969/427899"/>
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"flip=(horizontal|vertical)", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"flip=(horizontal|vertical|both)", RegexOptions.Compiled);
 
         #region IGraphicsProcessor Members
         /// <summary>
@@ -89,9 +89,18 @@ namespace ImageProcessor.Processors
                         this.SortOrder = match.Index;
                         string direction = match.Value.Split('=')[1];
 
-                        this.DynamicParameter = direction == "horizontal"
-                            ? RotateFlipType.RotateNoneFlipX
-                            : RotateFlipType.RotateNoneFlipY;
+                        switch (direction)
+                        {
+                            case "horizontal":
+                                this.DynamicParameter = RotateFlipType.RotateNoneFlipX;
+                                break;
+                            case "vertical":
+                                this.DynamicParameter = RotateFlipType.RotateNoneFlipY;
+                                break;
+                            default:
+                                this.DynamicParameter = RotateFlipType.RotateNoneFlipXY;
+                                break;
+                        }
                     }
 
                     index += 1;
@@ -121,6 +130,7 @@ namespace ImageProcessor.Processors
                 RotateFlipType rotateFlipType = this.DynamicParameter;
 
                 newImage = (Bitmap)image.Clone();
+
                 // Tag doesn't get cloned.
                 newImage.Tag = image.Tag;
 

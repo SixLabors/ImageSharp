@@ -227,7 +227,15 @@ namespace ImageProcessor.Web.Caching
         {
             string key = Path.GetFileNameWithoutExtension(this.CachedPath);
             DateTime expires = DateTime.UtcNow.AddDays(MaxFileCachedDuration).ToUniversalTime();
-            CachedImage cachedImage = new CachedImage(this.CachedPath, MaxFileCachedDuration, lastWriteTimeUtc, expires);
+            CachedImage cachedImage = new CachedImage
+                                          {
+                                              Key = key,
+                                              Path = this.CachedPath,
+                                              MaxAge = MaxFileCachedDuration,
+                                              LastWriteTimeUtc = lastWriteTimeUtc,
+                                              ExpiresUtc = expires
+                                          };
+
             await PersistantDictionary.Instance.AddAsync(key, cachedImage);
         }
 

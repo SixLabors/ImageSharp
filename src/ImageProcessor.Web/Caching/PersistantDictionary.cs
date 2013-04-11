@@ -131,7 +131,7 @@ namespace ImageProcessor.Web.Caching
             {
                 if (remove)
                 {
-                    return await SQLContext.RemoveImageAsync(key);
+                    return await SQLContext.RemoveImageAsync(cachedImage);
                 }
 
                 return await SQLContext.AddImageAsync(cachedImage);

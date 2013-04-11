@@ -130,7 +130,7 @@ namespace ImageProcessor.Web.Caching
                     return await SQLContext.RemoveImageAsync(key);
                 }
 
-                return await SQLContext.AddImageAsync(key, cachedImage);
+                return await SQLContext.AddImageAsync(cachedImage);
             }
             catch
             {

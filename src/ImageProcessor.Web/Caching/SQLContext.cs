@@ -45,7 +45,6 @@ namespace ImageProcessor.Web.Caching
 
         #region Methods
         #region Internal
-
         /// <summary>
         /// Creates the database if it doesn't already exist.
         /// </summary>
@@ -121,48 +120,11 @@ namespace ImageProcessor.Web.Caching
         /// </returns>
         internal static async Task<int> AddImageAsync(CachedImage image)
         {
-            // Create Action delegate for AddImage.
-            return await TaskHelpers.Run(() => AddImage(image));
-        }
-
-        /// <summary>
-        /// Removes a cached image from the database.
-        /// </summary>
-        /// <param name="key">
-        /// The key for the cached image.
-        /// </param>
-        /// <returns>
-        /// The true if the addition of the cached image is removed; otherwise, false.
-        /// </returns>
-        internal static async Task<int> RemoveImageAsync(string key)
-        {
-            // Create Action delegate for RemoveImage.
-            return await TaskHelpers.Run(() => RemoveImage(key));
-        }
-        #endregion
-
-        #region Private
-
-        /// <summary>
-        /// Adds a cached image to the database.
-        /// </summary>
-        /// <param name="image">
-        /// The cached image to add.
-        /// </param>
-        /// <returns>
-        /// The true if the addition of the cached image is added; otherwise, false.
-        /// </returns>
-        private static int AddImage(CachedImage image)
-        {
             try
             {
-                int id = 0;
-                SQLiteConnection connection = new SQLiteConnection(ConnectionString);
+                SQLiteAsyncConnection connection = new SQLiteAsyncConnection(ConnectionString);
 
-                id = connection.Insert(image);
-                connection.Dispose();
-
-                return id;
+                return await connection.InsertAsync(image);
             }
             catch
             {
@@ -173,23 +135,19 @@ namespace ImageProcessor.Web.Caching
         /// <summary>
         /// Removes a cached image from the database.
         /// </summary>
-        /// <param name="key">
+        /// <param name="cachedImage">
         /// The key for the cached image.
         /// </param>
         /// <returns>
         /// The true if the addition of the cached image is removed; otherwise, false.
         /// </returns>
-        private static int RemoveImage(string key)
+        internal static async Task<int> RemoveImageAsync(CachedImage cachedImage)
         {
             try
             {
-                int id = 0;
-                SQLiteConnection connection = new SQLiteConnection(ConnectionString);
+                SQLiteAsyncConnection connection = new SQLiteAsyncConnection(ConnectionString);
 
-                id = connection.Delete<CachedImage>(key);
-                connection.Dispose();
-
-                return id;
+                return await connection.DeleteAsync(cachedImage);
             }
             catch
             {

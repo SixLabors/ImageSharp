@@ -119,7 +119,7 @@ namespace ImageProcessor.Web.Caching
         /// <returns>
         /// The true if the addition of the cached image is added; otherwise, false.
         /// </returns>
-        internal static async Task<bool> AddImageAsync(CachedImage image)
+        internal static async Task<int> AddImageAsync(CachedImage image)
         {
             // Create Action delegate for AddImage.
             return await TaskHelpers.Run(() => AddImage(image));
@@ -134,7 +134,7 @@ namespace ImageProcessor.Web.Caching
         /// <returns>
         /// The true if the addition of the cached image is removed; otherwise, false.
         /// </returns>
-        internal static async Task<bool> RemoveImageAsync(string key)
+        internal static async Task<int> RemoveImageAsync(string key)
         {
             // Create Action delegate for RemoveImage.
             return await TaskHelpers.Run(() => RemoveImage(key));
@@ -152,24 +152,21 @@ namespace ImageProcessor.Web.Caching
         /// <returns>
         /// The true if the addition of the cached image is added; otherwise, false.
         /// </returns>
-        private static bool AddImage(CachedImage image)
+        private static int AddImage(CachedImage image)
         {
             try
             {
+                int id = 0;
                 SQLiteConnection connection = new SQLiteConnection(ConnectionString);
 
-                connection.RunInTransaction(() =>
-                    {
-                        // Database calls inside the transaction
-                        connection.Insert(image);
-                        connection.Dispose();
-                    });
+                id = connection.Insert(image);
+                connection.Dispose();
 
-                return true;
+                return id;
             }
             catch
             {
-                return false;
+                return 0;
             }
         }
 
@@ -182,24 +179,21 @@ namespace ImageProcessor.Web.Caching
         /// <returns>
         /// The true if the addition of the cached image is removed; otherwise, false.
         /// </returns>
-        private static bool RemoveImage(string key)
+        private static int RemoveImage(string key)
         {
             try
             {
+                int id = 0;
                 SQLiteConnection connection = new SQLiteConnection(ConnectionString);
 
-                connection.RunInTransaction(() =>
-                {
-                    // Database calls inside the transaction
-                    connection.Delete<CachedImage>(key);
-                    connection.Dispose();
-                });
+                id = connection.Delete<CachedImage>(key);
+                connection.Dispose();
 
-                return true;
+                return id;
             }
             catch
             {
-                return false;
+                return 0;
             }
         }
         #endregion

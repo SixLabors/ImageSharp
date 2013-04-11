@@ -76,10 +76,14 @@ namespace ImageProcessor.Web.Caching
 
             // Remove the CachedImage.
             CachedImage value = this[key];
-            this.Remove(key);
 
-            await this.SaveCacheAsync(key, value, true);
-            return true;
+            if (await this.SaveCacheAsync(key, value, true) > 0)
+            {
+                this.Remove(key);
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -97,7 +101,7 @@ namespace ImageProcessor.Web.Caching
         public async Task<CachedImage> AddAsync(string key, CachedImage cachedImage)
         {
             // Add the CachedImage.
-            if (await this.SaveCacheAsync(key, cachedImage, false))
+            if (await this.SaveCacheAsync(key, cachedImage, false) > 0)
             {
                 this.Add(key, cachedImage);
             }
@@ -121,7 +125,7 @@ namespace ImageProcessor.Web.Caching
         /// <returns>
         /// true, if the dictionary is saved to the file-system; otherwise, false.
         /// </returns>
-        private async Task<bool> SaveCacheAsync(string key, CachedImage cachedImage, bool remove)
+        private async Task<int> SaveCacheAsync(string key, CachedImage cachedImage, bool remove)
         {
             try
             {
@@ -134,7 +138,7 @@ namespace ImageProcessor.Web.Caching
             }
             catch
             {
-                return false;
+                return 0;
             }
         }
 

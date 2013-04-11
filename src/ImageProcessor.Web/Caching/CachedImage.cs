@@ -17,35 +17,38 @@ namespace ImageProcessor.Web.Caching
     /// <summary>
     /// Describes a cached image 
     /// </summary>
-    internal sealed class CachedImage
+    public sealed class CachedImage
     {
-        //[PrimaryKey, AutoIncrement]
-        //public int Id { get; set; }
+        /// <summary>
+        /// Gets or sets the id identifying the cached image.
+        /// </summary>
+        [PrimaryKey, AutoIncrement]
+        public int Id { get; set; }
 
         /// <summary>
         /// Gets or sets the key identifying the cached image.
         /// </summary>
-        [PrimaryKey]
-        internal string Key { get; set; }
+        [Unique]
+        public string Key { get; set; }
 
         /// <summary>
         /// Gets or sets the value of the cached image.
         /// </summary>
-        internal string Path { get; set; }
+        public string Path { get; set; }
 
         /// <summary>
         /// Gets or sets the maximum age of the cached image in days.
         /// </summary>
-        internal int MaxAge { get; set; }
+        public int MaxAge { get; set; }
 
         /// <summary>
         /// Gets or sets the last write time of the cached image.
         /// </summary>
-        internal DateTime LastWriteTimeUtc { get; set; }
+        public DateTime LastWriteTimeUtc { get; set; }
 
         /// <summary>
         /// Gets or sets when the cached image should expire from the cache.
         /// </summary>
-        internal DateTime ExpiresUtc { get; set; }
+        public DateTime ExpiresUtc { get; set; }
     }
 }

@@ -8,14 +8,17 @@
 namespace ImageProcessor.Web.Caching
 {
     #region Using
+
     using System;
     using System.Collections.Generic;
-    using System.Data.SQLite;
     using System.IO;
     using System.Threading.Tasks;
     using System.Web.Hosting;
     using ImageProcessor.Web.Config;
     using ImageProcessor.Web.Helpers;
+
+    using SQLite;
+
     #endregion
 
     /// <summary>
@@ -37,7 +40,7 @@ namespace ImageProcessor.Web.Caching
         /// <summary>
         /// The connection string.
         /// </summary>
-        private static readonly string ConnectionString = string.Format("Data Source={0};Version=3;", IndexLocation);
+        private static readonly string ConnectionString = IndexLocation;
         #endregion
 
         #region Methods
@@ -47,46 +50,32 @@ namespace ImageProcessor.Web.Caching
         /// </summary>
         internal static void CreateDatabase()
         {
-            if (!File.Exists(IndexLocation))
+            try
             {
-                string absolutePath = HostingEnvironment.MapPath(VirtualCachePath);
-
-                if (absolutePath != null)
+                if (!File.Exists(IndexLocation))
                 {
-                    DirectoryInfo directoryInfo = new DirectoryInfo(absolutePath);
+                    string absolutePath = HostingEnvironment.MapPath(VirtualCachePath);
 
-                    if (!directoryInfo.Exists)
+                    if (absolutePath != null)
                     {
-                        // Create the directory.
-                        Directory.CreateDirectory(absolutePath);
-                    }
-                }
-                
-                SQLiteConnection.CreateFile(IndexLocation);
+                        DirectoryInfo directoryInfo = new DirectoryInfo(absolutePath);
 
-                using (SQLiteConnection connection = new SQLiteConnection(ConnectionString))
-                {
-                    connection.Open();
-
-                    using (SQLiteTransaction transaction = connection.BeginTransaction())
-                    {
-                        using (SQLiteCommand command = new SQLiteCommand(connection))
+                        if (!directoryInfo.Exists)
                         {
-                            command.CommandText = @"CREATE TABLE names
-                                    (Key TEXT,
-                                    Path TEXT,
-                                    MaxAge INTEGER,
-                                    LastWriteTimeUtc TEXT,
-                                    ExpiresUtc TEXT,
-                                    PRIMARY KEY (Key),
-                                    UNIQUE (Path));";
-
-                            command.ExecuteNonQuery();
+                            // Create the directory.
+                            Directory.CreateDirectory(absolutePath);
                         }
+                    }
 
-                        transaction.Commit();
+                    using (SQLiteConnection connection = new SQLiteConnection(IndexLocation))
+                    {
+                        connection.CreateTable<CachedImage>();
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
             }
         }
 
@@ -104,25 +93,11 @@ namespace ImageProcessor.Web.Caching
             {
                 using (SQLiteConnection connection = new SQLiteConnection(ConnectionString))
                 {
-                    connection.Open();
+                    List<CachedImage> images = connection.Query<CachedImage>("SELECT * FROM CachedImage");
 
-                    using (SQLiteCommand command = new SQLiteCommand(connection))
+                    foreach (CachedImage cachedImage in images)
                     {
-                        command.CommandText = "SELECT * FROM names;";
-
-                        SQLiteDataReader reader = command.ExecuteReader();
-
-                        while (reader.Read())
-                        {
-                            string key = reader["Key"].ToString();
-                            CachedImage image = new CachedImage(
-                                    reader["Path"].ToString(),
-                                    int.Parse(reader["MaxAge"].ToString()),
-                                    DateTime.Parse(reader["LastWriteTimeUtc"].ToString()).ToUniversalTime(),
-                                    DateTime.Parse(reader["ExpiresUtc"].ToString()).ToUniversalTime());
-
-                            dictionary.Add(key, image);
-                        }
+                        dictionary.Add(cachedImage.Key, cachedImage);
                     }
                 }
 
@@ -137,124 +112,46 @@ namespace ImageProcessor.Web.Caching
         /// <summary>
         /// Adds a cached image to the database.
         /// </summary>
-        /// <param name="key">
-        /// The key for the cached image.
-        /// </param>
         /// <param name="image">
         /// The cached image to add.
         /// </param>
         /// <returns>
         /// The true if the addition of the cached image is added; otherwise, false.
         /// </returns>
-        internal static async Task<bool> AddImageAsync(string key, CachedImage image)
-        {
-            // Create Action delegate for AddImage.
-            return await TaskHelpers.Run(() => AddImage(key, image));
-        }
-
-        /// <summary>
-        /// Removes a cached image from the database.
-        /// </summary>
-        /// <param name="key">
-        /// The key for the cached image.
-        /// </param>
-        /// <returns>
-        /// The true if the addition of the cached image is removed; otherwise, false.
-        /// </returns>
-        internal static async Task<bool> RemoveImageAsync(string key)
-        {
-            // Create Action delegate for RemoveImage.
-            return await TaskHelpers.Run(() => RemoveImage(key));
-        }
-        #endregion
-
-        #region Private
-        /// <summary>
-        /// Adds a cached image to the database.
-        /// </summary>
-        /// <param name="key">
-        /// The key for the cached image.
-        /// </param>
-        /// <param name="image">
-        /// The cached image to add.
-        /// </param>
-        /// <returns>
-        /// The true if the addition of the cached image is added; otherwise, false.
-        /// </returns>
-        private static bool AddImage(string key, CachedImage image)
+        internal static async Task<int> AddImageAsync(CachedImage image)
         {
             try
             {
-                using (SQLiteConnection connection = new SQLiteConnection(ConnectionString))
-                {
-                    connection.Open();
+                SQLiteAsyncConnection connection = new SQLiteAsyncConnection(ConnectionString);
 
-                    using (SQLiteTransaction transaction = connection.BeginTransaction())
-                    {
-                        using (SQLiteCommand command = new SQLiteCommand(connection))
-                        {
-                            command.CommandText = "INSERT INTO names VALUES(?, ?, ?, ?, ?)";
-
-                            SQLiteParameter[] parameters = new[]
-                                                               {
-                                                                   new SQLiteParameter("Key", key), 
-                                                                   new SQLiteParameter("Path", image.Path),
-                                                                   new SQLiteParameter("MaxAge", image.MaxAge),
-                                                                   new SQLiteParameter("LastWriteTimeUtc", image.LastWriteTimeUtc),
-                                                                   new SQLiteParameter("ExpiresUtc", image.ExpiresUtc)
-                                                               };
-
-                            command.Parameters.AddRange(parameters);
-                            command.ExecuteNonQuery();
-                        }
-
-                        transaction.Commit();
-                    }
-                }
-
-                return true;
+                return await connection.InsertAsync(image);
             }
             catch
             {
-                return false;
+                return 0;
             }
         }
 
         /// <summary>
         /// Removes a cached image from the database.
         /// </summary>
-        /// <param name="key">
+        /// <param name="cachedImage">
         /// The key for the cached image.
         /// </param>
         /// <returns>
         /// The true if the addition of the cached image is removed; otherwise, false.
         /// </returns>
-        private static bool RemoveImage(string key)
+        internal static async Task<int> RemoveImageAsync(CachedImage cachedImage)
         {
             try
             {
-                using (SQLiteConnection connection = new SQLiteConnection(ConnectionString))
-                {
-                    connection.Open();
+                SQLiteAsyncConnection connection = new SQLiteAsyncConnection(ConnectionString);
 
-                    using (SQLiteTransaction transaction = connection.BeginTransaction())
-                    {
-                        using (SQLiteCommand command = new SQLiteCommand(connection))
-                        {
-                            command.CommandText = "DELETE FROM names WHERE key = @searchParam;";
-                            command.Parameters.Add(new SQLiteParameter("searchParam", key));
-                            command.ExecuteNonQuery();
-                        }
-
-                        transaction.Commit();
-                    }
-                }
-
-                return true;
+                return await connection.DeleteAsync(cachedImage);
             }
             catch
             {
-                return false;
+                return 0;
             }
         }
         #endregion

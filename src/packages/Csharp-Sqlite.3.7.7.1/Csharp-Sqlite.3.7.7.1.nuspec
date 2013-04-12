@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
+  <metadata>
+    <id>Csharp-Sqlite</id>
+    <version>3.7.7.1</version>
+    <title>C#-SqLite Unofficial Package</title>
+    <authors>noah.hart</authors>
+    <owners>noah.hart</owners>
+    <projectUrl>http://code.google.com/p/csharp-sqlite/</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>C#-SQLite is an independent reimplementation of the SQLite software library version 3.7.7.1.</description>
+    <releaseNotes />
+    <copyright />
+    <language />
+    <tags>Sqlite</tags>
+    <references>
+      <reference file="Community.CsharpSqlite.dll" />
+      <reference file="Community.CsharpSqlite.SQLiteClient.dll" />
+    </references>
+  </metadata>
+</package>

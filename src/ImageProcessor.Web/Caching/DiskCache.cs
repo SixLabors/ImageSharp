@@ -283,7 +283,7 @@ namespace ImageProcessor.Web.Caching
                     {
                         // Check to see if the last write time is different of whether the
                         // cached image is set to expire or if the max age is different.
-                        if (imageFileInfo.LastWriteTimeUtc != cachedImage.LastWriteTimeUtc
+                        if (!this.RoughDateTimeCompare(imageFileInfo.LastWriteTimeUtc, cachedImage.LastWriteTimeUtc)
                             || cachedImage.ExpiresUtc < DateTime.UtcNow.AddDays(-MaxFileCachedDuration)
                             || cachedImage.MaxAge != MaxFileCachedDuration)
                         {
@@ -460,6 +460,31 @@ namespace ImageProcessor.Web.Caching
             Match match = FormatRegex.Match(input);
 
             return match.Success ? match.Value : string.Empty;
+        }
+
+        /// <summary>
+        /// The rough date time compare.
+        /// </summary>
+        /// <param name="first">
+        /// The first.
+        /// </param>
+        /// <param name="second">
+        /// The second.
+        /// </param>
+        /// <returns>
+        /// The <see cref="bool"/> true if the DateTimes roughly compare; otherwise, false.
+        /// </returns>
+        private bool RoughDateTimeCompare(DateTime first, DateTime second)
+        {
+            var x = first.ToString(CultureInfo.InvariantCulture);
+            var y = second.ToString(CultureInfo.InvariantCulture);
+
+            if (first.ToString(CultureInfo.InvariantCulture) == second.ToString(CultureInfo.InvariantCulture))
+            {
+                return true;
+            }
+
+            return false;
         }
         #endregion
         #endregion

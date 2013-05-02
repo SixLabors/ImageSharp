@@ -476,9 +476,6 @@ namespace ImageProcessor.Web.Caching
         /// </returns>
         private bool RoughDateTimeCompare(DateTime first, DateTime second)
         {
-            var x = first.ToString(CultureInfo.InvariantCulture);
-            var y = second.ToString(CultureInfo.InvariantCulture);
-
             if (first.ToString(CultureInfo.InvariantCulture) == second.ToString(CultureInfo.InvariantCulture))
             {
                 return true;

@@ -18,7 +18,7 @@ namespace ImageProcessor.Helpers.Extensions
     #endregion
 
     /// <summary>
-    /// Encapsulates a series of time saving extension methods to <see cref="T:System.String">String</see>s.
+    /// Encapsulates a series of time saving extension methods to the <see cref="T:System.String"/> class.
     /// </summary>
     public static class StringExtensions
     {

@@ -7,7 +7,9 @@ param($installPath, $toolsPath, $package, $project)
   $msbuild = [Microsoft.Build.Evaluation.ProjectCollection]::GlobalProjectCollection.GetLoadedProjects($project.FullName) | Select-Object -First 1
   $importToRemove = $msbuild.Xml.Imports | Where-Object { $_.Project.Endswith($package.Id + '.targets') }
 
-  # Add the import and save the project
-  $msbuild.Xml.RemoveChild($importToRemove) | out-null
-  $project.Save()
- 
+  if ($importToRemove)
+  {
+     # Remove the import and save the project
+     $msbuild.Xml.RemoveChild($importToRemove) | out-null
+     $project.Save()
+  }

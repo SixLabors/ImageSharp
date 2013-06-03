@@ -9,9 +9,9 @@ param($installPath, $toolsPath, $package, $project)
     $msbuild = [Microsoft.Build.Evaluation.ProjectCollection]::GlobalProjectCollection.GetLoadedProjects($project.FullName) | Select-Object -First 1
  
     # Make the path to the targets file relative.
-    $projectUri = new-object Uri('file://' + $project.FullName)
-    $targetUri = new-object Uri('file://' + $targetsFile)
-    $relativePath = $projectUri.MakeRelativeUri($targetUri).ToString().Replace([System.IO.Path]::AltDirectorySeparatorChar, [System.IO.Path]::DirectorySeparatorChar)
+    $projectUri = new-object Uri($project.FullName, [System.UriKind]::Absolute)
+    $targetUri = new-object Uri($targetsFile, [System.UriKind]::Absolute)
+    $relativePath = [System.Uri]::UnescapeDataString($projectUri.MakeRelativeUri($targetUri).ToString()).Replace([System.IO.Path]::AltDirectorySeparatorChar, [System.IO.Path]::DirectorySeparatorChar)
  
     # Add the import and save the project
     $msbuild.Xml.AddImport($relativePath) | out-null

@@ -129,7 +129,7 @@ namespace ImageProcessor.Processors
             }
 
             // Set the internal property.
-            factory.ImageFormat = imageFormat;
+            factory.Format(imageFormat);
 
             return factory.Image;
         }

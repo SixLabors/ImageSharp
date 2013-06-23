@@ -18,6 +18,7 @@ Core plugins at present include:
  - Reset (Resets the image to its original loaded state)
  - Resize 
  - Rotate (Rotate the image through 360º)
+ - RoundedCorners (Add rounded corners to each optional corner)
  - Saturation
  - Vignette (Adds a vignette effect to images)
  - Watermark (Set a text watermark)

@@ -231,7 +231,7 @@ namespace ImageProcessor.Web.HttpModules
                 }
 
                 // Store the response type in the context for later retrieval.
-                context.Items[CachedResponseTypeKey] = ImageUtils.GetResponseType(imageName).ToDescription();
+                context.Items[CachedResponseTypeKey] = ImageUtils.GetResponseType(fullPath).ToDescription();
 
                 // The cached file is valid so just rewrite the path.
                 context.RewritePath(cache.GetVirtualCachedPath(), false);

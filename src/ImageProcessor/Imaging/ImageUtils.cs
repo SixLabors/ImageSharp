@@ -12,6 +12,7 @@ namespace ImageProcessor.Imaging
     using System.Drawing.Imaging;
     using System.IO;
     using System.Linq;
+    using System.Text.RegularExpressions;
     using System.Threading.Tasks;
     #endregion
 
@@ -21,32 +22,36 @@ namespace ImageProcessor.Imaging
     public static class ImageUtils
     {
         /// <summary>
-        /// Returns the correct response type based on the given file extension.
+        /// The image format regex.
         /// </summary>
-        /// <param name="fileName">The string containing the filename to check against.</param>
-        /// <returns>The correct response type based on the given file extension.</returns>
-        public static ResponseType GetResponseType(string fileName)
-        {
-            string extension = Path.GetExtension(fileName);
-            if (extension != null)
-            {
-                string ext = extension.ToUpperInvariant();
+        private static readonly Regex FormatRegex = new Regex(@"j(pg|peg)|bmp|png|gif", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.RightToLeft);
 
-                switch (ext)
+        /// <summary>
+        /// Returns the correct response type based on the given request path.
+        /// </summary>
+        /// <param name="request">
+        /// The request to match.
+        /// </param>
+        /// <returns>
+        /// The correct <see cref="ResponseType"/>.
+        /// </returns>
+        public static ResponseType GetResponseType(string request)
+        {
+            foreach (Match match in FormatRegex.Matches(request))
+            {
+                switch (match.Value)
                 {
-                    case ".PNG":
+                    case "png":
                         return ResponseType.Png;
-                    case ".BMP":
+                    case "bmp":
                         return ResponseType.Bmp;
-                    case ".GIF":
+                    case "gif":
                         return ResponseType.Gif;
                     default:
-                        // Should be a jpeg.
                         return ResponseType.Jpeg;
                 }
             }
 
-            // TODO: Should we call this on bad request?
             return ResponseType.Jpeg;
         }
 
@@ -143,10 +148,10 @@ namespace ImageProcessor.Imaging
         }
 
         /// <summary>
-        /// Returns an instance of EncodingParameters for jpeg comression. 
+        /// Returns an instance of EncodingParameters for jpeg compression. 
         /// </summary>
         /// <param name="quality">The quality to return the image at.</param>
-        /// <returns>The encodingParameters for jpeg comression. </returns>
+        /// <returns>The encodingParameters for jpeg compression. </returns>
         public static EncoderParameters GetEncodingParameters(int quality)
         {
             EncoderParameters encoderParameters = null;

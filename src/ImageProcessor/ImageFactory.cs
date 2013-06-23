@@ -92,14 +92,14 @@ namespace ImageProcessor
         public bool ShouldProcess { get; private set; }
 
         /// <summary>
+        /// Gets the file format of the image. 
+        /// </summary>
+        public ImageFormat ImageFormat { get; private set; }
+
+        /// <summary>
         /// Gets or sets the quality of output for jpeg images as a percentile.
         /// </summary>
         internal int JpegQuality { get; set; }
-
-        /// <summary>
-        /// Gets or sets the file format of the image. 
-        /// </summary>
-        internal ImageFormat ImageFormat { get; set; }
         #endregion
 
         #region Methods
@@ -473,6 +473,32 @@ namespace ImageProcessor
         }
 
         /// <summary>
+        /// Adds rounded corners to the current image.
+        /// </summary>
+        /// <param name="roundedCornerLayer">
+        /// The <see cref="T:ImageProcessor.Imaging.RoundedCornerLayer"/> containing the properties to round corners on the image.
+        /// </param>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory RoundedCorners(RoundedCornerLayer roundedCornerLayer)
+        {
+            if (this.ShouldProcess)
+            {
+                if (roundedCornerLayer.Radius < 0)
+                {
+                    roundedCornerLayer.Radius = 0;
+                }
+
+                RoundedCorners roundedCorners = new RoundedCorners { DynamicParameter = roundedCornerLayer };
+
+                this.Image = roundedCorners.ProcessImage(this);
+            }
+
+            return this;
+        }
+
+        /// <summary>
         /// Changes the saturation of the current image.
         /// </summary>
         /// <param name="percentage">
@@ -561,7 +587,7 @@ namespace ImageProcessor
                 // Fix the colour palette of gif images.
                 this.FixGifs();
 
-                if (object.Equals(this.ImageFormat, ImageFormat.Jpeg))
+                if (this.ImageFormat.Equals(ImageFormat.Jpeg))
                 {
                     // Jpegs can be saved with different settings to include a quality setting for the JPEG compression.
                     // This improves output compression and quality. 
@@ -601,7 +627,7 @@ namespace ImageProcessor
                 // Fix the colour palette of gif images.
                 this.FixGifs();
 
-                if (object.Equals(this.ImageFormat, ImageFormat.Jpeg))
+                if (this.ImageFormat.Equals(ImageFormat.Jpeg))
                 {
                     // Jpegs can be saved with different settings to include a quality setting for the JPEG compression.
                     // This improves output compression and quality. 
@@ -658,7 +684,7 @@ namespace ImageProcessor
                 // Dispose of any managed resources here.
                 if (this.Image != null)
                 {
-                    // Dispose of the memorystream from Load and the image.
+                    // Dispose of the memory stream from Load and the image.
                     if (this.Image.Tag != null)
                     {
                         ((IDisposable)this.Image.Tag).Dispose();

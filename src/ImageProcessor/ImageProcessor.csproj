@@ -78,10 +78,12 @@
     <Compile Include="Imaging\Quantizer.cs" />
     <Compile Include="Imaging\ResponseType.cs" />
     <Compile Include="Imaging\RotateLayer.cs" />
+    <Compile Include="Imaging\RoundedCornerLayer.cs" />
     <Compile Include="Imaging\TextLayer.cs" />
     <Compile Include="Processors\Alpha.cs" />
     <Compile Include="Processors\Brightness.cs" />
     <Compile Include="Processors\Contrast.cs" />
+    <Compile Include="Processors\RoundedCorners.cs" />
     <Compile Include="Processors\Saturate.cs" />
     <Compile Include="Processors\Flip.cs" />
     <Compile Include="Processors\Rotate.cs" />

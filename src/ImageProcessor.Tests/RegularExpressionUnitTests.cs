@@ -40,6 +40,40 @@ namespace ImageProcessor.Tests
         }
 
         /// <summary>
+        /// The brightness regex unit test.
+        /// </summary>
+        [TestMethod]
+        public void TestBrightnessRegex()
+        {
+            const string Querystring = "brightness=56";
+            const int Expected = 56;
+
+            Brightness brightness = new Brightness();
+            brightness.MatchRegexIndex(Querystring);
+
+            int actual = brightness.DynamicParameter;
+
+            Assert.AreEqual(Expected, actual);
+        }
+
+        /// <summary>
+        /// The contrast regex unit test.
+        /// </summary>
+        [TestMethod]
+        public void TestContrastRegex()
+        {
+            const string Querystring = "contrast=56";
+            const int Expected = 56;
+
+            Contrast contrast = new Contrast();
+            contrast.MatchRegexIndex(Querystring);
+
+            int actual = contrast.DynamicParameter;
+
+            Assert.AreEqual(Expected, actual);
+        }
+
+        /// <summary>
         /// The rotate regex unit test.
         /// </summary>
         [TestMethod]
@@ -139,9 +173,25 @@ namespace ImageProcessor.Tests
 
             RotateLayer actual = rotate.DynamicParameter;
 
-            // Can't use are equal on rotatelayer for some reason so test the two properties.
-            Assert.AreEqual(expected.Angle, actual.Angle);
-            Assert.AreEqual(expected.BackgroundColor, actual.BackgroundColor);
+            Assert.AreEqual(expected, actual);
+        }
+
+
+        /// <summary>
+        /// The rounded corners regex unit test.
+        /// </summary>
+        [TestMethod]
+        public void TestRoundedCornersRegex()
+        {
+            const string Querystring = "roundedcorners=30";
+            RoundedCornerLayer expected = new RoundedCornerLayer(30, true, true, true, true);
+
+            RoundedCorners roundedCorners = new RoundedCorners();
+            roundedCorners.MatchRegexIndex(Querystring);
+
+            RoundedCornerLayer actual = roundedCorners.DynamicParameter;
+
+            Assert.AreEqual(expected, actual);
         }
         #endregion
     }

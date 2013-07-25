@@ -176,7 +176,6 @@ namespace ImageProcessor.Tests
             Assert.AreEqual(expected, actual);
         }
 
-
         /// <summary>
         /// The rounded corners regex unit test.
         /// </summary>

@@ -103,8 +103,8 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>xcopy /y "$(TargetPath)" "$(SolutionDir)\Test\Test\bin"
-xcopy /y "$(TargetDir)$(TargetName).pdb" "$(SolutionDir)\Test\Test\bin"</PostBuildEvent>
+    <PostBuildEvent>xcopy /y "$(TargetPath)" "$(SolutionDir)\TestWebsites\NET4\bin"
+xcopy /y "$(TargetDir)$(TargetName).pdb" "$(SolutionDir)\TestWebsites\NET4\bin"</PostBuildEvent>
   </PropertyGroup>
   <Import Project="..\packages\Microsoft.Bcl.Build.1.0.6\tools\Microsoft.Bcl.Build.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -17,7 +17,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\NET45\</OutputPath>
-    <DefineConstants>TRACE;DEBUG;USE_CSHARP_SQLITE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;USE_CSHARP_SQLITE, NET45</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -25,7 +25,7 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\NET45\</OutputPath>
-    <DefineConstants>TRACE;USE_CSHARP_SQLITE</DefineConstants>
+    <DefineConstants>TRACE;USE_CSHARP_SQLITE, NET45</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>

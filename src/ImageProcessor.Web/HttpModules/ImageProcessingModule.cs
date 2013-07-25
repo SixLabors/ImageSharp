@@ -72,7 +72,18 @@ namespace ImageProcessor.Web.HttpModules
                 DiskCache.CreateDirectories();
             }
 
+#if NET45
+
+            EventHandlerTaskAsyncHelper wrapper = new EventHandlerTaskAsyncHelper(this.ContextBeginRequest);
+            context.AddOnBeginRequestAsync(wrapper.BeginEventHandler, wrapper.EndEventHandler);
+
+#else
+
             context.BeginRequest += this.ContextBeginRequest;
+
+#endif
+
+
             context.PreSendRequestHeaders += this.ContextPreSendRequestHeaders;
         }
 
@@ -85,6 +96,28 @@ namespace ImageProcessor.Web.HttpModules
         }
         #endregion
 
+#if NET45
+
+        /// <summary>
+        /// Occurs as the first event in the HTTP pipeline chain of execution when ASP.NET responds to a request.
+        /// </summary>
+        /// <param name="sender">
+        /// The source of the event.
+        /// </param>
+        /// <param name="e">
+        /// An <see cref="T:System.EventArgs">EventArgs</see> that contains the event data.
+        /// </param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task"/>.
+        /// </returns>
+        private Task ContextBeginRequest(object sender, EventArgs e)
+        {
+            HttpContext context = ((HttpApplication)sender).Context;
+            return this.ProcessImageAsync(context);
+        }
+
+#else
+
         /// <summary>
         /// Occurs as the first event in the HTTP pipeline chain of execution when ASP.NET responds to a request.
         /// </summary>
@@ -95,6 +128,8 @@ namespace ImageProcessor.Web.HttpModules
             HttpContext context = ((HttpApplication)sender).Context;
             await this.ProcessImageAsync(context);
         }
+
+#endif
 
         /// <summary>
         /// Occurs just before ASP.NET send HttpHeaders to the client.

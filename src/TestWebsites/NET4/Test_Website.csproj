@@ -84,8 +84,8 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Content\flexo.css" />
-    <Content Include="Content\style.css" />
+    <Content Include="Content\responsive-legacy.min.css" />
+    <Content Include="Content\responsive.min.css" />
     <Content Include="Global.asax" />
     <Content Include="Images\1182076_e8c402e938_z.jpg" />
     <Content Include="Images\Desert.jpg" />
@@ -110,9 +110,6 @@
       <DependentUpon>Web.config</DependentUpon>
     </Content>
     <Content Include="Views\_ViewStart.cshtml" />
-    <Content Include="Views\Home\About.cshtml" />
-    <Content Include="Views\Home\Index.cshtml" />
-    <Content Include="Views\Shared\Error.cshtml" />
     <Content Include="Views\Shared\_Layout.cshtml" />
     <Content Include="Views\Web.config" />
   </ItemGroup>
@@ -121,7 +118,7 @@
     <Folder Include="Models\" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\ImageProcessor.Web\ImageProcessor.Web.csproj">
+    <ProjectReference Include="..\..\ImageProcessor.Web\NET4\ImageProcessor.Web.csproj">
       <Project>{4f7050f2-465f-4e10-8db2-2fb97ac6aa43}</Project>
       <Name>ImageProcessor.Web</Name>
     </ProjectReference>
@@ -131,13 +128,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Views\Home\Responsive.cshtml" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Views\Home\Collisions.cshtml" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Views\Home\Upload.cshtml" />
+    <Content Include="Views\Home\Index.cshtml" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

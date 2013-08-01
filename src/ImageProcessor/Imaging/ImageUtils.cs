@@ -1,14 +1,18 @@
-﻿// -----------------------------------------------------------------------
+﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="ImageUtils.cs" company="James South">
-//     Copyright (c) James South.
-//     Licensed under the Apache License, Version 2.0.
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
 // </copyright>
-// -----------------------------------------------------------------------
+// <summary>
+//   Encapsulates useful image utility methods.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Imaging
 {
     #region Using
     using System;
+    using System.Drawing;
     using System.Drawing.Imaging;
     using System.IO;
     using System.Linq;
@@ -24,7 +28,7 @@ namespace ImageProcessor.Imaging
         /// <summary>
         /// The image format regex.
         /// </summary>
-        private static readonly Regex FormatRegex = new Regex(@"j(pg|peg)|bmp|png|gif", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.RightToLeft);
+        private static readonly Regex FormatRegex = new Regex(@"(\.?)(j(pg|peg)|bmp|png|gif|ti(f|ff))$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.RightToLeft);
 
         /// <summary>
         /// Returns the correct response type based on the given request path.
@@ -39,14 +43,17 @@ namespace ImageProcessor.Imaging
         {
             foreach (Match match in FormatRegex.Matches(request))
             {
-                switch (match.Value)
+                switch (match.Value.ToUpperInvariant())
                 {
-                    case "png":
+                    case "PNG":
                         return ResponseType.Png;
-                    case "bmp":
+                    case "BMP":
                         return ResponseType.Bmp;
-                    case "gif":
+                    case "GIF":
                         return ResponseType.Gif;
+                    case "TIF":
+                    case "TIFF":
+                        return ResponseType.Tiff;
                     default:
                         return ResponseType.Jpeg;
                 }
@@ -75,6 +82,9 @@ namespace ImageProcessor.Imaging
                         return ImageFormat.Bmp;
                     case ".GIF":
                         return ImageFormat.Gif;
+                    case ".TIF":
+                    case ".TIFF":
+                        return ImageFormat.Tiff;
                     default:
                         // Should be a jpeg.
                         return ImageFormat.Jpeg;
@@ -104,6 +114,10 @@ namespace ImageProcessor.Imaging
                     return ".bmp";
                 case "Png":
                     return ".png";
+                case "Tif":
+                    return ".tif";
+                case "Tiff":
+                    return ".tif";
                 default:
                     return ".jpg";
             }
@@ -126,6 +140,8 @@ namespace ImageProcessor.Imaging
                     return ImageFormat.Bmp;
                 case ResponseType.Gif:
                     return ImageFormat.Gif;
+                case ResponseType.Tiff:
+                    return ImageFormat.Tiff;
                 default:
                     // Should be a jpeg.
                     return ImageFormat.Jpeg;
@@ -181,25 +197,16 @@ namespace ImageProcessor.Imaging
         /// <returns>True the value contains a valid image extension, otherwise false.</returns>
         public static bool IsValidImageExtension(string fileName)
         {
-            bool isValid = false;
+            return FormatRegex.IsMatch(fileName);
+        }
 
-            if (!string.IsNullOrWhiteSpace(fileName))
-            {
-                string[] fileExtensions = { ".BMP", ".JPG", ".PNG", ".GIF", ".JPEG" };
-
-                Parallel.ForEach(
-                    fileExtensions,
-                    (extension, loop) =>
-                    {
-                        if (fileName.ToUpperInvariant().EndsWith(extension))
-                        {
-                            isValid = true;
-                            loop.Stop();
-                        }
-                    });
-            }
-
-            return isValid;
+        /// <summary>Returns a value indicating whether or not the given bitmap is indexed.</summary>
+        /// <param name="image">The image to check</param>
+        /// <returns>Whether or not the given bitmap is indexed.</returns>
+        public static bool IsIndexed(Image image)
+        {
+            // Test value of flags using bitwise AND.
+            return (image.PixelFormat & PixelFormat.Indexed) != 0;
         }
     }
 }

@@ -165,4 +165,4 @@ pip-log.txt
 
 
 # cached images
-/src/Test/Test/cache/*
+**/cache/*

@@ -1,9 +1,12 @@
-﻿// -----------------------------------------------------------------------
+﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="Format.cs" company="James South">
-//     Copyright (c) James South.
-//     Licensed under the Apache License, Version 2.0.
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
 // </copyright>
-// -----------------------------------------------------------------------
+// <summary>
+//   Sets the output of the image to a specific format.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Processors
 {
@@ -22,7 +25,7 @@ namespace ImageProcessor.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"format=(jpeg|png|bmp|gif)", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"format=(jpeg|png|png8|bmp|gif|tif)", RegexOptions.Compiled);
 
         #region IGraphicsProcessor Members
         /// <summary>
@@ -110,17 +113,26 @@ namespace ImageProcessor.Processors
         public Image ProcessImage(ImageFactory factory)
         {
             string format = this.DynamicParameter;
+            bool isIndexed = false;
             ImageFormat imageFormat;
             switch (format)
             {
                 case "png":
                     imageFormat = ImageFormat.Png;
                     break;
+                case "png8":
+                    imageFormat = ImageFormat.Png;
+                    isIndexed = true;
+                    break;
                 case "bmp":
                     imageFormat = ImageFormat.Bmp;
                     break;
                 case "gif":
                     imageFormat = ImageFormat.Gif;
+                    isIndexed = true;
+                    break;
+                case "tif":
+                    imageFormat = ImageFormat.Tiff;
                     break;
                 default:
                     // Should be a jpeg.
@@ -129,7 +141,7 @@ namespace ImageProcessor.Processors
             }
 
             // Set the internal property.
-            factory.Format(imageFormat);
+            factory.Format(imageFormat, isIndexed);
 
             return factory.Image;
         }

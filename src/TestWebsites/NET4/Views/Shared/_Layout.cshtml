@@ -3,22 +3,17 @@
 <head>
     <meta charset="utf-8" />
     <title>@ViewBag.Title</title>
-    <link href="@Url.Content("~/Content/flexo.css")" rel="stylesheet" type="text/css" />
-    <link href="@Url.Content("~/Content/style.css")" rel="stylesheet" type="text/css" />
+    <link href="@Url.Content("~/Content/responsive.min.css")" rel="stylesheet" type="text/css" media="all and (min-width: 1em)" />
+    <!--[if lt IE 9 &!(IEMobile)]>
+       <link href="@Url.Content("~/Content/responsive-legacy.min.css")" rel="stylesheet" type="text/css" />
+    <![endif]-->
 </head>
 <body>
-    <div class="page">
-        <header>
-            <div class="container">
-                <h1>ImageProcessor NET4.0</h1>
-            </div>
-        </header>
-        <section id="main">
-            @RenderBody()
-        </section>
-    </div>
-
-    <footer class="page-footer">
-    </footer>
+    <header class="container">
+        <h1>ImageProcessor NET4</h1>
+    </header>
+    <section class="container">
+        @RenderBody()
+    </section>
 </body>
 </html>

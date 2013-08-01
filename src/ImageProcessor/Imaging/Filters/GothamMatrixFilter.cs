@@ -76,11 +76,11 @@ namespace ImageProcessor.Imaging.Filters
             }
 
             // Add brightness and contrast to finish the effect.
-            factory.Image = newImage;
+            factory.Update(newImage);
             Brightness brightness = new Brightness { DynamicParameter = 5 };
             newImage = (Bitmap)brightness.ProcessImage(factory);
 
-            factory.Image = newImage;
+            factory.Update(newImage);
             Contrast contrast = new Contrast { DynamicParameter = 85 };
             newImage = (Bitmap)contrast.ProcessImage(factory);
 

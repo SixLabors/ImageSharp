@@ -61,6 +61,7 @@
     <Compile Include="Helpers\Extensions\EnumExtensions.cs" />
     <Compile Include="Helpers\Extensions\StringExtensions.cs" />
     <Compile Include="ImageFactory.cs" />
+    <Compile Include="Imaging\ColorQuantizer.cs" />
     <Compile Include="Imaging\Filters\BlackWhiteMatrixFilter.cs" />
     <Compile Include="Imaging\Filters\ColorMatrixes.cs" />
     <Compile Include="Imaging\Filters\ComicMatrixFilter.cs" />
@@ -74,8 +75,6 @@
     <Compile Include="Imaging\Filters\SepiaMatrixFilter.cs" />
     <Compile Include="Imaging\Filters\IMatrixFilter.cs" />
     <Compile Include="Imaging\ImageUtils.cs" />
-    <Compile Include="Imaging\OctreeQuantizer.cs" />
-    <Compile Include="Imaging\Quantizer.cs" />
     <Compile Include="Imaging\ResponseType.cs" />
     <Compile Include="Imaging\RotateLayer.cs" />
     <Compile Include="Imaging\RoundedCornerLayer.cs" />

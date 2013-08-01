@@ -57,7 +57,7 @@ namespace ImageProcessor.Imaging.Filters
             }
 
             // Add a vignette to finish the effect.
-            factory.Image = newImage;
+            factory.Update(newImage);
             Vignette vignette = new Vignette();
             newImage = (Bitmap)vignette.ProcessImage(factory);
 

@@ -1,22 +1,25 @@
-﻿// -----------------------------------------------------------------------
+﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="ImageFactory.cs" company="James South">
-//     Copyright (c) James South.
-//     Licensed under the Apache License, Version 2.0.
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
 // </copyright>
-// -----------------------------------------------------------------------
+// <summary>
+//   Encapsulates methods for processing image files.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor
 {
     #region Using
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using System.Drawing;
     using System.Drawing.Imaging;
     using System.IO;
     using System.Linq;
     using ImageProcessor.Imaging;
     using ImageProcessor.Processors;
-
     #endregion
 
     /// <summary>
@@ -34,6 +37,11 @@ namespace ImageProcessor
         /// The backup image format.
         /// </summary>
         private ImageFormat backupImageFormat;
+
+        /// <summary>
+        /// Whether the image is indexed.
+        /// </summary>
+        private bool isIndexed;
 
         /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.
@@ -72,9 +80,9 @@ namespace ImageProcessor
 
         #region Properties
         /// <summary>
-        /// Gets or sets the local image for manipulation.
+        /// Gets the local image for manipulation.
         /// </summary>
-        public Image Image { get; set; }
+        public Image Image { get; private set; }
 
         /// <summary>
         /// Gets the path to the local image for manipulation.
@@ -114,7 +122,7 @@ namespace ImageProcessor
         /// </returns>
         public ImageFactory Load(MemoryStream memoryStream)
         {
-            // Set our image as the memorystream value.
+            // Set our image as the memory stream value.
             this.Image = Image.FromStream(memoryStream);
 
             // Store the stream in the image Tag property so we can dispose of it later.
@@ -124,6 +132,7 @@ namespace ImageProcessor
             this.JpegQuality = DefaultJpegQuality;
             this.backupImageFormat = ImageFormat.Jpeg;
             this.ImageFormat = ImageFormat.Jpeg;
+            this.isIndexed = ImageUtils.IsIndexed(this.Image);
             this.ShouldProcess = true;
 
             return this;
@@ -154,7 +163,7 @@ namespace ImageProcessor
                 this.ImagePath = path;
                 this.QueryString = query;
 
-                // Open a filstream to prevent the need for lock.
+                // Open a file stream to prevent the need for lock.
                 using (FileStream fileStream = new FileStream(path, FileMode.Open, FileAccess.Read))
                 {
                     MemoryStream memoryStream = new MemoryStream();
@@ -165,7 +174,7 @@ namespace ImageProcessor
                     // Set the position to 0 afterwards.
                     fileStream.Position = memoryStream.Position = 0;
 
-                    // Set our image as the memorystream value.
+                    // Set our image as the memory stream value.
                     this.Image = Image.FromStream(memoryStream);
 
                     // Store the stream in the image Tag property so we can dispose of it later.
@@ -176,8 +185,26 @@ namespace ImageProcessor
                     ImageFormat imageFormat = ImageUtils.GetImageFormat(imageName);
                     this.backupImageFormat = imageFormat;
                     this.ImageFormat = imageFormat;
+                    this.isIndexed = ImageUtils.IsIndexed(this.Image);
                     this.ShouldProcess = true;
                 }
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Updates the specified image. Used by the various IProcessors.
+        /// </summary>
+        /// <param name="image">The image.</param>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory Update(Image image)
+        {
+            if (this.ShouldProcess)
+            {
+                this.Image = image;
             }
 
             return this;
@@ -195,7 +222,7 @@ namespace ImageProcessor
             {
                 MemoryStream memoryStream = (MemoryStream)this.Image.Tag;
 
-                // Set our new image as the memorystream value.
+                // Set our new image as the memory stream value.
                 Image newImage = Image.FromStream(memoryStream);
 
                 // Store the stream in the image Tag property so we can dispose of it later.
@@ -208,6 +235,7 @@ namespace ImageProcessor
                 // Set the other properties.
                 this.JpegQuality = DefaultJpegQuality;
                 this.ImageFormat = this.backupImageFormat;
+                this.isIndexed = ImageUtils.IsIndexed(this.Image);
             }
 
             return this;
@@ -386,13 +414,16 @@ namespace ImageProcessor
         /// Sets the output format of the current image to the matching <see cref="T:System.Drawing.Imaging.ImageFormat"/>.
         /// </summary>
         /// <param name="imageFormat">The <see cref="T:System.Drawing.Imaging.ImageFormat"/>. to set the image to.</param>
+        /// <param name="indexedFormat">Whether the pixel format of the image should be indexed. Used for generating Png8 images.</param>
         /// <returns>
         /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
         /// </returns>
-        public ImageFactory Format(ImageFormat imageFormat)
+        [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1650:ElementDocumentationMustBeSpelledCorrectly", Justification = "Reviewed. Suppression is OK here.")]
+        public ImageFactory Format(ImageFormat imageFormat, bool indexedFormat = false)
         {
             if (this.ShouldProcess)
             {
+                this.isIndexed = indexedFormat;
                 this.ImageFormat = imageFormat;
             }
 
@@ -584,8 +615,8 @@ namespace ImageProcessor
                 string extension = ImageUtils.GetExtensionFromImageFormat(this.ImageFormat);
                 filePath = length == -1 ? filePath + extension : filePath.Substring(0, length) + extension;
 
-                // Fix the colour palette of gif images.
-                this.FixGifs();
+                // Fix the colour palette of indexed images.
+                this.FixIndexedPallete();
 
                 if (this.ImageFormat.Equals(ImageFormat.Jpeg))
                 {
@@ -594,12 +625,14 @@ namespace ImageProcessor
                     using (EncoderParameters encoderParameters = ImageUtils.GetEncodingParameters(this.JpegQuality))
                     {
                         ImageCodecInfo imageCodecInfo =
-                            ImageCodecInfo.GetImageEncoders().FirstOrDefault(
-                                ici => ici.MimeType.Equals("image/jpeg", StringComparison.OrdinalIgnoreCase));
+                            ImageCodecInfo.GetImageEncoders()
+                                .FirstOrDefault(
+                                    ici => ici.MimeType.Equals("image/jpeg", StringComparison.OrdinalIgnoreCase));
 
-                        // ReSharper disable AssignNullToNotNullAttribute
-                        this.Image.Save(filePath, imageCodecInfo, encoderParameters);
-                        // ReSharper restore AssignNullToNotNullAttribute
+                        if (imageCodecInfo != null)
+                        {
+                            this.Image.Save(filePath, imageCodecInfo, encoderParameters);
+                        }
                     }
                 }
                 else
@@ -625,7 +658,7 @@ namespace ImageProcessor
             if (this.ShouldProcess)
             {
                 // Fix the colour palette of gif images.
-                this.FixGifs();
+                this.FixIndexedPallete();
 
                 if (this.ImageFormat.Equals(ImageFormat.Jpeg))
                 {
@@ -704,17 +737,15 @@ namespace ImageProcessor
         #endregion
 
         /// <summary>
-        /// Uses the <see cref="T:ImageProcessor.Imaging.OctreeQuantizer"/>
+        /// Uses the <see cref="T:ImageProcessor.Imaging.ColorQuantizer"/>
         /// to fix the color palette of gif images.
         /// </summary>
-        private void FixGifs()
+        private void FixIndexedPallete()
         {
-            // Fix the colour palette of gif images.
-            // TODO: Why does the palette not get fixed when resized to the same dimensions.
-            if (object.Equals(this.ImageFormat, ImageFormat.Gif))
+            // Fix the colour palette of indexed images.
+            if (this.isIndexed)
             {
-                OctreeQuantizer quantizer = new OctreeQuantizer(255, 8);
-                this.Image = quantizer.Quantize(this.Image);
+                this.Image = ColorQuantizer.Quantize(this.Image, PixelFormat.Format8bppIndexed);
             }
         }
         #endregion

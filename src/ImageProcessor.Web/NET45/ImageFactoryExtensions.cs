@@ -9,6 +9,7 @@ namespace ImageProcessor.Web
 {
     #region Using
     using System.Collections.Generic;
+    using System.Drawing;
     using System.Linq;
     using ImageProcessor.Processors;
     using ImageProcessor.Web.Config;
@@ -41,7 +42,7 @@ namespace ImageProcessor.Web
                 // It's faster to lock and run through our activated list than to create new instances.
                 lock (SyncRoot)
                 {
-                    // Get a list of all graphics processors that have parsed and matched the querystring.
+                    // Get a list of all graphics processors that have parsed and matched the query string.
                     List<IGraphicsProcessor> graphicsProcessors =
                         ImageProcessorConfig.Instance.GraphicsProcessors
                         .Where(x => x.MatchRegexIndex(factory.QueryString) != int.MaxValue)
@@ -51,7 +52,8 @@ namespace ImageProcessor.Web
                     // Loop through and process the image.
                     foreach (IGraphicsProcessor graphicsProcessor in graphicsProcessors)
                     {
-                        factory.Image = graphicsProcessor.ProcessImage(factory);
+                        Image img = graphicsProcessor.ProcessImage(factory);
+                        factory.Update(img);
                     }
                 }
             }

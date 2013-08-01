@@ -167,7 +167,9 @@ namespace ImageProcessor.Web.HttpModules
         private async Task ProcessImageAsync(HttpContext context)
         {
             HttpRequest request = context.Request;
-            bool isRemote = request.Path.Equals(RemotePrefix, StringComparison.OrdinalIgnoreCase);
+
+            // Fixes issue 10.
+            bool isRemote = request.Path.EndsWith(RemotePrefix, StringComparison.OrdinalIgnoreCase);
             string requestPath = string.Empty;
             string queryString = string.Empty;
 
@@ -176,8 +178,14 @@ namespace ImageProcessor.Web.HttpModules
                 // We need to split the querystring to get the actual values we want.
                 string urlDecode = HttpUtility.UrlDecode(request.QueryString.ToString());
 
-                if (urlDecode != null)
+                if (!string.IsNullOrWhiteSpace(urlDecode))
                 {
+                    // UrlDecode seems to mess up in some circumstance.
+                    if (urlDecode.IndexOf("://", StringComparison.InvariantCultureIgnoreCase) == -1)
+                    {
+                        urlDecode = urlDecode.Replace(":/", "://");
+                    }
+
                     string[] paths = urlDecode.Split('?');
 
                     requestPath = paths[0];

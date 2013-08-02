@@ -181,7 +181,7 @@ namespace ImageProcessor.Web.HttpModules
                 if (!string.IsNullOrWhiteSpace(urlDecode))
                 {
                     // UrlDecode seems to mess up in some circumstance.
-                    if (urlDecode.IndexOf("://", StringComparison.InvariantCultureIgnoreCase) == -1)
+                    if (urlDecode.IndexOf("://", StringComparison.OrdinalIgnoreCase) == -1)
                     {
                         urlDecode = urlDecode.Replace(":/", "://");
                     }

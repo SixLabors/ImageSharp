@@ -12,10 +12,15 @@ namespace ImageProcessor.Web.HttpModules
     using System.IO;
     using System.Net;
     using System.Reflection;
+    using System.Security;
+    using System.Security.Permissions;
+    using System.Security.Principal;
     using System.Threading;
     using System.Threading.Tasks;
     using System.Web;
     using System.Web.Hosting;
+    using System.Web.Security;
+
     using ImageProcessor.Helpers.Extensions;
     using ImageProcessor.Imaging;
     using ImageProcessor.Web.Caching;
@@ -74,15 +79,14 @@ namespace ImageProcessor.Web.HttpModules
 
 #if NET45
 
-            EventHandlerTaskAsyncHelper wrapper = new EventHandlerTaskAsyncHelper(this.ContextBeginRequest);
-            context.AddOnBeginRequestAsync(wrapper.BeginEventHandler, wrapper.EndEventHandler);
+            EventHandlerTaskAsyncHelper wrapper = new EventHandlerTaskAsyncHelper(this.PostAuthorizeRequest);
+            context.AddOnPostAuthorizeRequestAsync(wrapper.BeginEventHandler, wrapper.EndEventHandler);
 
 #else
 
-            context.BeginRequest += this.ContextBeginRequest;
+            context.PostAuthorizeRequest += this.PostAuthorizeRequest;
 
 #endif
-
 
             context.PreSendRequestHeaders += this.ContextPreSendRequestHeaders;
         }
@@ -99,7 +103,7 @@ namespace ImageProcessor.Web.HttpModules
 #if NET45
 
         /// <summary>
-        /// Occurs as the first event in the HTTP pipeline chain of execution when ASP.NET responds to a request.
+        /// Occurs when the user for the current request has been authorized.
         /// </summary>
         /// <param name="sender">
         /// The source of the event.
@@ -110,7 +114,7 @@ namespace ImageProcessor.Web.HttpModules
         /// <returns>
         /// The <see cref="T:System.Threading.Tasks.Task"/>.
         /// </returns>
-        private Task ContextBeginRequest(object sender, EventArgs e)
+        private Task PostAuthorizeRequest(object sender, EventArgs e)
         {
             HttpContext context = ((HttpApplication)sender).Context;
             return this.ProcessImageAsync(context);
@@ -119,11 +123,11 @@ namespace ImageProcessor.Web.HttpModules
 #else
 
         /// <summary>
-        /// Occurs as the first event in the HTTP pipeline chain of execution when ASP.NET responds to a request.
+        /// Occurs when the user for the current request has been authorized.
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">An <see cref="T:System.EventArgs">EventArgs</see> that contains the event data.</param>
-        private async void ContextBeginRequest(object sender, EventArgs e)
+        private async void PostAuthorizeRequest(object sender, EventArgs e)
         {
             HttpContext context = ((HttpApplication)sender).Context;
             await this.ProcessImageAsync(context);
@@ -211,73 +215,103 @@ namespace ImageProcessor.Web.HttpModules
                 // Create a new cache to help process and cache the request.
                 DiskCache cache = new DiskCache(request, requestPath, fullPath, imageName, isRemote);
 
-                // Is the file new or updated?
-                bool isNewOrUpdated = await cache.IsNewOrUpdatedFileAsync();
+                // Since we are now rewriting the path we need to check again that the current user has access
+                // to the rewritten path.
+                // Get the user for the current request
+                // If the user is anonymous or authentication doesn't work for this suffix avoid a NullReferenceException 
+                // in the UrlAuthorizationModule by creating a generic identity.
+                string virtualCachedPath = cache.GetVirtualCachedPath();
 
-                // Only process if the file has been updated.
-                if (isNewOrUpdated)
+                IPrincipal user = context.User
+                                  ?? new GenericPrincipal(new GenericIdentity(string.Empty, string.Empty), new string[0]);
+
+                // Do we have permission to call UrlAuthorizationModule.CheckUrlAccessForPrincipal?
+                PermissionSet permission = new PermissionSet(PermissionState.None);
+                permission.AddPermission(new AspNetHostingPermission(AspNetHostingPermissionLevel.Unrestricted));
+                bool hasPermission = permission.IsSubsetOf(AppDomain.CurrentDomain.PermissionSet);
+
+                bool isAllowed = true;
+
+                // Run the rewritten path past the auth system again, using the result as the default "AllowAccess" value
+                if (hasPermission && !context.SkipAuthorization)
                 {
-                    // Process the image.
-                    using (ImageFactory imageFactory = new ImageFactory())
+                    isAllowed = UrlAuthorizationModule.CheckUrlAccessForPrincipal(virtualCachedPath, user, "GET");
+                }
+
+                if (isAllowed)
+                {
+                    // Is the file new or updated?
+                    bool isNewOrUpdated = await cache.IsNewOrUpdatedFileAsync();
+
+                    // Only process if the file has been updated.
+                    if (isNewOrUpdated)
                     {
-                        if (isRemote)
+                        // Process the image.
+                        using (ImageFactory imageFactory = new ImageFactory())
                         {
-                            Uri uri = new Uri(requestPath);
-
-                            RemoteFile remoteFile = new RemoteFile(uri, false);
-
-                            // Prevent response blocking.
-                            WebResponse webResponse = await remoteFile.GetWebResponseAsync().ConfigureAwait(false);
-
-                            using (MemoryStream memoryStream = new MemoryStream())
+                            if (isRemote)
                             {
-                                using (WebResponse response = webResponse)
+                                Uri uri = new Uri(requestPath);
+
+                                RemoteFile remoteFile = new RemoteFile(uri, false);
+
+                                // Prevent response blocking.
+                                WebResponse webResponse = await remoteFile.GetWebResponseAsync().ConfigureAwait(false);
+
+                                using (MemoryStream memoryStream = new MemoryStream())
                                 {
-                                    using (Stream responseStream = response.GetResponseStream())
+                                    using (WebResponse response = webResponse)
                                     {
-                                        if (responseStream != null)
+                                        using (Stream responseStream = response.GetResponseStream())
                                         {
-                                            // Trim the cache.
-                                            await cache.TrimCachedFoldersAsync();
+                                            if (responseStream != null)
+                                            {
+                                                // Trim the cache.
+                                                await cache.TrimCachedFoldersAsync();
 
-                                            responseStream.CopyTo(memoryStream);
+                                                responseStream.CopyTo(memoryStream);
 
-                                            imageFactory.Load(memoryStream)
-                                                .AddQueryString(queryString)
-                                                .Format(ImageUtils.GetImageFormat(imageName))
-                                                .AutoProcess().Save(cache.CachedPath);
+                                                imageFactory.Load(memoryStream)
+                                                    .AddQueryString(queryString)
+                                                    .Format(ImageUtils.GetImageFormat(imageName))
+                                                    .AutoProcess().Save(cache.CachedPath);
 
-                                            // Ensure that the LastWriteTime property of the source and cached file match.
-                                            DateTime dateTime = await cache.SetCachedLastWriteTimeAsync();
+                                                // Ensure that the LastWriteTime property of the source and cached file match.
+                                                DateTime dateTime = await cache.SetCachedLastWriteTimeAsync();
 
-                                            // Add to the cache.
-                                            await cache.AddImageToCacheAsync(dateTime);
+                                                // Add to the cache.
+                                                await cache.AddImageToCacheAsync(dateTime);
+                                            }
                                         }
                                     }
                                 }
                             }
-                        }
-                        else
-                        {
-                            // Trim the cache.
-                            await cache.TrimCachedFoldersAsync();
+                            else
+                            {
+                                // Trim the cache.
+                                await cache.TrimCachedFoldersAsync();
 
-                            imageFactory.Load(fullPath).AutoProcess().Save(cache.CachedPath);
+                                imageFactory.Load(fullPath).AutoProcess().Save(cache.CachedPath);
 
-                            // Ensure that the LastWriteTime property of the source and cached file match.
-                            DateTime dateTime = await cache.SetCachedLastWriteTimeAsync();
+                                // Ensure that the LastWriteTime property of the source and cached file match.
+                                DateTime dateTime = await cache.SetCachedLastWriteTimeAsync();
 
-                            // Add to the cache.
-                            await cache.AddImageToCacheAsync(dateTime);
+                                // Add to the cache.
+                                await cache.AddImageToCacheAsync(dateTime);
+                            }
                         }
                     }
+
+                    // Store the response type in the context for later retrieval.
+                    context.Items[CachedResponseTypeKey] = ImageUtils.GetResponseType(fullPath).ToDescription();
+
+                    // The cached file is valid so just rewrite the path.
+                    context.RewritePath(cache.GetVirtualCachedPath(), false);
                 }
-
-                // Store the response type in the context for later retrieval.
-                context.Items[CachedResponseTypeKey] = ImageUtils.GetResponseType(fullPath).ToDescription();
-
-                // The cached file is valid so just rewrite the path.
-                context.RewritePath(cache.GetVirtualCachedPath(), false);
+                else
+                {
+                    throw new HttpException(403, "Access denied");
+                }
             }
         }
 

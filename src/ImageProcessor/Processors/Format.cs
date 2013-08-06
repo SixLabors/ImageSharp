@@ -25,7 +25,7 @@ namespace ImageProcessor.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"format=(jpeg|png|png8|bmp|gif|tif)", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"format=(j(pg|peg)|png|png8|bmp|gif|tif)", RegexOptions.Compiled);
 
         #region IGraphicsProcessor Members
         /// <summary>

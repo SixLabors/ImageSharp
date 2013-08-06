@@ -11,6 +11,7 @@ namespace ImageProcessor.Web.Caching
     using System;
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
+    using System.Drawing;
     using System.Globalization;
     using System.IO;
     using System.Linq;
@@ -19,6 +20,7 @@ namespace ImageProcessor.Web.Caching
     using System.Web;
     using System.Web.Hosting;
     using ImageProcessor.Helpers.Extensions;
+    using ImageProcessor.Imaging;
     using ImageProcessor.Web.Config;
     using ImageProcessor.Web.Helpers;
     #endregion
@@ -429,7 +431,7 @@ namespace ImageProcessor.Web.Caching
                 // Use an md5 hash of the full path including the querystring to create the image name. 
                 // That name can also be used as a key for the cached image and we should be able to use 
                 // The first character of that hash as a subfolder.
-                string parsedExtension = this.ParseExtension(this.fullPath);
+                string parsedExtension = ImageUtils.GetExtension(this.fullPath);
                 string fallbackExtension = this.imageName.Substring(this.imageName.LastIndexOf(".", StringComparison.Ordinal) + 1);
                 string encryptedName = this.fullPath.ToMD5Fingerprint();
                 string firstSubpath = encryptedName.Substring(0, 1);
@@ -438,28 +440,12 @@ namespace ImageProcessor.Web.Caching
                 string cachedFileName = string.Format(
                     "{0}.{1}",
                     encryptedName,
-                    !string.IsNullOrWhiteSpace(parsedExtension) ? parsedExtension : fallbackExtension);
+                    !string.IsNullOrWhiteSpace(parsedExtension) ? parsedExtension.Replace(".", string.Empty) : fallbackExtension);
 
                 cachedPath = Path.Combine(AbsoluteCachePath, firstSubpath, secondSubpath, cachedFileName);
             }
 
             return cachedPath;
-        }
-
-        /// <summary>
-        /// Returns the correct file extension for the given string input
-        /// </summary>
-        /// <param name="input">
-        /// The string to parse.
-        /// </param>
-        /// <returns>
-        /// The correct file extension for the given string input if it can find one; otherwise an empty string.
-        /// </returns>
-        private string ParseExtension(string input)
-        {
-            Match match = FormatRegex.Match(input);
-
-            return match.Success ? match.Value : string.Empty;
         }
 
         /// <summary>

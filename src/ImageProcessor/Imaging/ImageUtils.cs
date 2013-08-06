@@ -17,7 +17,6 @@ namespace ImageProcessor.Imaging
     using System.IO;
     using System.Linq;
     using System.Text.RegularExpressions;
-    using System.Threading.Tasks;
     #endregion
 
     /// <summary>
@@ -28,7 +27,7 @@ namespace ImageProcessor.Imaging
         /// <summary>
         /// The image format regex.
         /// </summary>
-        private static readonly Regex FormatRegex = new Regex(@"(\.?)(j(pg|peg)|bmp|png|gif|ti(f|ff))$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.RightToLeft);
+        private static readonly Regex FormatRegex = new Regex(@"(\.?)(j(pg|peg)|bmp|png|gif|ti(f|ff))", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.RightToLeft);
 
         /// <summary>
         /// Returns the correct response type based on the given request path.
@@ -41,25 +40,27 @@ namespace ImageProcessor.Imaging
         /// </returns>
         public static ResponseType GetResponseType(string request)
         {
-            foreach (Match match in FormatRegex.Matches(request))
-            {
-                switch (match.Value.ToUpperInvariant())
-                {
-                    case "PNG":
-                        return ResponseType.Png;
-                    case "BMP":
-                        return ResponseType.Bmp;
-                    case "GIF":
-                        return ResponseType.Gif;
-                    case "TIF":
-                    case "TIFF":
-                        return ResponseType.Tiff;
-                    default:
-                        return ResponseType.Jpeg;
-                }
-            }
+            Match match = FormatRegex.Matches(request)[0];
 
-            return ResponseType.Jpeg;
+            switch (match.Value.ToUpperInvariant())
+            {
+                case "PNG":
+                case ".PNG":
+                    return ResponseType.Png;
+                case "BMP":
+                case ".BMP":
+                    return ResponseType.Bmp;
+                case "GIF":
+                case ".GIF":
+                    return ResponseType.Gif;
+                case "TIF":
+                case "TIFF":
+                case ".TIF":
+                case ".TIFF":
+                    return ResponseType.Tiff;
+                default:
+                    return ResponseType.Jpeg;
+            }
         }
 
         /// <summary>
@@ -91,7 +92,7 @@ namespace ImageProcessor.Imaging
                 }
             }
 
-            // TODO: Show custom exception??
+            // TODO: Show custom exception?
             return null;
         }
 
@@ -115,7 +116,6 @@ namespace ImageProcessor.Imaging
                 case "Png":
                     return ".png";
                 case "Tif":
-                    return ".tif";
                 case "Tiff":
                     return ".tif";
                 default:
@@ -197,7 +197,24 @@ namespace ImageProcessor.Imaging
         /// <returns>True the value contains a valid image extension, otherwise false.</returns>
         public static bool IsValidImageExtension(string fileName)
         {
+
             return FormatRegex.IsMatch(fileName);
+        }
+
+        /// <summary>
+        /// Returns the correct file extension for the given string input
+        /// </summary>
+        /// <param name="input">
+        /// The string to parse.
+        /// </param>
+        /// <returns>
+        /// The correct file extension for the given string input if it can find one; otherwise an empty string.
+        /// </returns>
+        public static string GetExtension(string input)
+        {
+            Match match = FormatRegex.Matches(input)[0];
+
+            return match.Success ? match.Value : string.Empty;
         }
 
         /// <summary>Returns a value indicating whether or not the given bitmap is indexed.</summary>

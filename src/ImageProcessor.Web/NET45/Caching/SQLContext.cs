@@ -73,9 +73,9 @@ namespace ImageProcessor.Web.Caching
                     }
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                throw ex;
+                throw;
             }
         }
 

@@ -141,6 +141,7 @@
     <Content Include="Images\Penguins.gif" />
     <Content Include="Images\Penguins.jpg" />
     <Content Include="Images\Penguins.png" />
+    <Content Include="Images\Penguins.tif" />
     <Content Include="Images\Tulips.jpg" />
     <Content Include="Images\udendørs.jpg" />
     <Content Include="Images\war_horse_quad.jpg" />

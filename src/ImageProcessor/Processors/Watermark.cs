@@ -24,50 +24,50 @@ namespace ImageProcessor.Processors
     /// </summary>
     public class Watermark : IGraphicsProcessor
     {
-/// <summary>
-/// The regular expression to search strings for.
-/// </summary>
-private static readonly Regex QueryRegex = new Regex(@"watermark=[^&]*", RegexOptions.Compiled);
+        /// <summary>
+        /// The regular expression to search strings for.
+        /// </summary>
+        private static readonly Regex QueryRegex = new Regex(@"watermark=[^&]*", RegexOptions.Compiled);
 
-/// <summary>
-/// The regular expression to search strings for the text attribute.
-/// </summary>
-private static readonly Regex TextRegex = new Regex(@"text-[^/:?#\[\]@!$&'()*%\|,;=]+", RegexOptions.Compiled);
+        /// <summary>
+        /// The regular expression to search strings for the text attribute.
+        /// </summary>
+        private static readonly Regex TextRegex = new Regex(@"text-[^/:?#\[\]@!$&'()*%\|,;=]+", RegexOptions.Compiled);
 
-/// <summary>
-/// The regular expression to search strings for the position attribute.
-/// </summary>
-private static readonly Regex PositionRegex = new Regex(@"position-\d+-\d+", RegexOptions.Compiled);
+        /// <summary>
+        /// The regular expression to search strings for the position attribute.
+        /// </summary>
+        private static readonly Regex PositionRegex = new Regex(@"position-\d+-\d+", RegexOptions.Compiled);
 
-/// <summary>
-/// The regular expression to search strings for the color attribute.
-/// </summary>
-private static readonly Regex ColorRegex = new Regex(@"color-([0-9a-fA-F]{3}){1,2}", RegexOptions.Compiled);
+        /// <summary>
+        /// The regular expression to search strings for the color attribute.
+        /// </summary>
+        private static readonly Regex ColorRegex = new Regex(@"color-([0-9a-fA-F]{3}){1,2}", RegexOptions.Compiled);
 
-/// <summary>
-/// The regular expression to search strings for the font size attribute.
-/// </summary>
-private static readonly Regex FontSizeRegex = new Regex(@"size-\d{1,3}", RegexOptions.Compiled);
+        /// <summary>
+        /// The regular expression to search strings for the font size attribute.
+        /// </summary>
+        private static readonly Regex FontSizeRegex = new Regex(@"size-\d{1,3}", RegexOptions.Compiled);
 
-/// <summary>
-/// The regular expression to search strings for the font style attribute.
-/// </summary>
-private static readonly Regex FontStyleRegex = new Regex(@"style-(bold|italic|regular|strikeout|underline)", RegexOptions.Compiled);
+        /// <summary>
+        /// The regular expression to search strings for the font style attribute.
+        /// </summary>
+        private static readonly Regex FontStyleRegex = new Regex(@"style-(bold|italic|regular|strikeout|underline)", RegexOptions.Compiled);
 
-/// <summary>
-/// The regular expression to search strings for the font family attribute.
-/// </summary>
-private static readonly Regex FontFamilyRegex = new Regex(@"font-[^/:?#\[\]@!$&'()*%\|,;=0-9]+", RegexOptions.Compiled);
+        /// <summary>
+        /// The regular expression to search strings for the font family attribute.
+        /// </summary>
+        private static readonly Regex FontFamilyRegex = new Regex(@"font-[^/:?#\[\]@!$&'()*%\|,;=0-9]+", RegexOptions.Compiled);
 
-/// <summary>
-/// The regular expression to search strings for the opacity attribute.
-/// </summary>
-private static readonly Regex OpacityRegex = new Regex(@"opacity-(?:100|[1-9]?[0-9])", RegexOptions.Compiled);
+        /// <summary>
+        /// The regular expression to search strings for the opacity attribute.
+        /// </summary>
+        private static readonly Regex OpacityRegex = new Regex(@"opacity-(?:100|[1-9]?[0-9])", RegexOptions.Compiled);
 
-/// <summary>
-/// The regular expression to search strings for the shadow attribute.
-/// </summary>
-private static readonly Regex ShadowRegex = new Regex(@"shadow-true", RegexOptions.Compiled);
+        /// <summary>
+        /// The regular expression to search strings for the shadow attribute.
+        /// </summary>
+        private static readonly Regex ShadowRegex = new Regex(@"shadow-true", RegexOptions.Compiled);
 
         #region IGraphicsProcessor Members
         /// <summary>
@@ -173,7 +173,7 @@ private static readonly Regex ShadowRegex = new Regex(@"shadow-true", RegexOptio
 
             try
             {
-                // Dont use an object initializer here.
+                // Don't use an object initializer here.
                 newImage = new Bitmap(image);
                 newImage.Tag = image.Tag;
 
@@ -193,12 +193,12 @@ private static readonly Regex ShadowRegex = new Regex(@"shadow-true", RegexOptio
                             {
                                 Point origin = textLayer.Position;
 
+                                // Work out the size of the text.
+                                SizeF textSize = graphics.MeasureString(text, font, new SizeF(image.Width, image.Height), drawFormat);
+
                                 // We need to ensure that there is a position set for the watermark
                                 if (origin == Point.Empty)
                                 {
-                                    // Work out the size of the text.
-                                    SizeF textSize = graphics.MeasureString(text, font, new SizeF(image.Width, image.Height), drawFormat);
-
                                     int x = (int)(image.Width - textSize.Width) / 2;
                                     int y = (int)(image.Height - textSize.Height) / 2;
                                     origin = new Point(x, y);
@@ -206,6 +206,9 @@ private static readonly Regex ShadowRegex = new Regex(@"shadow-true", RegexOptio
 
                                 // Set the hinting and draw the text.
                                 graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
+
+                                // Create bounds for the text.
+                                RectangleF bounds;
 
                                 if (textLayer.DropShadow)
                                 {
@@ -219,11 +222,18 @@ private static readonly Regex ShadowRegex = new Regex(@"shadow-true", RegexOptio
                                         // Magic number but it's based on artistic preference.
                                         int shadowDiff = (int)Math.Ceiling(fontSize / 24f);
                                         Point shadowPoint = new Point(origin.X + shadowDiff, origin.Y + shadowDiff);
-                                        graphics.DrawString(text, font, shadowBrush, shadowPoint, drawFormat);
+
+                                        // Set the bounds so any overlapping text will wrap.
+                                        bounds = new RectangleF(shadowPoint, new SizeF(image.Width - shadowPoint.X, image.Height - shadowPoint.Y));
+
+                                        graphics.DrawString(text, font, shadowBrush, bounds, drawFormat);
                                     }
                                 }
 
-                                graphics.DrawString(text, font, brush, origin, drawFormat);
+                                // Set the bounds so any overlapping text will wrap.
+                                bounds = new RectangleF(origin, new SizeF(image.Width - origin.X, image.Height - origin.Y));
+
+                                graphics.DrawString(text, font, brush, bounds, drawFormat);
                             }
                         }
                     }

@@ -123,7 +123,7 @@ namespace ImageProcessor
         public ImageFactory Load(MemoryStream memoryStream)
         {
             // Set our image as the memory stream value.
-            this.Image = Image.FromStream(memoryStream);
+            this.Image = Image.FromStream(memoryStream, true);
 
             // Store the stream in the image Tag property so we can dispose of it later.
             this.Image.Tag = memoryStream;
@@ -175,7 +175,7 @@ namespace ImageProcessor
                     fileStream.Position = memoryStream.Position = 0;
 
                     // Set our image as the memory stream value.
-                    this.Image = Image.FromStream(memoryStream);
+                    this.Image = Image.FromStream(memoryStream, true);
 
                     // Store the stream in the image Tag property so we can dispose of it later.
                     this.Image.Tag = memoryStream;
@@ -223,7 +223,7 @@ namespace ImageProcessor
                 MemoryStream memoryStream = (MemoryStream)this.Image.Tag;
 
                 // Set our new image as the memory stream value.
-                Image newImage = Image.FromStream(memoryStream);
+                Image newImage = Image.FromStream(memoryStream, true);
 
                 // Store the stream in the image Tag property so we can dispose of it later.
                 newImage.Tag = memoryStream;

@@ -123,6 +123,8 @@
     <Content Include="Global.asax" />
     <Content Include="Images\1182076_e8c402e938_z.jpg" />
     <Content Include="Images\Chrysanthemum.jpg" />
+    <Content Include="Images\cmyk.jpg" />
+    <Content Include="Images\cmyk.png" />
     <Content Include="Images\color-vision-test.gif" />
     <Content Include="Images\Desert.jpg" />
     <Content Include="Images\fid11246.jpg" />
@@ -142,6 +144,8 @@
     <Content Include="Images\Penguins.jpg" />
     <Content Include="Images\Penguins.png" />
     <Content Include="Images\Penguins.tif" />
+    <Content Include="Images\srgb.jpg" />
+    <Content Include="Images\srgb.png" />
     <Content Include="Images\Tulips.jpg" />
     <Content Include="Images\udendørs.jpg" />
     <Content Include="Images\war_horse_quad.jpg" />

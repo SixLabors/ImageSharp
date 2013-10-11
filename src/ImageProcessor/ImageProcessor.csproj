@@ -81,7 +81,9 @@
     <Compile Include="Imaging\TextLayer.cs" />
     <Compile Include="Processors\Alpha.cs" />
     <Compile Include="Processors\Brightness.cs" />
+    <Compile Include="Processors\Constrain.cs" />
     <Compile Include="Processors\Contrast.cs" />
+    <Compile Include="Processors\ResizeBase.cs" />
     <Compile Include="Processors\RoundedCorners.cs" />
     <Compile Include="Processors\Saturate.cs" />
     <Compile Include="Processors\Flip.cs" />

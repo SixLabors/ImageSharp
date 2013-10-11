@@ -189,7 +189,7 @@ namespace ImageProcessor
                     this.JpegQuality = DefaultJpegQuality;
                     ImageFormat imageFormat = ImageUtils.GetImageFormat(imageName);
                     this.backupImageFormat = imageFormat;
-                    this.originalExtension = Path.GetExtension(imagePath);
+                    this.originalExtension = Path.GetExtension(this.ImagePath);
                     this.ImageFormat = imageFormat;
                     this.isIndexed = ImageUtils.IsIndexed(this.Image);
                     this.ShouldProcess = true;
@@ -322,6 +322,32 @@ namespace ImageProcessor
         }
 
         /// <summary>
+        /// Constrains the current image, resizing it to fit within the given dimensions whilst keeping its aspect ratio.
+        /// </summary>
+        /// <param name="size">
+        /// The <see cref="T:System.Drawing.Size"/> containing the maximum width and height to set the image to.
+        /// </param>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory Constrain(Size size)
+        {
+            if (this.ShouldProcess)
+            {
+                int width = size.Width;
+                int height = size.Height;
+
+                var constrainSettings = new Dictionary<string, string> { { "MaxWidth", width.ToString("G") }, { "MaxHeight", height.ToString("G") } };
+
+                Constrain constrain = new Constrain { DynamicParameter = new Size(width, height), Settings = constrainSettings };
+
+                this.Image = constrain.ProcessImage(this);
+            }
+
+            return this;
+        }
+
+        /// <summary>
         /// Changes the contrast of the current image.
         /// </summary>
         /// <param name="percentage">
@@ -348,6 +374,8 @@ namespace ImageProcessor
 
             return this;
         }
+
+
 
         /// <summary>
         /// Crops the current image to the given location and size.

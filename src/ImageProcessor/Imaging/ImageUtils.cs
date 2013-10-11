@@ -102,10 +102,13 @@ namespace ImageProcessor.Imaging
         /// <param name="imageFormat">
         /// The <see cref="T:System.Drawing.Imaging.ImageFormat"/> to return the extension for.
         /// </param>
+        /// <param name="originalExtension">
+        /// The original Extension.
+        /// </param>
         /// <returns>
         /// The correct file extension for the given <see cref="T:System.Drawing.Imaging.ImageFormat"/>.
         /// </returns>
-        public static string GetExtensionFromImageFormat(ImageFormat imageFormat)
+        public static string GetExtensionFromImageFormat(ImageFormat imageFormat, string originalExtension)
         {
             switch (imageFormat.ToString())
             {
@@ -117,8 +120,18 @@ namespace ImageProcessor.Imaging
                     return ".png";
                 case "Tif":
                 case "Tiff":
+                    if (!string.IsNullOrWhiteSpace(originalExtension) && originalExtension.ToUpperInvariant() == ".TIFF")
+                    {
+                        return ".tiff";
+                    }
+
                     return ".tif";
                 default:
+                    if (!string.IsNullOrWhiteSpace(originalExtension) && originalExtension.ToUpperInvariant() == ".JPEG")
+                    {
+                        return ".jpeg";
+                    }
+
                     return ".jpg";
             }
         }

@@ -304,6 +304,23 @@ namespace ImageProcessor.Web.HttpModules
 
                     // Store the response type in the context for later retrieval.
                     context.Items[CachedResponseTypeKey] = ImageUtils.GetResponseType(fullPath).ToDescription();
+                    string incomingEtag = context.Request.Headers["If-None-Match"];
+
+                    if (incomingEtag != null && !isNewOrUpdated)
+                    {
+                        // Explicitly set the Content-Length header so the client doesn't wait for
+                        // content but keeps the connection open for other requests
+                        context.Response.AddHeader("Content-Length", "0");
+                        context.Response.StatusCode = (int)HttpStatusCode.NotModified;
+                        context.Response.SuppressContent = true;
+
+                        this.SetHeaders(context, (string)context.Items[CachedResponseTypeKey]);
+
+                        if (!isRemote)
+                        {
+                            return;
+                        }
+                    }
 
                     // The cached file is valid so just rewrite the path.
                     context.RewritePath(cache.GetVirtualCachedPath(), false);
@@ -334,7 +351,7 @@ namespace ImageProcessor.Web.HttpModules
             response.AddHeader("Image-Served-By", "ImageProcessor.Web/" + AssemblyVersion);
 
             HttpCachePolicy cache = response.Cache;
-
+            cache.SetCacheability(HttpCacheability.Public);
             cache.VaryByHeaders["Accept-Encoding"] = true;
 
             int maxDays = DiskCache.MaxFileCachedDuration;
@@ -342,19 +359,6 @@ namespace ImageProcessor.Web.HttpModules
             cache.SetExpires(DateTime.Now.ToUniversalTime().AddDays(maxDays));
             cache.SetMaxAge(new TimeSpan(maxDays, 0, 0, 0));
             cache.SetRevalidation(HttpCacheRevalidation.AllCaches);
-
-            string incomingEtag = context.Request.Headers["If-None-Match"];
-
-            cache.SetCacheability(HttpCacheability.Public);
-
-            if (incomingEtag == null)
-            {
-                return;
-            }
-
-            response.Clear();
-            response.StatusCode = (int)HttpStatusCode.NotModified;
-            response.SuppressContent = true;
         }
         #endregion
     }

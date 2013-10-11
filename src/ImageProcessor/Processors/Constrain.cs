@@ -1,10 +1,10 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="Resize.cs" company="James South">
+// <copyright file="Constrain.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   Resizes an image to the given dimensions.
+//   Constrains an image to the given dimensions.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -18,14 +18,14 @@ namespace ImageProcessor.Processors
     #endregion
 
     /// <summary>
-    /// Resizes an image to the given dimensions.
+    /// Constrains an image to the given dimensions.
     /// </summary>
-    public class Resize : ResizeBase
+    public class Constrain : ResizeBase
     {
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"(width|height)=\d+", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"constrain=\d+[,-]\d+", RegexOptions.Compiled);
 
         #region IGraphicsProcessor Members
         /// <summary>
@@ -42,29 +42,17 @@ namespace ImageProcessor.Processors
         /// <summary>
         /// Gets or sets DynamicParameter.
         /// </summary>
-        public override dynamic DynamicParameter
-        {
-            get;
-            set;
-        }
+        public override dynamic DynamicParameter { get; set; }
 
         /// <summary>
         /// Gets the order in which this processor is to be used in a chain.
         /// </summary>
-        public override int SortOrder
-        {
-            get;
-            protected set;
-        }
+        public override int SortOrder { get; protected set; }
 
         /// <summary>
         /// Gets or sets any additional settings required by the processor.
         /// </summary>
-        public override Dictionary<string, string> Settings
-        {
-            get;
-            set;
-        }
+        public override Dictionary<string, string> Settings { get; set; }
 
         /// <summary>
         /// The position in the original string where the first character of the captured substring was found.
@@ -81,7 +69,6 @@ namespace ImageProcessor.Processors
 
             // Set the sort order to max to allow filtering.
             this.SortOrder = int.MaxValue;
-            Size size = new Size();
 
             foreach (Match match in this.RegexPattern.Matches(queryString))
             {
@@ -91,23 +78,18 @@ namespace ImageProcessor.Processors
                     {
                         // Set the index on the first instance only.
                         this.SortOrder = match.Index;
-                    }
+                        int[] constraints = match.Value.ToPositiveIntegerArray();
 
-                    // Match syntax
-                    if (match.Value.Contains("width"))
-                    {
-                        size.Width = match.Value.ToPositiveIntegerArray()[0];
-                    }
-                    else
-                    {
-                        size.Height = match.Value.ToPositiveIntegerArray()[0];
+                        int x = constraints[0];
+                        int y = constraints[1];
+
+                        this.DynamicParameter = new Size(x, y);
                     }
 
                     index += 1;
                 }
             }
 
-            this.DynamicParameter = size;
             return this.SortOrder;
         }
 
@@ -123,15 +105,31 @@ namespace ImageProcessor.Processors
         /// </returns>
         public override Image ProcessImage(ImageFactory factory)
         {
-            int width = this.DynamicParameter.Width ?? 0;
-            int height = this.DynamicParameter.Height ?? 0;
+            double constrainedWidth = this.DynamicParameter.Width;
+            double constrainedHeight = this.DynamicParameter.Height;
 
-            int defaultMaxWidth;
-            int defaultMaxHeight;
-            int.TryParse(this.Settings["MaxWidth"], out defaultMaxWidth);
-            int.TryParse(this.Settings["MaxHeight"], out defaultMaxHeight);
+            Image original = factory.Image;
+            double width = original.Width;
+            double height = original.Height;
 
-            return this.ResizeImage(factory, width, height, defaultMaxWidth, defaultMaxHeight);
+            if (width > constrainedWidth || height > constrainedHeight)
+            {
+                double constraintRatio = constrainedHeight / constrainedWidth;
+                double originalRatio = height / width;
+
+                Size newSize = originalRatio < constraintRatio
+                                   ? new Size((int)constrainedWidth, 0)
+                                   : new Size(0, (int)constrainedHeight);
+
+                int defaultMaxWidth;
+                int defaultMaxHeight;
+                int.TryParse(this.Settings["MaxWidth"], out defaultMaxWidth);
+                int.TryParse(this.Settings["MaxHeight"], out defaultMaxHeight);
+
+                return this.ResizeImage(factory, newSize.Width, newSize.Height, defaultMaxWidth, defaultMaxHeight);
+            }
+
+            return factory.Image;
         }
         #endregion
     }

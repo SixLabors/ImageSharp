@@ -39,6 +39,11 @@ namespace ImageProcessor
         private ImageFormat backupImageFormat;
 
         /// <summary>
+        /// The original extension.
+        /// </summary>
+        private string originalExtension;
+
+        /// <summary>
         /// Whether the image is indexed.
         /// </summary>
         private bool isIndexed;
@@ -184,6 +189,7 @@ namespace ImageProcessor
                     this.JpegQuality = DefaultJpegQuality;
                     ImageFormat imageFormat = ImageUtils.GetImageFormat(imageName);
                     this.backupImageFormat = imageFormat;
+                    this.originalExtension = Path.GetExtension(imagePath);
                     this.ImageFormat = imageFormat;
                     this.isIndexed = ImageUtils.IsIndexed(this.Image);
                     this.ShouldProcess = true;
@@ -612,7 +618,7 @@ namespace ImageProcessor
                 // We need to check here if the path has an extension and remove it if so.
                 // This is so we can add the correct image format.
                 int length = filePath.LastIndexOf(".", StringComparison.Ordinal);
-                string extension = ImageUtils.GetExtensionFromImageFormat(this.ImageFormat);
+                string extension = ImageUtils.GetExtensionFromImageFormat(this.ImageFormat, this.originalExtension);
                 filePath = length == -1 ? filePath + extension : filePath.Substring(0, length) + extension;
 
                 // Fix the colour palette of indexed images.

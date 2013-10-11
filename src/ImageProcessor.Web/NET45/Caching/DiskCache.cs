@@ -307,6 +307,18 @@ namespace ImageProcessor.Web.Caching
         }
 
         /// <summary>
+        /// Gets the <see cref="T:System.DateTime"/> set to the last write time of the file.
+        /// </summary>
+        /// <returns>
+        /// The last write time of the file.
+        /// </returns>
+        internal async Task<DateTime> GetLastWriteTimeAsync()
+        {
+            // Create Action delegate for TrimCachedFolders.
+            return await TaskHelpers.Run<DateTime>(this.GetLastWriteTime);
+        }
+
+        /// <summary>
         /// Sets the LastWriteTime of the cached file to match the original file.
         /// </summary>
         /// <returns>
@@ -446,6 +458,26 @@ namespace ImageProcessor.Web.Caching
             }
 
             return cachedPath;
+        }
+
+        /// <summary>
+        /// Gets last modified time of the image.
+        /// </summary>
+        /// <returns>
+        /// The <see cref="DateTime"/> representing the last modified time of the image.
+        /// </returns>
+        private DateTime GetLastWriteTime()
+        {
+            string key = Path.GetFileNameWithoutExtension(this.CachedPath);
+            CachedImage cachedImage;
+            DateTime dateTime = DateTime.UtcNow;
+
+            if (PersistantDictionary.Instance.TryGetValue(key, out cachedImage))
+            {
+                dateTime = cachedImage.LastWriteTimeUtc;
+            }
+
+            return dateTime;
         }
 
         /// <summary>

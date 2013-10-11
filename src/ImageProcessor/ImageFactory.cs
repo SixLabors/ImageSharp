@@ -39,6 +39,11 @@ namespace ImageProcessor
         private ImageFormat backupImageFormat;
 
         /// <summary>
+        /// The original extension.
+        /// </summary>
+        private string originalExtension;
+
+        /// <summary>
         /// Whether the image is indexed.
         /// </summary>
         private bool isIndexed;
@@ -184,6 +189,7 @@ namespace ImageProcessor
                     this.JpegQuality = DefaultJpegQuality;
                     ImageFormat imageFormat = ImageUtils.GetImageFormat(imageName);
                     this.backupImageFormat = imageFormat;
+                    this.originalExtension = Path.GetExtension(this.ImagePath);
                     this.ImageFormat = imageFormat;
                     this.isIndexed = ImageUtils.IsIndexed(this.Image);
                     this.ShouldProcess = true;
@@ -316,6 +322,32 @@ namespace ImageProcessor
         }
 
         /// <summary>
+        /// Constrains the current image, resizing it to fit within the given dimensions whilst keeping its aspect ratio.
+        /// </summary>
+        /// <param name="size">
+        /// The <see cref="T:System.Drawing.Size"/> containing the maximum width and height to set the image to.
+        /// </param>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory Constrain(Size size)
+        {
+            if (this.ShouldProcess)
+            {
+                int width = size.Width;
+                int height = size.Height;
+
+                var constrainSettings = new Dictionary<string, string> { { "MaxWidth", width.ToString("G") }, { "MaxHeight", height.ToString("G") } };
+
+                Constrain constrain = new Constrain { DynamicParameter = new Size(width, height), Settings = constrainSettings };
+
+                this.Image = constrain.ProcessImage(this);
+            }
+
+            return this;
+        }
+
+        /// <summary>
         /// Changes the contrast of the current image.
         /// </summary>
         /// <param name="percentage">
@@ -342,6 +374,8 @@ namespace ImageProcessor
 
             return this;
         }
+
+
 
         /// <summary>
         /// Crops the current image to the given location and size.
@@ -612,7 +646,7 @@ namespace ImageProcessor
                 // We need to check here if the path has an extension and remove it if so.
                 // This is so we can add the correct image format.
                 int length = filePath.LastIndexOf(".", StringComparison.Ordinal);
-                string extension = ImageUtils.GetExtensionFromImageFormat(this.ImageFormat);
+                string extension = ImageUtils.GetExtensionFromImageFormat(this.ImageFormat, this.originalExtension);
                 filePath = length == -1 ? filePath + extension : filePath.Substring(0, length) + extension;
 
                 // Fix the colour palette of indexed images.

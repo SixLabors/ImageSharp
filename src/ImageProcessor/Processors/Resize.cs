@@ -1,18 +1,18 @@
-﻿// -----------------------------------------------------------------------
+﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="Resize.cs" company="James South">
-//     Copyright (c) James South.
-//     Licensed under the Apache License, Version 2.0.
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
 // </copyright>
-// -----------------------------------------------------------------------
+// <summary>
+//   Resizes an image to the given dimensions.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Processors
 {
     #region Using
-    using System;
     using System.Collections.Generic;
     using System.Drawing;
-    using System.Drawing.Drawing2D;
-    using System.Drawing.Imaging;
     using System.Text.RegularExpressions;
     using ImageProcessor.Helpers.Extensions;
     #endregion
@@ -92,7 +92,7 @@ namespace ImageProcessor.Processors
                         // Set the index on the first instance only.
                         this.SortOrder = match.Index;
                     }
-                    
+
                     // Match syntax
                     if (match.Value.Contains("width"))
                     {
@@ -102,7 +102,7 @@ namespace ImageProcessor.Processors
                     {
                         size.Height = match.Value.ToPositiveIntegerArray()[0];
                     }
-                    
+
                     index += 1;
                 }
             }
@@ -123,18 +123,16 @@ namespace ImageProcessor.Processors
         /// </returns>
         public override Image ProcessImage(ImageFactory factory)
         {
+            int width = this.DynamicParameter.Width ?? 0;
+            int height = this.DynamicParameter.Height ?? 0;
 
-			int width = this.DynamicParameter.Width ?? 0;
-			int height = this.DynamicParameter.Height ?? 0;
+            int defaultMaxWidth;
+            int defaultMaxHeight;
+            int.TryParse(this.Settings["MaxWidth"], out defaultMaxWidth);
+            int.TryParse(this.Settings["MaxHeight"], out defaultMaxHeight);
 
-			int defaultMaxWidth;
-			int defaultMaxHeight;
-			int.TryParse(this.Settings["MaxWidth"], out defaultMaxWidth);
-			int.TryParse(this.Settings["MaxHeight"], out defaultMaxHeight);
-
-			return ResizeImage(factory, width, height, defaultMaxWidth, defaultMaxHeight);
+            return this.ResizeImage(factory, width, height, defaultMaxWidth, defaultMaxHeight);
         }
-
-	    #endregion
+        #endregion
     }
 }

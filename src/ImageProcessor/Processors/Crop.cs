@@ -25,7 +25,7 @@ namespace ImageProcessor.Processors
         /// The regular expression to search strings for.
         /// <see cref="http://stackoverflow.com/a/6400969/427899"/>
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"crop=\d+-\d+-\d+-\d+", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"crop=\d+[,-]\d+[,-]\d+[,-]\d+", RegexOptions.Compiled);
 
         #region IGraphicsProcessor Members
         /// <summary>

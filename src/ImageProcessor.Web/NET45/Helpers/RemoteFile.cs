@@ -49,11 +49,6 @@ namespace ImageProcessor.Web.Helpers
         private static readonly Uri[] RemoteFileWhiteList = ImageProcessorConfig.Instance.RemoteFileWhiteList;
 
         /// <summary>
-        /// The white-list of url[s] from which to download remote files.
-        /// </summary>
-        public static readonly ImageSecuritySection.SafeUrl[] RemoteFileWhiteListExtensions = ImageProcessorConfig.Instance.RemoteFileWhiteListExtensions;
-
-        /// <summary>
         /// The length of time, in milliseconds, that a remote file download attempt can last before timing out.
         /// </summary>
         private static readonly int TimeoutMilliseconds = ImageProcessorConfig.Instance.Timeout;

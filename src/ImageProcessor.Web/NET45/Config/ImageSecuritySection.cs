@@ -178,6 +178,22 @@ namespace ImageProcessor.Web.Config
 
                 set { this["url"] = value; }
             }
+
+            [ConfigurationProperty("extensionLess", DefaultValue = false, IsRequired = false)]
+            public bool ExtensionLess
+            {
+                get { return (bool)this["extensionLess"]; }
+
+                set { this["extensionLess"] = value; }
+            }
+
+            [ConfigurationProperty("imageFormat", DefaultValue = "", IsRequired = false)]
+            public string ImageFormat
+            {
+                get { return (string)this["imageFormat"]; }
+
+                set { this["imageFormat"] = value; }
+            }
         }
     }
 }

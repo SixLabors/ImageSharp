@@ -122,17 +122,6 @@ namespace ImageProcessor.Web.Config
         }
 
         /// <summary>
-        /// 
-        /// </summary>
-        public ImageSecuritySection.SafeUrl[] RemoteFileWhiteListExtensions
-        {
-            get
-            {
-                return GetImageSecuritySection().WhiteList.Cast<ImageSecuritySection.SafeUrl>().ToArray();
-            }
-        }
-
-        /// <summary>
         /// Gets a value indicating whether the current application is allowed to download remote files.
         /// </summary>
         public bool AllowRemoteDownloads

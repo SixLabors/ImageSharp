@@ -1,17 +1,18 @@
-﻿// -----------------------------------------------------------------------
+﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="DiskCache.cs" company="James South">
-//     Copyright (c) James South.
-//     Licensed under the Apache License, Version 2.0.
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
 // </copyright>
-// -----------------------------------------------------------------------
+// <summary>
+//   The disk cache.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Web.Caching
 {
     #region Using
     using System;
-    using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
-    using System.Drawing;
     using System.Globalization;
     using System.IO;
     using System.Linq;
@@ -238,7 +239,7 @@ namespace ImageProcessor.Web.Caching
                                               ExpiresUtc = expires
                                           };
 
-            await PersistantDictionary.Instance.AddAsync(key, cachedImage);
+            await MemoryCache.Instance.AddAsync(key, cachedImage);
         }
 
         /// <summary>
@@ -255,14 +256,16 @@ namespace ImageProcessor.Web.Caching
 
             if (this.isRemote)
             {
-                if (PersistantDictionary.Instance.TryGetValue(key, out cachedImage))
+                cachedImage = await MemoryCache.Instance.GetValueAsync(key);
+
+                if (cachedImage != null)
                 {
                     // Can't check the last write time so check to see if the cached image is set to expire 
                     // or if the max age is different.
                     if (cachedImage.ExpiresUtc < DateTime.UtcNow.AddDays(-MaxFileCachedDuration)
                         || cachedImage.MaxAge != MaxFileCachedDuration)
                     {
-                        if (await PersistantDictionary.Instance.TryRemoveAsync(key))
+                        if (await MemoryCache.Instance.RemoveAsync(key))
                         {
                             isUpdated = true;
                         }
@@ -277,7 +280,9 @@ namespace ImageProcessor.Web.Caching
             else
             {
                 // Test now for locally requested files.
-                if (PersistantDictionary.Instance.TryGetValue(key, out cachedImage))
+                cachedImage = await MemoryCache.Instance.GetValueAsync(key);
+
+                if (cachedImage != null)
                 {
                     FileInfo imageFileInfo = new FileInfo(this.requestPath);
 
@@ -289,7 +294,7 @@ namespace ImageProcessor.Web.Caching
                             || cachedImage.ExpiresUtc < DateTime.UtcNow.AddDays(-MaxFileCachedDuration)
                             || cachedImage.MaxAge != MaxFileCachedDuration)
                         {
-                            if (await PersistantDictionary.Instance.TryRemoveAsync(key))
+                            if (await MemoryCache.Instance.RemoveAsync(key))
                             {
                                 isUpdated = true;
                             }
@@ -314,8 +319,17 @@ namespace ImageProcessor.Web.Caching
         /// </returns>
         internal async Task<DateTime> GetLastWriteTimeAsync()
         {
-            // Create Action delegate for TrimCachedFolders.
-            return await TaskHelpers.Run<DateTime>(this.GetLastWriteTime);
+            string key = Path.GetFileNameWithoutExtension(this.CachedPath);
+            DateTime dateTime = DateTime.UtcNow;
+
+            CachedImage cachedImage = await MemoryCache.Instance.GetValueAsync(key);
+
+            if (cachedImage != null)
+            {
+                dateTime = cachedImage.LastWriteTimeUtc;
+            }
+
+            return dateTime;
         }
 
         /// <summary>
@@ -383,17 +397,17 @@ namespace ImageProcessor.Web.Caching
         /// </summary>
         private async void TrimCachedFolders()
         {
-            // Group each cache folder and clear any expired items or any that exeed
+            // Group each cache folder and clear any expired items or any that exceed
             // the maximum allowable count.
-            var groups = PersistantDictionary.Instance.ToList()
-                .GroupBy(x => SubFolderRegex.Match(x.Value.Path).Value)
+            var groups = SQLContext.GetImagesForCleanup()
+                .GroupBy(x => SubFolderRegex.Match(x.Path).Value)
                 .Where(g => g.Count() > MaxFilesCount);
 
             foreach (var group in groups)
             {
                 int groupCount = group.Count();
 
-                foreach (KeyValuePair<string, CachedImage> pair in group.OrderBy(x => x.Value.ExpiresUtc))
+                foreach (CleanupImage pair in group.OrderBy(x => x.ExpiresUtc))
                 {
                     // If the group count is equal to the max count minus 1 then we know we
                     // are counting down from a full directory not simply clearing out 
@@ -406,10 +420,10 @@ namespace ImageProcessor.Web.Caching
                     try
                     {
                         // Remove from the cache and delete each CachedImage.
-                        FileInfo fileInfo = new FileInfo(pair.Value.Path);
+                        FileInfo fileInfo = new FileInfo(pair.Path);
                         string key = Path.GetFileNameWithoutExtension(fileInfo.Name);
 
-                        if (await PersistantDictionary.Instance.TryRemoveAsync(key))
+                        if (await MemoryCache.Instance.RemoveAsync(key))
                         {
                             fileInfo.Delete();
                             groupCount -= 1;
@@ -458,26 +472,6 @@ namespace ImageProcessor.Web.Caching
             }
 
             return cachedPath;
-        }
-
-        /// <summary>
-        /// Gets last modified time of the image.
-        /// </summary>
-        /// <returns>
-        /// The <see cref="DateTime"/> representing the last modified time of the image.
-        /// </returns>
-        private DateTime GetLastWriteTime()
-        {
-            string key = Path.GetFileNameWithoutExtension(this.CachedPath);
-            CachedImage cachedImage;
-            DateTime dateTime = DateTime.UtcNow;
-
-            if (PersistantDictionary.Instance.TryGetValue(key, out cachedImage))
-            {
-                dateTime = cachedImage.LastWriteTimeUtc;
-            }
-
-            return dateTime;
         }
 
         /// <summary>

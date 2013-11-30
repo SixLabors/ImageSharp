@@ -1,31 +1,32 @@
-﻿// -----------------------------------------------------------------------
-// <copyright file="PersistantDictionary.cs" company="James South">
-//     Copyright (c) James South.
-//     Licensed under the Apache License, Version 2.0.
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="MemoryCache.cs" company="James South">
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
 // </copyright>
-// -----------------------------------------------------------------------
+// <summary>
+//   
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Web.Caching
 {
     #region Using
     using System;
-    using System.Collections.Generic;
     using System.Threading.Tasks;
-    using ImageProcessor.Web.Helpers;
     #endregion
 
     /// <summary>
-    /// Represents a collection of keys and values whose operations are concurrent.
+    /// Represents an in memory collection of keys and values whose operations are concurrent.
     /// </summary>
-    internal sealed class PersistantDictionary : LockedDictionary<string, CachedImage>
+    internal sealed class MemoryCache
     {
         #region Fields
         /// <summary>
-        /// A new instance Initializes a new instance of the <see cref="T:ImageProcessor.Web.Caching.PersistantDictionary"/> class.
+        /// A new instance Initializes a new instance of the <see cref="T:ImageProcessor.Web.Caching.MemoryCache"/> class.
         /// initialized lazily.
         /// </summary>
-        private static readonly Lazy<PersistantDictionary> Lazy =
-                        new Lazy<PersistantDictionary>(() => new PersistantDictionary());
+        private static readonly Lazy<MemoryCache> Lazy =
+                        new Lazy<MemoryCache>(() => new MemoryCache());
 
         /// <summary>
         /// The object to lock against.
@@ -35,19 +36,19 @@ namespace ImageProcessor.Web.Caching
 
         #region Constructors
         /// <summary>
-        /// Prevents a default instance of the <see cref="T:ImageProcessor.Web.Caching.PersistantDictionary"/> class 
+        /// Prevents a default instance of the <see cref="T:ImageProcessor.Web.Caching.MemoryCache"/> class 
         /// from being created. 
         /// </summary>
-        private PersistantDictionary()
+        private MemoryCache()
         {
             this.LoadCache();
         }
         #endregion
 
         /// <summary>
-        /// Gets the current instance of the <see cref="T:ImageProcessor.Web.Caching.PersistantDictionary"/> class.
+        /// Gets the current instance of the <see cref="T:ImageProcessor.Web.Caching.MemoryCache"/> class.
         /// </summary>
-        public static PersistantDictionary Instance
+        public static MemoryCache Instance
         {
             get
             {
@@ -57,29 +58,47 @@ namespace ImageProcessor.Web.Caching
 
         #region Public
         /// <summary>
-        /// Tries to remove the value associated with the specified key.
+        /// Gets the <see cref="CachedImage"/> associated with the specified key.
+        /// </summary>
+        /// <param name="key">
+        /// The key of the value to get.
+        /// </param>
+        /// <returns>
+        /// The <see cref="CachedImage"/> matching the given key if the <see cref="MemoryCache"/> contains an element with 
+        /// the specified key; otherwise, null.
+        /// </returns>
+        public async Task<CachedImage> GetValueAsync(string key)
+        {
+            CachedImage cachedImage = (CachedImage)CacheManager.GetItem(key);
+
+            if (cachedImage == null)
+            {
+                cachedImage = await SQLContext.GetImageAsync(key);
+
+                if (cachedImage != null)
+                {
+                    CacheManager.AddItem(key, cachedImage);
+                }
+            }
+
+            return cachedImage;
+        }
+
+        /// <summary>
+        /// Removes the value associated with the specified key.
         /// </summary>
         /// <param name="key">
         /// The key of the item to remove.
         /// </param>
         /// <returns>
-        /// true if the <see cref="PersistantDictionary"/> removes an element with 
+        /// true if the <see cref="MemoryCache"/> removes an element with 
         /// the specified key; otherwise, false.
         /// </returns>
-        public async Task<bool> TryRemoveAsync(string key)
+        public async Task<bool> RemoveAsync(string key)
         {
-            // No CachedImage to remove.
-            if (!this.ContainsKey(key))
+            if (await this.SaveCacheAsync(key, null, true) > 0)
             {
-                return false;
-            }
-
-            // Remove the CachedImage.
-            CachedImage value = this[key];
-
-            if (await this.SaveCacheAsync(key, value, true) > 0)
-            {
-                this.Remove(key);
+                CacheManager.RemoveItem(key);
                 return true;
             }
 
@@ -103,7 +122,7 @@ namespace ImageProcessor.Web.Caching
             // Add the CachedImage.
             if (await this.SaveCacheAsync(key, cachedImage, false) > 0)
             {
-                this.Add(key, cachedImage);
+                CacheManager.AddItem(key, cachedImage);
             }
 
             return cachedImage;
@@ -131,7 +150,7 @@ namespace ImageProcessor.Web.Caching
             {
                 if (remove)
                 {
-                    return await SQLContext.RemoveImageAsync(cachedImage);
+                    return await SQLContext.RemoveImageAsync(key);
                 }
 
                 return await SQLContext.AddImageAsync(cachedImage);
@@ -150,13 +169,6 @@ namespace ImageProcessor.Web.Caching
             lock (SyncRoot)
             {
                 SQLContext.CreateDatabase();
-
-                Dictionary<string, CachedImage> dictionary = SQLContext.GetImages();
-
-                foreach (KeyValuePair<string, CachedImage> pair in dictionary)
-                {
-                    this.Add(pair);
-                }
             }
         }
     }

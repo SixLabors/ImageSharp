@@ -21,7 +21,7 @@ namespace ImageProcessor.Web.Config
         /// Gets or sets the virtual path of the cache folder.
         /// </summary>
         /// <value>The name of the cache folder.</value>
-        [ConfigurationProperty("virtualPath", DefaultValue = "~/cache", IsRequired = true)]
+        [ConfigurationProperty("virtualPath", DefaultValue = "~/app_data/cache", IsRequired = true)]
         [StringValidator(MinLength = 3, MaxLength = 200)]
         public string VirtualPath
         {
@@ -29,7 +29,7 @@ namespace ImageProcessor.Web.Config
             {
                 string virtualPath = (string)this["virtualPath"];
 
-                return virtualPath.IsValidVirtualPathName() ? virtualPath : "~/cache";
+                return virtualPath.IsValidVirtualPathName() ? virtualPath : "~/app_data/cache";
             }
 
             set

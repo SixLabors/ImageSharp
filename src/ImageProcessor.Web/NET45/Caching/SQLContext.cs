@@ -83,29 +83,47 @@ namespace ImageProcessor.Web.Caching
         /// Gets all the images from the database.
         /// </summary>
         /// <returns>
-        /// The <see cref="System.Collections.Generic.Dictionary{TKey,TVal}"/>.
+        /// The <see cref="System.Collections.Generic.List{CleanupImage}"/>.
         /// </returns>
-        internal static Dictionary<string, CachedImage> GetImages()
+        internal static List<CleanupImage> GetImagesForCleanup()
         {
-            Dictionary<string, CachedImage> dictionary = new Dictionary<string, CachedImage>();
-
             try
             {
+                List<CleanupImage> images;
                 using (SQLiteConnection connection = new SQLiteConnection(ConnectionString))
                 {
-                    List<CachedImage> images = connection.Query<CachedImage>("SELECT * FROM CachedImage");
-
-                    foreach (CachedImage cachedImage in images)
-                    {
-                        dictionary.Add(cachedImage.Key, cachedImage);
-                    }
+                    images = connection.Query<CleanupImage>("SELECT Path,ExpiresUtc FROM CachedImage");
                 }
 
-                return dictionary;
+                return images;
+
             }
             catch
             {
-                return new Dictionary<string, CachedImage>();
+                return new List<CleanupImage>();
+            }
+        }
+
+        /// <summary>
+        /// Gets a cached image from the database.
+        /// </summary>
+        /// <param name="key">
+        /// The key for the cached image to get.
+        /// </param>
+        /// <returns>
+        /// The <see cref="CachedImage"/> from the database.
+        /// </returns>
+        internal static async Task<CachedImage> GetImageAsync(string key)
+        {
+            try
+            {
+                SQLiteAsyncConnection connection = new SQLiteAsyncConnection(ConnectionString);
+
+                return await connection.GetAsync<CachedImage>(c => c.Key == key);
+            }
+            catch
+            {
+                return null;
             }
         }
 
@@ -123,7 +141,6 @@ namespace ImageProcessor.Web.Caching
             try
             {
                 SQLiteAsyncConnection connection = new SQLiteAsyncConnection(ConnectionString);
-
                 return await connection.InsertAsync(image);
             }
             catch
@@ -135,17 +152,18 @@ namespace ImageProcessor.Web.Caching
         /// <summary>
         /// Removes a cached image from the database.
         /// </summary>
-        /// <param name="cachedImage">
+        /// <param name="key">
         /// The key for the cached image.
         /// </param>
         /// <returns>
         /// The true if the addition of the cached image is removed; otherwise, false.
         /// </returns>
-        internal static async Task<int> RemoveImageAsync(CachedImage cachedImage)
+        internal static async Task<int> RemoveImageAsync(string key)
         {
             try
             {
                 SQLiteAsyncConnection connection = new SQLiteAsyncConnection(ConnectionString);
+                CachedImage cachedImage = await connection.GetAsync<CachedImage>(c => c.Key == key);
 
                 return await connection.DeleteAsync(cachedImage);
             }

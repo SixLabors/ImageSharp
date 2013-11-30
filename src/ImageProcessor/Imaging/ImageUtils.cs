@@ -210,7 +210,6 @@ namespace ImageProcessor.Imaging
         /// <returns>True the value contains a valid image extension, otherwise false.</returns>
         public static bool IsValidImageExtension(string fileName)
         {
-
             return FormatRegex.IsMatch(fileName);
         }
 

@@ -1,9 +1,12 @@
-﻿// -----------------------------------------------------------------------
+﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="ImageSecuritySection.cs" company="James South">
-//     Copyright (c) James South.
-//     Licensed under the Apache License, Version 2.0.
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
 // </copyright>
-// -----------------------------------------------------------------------
+// <summary>
+//   Represents an image security section within a configuration file.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Web.Config
 {
@@ -168,9 +171,9 @@ namespace ImageProcessor.Web.Config
         public class SafeUrl : ConfigurationElement
         {
             /// <summary>
-            /// Gets or sets the url of the whitelisted file.
+            /// Gets or sets the url of the white listed file.
             /// </summary>
-            /// <value>The url of the whitelisted file.</value>
+            /// <value>The url of the white listed file.</value>
             [ConfigurationProperty("url", DefaultValue = "", IsRequired = true)]
             public Uri Url
             {
@@ -179,6 +182,9 @@ namespace ImageProcessor.Web.Config
                 set { this["url"] = value; }
             }
 
+            /// <summary>
+            /// Gets or sets a value indicating whether the white listed url is extension-less.
+            /// </summary>
             [ConfigurationProperty("extensionLess", DefaultValue = false, IsRequired = false)]
             public bool ExtensionLess
             {
@@ -187,6 +193,9 @@ namespace ImageProcessor.Web.Config
                 set { this["extensionLess"] = value; }
             }
 
+            /// <summary>
+            /// Gets or sets the image format for the extension-less url.
+            /// </summary>
             [ConfigurationProperty("imageFormat", DefaultValue = "", IsRequired = false)]
             public string ImageFormat
             {

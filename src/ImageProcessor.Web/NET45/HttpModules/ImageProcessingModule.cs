@@ -8,16 +8,13 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-using System.Linq;
-using System.Security.Cryptography;
-using System.Security.Policy;
-using System.Text;
-
 namespace ImageProcessor.Web.HttpModules
 {
     #region Using
     using System;
+    using System.Diagnostics.CodeAnalysis;
     using System.IO;
+    using System.Linq;
     using System.Net;
     using System.Reflection;
     using System.Security;
@@ -176,6 +173,7 @@ namespace ImageProcessor.Web.HttpModules
         /// <returns>
         /// The <see cref="T:System.Threading.Tasks.Task"/>.
         /// </returns>
+        [SuppressMessage("StyleCop.CSharp.ReadabilityRules", "SA1122:UseStringEmptyForEmptyStrings", Justification = "Reviewed. Suppression is OK here.")]
         private async Task ProcessImageAsync(HttpContext context)
         {
             HttpRequest request = context.Request;
@@ -206,6 +204,7 @@ namespace ImageProcessor.Web.HttpModules
 
                     requestPath = paths[0];
 
+                    // Handle extension-less urls.
                     if (paths.Count() > 2)
                     {
                         queryString = paths[2];
@@ -217,13 +216,12 @@ namespace ImageProcessor.Web.HttpModules
                     }
 
                     validExtensionLessUrl = RemoteFile.RemoteFileWhiteListExtensions.Any(
-                        x => x.ExtensionLess == true && requestPath.StartsWith(x.Url.AbsoluteUri));
+                        x => x.ExtensionLess && requestPath.StartsWith(x.Url.AbsoluteUri));
 
                     if (validExtensionLessUrl)
                     {
                         extensionLessExtension = RemoteFile.RemoteFileWhiteListExtensions.First(
-                        x => x.ExtensionLess == true && requestPath.StartsWith(x.Url.AbsoluteUri)).ImageFormat;
-
+                        x => x.ExtensionLess && requestPath.StartsWith(x.Url.AbsoluteUri)).ImageFormat;
                     }
                 }
             }
@@ -234,7 +232,7 @@ namespace ImageProcessor.Web.HttpModules
             }
 
             // Only process requests that pass our sanitizing filter.
-            if ((ImageUtils.IsValidImageExtension(requestPath) || validExtensionLessUrl ) && !string.IsNullOrWhiteSpace(queryString))
+            if ((ImageUtils.IsValidImageExtension(requestPath) || validExtensionLessUrl) && !string.IsNullOrWhiteSpace(queryString))
             {
                 string fullPath = string.Format("{0}?{1}", requestPath, queryString);
                 string imageName = Path.GetFileName(requestPath);
@@ -245,14 +243,11 @@ namespace ImageProcessor.Web.HttpModules
 
                     if (!string.IsNullOrWhiteSpace(urlParameters))
                     {
-                        //TODO: Add hash for querystring parameters    
-                        HashAlgorithm algorithm = MD5.Create();  // SHA1.Create()
-                        var hashCode = algorithm.ComputeHash(Encoding.UTF8.GetBytes(urlParameters));
-                        StringBuilder sb = new StringBuilder();
-                        foreach (byte b in hashCode)
-                            sb.Append(b.ToString("X2"));
-                        imageName += sb.ToString();
-                        fullPath += sb.ToString();
+                        string hashedUrlParameters = urlParameters.ToMD5Fingerprint();
+
+                        // TODO: Add hash for querystring parameters.    
+                        imageName += hashedUrlParameters;
+                        fullPath += hashedUrlParameters;
                     }
 
                     imageName += "." + extensionLessExtension;
@@ -360,7 +355,7 @@ namespace ImageProcessor.Web.HttpModules
                         context.Response.AddHeader("Content-Length", "0");
                         context.Response.StatusCode = (int)HttpStatusCode.NotModified;
                         context.Response.SuppressContent = true;
-
+                        context.Response.AddFileDependency(context.Server.MapPath(cache.GetVirtualCachedPath()));
                         this.SetHeaders(context, (string)context.Items[CachedResponseTypeKey]);
 
                         if (!isRemote)
@@ -400,6 +395,7 @@ namespace ImageProcessor.Web.HttpModules
             HttpCachePolicy cache = response.Cache;
             cache.SetCacheability(HttpCacheability.Public);
             cache.VaryByHeaders["Accept-Encoding"] = true;
+            cache.SetLastModifiedFromFileDependencies();
 
             int maxDays = DiskCache.MaxFileCachedDuration;
 

@@ -1,9 +1,12 @@
-﻿// -----------------------------------------------------------------------
+﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="RemoteFile.cs" company="James South">
-//     Copyright (c) James South.
-//     Licensed under the Apache License, Version 2.0.
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
 // </copyright>
-// -----------------------------------------------------------------------
+// <summary>
+//   Encapsulates methods used to download files from a website address.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Web.Helpers
 {
@@ -46,12 +49,12 @@ namespace ImageProcessor.Web.Helpers
         /// <summary>
         /// The white-list of url[s] from which to download remote files.
         /// </summary>
-        private static readonly Uri[] RemoteFileWhiteList = ImageProcessorConfig.Instance.RemoteFileWhiteList;
+        public static readonly ImageSecuritySection.SafeUrl[] RemoteFileWhiteListExtensions = ImageProcessorConfig.Instance.RemoteFileWhiteListExtensions;
 
         /// <summary>
         /// The white-list of url[s] from which to download remote files.
         /// </summary>
-        public static readonly ImageSecuritySection.SafeUrl[] RemoteFileWhiteListExtensions = ImageProcessorConfig.Instance.RemoteFileWhiteListExtensions;
+        private static readonly Uri[] RemoteFileWhiteList = ImageProcessorConfig.Instance.RemoteFileWhiteList;
 
         /// <summary>
         /// The length of time, in milliseconds, that a remote file download attempt can last before timing out.
@@ -177,6 +180,7 @@ namespace ImageProcessor.Web.Helpers
 
                 if (value < 0)
                 {
+                    // ReSharper disable once NotResolvedInText
                     throw new ArgumentOutOfRangeException("TimeoutLength");
                 }
 
@@ -212,6 +216,7 @@ namespace ImageProcessor.Web.Helpers
 
                 if (value < 0)
                 {
+                    // ReSharper disable once NotResolvedInText
                     throw new ArgumentOutOfRangeException("MaxDownloadSize");
                 }
 

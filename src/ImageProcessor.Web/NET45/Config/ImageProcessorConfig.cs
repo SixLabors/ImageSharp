@@ -1,9 +1,13 @@
-﻿// -----------------------------------------------------------------------
+﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="ImageProcessorConfig.cs" company="James South">
-//     Copyright (c) James South.
-//     Licensed under the Apache License, Version 2.0.
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
 // </copyright>
-// -----------------------------------------------------------------------
+// <summary>
+//   Encapsulates methods to allow the retrieval of ImageProcessor settings.
+//   <see cref="http://csharpindepth.com/Articles/General/Singleton.aspx" />
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Web.Config
 {
@@ -16,8 +20,6 @@ namespace ImageProcessor.Web.Config
     using System.Text;
 
     using ImageProcessor.Processors;
-    using ImageProcessor.Web.Helpers;
-
     #endregion
 
     /// <summary>
@@ -111,7 +113,7 @@ namespace ImageProcessor.Web.Config
 
         #region Security
         /// <summary>
-        /// Gets a list of whitelisted url[s] that images can be downloaded from.
+        /// Gets a list of white listed url[s] that images can be downloaded from.
         /// </summary>
         public Uri[] RemoteFileWhiteList
         {
@@ -122,7 +124,7 @@ namespace ImageProcessor.Web.Config
         }
 
         /// <summary>
-        /// 
+        /// Gets a list of image extensions for url[s] with no extension.
         /// </summary>
         public ImageSecuritySection.SafeUrl[] RemoteFileWhiteListExtensions
         {

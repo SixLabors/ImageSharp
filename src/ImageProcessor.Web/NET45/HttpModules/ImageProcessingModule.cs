@@ -8,6 +8,11 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
+using System.Linq;
+using System.Security.Cryptography;
+using System.Security.Policy;
+using System.Text;
+
 namespace ImageProcessor.Web.HttpModules
 {
     #region Using
@@ -180,6 +185,10 @@ namespace ImageProcessor.Web.HttpModules
             string requestPath = string.Empty;
             string queryString = string.Empty;
 
+            bool validExtensionLessUrl = false;
+            string urlParameters = "";
+            string extensionLessExtension = "";
+
             if (isRemote)
             {
                 // We need to split the querystring to get the actual values we want.
@@ -197,9 +206,24 @@ namespace ImageProcessor.Web.HttpModules
 
                     requestPath = paths[0];
 
-                    if (paths.Length > 1)
+                    if (paths.Count() > 2)
+                    {
+                        queryString = paths[2];
+                        urlParameters = paths[1];
+                    }
+                    else if (paths.Length > 1)
                     {
                         queryString = paths[1];
+                    }
+
+                    validExtensionLessUrl = RemoteFile.RemoteFileWhiteListExtensions.Any(
+                        x => x.ExtensionLess == true && requestPath.StartsWith(x.Url.AbsoluteUri));
+
+                    if (validExtensionLessUrl)
+                    {
+                        extensionLessExtension = RemoteFile.RemoteFileWhiteListExtensions.First(
+                        x => x.ExtensionLess == true && requestPath.StartsWith(x.Url.AbsoluteUri)).ImageFormat;
+
                     }
                 }
             }
@@ -210,10 +234,30 @@ namespace ImageProcessor.Web.HttpModules
             }
 
             // Only process requests that pass our sanitizing filter.
-            if (ImageUtils.IsValidImageExtension(requestPath) && !string.IsNullOrWhiteSpace(queryString))
+            if ((ImageUtils.IsValidImageExtension(requestPath) || validExtensionLessUrl ) && !string.IsNullOrWhiteSpace(queryString))
             {
                 string fullPath = string.Format("{0}?{1}", requestPath, queryString);
                 string imageName = Path.GetFileName(requestPath);
+
+                if (validExtensionLessUrl && !string.IsNullOrWhiteSpace(extensionLessExtension))
+                {
+                    fullPath = requestPath;
+
+                    if (!string.IsNullOrWhiteSpace(urlParameters))
+                    {
+                        //TODO: Add hash for querystring parameters    
+                        HashAlgorithm algorithm = MD5.Create();  // SHA1.Create()
+                        var hashCode = algorithm.ComputeHash(Encoding.UTF8.GetBytes(urlParameters));
+                        StringBuilder sb = new StringBuilder();
+                        foreach (byte b in hashCode)
+                            sb.Append(b.ToString("X2"));
+                        imageName += sb.ToString();
+                        fullPath += sb.ToString();
+                    }
+
+                    imageName += "." + extensionLessExtension;
+                    fullPath += extensionLessExtension + "?" + queryString;
+                }
 
                 // Create a new cache to help process and cache the request.
                 DiskCache cache = new DiskCache(request, requestPath, fullPath, imageName, isRemote);
@@ -254,7 +298,7 @@ namespace ImageProcessor.Web.HttpModules
                         {
                             if (isRemote)
                             {
-                                Uri uri = new Uri(requestPath);
+                                Uri uri = new Uri(requestPath + "?" + urlParameters);
 
                                 RemoteFile remoteFile = new RemoteFile(uri, false);
 

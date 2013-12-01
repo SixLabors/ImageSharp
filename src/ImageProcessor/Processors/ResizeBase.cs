@@ -17,6 +17,9 @@ namespace ImageProcessor.Processors
     using System.Drawing.Drawing2D;
     using System.Drawing.Imaging;
     using System.Text.RegularExpressions;
+
+    using ImageProcessor.Imaging;
+
     #endregion
 
     /// <summary>
@@ -87,10 +90,16 @@ namespace ImageProcessor.Processors
         /// <param name="defaultMaxHeight">
         /// The default max height to resize the image to.
         /// </param>
+        /// <param name="resizeMode">
+        /// Whether to pad the image to fill the set size.
+        /// </param>
+        /// <param name="backgroundColor">
+        /// The background color to pad the image with.
+        /// </param>
         /// <returns>
         /// The processed image from the current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
         /// </returns>
-        protected Image ResizeImage(ImageFactory factory, int width, int height, int defaultMaxWidth, int defaultMaxHeight)
+        protected Image ResizeImage(ImageFactory factory, int width, int height, int defaultMaxWidth, int defaultMaxHeight, ResizeMode resizeMode, Color backgroundColor)
         {
             Bitmap newImage = null;
             Image image = factory.Image;
@@ -100,26 +109,56 @@ namespace ImageProcessor.Processors
                 int sourceWidth = image.Width;
                 int sourceHeight = image.Height;
 
+                int destinationWidth = width;
+                int destinationHeight = height;
+
                 int maxWidth = defaultMaxWidth > 0 ? defaultMaxWidth : int.MaxValue;
                 int maxHeight = defaultMaxHeight > 0 ? defaultMaxHeight : int.MaxValue;
+
+                // Fractional variants for preserving aspect ratio.
+                double percentHeight = Math.Abs(height / (double)sourceHeight);
+                double percentWidth = Math.Abs(width / (double)sourceWidth);
+
+                int destinationX = 0;
+                int destinationY = 0;
+
+                // Change the destination rectangle coordinates if padding and 
+                // there has been a set width and height.
+                if (resizeMode == ResizeMode.Pad && width > 0 && height > 0)
+                {
+                    double ratio;
+
+                    if (percentHeight < percentWidth)
+                    {
+                        ratio = percentHeight;
+                        destinationX = (int)((width - (sourceWidth * ratio)) / 2);
+                        destinationWidth = (int)Math.Floor(sourceWidth * percentHeight);
+                    }
+                    else
+                    {
+                        ratio = percentWidth;
+                        destinationY = (int)((height - (sourceHeight * ratio)) / 2);
+                        destinationHeight = (int)Math.Floor(sourceHeight * percentWidth);
+                    }
+                }
 
                 // If height or width is not passed we assume that the standard ratio is to be kept.
                 if (height == 0)
                 {
-                    // Bit of simple fractional maths here.
-                    float percentWidth = Math.Abs(width / (float)sourceWidth);
-                    height = (int)Math.Floor(sourceHeight * percentWidth);
+                    destinationHeight = (int)Math.Floor(sourceHeight * percentWidth);
+                    height = destinationHeight;
                 }
 
                 if (width == 0)
                 {
-                    float percentHeight = Math.Abs(height / (float)sourceHeight);
-                    width = (int)Math.Floor(sourceWidth * percentHeight);
+                    destinationWidth = (int)Math.Floor(sourceWidth * percentHeight);
+                    width = destinationWidth;
                 }
 
                 if (width > 0 && height > 0 && width <= maxWidth && height <= maxHeight)
                 {
-                    // Dont use an object initializer here.
+                    // Don't use an object initializer here.
+                    // ReSharper disable once UseObjectOrCollectionInitializer
                     newImage = new Bitmap(width, height, PixelFormat.Format32bppPArgb);
                     newImage.Tag = image.Tag;
 
@@ -128,7 +167,7 @@ namespace ImageProcessor.Processors
                         // We want to use two different blending algorithms for enlargement/shrinking.
                         // Bicubic is better enlarging for whilst Bilinear is better for shrinking.
                         // http://www.codinghorror.com/blog/2007/07/better-image-resizing.html
-                        if (image.Width < width && image.Height < height)
+                        if (image.Width < destinationWidth && image.Height < destinationHeight)
                         {
                             // We are making it larger.
                             graphics.SmoothingMode = SmoothingMode.AntiAlias;
@@ -140,11 +179,9 @@ namespace ImageProcessor.Processors
                         {
                             // We are making it smaller.
                             graphics.SmoothingMode = SmoothingMode.None;
-
-                            // Contrary to everything I have read bicubic is producing the best results.
-                            graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                            graphics.PixelOffsetMode = PixelOffsetMode.None;
-                            graphics.CompositingQuality = CompositingQuality.HighSpeed;
+                            graphics.InterpolationMode = InterpolationMode.HighQualityBilinear;
+                            graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                            graphics.CompositingQuality = CompositingQuality.HighQuality;
                         }
 
                         // An unwanted border appears when using InterpolationMode.HighQualityBicubic to resize the image
@@ -154,7 +191,8 @@ namespace ImageProcessor.Processors
                         using (ImageAttributes wrapMode = new ImageAttributes())
                         {
                             wrapMode.SetWrapMode(WrapMode.TileFlipXY);
-                            Rectangle destRect = new Rectangle(0, 0, width, height);
+                            graphics.Clear(backgroundColor);
+                            Rectangle destRect = new Rectangle(destinationX, destinationY, destinationWidth, destinationHeight);
                             graphics.DrawImage(image, destRect, 0, 0, sourceWidth, sourceHeight, GraphicsUnit.Pixel, wrapMode);
                         }
 

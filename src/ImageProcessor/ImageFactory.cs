@@ -375,8 +375,6 @@ namespace ImageProcessor
             return this;
         }
 
-
-
         /// <summary>
         /// Crops the current image to the given location and size.
         /// </summary>

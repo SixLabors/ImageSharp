@@ -15,6 +15,8 @@ namespace ImageProcessor.Processors
     using System.Drawing;
     using System.Text.RegularExpressions;
     using ImageProcessor.Helpers.Extensions;
+    using ImageProcessor.Imaging;
+
     #endregion
 
     /// <summary>
@@ -126,7 +128,7 @@ namespace ImageProcessor.Processors
                 int.TryParse(this.Settings["MaxWidth"], out defaultMaxWidth);
                 int.TryParse(this.Settings["MaxHeight"], out defaultMaxHeight);
 
-                return this.ResizeImage(factory, newSize.Width, newSize.Height, defaultMaxWidth, defaultMaxHeight);
+                return this.ResizeImage(factory, newSize.Width, newSize.Height, defaultMaxWidth, defaultMaxHeight, ResizeMode.Pad, Color.Transparent);
             }
 
             return factory.Image;

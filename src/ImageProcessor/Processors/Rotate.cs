@@ -24,7 +24,7 @@ namespace ImageProcessor.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"rotate=((?:3[0-5][0-9]|[12][0-9]{2}|[1-9][0-9]?)|angle-(?:3[0-5][0-9]|[12][0-9]{2}|[1-9][0-9]?)\|bgcolor-([0-9a-fA-F]{3}){1,2})", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"rotate=((?:3[0-5][0-9]|[12][0-9]{2}|[1-9][0-9]?)|angle-(?:3[0-5][0-9]|[12][0-9]{2}|[1-9][0-9]?)[\|,]bgcolor-([0-9a-fA-F]{3}){1,2})", RegexOptions.Compiled);
 
         /// <summary>
         /// The regular expression to search strings for the angle attribute.

@@ -1,9 +1,12 @@
-﻿// -----------------------------------------------------------------------
+﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="Alpha.cs" company="James South">
-//     Copyright (c) James South.
-//     Licensed under the Apache License, Version 2.0.
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
 // </copyright>
-// -----------------------------------------------------------------------
+// <summary>
+//   Encapsulates methods to change the alpha component of the image to effect its transparency.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Processors
 {
@@ -119,7 +122,8 @@ namespace ImageProcessor.Processors
             {
                 int alphaPercent = this.DynamicParameter;
 
-                // Dont use an object initializer here.
+                // Don't use an object initializer here.
+                // ReSharper disable once UseObjectOrCollectionInitializer
                 newImage = new Bitmap(image.Width, image.Height, PixelFormat.Format32bppPArgb);
                 newImage.Tag = image.Tag;
 

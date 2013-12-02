@@ -30,7 +30,7 @@ namespace ImageProcessor.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"((width|height)=\d+)|(mode=(pad|stretch|crop))|(bgcolor-([0-9a-fA-F]{3}){1,2})", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"((width|height)=\d+)|(mode=(pad|stretch|crop))|(bgcolor=([0-9a-fA-F]{3}){1,2})", RegexOptions.Compiled);
 
         /// <summary>
         /// The regular expression to search strings for the size attribute.
@@ -45,7 +45,7 @@ namespace ImageProcessor.Processors
         /// <summary>
         /// The regular expression to search strings for the color attribute.
         /// </summary>
-        private static readonly Regex ColorRegex = new Regex(@"bgcolor-([0-9a-fA-F]{3}){1,2}", RegexOptions.Compiled);
+        private static readonly Regex ColorRegex = new Regex(@"bgcolor=([0-9a-fA-F]{3}){1,2}", RegexOptions.Compiled);
 
         #region IGraphicsProcessor Members
         /// <summary>
@@ -249,8 +249,8 @@ namespace ImageProcessor.Processors
         {
             foreach (Match match in ColorRegex.Matches(input))
             {
-                // split on color-hex
-                return ColorTranslator.FromHtml("#" + match.Value.Split('-')[1]);
+                // Split on color-hex
+                return ColorTranslator.FromHtml("#" + match.Value.Split('=')[1]);
             }
 
             return Color.Transparent;

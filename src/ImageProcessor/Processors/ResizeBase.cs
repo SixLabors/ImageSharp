@@ -90,16 +90,27 @@ namespace ImageProcessor.Processors
         /// <param name="defaultMaxHeight">
         /// The default max height to resize the image to.
         /// </param>
-        /// <param name="resizeMode">
-        /// Whether to pad the image to fill the set size.
-        /// </param>
         /// <param name="backgroundColor">
         /// The background color to pad the image with.
+        /// </param>
+        /// <param name="resizeMode">
+        /// The mode with which to resize the image.
+        /// </param>
+        /// <param name="anchorPosition">
+        /// The anchor position to place the image at.
         /// </param>
         /// <returns>
         /// The processed image from the current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
         /// </returns>
-        protected Image ResizeImage(ImageFactory factory, int width, int height, int defaultMaxWidth, int defaultMaxHeight, ResizeMode resizeMode, Color backgroundColor)
+        protected Image ResizeImage(
+            ImageFactory factory,
+            int width,
+            int height,
+            int defaultMaxWidth,
+            int defaultMaxHeight,
+            Color backgroundColor,
+            ResizeMode resizeMode = ResizeMode.Pad,
+            AnchorPosition anchorPosition = AnchorPosition.Center)
         {
             Bitmap newImage = null;
             Image image = factory.Image;
@@ -139,6 +150,52 @@ namespace ImageProcessor.Processors
                         ratio = percentWidth;
                         destinationY = (int)((height - (sourceHeight * ratio)) / 2);
                         destinationHeight = (int)Math.Floor(sourceHeight * percentWidth);
+                    }
+                }
+
+                // Change the destination rectangle coordinates if cropping and 
+                // there has been a set width and height.
+                if (resizeMode == ResizeMode.Crop && width > 0 && height > 0)
+                {
+                    double ratio;
+
+                    if (percentHeight < percentWidth)
+                    {
+                        ratio = percentWidth;
+
+                        switch (anchorPosition)
+                        {
+                            case AnchorPosition.Top:
+                                destinationY = 0;
+                                break;
+                            case AnchorPosition.Bottom:
+                                destinationY = (int)(height - (sourceHeight * ratio));
+                                break;
+                            default:
+                                destinationY = (int)((height - (sourceHeight * ratio)) / 2);
+                                break;
+                        }
+
+                        destinationHeight = (int)Math.Floor(sourceHeight * percentWidth);
+                    }
+                    else
+                    {
+                        ratio = percentHeight;
+
+                        switch (anchorPosition)
+                        {
+                            case AnchorPosition.Left:
+                                destinationX = 0;
+                                break;
+                            case AnchorPosition.Right:
+                                destinationX = (int)(width - (sourceWidth * ratio));
+                                break;
+                            default:
+                                destinationX = (int)((width - (sourceWidth * ratio)) / 2);
+                                break;
+                        }
+
+                        destinationWidth = (int)Math.Floor(sourceWidth * percentHeight);
                     }
                 }
 

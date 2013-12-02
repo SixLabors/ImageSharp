@@ -1,9 +1,12 @@
-﻿// -----------------------------------------------------------------------
+﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="Brightness.cs" company="James South">
-//     Copyright (c) James South.
-//     Licensed under the Apache License, Version 2.0.
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
 // </copyright>
-// -----------------------------------------------------------------------
+// <summary>
+//   Encapsulates methods to change the brightness component of the image.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Processors
 {
@@ -12,7 +15,6 @@ namespace ImageProcessor.Processors
     using System.Drawing;
     using System.Drawing.Imaging;
     using System.Text.RegularExpressions;
-    using ImageProcessor.Helpers.Extensions;
     #endregion
 
     /// <summary>
@@ -120,7 +122,8 @@ namespace ImageProcessor.Processors
             {
                 float brightnessFactor = (float)this.DynamicParameter / 100;
 
-                // Dont use an object initializer here.
+                // Don't use an object initializer here.
+                // ReSharper disable once UseObjectOrCollectionInitializer
                 newImage = new Bitmap(image.Width, image.Height, PixelFormat.Format32bppPArgb);
                 newImage.Tag = image.Tag;
 

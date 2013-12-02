@@ -30,17 +30,22 @@ namespace ImageProcessor.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"((width|height)=\d+)|(mode=(pad|stretch|crop))|(bgcolor=([0-9a-fA-F]{3}){1,2})", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"((width|height)=\d+)|(mode=(pad|stretch|crop|constrain))|(anchor=(top|bottom|left|right|center))|(bgcolor=([0-9a-fA-F]{3}){1,2})", RegexOptions.Compiled);
 
         /// <summary>
         /// The regular expression to search strings for the size attribute.
         /// </summary>
-        private static readonly Regex SizeRegex = new Regex(@"(width|height)=\d+");
+        private static readonly Regex SizeRegex = new Regex(@"(width|height)=\d+", RegexOptions.Compiled);
 
         /// <summary>
         /// The regular expression to search strings for the mode attribute.
         /// </summary>
-        private static readonly Regex ModeRegex = new Regex(@"mode=(pad|stretch|crop)");
+        private static readonly Regex ModeRegex = new Regex(@"mode=(pad|stretch|crop|constrain)", RegexOptions.Compiled);
+
+        /// <summary>
+        /// The regular expression to search strings for the anchor attribute.
+        /// </summary>
+        private static readonly Regex AnchorRegex = new Regex(@"anchor=(top|bottom|left|right|center)", RegexOptions.Compiled);
 
         /// <summary>
         /// The regular expression to search strings for the color attribute.
@@ -101,7 +106,6 @@ namespace ImageProcessor.Processors
 
             // Set the sort order to max to allow filtering.
             this.SortOrder = int.MaxValue;
-            ResizeLayer resizeLayer = new ResizeLayer();
 
             // First merge the matches so we can parse .
             StringBuilder stringBuilder = new StringBuilder();
@@ -125,9 +129,13 @@ namespace ImageProcessor.Processors
             // Match syntax
             string toParse = stringBuilder.ToString();
 
-            resizeLayer.Size = this.ParseSize(toParse);
-            resizeLayer.ResizeMode = this.ParseMode(toParse);
-            resizeLayer.BackgroundColor = this.ParseColor(toParse);
+            Size size = this.ParseSize(toParse);
+            ResizeLayer resizeLayer = new ResizeLayer(size)
+                                          {
+                                              ResizeMode = this.ParseMode(toParse),
+                                              AnchorPosition = this.ParsePosition(toParse),
+                                              BackgroundColor = this.ParseColor(toParse)
+                                          };
 
             this.DynamicParameter = resizeLayer;
             return this.SortOrder;
@@ -148,6 +156,7 @@ namespace ImageProcessor.Processors
             int width = this.DynamicParameter.Size.Width ?? 0;
             int height = this.DynamicParameter.Size.Height ?? 0;
             ResizeMode mode = this.DynamicParameter.ResizeMode;
+            AnchorPosition anchor = this.DynamicParameter.AnchorPosition;
             Color backgroundColor = this.DynamicParameter.BackgroundColor;
 
             int defaultMaxWidth;
@@ -155,7 +164,15 @@ namespace ImageProcessor.Processors
             int.TryParse(this.Settings["MaxWidth"], out defaultMaxWidth);
             int.TryParse(this.Settings["MaxHeight"], out defaultMaxHeight);
 
-            return this.ResizeImage(factory, width, height, defaultMaxWidth, defaultMaxHeight, mode, backgroundColor);
+            if (mode == ResizeMode.Constrain)
+            {
+                // Just use the old constrain plugin to handle the resize.
+                var constrainSettings = new Dictionary<string, string> { { "MaxWidth", defaultMaxWidth.ToString("G") }, { "MaxHeight", defaultMaxHeight.ToString("G") } };
+                Constrain constrain = new Constrain { DynamicParameter = new Size(width, height), Settings = constrainSettings };
+                return constrain.ProcessImage(factory);
+            }
+
+            return this.ResizeImage(factory, width, height, defaultMaxWidth, defaultMaxHeight, backgroundColor, mode, anchor);
         }
         #endregion
 
@@ -228,12 +245,50 @@ namespace ImageProcessor.Processors
                 {
                     case "stretch":
                         return ResizeMode.Stretch;
+                    case "crop":
+                        return ResizeMode.Crop;
+                    case "constrain":
+                        return ResizeMode.Constrain;
                     default:
                         return ResizeMode.Pad;
                 }
             }
 
             return ResizeMode.Pad;
+        }
+
+        /// <summary>
+        /// Returns the correct <see cref="AnchorPosition"/> for the given string.
+        /// </summary>
+        /// <param name="input">
+        /// The input string containing the value to parse.
+        /// </param>
+        /// <returns>
+        /// The correct <see cref="AnchorPosition"/>.
+        /// </returns>
+        private AnchorPosition ParsePosition(string input)
+        {
+            foreach (Match match in AnchorRegex.Matches(input))
+            {
+                // Split on =
+                string anchor = match.Value.Split('=')[1];
+
+                switch (anchor)
+                {
+                    case "top":
+                        return AnchorPosition.Top;
+                    case "bottom":
+                        return AnchorPosition.Bottom;
+                    case "left":
+                        return AnchorPosition.Left;
+                    case "right":
+                        return AnchorPosition.Right;
+                    default:
+                        return AnchorPosition.Center;
+                }
+            }
+
+            return AnchorPosition.Center;
         }
 
         /// <summary>

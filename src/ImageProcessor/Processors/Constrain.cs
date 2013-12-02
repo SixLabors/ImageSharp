@@ -128,7 +128,7 @@ namespace ImageProcessor.Processors
                 int.TryParse(this.Settings["MaxWidth"], out defaultMaxWidth);
                 int.TryParse(this.Settings["MaxHeight"], out defaultMaxHeight);
 
-                return this.ResizeImage(factory, newSize.Width, newSize.Height, defaultMaxWidth, defaultMaxHeight, ResizeMode.Pad, Color.Transparent);
+                return this.ResizeImage(factory, newSize.Width, newSize.Height, defaultMaxWidth, defaultMaxHeight, Color.Transparent);
             }
 
             return factory.Image;

@@ -144,7 +144,7 @@ namespace ImageProcessor.Processors
                         rectangle.Height = sourceHeight - rectangle.Y;
                     }
 
-                    // Dont use an object initializer here.
+                    // Don't use an object initializer here.
                     newImage = new Bitmap(rectangle.Width, rectangle.Height, PixelFormat.Format32bppPArgb);
                     newImage.Tag = image.Tag;
 

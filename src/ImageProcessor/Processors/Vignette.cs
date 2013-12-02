@@ -1,9 +1,12 @@
-﻿// -----------------------------------------------------------------------
+﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="Vignette.cs" company="James South">
-//     Copyright (c) James South.
-//     Licensed under the Apache License, Version 2.0.
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
 // </copyright>
-// -----------------------------------------------------------------------
+// <summary>
+//   Encapsulates methods with which to add a vignette image effect to an image.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Processors
 {
@@ -116,7 +119,7 @@ namespace ImageProcessor.Processors
 
             try
             {
-                // Dont use an object initializer here.
+                // Don't use an object initializer here.
                 newImage = new Bitmap(image);
                 newImage.Tag = image.Tag;
 

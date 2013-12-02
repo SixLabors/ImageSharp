@@ -1,9 +1,12 @@
-﻿// -----------------------------------------------------------------------
-// <copyright file="Saturate.cs" company="James South">
-//     Copyright (c) James South.
-//     Licensed under the Apache License, Version 2.0.
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="Saturation.cs" company="James South">
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
 // </copyright>
-// -----------------------------------------------------------------------
+// <summary>
+//   Encapsulates methods to change the saturation component of the image.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Processors
 {
@@ -134,7 +137,7 @@ namespace ImageProcessor.Processors
                 float saturationComplementG = 0.6094f * saturationComplement;
                 float saturationComplementB = 0.0820f * saturationComplement;
 
-                // Dont use an object initializer here.
+                // Don't use an object initializer here.
                 newImage = new Bitmap(image.Width, image.Height, PixelFormat.Format32bppPArgb);
                 newImage.Tag = image.Tag;
 

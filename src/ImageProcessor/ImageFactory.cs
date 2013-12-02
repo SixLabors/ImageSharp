@@ -500,7 +500,32 @@ namespace ImageProcessor
 
                 var resizeSettings = new Dictionary<string, string> { { "MaxWidth", width.ToString("G") }, { "MaxHeight", height.ToString("G") } };
 
-                Resize resize = new Resize { DynamicParameter = new Size(width, height), Settings = resizeSettings };
+                ResizeLayer resizeLayer = new ResizeLayer(new Size(width, height));
+
+                Resize resize = new Resize { DynamicParameter = resizeLayer, Settings = resizeSettings };
+
+                this.Image = resize.ProcessImage(this);
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Resizes the current image to the given dimensions.
+        /// </summary>
+        /// <param name="resizeLayer">
+        /// The <see cref="ResizeLayer"/> containing the properties required to resize the image.
+        /// </param>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory Resize(ResizeLayer resizeLayer)
+        {
+            if (this.ShouldProcess)
+            {
+                var resizeSettings = new Dictionary<string, string> { { "MaxWidth", resizeLayer.Size.Width.ToString("G") }, { "MaxHeight", resizeLayer.Size.Height.ToString("G") } };
+
+                Resize resize = new Resize { DynamicParameter = resizeLayer, Settings = resizeSettings };
 
                 this.Image = resize.ProcessImage(this);
             }

@@ -61,6 +61,7 @@
     <Compile Include="Helpers\Extensions\EnumExtensions.cs" />
     <Compile Include="Helpers\Extensions\StringExtensions.cs" />
     <Compile Include="ImageFactory.cs" />
+    <Compile Include="Imaging\AnchorPosition.cs" />
     <Compile Include="Imaging\ColorQuantizer.cs" />
     <Compile Include="Imaging\ResizeLayer.cs" />
     <Compile Include="Imaging\Filters\BlackWhiteMatrixFilter.cs" />

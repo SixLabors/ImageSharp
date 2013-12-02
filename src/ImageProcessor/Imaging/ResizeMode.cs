@@ -23,6 +23,16 @@ namespace ImageProcessor.Imaging
         /// <summary>
         /// Stretches the resized image to fit the bounds of its container.
         /// </summary>
-        Stretch
+        Stretch,
+
+        /// <summary>
+        /// Crops the resized image to fit the bounds of its container.
+        /// </summary>
+        Crop,
+
+        /// <summary>
+        /// Constrains the resized image to fit the bounds of its container.
+        /// </summary>
+        Constrain
     }
 }

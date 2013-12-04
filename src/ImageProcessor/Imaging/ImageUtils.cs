@@ -30,6 +30,11 @@ namespace ImageProcessor.Imaging
         private static readonly Regex FormatRegex = new Regex(@"(\.?)(j(pg|peg)|bmp|png|gif|ti(f|ff))", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.RightToLeft);
 
         /// <summary>
+        /// The image format regex for matching the file format at the end of a string.
+        /// </summary>
+        private static readonly Regex EndFormatRegex = new Regex(@"(\.)(j(pg|peg)|bmp|png|gif|ti(f|ff))$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.RightToLeft);
+
+        /// <summary>
         /// Returns the correct response type based on the given request path.
         /// </summary>
         /// <param name="request">
@@ -210,7 +215,7 @@ namespace ImageProcessor.Imaging
         /// <returns>True the value contains a valid image extension, otherwise false.</returns>
         public static bool IsValidImageExtension(string fileName)
         {
-            return FormatRegex.IsMatch(fileName);
+            return EndFormatRegex.IsMatch(fileName);
         }
 
         /// <summary>
@@ -235,6 +240,7 @@ namespace ImageProcessor.Imaging
         public static bool IsIndexed(Image image)
         {
             // Test value of flags using bitwise AND.
+            // ReSharper disable once BitwiseOperatorOnEnumWithoutFlags
             return (image.PixelFormat & PixelFormat.Indexed) != 0;
         }
     }

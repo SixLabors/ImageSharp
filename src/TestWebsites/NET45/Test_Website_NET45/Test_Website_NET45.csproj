@@ -118,7 +118,6 @@
     <Compile Include="App_Start\FilterConfig.cs" />
     <Compile Include="App_Start\RouteConfig.cs" />
     <Compile Include="App_Start\WebApiConfig.cs" />
-    <Content Include="Content\responsive-legacy.min.css" />
     <Content Include="Content\responsive.min.css" />
     <Content Include="Global.asax" />
     <Content Include="Images\1182076_e8c402e938_z.jpg" />
@@ -196,6 +195,24 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="config\imageprocessor\security.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Views\Home\Png.cshtml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Views\Home\Gif.cshtml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Views\Home\Bmp.cshtml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Views\Home\Png8.cshtml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Views\Home\Tiff.cshtml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Views\Home\External.cshtml" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

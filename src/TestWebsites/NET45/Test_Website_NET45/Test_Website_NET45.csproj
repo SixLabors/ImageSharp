@@ -188,7 +188,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="config\imageprocessor\cache.config" />
+    <Content Include="config\imageprocessor\cache.config">
+      <SubType>Designer</SubType>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <Content Include="config\imageprocessor\processing.config" />

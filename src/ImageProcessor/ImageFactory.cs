@@ -18,6 +18,8 @@ namespace ImageProcessor
     using System.Drawing.Imaging;
     using System.IO;
     using System.Linq;
+    using System.Threading;
+
     using ImageProcessor.Imaging;
     using ImageProcessor.Processors;
     #endregion
@@ -683,18 +685,39 @@ namespace ImageProcessor
                     {
                         ImageCodecInfo imageCodecInfo =
                             ImageCodecInfo.GetImageEncoders()
-                                .FirstOrDefault(
-                                    ici => ici.MimeType.Equals("image/jpeg", StringComparison.OrdinalIgnoreCase));
+                                .FirstOrDefault(ici => ici.MimeType.Equals("image/jpeg", StringComparison.OrdinalIgnoreCase));
 
                         if (imageCodecInfo != null)
                         {
-                            this.Image.Save(filePath, imageCodecInfo, encoderParameters);
+                            for (int i = 0; i < 3; i++)
+                            {
+                                try
+                                {
+                                    this.Image.Save(filePath, imageCodecInfo, encoderParameters);
+                                    break;
+                                }
+                                catch (IOException)
+                                {
+                                    Thread.Sleep(200);
+                                }
+                            }
                         }
                     }
                 }
                 else
                 {
-                    this.Image.Save(filePath, this.ImageFormat);
+                    for (int i = 0; i < 3; i++)
+                    {
+                        try
+                        {
+                            this.Image.Save(filePath, this.ImageFormat);
+                            break;
+                        }
+                        catch (IOException)
+                        {
+                            Thread.Sleep(200);
+                        }
+                    }
                 }
             }
 

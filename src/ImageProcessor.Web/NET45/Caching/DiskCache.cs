@@ -38,12 +38,6 @@ namespace ImageProcessor.Web.Caching
         internal static readonly int MaxFileCachedDuration = ImageProcessorConfig.Instance.MaxCacheDays;
 
         /// <summary>
-        /// The valid sub directory chars. This used in combination with the file limit per folder
-        /// allows the storage of 360,000 image files in the cache.
-        /// </summary>
-        private const string ValidSubDirectoryChars = "abcdefghijklmnopqrstuvwxyz0123456789";
-
-        /// <summary>
         /// The maximum number of files allowed in the directory.
         /// </summary>
         /// <remarks>
@@ -53,13 +47,7 @@ namespace ImageProcessor.Web.Caching
         /// <see cref="http://stackoverflow.com/questions/115882/how-do-you-deal-with-lots-of-small-files"/>
         /// <see cref="http://stackoverflow.com/questions/1638219/millions-of-small-graphics-files-and-how-to-overcome-slow-file-system-access-on"/>
         /// </remarks>
-        private const int MaxFilesCount = 10000;
-
-        /// <summary>
-        /// The regular expression to search strings for file extensions.
-        /// </summary>
-        private static readonly Regex FormatRegex = new Regex(
-            @"(jpeg|png|bmp|gif)", RegexOptions.RightToLeft | RegexOptions.Compiled);
+        private const int MaxFilesCount = 100;
 
         /// <summary>
         /// The regular expression to search strings for valid subfolder names.
@@ -142,62 +130,6 @@ namespace ImageProcessor.Web.Caching
 
         #region Methods
         #region Internal
-        /// <summary>
-        /// Creates the series of directories required to house our cached images.
-        /// The images are stored in paths that are based upon the MD5 of their full request path
-        /// taking the first and last characters of the hash to determine their location.
-        /// <example>~/cache/a/1/ab04g67p91.jpg</example>
-        /// This allows us to store 36 folders within 36 folders giving us a total of 12,960,000 images.
-        /// </summary>
-        /// <returns>
-        /// True if the directories are successfully created; otherwise, false.
-        /// </returns>
-        [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1650:ElementDocumentationMustBeSpelledCorrectly", Justification = "Reviewed. Suppression is OK here.")]
-        internal static bool CreateDirectories()
-        {
-            bool success = true;
-
-            try
-            {
-                // Split up our characters into an array to loop though.
-                char[] characters = ValidSubDirectoryChars.ToCharArray();
-
-                // Loop through and create the first level.
-                Parallel.ForEach(
-                    characters,
-                    (character, loop) =>
-                    {
-                        string firstSubPath = Path.Combine(AbsoluteCachePath, character.ToString(CultureInfo.InvariantCulture));
-                        DirectoryInfo directoryInfo = new DirectoryInfo(firstSubPath);
-
-                        if (!directoryInfo.Exists)
-                        {
-                            directoryInfo.Create();
-
-                            // Loop through and create the second level.
-                            Parallel.ForEach(
-                                characters,
-                                (subCharacter, subLoop) =>
-                                {
-                                    string secondSubPath = Path.Combine(firstSubPath, subCharacter.ToString(CultureInfo.InvariantCulture));
-                                    DirectoryInfo subDirectoryInfo = new DirectoryInfo(secondSubPath);
-
-                                    if (!subDirectoryInfo.Exists)
-                                    {
-                                        subDirectoryInfo.Create();
-                                    }
-                                });
-                        }
-                    });
-            }
-            catch
-            {
-                success = false;
-            }
-
-            return success;
-        }
-
         /// <summary>
         /// Gets the virtual path to the cached processed image.
         /// </summary>
@@ -407,12 +339,13 @@ namespace ImageProcessor.Web.Caching
             {
                 int groupCount = group.Count();
 
-                foreach (CleanupImage pair in group.OrderBy(x => x.ExpiresUtc))
+                foreach (CleanupImage image in group.OrderBy(x => x.ExpiresUtc))
                 {
                     // If the group count is equal to the max count minus 1 then we know we
                     // are counting down from a full directory not simply clearing out 
                     // expired items.
-                    if (groupCount == MaxFilesCount - 1)
+                    if (groupCount <= MaxFilesCount - 1
+                        && image.ExpiresUtc >= DateTime.UtcNow.AddDays(-MaxFileCachedDuration))
                     {
                         break;
                     }
@@ -420,7 +353,7 @@ namespace ImageProcessor.Web.Caching
                     try
                     {
                         // Remove from the cache and delete each CachedImage.
-                        FileInfo fileInfo = new FileInfo(pair.Path);
+                        FileInfo fileInfo = new FileInfo(image.Path);
                         string key = Path.GetFileNameWithoutExtension(fileInfo.Name);
 
                         if (await MemoryCache.Instance.RemoveAsync(key))
@@ -441,10 +374,10 @@ namespace ImageProcessor.Web.Caching
 
         /// <summary>
         /// Gets the full transformed cached path for the image. 
-        /// The images are stored in paths that are based upon the MD5 of their full request path
-        /// taking the first and last characters of the hash to determine their location.
-        /// <example>~/cache/a/1/ab04g67p91.jpg</example>
-        /// This allows us to store 36 folders within 36 folders giving us a total of 12,960,000 images.
+        /// The images are stored in paths that are based upon the sha1 of their full request path
+        /// taking the individual characters of the hash to determine their location.
+        /// This allows us to store 40 folders within 40 folders giving us a total of 3.0223145e+64 potential images.
+        /// Answers on a post card if you can figure out a way to store their details in a db for fast recovery. 
         /// </summary>
         /// <returns>The full cached path for the image.</returns>
         [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1650:ElementDocumentationMustBeSpelledCorrectly", Justification = "Reviewed. Suppression is OK here.")]
@@ -454,21 +387,21 @@ namespace ImageProcessor.Web.Caching
 
             if (AbsoluteCachePath != null)
             {
-                // Use an md5 hash of the full path including the querystring to create the image name. 
+                // Use an sha1 hash of the full path including the querystring to create the image name. 
                 // That name can also be used as a key for the cached image and we should be able to use 
-                // The first character of that hash as a subfolder.
+                // The characters of that hash as subfolders.
                 string parsedExtension = ImageUtils.GetExtension(this.fullPath);
                 string fallbackExtension = this.imageName.Substring(this.imageName.LastIndexOf(".", StringComparison.Ordinal) + 1);
-                string encryptedName = this.fullPath.ToMD5Fingerprint();
-                string firstSubpath = encryptedName.Substring(0, 1);
-                string secondSubpath = encryptedName.Substring(31, 1);
+                string encryptedName = this.fullPath.ToSHA1Fingerprint();
+
+                string pathFromKey = string.Join("\\", encryptedName.ToCharArray());
 
                 string cachedFileName = string.Format(
                     "{0}.{1}",
                     encryptedName,
                     !string.IsNullOrWhiteSpace(parsedExtension) ? parsedExtension.Replace(".", string.Empty) : fallbackExtension);
 
-                cachedPath = Path.Combine(AbsoluteCachePath, firstSubpath, secondSubpath, cachedFileName);
+                cachedPath = Path.Combine(AbsoluteCachePath, pathFromKey, cachedFileName);
             }
 
             return cachedPath;

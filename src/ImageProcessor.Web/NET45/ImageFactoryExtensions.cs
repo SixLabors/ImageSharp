@@ -54,6 +54,12 @@ namespace ImageProcessor.Web
                     {
                         Image img = graphicsProcessor.ProcessImage(factory);
                         factory.Update(img);
+                        
+                        // Break to prevent loop as Preset calls AutoProcess internally.
+                        if (graphicsProcessor.GetType() == typeof(Preset))
+                        {
+                            break;
+                        }
                     }
                 }
             }

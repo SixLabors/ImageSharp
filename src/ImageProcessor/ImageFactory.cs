@@ -677,6 +677,9 @@ namespace ImageProcessor
                 // Fix the colour palette of indexed images.
                 this.FixIndexedPallete();
 
+                // ReSharper disable once AssignNullToNotNullAttribute
+                DirectoryInfo directoryInfo = new DirectoryInfo(Path.GetDirectoryName(filePath));
+
                 if (this.ImageFormat.Equals(ImageFormat.Jpeg))
                 {
                     // Jpegs can be saved with different settings to include a quality setting for the JPEG compression.
@@ -693,6 +696,11 @@ namespace ImageProcessor
                             {
                                 try
                                 {
+                                    if (!directoryInfo.Exists)
+                                    {
+                                        directoryInfo.Create();
+                                    }
+
                                     this.Image.Save(filePath, imageCodecInfo, encoderParameters);
                                     break;
                                 }
@@ -710,6 +718,11 @@ namespace ImageProcessor
                     {
                         try
                         {
+                            if (!directoryInfo.Exists)
+                            {
+                                directoryInfo.Create();
+                            }
+
                             this.Image.Save(filePath, this.ImageFormat);
                             break;
                         }

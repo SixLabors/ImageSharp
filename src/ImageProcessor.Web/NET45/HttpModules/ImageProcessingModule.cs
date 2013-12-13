@@ -303,7 +303,7 @@ namespace ImageProcessor.Web.HttpModules
                                                 DateTime dateTime = await cache.SetCachedLastWriteTimeAsync();
 
                                                 // Add to the cache.
-                                                await cache.AddImageToCacheAsync(dateTime);
+                                                cache.AddImageToCache(dateTime);
 
                                                 // Trim the cache.
                                                 await cache.TrimCachedFolderAsync(cachedPath);
@@ -320,7 +320,7 @@ namespace ImageProcessor.Web.HttpModules
                                 DateTime dateTime = await cache.SetCachedLastWriteTimeAsync();
 
                                 // Add to the cache.
-                                await cache.AddImageToCacheAsync(dateTime);
+                                cache.AddImageToCache(dateTime);
 
                                 // Trim the cache.
                                 await cache.TrimCachedFolderAsync(cachedPath);

@@ -12,11 +12,11 @@ namespace ImageProcessor.Web.Caching
 {
     #region Using
     using System;
+    using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
     using System.Globalization;
     using System.IO;
     using System.Linq;
-    using System.Text.RegularExpressions;
     using System.Threading.Tasks;
     using System.Web;
     using System.Web.Hosting;
@@ -47,17 +47,7 @@ namespace ImageProcessor.Web.Caching
         /// <see cref="http://stackoverflow.com/questions/115882/how-do-you-deal-with-lots-of-small-files"/>
         /// <see cref="http://stackoverflow.com/questions/1638219/millions-of-small-graphics-files-and-how-to-overcome-slow-file-system-access-on"/>
         /// </remarks>
-        private const int MaxFilesCount = 100;
-
-        /// <summary>
-        /// The regular expression to search strings for valid subfolder names.
-        /// We're specifically not using a shorter regex as we need to be able to iterate through
-        /// each match group.
-        /// </summary>
-        private static readonly Regex SubFolderRegex =
-            new Regex(
-                @"(\/([a-z]|[0-9])\/(a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z|0|1|2|3|4|5|6|7|8|9)\/)",
-                RegexOptions.Compiled);
+        private const int MaxFilesCount = 50;
 
         /// <summary>
         /// The absolute path to virtual cache path on the server.
@@ -171,7 +161,7 @@ namespace ImageProcessor.Web.Caching
                                               ExpiresUtc = expires
                                           };
 
-            await MemoryCache.Instance.AddAsync(key, cachedImage);
+            await CacheIndexer.Instance.AddAsync(key, cachedImage);
         }
 
         /// <summary>
@@ -188,7 +178,7 @@ namespace ImageProcessor.Web.Caching
 
             if (this.isRemote)
             {
-                cachedImage = await MemoryCache.Instance.GetValueAsync(key);
+                cachedImage = await CacheIndexer.Instance.GetValueAsync(key);
 
                 if (cachedImage != null)
                 {
@@ -197,7 +187,7 @@ namespace ImageProcessor.Web.Caching
                     if (cachedImage.ExpiresUtc < DateTime.UtcNow.AddDays(-MaxFileCachedDuration)
                         || cachedImage.MaxAge != MaxFileCachedDuration)
                     {
-                        if (await MemoryCache.Instance.RemoveAsync(key))
+                        if (await CacheIndexer.Instance.RemoveAsync(key))
                         {
                             isUpdated = true;
                         }
@@ -212,7 +202,7 @@ namespace ImageProcessor.Web.Caching
             else
             {
                 // Test now for locally requested files.
-                cachedImage = await MemoryCache.Instance.GetValueAsync(key);
+                cachedImage = await CacheIndexer.Instance.GetValueAsync(key);
 
                 if (cachedImage != null)
                 {
@@ -226,7 +216,7 @@ namespace ImageProcessor.Web.Caching
                             || cachedImage.ExpiresUtc < DateTime.UtcNow.AddDays(-MaxFileCachedDuration)
                             || cachedImage.MaxAge != MaxFileCachedDuration)
                         {
-                            if (await MemoryCache.Instance.RemoveAsync(key))
+                            if (await CacheIndexer.Instance.RemoveAsync(key))
                             {
                                 isUpdated = true;
                             }
@@ -254,7 +244,7 @@ namespace ImageProcessor.Web.Caching
             string key = Path.GetFileNameWithoutExtension(this.CachedPath);
             DateTime dateTime = DateTime.UtcNow;
 
-            CachedImage cachedImage = await MemoryCache.Instance.GetValueAsync(key);
+            CachedImage cachedImage = await CacheIndexer.Instance.GetValueAsync(key);
 
             if (cachedImage != null)
             {
@@ -277,15 +267,17 @@ namespace ImageProcessor.Web.Caching
         }
 
         /// <summary>
-        /// Purges any files from the file-system cache in the given folders.
+        /// Trims a cached folder ensuring that it does not exceed the maximum file count.
         /// </summary>
+        /// <param name="path">
+        /// The path to the folder.
+        /// </param>
         /// <returns>
         /// The <see cref="T:System.Threading.Tasks.Task"/>.
         /// </returns>
-        internal async Task TrimCachedFoldersAsync()
+        internal async Task TrimCachedFolderAsync(string path)
         {
-            // Create Action delegate for TrimCachedFolders.
-            await TaskHelpers.Run(this.TrimCachedFolders);
+            await TaskHelpers.Run(() => this.TrimCachedFolder(path));
         }
         #endregion
 
@@ -325,49 +317,41 @@ namespace ImageProcessor.Web.Caching
         }
 
         /// <summary>
-        /// Purges any files from the file-system cache in the given folders.
+        /// Trims a cached folder ensuring that it does not exceed the maximum file count.
         /// </summary>
-        private async void TrimCachedFolders()
+        /// <param name="path">
+        /// The path to the folder.
+        /// </param>
+        private async void TrimCachedFolder(string path)
         {
-            // Group each cache folder and clear any expired items or any that exceed
-            // the maximum allowable count.
-            var groups = SQLContext.GetImagesForCleanup()
-                .GroupBy(x => SubFolderRegex.Match(x.Path).Value)
-                .Where(g => g.Count() > MaxFilesCount);
+            // ReSharper disable once AssignNullToNotNullAttribute
+            DirectoryInfo directoryInfo = new DirectoryInfo(Path.GetDirectoryName(path));
+            IEnumerable<FileInfo> files = directoryInfo.EnumerateFiles().OrderBy(f => f.LastWriteTimeUtc);
+            int count = files.Count();
 
-            foreach (var group in groups)
+            foreach (FileInfo fileInfo in files)
             {
-                int groupCount = group.Count();
-
-                foreach (CleanupImage image in group.OrderBy(x => x.ExpiresUtc))
+                try
                 {
                     // If the group count is equal to the max count minus 1 then we know we
-                    // are counting down from a full directory not simply clearing out 
-                    // expired items.
-                    if (groupCount <= MaxFilesCount - 1
-                        && image.ExpiresUtc >= DateTime.UtcNow.AddDays(-MaxFileCachedDuration))
+                    // have reduced the number of items below the maximum allowed.
+                    if (count <= MaxFilesCount - 1)
                     {
                         break;
                     }
 
-                    try
+                    // Remove from the cache and delete each CachedImage.
+                    string key = Path.GetFileNameWithoutExtension(fileInfo.Name);
+                    if (await CacheIndexer.Instance.RemoveAsync(key))
                     {
-                        // Remove from the cache and delete each CachedImage.
-                        FileInfo fileInfo = new FileInfo(image.Path);
-                        string key = Path.GetFileNameWithoutExtension(fileInfo.Name);
-
-                        if (await MemoryCache.Instance.RemoveAsync(key))
-                        {
-                            fileInfo.Delete();
-                            groupCount -= 1;
-                        }
+                        fileInfo.Delete();
+                        count -= 1;
                     }
-                    // ReSharper disable EmptyGeneralCatchClause
-                    catch
-                    // ReSharper restore EmptyGeneralCatchClause
-                    {
-                        // Do nothing; skip to the next file.
-                    }
+                }
+                // ReSharper disable once EmptyGeneralCatchClause
+                catch
+                {
+                    // Do nothing; skip to the next file.
                 }
             }
         }
@@ -376,8 +360,8 @@ namespace ImageProcessor.Web.Caching
         /// Gets the full transformed cached path for the image. 
         /// The images are stored in paths that are based upon the sha1 of their full request path
         /// taking the individual characters of the hash to determine their location.
-        /// This allows us to store 40 folders within 40 folders giving us a total of 3.0223145e+64 potential images.
-        /// Answers on a post card if you can figure out a way to store their details in a db for fast recovery. 
+        /// This allows us to store millions of images.
+        /// Answers on a post card if you can figure out a way to store that many details in a db for fast recovery. 
         /// </summary>
         /// <returns>The full cached path for the image.</returns>
         [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1650:ElementDocumentationMustBeSpelledCorrectly", Justification = "Reviewed. Suppression is OK here.")]
@@ -394,7 +378,8 @@ namespace ImageProcessor.Web.Caching
                 string fallbackExtension = this.imageName.Substring(this.imageName.LastIndexOf(".", StringComparison.Ordinal) + 1);
                 string encryptedName = this.fullPath.ToSHA1Fingerprint();
 
-                string pathFromKey = string.Join("\\", encryptedName.ToCharArray());
+                // Collision rate of about 1 in 1000 for the folder structure.
+                string pathFromKey = string.Join("\\", encryptedName.ToCharArray().Take(5));
 
                 string cachedFileName = string.Format(
                     "{0}.{1}",

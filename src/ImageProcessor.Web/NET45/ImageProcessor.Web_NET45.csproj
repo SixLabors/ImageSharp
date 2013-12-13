@@ -50,10 +50,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Caching\CachedImage.cs" />
-    <Compile Include="Caching\CacheManager.cs" />
-    <Compile Include="Caching\CleanupImage.cs" />
+    <Compile Include="Caching\MemCache.cs" />
     <Compile Include="Caching\DiskCache.cs" />
-    <Compile Include="Caching\MemoryCache.cs" />
+    <Compile Include="Caching\CacheIndexer.cs" />
     <Compile Include="Caching\SQLContext.cs" />
     <Compile Include="Config\ImageCacheSection.cs" />
     <Compile Include="Config\ImageProcessingSection.cs" />

@@ -1,10 +1,10 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="CacheManager.cs" company="James South">
+// <copyright file="MemCache.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   Encapsulates methods that allow the caching and retrieval of objects.
+//   Encapsulates methods that allow the caching and retrieval of objects from the in memory cache.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -17,15 +17,15 @@ namespace ImageProcessor.Web.Caching
     #endregion
 
     /// <summary>
-    /// Encapsulates methods that allow the caching and retrieval of objects.
+    /// Encapsulates methods that allow the caching and retrieval of objects from the in memory cache.
     /// </summary>
-    public static class CacheManager
+    internal static class MemCache
     {
         #region Fields
         /// <summary>
         /// The cache
         /// </summary>
-        private static readonly ObjectCache Cache = System.Runtime.Caching.MemoryCache.Default;
+        private static readonly ObjectCache Cache = MemoryCache.Default;
 
         /// <summary>
         /// An internal list of cache keys to allow bulk removal.
@@ -98,8 +98,6 @@ namespace ImageProcessor.Web.Caching
         {
             return Cache.Get(key, regionName);
         }
-
-        //public static bool
 
         /// <summary>
         /// Updates an item to the cache.

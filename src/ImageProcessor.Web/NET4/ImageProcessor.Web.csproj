@@ -45,6 +45,7 @@
     <Reference Include="Community.CsharpSqlite.SQLiteClient">
       <HintPath>..\..\packages\Csharp-Sqlite.3.7.7.1\lib\net40\Community.CsharpSqlite.SQLiteClient.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.CSharp" />
     <Reference Include="Microsoft.Threading.Tasks, Version=1.0.12.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\packages\Microsoft.Bcl.Async.1.0.16\lib\net40\Microsoft.Threading.Tasks.dll</HintPath>
@@ -74,15 +75,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\NET45\Caching\CachedImage.cs" />
-    <Compile Include="..\NET45\Caching\CacheManager.cs">
-      <Link>CacheManager.cs</Link>
-    </Compile>
-    <Compile Include="..\NET45\Caching\CleanupImage.cs">
-      <Link>CleanupImage.cs</Link>
+    <Compile Include="..\NET45\Caching\CacheIndexer.cs">
+      <Link>CacheIndexer.cs</Link>
     </Compile>
     <Compile Include="..\NET45\Caching\DiskCache.cs" />
-    <Compile Include="..\NET45\Caching\MemoryCache.cs">
-      <Link>MemoryCache.cs</Link>
+    <Compile Include="..\NET45\Caching\MemCache.cs">
+      <Link>MemCache.cs</Link>
     </Compile>
     <Compile Include="..\NET45\Caching\SQLContext.cs" />
     <Compile Include="..\NET45\Config\ImageCacheSection.cs" />
@@ -93,6 +91,9 @@
     <Compile Include="..\NET45\Helpers\TaskHelpers.cs" />
     <Compile Include="..\NET45\HttpModules\ImageProcessingModule.cs" />
     <Compile Include="..\NET45\ImageFactoryExtensions.cs" />
+    <Compile Include="..\NET45\Preset.cs">
+      <Link>Preset.cs</Link>
+    </Compile>
     <Compile Include="..\NET45\Properties\AssemblyInfo.cs" />
     <Compile Include="..\NET45\SQLite.cs" />
     <Compile Include="..\NET45\SQLiteAsync.cs" />

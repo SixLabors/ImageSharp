@@ -1,24 +1,21 @@
-﻿// -----------------------------------------------------------------------
+﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="SQLContext.cs" company="James South">
-//     Copyright (c) James South.
-//     Licensed under the Apache License, Version 2.0.
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
 // </copyright>
-// -----------------------------------------------------------------------
+// <summary>
+//   Provides a wrapper for the SQLite functionality.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Web.Caching
 {
     #region Using
-
-    using System;
-    using System.Collections.Generic;
     using System.IO;
     using System.Threading.Tasks;
     using System.Web.Hosting;
     using ImageProcessor.Web.Config;
-    using ImageProcessor.Web.Helpers;
-
     using SQLite;
-
     #endregion
 
     /// <summary>
@@ -76,31 +73,6 @@ namespace ImageProcessor.Web.Caching
             catch
             {
                 throw;
-            }
-        }
-
-        /// <summary>
-        /// Gets all the images from the database.
-        /// </summary>
-        /// <returns>
-        /// The <see cref="System.Collections.Generic.List{CleanupImage}"/>.
-        /// </returns>
-        internal static List<CleanupImage> GetImagesForCleanup()
-        {
-            try
-            {
-                List<CleanupImage> images;
-                using (SQLiteConnection connection = new SQLiteConnection(ConnectionString))
-                {
-                    images = connection.Query<CleanupImage>("SELECT Path,ExpiresUtc FROM CachedImage");
-                }
-
-                return images;
-
-            }
-            catch
-            {
-                return new List<CleanupImage>();
             }
         }
 

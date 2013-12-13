@@ -11,73 +11,42 @@
 namespace ImageProcessor.Web.Caching
 {
     #region Using
-    using System;
+
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Runtime.Caching;
     using System.Threading.Tasks;
+    using ImageProcessor.Web.Helpers;
     #endregion
 
     /// <summary>
     /// Represents an in memory collection of keys and values whose operations are concurrent.
     /// </summary>
-    internal sealed class CacheIndexer
+    internal static class CacheIndexer
     {
-        #region Fields
-        /// <summary>
-        /// A new instance Initializes a new instance of the <see cref="T:ImageProcessor.Web.Caching.CacheIndexer"/> class.
-        /// initialized lazily.
-        /// </summary>
-        private static readonly Lazy<CacheIndexer> Lazy =
-                        new Lazy<CacheIndexer>(() => new CacheIndexer());
-
-        /// <summary>
-        /// The object to lock against.
-        /// </summary>
-        private static readonly object SyncRoot = new object();
-        #endregion
-
-        #region Constructors
-        /// <summary>
-        /// Prevents a default instance of the <see cref="T:ImageProcessor.Web.Caching.CacheIndexer"/> class 
-        /// from being created. 
-        /// </summary>
-        private CacheIndexer()
-        {
-            this.LoadCache();
-        }
-        #endregion
-
-        /// <summary>
-        /// Gets the current instance of the <see cref="T:ImageProcessor.Web.Caching.CacheIndexer"/> class.
-        /// </summary>
-        public static CacheIndexer Instance
-        {
-            get
-            {
-                return Lazy.Value;
-            }
-        }
-
         #region Public
         /// <summary>
         /// Gets the <see cref="CachedImage"/> associated with the specified key.
         /// </summary>
-        /// <param name="key">
-        /// The key of the value to get.
+        /// <param name="cachedPath">
+        /// The cached path of the value to get.
         /// </param>
         /// <returns>
         /// The <see cref="CachedImage"/> matching the given key if the <see cref="CacheIndexer"/> contains an element with 
         /// the specified key; otherwise, null.
         /// </returns>
-        public async Task<CachedImage> GetValueAsync(string key)
+        public static async Task<CachedImage> GetValueAsync(string cachedPath)
         {
+            string key = Path.GetFileNameWithoutExtension(cachedPath);
             CachedImage cachedImage = (CachedImage)MemCache.GetItem(key);
 
             if (cachedImage == null)
             {
-                cachedImage = await SQLContext.GetImageAsync(key);
+                cachedImage = await TaskHelpers.Run(() => GetCachedImage(cachedPath));
 
                 if (cachedImage != null)
                 {
-                    MemCache.AddItem(key, cachedImage);
+                    Add(cachedImage);
                 }
             }
 
@@ -87,89 +56,63 @@ namespace ImageProcessor.Web.Caching
         /// <summary>
         /// Removes the value associated with the specified key.
         /// </summary>
-        /// <param name="key">
+        /// <param name="cachedPath">
         /// The key of the item to remove.
         /// </param>
         /// <returns>
         /// true if the <see cref="CacheIndexer"/> removes an element with 
         /// the specified key; otherwise, false.
         /// </returns>
-        public async Task<bool> RemoveAsync(string key)
+        public static bool Remove(string cachedPath)
         {
-            if (await this.SaveCacheAsync(key, null, true) > 0)
-            {
-                MemCache.RemoveItem(key);
-                return true;
-            }
-
-            return false;
+            string key = Path.GetFileNameWithoutExtension(cachedPath);
+            return MemCache.RemoveItem(key);
         }
 
         /// <summary>
         /// Adds the specified key and value to the dictionary or returns the value if it exists.
         /// </summary>
-        /// <param name="key">
-        /// The key.
-        /// </param>
         /// <param name="cachedImage">
         /// The cached image to add.
         /// </param>
         /// <returns>
         /// The value of the item to add or get.
         /// </returns>
-        public async Task<CachedImage> AddAsync(string key, CachedImage cachedImage)
+        public static CachedImage Add(CachedImage cachedImage)
         {
             // Add the CachedImage.
-            if (await this.SaveCacheAsync(key, cachedImage, false) > 0)
-            {
-                MemCache.AddItem(key, cachedImage);
-            }
+            CacheItemPolicy policy = new CacheItemPolicy();
+            policy.ChangeMonitors.Add(new HostFileChangeMonitor(new List<string>() { cachedImage.Path }));
 
+            MemCache.AddItem(cachedImage.Key, cachedImage, policy);
             return cachedImage;
         }
         #endregion
 
         /// <summary>
-        /// Saves the image to the file-system cache.
+        /// Creates a new cached image from the cache instance on disk.
         /// </summary>
-        /// <param name="key">
-        /// The key.
-        /// </param>
-        /// <param name="cachedImage">
-        /// The cached Image.
-        /// </param>
-        /// <param name="remove">
-        /// The remove.
+        /// <param name="cachePath">
+        /// The cache path.
         /// </param>
         /// <returns>
-        /// true, if the dictionary is saved to the file-system; otherwise, false.
+        /// The <see cref="CachedImage"/> from the cache instance on disk.
         /// </returns>
-        private async Task<int> SaveCacheAsync(string key, CachedImage cachedImage, bool remove)
+        private static CachedImage GetCachedImage(string cachePath)
         {
-            try
-            {
-                if (remove)
-                {
-                    return await SQLContext.RemoveImageAsync(key);
-                }
+            FileInfo fileInfo = new FileInfo(cachePath);
 
-                return await SQLContext.AddImageAsync(cachedImage);
-            }
-            catch
+            if (!fileInfo.Exists)
             {
-                return 0;
+                return null;
             }
-        }
 
-        /// <summary>
-        /// Loads the cache file to populate the in memory cache.
-        /// </summary>
-        private void LoadCache()
-        {
-            lock (SyncRoot)
+            return new CachedImage
             {
-                SQLContext.CreateDatabase();
-            }
+                Key = Path.GetFileNameWithoutExtension(cachePath),
+                Path = cachePath,
+                LastWriteTimeUtc = fileInfo.LastWriteTimeUtc
+            };
         }
     }
 }

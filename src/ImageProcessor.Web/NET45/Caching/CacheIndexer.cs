@@ -1,10 +1,10 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="MemoryCache.cs" company="James South">
+// <copyright file="CacheIndexer.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   
+//   Represents an in memory collection of keys and values whose operations are concurrent.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -18,15 +18,15 @@ namespace ImageProcessor.Web.Caching
     /// <summary>
     /// Represents an in memory collection of keys and values whose operations are concurrent.
     /// </summary>
-    internal sealed class MemoryCache
+    internal sealed class CacheIndexer
     {
         #region Fields
         /// <summary>
-        /// A new instance Initializes a new instance of the <see cref="T:ImageProcessor.Web.Caching.MemoryCache"/> class.
+        /// A new instance Initializes a new instance of the <see cref="T:ImageProcessor.Web.Caching.CacheIndexer"/> class.
         /// initialized lazily.
         /// </summary>
-        private static readonly Lazy<MemoryCache> Lazy =
-                        new Lazy<MemoryCache>(() => new MemoryCache());
+        private static readonly Lazy<CacheIndexer> Lazy =
+                        new Lazy<CacheIndexer>(() => new CacheIndexer());
 
         /// <summary>
         /// The object to lock against.
@@ -36,19 +36,19 @@ namespace ImageProcessor.Web.Caching
 
         #region Constructors
         /// <summary>
-        /// Prevents a default instance of the <see cref="T:ImageProcessor.Web.Caching.MemoryCache"/> class 
+        /// Prevents a default instance of the <see cref="T:ImageProcessor.Web.Caching.CacheIndexer"/> class 
         /// from being created. 
         /// </summary>
-        private MemoryCache()
+        private CacheIndexer()
         {
             this.LoadCache();
         }
         #endregion
 
         /// <summary>
-        /// Gets the current instance of the <see cref="T:ImageProcessor.Web.Caching.MemoryCache"/> class.
+        /// Gets the current instance of the <see cref="T:ImageProcessor.Web.Caching.CacheIndexer"/> class.
         /// </summary>
-        public static MemoryCache Instance
+        public static CacheIndexer Instance
         {
             get
             {
@@ -64,12 +64,12 @@ namespace ImageProcessor.Web.Caching
         /// The key of the value to get.
         /// </param>
         /// <returns>
-        /// The <see cref="CachedImage"/> matching the given key if the <see cref="MemoryCache"/> contains an element with 
+        /// The <see cref="CachedImage"/> matching the given key if the <see cref="CacheIndexer"/> contains an element with 
         /// the specified key; otherwise, null.
         /// </returns>
         public async Task<CachedImage> GetValueAsync(string key)
         {
-            CachedImage cachedImage = (CachedImage)CacheManager.GetItem(key);
+            CachedImage cachedImage = (CachedImage)MemCache.GetItem(key);
 
             if (cachedImage == null)
             {
@@ -77,7 +77,7 @@ namespace ImageProcessor.Web.Caching
 
                 if (cachedImage != null)
                 {
-                    CacheManager.AddItem(key, cachedImage);
+                    MemCache.AddItem(key, cachedImage);
                 }
             }
 
@@ -91,14 +91,14 @@ namespace ImageProcessor.Web.Caching
         /// The key of the item to remove.
         /// </param>
         /// <returns>
-        /// true if the <see cref="MemoryCache"/> removes an element with 
+        /// true if the <see cref="CacheIndexer"/> removes an element with 
         /// the specified key; otherwise, false.
         /// </returns>
         public async Task<bool> RemoveAsync(string key)
         {
             if (await this.SaveCacheAsync(key, null, true) > 0)
             {
-                CacheManager.RemoveItem(key);
+                MemCache.RemoveItem(key);
                 return true;
             }
 
@@ -122,7 +122,7 @@ namespace ImageProcessor.Web.Caching
             // Add the CachedImage.
             if (await this.SaveCacheAsync(key, cachedImage, false) > 0)
             {
-                CacheManager.AddItem(key, cachedImage);
+                MemCache.AddItem(key, cachedImage);
             }
 
             return cachedImage;
@@ -130,7 +130,7 @@ namespace ImageProcessor.Web.Caching
         #endregion
 
         /// <summary>
-        /// Saves the in memory cache to the file-system.
+        /// Saves the image to the file-system cache.
         /// </summary>
         /// <param name="key">
         /// The key.

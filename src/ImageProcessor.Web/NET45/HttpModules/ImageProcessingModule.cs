@@ -20,12 +20,10 @@ namespace ImageProcessor.Web.HttpModules
     using System.Security;
     using System.Security.Permissions;
     using System.Security.Principal;
-    using System.Threading;
     using System.Threading.Tasks;
     using System.Web;
     using System.Web.Hosting;
     using System.Web.Security;
-
     using ImageProcessor.Helpers.Extensions;
     using ImageProcessor.Imaging;
     using ImageProcessor.Web.Caching;
@@ -53,16 +51,6 @@ namespace ImageProcessor.Web.HttpModules
         /// The assembly version.
         /// </summary>
         private static readonly string AssemblyVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
-
-        /// <summary>
-        /// The value that acts as a basis to check that the startup code has only been ran once.
-        /// </summary>
-        private static int initCheck;
-
-        /// <summary>
-        /// A value indicating whether the application has started.
-        /// </summary>
-        private readonly bool hasModuleInitialized = initCheck == 1;
         #endregion
 
         #region IHttpModule Members
@@ -76,12 +64,6 @@ namespace ImageProcessor.Web.HttpModules
         /// </param>
         public void Init(HttpApplication context)
         {
-            if (!this.hasModuleInitialized)
-            {
-                Interlocked.CompareExchange(ref initCheck, 1, 0);
-               // DiskCache.CreateDirectories();
-            }
-
 #if NET45
 
             EventHandlerTaskAsyncHelper wrapper = new EventHandlerTaskAsyncHelper(this.PostAuthorizeRequest);
@@ -288,6 +270,8 @@ namespace ImageProcessor.Web.HttpModules
                     // Only process if the file has been updated.
                     if (isNewOrUpdated)
                     {
+                        string cachedPath = cache.CachedPath;
+
                         // Process the image.
                         using (ImageFactory imageFactory = new ImageFactory())
                         {
@@ -308,21 +292,21 @@ namespace ImageProcessor.Web.HttpModules
                                         {
                                             if (responseStream != null)
                                             {
-                                                // Trim the cache.
-                                                await cache.TrimCachedFoldersAsync();
-
                                                 responseStream.CopyTo(memoryStream);
 
                                                 imageFactory.Load(memoryStream)
                                                     .AddQueryString(queryString)
                                                     .Format(ImageUtils.GetImageFormat(imageName))
-                                                    .AutoProcess().Save(cache.CachedPath);
+                                                    .AutoProcess().Save(cachedPath);
 
                                                 // Ensure that the LastWriteTime property of the source and cached file match.
                                                 DateTime dateTime = await cache.SetCachedLastWriteTimeAsync();
 
                                                 // Add to the cache.
                                                 await cache.AddImageToCacheAsync(dateTime);
+
+                                                // Trim the cache.
+                                                await cache.TrimCachedFolderAsync(cachedPath);
                                             }
                                         }
                                     }
@@ -330,16 +314,16 @@ namespace ImageProcessor.Web.HttpModules
                             }
                             else
                             {
-                                // Trim the cache.
-                                await cache.TrimCachedFoldersAsync();
-
-                                imageFactory.Load(fullPath).AutoProcess().Save(cache.CachedPath);
+                                imageFactory.Load(fullPath).AutoProcess().Save(cachedPath);
 
                                 // Ensure that the LastWriteTime property of the source and cached file match.
                                 DateTime dateTime = await cache.SetCachedLastWriteTimeAsync();
 
                                 // Add to the cache.
                                 await cache.AddImageToCacheAsync(dateTime);
+
+                                // Trim the cache.
+                                await cache.TrimCachedFolderAsync(cachedPath);
                             }
                         }
                     }

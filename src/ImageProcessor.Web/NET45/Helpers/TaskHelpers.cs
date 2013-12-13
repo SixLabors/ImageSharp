@@ -1,9 +1,12 @@
-﻿// -----------------------------------------------------------------------
+﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="TaskHelpers.cs" company="James South">
-//     Copyright (c) James South.
-//     Licensed under the Apache License, Version 2.0.
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
 // </copyright>
-// -----------------------------------------------------------------------
+// <summary>
+//   Provides some syntactic sugar to run tasks.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Web.Helpers
 {

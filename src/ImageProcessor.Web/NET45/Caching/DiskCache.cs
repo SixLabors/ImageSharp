@@ -145,23 +145,17 @@ namespace ImageProcessor.Web.Caching
         /// <param name="lastWriteTimeUtc">
         /// The last write time.
         /// </param>
-        /// <returns>
-        /// The <see cref="T:System.Threading.Tasks.Task"/>.
-        /// </returns>
-        internal async Task AddImageToCacheAsync(DateTime lastWriteTimeUtc)
+        internal void AddImageToCache(DateTime lastWriteTimeUtc)
         {
             string key = Path.GetFileNameWithoutExtension(this.CachedPath);
-            DateTime expires = DateTime.UtcNow.AddDays(MaxFileCachedDuration).ToUniversalTime();
             CachedImage cachedImage = new CachedImage
                                           {
                                               Key = key,
                                               Path = this.CachedPath,
-                                              MaxAge = MaxFileCachedDuration,
-                                              LastWriteTimeUtc = lastWriteTimeUtc,
-                                              ExpiresUtc = expires
+                                              LastWriteTimeUtc = lastWriteTimeUtc
                                           };
 
-            await CacheIndexer.Instance.AddAsync(key, cachedImage);
+            CacheIndexer.Add(cachedImage);
         }
 
         /// <summary>
@@ -172,25 +166,22 @@ namespace ImageProcessor.Web.Caching
         /// </returns>
         internal async Task<bool> IsNewOrUpdatedFileAsync()
         {
-            string key = Path.GetFileNameWithoutExtension(this.CachedPath);
-            CachedImage cachedImage;
+            string path = this.CachedPath;
             bool isUpdated = false;
+            CachedImage cachedImage;
 
             if (this.isRemote)
             {
-                cachedImage = await CacheIndexer.Instance.GetValueAsync(key);
+                cachedImage = await CacheIndexer.GetValueAsync(path);
 
                 if (cachedImage != null)
                 {
                     // Can't check the last write time so check to see if the cached image is set to expire 
                     // or if the max age is different.
-                    if (cachedImage.ExpiresUtc < DateTime.UtcNow.AddDays(-MaxFileCachedDuration)
-                        || cachedImage.MaxAge != MaxFileCachedDuration)
+                    if (cachedImage.LastWriteTimeUtc.AddDays(MaxFileCachedDuration) < DateTime.UtcNow.AddDays(-MaxFileCachedDuration))
                     {
-                        if (await CacheIndexer.Instance.RemoveAsync(key))
-                        {
-                            isUpdated = true;
-                        }
+                        CacheIndexer.Remove(path);
+                        isUpdated = true;
                     }
                 }
                 else
@@ -202,7 +193,7 @@ namespace ImageProcessor.Web.Caching
             else
             {
                 // Test now for locally requested files.
-                cachedImage = await CacheIndexer.Instance.GetValueAsync(key);
+                cachedImage = await CacheIndexer.GetValueAsync(path);
 
                 if (cachedImage != null)
                 {
@@ -213,13 +204,10 @@ namespace ImageProcessor.Web.Caching
                         // Check to see if the last write time is different of whether the
                         // cached image is set to expire or if the max age is different.
                         if (!this.RoughDateTimeCompare(imageFileInfo.LastWriteTimeUtc, cachedImage.LastWriteTimeUtc)
-                            || cachedImage.ExpiresUtc < DateTime.UtcNow.AddDays(-MaxFileCachedDuration)
-                            || cachedImage.MaxAge != MaxFileCachedDuration)
+                            || cachedImage.LastWriteTimeUtc.AddDays(MaxFileCachedDuration) < DateTime.UtcNow.AddDays(-MaxFileCachedDuration))
                         {
-                            if (await CacheIndexer.Instance.RemoveAsync(key))
-                            {
-                                isUpdated = true;
-                            }
+                            CacheIndexer.Remove(path);
+                            isUpdated = true;
                         }
                     }
                 }
@@ -241,10 +229,9 @@ namespace ImageProcessor.Web.Caching
         /// </returns>
         internal async Task<DateTime> GetLastWriteTimeAsync()
         {
-            string key = Path.GetFileNameWithoutExtension(this.CachedPath);
             DateTime dateTime = DateTime.UtcNow;
 
-            CachedImage cachedImage = await CacheIndexer.Instance.GetValueAsync(key);
+            CachedImage cachedImage = await CacheIndexer.GetValueAsync(this.CachedPath);
 
             if (cachedImage != null)
             {
@@ -322,7 +309,7 @@ namespace ImageProcessor.Web.Caching
         /// <param name="path">
         /// The path to the folder.
         /// </param>
-        private async void TrimCachedFolder(string path)
+        private void TrimCachedFolder(string path)
         {
             // ReSharper disable once AssignNullToNotNullAttribute
             DirectoryInfo directoryInfo = new DirectoryInfo(Path.GetDirectoryName(path));
@@ -341,12 +328,9 @@ namespace ImageProcessor.Web.Caching
                     }
 
                     // Remove from the cache and delete each CachedImage.
-                    string key = Path.GetFileNameWithoutExtension(fileInfo.Name);
-                    if (await CacheIndexer.Instance.RemoveAsync(key))
-                    {
-                        fileInfo.Delete();
-                        count -= 1;
-                    }
+                    CacheIndexer.Remove(fileInfo.Name);
+                    fileInfo.Delete();
+                    count -= 1;
                 }
                 // ReSharper disable once EmptyGeneralCatchClause
                 catch
@@ -361,7 +345,6 @@ namespace ImageProcessor.Web.Caching
         /// The images are stored in paths that are based upon the sha1 of their full request path
         /// taking the individual characters of the hash to determine their location.
         /// This allows us to store millions of images.
-        /// Answers on a post card if you can figure out a way to store that many details in a db for fast recovery. 
         /// </summary>
         /// <returns>The full cached path for the image.</returns>
         [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1650:ElementDocumentationMustBeSpelledCorrectly", Justification = "Reviewed. Suppression is OK here.")]
@@ -378,8 +361,8 @@ namespace ImageProcessor.Web.Caching
                 string fallbackExtension = this.imageName.Substring(this.imageName.LastIndexOf(".", StringComparison.Ordinal) + 1);
                 string encryptedName = this.fullPath.ToSHA1Fingerprint();
 
-                // Collision rate of about 1 in 1000 for the folder structure.
-                string pathFromKey = string.Join("\\", encryptedName.ToCharArray().Take(5));
+                // Collision rate of about 1 in 10000 for the folder structure.
+                string pathFromKey = string.Join("\\", encryptedName.ToCharArray().Take(6));
 
                 string cachedFileName = string.Format(
                     "{0}.{1}",

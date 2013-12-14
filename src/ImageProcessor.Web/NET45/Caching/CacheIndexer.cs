@@ -82,7 +82,7 @@ namespace ImageProcessor.Web.Caching
         {
             // Add the CachedImage.
             CacheItemPolicy policy = new CacheItemPolicy();
-            policy.ChangeMonitors.Add(new HostFileChangeMonitor(new List<string>() { cachedImage.Path }));
+            policy.ChangeMonitors.Add(new HostFileChangeMonitor(new List<string> { cachedImage.Path }));
 
             MemCache.AddItem(cachedImage.Key, cachedImage, policy);
             return cachedImage;

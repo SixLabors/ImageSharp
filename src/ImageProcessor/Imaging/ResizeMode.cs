@@ -33,6 +33,6 @@ namespace ImageProcessor.Imaging
         /// <summary>
         /// Constrains the resized image to fit the bounds of its container.
         /// </summary>
-        Constrain
+        Max
     }
 }

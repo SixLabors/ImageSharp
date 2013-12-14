@@ -56,44 +56,24 @@ namespace ImageProcessor.Tests
             Assert.AreEqual(Expected, actual);
         }
 
-		/// <summary>
-		/// The contrast regex unit test.
-		/// </summary>
-		[TestMethod]
-		public void TestContrastRegex()
-		{
-			const string Querystring = "contrast=56";
-			const int Expected = 56;
+        /// <summary>
+        /// The contrast regex unit test.
+        /// </summary>
+        [TestMethod]
+        public void TestContrastRegex()
+        {
+            const string Querystring = "contrast=56";
+            const int Expected = 56;
 
-			Contrast contrast = new Contrast();
-			contrast.MatchRegexIndex(Querystring);
+            Contrast contrast = new Contrast();
+            contrast.MatchRegexIndex(Querystring);
 
-			int actual = contrast.DynamicParameter;
+            int actual = contrast.DynamicParameter;
 
-			Assert.AreEqual(Expected, actual);
-		}
+            Assert.AreEqual(Expected, actual);
+        }
 
-		/// <summary>
-		/// The constrain regex unit test.
-		/// </summary>
-		[TestMethod]
-		public void TestConstrainRegex()
-		{
-			const string Querystring = "constrain=100,200";
-			const int ExpectedWidth = 100;
-			const int ExpectedHeight = 200;
-
-			Constrain contrast = new Constrain();
-			contrast.MatchRegexIndex(Querystring);
-
-			int actualWidth = contrast.DynamicParameter.Width;
-			int actualHeight = contrast.DynamicParameter.Height;
-
-			Assert.AreEqual(ExpectedWidth, actualWidth);
-			Assert.AreEqual(ExpectedHeight, actualHeight);
-		}
-
-		/// <summary>
+        /// <summary>
         /// The rotate regex unit test.
         /// </summary>
         [TestMethod]

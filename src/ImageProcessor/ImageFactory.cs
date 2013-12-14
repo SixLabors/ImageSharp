@@ -336,14 +336,9 @@ namespace ImageProcessor
         {
             if (this.ShouldProcess)
             {
-                int width = size.Width;
-                int height = size.Height;
+                ResizeLayer layer = new ResizeLayer(size, ResizeMode.Max);
 
-                var constrainSettings = new Dictionary<string, string> { { "MaxWidth", width.ToString("G") }, { "MaxHeight", height.ToString("G") } };
-
-                Constrain constrain = new Constrain { DynamicParameter = new Size(width, height), Settings = constrainSettings };
-
-                this.Image = constrain.ProcessImage(this);
+                return this.Resize(layer);
             }
 
             return this;
@@ -750,7 +745,7 @@ namespace ImageProcessor
         {
             if (this.ShouldProcess)
             {
-                // Fix the colour palette of gif images.
+                // Fix the colour palette of gif and png8 images.
                 this.FixIndexedPallete();
 
                 if (this.ImageFormat.Equals(ImageFormat.Jpeg))

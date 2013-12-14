@@ -13,7 +13,37 @@ namespace Test.Controllers
 
         public ActionResult Index()
         {
+            return this.View();
+        }
+
+        public ActionResult Png()
+        {
+            return this.View();
+        }
+
+        public ActionResult Png8()
+        {
+            return this.View();
+        }
+
+        public ActionResult Gif()
+        {
+            return this.View();
+        }
+
+        public ActionResult Bmp()
+        {
             return View();
+        }
+
+        public ActionResult Tiff()
+        {
+            return View();
+        }
+
+        public ActionResult External()
+        {
+            return this.View();
         }
 
     }

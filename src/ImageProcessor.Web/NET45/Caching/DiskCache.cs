@@ -201,6 +201,9 @@ namespace ImageProcessor.Web.Caching
 
                     if (imageFileInfo.Exists)
                     {
+                        // Pull the latest info.
+                        imageFileInfo.Refresh();
+
                         // Check to see if the last write time is different of whether the
                         // cached image is set to expire or if the max age is different.
                         if (!this.RoughDateTimeCompare(imageFileInfo.LastWriteTimeUtc, cachedImage.LastWriteTimeUtc)

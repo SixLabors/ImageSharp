@@ -11,7 +11,6 @@
 namespace ImageProcessor.Web.Caching
 {
     #region Using
-
     using System.Collections.Generic;
     using System.IO;
     using System.Runtime.Caching;
@@ -100,12 +99,16 @@ namespace ImageProcessor.Web.Caching
         /// </returns>
         private static CachedImage GetCachedImage(string cachePath)
         {
+            // FileInfo is thread safe.
             FileInfo fileInfo = new FileInfo(cachePath);
 
             if (!fileInfo.Exists)
             {
                 return null;
             }
+
+            // Pull the latest info.
+            fileInfo.Refresh();
 
             return new CachedImage
             {

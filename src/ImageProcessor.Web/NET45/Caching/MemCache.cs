@@ -12,6 +12,7 @@ namespace ImageProcessor.Web.Caching
 {
     #region Using
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Runtime.Caching;
     #endregion
@@ -30,7 +31,7 @@ namespace ImageProcessor.Web.Caching
         /// <summary>
         /// An internal list of cache keys to allow bulk removal.
         /// </summary>
-        private static readonly Dictionary<string, string> CacheItems = new Dictionary<string, string>();
+        private static readonly ConcurrentDictionary<string, string> CacheItems = new ConcurrentDictionary<string, string>();
         #endregion
 
         #region Methods
@@ -69,11 +70,19 @@ namespace ImageProcessor.Web.Caching
                     policy = new CacheItemPolicy();
                 }
 
-                isAdded = Cache.Add(key, value, policy, regionName);
+                try
+                {
+                    Cache.Set(key, value, policy, regionName);
+                    isAdded = true;
+                }
+                catch
+                {
+                    isAdded = false;
+                }
 
                 if (isAdded)
                 {
-                    CacheItems.Add(key, regionName);
+                    CacheItems[key] = regionName;
                 }
             }
 
@@ -172,7 +181,7 @@ namespace ImageProcessor.Web.Caching
 
                 if (isRemoved)
                 {
-                    CacheItems.Remove(key);
+                    CacheItems.Keys.Remove(key);
                 }
             }
 
@@ -196,7 +205,7 @@ namespace ImageProcessor.Web.Caching
             {
                 // You can't remove items from a collection whilst you are iterating over it so you need to 
                 // create a collection to store the items to remove.
-                Dictionary<string, string> tempDictionary = new Dictionary<string, string>();
+                ConcurrentDictionary<string, string> tempDictionary = new ConcurrentDictionary<string, string>();
 
                 foreach (KeyValuePair<string, string> cacheItem in CacheItems)
                 {
@@ -207,7 +216,9 @@ namespace ImageProcessor.Web.Caching
 
                         if (isCleared)
                         {
-                            tempDictionary.Add(cacheItem.Key, cacheItem.Value);
+                            string key = cacheItem.Key;
+                            string value = cacheItem.Value;
+                            tempDictionary.AddOrUpdate(key, value, (oldkey, oldValue) => value);
                         }
                     }
                 }
@@ -217,7 +228,7 @@ namespace ImageProcessor.Web.Caching
                     // Loop through and clear out the dictionary of cache keys.
                     foreach (KeyValuePair<string, string> cacheItem in tempDictionary)
                     {
-                        CacheItems.Remove(cacheItem.Key);
+                        CacheItems.Keys.Remove(cacheItem.Key);
                     }
                 }
             }

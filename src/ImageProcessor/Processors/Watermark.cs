@@ -37,7 +37,7 @@ namespace ImageProcessor.Processors
         /// <summary>
         /// The regular expression to search strings for the position attribute.
         /// </summary>
-        private static readonly Regex PositionRegex = new Regex(@"position-\d+-\d+", RegexOptions.Compiled);
+        private static readonly Regex PositionRegex = new Regex(@"position-\d+[-,]\d+", RegexOptions.Compiled);
 
         /// <summary>
         /// The regular expression to search strings for the color attribute.

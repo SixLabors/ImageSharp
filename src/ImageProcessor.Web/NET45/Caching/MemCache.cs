@@ -131,7 +131,7 @@ namespace ImageProcessor.Web.Caching
         /// True if the update try succeeds, or false if there is an already an entry
         ///  in the cache with the same key as key.
         /// </returns>
-        public static bool UpdateItem(string key, object value, CacheItemPolicy policy = null, string regionName = null)
+        public static bool UpdateItem(string key, object value, CacheItemPolicy policy = null, string regionName = null) 
         {
             bool isUpDated = true;
 
@@ -181,12 +181,8 @@ namespace ImageProcessor.Web.Caching
 
                 if (isRemoved)
                 {
-<<<<<<< HEAD
-                    CacheItems.Keys.Remove(key);
-=======
                     string removedValue;
                     CacheItems.TryRemove(key, out removedValue);
->>>>>>> origin/dev
                 }
             }
 
@@ -233,12 +229,8 @@ namespace ImageProcessor.Web.Caching
                     // Loop through and clear out the dictionary of cache keys.
                     foreach (KeyValuePair<string, string> cacheItem in tempDictionary)
                     {
-<<<<<<< HEAD
-                        CacheItems.Keys.Remove(cacheItem.Key);
-=======
                         string removedValue;
                         CacheItems.TryRemove(cacheItem.Key, out removedValue);
->>>>>>> origin/dev
                     }
                 }
             }
@@ -247,8 +239,4 @@ namespace ImageProcessor.Web.Caching
         }
         #endregion
     }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> origin/dev

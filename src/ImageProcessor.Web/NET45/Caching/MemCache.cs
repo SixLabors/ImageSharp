@@ -181,7 +181,12 @@ namespace ImageProcessor.Web.Caching
 
                 if (isRemoved)
                 {
+<<<<<<< HEAD
                     CacheItems.Keys.Remove(key);
+=======
+                    string removedValue;
+                    CacheItems.TryRemove(key, out removedValue);
+>>>>>>> origin/dev
                 }
             }
 
@@ -228,7 +233,12 @@ namespace ImageProcessor.Web.Caching
                     // Loop through and clear out the dictionary of cache keys.
                     foreach (KeyValuePair<string, string> cacheItem in tempDictionary)
                     {
+<<<<<<< HEAD
                         CacheItems.Keys.Remove(cacheItem.Key);
+=======
+                        string removedValue;
+                        CacheItems.TryRemove(cacheItem.Key, out removedValue);
+>>>>>>> origin/dev
                     }
                 }
             }
@@ -237,4 +247,8 @@ namespace ImageProcessor.Web.Caching
         }
         #endregion
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> origin/dev

@@ -181,7 +181,8 @@ namespace ImageProcessor.Web.Caching
 
                 if (isRemoved)
                 {
-                    CacheItems.Keys.Remove(key);
+                    string removedValue;
+                    CacheItems.TryRemove(key, out removedValue);
                 }
             }
 
@@ -228,7 +229,8 @@ namespace ImageProcessor.Web.Caching
                     // Loop through and clear out the dictionary of cache keys.
                     foreach (KeyValuePair<string, string> cacheItem in tempDictionary)
                     {
-                        CacheItems.Keys.Remove(cacheItem.Key);
+                        string removedValue;
+                        CacheItems.TryRemove(cacheItem.Key, out removedValue);
                     }
                 }
             }

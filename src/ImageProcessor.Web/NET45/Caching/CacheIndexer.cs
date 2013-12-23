@@ -114,6 +114,7 @@ namespace ImageProcessor.Web.Caching
             {
                 Key = Path.GetFileNameWithoutExtension(cachePath),
                 Path = cachePath,
+                CreationTimeUtc = fileInfo.CreationTimeUtc,
                 LastWriteTimeUtc = fileInfo.LastWriteTimeUtc
             };
         }

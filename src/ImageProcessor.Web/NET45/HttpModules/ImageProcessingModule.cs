@@ -300,10 +300,10 @@ namespace ImageProcessor.Web.HttpModules
                                                     .AutoProcess().Save(cachedPath);
 
                                                 // Ensure that the LastWriteTime property of the source and cached file match.
-                                                DateTime dateTime = await cache.SetCachedLastWriteTimeAsync();
+                                                Tuple<DateTime, DateTime> creationAndLastWriteDateTimes = await cache.SetCachedLastWriteTimeAsync();
 
                                                 // Add to the cache.
-                                                cache.AddImageToCache(dateTime);
+                                                cache.AddImageToCache(creationAndLastWriteDateTimes);
 
                                                 // Trim the cache.
                                                 await cache.TrimCachedFolderAsync(cachedPath);
@@ -315,12 +315,12 @@ namespace ImageProcessor.Web.HttpModules
                             else
                             {
                                 imageFactory.Load(fullPath).AutoProcess().Save(cachedPath);
-
+                                
                                 // Ensure that the LastWriteTime property of the source and cached file match.
-                                DateTime dateTime = await cache.SetCachedLastWriteTimeAsync();
+                                Tuple<DateTime, DateTime> creationAndLastWriteDateTimes = await cache.SetCachedLastWriteTimeAsync();
 
                                 // Add to the cache.
-                                cache.AddImageToCache(dateTime);
+                                cache.AddImageToCache(creationAndLastWriteDateTimes);
 
                                 // Trim the cache.
                                 await cache.TrimCachedFolderAsync(cachedPath);

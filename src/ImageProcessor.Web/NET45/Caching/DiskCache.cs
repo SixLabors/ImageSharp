@@ -142,17 +142,18 @@ namespace ImageProcessor.Web.Caching
         /// <summary>
         /// Adds an image to the cache.
         /// </summary>
-        /// <param name="lastWriteTimeUtc">
-        /// The last write time.
+        /// <param name="creationAndLastWriteDateTimes">
+        /// The creation and last write times.
         /// </param>
-        internal void AddImageToCache(DateTime lastWriteTimeUtc)
+        internal void AddImageToCache(Tuple<DateTime, DateTime> creationAndLastWriteDateTimes)
         {
             string key = Path.GetFileNameWithoutExtension(this.CachedPath);
             CachedImage cachedImage = new CachedImage
                                           {
                                               Key = key,
                                               Path = this.CachedPath,
-                                              LastWriteTimeUtc = lastWriteTimeUtc
+                                              CreationTimeUtc = creationAndLastWriteDateTimes.Item1,
+                                              LastWriteTimeUtc = creationAndLastWriteDateTimes.Item2
                                           };
 
             CacheIndexer.Add(cachedImage);
@@ -178,7 +179,7 @@ namespace ImageProcessor.Web.Caching
                 {
                     // Can't check the last write time so check to see if the cached image is set to expire 
                     // or if the max age is different.
-                    if (cachedImage.LastWriteTimeUtc.AddDays(MaxFileCachedDuration) < DateTime.UtcNow.AddDays(-MaxFileCachedDuration))
+                    if (cachedImage.CreationTimeUtc.AddDays(MaxFileCachedDuration) < DateTime.UtcNow.AddDays(-MaxFileCachedDuration))
                     {
                         CacheIndexer.Remove(path);
                         isUpdated = true;
@@ -207,7 +208,7 @@ namespace ImageProcessor.Web.Caching
                         // Check to see if the last write time is different of whether the
                         // cached image is set to expire or if the max age is different.
                         if (!this.RoughDateTimeCompare(imageFileInfo.LastWriteTimeUtc, cachedImage.LastWriteTimeUtc)
-                            || cachedImage.LastWriteTimeUtc.AddDays(MaxFileCachedDuration) < DateTime.UtcNow.AddDays(-MaxFileCachedDuration))
+                            || cachedImage.CreationTimeUtc.AddDays(MaxFileCachedDuration) < DateTime.UtcNow.AddDays(-MaxFileCachedDuration))
                         {
                             CacheIndexer.Remove(path);
                             isUpdated = true;
@@ -250,7 +251,7 @@ namespace ImageProcessor.Web.Caching
         /// <returns>
         /// The <see cref="T:System.DateTime"/> set to the last write time of the file.
         /// </returns>
-        internal async Task<DateTime> SetCachedLastWriteTimeAsync()
+        internal async Task<Tuple<DateTime, DateTime>> SetCachedLastWriteTimeAsync()
         {
             // Create Action delegate for SetCachedLastWriteTime.
             return await TaskHelpers.Run(() => this.SetCachedLastWriteTime());
@@ -278,15 +279,18 @@ namespace ImageProcessor.Web.Caching
         /// <returns>
         /// The <see cref="T:System.DateTime"/> of the original and cached file.
         /// </returns>
-        private DateTime SetCachedLastWriteTime()
+        private Tuple<DateTime, DateTime> SetCachedLastWriteTime()
         {
             FileInfo cachedFileInfo = new FileInfo(this.CachedPath);
+            DateTime creationTime = DateTime.MinValue.ToUniversalTime();
             DateTime lastWriteTime = DateTime.MinValue.ToUniversalTime();
+
 
             if (this.isRemote)
             {
                 if (cachedFileInfo.Exists)
                 {
+                    creationTime = cachedFileInfo.CreationTimeUtc;
                     lastWriteTime = cachedFileInfo.LastWriteTimeUtc;
                 }
             }
@@ -297,13 +301,14 @@ namespace ImageProcessor.Web.Caching
                 if (imageFileInfo.Exists && cachedFileInfo.Exists)
                 {
                     DateTime dateTime = imageFileInfo.LastWriteTimeUtc;
+                    creationTime = cachedFileInfo.CreationTimeUtc;
                     cachedFileInfo.LastWriteTimeUtc = dateTime;
 
                     lastWriteTime = dateTime;
                 }
             }
 
-            return lastWriteTime;
+            return new Tuple<DateTime, DateTime>(creationTime, lastWriteTime);
         }
 
         /// <summary>
@@ -316,7 +321,7 @@ namespace ImageProcessor.Web.Caching
         {
             // ReSharper disable once AssignNullToNotNullAttribute
             DirectoryInfo directoryInfo = new DirectoryInfo(Path.GetDirectoryName(path));
-            IEnumerable<FileInfo> files = directoryInfo.EnumerateFiles().OrderBy(f => f.LastWriteTimeUtc);
+            IEnumerable<FileInfo> files = directoryInfo.EnumerateFiles().OrderBy(f => f.CreationTimeUtc);
             int count = files.Count();
 
             foreach (FileInfo fileInfo in files)

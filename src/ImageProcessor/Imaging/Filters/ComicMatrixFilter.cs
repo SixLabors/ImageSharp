@@ -1,9 +1,12 @@
-﻿// -----------------------------------------------------------------------
+﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="ComicMatrixFilter.cs" company="James South">
-//     Copyright (c) James South.
-//     Licensed under the Apache License, Version 2.0.
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
 // </copyright>
-// -----------------------------------------------------------------------
+// <summary>
+//   Encapsulates methods with which to add a comic filter to an image.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Imaging.Filters
 {
@@ -118,7 +121,7 @@ namespace ImageProcessor.Imaging.Filters
                             }
                         }
 
-                        // Transfer the alpha channel from the mask to the hi sturation image.
+                        // Transfer the alpha channel from the mask to the high saturation image.
                         TransferOneArgbChannelFromOneBitmapToAnother(patternBitmap, hisatchBitmap, ChannelArgb.Blue, ChannelArgb.Alpha);
 
                         // Overlay the image.

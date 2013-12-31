@@ -1,10 +1,10 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="GaussianBlur.cs" company="James South">
+// <copyright file="GaussianSharpen.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   Applies a Gaussian blur to the image.
+//   Applies a Gaussian sharpen to the image.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -17,20 +17,20 @@ namespace ImageProcessor.Processors
     using ImageProcessor.Imaging;
 
     /// <summary>
-    /// Applies a Gaussian blur to the image.
+    /// Applies a Gaussian sharpen to the image.
     /// </summary>
-    public class GaussianBlur : IGraphicsProcessor
+    public class GaussianSharpen : IGraphicsProcessor
     {
         #region Fields
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"blur=[^&]*", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"sharpen=[^&]*", RegexOptions.Compiled);
 
         /// <summary>
-        /// The blur regex.
+        /// The sharpen regex.
         /// </summary>
-        private static readonly Regex BlurRegex = new Regex(@"blur=\d+", RegexOptions.Compiled);
+        private static readonly Regex SharpenRegex = new Regex(@"sharpen=\d+", RegexOptions.Compiled);
 
         /// <summary>
         /// The sigma regex.
@@ -42,7 +42,6 @@ namespace ImageProcessor.Processors
         /// </summary>
         private static readonly Regex ThresholdRegex = new Regex(@"threshold-\d+", RegexOptions.Compiled);
         #endregion
-
         #region IGraphicsProcessor Members
         /// <summary>
         /// Gets the regular expression to search strings for.
@@ -102,7 +101,7 @@ namespace ImageProcessor.Processors
                         double.TryParse(this.Settings["MaxSigma"], out maxSigma);
                         int.TryParse(this.Settings["MaxThreshold"], out maxThreshold);
 
-                        int size = this.ParseBlur(match.Value);
+                        int size = this.ParseSharpen(match.Value);
                         double sigma = this.ParseSigma(match.Value);
                         int threshold = this.ParseThreshold(match.Value);
 
@@ -140,7 +139,7 @@ namespace ImageProcessor.Processors
 
                 Convolution convolution = new Convolution(gaussianLayer.Sigma) { Threshold = gaussianLayer.Threshold };
                 Pixel[,] pixels = convolution.BitmapToPixels(newImage);
-                double[,] kernel = convolution.CreateGuassianBlurFilter(gaussianLayer.Size);
+                double[,] kernel = convolution.CreateGuassianSharpenFilter(gaussianLayer.Size);
                 pixels = convolution.ProcessKernel(pixels, kernel);
                 newImage = convolution.PixelsToBitmap(pixels);
                 newImage.Tag = image.Tag;
@@ -204,7 +203,7 @@ namespace ImageProcessor.Processors
         }
 
         /// <summary>
-        /// Returns the correct <see cref="T:System.Int32"/> containing the blur value
+        /// Returns the correct <see cref="T:System.Int32"/> containing the sharpen value
         /// for the given string.
         /// </summary>
         /// <param name="input">
@@ -213,9 +212,9 @@ namespace ImageProcessor.Processors
         /// <returns>
         /// The correct <see cref="T:System.Int32"/> for the given string.
         /// </returns>
-        private int ParseBlur(string input)
+        private int ParseSharpen(string input)
         {
-            foreach (Match match in BlurRegex.Matches(input))
+            foreach (Match match in SharpenRegex.Matches(input))
             {
                 // split on text-
                 return Convert.ToInt32(match.Value.Split('=')[1]);

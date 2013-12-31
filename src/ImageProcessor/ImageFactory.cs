@@ -324,6 +324,34 @@ namespace ImageProcessor
         }
 
         /// <summary>
+        /// Applies a Gaussian blur to the current image.
+        /// </summary>
+        /// <param name="radius">
+        /// The radius by which to blur the images pixels.
+        /// Any integer between 0 and 100.
+        /// </param>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory Blur(int radius)
+        {
+            if (this.ShouldProcess)
+            {
+                // Sanitize the input.
+                if (radius > 100)
+                {
+                    radius = 0;
+                }
+
+                GaussianBlur blur = new GaussianBlur { DynamicParameter = radius };
+
+                this.Image = blur.ProcessImage(this);
+            }
+
+            return this;
+        }
+
+        /// <summary>
         /// Constrains the current image, resizing it to fit within the given dimensions whilst keeping its aspect ratio.
         /// </summary>
         /// <param name="size">

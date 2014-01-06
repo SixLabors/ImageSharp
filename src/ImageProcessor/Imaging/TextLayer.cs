@@ -1,9 +1,12 @@
-﻿// -----------------------------------------------------------------------
+﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="TextLayer.cs" company="James South">
-//     Copyright (c) James South.
-//     Licensed under the Apache License, Version 2.0.
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
 // </copyright>
-// -----------------------------------------------------------------------
+// <summary>
+//   Encapsulates the properties required to add a layer of text to an image.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Imaging
 {
@@ -20,7 +23,7 @@ namespace ImageProcessor.Imaging
     {
         #region Fields
         /// <summary>
-        /// The colour to render the text.
+        /// The color to render the text.
         /// </summary>
         private Color textColor = Color.Black;
 
@@ -32,7 +35,7 @@ namespace ImageProcessor.Imaging
         /// <summary>
         /// The font style to render the text.
         /// </summary>
-        private FontStyle fontStyle = FontStyle.Bold;
+        private FontStyle fontStyle = FontStyle.Regular;
 
         /// <summary>
         /// The font size to render the text.
@@ -53,6 +56,9 @@ namespace ImageProcessor.Imaging
 
         /// <summary>
         /// Gets or sets the Color to render the font.
+        /// <remarks>
+        /// <para>Defaults to black.</para>
+        /// </remarks>
         /// </summary>
         public Color TextColor
         {
@@ -67,6 +73,9 @@ namespace ImageProcessor.Imaging
 
         /// <summary>
         /// Gets or sets the size of the font in pixels.
+        /// <remarks>
+        /// <para>Defaults to 48 pixels.</para>
+        /// </remarks>
         /// </summary>  
         public int FontSize
         {
@@ -75,7 +84,10 @@ namespace ImageProcessor.Imaging
         }
 
         /// <summary>
-        /// Gets or sets the FontStyle of the textlayer.
+        /// Gets or sets the FontStyle of the text layer.
+        /// <remarks>
+        /// <para>Defaults to regular.</para>
+        /// </remarks>
         /// </summary>
         public FontStyle Style
         {
@@ -84,7 +96,7 @@ namespace ImageProcessor.Imaging
         }
 
         /// <summary>
-        /// Gets or sets the Opacity of the textlayer.
+        /// Gets or sets the Opacity of the text layer.
         /// </summary>
         public int Opacity
         {
@@ -102,7 +114,7 @@ namespace ImageProcessor.Imaging
         }
 
         /// <summary>
-        /// Gets or sets the Position of the textlayer.
+        /// Gets or sets the Position of the text layer.
         /// </summary>
         public Point Position
         {

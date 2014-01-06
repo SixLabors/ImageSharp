@@ -364,7 +364,7 @@ namespace ImageProcessor
         {
             if (this.ShouldProcess)
             {
-                ResizeLayer layer = new ResizeLayer(size, ResizeMode.Max);
+                ResizeLayer layer = new ResizeLayer(size, Color.Transparent, ResizeMode.Max);
 
                 return this.Resize(layer);
             }
@@ -482,6 +482,102 @@ namespace ImageProcessor
             {
                 this.isIndexed = indexedFormat;
                 this.ImageFormat = imageFormat;
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Uses a Gaussian kernel to blur the current image.
+        /// <remarks>
+        /// <para>
+        /// The sigma and threshold values applied to the kernel are 
+        /// 1.4 and 0 respectively.
+        /// </para>
+        /// </remarks>
+        /// </summary>
+        /// <param name="size">
+        /// The size to set the Gaussian kernel to.
+        /// </param>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory GaussianBlur(int size)
+        {
+            if (this.ShouldProcess && size > 0)
+            {
+                GaussianLayer layer = new GaussianLayer(size);
+                GaussianBlur gaussianBlur = new GaussianBlur { DynamicParameter = layer };
+                this.Image = gaussianBlur.ProcessImage(this);
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Uses a Gaussian kernel to blur the current image.
+        /// </summary>
+        /// <param name="gaussianLayer">
+        /// The <see cref="T:ImageProcessor.Imaging.GaussianLayer"/> for applying sharpening and 
+        /// blurring methods to an image.
+        /// </param>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory GaussianBlur(GaussianLayer gaussianLayer)
+        {
+            if (this.ShouldProcess)
+            {
+                GaussianBlur gaussianBlur = new GaussianBlur { DynamicParameter = gaussianLayer };
+                this.Image = gaussianBlur.ProcessImage(this);
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Uses a Gaussian kernel to sharpen the current image.
+        /// <remarks>
+        /// <para>
+        /// The sigma and threshold values applied to the kernel are 
+        /// 1.4 and 0 respectively.
+        /// </para>
+        /// </remarks>
+        /// </summary>
+        /// <param name="size">
+        /// The size to set the Gaussian kernel to.
+        /// </param>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory GaussianSharpen(int size)
+        {
+            if (this.ShouldProcess && size > 0)
+            {
+                GaussianLayer layer = new GaussianLayer(size);
+                GaussianSharpen gaussianSharpen = new GaussianSharpen { DynamicParameter = layer };
+                this.Image = gaussianSharpen.ProcessImage(this);
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Uses a Gaussian kernel to sharpen the current image.
+        /// </summary>
+        /// <param name="gaussianLayer">
+        /// The <see cref="T:ImageProcessor.Imaging.GaussianLayer"/> for applying sharpening and 
+        /// blurring methods to an image.
+        /// </param>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory GaussianSharpen(GaussianLayer gaussianLayer)
+        {
+            if (this.ShouldProcess)
+            {
+                GaussianSharpen gaussianSharpen = new GaussianSharpen { DynamicParameter = gaussianLayer };
+                this.Image = gaussianSharpen.ProcessImage(this);
             }
 
             return this;

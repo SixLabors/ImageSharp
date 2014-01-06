@@ -138,10 +138,8 @@ namespace ImageProcessor.Processors
                 GaussianLayer gaussianLayer = (GaussianLayer)this.DynamicParameter;
 
                 Convolution convolution = new Convolution(gaussianLayer.Sigma) { Threshold = gaussianLayer.Threshold };
-                Pixel[,] pixels = convolution.BitmapToPixels(newImage);
                 double[,] kernel = convolution.CreateGuassianSharpenFilter(gaussianLayer.Size);
-                pixels = convolution.ProcessKernel(pixels, kernel);
-                newImage = convolution.PixelsToBitmap(pixels);
+                newImage = convolution.ProcessKernel(newImage, kernel);
                 newImage.Tag = image.Tag;
 
                 image.Dispose();
@@ -193,9 +191,9 @@ namespace ImageProcessor.Processors
         /// </returns>
         private int ParseThreshold(string input)
         {
+            // ReSharper disable once LoopCanBeConvertedToQuery
             foreach (Match match in ThresholdRegex.Matches(input))
             {
-                // split on text-
                 return Convert.ToInt32(match.Value.Split('-')[1]);
             }
 
@@ -214,9 +212,9 @@ namespace ImageProcessor.Processors
         /// </returns>
         private int ParseSharpen(string input)
         {
+            // ReSharper disable once LoopCanBeConvertedToQuery
             foreach (Match match in SharpenRegex.Matches(input))
             {
-                // split on text-
                 return Convert.ToInt32(match.Value.Split('=')[1]);
             }
 

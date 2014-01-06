@@ -26,64 +26,29 @@ namespace ImageProcessor.Imaging
         /// <param name="size">
         /// The <see cref="T:System.Drawing.Size"/> containing the width and height to set the image to.
         /// </param>
-        public ResizeLayer(Size size)
-        {
-            this.Size = size;
-            this.ResizeMode = ResizeMode.Pad;
-            this.AnchorPosition = AnchorPosition.Center;
-            this.BackgroundColor = Color.Transparent;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ResizeLayer"/> class.
-        /// </summary>
-        /// <param name="size">
-        /// The <see cref="T:System.Drawing.Size"/> containing the width and height to set the image to.
-        /// </param>
-        /// <param name="resizeMode">
-        /// The <see cref="ResizeMode"/> to apply to resized image.
-        /// </param>
-        public ResizeLayer(Size size, ResizeMode resizeMode)
-        {
-            this.Size = size;
-            this.ResizeMode = resizeMode;
-            this.AnchorPosition = AnchorPosition.Center;
-            this.BackgroundColor = Color.Transparent;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ResizeLayer"/> class.
-        /// </summary>
-        /// <param name="size">
-        /// The <see cref="T:System.Drawing.Size"/> containing the width and height to set the image to.
-        /// </param>
-        /// <param name="anchorPosition">
-        /// The <see cref="AnchorPosition"/> to apply to resized image.
-        /// </param>
-        public ResizeLayer(Size size, AnchorPosition anchorPosition)
-        {
-            this.Size = size;
-            this.AnchorPosition = anchorPosition;
-            this.ResizeMode = ResizeMode.Pad;
-            this.BackgroundColor = Color.Transparent;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ResizeLayer"/> class.
-        /// </summary>
         /// <param name="backgroundColor">
         /// The <see cref="T:System.Drawing.Color"/> to set as the background color.
-        /// <remarks>Used for image formats that do not support transparency</remarks>
+        /// <remarks>Used for image formats that do not support transparency (Default transparent)</remarks>
         /// </param>
         /// <param name="resizeMode">
-        /// The resize mode to apply to resized image.
+        /// The resize mode to apply to resized image. (Default ResizeMode.Pad)
         /// </param>
         /// <param name="anchorPosition">
-        /// The <see cref="AnchorPosition"/> to apply to resized image.
+        /// The <see cref="AnchorPosition"/> to apply to resized image. (Default AnchorPosition.Center)
         /// </param>
-        public ResizeLayer(Color backgroundColor, ResizeMode resizeMode = ResizeMode.Pad, AnchorPosition anchorPosition = AnchorPosition.Center)
+        /// <param name="upscale">
+        /// Whether to allow up-scaling of images. (Default true)
+        /// </param>
+        public ResizeLayer(
+            Size size,
+            Color? backgroundColor = null,
+            ResizeMode resizeMode = ResizeMode.Pad,
+            AnchorPosition anchorPosition = AnchorPosition.Center,
+            bool upscale = true)
         {
-            this.BackgroundColor = backgroundColor;
+            this.Size = size;
+            this.Upscale = upscale;
+            this.BackgroundColor = backgroundColor ?? Color.Transparent;
             this.ResizeMode = resizeMode;
             this.AnchorPosition = anchorPosition;
         }
@@ -109,6 +74,11 @@ namespace ImageProcessor.Imaging
         /// Gets or sets the anchor position.
         /// </summary>
         public AnchorPosition AnchorPosition { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to allow up-scaling of images.
+        /// </summary>
+        public bool Upscale { get; set; }
         #endregion
 
         /// <summary>
@@ -135,7 +105,8 @@ namespace ImageProcessor.Imaging
             return this.Size == resizeLayer.Size
                 && this.ResizeMode == resizeLayer.ResizeMode
                 && this.AnchorPosition == resizeLayer.AnchorPosition
-                && this.BackgroundColor == resizeLayer.BackgroundColor;
+                && this.BackgroundColor == resizeLayer.BackgroundColor
+                && this.Upscale == resizeLayer.Upscale;
         }
 
         /// <summary>
@@ -146,7 +117,11 @@ namespace ImageProcessor.Imaging
         /// </returns>
         public override int GetHashCode()
         {
-            return this.Size.GetHashCode() + this.ResizeMode.GetHashCode() + this.AnchorPosition.GetHashCode() + this.BackgroundColor.GetHashCode();
+            return this.Size.GetHashCode() +
+                this.ResizeMode.GetHashCode() +
+                this.AnchorPosition.GetHashCode() +
+                this.BackgroundColor.GetHashCode() +
+                this.Upscale.GetHashCode();
         }
     }
 }

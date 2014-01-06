@@ -1,19 +1,18 @@
-﻿// -----------------------------------------------------------------------
+﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="ColorMatrixes.cs" company="James South">
-//     Copyright (c) James South.
-//     Licensed under the Apache License, Version 2.0.
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
 // </copyright>
-// -----------------------------------------------------------------------
+// <summary>
+//   A list of available color matrices to apply to an image.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Imaging.Filters
 {
     #region Using
-    using System;
-    using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
-    using System.Linq;
-    using System.Text;
-    using System.Drawing.Imaging; 
+    using System.Drawing.Imaging;
     #endregion
 
     /// <summary>
@@ -175,5 +174,46 @@ namespace ImageProcessor.Imaging.Filters
                             });
             }
         }
+
+        /// <summary>
+        /// Gets <see cref="T:System.Drawing.Imaging.ColorMatrix"/> for generating the high pass
+        /// on the comic book filter.
+        /// </summary>
+        internal static ColorMatrix ComicHigh
+        {
+            get
+            {
+                return new ColorMatrix(
+                    new float[][]
+                            {
+                                new float[] { 2, -0.5f, -0.5f, 0, 0 }, 
+                                new float[] { -0.5f, 2, -0.5f, 0, 0 },  
+                                new float[] { -0.5f, -0.5f, 2, 0, 0 }, 
+                                new float[] { 0, 0, 0, 1, 0 },
+                                new float[] { 0, 0, 0, 0, 1 }
+                            });
+            }
+        }
+
+        /// <summary>
+        /// Gets <see cref="T:System.Drawing.Imaging.ColorMatrix"/> for generating the low pass
+        /// on the comic book filter.
+        /// </summary>
+        internal static ColorMatrix ComicLow
+        {
+            get
+            {
+                return new ColorMatrix(
+                       new float[][]
+                            {
+                                new float[] { 1, 0, 0, 0, 0 }, 
+                                new float[] { 0, 1, 0, 0, 0 },  
+                                new float[] { 0, 0, 1, 0, 0 }, 
+                                new float[] { 0, 0, 0, 1, 0 },
+                                new float[] { .075f, .075f, .075f, 0, 1 }
+                            });
+            }
+        }
+
     }
 }

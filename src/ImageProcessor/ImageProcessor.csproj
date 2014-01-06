@@ -59,7 +59,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ExtBitmap.cs" />
     <Compile Include="Helpers\Extensions\ImageExtensions.cs" />
     <Compile Include="Helpers\Extensions\EnumExtensions.cs" />
     <Compile Include="Helpers\Extensions\StringExtensions.cs" />

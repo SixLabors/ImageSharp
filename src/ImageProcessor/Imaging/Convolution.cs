@@ -253,103 +253,34 @@ namespace ImageProcessor.Imaging
         }
 
         /// <summary>
-        /// Convert a Bitmap to an a multidimensional array of raw pixel values
-        /// </summary>
-        /// <param name="image">The image to convert</param>
-        /// <returns>a multidimensional array of raw pixel values</returns>
-        public Pixel[,] BitmapToPixels(Bitmap image)
-        {
-            Pixel[,] pixels = new Pixel[image.Width, image.Height];
-
-            BitmapData sourceData = image.LockBits(
-                new Rectangle(0, 0, image.Width, image.Height),
-                ImageLockMode.ReadOnly,
-                image.PixelFormat);
-
-            byte[] pixelBuffer = new byte[sourceData.Stride * sourceData.Height];
-
-            Marshal.Copy(sourceData.Scan0, pixelBuffer, 0, pixelBuffer.Length);
-            image.UnlockBits(sourceData);
-
-            int pixelSize = Image.GetPixelFormatSize(image.PixelFormat) / 8;
-            int stride = sourceData.Stride;
-
-            for (int x = 0; x < image.Width; x++)
-            {
-                for (int y = 0; y < image.Height; y++)
-                {
-                    int byteOffset = (y * stride) + (x * pixelSize);
-
-                    pixels[x, y] = new Pixel
-                    {
-                        A = pixelBuffer[byteOffset + 3],
-                        R = pixelBuffer[byteOffset + 2],
-                        G = pixelBuffer[byteOffset + 1],
-                        B = pixelBuffer[byteOffset]
-                    };
-                }
-            }
-
-            return pixels;
-        }
-
-        /// <summary>
-        /// Convert a multidimensional array of raw pixel values to a bitmap
-        /// </summary>
-        /// <param name="pixels">The pixels to convert</param>
-        /// <returns>a bitmap</returns>
-        public Bitmap PixelsToBitmap(Pixel[,] pixels)
-        {
-            int width = pixels.GetLength(0);
-            int height = pixels.GetLength(1);
-            Bitmap resultBitmap = new Bitmap(width, height);
-            BitmapData resultData = resultBitmap.LockBits(
-                new Rectangle(0, 0, resultBitmap.Width, resultBitmap.Height),
-                ImageLockMode.WriteOnly,
-                PixelFormat.Format32bppArgb);
-
-            byte[] pixelBuffer = new byte[resultData.Stride * resultData.Height];
-            int stride = resultData.Stride;
-            int pixelSize = Image.GetPixelFormatSize(resultBitmap.PixelFormat) / 8;
-
-            for (int x = 0; x < width; x++)
-            {
-                for (int y = 0; y < height; y++)
-                {
-                    int byteOffset = (y * stride) + (x * pixelSize);
-
-                    double pixelRed = pixels[x, y].R;
-                    double pixelGreen = pixels[x, y].G;
-                    double pixelBlue = pixels[x, y].B;
-                    double pixelAlpha = pixels[x, y].A;
-
-                    pixelBuffer[byteOffset] = (byte)pixelBlue;
-                    pixelBuffer[byteOffset + 1] = (byte)pixelGreen;
-                    pixelBuffer[byteOffset + 2] = (byte)pixelRed;
-                    pixelBuffer[byteOffset + 3] = (byte)pixelAlpha;
-                }
-            }
-
-            Marshal.Copy(pixelBuffer, 0, resultData.Scan0, pixelBuffer.Length);
-            resultBitmap.UnlockBits(resultData);
-
-            return resultBitmap;
-        }
-
-        /// <summary>
         /// Processes the given kernel to produce an array of pixels representing a bitmap.
         /// </summary>
-        /// <param name="pixels">The raw pixels of the image to blur</param>
+        /// <param name="sourceBitmap">The the image to process.</param>
         /// <param name="kernel">The Gaussian kernel to use when performing the method</param>
-        /// <returns>An array of pixels representing the bitmap.</returns>
-        public Pixel[,] ProcessKernel(Pixel[,] pixels, double[,] kernel)
+        /// <returns>A processed bitmap.</returns>
+        public Bitmap ProcessKernel(Bitmap sourceBitmap, double[,] kernel)
         {
-            int width = pixels.GetLength(0);
-            int height = pixels.GetLength(1);
+            int width = sourceBitmap.Width;
+            int height = sourceBitmap.Height;
+
+            BitmapData sourceData = sourceBitmap.LockBits(
+                new Rectangle(0, 0, width, height),
+                ImageLockMode.ReadOnly,
+                PixelFormat.Format32bppArgb);
+
+            int strideWidth = sourceData.Stride;
+            int scanHeight = sourceData.Height;
+
+            int bufferSize = strideWidth * scanHeight;
+            byte[] pixelBuffer = new byte[bufferSize];
+            byte[] resultBuffer = new byte[bufferSize];
+
+            Marshal.Copy(sourceData.Scan0, pixelBuffer, 0, pixelBuffer.Length);
+            sourceBitmap.UnlockBits(sourceData);
+
             int kernelLength = kernel.GetLength(0);
             int radius = kernelLength >> 1;
             int kernelSize = kernelLength * kernelLength;
-            Pixel[,] result = new Pixel[width, height];
 
             // For each line
             for (int y = 0; y < height; y++)
@@ -366,6 +297,9 @@ namespace ImageProcessor.Imaging
                     double divider;
                     double green;
                     double red = green = blue = alpha = divider = processedKernelSize = 0;
+
+                    // The location of the pixel bytes.
+                    int byteOffset = (y * strideWidth) + (x * 4);
 
                     // For each kernel row
                     for (int i = 0; i < kernelLength; i++)
@@ -399,15 +333,19 @@ namespace ImageProcessor.Imaging
 
                             if (offsetX < width)
                             {
-                                double k = kernel[i, j];
-                                Pixel pixel = pixels[offsetX, offsetY];
+                                int calcOffset = (offsetX * 4) + (offsetY * sourceData.Stride);
+                                byte sourceBlue = pixelBuffer[calcOffset];
+                                byte sourceGreen = pixelBuffer[calcOffset + 1];
+                                byte sourceRed = pixelBuffer[calcOffset + 2];
+                                byte sourceAlpha = pixelBuffer[calcOffset + 3];
 
+                                double k = kernel[i, j];
                                 divider += k;
 
-                                red += k * pixel.R;
-                                green += k * pixel.G;
-                                blue += k * pixel.B;
-                                alpha += k * pixel.A;
+                                red += k * sourceRed;
+                                green += k * sourceGreen;
+                                blue += k * sourceBlue;
+                                alpha += k * sourceAlpha;
 
                                 processedKernelSize++;
                             }
@@ -445,14 +383,24 @@ namespace ImageProcessor.Imaging
                     blue += this.Threshold;
                     alpha += this.Threshold;
 
-                    result[x, y].R = (byte)((red > 255) ? 255 : ((red < 0) ? 0 : red));
-                    result[x, y].G = (byte)((green > 255) ? 255 : ((green < 0) ? 0 : green));
-                    result[x, y].B = (byte)((blue > 255) ? 255 : ((blue < 0) ? 0 : blue));
-                    result[x, y].A = (byte)((alpha > 255) ? 255 : ((alpha < 0) ? 0 : alpha));
+                    resultBuffer[byteOffset] = (byte)((blue > 255) ? 255 : ((blue < 0) ? 0 : blue));
+                    resultBuffer[byteOffset + 1] = (byte)((green > 255) ? 255 : ((green < 0) ? 0 : green));
+                    resultBuffer[byteOffset + 2] = (byte)((red > 255) ? 255 : ((red < 0) ? 0 : red));
+                    resultBuffer[byteOffset + 3] = (byte)((alpha > 255) ? 255 : ((alpha < 0) ? 0 : alpha));
                 }
             }
 
-            return result;
+            Bitmap resultBitmap = new Bitmap(width, height);
+
+            BitmapData resultData = resultBitmap.LockBits(
+                                                new Rectangle(0, 0, width, height),
+                                                ImageLockMode.WriteOnly,
+                                                PixelFormat.Format32bppArgb);
+
+            Marshal.Copy(resultBuffer, 0, resultData.Scan0, resultBuffer.Length);
+            resultBitmap.UnlockBits(resultData);
+
+            return resultBitmap;
         }
 
         #region Private

@@ -120,6 +120,7 @@ namespace ImageProcessor.Processors
             try
             {
                 // Don't use an object initializer here.
+                // ReSharper disable once UseObjectOrCollectionInitializer
                 newImage = new Bitmap(image.Width, image.Height, PixelFormat.Format32bppPArgb);
                 newImage.Tag = image.Tag;
 

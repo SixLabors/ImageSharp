@@ -179,7 +179,7 @@ namespace ImageProcessor.Web.Caching
                 {
                     // Can't check the last write time so check to see if the cached image is set to expire 
                     // or if the max age is different.
-                    if (cachedImage.CreationTimeUtc.AddDays(MaxFileCachedDuration) < DateTime.UtcNow.AddDays(-MaxFileCachedDuration))
+                    if (this.IsExpired(cachedImage.CreationTimeUtc))
                     {
                         CacheIndexer.Remove(path);
                         isUpdated = true;
@@ -208,7 +208,7 @@ namespace ImageProcessor.Web.Caching
                         // Check to see if the last write time is different of whether the
                         // cached image is set to expire or if the max age is different.
                         if (!this.RoughDateTimeCompare(imageFileInfo.LastWriteTimeUtc, cachedImage.LastWriteTimeUtc)
-                            || cachedImage.CreationTimeUtc.AddDays(MaxFileCachedDuration) < DateTime.UtcNow.AddDays(-MaxFileCachedDuration))
+                            || this.IsExpired(cachedImage.CreationTimeUtc))
                         {
                             CacheIndexer.Remove(path);
                             isUpdated = true;
@@ -285,7 +285,6 @@ namespace ImageProcessor.Web.Caching
             DateTime creationTime = DateTime.MinValue.ToUniversalTime();
             DateTime lastWriteTime = DateTime.MinValue.ToUniversalTime();
 
-
             if (this.isRemote)
             {
                 if (cachedFileInfo.Exists)
@@ -330,7 +329,8 @@ namespace ImageProcessor.Web.Caching
                 {
                     // If the group count is equal to the max count minus 1 then we know we
                     // have reduced the number of items below the maximum allowed.
-                    if (count <= MaxFilesCount - 1)
+                    // We'll cleanup any orphaned expired files though.
+                    if (!this.IsExpired(fileInfo.CreationTimeUtc) && count <= MaxFilesCount - 1)
                     {
                         break;
                     }
@@ -403,6 +403,21 @@ namespace ImageProcessor.Web.Caching
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether the given images creation date is out with 
+        /// the prescribed limit.
+        /// </summary>
+        /// <param name="creationDate">
+        /// The creation date.
+        /// </param>
+        /// <returns>
+        /// The true if the date is out with the limit, otherwise; false.
+        /// </returns>
+        private bool IsExpired(DateTime creationDate)
+        {
+            return creationDate.AddDays(MaxFileCachedDuration) < DateTime.UtcNow.AddDays(-MaxFileCachedDuration);
         }
         #endregion
         #endregion

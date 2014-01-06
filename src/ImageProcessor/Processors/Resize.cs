@@ -32,7 +32,7 @@ namespace ImageProcessor.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"((width|height)=\d+)|(mode=(pad|stretch|crop|max))|(anchor=(top|bottom|left|right|center))|(bgcolor=([0-9a-fA-F]{3}){1,2})", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"((width|height)=\d+)|(mode=(pad|stretch|crop|max))|(anchor=(top|bottom|left|right|center))|(bgcolor=([0-9a-fA-F]{3}){1,2})|(upscale=false)", RegexOptions.Compiled);
 
         /// <summary>
         /// The regular expression to search strings for the size attribute.
@@ -54,6 +54,10 @@ namespace ImageProcessor.Processors
         /// </summary>
         private static readonly Regex ColorRegex = new Regex(@"bgcolor=([0-9a-fA-F]{3}){1,2}", RegexOptions.Compiled);
 
+        /// <summary>
+        /// The regular expression to search strings for the upscale attribute.
+        /// </summary>
+        private static readonly Regex UpscaleRegex = new Regex(@"upscale=false", RegexOptions.Compiled);
         #region IGraphicsProcessor Members
         /// <summary>
         /// Gets the regular expression to search strings for.
@@ -136,7 +140,8 @@ namespace ImageProcessor.Processors
                                           {
                                               ResizeMode = this.ParseMode(toParse),
                                               AnchorPosition = this.ParsePosition(toParse),
-                                              BackgroundColor = this.ParseColor(toParse)
+                                              BackgroundColor = this.ParseColor(toParse),
+                                              Upscale = !UpscaleRegex.IsMatch(toParse)
                                           };
 
             this.DynamicParameter = resizeLayer;
@@ -160,13 +165,14 @@ namespace ImageProcessor.Processors
             ResizeMode mode = this.DynamicParameter.ResizeMode;
             AnchorPosition anchor = this.DynamicParameter.AnchorPosition;
             Color backgroundColor = this.DynamicParameter.BackgroundColor;
+            bool upscale = this.DynamicParameter.Upscale;
 
             int defaultMaxWidth;
             int defaultMaxHeight;
             int.TryParse(this.Settings["MaxWidth"], out defaultMaxWidth);
             int.TryParse(this.Settings["MaxHeight"], out defaultMaxHeight);
 
-            return this.ResizeImage(factory, width, height, defaultMaxWidth, defaultMaxHeight, backgroundColor, mode, anchor);
+            return this.ResizeImage(factory, width, height, defaultMaxWidth, defaultMaxHeight, backgroundColor, mode, anchor, upscale);
         }
         #endregion
 
@@ -198,6 +204,9 @@ namespace ImageProcessor.Processors
         /// <param name="anchorPosition">
         /// The anchor position to place the image at.
         /// </param>
+        /// <param name="upscale">
+        /// Whether to allow up-scaling of images. (Default true)
+        /// </param>
         /// <returns>
         /// The processed image from the current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
         /// </returns>
@@ -209,7 +218,8 @@ namespace ImageProcessor.Processors
             int defaultMaxHeight,
             Color backgroundColor,
             ResizeMode resizeMode = ResizeMode.Pad,
-            AnchorPosition anchorPosition = AnchorPosition.Center)
+            AnchorPosition anchorPosition = AnchorPosition.Center,
+            bool upscale = true)
         {
             Bitmap newImage = null;
             Image image = factory.Image;
@@ -332,6 +342,12 @@ namespace ImageProcessor.Processors
 
                 if (width > 0 && height > 0 && width <= maxWidth && height <= maxHeight)
                 {
+                    // Exit if upscaling is not allowed.
+                    if ((width > sourceWidth || height > sourceHeight) && upscale == false && resizeMode != ResizeMode.Stretch)
+                    {
+                        return image;
+                    }
+
                     // Don't use an object initializer here.
                     // ReSharper disable once UseObjectOrCollectionInitializer
                     newImage = new Bitmap(width, height, PixelFormat.Format32bppPArgb);

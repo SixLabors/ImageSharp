@@ -314,8 +314,17 @@ namespace ImageProcessor.Web.HttpModules
                             }
                             else
                             {
+                                // Check to see if the file exists.
+                                // ReSharper disable once AssignNullToNotNullAttribute
+                                FileInfo fileInfo = new FileInfo(requestPath);
+
+                                if (!fileInfo.Exists)
+                                {
+                                    throw new HttpException(404, "No image exists at " + fullPath);
+                                }
+
                                 imageFactory.Load(fullPath).AutoProcess().Save(cachedPath);
-                                
+
                                 // Ensure that the LastWriteTime property of the source and cached file match.
                                 Tuple<DateTime, DateTime> creationAndLastWriteDateTimes = await cache.SetCachedLastWriteTimeAsync();
 

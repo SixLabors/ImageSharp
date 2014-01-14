@@ -12,6 +12,7 @@ namespace ImageProcessor.Web.HttpModules
 {
     #region Using
     using System;
+    using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
     using System.IO;
     using System.Linq;
@@ -20,6 +21,7 @@ namespace ImageProcessor.Web.HttpModules
     using System.Security;
     using System.Security.Permissions;
     using System.Security.Principal;
+    using System.Threading;
     using System.Threading.Tasks;
     using System.Web;
     using System.Web.Hosting;
@@ -51,6 +53,44 @@ namespace ImageProcessor.Web.HttpModules
         /// The assembly version.
         /// </summary>
         private static readonly string AssemblyVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+
+        /// <summary>
+        /// The collection of Semaphores for identifying given locking individual queries.
+        /// </summary>
+        private static readonly Dictionary<string, Semaphore> Semaphores = new Dictionary<string, Semaphore>();
+
+        /// <summary>
+        /// A value indicating whether this instance of the given entity has been disposed.
+        /// </summary>
+        /// <value><see langword="true"/> if this instance has been disposed; otherwise, <see langword="false"/>.</value>
+        /// <remarks>
+        /// If the entity is disposed, it must not be disposed a second
+        /// time. The isDisposed field is set the first time the entity
+        /// is disposed. If the isDisposed field is true, then the Dispose()
+        /// method will not dispose again. This help not to prolong the entity's
+        /// life in the Garbage Collector.
+        /// </remarks>
+        private bool isDisposed;
+        #endregion
+
+        #region Destructors
+        /// <summary>
+        /// Finalizes an instance of the <see cref="T:ImageProcessor.Web.HttpModules.ImageProcessingModule"/> class. 
+        /// </summary>
+        /// <remarks>
+        /// Use C# destructor syntax for finalization code.
+        /// This destructor will run only if the Dispose method 
+        /// does not get called.
+        /// It gives your base class the opportunity to finalize.
+        /// Do not provide destructors in types derived from this class.
+        /// </remarks>
+        ~ImageProcessingModule()
+        {
+            // Do not re-create Dispose clean-up code here.
+            // Calling Dispose(false) is optimal in terms of
+            // readability and maintainability.
+            this.Dispose(false);
+        }
         #endregion
 
         #region IHttpModule Members
@@ -83,7 +123,65 @@ namespace ImageProcessor.Web.HttpModules
         /// </summary>
         public void Dispose()
         {
-            // Nothing to dispose.
+            this.Dispose(true);
+
+            // This object will be cleaned up by the Dispose method.
+            // Therefore, you should call GC.SupressFinalize to
+            // take this object off the finalization queue 
+            // and prevent finalization code for this object
+            // from executing a second time.
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Gets the specific <see cref="T:System.Threading.Semaphore"/> for the given id.
+        /// </summary>
+        /// <param name="id">
+        /// The id representing the <see cref="T:System.Threading.Semaphore"/>.
+        /// </param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Mutex"/> for the given id.
+        /// </returns>
+        private static Semaphore GetSemaphore(string id)
+        {
+            id = id.ToMD5Fingerprint();
+
+            if (Semaphores.ContainsKey(id))
+            {
+                return Semaphores[id];
+            }
+
+            Semaphore semaphore = new Semaphore(1, 1, id);
+            Semaphores.Add(id, semaphore);
+            return semaphore;
+        }
+
+        /// <summary>
+        /// Disposes the object and frees resources for the Garbage Collector.
+        /// </summary>
+        /// <param name="disposing">If true, the object gets disposed.</param>
+        private void Dispose(bool disposing)
+        {
+            if (this.isDisposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                // Dispose of any managed resources here.
+                foreach (KeyValuePair<string, Semaphore> semaphore in Semaphores)
+                {
+                    semaphore.Value.Dispose();
+                }
+
+                Semaphores.Clear();
+            }
+
+            // Call the appropriate methods to clean up
+            // unmanaged resources here.
+            // Note disposing is done.
+            this.isDisposed = true;
         }
         #endregion
 
@@ -294,19 +392,31 @@ namespace ImageProcessor.Web.HttpModules
                                             {
                                                 responseStream.CopyTo(memoryStream);
 
-                                                imageFactory.Load(memoryStream)
-                                                    .AddQueryString(queryString)
-                                                    .Format(ImageUtils.GetImageFormat(imageName))
-                                                    .AutoProcess().Save(cachedPath);
+                                                Semaphore semaphore = GetSemaphore(cachedPath);
+                                                try
+                                                {
+                                                    semaphore.WaitOne();
 
-                                                // Ensure that the LastWriteTime property of the source and cached file match.
-                                                Tuple<DateTime, DateTime> creationAndLastWriteDateTimes = await cache.SetCachedLastWriteTimeAsync();
+                                                    // Process the Image
+                                                    imageFactory.Load(memoryStream)
+                                                                .AddQueryString(queryString)
+                                                                .Format(ImageUtils.GetImageFormat(imageName))
+                                                                .AutoProcess()
+                                                                .Save(cachedPath);
+                                                    
+                                                    // Ensure that the LastWriteTime property of the source and cached file match.
+                                                    Tuple<DateTime, DateTime> creationAndLastWriteDateTimes = await cache.SetCachedLastWriteTimeAsync();
 
-                                                // Add to the cache.
-                                                cache.AddImageToCache(creationAndLastWriteDateTimes);
+                                                    // Add to the cache.
+                                                    cache.AddImageToCache(creationAndLastWriteDateTimes);
 
-                                                // Trim the cache.
-                                                await cache.TrimCachedFolderAsync(cachedPath);
+                                                    // Trim the cache.
+                                                    await cache.TrimCachedFolderAsync(cachedPath);
+                                                }
+                                                finally
+                                                {
+                                                    semaphore.Release();
+                                                }
                                             }
                                         }
                                     }
@@ -323,16 +433,27 @@ namespace ImageProcessor.Web.HttpModules
                                     throw new HttpException(404, "No image exists at " + fullPath);
                                 }
 
-                                imageFactory.Load(fullPath).AutoProcess().Save(cachedPath);
+                                Semaphore semaphore = GetSemaphore(cachedPath);
+                                try
+                                {
+                                    semaphore.WaitOne();
 
-                                // Ensure that the LastWriteTime property of the source and cached file match.
-                                Tuple<DateTime, DateTime> creationAndLastWriteDateTimes = await cache.SetCachedLastWriteTimeAsync();
+                                    // Process the Image
+                                    imageFactory.Load(fullPath).AutoProcess().Save(cachedPath);
 
-                                // Add to the cache.
-                                cache.AddImageToCache(creationAndLastWriteDateTimes);
+                                    // Ensure that the LastWriteTime property of the source and cached file match.
+                                    Tuple<DateTime, DateTime> creationAndLastWriteDateTimes = await cache.SetCachedLastWriteTimeAsync();
 
-                                // Trim the cache.
-                                await cache.TrimCachedFolderAsync(cachedPath);
+                                    // Add to the cache.
+                                    cache.AddImageToCache(creationAndLastWriteDateTimes);
+
+                                    // Trim the cache.
+                                    await cache.TrimCachedFolderAsync(cachedPath);
+                                }
+                                finally
+                                {
+                                    semaphore.Release();
+                                }
                             }
                         }
                     }

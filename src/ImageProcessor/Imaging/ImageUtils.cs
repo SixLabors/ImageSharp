@@ -27,12 +27,12 @@ namespace ImageProcessor.Imaging
         /// <summary>
         /// The image format regex.
         /// </summary>
-        private static readonly Regex FormatRegex = new Regex(@"(\.?)(j(pg|peg)|bmp|png|gif|ti(f|ff))", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.RightToLeft);
+        private static readonly Regex FormatRegex = new Regex(@"(\.?)(j(pg|peg)|bmp|png|gif|ti(ff|f))", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.RightToLeft);
 
         /// <summary>
         /// The image format regex for matching the file format at the end of a string.
         /// </summary>
-        private static readonly Regex EndFormatRegex = new Regex(@"(\.)(j(pg|peg)|bmp|png|gif|ti(f|ff))$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.RightToLeft);
+        private static readonly Regex EndFormatRegex = new Regex(@"(\.)(j(pg|peg)|bmp|png|gif|ti(ff|f))$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.RightToLeft);
 
         /// <summary>
         /// Returns the correct response type based on the given request path.

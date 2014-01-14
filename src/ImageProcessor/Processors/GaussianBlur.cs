@@ -35,7 +35,7 @@ namespace ImageProcessor.Processors
         /// <summary>
         /// The sigma regex.
         /// </summary>
-        private static readonly Regex SigmaRegex = new Regex(@"sigma-\d+(.+\d+)?", RegexOptions.Compiled);
+        private static readonly Regex SigmaRegex = new Regex(@"sigma-\d+(.?\d+)?", RegexOptions.Compiled);
 
         /// <summary>
         /// The threshold regex.

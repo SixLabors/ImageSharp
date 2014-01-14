@@ -41,11 +41,6 @@ namespace ImageProcessor
         private ImageFormat backupImageFormat;
 
         /// <summary>
-        /// The original extension.
-        /// </summary>
-        private string originalExtension;
-
-        /// <summary>
         /// Whether the image is indexed.
         /// </summary>
         private bool isIndexed;
@@ -110,6 +105,11 @@ namespace ImageProcessor
         /// Gets the file format of the image. 
         /// </summary>
         public ImageFormat ImageFormat { get; private set; }
+        
+        /// <summary>
+        /// Gets or sets the original extension.
+        /// </summary>
+        internal string OriginalExtension { get; set; }
 
         /// <summary>
         /// Gets or sets the quality of output for jpeg images as a percentile.
@@ -191,7 +191,7 @@ namespace ImageProcessor
                     this.JpegQuality = DefaultJpegQuality;
                     ImageFormat imageFormat = ImageUtils.GetImageFormat(imageName);
                     this.backupImageFormat = imageFormat;
-                    this.originalExtension = Path.GetExtension(this.ImagePath);
+                    this.OriginalExtension = Path.GetExtension(this.ImagePath);
                     this.ImageFormat = imageFormat;
                     this.isIndexed = ImageUtils.IsIndexed(this.Image);
                     this.ShouldProcess = true;
@@ -762,7 +762,7 @@ namespace ImageProcessor
                 // We need to check here if the path has an extension and remove it if so.
                 // This is so we can add the correct image format.
                 int length = filePath.LastIndexOf(".", StringComparison.Ordinal);
-                string extension = ImageUtils.GetExtensionFromImageFormat(this.ImageFormat, this.originalExtension);
+                string extension = ImageUtils.GetExtensionFromImageFormat(this.ImageFormat, this.OriginalExtension);
                 filePath = length == -1 ? filePath + extension : filePath.Substring(0, length) + extension;
 
                 // Fix the colour palette of indexed images.
@@ -795,7 +795,7 @@ namespace ImageProcessor
                                     this.Image.Save(filePath, imageCodecInfo, encoderParameters);
                                     break;
                                 }
-                                catch (IOException)
+                                catch (Exception)
                                 {
                                     Thread.Sleep(200);
                                 }
@@ -817,7 +817,7 @@ namespace ImageProcessor
                             this.Image.Save(filePath, this.ImageFormat);
                             break;
                         }
-                        catch (IOException)
+                        catch (Exception)
                         {
                             Thread.Sleep(200);
                         }

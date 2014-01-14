@@ -12,7 +12,7 @@ namespace ImageProcessor.Web.Helpers
 {
     #region Using
     using System;
-    using System.Threading.Tasks; 
+    using System.Threading.Tasks;
     #endregion
 
     /// <summary>

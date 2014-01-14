@@ -25,7 +25,7 @@ namespace ImageProcessor.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"format=(j(pg|peg)|png|png8|bmp|gif|tif)", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"format=(j(pg|peg)|png|png8|bmp|gif|ti(ff|f))", RegexOptions.Compiled);
 
         #region IGraphicsProcessor Members
         /// <summary>
@@ -132,15 +132,17 @@ namespace ImageProcessor.Processors
                     isIndexed = true;
                     break;
                 case "tif":
+                case "tiff":
                     imageFormat = ImageFormat.Tiff;
                     break;
                 default:
-                    // Should be a jpeg.
+                    // Should be a jpeg or jpg.
                     imageFormat = ImageFormat.Jpeg;
                     break;
             }
 
             // Set the internal property.
+            factory.OriginalExtension = string.Format(".{0}", format);
             factory.Format(imageFormat, isIndexed);
 
             return factory.Image;

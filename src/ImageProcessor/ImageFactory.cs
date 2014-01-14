@@ -77,7 +77,6 @@ namespace ImageProcessor
             // readability and maintainability.
             this.Dispose(false);
         }
-
         #endregion
 
         #region Properties

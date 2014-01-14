@@ -301,6 +301,7 @@ namespace ImageProcessor.Web.Caching
                 {
                     DateTime dateTime = imageFileInfo.LastWriteTimeUtc;
                     creationTime = cachedFileInfo.CreationTimeUtc;
+
                     cachedFileInfo.LastWriteTimeUtc = dateTime;
 
                     lastWriteTime = dateTime;

@@ -55,9 +55,9 @@ namespace ImageProcessor.Web.HttpModules
         private static readonly string AssemblyVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
 
         /// <summary>
-        /// The collection of Semaphores for identifying given locking individual queries.
+        /// The collection of SemaphoreSlims for identifying given locking individual queries.
         /// </summary>
-        private static readonly Dictionary<string, Semaphore> Semaphores = new Dictionary<string, Semaphore>();
+        private static readonly Dictionary<string, SemaphoreSlim> SemaphoreSlims = new Dictionary<string, SemaphoreSlim>();
 
         /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.
@@ -134,25 +134,25 @@ namespace ImageProcessor.Web.HttpModules
         }
 
         /// <summary>
-        /// Gets the specific <see cref="T:System.Threading.Semaphore"/> for the given id.
+        /// Gets the specific <see cref="T:System.Threading.SemaphoreSlim"/> for the given id.
         /// </summary>
         /// <param name="id">
-        /// The id representing the <see cref="T:System.Threading.Semaphore"/>.
+        /// The id representing the <see cref="T:System.Threading.SemaphoreSlim"/>.
         /// </param>
         /// <returns>
         /// The <see cref="T:System.Threading.Mutex"/> for the given id.
         /// </returns>
-        private static Semaphore GetSemaphore(string id)
+        private static SemaphoreSlim GetSemaphoreSlim(string id)
         {
             id = id.ToMD5Fingerprint();
 
-            if (Semaphores.ContainsKey(id))
+            if (SemaphoreSlims.ContainsKey(id))
             {
-                return Semaphores[id];
+                return SemaphoreSlims[id];
             }
 
-            Semaphore semaphore = new Semaphore(1, 1, id);
-            Semaphores.Add(id, semaphore);
+            SemaphoreSlim semaphore = new SemaphoreSlim(1, 1);
+            SemaphoreSlims.Add(id, semaphore);
             return semaphore;
         }
 
@@ -170,12 +170,12 @@ namespace ImageProcessor.Web.HttpModules
             if (disposing)
             {
                 // Dispose of any managed resources here.
-                foreach (KeyValuePair<string, Semaphore> semaphore in Semaphores)
+                foreach (KeyValuePair<string, SemaphoreSlim> semaphore in SemaphoreSlims)
                 {
                     semaphore.Value.Dispose();
                 }
 
-                Semaphores.Clear();
+                SemaphoreSlims.Clear();
             }
 
             // Call the appropriate methods to clean up
@@ -382,20 +382,20 @@ namespace ImageProcessor.Web.HttpModules
                                 // Prevent response blocking.
                                 WebResponse webResponse = await remoteFile.GetWebResponseAsync().ConfigureAwait(false);
 
-                                using (MemoryStream memoryStream = new MemoryStream())
+                                SemaphoreSlim semaphore = GetSemaphoreSlim(cachedPath);
+                                try
                                 {
-                                    using (WebResponse response = webResponse)
-                                    {
-                                        using (Stream responseStream = response.GetResponseStream())
-                                        {
-                                            if (responseStream != null)
-                                            {
-                                                responseStream.CopyTo(memoryStream);
+                                    semaphore.Wait();
 
-                                                Semaphore semaphore = GetSemaphore(cachedPath);
-                                                try
+                                    using (MemoryStream memoryStream = new MemoryStream())
+                                    {
+                                        using (WebResponse response = webResponse)
+                                        {
+                                            using (Stream responseStream = response.GetResponseStream())
+                                            {
+                                                if (responseStream != null)
                                                 {
-                                                    semaphore.WaitOne();
+                                                    responseStream.CopyTo(memoryStream);
 
                                                     // Process the Image
                                                     imageFactory.Load(memoryStream)
@@ -403,7 +403,7 @@ namespace ImageProcessor.Web.HttpModules
                                                                 .Format(ImageUtils.GetImageFormat(imageName))
                                                                 .AutoProcess()
                                                                 .Save(cachedPath);
-                                                    
+
                                                     // Ensure that the LastWriteTime property of the source and cached file match.
                                                     Tuple<DateTime, DateTime> creationAndLastWriteDateTimes = await cache.SetCachedLastWriteTimeAsync();
 
@@ -413,13 +413,13 @@ namespace ImageProcessor.Web.HttpModules
                                                     // Trim the cache.
                                                     await cache.TrimCachedFolderAsync(cachedPath);
                                                 }
-                                                finally
-                                                {
-                                                    semaphore.Release();
-                                                }
                                             }
                                         }
                                     }
+                                }
+                                finally
+                                {
+                                    semaphore.Release();
                                 }
                             }
                             else
@@ -433,10 +433,10 @@ namespace ImageProcessor.Web.HttpModules
                                     throw new HttpException(404, "No image exists at " + fullPath);
                                 }
 
-                                Semaphore semaphore = GetSemaphore(cachedPath);
+                                SemaphoreSlim semaphore = GetSemaphoreSlim(cachedPath);
                                 try
                                 {
-                                    semaphore.WaitOne();
+                                    semaphore.Wait();
 
                                     // Process the Image
                                     imageFactory.Load(fullPath).AutoProcess().Save(cachedPath);

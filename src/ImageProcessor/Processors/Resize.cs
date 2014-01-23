@@ -252,13 +252,13 @@ namespace ImageProcessor.Processors
                     {
                         ratio = percentHeight;
                         destinationX = (int)((width - (sourceWidth * ratio)) / 2);
-                        destinationWidth = (int)Math.Floor(sourceWidth * percentHeight);
+                        destinationWidth = (int)Math.Ceiling(sourceWidth * percentHeight);
                     }
                     else
                     {
                         ratio = percentWidth;
                         destinationY = (int)((height - (sourceHeight * ratio)) / 2);
-                        destinationHeight = (int)Math.Floor(sourceHeight * percentWidth);
+                        destinationHeight = (int)Math.Ceiling(sourceHeight * percentWidth);
                     }
                 }
 
@@ -285,7 +285,7 @@ namespace ImageProcessor.Processors
                                 break;
                         }
 
-                        destinationHeight = (int)Math.Floor(sourceHeight * percentWidth);
+                        destinationHeight = (int)Math.Ceiling(sourceHeight * percentWidth);
                     }
                     else
                     {
@@ -304,7 +304,7 @@ namespace ImageProcessor.Processors
                                 break;
                         }
 
-                        destinationWidth = (int)Math.Floor(sourceWidth * percentHeight);
+                        destinationWidth = (int)Math.Ceiling(sourceWidth * percentHeight);
                     }
                 }
 
@@ -330,13 +330,13 @@ namespace ImageProcessor.Processors
                 // If height or width is not passed we assume that the standard ratio is to be kept.
                 if (height == 0)
                 {
-                    destinationHeight = (int)Math.Floor(sourceHeight * percentWidth);
+                    destinationHeight = (int)Math.Ceiling(sourceHeight * percentWidth);
                     height = destinationHeight;
                 }
 
                 if (width == 0)
                 {
-                    destinationWidth = (int)Math.Floor(sourceWidth * percentHeight);
+                    destinationWidth = (int)Math.Ceiling(sourceWidth * percentHeight);
                     width = destinationWidth;
                 }
 
@@ -376,7 +376,7 @@ namespace ImageProcessor.Processors
                         }
 
                         // An unwanted border appears when using InterpolationMode.HighQualityBicubic to resize the image
-                        // as the algorithm appears to be pulling averaging detail from surFlooring pixels beyond the edge 
+                        // as the algorithm appears to be pulling averaging detail from surCeilinging pixels beyond the edge 
                         // of the image. Using the ImageAttributes class to specify that the pixels beyond are simply mirror 
                         // images of the pixels within solves this problem.
                         using (ImageAttributes wrapMode = new ImageAttributes())

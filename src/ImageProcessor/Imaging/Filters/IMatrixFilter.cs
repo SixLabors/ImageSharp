@@ -1,9 +1,12 @@
-﻿// -----------------------------------------------------------------------
+﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="IMatrixFilter.cs" company="James South">
-//     Copyright (c) James South.
-//     Licensed under the Apache License, Version 2.0.
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
 // </copyright>
-// -----------------------------------------------------------------------
+// <summary>
+//   Defines properties and methods for ColorMatrix based filters.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Imaging.Filters
 {
@@ -15,10 +18,10 @@ namespace ImageProcessor.Imaging.Filters
     /// <summary>
     /// Defines properties and methods for ColorMatrix based filters.
     /// </summary>
-    interface IMatrixFilter
+    public interface IMatrixFilter
     {
         /// <summary>
-        /// Gets the <see cref="T:System.Drawing.ColorMatrix"/> for this filter instance.
+        /// Gets the <see cref="T:System.Drawing.Imaging.ColorMatrix"/> for this filter instance.
         /// </summary>
         ColorMatrix Matrix { get; }
 

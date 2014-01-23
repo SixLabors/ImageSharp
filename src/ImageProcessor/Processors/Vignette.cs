@@ -119,9 +119,7 @@ namespace ImageProcessor.Processors
 
             try
             {
-                // Don't use an object initializer here.
                 newImage = new Bitmap(image);
-                newImage.Tag = image.Tag;
 
                 using (Graphics graphics = Graphics.FromImage(newImage))
                 {
@@ -146,12 +144,12 @@ namespace ImageProcessor.Processors
                             // This has the effect of painting the far corners black and shade less on the way in to the centre.
                             brush.WrapMode = WrapMode.Tile;
                             brush.CenterColor = Color.FromArgb(0, 0, 0, 0);
-                            brush.SurroundColors = new Color[] { Color.FromArgb(255, 0, 0, 0) };
+                            brush.SurroundColors = new[] { Color.FromArgb(255, 0, 0, 0) };
 
                             Blend blend = new Blend
                                 {
-                                    Positions = new float[] { 0.0f, 0.2f, 0.4f, 0.6f, 0.8f, 1.0F },
-                                    Factors = new float[] { 0.0f, 0.5f, 1f, 1f, 1.0f, 1.0f }
+                                    Positions = new[] { 0.0f, 0.2f, 0.4f, 0.6f, 0.8f, 1.0F },
+                                    Factors = new[] { 0.0f, 0.5f, 1f, 1f, 1.0f, 1.0f }
                                 };
 
                             brush.Blend = blend;
@@ -181,4 +179,3 @@ namespace ImageProcessor.Processors
         #endregion
     }
 }
-

@@ -2,6 +2,7 @@
   <GlobalSettings>
     <CollectionProperty Name="RecognizedWords">
       <Value>behaviour</Value>
+      <Value>lomograph</Value>
     </CollectionProperty>
   </GlobalSettings>
   <Analyzers>

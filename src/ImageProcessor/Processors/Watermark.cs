@@ -1,9 +1,12 @@
-﻿// -----------------------------------------------------------------------
+﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="Watermark.cs" company="James South">
-//     Copyright (c) James South.
-//     Licensed under the Apache License, Version 2.0.
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
 // </copyright>
-// -----------------------------------------------------------------------
+// <summary>
+//   Encapsulates methods to change the alpha component of the image to effect its transparency.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Processors
 {
@@ -173,10 +176,7 @@ namespace ImageProcessor.Processors
 
             try
             {
-                // Don't use an object initializer here.
                 newImage = new Bitmap(image);
-                newImage.Tag = image.Tag;
-
                 TextLayer textLayer = this.DynamicParameter;
                 string text = textLayer.Text;
                 int opacity = textLayer.Opacity;

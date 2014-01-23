@@ -144,10 +144,7 @@ namespace ImageProcessor.Processors
                         rectangle.Height = sourceHeight - rectangle.Y;
                     }
 
-                    // Don't use an object initializer here.
-                    // ReSharper disable once UseObjectOrCollectionInitializer
                     newImage = new Bitmap(rectangle.Width, rectangle.Height, PixelFormat.Format32bppPArgb);
-                    newImage.Tag = image.Tag;
 
                     using (Graphics graphics = Graphics.FromImage(newImage))
                     {

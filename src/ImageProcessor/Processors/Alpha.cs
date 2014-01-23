@@ -122,10 +122,7 @@ namespace ImageProcessor.Processors
             {
                 int alphaPercent = this.DynamicParameter;
 
-                // Don't use an object initializer here.
-                // ReSharper disable once UseObjectOrCollectionInitializer
                 newImage = new Bitmap(image.Width, image.Height, PixelFormat.Format32bppPArgb);
-                newImage.Tag = image.Tag;
 
                 ColorMatrix colorMatrix = new ColorMatrix();
                 colorMatrix.Matrix00 = colorMatrix.Matrix11 = colorMatrix.Matrix22 = colorMatrix.Matrix44 = 1;

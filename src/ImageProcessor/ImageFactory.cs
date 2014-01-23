@@ -41,6 +41,11 @@ namespace ImageProcessor
         private ImageFormat backupImageFormat;
 
         /// <summary>
+        /// The memory stream for storing any input stream to prevent disposal.
+        /// </summary>
+        private MemoryStream inputStream;
+
+        /// <summary>
         /// Whether the image is indexed.
         /// </summary>
         private bool isIndexed;
@@ -131,8 +136,8 @@ namespace ImageProcessor
             // Set our image as the memory stream value.
             this.Image = Image.FromStream(memoryStream, true);
 
-            // Store the stream in the image Tag property so we can dispose of it later.
-            this.Image.Tag = memoryStream;
+            // Store the stream so we can dispose of it later.
+            this.inputStream = memoryStream;
 
             // Set the other properties.
             this.JpegQuality = DefaultJpegQuality;
@@ -183,8 +188,8 @@ namespace ImageProcessor
                     // Set our image as the memory stream value.
                     this.Image = Image.FromStream(memoryStream, true);
 
-                    // Store the stream in the image Tag property so we can dispose of it later.
-                    this.Image.Tag = memoryStream;
+                    // Store the stream so we can dispose of it later.
+                    this.inputStream = memoryStream;
 
                     // Set the other properties.
                     this.JpegQuality = DefaultJpegQuality;
@@ -227,13 +232,8 @@ namespace ImageProcessor
         {
             if (this.ShouldProcess)
             {
-                MemoryStream memoryStream = (MemoryStream)this.Image.Tag;
-
                 // Set our new image as the memory stream value.
-                Image newImage = Image.FromStream(memoryStream, true);
-
-                // Store the stream in the image Tag property so we can dispose of it later.
-                newImage.Tag = memoryStream;
+                Image newImage = Image.FromStream(this.inputStream, true);
 
                 // Dispose and reassign the image.
                 this.Image.Dispose();
@@ -901,10 +901,10 @@ namespace ImageProcessor
                 if (this.Image != null)
                 {
                     // Dispose of the memory stream from Load and the image.
-                    if (this.Image.Tag != null)
+                    if (this.inputStream != null)
                     {
-                        ((IDisposable)this.Image.Tag).Dispose();
-                        this.Image.Tag = null;
+                        this.inputStream.Dispose();
+                        this.inputStream = null;
                     }
 
                     this.Image.Dispose();

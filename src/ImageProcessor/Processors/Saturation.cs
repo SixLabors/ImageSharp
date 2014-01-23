@@ -137,9 +137,7 @@ namespace ImageProcessor.Processors
                 float saturationComplementG = 0.6094f * saturationComplement;
                 float saturationComplementB = 0.0820f * saturationComplement;
 
-                // Don't use an object initializer here.
                 newImage = new Bitmap(image.Width, image.Height, PixelFormat.Format32bppPArgb);
-                newImage.Tag = image.Tag;
 
                 ColorMatrix colorMatrix =
                     new ColorMatrix(

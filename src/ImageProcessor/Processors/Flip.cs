@@ -134,9 +134,6 @@ namespace ImageProcessor.Processors
 
                 newImage = (Bitmap)image.Clone();
 
-                // Tag doesn't get cloned.
-                newImage.Tag = image.Tag;
-
                 // Flip
                 newImage.RotateFlip(rotateFlipType);
 

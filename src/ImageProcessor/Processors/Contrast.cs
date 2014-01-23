@@ -126,10 +126,7 @@ namespace ImageProcessor.Processors
                 contrastFactor++;
                 float factorTransform = 0.5f * (1.0f - contrastFactor);
 
-                // Don't use an object initializer here.
-                // ReSharper disable once UseObjectOrCollectionInitializer
                 newImage = new Bitmap(image.Width, image.Height, PixelFormat.Format32bppPArgb);
-                newImage.Tag = image.Tag;
 
                 ColorMatrix colorMatrix = new ColorMatrix(
                                                 new float[][]

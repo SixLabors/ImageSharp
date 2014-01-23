@@ -156,7 +156,6 @@ namespace ImageProcessor.Processors
 
                 // Create a rotated image.
                 newImage = this.RotateImage(image, rotateAtX, rotateAtY, angle, backgroundColor);
-                newImage.Tag = image.Tag;
 
                 image.Dispose();
                 image = newImage;

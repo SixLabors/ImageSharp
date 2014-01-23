@@ -175,7 +175,6 @@ namespace ImageProcessor.Processors
 
                 // Create a rotated image.
                 newImage = this.RoundCornerImage(image, radius, backgroundColor, topLeft, topRight, bottomLeft, bottomRight);
-                newImage.Tag = image.Tag;
 
                 image.Dispose();
                 image = newImage;

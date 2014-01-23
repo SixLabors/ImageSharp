@@ -1,25 +1,24 @@
-﻿// -----------------------------------------------------------------------
+﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="PolaroidMatrixFilter.cs" company="James South">
-//     Copyright (c) James South.
-//     Licensed under the Apache License, Version 2.0.
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
 // </copyright>
-// -----------------------------------------------------------------------
+// <summary>
+//   Encapsulates methods with which to add a Polaroid filter to an image.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Imaging.Filters
 {
     #region Using
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
     using System.Drawing;
+    using System.Drawing.Drawing2D;
     using System.Drawing.Imaging;
     using ImageProcessor.Processors;
-    using System.Drawing.Drawing2D;
     #endregion
 
     /// <summary>
-    /// Encapsulates methods with which to add a polaroid filter to an image.
+    /// Encapsulates methods with which to add a Polaroid filter to an image.
     /// </summary>
     internal class PolaroidMatrixFilter : IMatrixFilter
     {
@@ -66,12 +65,12 @@ namespace ImageProcessor.Imaging.Filters
                             // way in to the centre.
                             brush.WrapMode = WrapMode.Tile;
                             brush.CenterColor = Color.FromArgb(70, 255, 153, 102);
-                            brush.SurroundColors = new Color[] { Color.FromArgb(0, 0, 0, 0) };
+                            brush.SurroundColors = new[] { Color.FromArgb(0, 0, 0, 0) };
 
                             Blend blend = new Blend
                             {
-                                Positions = new float[] { 0.0f, 0.2f, 0.4f, 0.6f, 0.8f, 1.0F },
-                                Factors = new float[] { 0.0f, 0.5f, 1f, 1f, 1.0f, 1.0f }
+                                Positions = new[] { 0.0f, 0.2f, 0.4f, 0.6f, 0.8f, 1.0F },
+                                Factors = new[] { 0.0f, 0.5f, 1f, 1f, 1.0f, 1.0f }
                             };
 
                             brush.Blend = blend;
@@ -88,7 +87,7 @@ namespace ImageProcessor.Imaging.Filters
             // Add a vignette to finish the effect.
             factory.Update(newImage);
             Vignette vignette = new Vignette();
-            newImage = (Bitmap)vignette.ProcessImage(factory);
+            newImage = vignette.ProcessImage(factory);
 
             // Reassign the image.
             image.Dispose();

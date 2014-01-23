@@ -348,10 +348,7 @@ namespace ImageProcessor.Processors
                         return image;
                     }
 
-                    // Don't use an object initializer here.
-                    // ReSharper disable once UseObjectOrCollectionInitializer
                     newImage = new Bitmap(width, height, PixelFormat.Format32bppPArgb);
-                    newImage.Tag = image.Tag;
 
                     using (Graphics graphics = Graphics.FromImage(newImage))
                     {

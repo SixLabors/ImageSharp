@@ -141,7 +141,6 @@ namespace ImageProcessor.Processors
                 Convolution convolution = new Convolution(gaussianLayer.Sigma) { Threshold = gaussianLayer.Threshold };
                 double[,] kernel = convolution.CreateGuassianSharpenFilter(gaussianLayer.Size);
                 newImage = convolution.ProcessKernel(newImage, kernel);
-                newImage.Tag = image.Tag;
 
                 image.Dispose();
                 image = newImage;

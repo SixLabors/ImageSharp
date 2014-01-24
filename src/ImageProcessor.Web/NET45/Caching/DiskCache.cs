@@ -268,7 +268,7 @@ namespace ImageProcessor.Web.Caching
         /// </returns>
         internal async Task TrimCachedFolderAsync(string path)
         {
-            await TaskHelpers.Run(() => this.TrimCachedFolder(path));
+            await TaskHelpers.Run(() => this.TrimCachedFolders(path));
         }
         #endregion
 
@@ -317,34 +317,40 @@ namespace ImageProcessor.Web.Caching
         /// <param name="path">
         /// The path to the folder.
         /// </param>
-        private void TrimCachedFolder(string path)
+        private void TrimCachedFolders(string path)
         {
             // ReSharper disable once AssignNullToNotNullAttribute
             DirectoryInfo directoryInfo = new DirectoryInfo(Path.GetDirectoryName(path));
-            IEnumerable<FileInfo> files = directoryInfo.EnumerateFiles().OrderBy(f => f.CreationTimeUtc);
-            int count = files.Count();
+            DirectoryInfo parentDirectoryInfo = directoryInfo.Parent;
 
-            foreach (FileInfo fileInfo in files)
+            // ReSharper disable once PossibleNullReferenceException
+            foreach (DirectoryInfo enumerateDirectory in parentDirectoryInfo.EnumerateDirectories())
             {
-                try
-                {
-                    // If the group count is equal to the max count minus 1 then we know we
-                    // have reduced the number of items below the maximum allowed.
-                    // We'll cleanup any orphaned expired files though.
-                    if (!this.IsExpired(fileInfo.CreationTimeUtc) && count <= MaxFilesCount - 1)
-                    {
-                        break;
-                    }
+                IEnumerable<FileInfo> files = enumerateDirectory.EnumerateFiles().OrderBy(f => f.CreationTimeUtc);
+                int count = files.Count();
 
-                    // Remove from the cache and delete each CachedImage.
-                    CacheIndexer.Remove(fileInfo.Name);
-                    fileInfo.Delete();
-                    count -= 1;
-                }
-                // ReSharper disable once EmptyGeneralCatchClause
-                catch
+                foreach (FileInfo fileInfo in files)
                 {
-                    // Do nothing; skip to the next file.
+                    try
+                    {
+                        // If the group count is equal to the max count minus 1 then we know we
+                        // have reduced the number of items below the maximum allowed.
+                        // We'll cleanup any orphaned expired files though.
+                        if (!this.IsExpired(fileInfo.CreationTimeUtc) && count <= MaxFilesCount - 1)
+                        {
+                            break;
+                        }
+
+                        // Remove from the cache and delete each CachedImage.
+                        CacheIndexer.Remove(fileInfo.Name);
+                        fileInfo.Delete();
+                        count -= 1;
+                    }
+                    // ReSharper disable once EmptyGeneralCatchClause
+                    catch
+                    {
+                        // Do nothing; skip to the next file.
+                    }
                 }
             }
         }

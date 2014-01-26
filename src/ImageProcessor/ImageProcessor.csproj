@@ -66,7 +66,6 @@
     <Compile Include="Imaging\AnchorPosition.cs" />
     <Compile Include="Imaging\Convolution.cs" />
     <Compile Include="Imaging\GaussianLayer.cs" />
-    <Compile Include="Imaging\Pixel.cs" />
     <Compile Include="Imaging\ColorQuantizer.cs" />
     <Compile Include="Imaging\ResizeLayer.cs" />
     <Compile Include="Imaging\Filters\BlackWhiteMatrixFilter.cs" />

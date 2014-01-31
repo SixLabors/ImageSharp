@@ -28,6 +28,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{1E656C
 		.nuget\NuGet.targets = .nuget\NuGet.targets
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test_Website_Webforms_NET45", "TestWebsites\NET45\Test_Website_Webforms_NET45\Test_Website_Webforms_NET45.csproj", "{8DA47D8C-DB1A-4D82-843F-896AB9C3B3D2}"
+EndProject
 Global
 	GlobalSection(TestCaseManagementSettings) = postSolution
 		CategoryFile = ImageProcessor.vsmdi
@@ -154,6 +156,21 @@ Global
 		{D011A778-59C8-4BFA-A770-C350216BF161}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{D011A778-59C8-4BFA-A770-C350216BF161}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{D011A778-59C8-4BFA-A770-C350216BF161}.Release|x86.ActiveCfg = Release|Any CPU
+		{8DA47D8C-DB1A-4D82-843F-896AB9C3B3D2}.All|Any CPU.ActiveCfg = Release|Any CPU
+		{8DA47D8C-DB1A-4D82-843F-896AB9C3B3D2}.All|Any CPU.Build.0 = Release|Any CPU
+		{8DA47D8C-DB1A-4D82-843F-896AB9C3B3D2}.All|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{8DA47D8C-DB1A-4D82-843F-896AB9C3B3D2}.All|Mixed Platforms.Build.0 = Release|Any CPU
+		{8DA47D8C-DB1A-4D82-843F-896AB9C3B3D2}.All|x86.ActiveCfg = Release|Any CPU
+		{8DA47D8C-DB1A-4D82-843F-896AB9C3B3D2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8DA47D8C-DB1A-4D82-843F-896AB9C3B3D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8DA47D8C-DB1A-4D82-843F-896AB9C3B3D2}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{8DA47D8C-DB1A-4D82-843F-896AB9C3B3D2}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{8DA47D8C-DB1A-4D82-843F-896AB9C3B3D2}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{8DA47D8C-DB1A-4D82-843F-896AB9C3B3D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8DA47D8C-DB1A-4D82-843F-896AB9C3B3D2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8DA47D8C-DB1A-4D82-843F-896AB9C3B3D2}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{8DA47D8C-DB1A-4D82-843F-896AB9C3B3D2}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{8DA47D8C-DB1A-4D82-843F-896AB9C3B3D2}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

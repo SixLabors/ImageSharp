@@ -9,7 +9,9 @@ namespace ImageProcessor.Web.Config
 {
     #region Using
     using System.Configuration;
-    using ImageProcessor.Helpers.Extensions;
+
+    using ImageProcessor.Extensions;
+
     #endregion
 
     /// <summary>

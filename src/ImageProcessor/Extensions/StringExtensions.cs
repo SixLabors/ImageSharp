@@ -8,7 +8,7 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Helpers.Extensions
+namespace ImageProcessor.Extensions
 {
     #region Using
     using System;

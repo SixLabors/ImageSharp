@@ -21,13 +21,13 @@ namespace ImageProcessor.Web.HttpModules
     using System.Security;
     using System.Security.Permissions;
     using System.Security.Principal;
+    using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
     using System.Web;
     using System.Web.Hosting;
     using System.Web.Security;
-    using ImageProcessor.Helpers.Extensions;
-    using ImageProcessor.Imaging;
+    using ImageProcessor.Extensions;
     using ImageProcessor.Web.Caching;
     using ImageProcessor.Web.Config;
     using ImageProcessor.Web.Helpers;
@@ -43,6 +43,11 @@ namespace ImageProcessor.Web.HttpModules
         /// The key for storing the response type of the current image.
         /// </summary>
         private const string CachedResponseTypeKey = "CACHED_IMAGE_RESPONSE_TYPE_054F217C-11CF-49FF-8D2F-698E8E6EB58F";
+
+        /// <summary>
+        /// The regular expression to search strings for.
+        /// </summary>
+        private static readonly Regex PresetRegex = new Regex(@"preset=[^&]*", RegexOptions.Compiled);
 
         /// <summary>
         /// The value to prefix any remote image requests with to ensure they get captured.
@@ -312,8 +317,11 @@ namespace ImageProcessor.Web.HttpModules
             }
 
             // Only process requests that pass our sanitizing filter.
-            if ((ImageUtils.IsValidImageExtension(requestPath) || validExtensionLessUrl) && !string.IsNullOrWhiteSpace(queryString))
+            if ((ImageHelpers.IsValidImageExtension(requestPath) || validExtensionLessUrl) && !string.IsNullOrWhiteSpace(queryString))
             {
+                // Replace any presets in the querystring with the actual value.
+                queryString = this.ReplacePresetsInQueryString(queryString);
+
                 string fullPath = string.Format("{0}?{1}", requestPath, queryString);
                 string imageName = Path.GetFileName(requestPath);
 
@@ -400,9 +408,11 @@ namespace ImageProcessor.Web.HttpModules
                                                     // Process the Image
                                                     imageFactory.Load(memoryStream)
                                                                 .AddQueryString(queryString)
-                                                                .Format(ImageUtils.GetImageFormat(imageName))
                                                                 .AutoProcess()
                                                                 .Save(cachedPath);
+
+                                                    // Store the response type in the context for later retrieval.
+                                                    context.Items[CachedResponseTypeKey] = imageFactory.MimeType;
 
                                                     // Ensure that the LastWriteTime property of the source and cached file match.
                                                     Tuple<DateTime, DateTime> creationAndLastWriteDateTimes = await cache.SetCachedLastWriteTimeAsync();
@@ -441,6 +451,9 @@ namespace ImageProcessor.Web.HttpModules
                                     // Process the Image
                                     imageFactory.Load(fullPath).AutoProcess().Save(cachedPath);
 
+                                    // Store the response type in the context for later retrieval.
+                                    context.Items[CachedResponseTypeKey] = imageFactory.MimeType;
+
                                     // Ensure that the LastWriteTime property of the source and cached file match.
                                     Tuple<DateTime, DateTime> creationAndLastWriteDateTimes = await cache.SetCachedLastWriteTimeAsync();
 
@@ -458,8 +471,6 @@ namespace ImageProcessor.Web.HttpModules
                         }
                     }
 
-                    // Store the response type in the context for later retrieval.
-                    context.Items[CachedResponseTypeKey] = ImageUtils.GetResponseType(fullPath).ToDescription();
                     string incomingEtag = context.Request.Headers["If-None-Match"];
 
                     if (incomingEtag != null && !isNewOrUpdated)
@@ -478,8 +489,10 @@ namespace ImageProcessor.Web.HttpModules
                         }
                     }
 
+                    string virtualPath = cache.GetVirtualCachedPath();
+
                     // The cached file is valid so just rewrite the path.
-                    context.RewritePath(cache.GetVirtualCachedPath(), false);
+                    context.RewritePath(virtualPath, false);
                 }
                 else
                 {
@@ -516,6 +529,35 @@ namespace ImageProcessor.Web.HttpModules
             cache.SetExpires(DateTime.Now.ToUniversalTime().AddDays(maxDays));
             cache.SetMaxAge(new TimeSpan(maxDays, 0, 0, 0));
             cache.SetRevalidation(HttpCacheRevalidation.AllCaches);
+        }
+
+        /// <summary>
+        /// Replaces preset values stored in the configuration in the querystring.
+        /// </summary>
+        /// <param name="queryString">
+        /// The query string.
+        /// </param>
+        /// <returns>
+        /// The <see cref="string"/> containing the updated querystring.
+        /// </returns>
+        private string ReplacePresetsInQueryString(string queryString)
+        {
+            // We use the processor config system to store the preset values.
+            Dictionary<string, string> presets = ImageProcessorConfig.Instance.GetPluginSettings("Preset");
+
+            foreach (Match match in PresetRegex.Matches(queryString))
+            {
+                if (match.Success)
+                {
+                    // Set the index on the first instance only.
+                    string preset = match.Value;
+                    string replacements;
+                    presets.TryGetValue(preset.Split('=')[1], out replacements);
+                    queryString = Regex.Replace(queryString, preset, replacements ?? string.Empty);
+                }
+            }
+
+            return queryString;
         }
         #endregion
     }

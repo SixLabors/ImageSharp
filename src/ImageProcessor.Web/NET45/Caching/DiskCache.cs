@@ -20,7 +20,8 @@ namespace ImageProcessor.Web.Caching
     using System.Threading.Tasks;
     using System.Web;
     using System.Web.Hosting;
-    using ImageProcessor.Helpers.Extensions;
+
+    using ImageProcessor.Extensions;
     using ImageProcessor.Imaging;
     using ImageProcessor.Web.Config;
     using ImageProcessor.Web.Helpers;
@@ -372,7 +373,7 @@ namespace ImageProcessor.Web.Caching
                 // Use an sha1 hash of the full path including the querystring to create the image name. 
                 // That name can also be used as a key for the cached image and we should be able to use 
                 // The characters of that hash as subfolders.
-                string parsedExtension = ImageUtils.GetExtension(this.fullPath);
+                string parsedExtension = ImageHelpers.GetExtension(this.fullPath);
                 string fallbackExtension = this.imageName.Substring(this.imageName.LastIndexOf(".", StringComparison.Ordinal) + 1);
                 string encryptedName = this.fullPath.ToSHA1Fingerprint();
 

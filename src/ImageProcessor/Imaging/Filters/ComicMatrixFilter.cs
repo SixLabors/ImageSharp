@@ -17,6 +17,9 @@ namespace ImageProcessor.Imaging.Filters
     using System.Drawing.Drawing2D;
     using System.Drawing.Imaging;
     using System.Runtime.InteropServices;
+
+    using ImageProcessor.Extensions;
+
     #endregion
 
     /// <summary>
@@ -307,14 +310,10 @@ namespace ImageProcessor.Imaging.Filters
                     double green = Math.Abs(greenBin[maxIndex] / maxIntensity);
                     double red = Math.Abs(redBin[maxIndex] / maxIntensity);
 
-                    blue = blue > 255 ? 255 : (blue < 0 ? 0 : blue);
-                    green = green > 255 ? 255 : (green < 0 ? 0 : green);
-                    red = red > 255 ? 255 : (red < 0 ? 0 : red);
-
-                    resultBuffer[byteOffset] = (byte)blue;
-                    resultBuffer[byteOffset + 1] = (byte)green;
-                    resultBuffer[byteOffset + 2] = (byte)red;
-                    resultBuffer[byteOffset + 3] = 255;
+                    resultBuffer[byteOffset] = blue.ToByte();
+                    resultBuffer[byteOffset + 1] = green.ToByte();
+                    resultBuffer[byteOffset + 2] = red.ToByte();
+                    resultBuffer[byteOffset + 3] = pixelBuffer[byteOffset + 3];
                 }
             }
 
@@ -333,7 +332,7 @@ namespace ImageProcessor.Imaging.Filters
 
         /// <summary>
         /// Detects and draws edges.
-        /// TODO: Move this to another class and do move edge detection.
+        /// TODO: Move this to another class and do edge detection.
         /// </summary>
         /// <param name="sourceBitmap">
         /// The source bitmap.
@@ -494,7 +493,7 @@ namespace ImageProcessor.Imaging.Filters
                     }
                     else
                     {
-                        // These would normally be used to transfer the correct value accross.
+                        // These would normally be used to transfer the correct value across.
                         // blue = pixelBuffer[byteOffset];
                         // green = pixelBuffer[byteOffset + 1];
                         // red = pixelBuffer[byteOffset + 2];
@@ -581,7 +580,11 @@ namespace ImageProcessor.Imaging.Filters
             for (int i = rectangle.Height * rectangle.Width; i > 0; i--)
             {
                 // Copy the alpha values across.
-                destinationRgbValues[d] = sourceRgbValues[s];
+                if (destinationRgbValues[d] != 0)
+                {
+                    destinationRgbValues[d] = sourceRgbValues[s];
+                }
+
                 d += 4;
                 s += 4;
             }

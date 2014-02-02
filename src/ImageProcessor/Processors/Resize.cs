@@ -33,7 +33,7 @@ namespace ImageProcessor.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"((width|height)=\d+)|(mode=(pad|stretch|crop|max))|(anchor=(top|bottom|left|right|center))|(bgcolor=([0-9a-fA-F]{3}){1,2})|(upscale=false)", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"((width|height)=\d+)|(mode=(pad|stretch|crop|max))|(anchor=(top|bottom|left|right|center))|(bgcolor=(transparent|\d+,\d+,\d+,\d+|([0-9a-fA-F]{3}){1,2}))|(upscale=false)", RegexOptions.Compiled);
 
         /// <summary>
         /// The regular expression to search strings for the size attribute.
@@ -53,7 +53,7 @@ namespace ImageProcessor.Processors
         /// <summary>
         /// The regular expression to search strings for the color attribute.
         /// </summary>
-        private static readonly Regex ColorRegex = new Regex(@"bgcolor=([0-9a-fA-F]{3}){1,2}", RegexOptions.Compiled);
+        private static readonly Regex ColorRegex = new Regex(@"bgcolor=(transparent|\d+,\d+,\d+,\d+|([0-9a-fA-F]{3}){1,2})", RegexOptions.Compiled);
 
         /// <summary>
         /// The regular expression to search strings for the upscale attribute.
@@ -530,8 +530,26 @@ namespace ImageProcessor.Processors
         {
             foreach (Match match in ColorRegex.Matches(input))
             {
+                string value = match.Value.Split('=')[1];
+
+                if (value == "transparent")
+                {
+                    return Color.Transparent;
+                }
+
+                if (value.Contains(","))
+                {
+                    int[] split = value.ToPositiveIntegerArray();
+                    byte red = split[0].ToByte();
+                    byte green = split[1].ToByte();
+                    byte blue = split[2].ToByte();
+                    byte alpha = split[3].ToByte();
+
+                    return Color.FromArgb(alpha, red, green, blue);
+                }
+
                 // Split on color-hex
-                return ColorTranslator.FromHtml("#" + match.Value.Split('=')[1]);
+                return ColorTranslator.FromHtml("#" + value);
             }
 
             return Color.Transparent;

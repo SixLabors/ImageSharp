@@ -16,7 +16,9 @@ namespace ImageProcessor.Processors
     using System.Drawing.Drawing2D;
     using System.Drawing.Imaging;
     using System.Text.RegularExpressions;
-    using ImageProcessor.Helpers.Extensions;
+
+    using ImageProcessor.Extensions;
+
     #endregion
 
     /// <summary>

@@ -25,7 +25,7 @@ namespace ImageProcessor.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"format=(j(pg|peg)|png|png8|bmp|gif|ti(ff|f))", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"format=(j(pg|peg)|pn(g8|g)|bmp|gif|ti(ff|f)|ico)", RegexOptions.Compiled);
 
         #region IGraphicsProcessor Members
         /// <summary>
@@ -134,6 +134,9 @@ namespace ImageProcessor.Processors
                 case "tif":
                 case "tiff":
                     imageFormat = ImageFormat.Tiff;
+                    break;
+                case "ico":
+                    imageFormat = ImageFormat.Icon;
                     break;
                 default:
                     // Should be a jpeg or jpg.

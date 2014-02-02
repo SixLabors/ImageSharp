@@ -22,7 +22,6 @@ namespace ImageProcessor.Web.Caching
     using System.Web.Hosting;
 
     using ImageProcessor.Extensions;
-    using ImageProcessor.Imaging;
     using ImageProcessor.Web.Config;
     using ImageProcessor.Web.Helpers;
     #endregion

@@ -56,7 +56,7 @@ namespace ImageProcessor.Imaging
             int height = image.Height;
             Rectangle sourceRect = Rectangle.FromLTRB(0, 0, width, height);
 
-            // create a 24-bit rgb version of the source image
+            // Create a 24-bit rgb version of the source image
             using (Bitmap bitmapSource = new Bitmap(width, height, PixelFormat.Format32bppArgb))
             {
                 using (Graphics grfx = Graphics.FromImage(bitmapSource))

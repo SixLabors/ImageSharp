@@ -2,6 +2,7 @@
   <GlobalSettings>
     <CollectionProperty Name="RecognizedWords">
       <Value>Mutexes</Value>
+      <Value>querystring</Value>
     </CollectionProperty>
   </GlobalSettings>
   <Analyzers>

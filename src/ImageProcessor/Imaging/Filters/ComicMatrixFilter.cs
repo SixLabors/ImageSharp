@@ -50,7 +50,7 @@ namespace ImageProcessor.Imaging.Filters
             /// </summary>
             Alpha = 3
         }
-        
+
         /// <summary>
         /// Gets the <see cref="T:System.Drawing.Imaging.ColorMatrix"/> for this filter instance.
         /// </summary>
@@ -77,6 +77,7 @@ namespace ImageProcessor.Imaging.Filters
             Bitmap highBitmap = null;
             Bitmap lowBitmap = null;
             Bitmap patternBitmap = null;
+            Bitmap edgeBitmap = null;
 
             try
             {
@@ -91,6 +92,14 @@ namespace ImageProcessor.Imaging.Filters
 
                     // Apply a oil painting filter to the image.
                     highBitmap = OilPaintFilter((Bitmap)image, 3, 5);
+
+                    // Draw the edges.
+                    edgeBitmap = DrawEdges((Bitmap)image, 120);
+
+                    //GaussianLayer gaussianLayer = new GaussianLayer(1);
+                    //Convolution convolution = new Convolution(gaussianLayer.Sigma) { Threshold = gaussianLayer.Threshold };
+                    //double[,] kernel = convolution.CreateGuassianBlurFilter(gaussianLayer.Size);
+                    //edgeBitmap = convolution.ProcessKernel(edgeBitmap, kernel);
 
                     using (Graphics graphics = Graphics.FromImage(highBitmap))
                     {
@@ -137,6 +146,7 @@ namespace ImageProcessor.Imaging.Filters
                         // Overlay the image.
                         graphics.DrawImage(highBitmap, 0, 0);
                         graphics.DrawImage(lowBitmap, 0, 0);
+                        graphics.DrawImage(edgeBitmap, 0, 0);
 
                         // Draw an edge around the image.
                         using (Pen blackPen = new Pen(Color.Black))
@@ -149,6 +159,7 @@ namespace ImageProcessor.Imaging.Filters
                         highBitmap.Dispose();
                         lowBitmap.Dispose();
                         patternBitmap.Dispose();
+                        edgeBitmap.Dispose();
                     }
                 }
 
@@ -176,6 +187,11 @@ namespace ImageProcessor.Imaging.Filters
                 if (patternBitmap != null)
                 {
                     patternBitmap.Dispose();
+                }
+
+                if (edgeBitmap != null)
+                {
+                    edgeBitmap.Dispose();
                 }
             }
 

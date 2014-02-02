@@ -82,13 +82,13 @@
     <Compile Include="..\NET45\Config\ImageProcessingSection.cs" />
     <Compile Include="..\NET45\Config\ImageProcessorConfig.cs" />
     <Compile Include="..\NET45\Config\ImageSecuritySection.cs" />
+    <Compile Include="..\NET45\Helpers\ImageHelpers.cs">
+      <Link>ImageHelpers.cs</Link>
+    </Compile>
     <Compile Include="..\NET45\Helpers\RemoteFile.cs" />
     <Compile Include="..\NET45\Helpers\TaskHelpers.cs" />
     <Compile Include="..\NET45\HttpModules\ImageProcessingModule.cs" />
     <Compile Include="..\NET45\ImageFactoryExtensions.cs" />
-    <Compile Include="..\NET45\Preset.cs">
-      <Link>Preset.cs</Link>
-    </Compile>
     <Compile Include="..\NET45\Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -20,6 +20,7 @@ namespace ImageProcessor
     using System.Linq;
     using System.Threading;
 
+    using ImageProcessor.Extensions;
     using ImageProcessor.Imaging;
     using ImageProcessor.Processors;
     #endregion
@@ -109,7 +110,18 @@ namespace ImageProcessor
         /// Gets the file format of the image. 
         /// </summary>
         public ImageFormat ImageFormat { get; private set; }
-        
+
+        /// <summary>
+        /// Gets the mime type.
+        /// </summary>
+        public string MimeType
+        {
+            get
+            {
+                return this.ImageFormat.GetMimeType();
+            }
+        }
+
         /// <summary>
         /// Gets or sets the original extension.
         /// </summary>
@@ -141,8 +153,8 @@ namespace ImageProcessor
 
             // Set the other properties.
             this.JpegQuality = DefaultJpegQuality;
-            this.backupImageFormat = ImageFormat.Jpeg;
-            this.ImageFormat = ImageFormat.Jpeg;
+            this.ImageFormat = this.Image.RawFormat;
+            this.backupImageFormat = this.ImageFormat;
             this.isIndexed = ImageUtils.IsIndexed(this.Image);
             this.ShouldProcess = true;
 
@@ -158,6 +170,7 @@ namespace ImageProcessor
         /// </returns>
         public ImageFactory Load(string imagePath)
         {
+            // Remove any querystring parameters passed by web requests.
             string[] paths = imagePath.Split('?');
             string path = paths[0];
             string query = string.Empty;
@@ -166,8 +179,6 @@ namespace ImageProcessor
             {
                 query = paths[1];
             }
-
-            string imageName = Path.GetFileName(path);
 
             if (File.Exists(path))
             {
@@ -193,7 +204,7 @@ namespace ImageProcessor
 
                     // Set the other properties.
                     this.JpegQuality = DefaultJpegQuality;
-                    ImageFormat imageFormat = ImageUtils.GetImageFormat(imageName);
+                    ImageFormat imageFormat = this.Image.RawFormat;
                     this.backupImageFormat = imageFormat;
                     this.OriginalExtension = Path.GetExtension(this.ImagePath);
                     this.ImageFormat = imageFormat;
@@ -761,8 +772,12 @@ namespace ImageProcessor
                 // We need to check here if the path has an extension and remove it if so.
                 // This is so we can add the correct image format.
                 int length = filePath.LastIndexOf(".", StringComparison.Ordinal);
-                string extension = ImageUtils.GetExtensionFromImageFormat(this.ImageFormat, this.OriginalExtension);
-                filePath = length == -1 ? filePath + extension : filePath.Substring(0, length) + extension;
+                string extension = this.ImageFormat.GetFileExtension(this.OriginalExtension);
+
+                if (!string.IsNullOrWhiteSpace(extension))
+                {
+                    filePath = length == -1 ? filePath + extension : filePath.Substring(0, length) + extension;
+                }
 
                 // Fix the colour palette of indexed images.
                 this.FixIndexedPallete();
@@ -778,7 +793,7 @@ namespace ImageProcessor
                     {
                         ImageCodecInfo imageCodecInfo =
                             ImageCodecInfo.GetImageEncoders()
-                                .FirstOrDefault(ici => ici.MimeType.Equals("image/jpeg", StringComparison.OrdinalIgnoreCase));
+                                .FirstOrDefault(ici => ici.MimeType.Equals(this.MimeType, StringComparison.OrdinalIgnoreCase));
 
                         if (imageCodecInfo != null)
                         {
@@ -851,7 +866,7 @@ namespace ImageProcessor
                     {
                         ImageCodecInfo imageCodecInfo =
                             ImageCodecInfo.GetImageEncoders().FirstOrDefault(
-                                ici => ici.MimeType.Equals("image/jpeg", StringComparison.OrdinalIgnoreCase));
+                                ici => ici.MimeType.Equals(this.MimeType, StringComparison.OrdinalIgnoreCase));
 
                         if (imageCodecInfo != null)
                         {

@@ -1,9 +1,12 @@
-﻿// -----------------------------------------------------------------------
+﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="ImageFactoryExtensions.cs" company="James South">
-//     Copyright (c) James South.
-//     Licensed under the Apache License, Version 2.0.
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
 // </copyright>
-// -----------------------------------------------------------------------
+// <summary>
+//   Extends the ImageFactory class to provide a fluent API.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Web
 {
@@ -54,12 +57,6 @@ namespace ImageProcessor.Web
                     {
                         Image img = graphicsProcessor.ProcessImage(factory);
                         factory.Update(img);
-                        
-                        // Break to prevent loop as Preset calls AutoProcess internally.
-                        if (graphicsProcessor.GetType() == typeof(Preset))
-                        {
-                            break;
-                        }
                     }
                 }
             }

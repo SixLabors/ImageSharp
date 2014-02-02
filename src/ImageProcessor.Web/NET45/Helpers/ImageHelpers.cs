@@ -11,8 +11,6 @@
 namespace ImageProcessor.Web.Helpers
 {
     #region Using
-    using System.Drawing.Imaging;
-    using System.IO;
     using System.Text.RegularExpressions;
     #endregion
 
@@ -53,44 +51,7 @@ namespace ImageProcessor.Web.Helpers
         public static string GetExtension(string input)
         {
             Match match = FormatRegex.Matches(input)[0];
-
             return match.Success ? match.Value : string.Empty;
         }
-
-        /// <summary>
-        /// Returns the correct image format based on the given file extension.
-        /// </summary>
-        /// <param name="fileName">The string containing the filename to check against.</param>
-        /// <returns>The correct image format based on the given filename.</returns>
-        //public static ImageFormat GetImageFormat(string fileName)
-        //{
-        //    string extension = Path.GetExtension(fileName);
-
-        //    if (extension != null)
-        //    {
-        //        string ext = extension.ToUpperInvariant();
-
-        //        switch (ext)
-        //        {
-        //            case ".ICO":
-        //                return ImageFormat.Icon;
-        //            case ".PNG":
-        //                return ImageFormat.Png;
-        //            case ".BMP":
-        //                return ImageFormat.Bmp;
-        //            case ".GIF":
-        //                return ImageFormat.Gif;
-        //            case ".TIF":
-        //            case ".TIFF":
-        //                return ImageFormat.Tiff;
-        //            default:
-        //                // Should be a jpeg.
-        //                return ImageFormat.Jpeg;
-        //        }
-        //    }
-
-        //    // TODO: Show custom exception?
-        //    return null;
-        //}
     }
 }

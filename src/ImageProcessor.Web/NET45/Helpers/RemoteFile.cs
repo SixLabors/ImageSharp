@@ -351,7 +351,7 @@ namespace ImageProcessor.Web.Helpers
         /// </summary>
         private void CheckSafeUrlLocation()
         {
-            bool validUrl = RemoteFileWhiteList.Any(item => item.Host.ToUpperInvariant().Equals(this.url.Host.ToUpperInvariant()));
+            bool validUrl = RemoteFileWhiteList.Any(item => this.url.Host.ToUpperInvariant().StartsWith(item.Host.ToUpperInvariant()));
 
             if (!validUrl)
             {

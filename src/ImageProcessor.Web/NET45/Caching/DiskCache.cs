@@ -284,9 +284,9 @@ namespace ImageProcessor.Web.Caching
             FileInfo cachedFileInfo = new FileInfo(this.CachedPath);
 
             // DateTime.Min explodes when used east of GMT.
-            // Use the SqlDateTime.MinValue.
-            DateTime creationTime = new DateTime(1753, 1, 1);
-            DateTime lastWriteTime = new DateTime(1753, 1, 1);
+            DateTime baseDateTime = DateTime.UtcNow;
+            DateTime creationTime = baseDateTime;
+            DateTime lastWriteTime = baseDateTime;
 
             if (this.isRemote)
             {
@@ -306,7 +306,6 @@ namespace ImageProcessor.Web.Caching
                     creationTime = cachedFileInfo.CreationTimeUtc;
 
                     cachedFileInfo.LastWriteTimeUtc = dateTime;
-
                     lastWriteTime = dateTime;
                 }
             }

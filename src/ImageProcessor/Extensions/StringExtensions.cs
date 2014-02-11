@@ -123,7 +123,7 @@ namespace ImageProcessor.Extensions
                 throw new ArgumentNullException("expression");
             }
 
-            Regex regex = new Regex(@"\d+", RegexOptions.Compiled);
+            Regex regex = new Regex(@"[\d+]+(?=[,|])|[\d+]+(?![,|])", RegexOptions.Compiled);
 
             MatchCollection matchCollection = regex.Matches(expression);
 
@@ -135,6 +135,35 @@ namespace ImageProcessor.Extensions
             for (int i = 0; i < count; i++)
             {
                 matches[i] = int.Parse(matchCollection[i].Value);
+            }
+
+            return matches;
+        }
+
+        /// <summary>
+        /// Creates an array of floats scraped from the String.
+        /// </summary>
+        /// <param name="expression">The <see cref="T:System.String">String</see> instance that this method extends.</param>
+        /// <returns>An array of floats scraped from the String.</returns>
+        public static float[] ToPositiveFloatArray(this string expression)
+        {
+            if (string.IsNullOrWhiteSpace(expression))
+            {
+                throw new ArgumentNullException("expression");
+            }
+
+            Regex regex = new Regex(@"[\d+\.]+(?=[,|])|[\d+\.]+(?![,|])", RegexOptions.Compiled);
+
+            MatchCollection matchCollection = regex.Matches(expression);
+
+            // Get the collections.
+            int count = matchCollection.Count;
+            float[] matches = new float[count];
+
+            // Loop and parse the int values.
+            for (int i = 0; i < count; i++)
+            {
+                matches[i] = float.Parse(matchCollection[i].Value);
             }
 
             return matches;

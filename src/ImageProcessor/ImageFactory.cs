@@ -395,7 +395,30 @@ namespace ImageProcessor
         {
             if (this.ShouldProcess)
             {
-                Crop crop = new Crop { DynamicParameter = rectangle };
+                CropLayer cropLayer = new CropLayer(rectangle.Left, rectangle.Top, rectangle.Right, rectangle.Bottom, CropMode.Pixels);
+
+                Crop crop = new Crop { DynamicParameter = cropLayer };
+
+                this.Image = crop.ProcessImage(this);
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Crops the current image to the given location and size.
+        /// </summary>
+        /// <param name="cropLayer">
+        /// The <see cref="T:CropLayer"/> containing the coordinates and mode to crop the image with.
+        /// </param>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory Crop(CropLayer cropLayer)
+        {
+            if (this.ShouldProcess)
+            {
+                Crop crop = new Crop { DynamicParameter = cropLayer };
 
                 this.Image = crop.ProcessImage(this);
             }

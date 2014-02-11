@@ -1,17 +1,26 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor", "ImageProcessor\ImageProcessor.csproj", "{3B5DD734-FB7A-487D-8CE6-55E7AF9AEA7E}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor.Tests", "ImageProcessor.Tests\ImageProcessor.Tests.csproj", "{39911A38-CA06-413C-80AA-39EF60CE984F}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Web.Tests", "Web.Test\Web.Tests.csproj", "{23CE0FC0-9E59-4C93-A604-A4A98A6284D1}"
-EndProject
+# Visual Studio 2013
+VisualStudioVersion = 12.0.30110.0
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{C427A497-74DC-49B1-8420-D6E68354F29B}"
 	ProjectSection(SolutionItems) = preProject
 		ImageProcessor.vsmdi = ImageProcessor.vsmdi
 		Local.testsettings = Local.testsettings
 	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{1E656CDE-124D-4FAF-837C-0EF1E192D418}"
+	ProjectSection(SolutionItems) = preProject
+		.nuget\NuGet.Config = .nuget\NuGet.Config
+		.nuget\NuGet.exe = .nuget\NuGet.exe
+		.nuget\NuGet.targets = .nuget\NuGet.targets
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor", "ImageProcessor\ImageProcessor.csproj", "{3B5DD734-FB7A-487D-8CE6-55E7AF9AEA7E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor.Tests", "ImageProcessor.Tests\ImageProcessor.Tests.csproj", "{39911A38-CA06-413C-80AA-39EF60CE984F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Web.Tests", "Web.Test\Web.Tests.csproj", "{23CE0FC0-9E59-4C93-A604-A4A98A6284D1}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test_Website", "TestWebsites\NET4\Test_Website.csproj", "{30327C08-7574-4D7E-AC95-6A58753C6855}"
 EndProject
@@ -21,19 +30,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor.Web", "Image
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor.Web_NET45", "ImageProcessor.Web\NET45\ImageProcessor.Web_NET45.csproj", "{D011A778-59C8-4BFA-A770-C350216BF161}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{1E656CDE-124D-4FAF-837C-0EF1E192D418}"
-	ProjectSection(SolutionItems) = preProject
-		.nuget\NuGet.Config = .nuget\NuGet.Config
-		.nuget\NuGet.exe = .nuget\NuGet.exe
-		.nuget\NuGet.targets = .nuget\NuGet.targets
-	EndProjectSection
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test_Website_Webforms_NET45", "TestWebsites\NET45\Test_Website_Webforms_NET45\Test_Website_Webforms_NET45.csproj", "{8DA47D8C-DB1A-4D82-843F-896AB9C3B3D2}"
 EndProject
 Global
-	GlobalSection(TestCaseManagementSettings) = postSolution
-		CategoryFile = ImageProcessor.vsmdi
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		All|Any CPU = All|Any CPU
 		All|Mixed Platforms = All|Mixed Platforms
@@ -174,5 +173,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(TestCaseManagementSettings) = postSolution
+		CategoryFile = ImageProcessor.vsmdi
 	EndGlobalSection
 EndGlobal

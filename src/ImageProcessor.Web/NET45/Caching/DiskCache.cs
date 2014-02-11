@@ -282,8 +282,11 @@ namespace ImageProcessor.Web.Caching
         private Tuple<DateTime, DateTime> SetCachedLastWriteTime()
         {
             FileInfo cachedFileInfo = new FileInfo(this.CachedPath);
-            DateTime creationTime = DateTime.MinValue.ToUniversalTime();
-            DateTime lastWriteTime = DateTime.MinValue.ToUniversalTime();
+
+            // DateTime.Min explodes when used east of GMT.
+            // Use the SqlDateTime.MinValue.
+            DateTime creationTime = new DateTime(1753, 1, 1);
+            DateTime lastWriteTime = new DateTime(1753, 1, 1);
 
             if (this.isRemote)
             {

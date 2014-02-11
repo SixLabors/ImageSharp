@@ -59,6 +59,7 @@ namespace ImageProcessor.Processors
         /// The regular expression to search strings for the upscale attribute.
         /// </summary>
         private static readonly Regex UpscaleRegex = new Regex(@"upscale=false", RegexOptions.Compiled);
+
         #region IGraphicsProcessor Members
         /// <summary>
         /// Gets the regular expression to search strings for.

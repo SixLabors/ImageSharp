@@ -15,9 +15,11 @@ namespace ImageProcessor.Processors
     using System.Drawing;
     using System.Drawing.Drawing2D;
     using System.Drawing.Imaging;
+    using System.Text;
     using System.Text.RegularExpressions;
 
     using ImageProcessor.Extensions;
+    using ImageProcessor.Imaging;
 
     #endregion
 
@@ -30,7 +32,17 @@ namespace ImageProcessor.Processors
         /// The regular expression to search strings for.
         /// <see cref="http://stackoverflow.com/a/6400969/427899"/>
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"crop=\d+[,-]\d+[,-]\d+[,-]\d+", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"crop=\d+(.\d+)?[,-]\d+(.\d+)?[,-]\d+(.\d+)?[,-]\d+(.\d+)?|cropmode=(pixels|percent)", RegexOptions.Compiled);
+
+        /// <summary>
+        /// The coordinate regex.
+        /// </summary>
+        private static readonly Regex CoordinateRegex = new Regex(@"crop=\d+(.\d+)?[,-]\d+(.\d+)?[,-]\d+(.\d+)?[,-]\d+(.\d+)?", RegexOptions.Compiled);
+
+        /// <summary>
+        /// The mode regex.
+        /// </summary>
+        private static readonly Regex ModeRegex = new Regex(@"cropmode=(pixels|percent)", RegexOptions.Compiled);
 
         #region IGraphicsProcessor Members
         /// <summary>
@@ -87,6 +99,9 @@ namespace ImageProcessor.Processors
             // Set the sort order to max to allow filtering.
             this.SortOrder = int.MaxValue;
 
+            // First merge the matches so we can parse .
+            StringBuilder stringBuilder = new StringBuilder();
+
             foreach (Match match in this.RegexPattern.Matches(queryString))
             {
                 if (match.Success)
@@ -95,19 +110,24 @@ namespace ImageProcessor.Processors
                     {
                         // Set the index on the first instance only.
                         this.SortOrder = match.Index;
-                        int[] coordinates = match.Value.ToPositiveIntegerArray();
-
-                        int x = coordinates[0];
-                        int y = coordinates[1];
-                        int width = coordinates[2];
-                        int height = coordinates[3];
-
-                        Rectangle rectangle = new Rectangle(x, y, width, height);
-                        this.DynamicParameter = rectangle;
                     }
+
+                    stringBuilder.Append(match.Value);
 
                     index += 1;
                 }
+            }
+
+            if (this.SortOrder < int.MaxValue)
+            {
+                // Match syntax
+                string toParse = stringBuilder.ToString();
+
+                float[] coordinates = this.ParseCoordinates(toParse);
+                CropMode cropMode = this.ParseMode(toParse);
+
+                CropLayer cropLayer = new CropLayer(coordinates[0], coordinates[1], coordinates[2], coordinates[3], cropMode);
+                this.DynamicParameter = cropLayer;
             }
 
             return this.SortOrder;
@@ -129,10 +149,27 @@ namespace ImageProcessor.Processors
             Image image = factory.Image;
             try
             {
-                Rectangle rectangle = this.DynamicParameter;
-
                 int sourceWidth = image.Width;
                 int sourceHeight = image.Height;
+                RectangleF rectangleF;
+                CropLayer cropLayer = this.DynamicParameter;
+
+                if (cropLayer.CropMode == CropMode.Percentage)
+                {
+                    // Work out the percentages.
+                    float left = cropLayer.Left * sourceWidth;
+                    float top = cropLayer.Top * sourceWidth;
+                    float right = (sourceWidth - (cropLayer.Right * sourceWidth)) - left;
+                    float bottom = (sourceHeight - (cropLayer.Bottom * sourceHeight)) - top;
+
+                    rectangleF = new RectangleF(left, top, right, bottom);
+                }
+                else
+                {
+                    rectangleF = new RectangleF(cropLayer.Left, cropLayer.Top, cropLayer.Right, cropLayer.Bottom);
+                }
+
+                Rectangle rectangle = Rectangle.Round(rectangleF);
 
                 if (rectangle.X < sourceWidth && rectangle.Y < sourceHeight)
                 {
@@ -190,5 +227,55 @@ namespace ImageProcessor.Processors
             return image;
         }
         #endregion
+
+        /// <summary>
+        /// Returns the correct <see cref="CropMode"/> for the given string.
+        /// </summary>
+        /// <param name="input">
+        /// The input string containing the value to parse.
+        /// </param>
+        /// <returns>
+        /// The correct <see cref="CropMode"/>.
+        /// </returns>
+        private CropMode ParseMode(string input)
+        {
+            foreach (Match match in ModeRegex.Matches(input))
+            {
+                // Split on =
+                string mode = match.Value.Split('=')[1];
+
+                switch (mode)
+                {
+                    case "percent":
+                        return CropMode.Percentage;
+                    case "pixels":
+                        return CropMode.Pixels;
+                }
+            }
+
+            return CropMode.Pixels;
+        }
+
+
+        /// <summary>
+        /// Returns the correct <see cref="CropMode"/> for the given string.
+        /// </summary>
+        /// <param name="input">
+        /// The input string containing the value to parse.
+        /// </param>
+        /// <returns>
+        /// The correct <see cref="CropMode"/>.
+        /// </returns>
+        private float[] ParseCoordinates(string input)
+        {
+            float[] floats = { };
+
+            foreach (Match match in CoordinateRegex.Matches(input))
+            {
+                floats = match.Value.ToPositiveFloatArray();
+            }
+
+            return floats;
+        }
     }
 }

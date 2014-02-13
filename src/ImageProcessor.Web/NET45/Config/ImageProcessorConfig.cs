@@ -8,9 +8,6 @@
 //   <see cref="http://csharpindepth.com/Articles/General/Singleton.aspx" />
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
-
-using System.Collections;
-
 namespace ImageProcessor.Web.Config
 {
     #region Using
@@ -44,6 +41,12 @@ namespace ImageProcessor.Web.Config
         /// </summary>
         private static readonly Dictionary<string, Dictionary<string, string>> PluginSettings =
             new Dictionary<string, Dictionary<string, string>>();
+
+        /// <summary>
+        /// A collection of the processing presets defined in the configuration. 
+        /// for available plugins.
+        /// </summary>
+        private static readonly Dictionary<string, string> PresetSettings = new Dictionary<string, string>();
 
         /// <summary>
         /// The processing configuration section from the current application configuration. 
@@ -184,6 +187,36 @@ namespace ImageProcessor.Web.Config
 
         #region Methods
         /// <summary>
+        /// Returns the collection of the processing presets defined in the configuration.
+        /// </summary>
+        /// <param name="name">
+        /// The name of the plugin to get the settings for.
+        /// </param>
+        /// <returns>
+        /// The <see cref="T:Systems.Collections.Generic.Dictionary{string, string}"/> containing the processing presets defined in the configuration.
+        /// </returns>
+        public string GetPresetSettings(string name)
+        {
+            if (!PresetSettings.ContainsKey(name))
+            {
+                var presetElement =
+                    GetImageProcessingSection().Presets
+                    .Cast<ImageProcessingSection.PresetElement>()
+                    .FirstOrDefault(x => x.Name == name);
+
+                if (presetElement != null)
+                {
+                    PresetSettings.Add(presetElement.Name, presetElement.Value);
+                }
+            }
+
+            string preset;
+            PresetSettings.TryGetValue(name, out preset);
+
+            return preset;
+        }
+
+        /// <summary>
         /// Returns the <see cref="T:ImageProcessor.Web.Config.ImageProcessingSection.SettingElementCollection"/> for the given plugin.
         /// </summary>
         /// <param name="name">
@@ -255,12 +288,12 @@ namespace ImageProcessor.Web.Config
         {
             if (this.GraphicsProcessors == null)
             {
-                if (GetImageProcessingSection().Plugins.AutoLoadPlugins)
+                try
                 {
-                    try
+                    if (GetImageProcessingSection().Plugins.AutoLoadPlugins)
                     {
                         // Build a list of native IGraphicsProcessor instances.
-                        Type type = typeof (IGraphicsProcessor);
+                        Type type = typeof(IGraphicsProcessor);
                         IEnumerable<Type> types =
                             AppDomain.CurrentDomain.GetAssemblies()
                                      .SelectMany(s => s.GetTypes())
@@ -277,51 +310,52 @@ namespace ImageProcessor.Web.Config
                             processor.Settings = this.GetPluginSettings(processor.GetType().Name);
                         }
                     }
-                    catch (ReflectionTypeLoadException ex)
+                    else
                     {
-                        StringBuilder sb = new StringBuilder();
-                        foreach (Exception exception in ex.LoaderExceptions)
+                        ImageProcessingSection.PluginElementCollection pluginConfigs = imageProcessingSection.Plugins;
+                        this.GraphicsProcessors = new List<IGraphicsProcessor>();
+                        foreach (ImageProcessingSection.PluginElement pluginConfig in pluginConfigs)
                         {
-                            sb.AppendLine(exception.Message);
-                            if (exception is FileNotFoundException)
+                            Type type = Type.GetType(pluginConfig.Type);
+
+                            if (type == null)
                             {
-                                FileNotFoundException fileNotFoundException = exception as FileNotFoundException;
-                                if (!string.IsNullOrEmpty(fileNotFoundException.FusionLog))
-                                {
-                                    sb.AppendLine("Fusion Log:");
-                                    sb.AppendLine(fileNotFoundException.FusionLog);
-                                }
+                                throw new ArgumentException("Couldn't load IGraphicsProcessor: " + pluginConfig.Type);
                             }
 
-                            sb.AppendLine();
+                            this.GraphicsProcessors.Add(Activator.CreateInstance(type) as IGraphicsProcessor);
                         }
 
-                        string errorMessage = sb.ToString();
-
-                        // Display or log the error based on your application.
-                        throw new Exception(errorMessage);
+                        // Add the available settings.
+                        foreach (IGraphicsProcessor processor in this.GraphicsProcessors)
+                        {
+                            processor.Settings = this.GetPluginSettings(processor.GetType().Name);
+                        }
                     }
                 }
-                else
+                catch (ReflectionTypeLoadException ex)
                 {
-                    var pluginConfigs = imageProcessingSection.Plugins;
-                    this.GraphicsProcessors = new List<IGraphicsProcessor>();
-                    foreach (ImageProcessingSection.PluginElement pluginConfig in pluginConfigs)
+                    StringBuilder stringBuilder = new StringBuilder();
+                    foreach (Exception exception in ex.LoaderExceptions)
                     {
-                        var type = Type.GetType(pluginConfig.Type);
-
-                        if (type == null)
+                        stringBuilder.AppendLine(exception.Message);
+                        if (exception is FileNotFoundException)
                         {
-                            throw new ArgumentException("Couldn't load IGraphicsProcessor: " + pluginConfig.Type);
+                            FileNotFoundException fileNotFoundException = exception as FileNotFoundException;
+                            if (!string.IsNullOrEmpty(fileNotFoundException.FusionLog))
+                            {
+                                stringBuilder.AppendLine("Fusion Log:");
+                                stringBuilder.AppendLine(fileNotFoundException.FusionLog);
+                            }
                         }
-                        this.GraphicsProcessors.Add((Activator.CreateInstance(type) as IGraphicsProcessor));
+
+                        stringBuilder.AppendLine();
                     }
 
-                    // Add the available settings.
-                    foreach (IGraphicsProcessor processor in this.GraphicsProcessors)
-                    {
-                        processor.Settings = this.GetPluginSettings(processor.GetType().Name);
-                    }
+                    string errorMessage = stringBuilder.ToString();
+
+                    // Display or log the error based on your application.
+                    throw new Exception(errorMessage);
                 }
             }
         }

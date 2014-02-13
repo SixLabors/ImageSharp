@@ -72,12 +72,24 @@ namespace ImageProcessor.Web.Config
             }
 
             /// <summary>
+            /// Gets or sets the type of the plugin file.
+            /// </summary>
+            /// <value>The full Type definition of the plugin</value>
+            [ConfigurationProperty("type", DefaultValue = "", IsRequired = true)]
+            public string Type
+            {
+                get { return (string)this["type"]; }
+
+                set { this["type"] = value; }
+            }
+
+            /// <summary>
             /// Gets the <see cref="T:ImageProcessor.Web.Config.ImageProcessingSection.SettingElementCollection"/>.
             /// </summary>
             /// <value>
             /// The <see cref="T:ImageProcessor.Web.Config.ImageProcessingSection.SettingElementCollection"/>.
             /// </value>
-            [ConfigurationProperty("settings", IsRequired = true)]
+            [ConfigurationProperty("settings", IsRequired = false)]
             public SettingElementCollection Settings
             {
                 get
@@ -112,6 +124,18 @@ namespace ImageProcessor.Web.Config
             protected override string ElementName
             {
                 get { return "plugin"; }
+            }
+
+            /// <summary>
+            /// Gets or sets the autoLoadPlugins of the plugin file.
+            /// </summary>
+            /// <value>If True plugins are auto discovered and loaded from all assemblies otherwise they must be defined in the configuration file</value>
+            [ConfigurationProperty("autoLoadPlugins", DefaultValue = true, IsRequired = false)]
+            public bool AutoLoadPlugins
+            {
+                get { return (bool)this["autoLoadPlugins"]; }
+
+                set { this["autoLoadPlugins"] = value; }
             }
 
             /// <summary>

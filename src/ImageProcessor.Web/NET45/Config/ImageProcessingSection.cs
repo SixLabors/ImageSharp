@@ -1,9 +1,13 @@
-﻿// -----------------------------------------------------------------------
+﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="ImageProcessingSection.cs" company="James South">
-//     Copyright (c) James South.
-//     Licensed under the Apache License, Version 2.0.
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
 // </copyright>
-// -----------------------------------------------------------------------
+// <summary>
+//   Represents an image processing section within a configuration file.
+//   Nested syntax adapted from <see cref="http://tneustaedter.blogspot.co.uk/2011/09/how-to-create-one-or-more-nested.html" />
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Web.Config
 {
@@ -19,6 +23,21 @@ namespace ImageProcessor.Web.Config
     public sealed class ImageProcessingSection : ConfigurationSection
     {
         #region Properties
+        /// <summary>
+        /// Gets the <see cref="T:ImageProcessor.Web.Config.ImageProcessingSection.PresetElementCollection"/>.
+        /// </summary>
+        /// <value>
+        /// The <see cref="T:ImageProcessor.Web.Config.ImageProcessingSection.PresetElementCollection"/>.
+        /// </value>
+        [ConfigurationProperty("presets", IsRequired = true)]
+        public PresetElementCollection Presets
+        {
+            get
+            {
+                return this["presets"] as PresetElementCollection;
+            }
+        }
+
         /// <summary>
         /// Gets the <see cref="T:ImageProcessor.Web.Config.ImageProcessingSection.PluginElementCollection"/>.
         /// </summary>
@@ -53,6 +72,115 @@ namespace ImageProcessor.Web.Config
             return new ImageProcessingSection();
         }
         #endregion
+
+        /// <summary>
+        /// Represents a PresetElement configuration element within the configuration.
+        /// </summary>
+        public class PresetElement : ConfigurationElement
+        {
+            /// <summary>
+            /// Gets or sets the name of the preset.
+            /// </summary>
+            /// <value>The name of the plugin.</value>
+            [ConfigurationProperty("name", DefaultValue = "", IsRequired = true)]
+            public string Name
+            {
+                get { return (string)this["name"]; }
+
+                set { this["name"] = value; }
+            }
+
+            /// <summary>
+            /// Gets or sets the value of the preset.
+            /// </summary>
+            /// <value>The full Type definition of the plugin</value>
+            [ConfigurationProperty("value", DefaultValue = "", IsRequired = true)]
+            public string Value
+            {
+                get { return (string)this["value"]; }
+
+                set { this["value"] = value; }
+            }
+        }
+
+        /// <summary>
+        /// Represents a PresetElementCollection collection configuration element within the configuration.
+        /// </summary>
+        public class PresetElementCollection : ConfigurationElementCollection
+        {
+            /// <summary>
+            /// Gets the type of the <see cref="T:System.Configuration.ConfigurationElementCollection"/>.
+            /// </summary>
+            /// <value>
+            /// The <see cref="T:System.Configuration.ConfigurationElementCollectionType"/> of this collection.
+            /// </value>
+            public override ConfigurationElementCollectionType CollectionType
+            {
+                get { return ConfigurationElementCollectionType.BasicMap; }
+            }
+
+            /// <summary>
+            /// Gets the name used to identify this collection of elements in the configuration file when overridden in a derived class.
+            /// </summary>
+            /// <value>
+            /// The name of the collection; otherwise, an empty string. The default is an empty string.
+            /// </value>
+            protected override string ElementName
+            {
+                get { return "preset"; }
+            }
+
+            /// <summary>
+            /// Gets or sets the <see cref="T:ImageProcessor.Web.Config.ImageProcessingSection.PresetElement"/>
+            /// at the specified index within the collection.
+            /// </summary>
+            /// <param name="index">The index at which to get the specified object.</param>
+            /// <returns>
+            /// The the <see cref="T:ImageProcessor.Web.Config.ImageProcessingSection.PresetElement"/>
+            /// at the specified index within the collection.
+            /// </returns>
+            public PresetElement this[int index]
+            {
+                get
+                {
+                    return (PresetElement)BaseGet(index);
+                }
+
+                set
+                {
+                    if (this.BaseGet(index) != null)
+                    {
+                        this.BaseRemoveAt(index);
+                    }
+
+                    this.BaseAdd(index, value);
+                }
+            }
+
+            /// <summary>
+            /// Creates a new Preset configuration element.
+            /// </summary>
+            /// <returns>
+            /// A new PluginConfig configuration element.
+            /// </returns>
+            protected override ConfigurationElement CreateNewElement()
+            {
+                return new PresetElement();
+            }
+
+            /// <summary>
+            /// Gets the element key for a specified PluginElement configuration element.
+            /// </summary>
+            /// <param name="element">
+            /// The <see cref="T:System.Configuration.ConfigurationElement">ConfigurationElement</see> 
+            /// to return the key for.
+            /// </param>
+            /// <returns>The element key for a specified PluginElement configuration element.</returns>
+            protected override object GetElementKey(ConfigurationElement element)
+            {
+                return ((PresetElement)element).Name;
+            }
+        }
 
         /// <summary>
         /// Represents a PluginElement configuration element within the configuration.
@@ -105,6 +233,19 @@ namespace ImageProcessor.Web.Config
         public class PluginElementCollection : ConfigurationElementCollection
         {
             /// <summary>
+            /// Gets or sets a value indicating whether to auto load all plugins.
+            /// <remarks>Defaults to <value>True</value>.</remarks>
+            /// </summary>
+            /// <value>If True plugins are auto discovered and loaded from all assemblies otherwise they must be defined in the configuration file</value>
+            [ConfigurationProperty("autoLoadPlugins", DefaultValue = true, IsRequired = false)]
+            public bool AutoLoadPlugins
+            {
+                get { return (bool)this["autoLoadPlugins"]; }
+
+                set { this["autoLoadPlugins"] = value; }
+            }
+
+            /// <summary>
             /// Gets the type of the <see cref="T:System.Configuration.ConfigurationElementCollection"/>.
             /// </summary>
             /// <value>
@@ -124,18 +265,6 @@ namespace ImageProcessor.Web.Config
             protected override string ElementName
             {
                 get { return "plugin"; }
-            }
-
-            /// <summary>
-            /// Gets or sets the autoLoadPlugins of the plugin file.
-            /// </summary>
-            /// <value>If True plugins are auto discovered and loaded from all assemblies otherwise they must be defined in the configuration file</value>
-            [ConfigurationProperty("autoLoadPlugins", DefaultValue = true, IsRequired = false)]
-            public bool AutoLoadPlugins
-            {
-                get { return (bool)this["autoLoadPlugins"]; }
-
-                set { this["autoLoadPlugins"] = value; }
             }
 
             /// <summary>
@@ -161,15 +290,15 @@ namespace ImageProcessor.Web.Config
                         this.BaseRemoveAt(index);
                     }
 
-                   this.BaseAdd(index, value);
+                    this.BaseAdd(index, value);
                 }
             }
 
             /// <summary>
-            /// Creates a new PluginConfig configuration element.
+            /// Creates a new Plugin configuration element.
             /// </summary>
             /// <returns>
-            /// A new PluginConfig configuration element.
+            /// A new Plugin configuration element.
             /// </returns>
             protected override ConfigurationElement CreateNewElement()
             {
@@ -279,10 +408,10 @@ namespace ImageProcessor.Web.Config
                 {
                     if (this.BaseGet(index) != null)
                     {
-                       this.BaseRemoveAt(index);
+                        this.BaseRemoveAt(index);
                     }
 
-                   this.BaseAdd(index, value);
+                    this.BaseAdd(index, value);
                 }
             }
 

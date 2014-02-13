@@ -17,6 +17,7 @@ namespace ImageProcessor.Processors
     using System.Drawing;
     using System.Drawing.Drawing2D;
     using System.Drawing.Imaging;
+    using System.Linq;
     using System.Text;
     using System.Text.RegularExpressions;
 
@@ -171,10 +172,13 @@ namespace ImageProcessor.Processors
 
             int defaultMaxWidth;
             int defaultMaxHeight;
+            string restrictions;
+            this.Settings.TryGetValue("RestrictTo", out restrictions);
             int.TryParse(this.Settings["MaxWidth"], out defaultMaxWidth);
             int.TryParse(this.Settings["MaxHeight"], out defaultMaxHeight);
+            List<Size> restrictedSizes = this.ParseRestrictions(restrictions);
 
-            return this.ResizeImage(factory, width, height, defaultMaxWidth, defaultMaxHeight, backgroundColor, mode, anchor, upscale);
+            return this.ResizeImage(factory, width, height, defaultMaxWidth, defaultMaxHeight, restrictedSizes, backgroundColor, mode, anchor, upscale);
         }
         #endregion
 
@@ -197,6 +201,9 @@ namespace ImageProcessor.Processors
         /// <param name="defaultMaxHeight">
         /// The default max height to resize the image to.
         /// </param>
+        /// <param name="restrictedSizes">
+        /// A <see cref="List{Size}"/> containing image resizing restrictions.
+        /// </param>
         /// <param name="backgroundColor">
         /// The background color to pad the image with.
         /// </param>
@@ -218,6 +225,7 @@ namespace ImageProcessor.Processors
             int height,
             int defaultMaxWidth,
             int defaultMaxHeight,
+            List<Size> restrictedSizes,
             Color backgroundColor,
             ResizeMode resizeMode = ResizeMode.Pad,
             AnchorPosition anchorPosition = AnchorPosition.Center,
@@ -340,6 +348,24 @@ namespace ImageProcessor.Processors
                 {
                     destinationWidth = (int)Math.Ceiling(sourceWidth * percentHeight);
                     width = destinationWidth;
+                }
+
+                // Restrict sizes
+                if (restrictedSizes.Any())
+                {
+                    bool reject = true;
+                    foreach (Size restrictedSize in restrictedSizes)
+                    {
+                        if (restrictedSize.Width == width || restrictedSize.Height == height)
+                        {
+                            reject = false;
+                        }
+                    }
+
+                    if (reject)
+                    {
+                        return image;
+                    }
                 }
 
                 if (width > 0 && height > 0 && width <= maxWidth && height <= maxHeight)
@@ -554,6 +580,21 @@ namespace ImageProcessor.Processors
             }
 
             return Color.Transparent;
+        }
+
+        /// <summary>
+        /// Returns a <see cref="List{Size}"/> of sizes to restrict resizing to.
+        /// </summary>
+        /// <param name="input">
+        /// The input.
+        /// </param>
+        /// <returns>
+        /// The <see cref="List{Size}"/> to restrict resizing to.
+        /// </returns>
+        private List<Size> ParseRestrictions(string input)
+        {
+            string[] splitInput = input.Split(',');
+            return splitInput.Select(this.ParseSize).ToList();
         }
     }
 }

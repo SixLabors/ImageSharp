@@ -624,7 +624,7 @@ namespace ImageProcessor
                 int width = size.Width;
                 int height = size.Height;
 
-                var resizeSettings = new Dictionary<string, string> { { "MaxWidth", width.ToString("G") }, { "MaxHeight", height.ToString("G") } };
+                Dictionary<string, string> resizeSettings = new Dictionary<string, string> { { "MaxWidth", width.ToString("G") }, { "MaxHeight", height.ToString("G") } };
 
                 ResizeLayer resizeLayer = new ResizeLayer(new Size(width, height));
 

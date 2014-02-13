@@ -123,7 +123,7 @@ namespace ImageProcessor.Extensions
                 throw new ArgumentNullException("expression");
             }
 
-            Regex regex = new Regex(@"[\d+]+(?=[,|])|[\d+]+(?![,|])", RegexOptions.Compiled);
+            Regex regex = new Regex(@"[\d+]+(?=[,-])|[\d+]+(?![,-])", RegexOptions.Compiled);
 
             MatchCollection matchCollection = regex.Matches(expression);
 
@@ -152,7 +152,7 @@ namespace ImageProcessor.Extensions
                 throw new ArgumentNullException("expression");
             }
 
-            Regex regex = new Regex(@"[\d+\.]+(?=[,|])|[\d+\.]+(?![,|])", RegexOptions.Compiled);
+            Regex regex = new Regex(@"[\d+\.]+(?=[,-])|[\d+\.]+(?![,-])", RegexOptions.Compiled);
 
             MatchCollection matchCollection = regex.Matches(expression);
 

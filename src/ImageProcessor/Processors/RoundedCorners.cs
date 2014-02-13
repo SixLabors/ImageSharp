@@ -207,6 +207,7 @@ namespace ImageProcessor.Processors
         {
             int width = image.Width;
             int height = image.Height;
+            int cornerDiameter = cornerRadius * 2;
 
             // Create a new empty bitmap to hold rotated image
             Bitmap newImage = new Bitmap(image.Width, image.Height);
@@ -232,7 +233,7 @@ namespace ImageProcessor.Processors
                     // Determined if the top left has a rounded corner
                     if (topLeft)
                     {
-                        path.AddArc(0, 0, cornerRadius, cornerRadius, 180, 90);
+                        path.AddArc(0, 0, cornerDiameter, cornerDiameter, 180, 90);
                     }
                     else
                     {
@@ -242,7 +243,7 @@ namespace ImageProcessor.Processors
                     // Determined if the top right has a rounded corner
                     if (topRight)
                     {
-                        path.AddArc(0 + width - cornerRadius, 0, cornerRadius, cornerRadius, 270, 90);
+                        path.AddArc(0 + width - cornerDiameter, 0, cornerDiameter, cornerDiameter, 270, 90);
                     }
                     else
                     {
@@ -252,7 +253,7 @@ namespace ImageProcessor.Processors
                     // Determined if the bottom left has a rounded corner
                     if (bottomRight)
                     {
-                        path.AddArc(0 + width - cornerRadius, 0 + height - cornerRadius, cornerRadius, cornerRadius, 0, 90);
+                        path.AddArc(0 + width - cornerDiameter, 0 + height - cornerDiameter, cornerDiameter, cornerDiameter, 0, 90);
                     }
                     else
                     {
@@ -262,7 +263,7 @@ namespace ImageProcessor.Processors
                     // Determined if the bottom right has a rounded corner
                     if (bottomLeft)
                     {
-                        path.AddArc(0, 0 + height - cornerRadius, cornerRadius, cornerRadius, 90, 90);
+                        path.AddArc(0, 0 + height - cornerDiameter, cornerDiameter, cornerDiameter, 90, 90);
                     }
                     else
                     {

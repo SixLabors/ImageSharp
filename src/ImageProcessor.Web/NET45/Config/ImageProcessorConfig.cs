@@ -9,6 +9,8 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
+using System.Collections;
+
 namespace ImageProcessor.Web.Config
 {
     #region Using
@@ -253,49 +255,73 @@ namespace ImageProcessor.Web.Config
         {
             if (this.GraphicsProcessors == null)
             {
-                try
+                if (GetImageProcessingSection().Plugins.AutoLoadPlugins)
                 {
-                    // Build a list of native IGraphicsProcessor instances.
-                    Type type = typeof(IGraphicsProcessor);
-                    IEnumerable<Type> types =
-                        AppDomain.CurrentDomain.GetAssemblies()
-                                 .SelectMany(s => s.GetTypes())
-                                 .Where(p => type.IsAssignableFrom(p) && p.IsClass && !p.IsAbstract)
-                                 .ToList();
+                    try
+                    {
+                        // Build a list of native IGraphicsProcessor instances.
+                        Type type = typeof (IGraphicsProcessor);
+                        IEnumerable<Type> types =
+                            AppDomain.CurrentDomain.GetAssemblies()
+                                     .SelectMany(s => s.GetTypes())
+                                     .Where(p => type.IsAssignableFrom(p) && p.IsClass && !p.IsAbstract)
+                                     .ToList();
 
-                    // Create them and add.
-                    this.GraphicsProcessors =
-                        types.Select(x => (Activator.CreateInstance(x) as IGraphicsProcessor)).ToList();
+                        // Create them and add.
+                        this.GraphicsProcessors =
+                            types.Select(x => (Activator.CreateInstance(x) as IGraphicsProcessor)).ToList();
+
+                        // Add the available settings.
+                        foreach (IGraphicsProcessor processor in this.GraphicsProcessors)
+                        {
+                            processor.Settings = this.GetPluginSettings(processor.GetType().Name);
+                        }
+                    }
+                    catch (ReflectionTypeLoadException ex)
+                    {
+                        StringBuilder sb = new StringBuilder();
+                        foreach (Exception exception in ex.LoaderExceptions)
+                        {
+                            sb.AppendLine(exception.Message);
+                            if (exception is FileNotFoundException)
+                            {
+                                FileNotFoundException fileNotFoundException = exception as FileNotFoundException;
+                                if (!string.IsNullOrEmpty(fileNotFoundException.FusionLog))
+                                {
+                                    sb.AppendLine("Fusion Log:");
+                                    sb.AppendLine(fileNotFoundException.FusionLog);
+                                }
+                            }
+
+                            sb.AppendLine();
+                        }
+
+                        string errorMessage = sb.ToString();
+
+                        // Display or log the error based on your application.
+                        throw new Exception(errorMessage);
+                    }
+                }
+                else
+                {
+                    var pluginConfigs = imageProcessingSection.Plugins;
+                    this.GraphicsProcessors = new List<IGraphicsProcessor>();
+                    foreach (ImageProcessingSection.PluginElement pluginConfig in pluginConfigs)
+                    {
+                        var type = Type.GetType(pluginConfig.Type);
+
+                        if (type == null)
+                        {
+                            throw new ArgumentException("Couldn't load IGraphicsProcessor: " + pluginConfig.Type);
+                        }
+                        this.GraphicsProcessors.Add((Activator.CreateInstance(type) as IGraphicsProcessor));
+                    }
 
                     // Add the available settings.
                     foreach (IGraphicsProcessor processor in this.GraphicsProcessors)
                     {
                         processor.Settings = this.GetPluginSettings(processor.GetType().Name);
                     }
-                }
-                catch (ReflectionTypeLoadException ex)
-                {
-                    StringBuilder sb = new StringBuilder();
-                    foreach (Exception exception in ex.LoaderExceptions)
-                    {
-                        sb.AppendLine(exception.Message);
-                        if (exception is FileNotFoundException)
-                        {
-                            FileNotFoundException fileNotFoundException = exception as FileNotFoundException;
-                            if (!string.IsNullOrEmpty(fileNotFoundException.FusionLog))
-                            {
-                                sb.AppendLine("Fusion Log:");
-                                sb.AppendLine(fileNotFoundException.FusionLog);
-                            }
-                        }
-
-                        sb.AppendLine();
-                    }
-
-                    string errorMessage = sb.ToString();
-
-                    // Display or log the error based on your application.
-                    throw new Exception(errorMessage);
                 }
             }
         }

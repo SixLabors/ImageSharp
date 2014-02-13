@@ -542,17 +542,14 @@ namespace ImageProcessor.Web.HttpModules
         /// </returns>
         private string ReplacePresetsInQueryString(string queryString)
         {
-            // We use the processor config system to store the preset values.
-            Dictionary<string, string> presets = ImageProcessorConfig.Instance.GetPluginSettings("Preset");
-
             foreach (Match match in PresetRegex.Matches(queryString))
             {
                 if (match.Success)
                 {
-                    // Set the index on the first instance only.
-                    string preset = match.Value;
-                    string replacements;
-                    presets.TryGetValue(preset.Split('=')[1], out replacements);
+                    string preset = match.Value.Split('=')[1];
+
+                    // We use the processor config system to store the preset values.
+                    string replacements = ImageProcessorConfig.Instance.GetPresetSettings(preset);
                     queryString = Regex.Replace(queryString, preset, replacements ?? string.Empty);
                 }
             }

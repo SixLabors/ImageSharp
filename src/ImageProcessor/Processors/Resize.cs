@@ -356,7 +356,7 @@ namespace ImageProcessor.Processors
                     bool reject = true;
                     foreach (Size restrictedSize in restrictedSizes)
                     {
-                        if (restrictedSize.Width == width || restrictedSize.Height == height)
+                        if (restrictedSize.Width == width && restrictedSize.Height == height)
                         {
                             reject = false;
                         }
@@ -593,8 +593,14 @@ namespace ImageProcessor.Processors
         /// </returns>
         private List<Size> ParseRestrictions(string input)
         {
-            string[] splitInput = input.Split(',');
-            return splitInput.Select(this.ParseSize).ToList();
+            List<Size> sizes = new List<Size>();
+
+            if (!string.IsNullOrWhiteSpace(input))
+            {
+                sizes.AddRange(input.Split(',').Select(this.ParseSize));
+            }
+
+            return sizes;
         }
     }
 }

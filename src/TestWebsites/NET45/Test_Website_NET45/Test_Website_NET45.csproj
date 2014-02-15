@@ -121,41 +121,6 @@
     <Compile Include="App_Start\WebApiConfig.cs" />
     <Content Include="Content\responsive.min.css" />
     <Content Include="Global.asax" />
-    <Content Include="Images\1182076_e8c402e938_z.jpg" />
-    <Content Include="Images\Chrysanthemum.jpg" />
-    <Content Include="Images\cmyk.jpg" />
-    <Content Include="Images\cmyk.png" />
-    <Content Include="Images\color-vision-test.gif" />
-    <Content Include="Images\Desert.jpg" />
-    <Content Include="Images\emma.jpg" />
-    <Content Include="Images\fid11246.jpg" />
-    <Content Include="Images\fid9141.jpg" />
-    <Content Include="Images\header_1.jpg" />
-    <Content Include="Images\Hydrangeas.jpg" />
-    <Content Include="Images\Jellyfish.jpg" />
-    <Content Include="Images\jrt.jpg" />
-    <Content Include="Images\Koala.jpg" />
-    <Content Include="Images\Lighthouse.jpg" />
-    <Content Include="Images\lomo.jpg" />
-    <Content Include="Images\negative.png" />
-    <Content Include="Images\negative2.png" />
-    <Content Include="Images\Penguins-200.jpg" />
-    <Content Include="Images\Penguins-8.png" />
-    <Content Include="Images\Penguins.bmp" />
-    <Content Include="Images\Penguins.gif" />
-    <Content Include="Images\Penguins.jpg" />
-    <Content Include="Images\Penguins.png" />
-    <Content Include="Images\Penguins.tif" />
-    <Content Include="Images\rocks.jpg" />
-    <Content Include="Images\sample1.jpg" />
-    <Content Include="Images\srgb.jpg" />
-    <Content Include="Images\srgb.png" />
-    <Content Include="Images\text.png" />
-    <Content Include="Images\thor.jpg" />
-    <Content Include="Images\Tulips.jpg" />
-    <Content Include="Images\udendørs-374.jpg" />
-    <Content Include="Images\udendørs.jpg" />
-    <Content Include="Images\war_horse_quad.jpg" />
     <Content Include="Web.config">
       <SubType>Designer</SubType>
     </Content>
@@ -255,6 +220,9 @@
     </VisualStudio>
   </ProjectExtensions>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
+  <Target Name="AfterBuild">
+    <Exec Command="xcopy &quot;$(SolutionDir)Images&quot; &quot;$(ProjectDir)Images&quot; /S /Y /I" />
+  </Target>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

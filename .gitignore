@@ -166,3 +166,4 @@ pip-log.txt
 
 # cached images
 **/cache/
+#Test_Websites/**/Images/

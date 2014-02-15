@@ -189,57 +189,6 @@
     <Content Include="Content\themes\base\minified\jquery.ui.slider.min.css" />
     <Content Include="Content\themes\base\minified\jquery.ui.tabs.min.css" />
     <Content Include="Content\themes\base\minified\jquery.ui.theme.min.css" />
-    <Content Include="Images\1182076_e8c402e938_z.jpg" />
-    <Content Include="Images\accent.png" />
-    <Content Include="Images\bullet.png" />
-    <Content Include="Images\Chrysanthemum.jpg" />
-    <Content Include="Images\cmyk.jpg" />
-    <Content Include="Images\cmyk.png" />
-    <Content Include="Images\color-vision-test.gif" />
-    <Content Include="Images\Desert.jpg" />
-    <Content Include="Images\emma.jpg" />
-    <Content Include="Images\fid11246.jpg" />
-    <Content Include="Images\fid9141.jpg" />
-    <Content Include="Images\header_1.jpg" />
-    <Content Include="Images\heroAccent.png" />
-    <Content Include="Images\Hydrangeas.jpg" />
-    <Content Include="Images\Jellyfish.jpg" />
-    <Content Include="Images\jrt.jpg" />
-    <Content Include="Images\Koala.jpg" />
-    <Content Include="Images\Lighthouse.jpg" />
-    <Content Include="Images\lomo.jpg" />
-    <Content Include="Images\negative.png" />
-    <Content Include="Images\negative2.png" />
-    <Content Include="Images\orderedList0.png" />
-    <Content Include="Images\orderedList1.png" />
-    <Content Include="Images\orderedList2.png" />
-    <Content Include="Images\orderedList3.png" />
-    <Content Include="Images\orderedList4.png" />
-    <Content Include="Images\orderedList5.png" />
-    <Content Include="Images\orderedList6.png" />
-    <Content Include="Images\orderedList7.png" />
-    <Content Include="Images\orderedList8.png" />
-    <Content Include="Images\orderedList9.png" />
-    <Content Include="Default.aspx" />
-    <Content Include="favicon.ico" />
-    <Content Include="Global.asax" />
-    <Content Include="Images\Penguins-200.jpg" />
-    <Content Include="Images\Penguins-8.png" />
-    <Content Include="Images\Penguins.bmp" />
-    <Content Include="Images\Penguins.gif" />
-    <Content Include="Images\Penguins.jpg" />
-    <Content Include="Images\Penguins.png" />
-    <Content Include="Images\Penguins.tif" />
-    <Content Include="Images\rocks.jpg" />
-    <Content Include="Images\sample1.jpg" />
-    <Content Include="Images\srgb.jpg" />
-    <Content Include="Images\srgb.png" />
-    <Content Include="Images\text.png" />
-    <Content Include="Images\thor.jpg" />
-    <Content Include="Images\Tulips.jpg" />
-    <Content Include="Images\udendørs-374.jpg" />
-    <Content Include="Images\udendørs.jpg" />
-    <Content Include="Images\war_horse_quad.jpg" />
     <Content Include="packages.config" />
     <Content Include="config\imageprocessor\cache.config">
       <SubType>Designer</SubType>
@@ -425,6 +374,9 @@
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
+  </Target>
+  <Target Name="AfterBuild">
+    <Exec Command="xcopy &quot;$(SolutionDir)Images&quot; &quot;$(ProjectDir)Images&quot; /S /Y /I" />
   </Target>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

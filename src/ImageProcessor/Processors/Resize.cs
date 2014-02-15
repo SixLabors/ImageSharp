@@ -401,7 +401,7 @@ namespace ImageProcessor.Processors
                         }
 
                         // An unwanted border appears when using InterpolationMode.HighQualityBicubic to resize the image
-                        // as the algorithm appears to be pulling averaging detail from surCeilinging pixels beyond the edge 
+                        // as the algorithm appears to be pulling averaging detail from surrounding pixels beyond the edge 
                         // of the image. Using the ImageAttributes class to specify that the pixels beyond are simply mirror 
                         // images of the pixels within solves this problem.
                         using (ImageAttributes wrapMode = new ImageAttributes())

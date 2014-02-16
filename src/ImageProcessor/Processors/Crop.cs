@@ -159,12 +159,11 @@ namespace ImageProcessor.Processors
                     // Work out the percentages.
                     float left = cropLayer.Left * sourceWidth;
                     float top = cropLayer.Top * sourceWidth;
-                    float right = sourceWidth - (cropLayer.Right * sourceWidth);
-                    float bottom = sourceHeight - (cropLayer.Bottom * sourceHeight);
-                    //float right = (sourceWidth - (cropLayer.Right * sourceWidth)) - left;
-                    //float bottom = (sourceHeight - (cropLayer.Bottom * sourceHeight)) - top;
+                    
+                    float width  = (1 - cropLayer.Left - cropLayer.Right) * sourceWidth;
+                    float height = (1 - cropLayer.Top - cropLayer.Bottom) * sourceHeight;
 
-                    rectangleF = new RectangleF(left, top, right, bottom);
+                    rectangleF = new RectangleF(left, top, width, height);
                 }
                 else
                 {

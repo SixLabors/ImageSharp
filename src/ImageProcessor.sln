@@ -22,15 +22,17 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor.Tests", "Ima
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Web.Tests", "Web.Test\Web.Tests.csproj", "{23CE0FC0-9E59-4C93-A604-A4A98A6284D1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test_Website", "TestWebsites\NET4\Test_Website.csproj", "{30327C08-7574-4D7E-AC95-6A58753C6855}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test_Website_MVC_NET4", "TestWebsites\NET4\Test_Website_MVC_NET4.csproj", "{30327C08-7574-4D7E-AC95-6A58753C6855}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test_Website_NET45", "TestWebsites\NET45\Test_Website_NET45\Test_Website_NET45.csproj", "{F6A208E9-C18F-43E9-B051-3C6EED30FDAF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test_Website_MVC_NET45", "TestWebsites\NET45\Test_Website_NET45\Test_Website_MVC_NET45.csproj", "{F6A208E9-C18F-43E9-B051-3C6EED30FDAF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor.Web", "ImageProcessor.Web\NET4\ImageProcessor.Web.csproj", "{4F7050F2-465F-4E10-8DB2-2FB97AC6AA43}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor.Web_NET4", "ImageProcessor.Web\NET4\ImageProcessor.Web_NET4.csproj", "{4F7050F2-465F-4E10-8DB2-2FB97AC6AA43}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor.Web_NET45", "ImageProcessor.Web\NET45\ImageProcessor.Web_NET45.csproj", "{D011A778-59C8-4BFA-A770-C350216BF161}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test_Website_Webforms_NET45", "TestWebsites\NET45\Test_Website_Webforms_NET45\Test_Website_Webforms_NET45.csproj", "{8DA47D8C-DB1A-4D82-843F-896AB9C3B3D2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test_Website_MVC5_NET45", "TestWebsites\NET45\Test_Website_MVC5_NET45\Test_Website_MVC5_NET45.csproj", "{210AFC40-E24E-4B1D-BF3E-331C2138D5D9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -170,6 +172,21 @@ Global
 		{8DA47D8C-DB1A-4D82-843F-896AB9C3B3D2}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{8DA47D8C-DB1A-4D82-843F-896AB9C3B3D2}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{8DA47D8C-DB1A-4D82-843F-896AB9C3B3D2}.Release|x86.ActiveCfg = Release|Any CPU
+		{210AFC40-E24E-4B1D-BF3E-331C2138D5D9}.All|Any CPU.ActiveCfg = Release|Any CPU
+		{210AFC40-E24E-4B1D-BF3E-331C2138D5D9}.All|Any CPU.Build.0 = Release|Any CPU
+		{210AFC40-E24E-4B1D-BF3E-331C2138D5D9}.All|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{210AFC40-E24E-4B1D-BF3E-331C2138D5D9}.All|Mixed Platforms.Build.0 = Release|Any CPU
+		{210AFC40-E24E-4B1D-BF3E-331C2138D5D9}.All|x86.ActiveCfg = Release|Any CPU
+		{210AFC40-E24E-4B1D-BF3E-331C2138D5D9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{210AFC40-E24E-4B1D-BF3E-331C2138D5D9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{210AFC40-E24E-4B1D-BF3E-331C2138D5D9}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{210AFC40-E24E-4B1D-BF3E-331C2138D5D9}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{210AFC40-E24E-4B1D-BF3E-331C2138D5D9}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{210AFC40-E24E-4B1D-BF3E-331C2138D5D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{210AFC40-E24E-4B1D-BF3E-331C2138D5D9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{210AFC40-E24E-4B1D-BF3E-331C2138D5D9}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{210AFC40-E24E-4B1D-BF3E-331C2138D5D9}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{210AFC40-E24E-4B1D-BF3E-331C2138D5D9}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

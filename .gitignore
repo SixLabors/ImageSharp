@@ -163,7 +163,3 @@ pip-log.txt
 # Mac crap
 .DS_Store
 
-
-# cached images
-**/cache/
-#Test_Websites/**/Images/

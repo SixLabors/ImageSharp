@@ -99,11 +99,6 @@ namespace ImageProcessor.Imaging.Filters
                     // Draw the edges.
                     edgeBitmap = DrawEdges((Bitmap)image, 120);
 
-                    //GaussianLayer gaussianLayer = new GaussianLayer(1);
-                    //Convolution convolution = new Convolution(gaussianLayer.Sigma) { Threshold = gaussianLayer.Threshold };
-                    //double[,] kernel = convolution.CreateGuassianBlurFilter(gaussianLayer.Size);
-                    //edgeBitmap = convolution.ProcessKernel(edgeBitmap, kernel);
-
                     using (Graphics graphics = Graphics.FromImage(highBitmap))
                     {
                         graphics.DrawImage(highBitmap, rectangle, 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, attributes);
@@ -146,11 +141,13 @@ namespace ImageProcessor.Imaging.Filters
 
                     using (Graphics graphics = Graphics.FromImage(newImage))
                     {
+                        // graphics.Clear(Color.Transparent);
+
                         // Overlay the image.
                         graphics.DrawImage(highBitmap, 0, 0);
                         graphics.DrawImage(lowBitmap, 0, 0);
                         graphics.DrawImage(edgeBitmap, 0, 0);
-
+                      
                         // Draw an edge around the image.
                         using (Pen blackPen = new Pen(Color.Black))
                         {
@@ -503,13 +500,10 @@ namespace ImageProcessor.Imaging.Filters
                         alpha = 0;
                     }
 
-                    blue = blue > 255 ? 255 : (blue < 0 ? 0 : blue);
-                    green = green > 255 ? 255 : (green < 0 ? 0 : green);
-                    red = red > 255 ? 255 : (red < 0 ? 0 : red);
-                    resultBuffer[byteOffset] = (byte)blue;
-                    resultBuffer[byteOffset + 1] = (byte)green;
-                    resultBuffer[byteOffset + 2] = (byte)red;
-                    resultBuffer[byteOffset + 3] = (byte)alpha;
+                    resultBuffer[byteOffset] = blue.ToByte();
+                    resultBuffer[byteOffset + 1] = green.ToByte();
+                    resultBuffer[byteOffset + 2] = red.ToByte();
+                    resultBuffer[byteOffset + 3] = alpha.ToByte();
                 }
             }
 
@@ -550,7 +544,7 @@ namespace ImageProcessor.Imaging.Filters
 
             Rectangle rectangle = new Rectangle(Point.Empty, source.Size);
 
-            // Lockbits the source.
+            // Lock the source.
             BitmapData bitmapDataSource = source.LockBits(rectangle, ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
 
             // Declare an array to hold the bytes of the bitmap.
@@ -562,10 +556,10 @@ namespace ImageProcessor.Imaging.Filters
             // Copy the RGB values into the array.
             Marshal.Copy(bitmapDataSource.Scan0, sourceRgbValues, 0, bytes);
 
-            // Unlockbits the source.
+            // Unlock the source.
             source.UnlockBits(bitmapDataSource);
 
-            // Lockbits the destination.
+            // Lock the destination.
             BitmapData bitmapDataDestination = destination.LockBits(rectangle, ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
 
             // Allocate a buffer for image

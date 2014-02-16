@@ -384,10 +384,10 @@ namespace ImageProcessor.Imaging
                     blue += this.Threshold;
                     alpha += this.Threshold;
 
-                    resultBuffer[byteOffset] = blue.ToByte(); // (byte)((blue > 255) ? 255 : ((blue < 0) ? 0 : blue));
-                    resultBuffer[byteOffset + 1] = green.ToByte(); // (byte)((green > 255) ? 255 : ((green < 0) ? 0 : green));
-                    resultBuffer[byteOffset + 2] = red.ToByte(); // (byte)((red > 255) ? 255 : ((red < 0) ? 0 : red));
-                    resultBuffer[byteOffset + 3] = alpha.ToByte(); // (byte)((alpha > 255) ? 255 : ((alpha < 0) ? 0 : alpha));
+                    resultBuffer[byteOffset] = blue.ToByte(); 
+                    resultBuffer[byteOffset + 1] = green.ToByte(); 
+                    resultBuffer[byteOffset + 2] = red.ToByte(); 
+                    resultBuffer[byteOffset + 3] = alpha.ToByte(); 
                 }
             }
 

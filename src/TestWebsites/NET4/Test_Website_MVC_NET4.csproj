@@ -108,34 +108,6 @@
   <ItemGroup>
     <Content Include="Content\responsive.min.css" />
     <Content Include="Global.asax" />
-    <Content Include="Images\1182076_e8c402e938_z.jpg" />
-    <Content Include="Images\Chrysanthemum.jpg" />
-    <Content Include="Images\cmyk.jpg" />
-    <Content Include="Images\cmyk.png" />
-    <Content Include="Images\color-vision-test.gif" />
-    <Content Include="Images\Desert.jpg" />
-    <Content Include="Images\fid11246.jpg" />
-    <Content Include="Images\fid9141.jpg" />
-    <Content Include="Images\Hydrangeas.jpg" />
-    <Content Include="Images\Jellyfish.jpg" />
-    <Content Include="Images\jrt.jpg" />
-    <Content Include="Images\Koala.jpg" />
-    <Content Include="Images\Lighthouse.jpg" />
-    <Content Include="Images\lomo.jpg" />
-    <Content Include="Images\MSwanson - Wide Large - Rock 02.jpg" />
-    <Content Include="Images\negative.png" />
-    <Content Include="Images\negative2.png" />
-    <Content Include="Images\Penguins-8.png" />
-    <Content Include="Images\Penguins.bmp" />
-    <Content Include="Images\Penguins.gif" />
-    <Content Include="Images\Penguins.jpg" />
-    <Content Include="Images\Penguins.png" />
-    <Content Include="Images\Penguins.tif" />
-    <Content Include="Images\srgb.jpg" />
-    <Content Include="Images\srgb.png" />
-    <Content Include="Images\Tulips.jpg" />
-    <Content Include="Images\udendørs.jpg" />
-    <Content Include="Images\war_horse_quad.jpg" />
     <Content Include="Scripts\img.srcsect.pollyfill.js" />
     <Content Include="Web.config">
       <SubType>Designer</SubType>
@@ -155,9 +127,9 @@
     <Folder Include="Models\" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\ImageProcessor.Web\NET4\ImageProcessor.Web.csproj">
+    <ProjectReference Include="..\..\ImageProcessor.Web\NET4\ImageProcessor.Web_NET4.csproj">
       <Project>{4f7050f2-465f-4e10-8db2-2fb97ac6aa43}</Project>
-      <Name>ImageProcessor.Web</Name>
+      <Name>ImageProcessor.Web_NET4</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\ImageProcessor\ImageProcessor.csproj">
       <Project>{3B5DD734-FB7A-487D-8CE6-55E7AF9AEA7E}</Project>

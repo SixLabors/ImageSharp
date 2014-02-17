@@ -17,6 +17,7 @@ namespace ImageProcessor.Web.Config
     using System.Linq;
     using System.Reflection;
     using System.Text;
+    using System.Web.Compilation;
 
     using ImageProcessor.Processors;
     #endregion
@@ -288,21 +289,20 @@ namespace ImageProcessor.Web.Config
         {
             if (this.GraphicsProcessors == null)
             {
-                try
+                if (GetImageProcessingSection().Plugins.AutoLoadPlugins)
                 {
-                    if (GetImageProcessingSection().Plugins.AutoLoadPlugins)
+                    Type type = typeof(IGraphicsProcessor);
+                    try
                     {
                         // Build a list of native IGraphicsProcessor instances.
-                        Type type = typeof(IGraphicsProcessor);
-                        IEnumerable<Type> types =
-                            AppDomain.CurrentDomain.GetAssemblies()
-                                     .SelectMany(s => s.GetTypes())
-                                     .Where(p => type.IsAssignableFrom(p) && p.IsClass && !p.IsAbstract)
-                                     .ToList();
-
+                        List<Type> availableTypes = BuildManager.GetReferencedAssemblies()
+                                                                .Cast<Assembly>()
+                                                                .SelectMany(s => s.GetTypes())
+                                                                .Where(t => t != null && type.IsAssignableFrom(t) && t.IsClass && !t.IsAbstract)
+                                                                .ToList();
+                        
                         // Create them and add.
-                        this.GraphicsProcessors =
-                            types.Select(x => (Activator.CreateInstance(x) as IGraphicsProcessor)).ToList();
+                        this.GraphicsProcessors = availableTypes.Select(x => (Activator.CreateInstance(x) as IGraphicsProcessor)).ToList();
 
                         // Add the available settings.
                         foreach (IGraphicsProcessor processor in this.GraphicsProcessors)
@@ -310,53 +310,44 @@ namespace ImageProcessor.Web.Config
                             processor.Settings = this.GetPluginSettings(processor.GetType().Name);
                         }
                     }
-                    else
+                    catch (ReflectionTypeLoadException ex)
                     {
-                        ImageProcessingSection.PluginElementCollection pluginConfigs = imageProcessingSection.Plugins;
-                        this.GraphicsProcessors = new List<IGraphicsProcessor>();
-                        foreach (ImageProcessingSection.PluginElement pluginConfig in pluginConfigs)
-                        {
-                            Type type = Type.GetType(pluginConfig.Type);
-
-                            if (type == null)
-                            {
-                                throw new ArgumentException("Couldn't load IGraphicsProcessor: " + pluginConfig.Type);
-                            }
-
-                            this.GraphicsProcessors.Add(Activator.CreateInstance(type) as IGraphicsProcessor);
-                        }
-
-                        // Add the available settings.
-                        foreach (IGraphicsProcessor processor in this.GraphicsProcessors)
-                        {
-                            processor.Settings = this.GetPluginSettings(processor.GetType().Name);
-                        }
+                        this.LoadGraphicsProcessorsFromConfiguration();
                     }
                 }
-                catch (ReflectionTypeLoadException ex)
+                else
                 {
-                    StringBuilder stringBuilder = new StringBuilder();
-                    foreach (Exception exception in ex.LoaderExceptions)
-                    {
-                        stringBuilder.AppendLine(exception.Message);
-                        if (exception is FileNotFoundException)
-                        {
-                            FileNotFoundException fileNotFoundException = exception as FileNotFoundException;
-                            if (!string.IsNullOrEmpty(fileNotFoundException.FusionLog))
-                            {
-                                stringBuilder.AppendLine("Fusion Log:");
-                                stringBuilder.AppendLine(fileNotFoundException.FusionLog);
-                            }
-                        }
-
-                        stringBuilder.AppendLine();
-                    }
-
-                    string errorMessage = stringBuilder.ToString();
-
-                    // Display or log the error based on your application.
-                    throw new Exception(errorMessage);
+                    this.LoadGraphicsProcessorsFromConfiguration();
                 }
+            }
+        }
+
+        /// <summary>
+        /// Loads graphics processors from configuration.
+        /// </summary>
+        /// <exception cref="TypeLoadException">
+        /// Thrown when an <see cref="IGraphicsProcessor"/> cannot be loaded.
+        /// </exception>
+        private void LoadGraphicsProcessorsFromConfiguration()
+        {
+            ImageProcessingSection.PluginElementCollection pluginConfigs = imageProcessingSection.Plugins;
+            this.GraphicsProcessors = new List<IGraphicsProcessor>();
+            foreach (ImageProcessingSection.PluginElement pluginConfig in pluginConfigs)
+            {
+                Type type = Type.GetType(pluginConfig.Type);
+
+                if (type == null)
+                {
+                    throw new TypeLoadException("Couldn't load IGraphicsProcessor: " + pluginConfig.Type);
+                }
+
+                this.GraphicsProcessors.Add(Activator.CreateInstance(type) as IGraphicsProcessor);
+            }
+
+            // Add the available settings.
+            foreach (IGraphicsProcessor processor in this.GraphicsProcessors)
+            {
+                processor.Settings = this.GetPluginSettings(processor.GetType().Name);
             }
         }
         #endregion

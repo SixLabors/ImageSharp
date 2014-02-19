@@ -79,6 +79,12 @@ namespace ImageProcessor.Imaging
         /// Gets or sets a value indicating whether to allow up-scaling of images.
         /// </summary>
         public bool Upscale { get; set; }
+
+        /// <summary>
+        /// Gets or sets the center coordinates.
+        /// </summary>
+        public float[] CenterCoordinates { get; set; }
+
         #endregion
 
         /// <summary>

@@ -297,11 +297,13 @@ namespace ImageProcessor.Processors
 
                         if (centerCoordinates.Any())
                         {
-                            destinationY = (int)((centerCoordinates[0] * sourceHeight) * ratio) - (height / 2);
-                            if (destinationY < 0)
+                            var center = -(ratio * sourceHeight) * centerCoordinates[0];
+                            destinationY = (int)center + (height / 2);
+
+                            if (destinationY > 0)
                                 destinationY = 0;
 
-                            if (destinationY + height > (sourceHeight * ratio))
+                            if (destinationY < (int)(height - (sourceHeight * ratio)))
                                 destinationY = (int)(height - (sourceHeight * ratio));
                         }
                         else
@@ -328,11 +330,13 @@ namespace ImageProcessor.Processors
 
                         if (centerCoordinates.Any())
                         {
-                            destinationX = (int)((centerCoordinates[1] * sourceWidth) * ratio) - (width / 2);
-                            if (destinationX < 0)
+                            var center = -(ratio * sourceWidth) * centerCoordinates[1];
+                            destinationX = (int)center + (width / 2);
+
+                            if (destinationX > 0)
                                 destinationX = 0;
 
-                            if (destinationX + width > (sourceWidth * ratio))
+                            if (destinationX < (int)(width - (sourceWidth * ratio)))
                                 destinationX = (int)(width - (sourceWidth * ratio));
                         }
                         else

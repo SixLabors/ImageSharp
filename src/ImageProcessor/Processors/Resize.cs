@@ -152,7 +152,7 @@ namespace ImageProcessor.Processors
                                               Upscale = !UpscaleRegex.IsMatch(toParse),
                                           };
 
-            resizeLayer.CenterCoordinates= this.ParseCoordinates(toParse); 
+            resizeLayer.CenterCoordinates = this.ParseCoordinates(toParse);
             this.DynamicParameter = resizeLayer;
 
             return this.SortOrder;
@@ -225,8 +225,8 @@ namespace ImageProcessor.Processors
         /// <param name="upscale">
         /// Whether to allow up-scaling of images. (Default true)
         /// </param>
-        /// <param name="center">
-        /// If resizemode is crop, you can set a specific center coordinate, use as alternative to anchorPosition
+        /// <param name="centerCoordinates">
+        /// If the resize mode is crop, you can set a specific center coordinate, use as alternative to anchorPosition
         /// </param>
         /// <returns>
         /// The processed image from the current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
@@ -257,7 +257,7 @@ namespace ImageProcessor.Processors
 
                 int maxWidth = defaultMaxWidth > 0 ? defaultMaxWidth : int.MaxValue;
                 int maxHeight = defaultMaxHeight > 0 ? defaultMaxHeight : int.MaxValue;
-                 
+
                 // Fractional variants for preserving aspect ratio.
                 double percentHeight = Math.Abs(height / (double)sourceHeight);
                 double percentWidth = Math.Abs(width / (double)sourceWidth);
@@ -295,16 +295,20 @@ namespace ImageProcessor.Processors
                     {
                         ratio = percentWidth;
 
-                        if (centerCoordinates.Any())
+                        if (centerCoordinates != null && centerCoordinates.Any())
                         {
-                            var center = -(ratio * sourceHeight) * centerCoordinates[0];
+                            double center = -(ratio * sourceHeight) * centerCoordinates[0];
                             destinationY = (int)center + (height / 2);
 
                             if (destinationY > 0)
+                            {
                                 destinationY = 0;
+                            }
 
                             if (destinationY < (int)(height - (sourceHeight * ratio)))
+                            {
                                 destinationY = (int)(height - (sourceHeight * ratio));
+                            }
                         }
                         else
                         {
@@ -328,16 +332,20 @@ namespace ImageProcessor.Processors
                     {
                         ratio = percentHeight;
 
-                        if (centerCoordinates.Any())
+                        if (centerCoordinates != null && centerCoordinates.Any())
                         {
-                            var center = -(ratio * sourceWidth) * centerCoordinates[1];
+                            double center = -(ratio * sourceWidth) * centerCoordinates[1];
                             destinationX = (int)center + (width / 2);
 
                             if (destinationX > 0)
+                            {
                                 destinationX = 0;
+                            }
 
                             if (destinationX < (int)(width - (sourceWidth * ratio)))
+                            {
                                 destinationX = (int)(width - (sourceWidth * ratio));
+                            }
                         }
                         else
                         {
@@ -397,7 +405,14 @@ namespace ImageProcessor.Processors
                     bool reject = true;
                     foreach (Size restrictedSize in restrictedSizes)
                     {
-                        if (restrictedSize.Width == width && restrictedSize.Height == height)
+                        if (restrictedSize.Height == 0 || restrictedSize.Width == 0)
+                        {
+                            if (restrictedSize.Width == width || restrictedSize.Height == height)
+                            {
+                                reject = false;
+                            }
+                        }
+                        else if (restrictedSize.Width == width && restrictedSize.Height == height)
                         {
                             reject = false;
                         }
@@ -644,6 +659,11 @@ namespace ImageProcessor.Processors
             return sizes;
         }
 
+        /// <summary>
+        /// Parses the coordinates.
+        /// </summary>
+        /// <param name="input">The input.</param>
+        /// <returns>The <see cref="float"/> array containing the coordinates</returns>
         private float[] ParseCoordinates(string input)
         {
             float[] floats = { };

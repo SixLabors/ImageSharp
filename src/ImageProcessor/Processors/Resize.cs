@@ -34,7 +34,7 @@ namespace ImageProcessor.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"((width|height)=\d+)|(mode=(pad|stretch|crop|max))|(anchor=(top|bottom|left|right|center))|(bgcolor=(transparent|\d+,\d+,\d+,\d+|([0-9a-fA-F]{3}){1,2}))|(upscale=false)", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"((width|height)=\d+)|(mode=(pad|stretch|crop|max))|(anchor=(top|bottom|left|right|center))|(center=\d+(.\d+)?[,-]\d+(.\d+))|(bgcolor=(transparent|\d+,\d+,\d+,\d+|([0-9a-fA-F]{3}){1,2}))|(upscale=false)", RegexOptions.Compiled);
 
         /// <summary>
         /// The regular expression to search strings for the size attribute.
@@ -50,6 +50,11 @@ namespace ImageProcessor.Processors
         /// The regular expression to search strings for the anchor attribute.
         /// </summary>
         private static readonly Regex AnchorRegex = new Regex(@"anchor=(top|bottom|left|right|center)", RegexOptions.Compiled);
+
+        /// <summary>
+        /// The regular expression to search strings for the center attribute.
+        /// </summary>
+        private static readonly Regex CenterRegex = new Regex(@"center=\d+(.\d+)?[,-]\d+(.\d+)", RegexOptions.Compiled);
 
         /// <summary>
         /// The regular expression to search strings for the color attribute.
@@ -144,10 +149,12 @@ namespace ImageProcessor.Processors
                                               ResizeMode = this.ParseMode(toParse),
                                               AnchorPosition = this.ParsePosition(toParse),
                                               BackgroundColor = this.ParseColor(toParse),
-                                              Upscale = !UpscaleRegex.IsMatch(toParse)
+                                              Upscale = !UpscaleRegex.IsMatch(toParse),
                                           };
 
+            resizeLayer.CenterCoordinates = this.ParseCoordinates(toParse);
             this.DynamicParameter = resizeLayer;
+
             return this.SortOrder;
         }
 
@@ -169,6 +176,7 @@ namespace ImageProcessor.Processors
             AnchorPosition anchor = this.DynamicParameter.AnchorPosition;
             Color backgroundColor = this.DynamicParameter.BackgroundColor;
             bool upscale = this.DynamicParameter.Upscale;
+            float[] centerCoordinates = this.DynamicParameter.CenterCoordinates;
 
             int defaultMaxWidth;
             int defaultMaxHeight;
@@ -178,7 +186,8 @@ namespace ImageProcessor.Processors
             int.TryParse(this.Settings["MaxHeight"], out defaultMaxHeight);
             List<Size> restrictedSizes = this.ParseRestrictions(restrictions);
 
-            return this.ResizeImage(factory, width, height, defaultMaxWidth, defaultMaxHeight, restrictedSizes, backgroundColor, mode, anchor, upscale);
+
+            return this.ResizeImage(factory, width, height, defaultMaxWidth, defaultMaxHeight, restrictedSizes, backgroundColor, mode, anchor, upscale, centerCoordinates);
         }
         #endregion
 
@@ -216,6 +225,9 @@ namespace ImageProcessor.Processors
         /// <param name="upscale">
         /// Whether to allow up-scaling of images. (Default true)
         /// </param>
+        /// <param name="centerCoordinates">
+        /// If the resize mode is crop, you can set a specific center coordinate, use as alternative to anchorPosition
+        /// </param>
         /// <returns>
         /// The processed image from the current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
         /// </returns>
@@ -229,7 +241,8 @@ namespace ImageProcessor.Processors
             Color backgroundColor,
             ResizeMode resizeMode = ResizeMode.Pad,
             AnchorPosition anchorPosition = AnchorPosition.Center,
-            bool upscale = true)
+            bool upscale = true,
+            float[] centerCoordinates = null)
         {
             Bitmap newImage = null;
             Image image = factory.Image;
@@ -282,17 +295,35 @@ namespace ImageProcessor.Processors
                     {
                         ratio = percentWidth;
 
-                        switch (anchorPosition)
+                        if (centerCoordinates != null && centerCoordinates.Any())
                         {
-                            case AnchorPosition.Top:
+                            double center = -(ratio * sourceHeight) * centerCoordinates[0];
+                            destinationY = (int)center + (height / 2);
+
+                            if (destinationY > 0)
+                            {
                                 destinationY = 0;
-                                break;
-                            case AnchorPosition.Bottom:
+                            }
+
+                            if (destinationY < (int)(height - (sourceHeight * ratio)))
+                            {
                                 destinationY = (int)(height - (sourceHeight * ratio));
-                                break;
-                            default:
-                                destinationY = (int)((height - (sourceHeight * ratio)) / 2);
-                                break;
+                            }
+                        }
+                        else
+                        {
+                            switch (anchorPosition)
+                            {
+                                case AnchorPosition.Top:
+                                    destinationY = 0;
+                                    break;
+                                case AnchorPosition.Bottom:
+                                    destinationY = (int)(height - (sourceHeight * ratio));
+                                    break;
+                                default:
+                                    destinationY = (int)((height - (sourceHeight * ratio)) / 2);
+                                    break;
+                            }
                         }
 
                         destinationHeight = (int)Math.Ceiling(sourceHeight * percentWidth);
@@ -301,17 +332,35 @@ namespace ImageProcessor.Processors
                     {
                         ratio = percentHeight;
 
-                        switch (anchorPosition)
+                        if (centerCoordinates != null && centerCoordinates.Any())
                         {
-                            case AnchorPosition.Left:
+                            double center = -(ratio * sourceWidth) * centerCoordinates[1];
+                            destinationX = (int)center + (width / 2);
+
+                            if (destinationX > 0)
+                            {
                                 destinationX = 0;
-                                break;
-                            case AnchorPosition.Right:
+                            }
+
+                            if (destinationX < (int)(width - (sourceWidth * ratio)))
+                            {
                                 destinationX = (int)(width - (sourceWidth * ratio));
-                                break;
-                            default:
-                                destinationX = (int)((width - (sourceWidth * ratio)) / 2);
-                                break;
+                            }
+                        }
+                        else
+                        {
+                            switch (anchorPosition)
+                            {
+                                case AnchorPosition.Left:
+                                    destinationX = 0;
+                                    break;
+                                case AnchorPosition.Right:
+                                    destinationX = (int)(width - (sourceWidth * ratio));
+                                    break;
+                                default:
+                                    destinationX = (int)((width - (sourceWidth * ratio)) / 2);
+                                    break;
+                            }
                         }
 
                         destinationWidth = (int)Math.Ceiling(sourceWidth * percentHeight);
@@ -356,7 +405,14 @@ namespace ImageProcessor.Processors
                     bool reject = true;
                     foreach (Size restrictedSize in restrictedSizes)
                     {
-                        if (restrictedSize.Width == width && restrictedSize.Height == height)
+                        if (restrictedSize.Height == 0 || restrictedSize.Width == 0)
+                        {
+                            if (restrictedSize.Width == width || restrictedSize.Height == height)
+                            {
+                                reject = false;
+                            }
+                        }
+                        else if (restrictedSize.Width == width && restrictedSize.Height == height)
                         {
                             reject = false;
                         }
@@ -601,6 +657,23 @@ namespace ImageProcessor.Processors
             }
 
             return sizes;
+        }
+
+        /// <summary>
+        /// Parses the coordinates.
+        /// </summary>
+        /// <param name="input">The input.</param>
+        /// <returns>The <see cref="float"/> array containing the coordinates</returns>
+        private float[] ParseCoordinates(string input)
+        {
+            float[] floats = { };
+
+            foreach (Match match in CenterRegex.Matches(input))
+            {
+                floats = match.Value.ToPositiveFloatArray();
+            }
+
+            return floats;
         }
     }
 }

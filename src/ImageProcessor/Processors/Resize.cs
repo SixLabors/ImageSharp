@@ -11,7 +11,6 @@
 namespace ImageProcessor.Processors
 {
     #region Using
-
     using System;
     using System.Collections.Generic;
     using System.Drawing;
@@ -20,10 +19,8 @@ namespace ImageProcessor.Processors
     using System.Linq;
     using System.Text;
     using System.Text.RegularExpressions;
-
     using ImageProcessor.Extensions;
     using ImageProcessor.Imaging;
-
     #endregion
 
     /// <summary>
@@ -145,14 +142,14 @@ namespace ImageProcessor.Processors
 
             Size size = this.ParseSize(toParse);
             ResizeLayer resizeLayer = new ResizeLayer(size)
-                                          {
-                                              ResizeMode = this.ParseMode(toParse),
-                                              AnchorPosition = this.ParsePosition(toParse),
-                                              BackgroundColor = this.ParseColor(toParse),
-                                              Upscale = !UpscaleRegex.IsMatch(toParse),
-                                          };
+            {
+                ResizeMode = this.ParseMode(toParse),
+                AnchorPosition = this.ParsePosition(toParse),
+                BackgroundColor = this.ParseColor(toParse),
+                Upscale = !UpscaleRegex.IsMatch(toParse),
+                CenterCoordinates = this.ParseCoordinates(toParse),
+            };
 
-            resizeLayer.CenterCoordinates = this.ParseCoordinates(toParse);
             this.DynamicParameter = resizeLayer;
 
             return this.SortOrder;
@@ -185,7 +182,6 @@ namespace ImageProcessor.Processors
             int.TryParse(this.Settings["MaxWidth"], out defaultMaxWidth);
             int.TryParse(this.Settings["MaxHeight"], out defaultMaxHeight);
             List<Size> restrictedSizes = this.ParseRestrictions(restrictions);
-
 
             return this.ResizeImage(factory, width, height, defaultMaxWidth, defaultMaxHeight, restrictedSizes, backgroundColor, mode, anchor, upscale, centerCoordinates);
         }
@@ -437,36 +433,25 @@ namespace ImageProcessor.Processors
                     using (Graphics graphics = Graphics.FromImage(newImage))
                     {
                         // We want to use two different blending algorithms for enlargement/shrinking.
-                        // Bicubic is better enlarging for whilst Bilinear is better for shrinking.
-                        // http://www.codinghorror.com/blog/2007/07/better-image-resizing.html
                         if (image.Width < destinationWidth && image.Height < destinationHeight)
                         {
                             // We are making it larger.
                             graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                            graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                            graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-                            graphics.CompositingQuality = CompositingQuality.HighQuality;
                         }
                         else
                         {
                             // We are making it smaller.
                             graphics.SmoothingMode = SmoothingMode.None;
-                            graphics.InterpolationMode = InterpolationMode.HighQualityBilinear;
-                            graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-                            graphics.CompositingQuality = CompositingQuality.HighQuality;
                         }
 
-                        // An unwanted border appears when using InterpolationMode.HighQualityBicubic to resize the image
-                        // as the algorithm appears to be pulling averaging detail from surrounding pixels beyond the edge 
-                        // of the image. Using the ImageAttributes class to specify that the pixels beyond are simply mirror 
-                        // images of the pixels within solves this problem.
-                        using (ImageAttributes wrapMode = new ImageAttributes())
-                        {
-                            wrapMode.SetWrapMode(WrapMode.TileFlipXY);
-                            graphics.Clear(backgroundColor);
-                            Rectangle destRect = new Rectangle(destinationX, destinationY, destinationWidth, destinationHeight);
-                            graphics.DrawImage(image, destRect, 0, 0, sourceWidth, sourceHeight, GraphicsUnit.Pixel, wrapMode);
-                        }
+                        graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                        graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                        graphics.CompositingMode = CompositingMode.SourceCopy;
+                        graphics.CompositingQuality = CompositingQuality.HighQuality;
+
+                        graphics.Clear(backgroundColor);
+                        Rectangle destRect = new Rectangle(destinationX, destinationY, destinationWidth, destinationHeight);
+                        graphics.DrawImage(image, destRect, 0, 0, sourceWidth, sourceHeight, GraphicsUnit.Pixel);
 
                         // Reassign the image.
                         image.Dispose();

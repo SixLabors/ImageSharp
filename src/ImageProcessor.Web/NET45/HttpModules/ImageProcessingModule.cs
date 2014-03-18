@@ -31,6 +31,9 @@ namespace ImageProcessor.Web.HttpModules
     using ImageProcessor.Web.Caching;
     using ImageProcessor.Web.Config;
     using ImageProcessor.Web.Helpers;
+
+    using Microsoft.Web.Infrastructure.DynamicModuleHelper;
+
     #endregion
 
     /// <summary>
@@ -50,11 +53,6 @@ namespace ImageProcessor.Web.HttpModules
         private static readonly Regex PresetRegex = new Regex(@"preset=[^&]*", RegexOptions.Compiled);
 
         /// <summary>
-        /// The value to prefix any remote image requests with to ensure they get captured.
-        /// </summary>
-        private static readonly string RemotePrefix = ImageProcessorConfig.Instance.RemotePrefix;
-
-        /// <summary>
         /// The assembly version.
         /// </summary>
         private static readonly string AssemblyVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
@@ -63,6 +61,11 @@ namespace ImageProcessor.Web.HttpModules
         /// The collection of SemaphoreSlims for identifying given locking individual queries.
         /// </summary>
         private static readonly Dictionary<string, SemaphoreSlim> SemaphoreSlims = new Dictionary<string, SemaphoreSlim>();
+
+        /// <summary>
+        /// The value to prefix any remote image requests with to ensure they get captured.
+        /// </summary>
+        private static string remotePrefix;
 
         /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.
@@ -109,17 +112,17 @@ namespace ImageProcessor.Web.HttpModules
         /// </param>
         public void Init(HttpApplication context)
         {
-#if NET45
+            if (remotePrefix == null)
+            {
+                remotePrefix = ImageProcessorConfig.Instance.RemotePrefix;
+            }
 
+#if NET45
             EventHandlerTaskAsyncHelper wrapper = new EventHandlerTaskAsyncHelper(this.PostAuthorizeRequest);
             context.AddOnPostAuthorizeRequestAsync(wrapper.BeginEventHandler, wrapper.EndEventHandler);
-
 #else
-
             context.PostAuthorizeRequest += this.PostAuthorizeRequest;
-
 #endif
-
             context.PreSendRequestHeaders += this.ContextPreSendRequestHeaders;
         }
 
@@ -264,7 +267,7 @@ namespace ImageProcessor.Web.HttpModules
             HttpRequest request = context.Request;
 
             // Fixes issue 10.
-            bool isRemote = request.Path.EndsWith(RemotePrefix, StringComparison.OrdinalIgnoreCase);
+            bool isRemote = request.Path.EndsWith(remotePrefix, StringComparison.OrdinalIgnoreCase);
             string requestPath = string.Empty;
             string queryString = string.Empty;
 

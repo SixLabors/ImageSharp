@@ -32,6 +32,10 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Microsoft.Web.Infrastructure, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <Private>True</Private>
+      <HintPath>..\..\packages\Microsoft.Web.Infrastructure.1.0.0.0\lib\net40\Microsoft.Web.Infrastructure.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
@@ -53,6 +57,8 @@
     <Compile Include="Config\ImageProcessingSection.cs" />
     <Compile Include="Config\ImageProcessorConfig.cs" />
     <Compile Include="Config\ImageSecuritySection.cs" />
+    <Compile Include="Helpers\ResourceHelpers.cs" />
+    <Compile Include="Helpers\StartUp.cs" />
     <Compile Include="Helpers\ImageHelpers.cs" />
     <Compile Include="Helpers\RemoteFile.cs" />
     <Compile Include="Helpers\TaskHelpers.cs" />
@@ -65,6 +71,16 @@
       <Project>{3b5dd734-fb7a-487d-8ce6-55e7af9aea7e}</Project>
       <Name>ImageProcessor</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Config\Resources\cache.config">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Config\Resources\processing.config">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Config\Resources\security.config" />
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />

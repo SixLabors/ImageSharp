@@ -13,7 +13,10 @@ namespace ImageProcessor.Web.Config
 {
     #region Using
     using System.Configuration;
+    using System.IO;
     using System.Linq;
+    using System.Xml;
+    using ImageProcessor.Web.Helpers;
     #endregion
 
     /// <summary>
@@ -69,7 +72,12 @@ namespace ImageProcessor.Web.Config
                 return imageProcessingSection;
             }
 
-            return new ImageProcessingSection();
+            string section = ResourceHelpers.ResourceAsString("ImageProcessor.Web.Config.Resources.processing.config");
+            XmlReader reader = new XmlTextReader(new StringReader(section));
+            imageProcessingSection = new ImageProcessingSection();
+            imageProcessingSection.DeserializeSection(reader);
+
+            return imageProcessingSection;
         }
         #endregion
 

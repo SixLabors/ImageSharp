@@ -72,6 +72,7 @@
     </Reference>
     <Reference Include="System.Web" />
     <Reference Include="System.Data" />
+    <Reference Include="System.XML" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\NET45\Caching\CachedImage.cs" />
@@ -90,6 +91,9 @@
       <Link>ImageHelpers.cs</Link>
     </Compile>
     <Compile Include="..\NET45\Helpers\RemoteFile.cs" />
+    <Compile Include="..\NET45\Helpers\ResourceHelpers.cs">
+      <Link>ResourceHelpers.cs</Link>
+    </Compile>
     <Compile Include="..\NET45\Helpers\StartUp.cs">
       <Link>StartUp.cs</Link>
     </Compile>
@@ -105,6 +109,15 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="..\NET45\Config\Resources\cache.config">
+      <Link>Config\Resources\cache.config</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\NET45\Config\Resources\processing.config">
+      <Link>Config\Resources\processing.config</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\NET45\Config\Resources\security.config">
+      <Link>Config\Resources\security.config</Link>
+    </EmbeddedResource>
     <None Include="app.config">
       <SubType>Designer</SubType>
     </None>

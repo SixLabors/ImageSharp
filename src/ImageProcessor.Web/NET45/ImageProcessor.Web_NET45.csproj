@@ -57,6 +57,7 @@
     <Compile Include="Config\ImageProcessingSection.cs" />
     <Compile Include="Config\ImageProcessorConfig.cs" />
     <Compile Include="Config\ImageSecuritySection.cs" />
+    <Compile Include="Helpers\ResourceHelpers.cs" />
     <Compile Include="Helpers\StartUp.cs" />
     <Compile Include="Helpers\ImageHelpers.cs" />
     <Compile Include="Helpers\RemoteFile.cs" />
@@ -72,6 +73,13 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Config\Resources\cache.config">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Config\Resources\processing.config">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Config\Resources\security.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

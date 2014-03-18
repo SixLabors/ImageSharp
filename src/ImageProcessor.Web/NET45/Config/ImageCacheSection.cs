@@ -1,16 +1,22 @@
-﻿// -----------------------------------------------------------------------
+﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="ImageCacheSection.cs" company="James South">
-//     Copyright (c) James South.
-//     Licensed under the Apache License, Version 2.0.
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
 // </copyright>
-// -----------------------------------------------------------------------
+// <summary>
+//   Represents an image cache section within a configuration file.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Web.Config
 {
     #region Using
     using System.Configuration;
+    using System.IO;
+    using System.Xml;
 
     using ImageProcessor.Extensions;
+    using ImageProcessor.Web.Helpers;
 
     #endregion
 
@@ -24,7 +30,7 @@ namespace ImageProcessor.Web.Config
         /// </summary>
         /// <value>The name of the cache folder.</value>
         [ConfigurationProperty("virtualPath", DefaultValue = "~/app_data/cache", IsRequired = true)]
-        [StringValidator(MinLength = 3, MaxLength = 200)]
+        [StringValidator(MinLength = 3, MaxLength = 256)]
         public string VirtualPath
         {
             get
@@ -45,7 +51,7 @@ namespace ImageProcessor.Web.Config
         /// </summary>
         /// <value>The maximum number of days to store an image in the cache.</value>
         /// <remarks>Defaults to 28 if not set.</remarks>
-        [ConfigurationProperty("maxDays", DefaultValue = "28", IsRequired = false)]
+        [ConfigurationProperty("maxDays", DefaultValue = "365", IsRequired = false)]
         [IntegerValidator(ExcludeRange = false, MinValue = 0)]
         public int MaxDays
         {
@@ -73,7 +79,12 @@ namespace ImageProcessor.Web.Config
                 return imageCacheSection;
             }
 
-            return new ImageCacheSection();
+            string section = ResourceHelpers.ResourceAsString("ImageProcessor.Web.Config.Resources.cache.config");
+            XmlReader reader = new XmlTextReader(new StringReader(section));
+            imageCacheSection = new ImageCacheSection();
+            imageCacheSection.DeserializeSection(reader);
+
+            return imageCacheSection;
         }
     }
 }

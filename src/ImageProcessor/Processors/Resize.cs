@@ -446,12 +446,19 @@ namespace ImageProcessor.Processors
 
                         graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
                         graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-                        graphics.CompositingMode = CompositingMode.SourceCopy;
                         graphics.CompositingQuality = CompositingQuality.HighQuality;
 
-                        graphics.Clear(backgroundColor);
-                        Rectangle destRect = new Rectangle(destinationX, destinationY, destinationWidth, destinationHeight);
-                        graphics.DrawImage(image, destRect, 0, 0, sourceWidth, sourceHeight, GraphicsUnit.Pixel);
+                        // An unwanted border appears when using InterpolationMode.HighQualityBicubic to resize the image
+                        // as the algorithm appears to be pulling averaging detail from surrounding pixels beyond the edge
+                        // of the image. Using the ImageAttributes class to specify that the pixels beyond are simply mirror
+                        // images of the pixels within solves this problem.
+                        using (ImageAttributes wrapMode = new ImageAttributes())
+                        {
+                            wrapMode.SetWrapMode(WrapMode.TileFlipXY);
+                            graphics.Clear(backgroundColor);
+                            Rectangle destRect = new Rectangle(destinationX, destinationY, destinationWidth, destinationHeight);
+                            graphics.DrawImage(image, destRect, 0, 0, sourceWidth, sourceHeight, GraphicsUnit.Pixel, wrapMode);
+                        }
 
                         // Reassign the image.
                         image.Dispose();

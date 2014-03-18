@@ -13,12 +13,9 @@ namespace ImageProcessor.Web.Config
     #region Using
     using System;
     using System.Collections.Generic;
-    using System.IO;
     using System.Linq;
     using System.Reflection;
-    using System.Text;
     using System.Web.Compilation;
-
     using ImageProcessor.Processors;
     #endregion
 
@@ -300,7 +297,7 @@ namespace ImageProcessor.Web.Config
                                                                 .SelectMany(s => s.GetTypes())
                                                                 .Where(t => t != null && type.IsAssignableFrom(t) && t.IsClass && !t.IsAbstract)
                                                                 .ToList();
-                        
+
                         // Create them and add.
                         this.GraphicsProcessors = availableTypes.Select(x => (Activator.CreateInstance(x) as IGraphicsProcessor)).ToList();
 
@@ -310,7 +307,7 @@ namespace ImageProcessor.Web.Config
                             processor.Settings = this.GetPluginSettings(processor.GetType().Name);
                         }
                     }
-                    catch (ReflectionTypeLoadException ex)
+                    catch (ReflectionTypeLoadException)
                     {
                         this.LoadGraphicsProcessorsFromConfiguration();
                     }

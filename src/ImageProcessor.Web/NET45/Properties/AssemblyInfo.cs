@@ -5,6 +5,10 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
+using System.Web;
+
+using ImageProcessor.Web.HttpModules;
+
 [assembly: AssemblyTitle("ImageProcessor.Web")]
 [assembly: AssemblyDescription("A library for on-the-fly processing of image files with ASP.NET written in C#")]
 [assembly: AssemblyConfiguration("James South")]
@@ -33,4 +37,3 @@ using System.Runtime.InteropServices;
 // by using the '*' as shown below:
 [assembly: AssemblyVersion("3.1.2.0")]
 [assembly: AssemblyFileVersion("3.1.2.0")]
-

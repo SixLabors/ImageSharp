@@ -13,6 +13,7 @@ namespace ImageProcessor.Processors
     #region Using
     using System.Collections.Generic;
     using System.Drawing;
+    using System.Globalization;
     using System.Text.RegularExpressions;
     #endregion
 
@@ -89,7 +90,7 @@ namespace ImageProcessor.Processors
                     {
                         // Set the index on the first instance only.
                         this.SortOrder = match.Index;
-                        int percentage = int.Parse(match.Value.Split('=')[1]);
+                        int percentage = int.Parse(match.Value.Split('=')[1], CultureInfo.InvariantCulture);
 
                         this.DynamicParameter = percentage;
                     }

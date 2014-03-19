@@ -16,6 +16,7 @@ namespace ImageProcessor.Processors
     using System.Collections.Generic;
     using System.Drawing;
     using System.Drawing.Text;
+    using System.Globalization;
     using System.Linq;
     using System.Text.RegularExpressions;
 
@@ -370,7 +371,7 @@ namespace ImageProcessor.Processors
             foreach (Match match in FontSizeRegex.Matches(input))
             {
                 // split on size-value
-                return int.Parse(match.Value.Split('-')[1]);
+                return int.Parse(match.Value.Split('-')[1], CultureInfo.InvariantCulture);
             }
 
             // Matches the default number in TextLayer.
@@ -449,7 +450,7 @@ namespace ImageProcessor.Processors
             foreach (Match match in OpacityRegex.Matches(input))
             {
                 // split on opacity-
-                return int.Parse(match.Value.Split('-')[1]);
+                return int.Parse(match.Value.Split('-')[1], CultureInfo.InvariantCulture);
             }
 
             // full opacity - matches the Textlayer default.

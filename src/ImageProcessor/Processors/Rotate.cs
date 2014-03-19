@@ -15,6 +15,7 @@ namespace ImageProcessor.Processors
     using System.Collections.Generic;
     using System.Drawing;
     using System.Drawing.Drawing2D;
+    using System.Globalization;
     using System.Text.RegularExpressions;
     using ImageProcessor.Imaging;
     #endregion
@@ -114,7 +115,7 @@ namespace ImageProcessor.Processors
                         else
                         {
                             int degrees;
-                            int.TryParse(match.Value.Split('=')[1], out degrees);
+                            int.TryParse(match.Value.Split('=')[1], NumberStyles.Any, CultureInfo.InvariantCulture, out degrees);
 
                             rotateLayer = new RotateLayer(degrees);
                         }
@@ -281,7 +282,7 @@ namespace ImageProcessor.Processors
             {
                 // Split on angle-
                 int angle;
-                int.TryParse(match.Value.Split('-')[1], out angle);
+                int.TryParse(match.Value.Split('-')[1], NumberStyles.Any, CultureInfo.InvariantCulture, out angle);
                 return angle;
             }
 

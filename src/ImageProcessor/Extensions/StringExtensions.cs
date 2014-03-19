@@ -134,7 +134,7 @@ namespace ImageProcessor.Extensions
             // Loop and parse the int values.
             for (int i = 0; i < count; i++)
             {
-                matches[i] = int.Parse(matchCollection[i].Value);
+                matches[i] = int.Parse(matchCollection[i].Value, CultureInfo.InvariantCulture);
             }
 
             return matches;
@@ -163,7 +163,7 @@ namespace ImageProcessor.Extensions
             // Loop and parse the int values.
             for (int i = 0; i < count; i++)
             {
-                matches[i] = float.Parse(matchCollection[i].Value);
+                matches[i] = float.Parse(matchCollection[i].Value, CultureInfo.InvariantCulture);
             }
 
             return matches;

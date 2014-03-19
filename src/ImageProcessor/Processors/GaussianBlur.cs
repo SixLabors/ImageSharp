@@ -13,6 +13,7 @@ namespace ImageProcessor.Processors
     using System;
     using System.Collections.Generic;
     using System.Drawing;
+    using System.Globalization;
     using System.Text.RegularExpressions;
     using ImageProcessor.Imaging;
 
@@ -98,9 +99,9 @@ namespace ImageProcessor.Processors
                         double maxSigma;
                         int maxThreshold;
 
-                        int.TryParse(this.Settings["MaxSize"], out maxSize);
-                        double.TryParse(this.Settings["MaxSigma"], out maxSigma);
-                        int.TryParse(this.Settings["MaxThreshold"], out maxThreshold);
+                        int.TryParse(this.Settings["MaxSize"], NumberStyles.Any, CultureInfo.InvariantCulture, out maxSize);
+                        double.TryParse(this.Settings["MaxSigma"], NumberStyles.Any, CultureInfo.InvariantCulture, out maxSigma);
+                        int.TryParse(this.Settings["MaxThreshold"], NumberStyles.Any, CultureInfo.InvariantCulture, out maxThreshold);
 
                         int size = this.ParseBlur(match.Value);
                         double sigma = this.ParseSigma(match.Value);

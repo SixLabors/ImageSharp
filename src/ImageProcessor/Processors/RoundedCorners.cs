@@ -14,6 +14,7 @@ namespace ImageProcessor.Processors
     using System.Collections.Generic;
     using System.Drawing;
     using System.Drawing.Drawing2D;
+    using System.Globalization;
     using System.Text.RegularExpressions;
     using ImageProcessor.Imaging;
     #endregion
@@ -133,7 +134,7 @@ namespace ImageProcessor.Processors
                         else
                         {
                             int radius;
-                            int.TryParse(match.Value.Split('=')[1], out radius);
+                            int.TryParse(match.Value.Split('=')[1], NumberStyles.Any, CultureInfo.InvariantCulture, out radius);
 
                             roundedCornerLayer = new RoundedCornerLayer(radius, this.ParseCorner(TopLeftRegex, toParse), this.ParseCorner(TopRightRegex, toParse), this.ParseCorner(BottomLeftRegex, toParse), this.ParseCorner(BottomRightRegex, toParse));
                         }
@@ -295,7 +296,7 @@ namespace ImageProcessor.Processors
             {
                 // Split on radius-
                 int radius;
-                int.TryParse(match.Value.Split('-')[1], out radius);
+                int.TryParse(match.Value.Split('-')[1], NumberStyles.Any, CultureInfo.InvariantCulture, out radius);
                 return radius;
             }
 

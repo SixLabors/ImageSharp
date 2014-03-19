@@ -16,6 +16,7 @@ namespace ImageProcessor.Processors
     using System.Drawing;
     using System.Drawing.Drawing2D;
     using System.Drawing.Imaging;
+    using System.Globalization;
     using System.Linq;
     using System.Text;
     using System.Text.RegularExpressions;
@@ -179,8 +180,8 @@ namespace ImageProcessor.Processors
             int defaultMaxHeight;
             string restrictions;
             this.Settings.TryGetValue("RestrictTo", out restrictions);
-            int.TryParse(this.Settings["MaxWidth"], out defaultMaxWidth);
-            int.TryParse(this.Settings["MaxHeight"], out defaultMaxHeight);
+            int.TryParse(this.Settings["MaxWidth"], NumberStyles.Any, CultureInfo.InvariantCulture, out defaultMaxWidth);
+            int.TryParse(this.Settings["MaxHeight"], NumberStyles.Any, CultureInfo.InvariantCulture, out defaultMaxHeight);
             List<Size> restrictedSizes = this.ParseRestrictions(restrictions);
 
             return this.ResizeImage(factory, width, height, defaultMaxWidth, defaultMaxHeight, restrictedSizes, backgroundColor, mode, anchor, upscale, centerCoordinates);

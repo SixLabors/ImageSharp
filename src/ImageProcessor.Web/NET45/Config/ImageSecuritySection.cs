@@ -13,6 +13,11 @@ namespace ImageProcessor.Web.Config
     #region Using
     using System;
     using System.Configuration;
+    using System.IO;
+    using System.Xml;
+
+    using ImageProcessor.Web.Helpers;
+
     #endregion
 
     /// <summary>
@@ -55,8 +60,8 @@ namespace ImageProcessor.Web.Config
         /// Gets or sets the maximum allowed remote file size in bytes for the application.
         /// </summary>
         /// <value>The maximum number of days to store an image in the cache.</value>
-        /// <remarks>Defaults to 524288 (512kb) if not set.</remarks>
-        [ConfigurationProperty("maxBytes", DefaultValue = "524288", IsRequired = true)]
+        /// <remarks>Defaults to 4194304 (4Mb) if not set.</remarks>
+        [ConfigurationProperty("maxBytes", DefaultValue = "4194304", IsRequired = true)]
         public int MaxBytes
         {
             get
@@ -111,7 +116,12 @@ namespace ImageProcessor.Web.Config
                 return imageSecuritySection;
             }
 
-            return new ImageSecuritySection();
+            string section = ResourceHelpers.ResourceAsString("ImageProcessor.Web.Config.Resources.security.config");
+            XmlReader reader = new XmlTextReader(new StringReader(section));
+            imageSecuritySection = new ImageSecuritySection();
+            imageSecuritySection.DeserializeSection(reader);
+
+            return imageSecuritySection;
         }
         #endregion
 

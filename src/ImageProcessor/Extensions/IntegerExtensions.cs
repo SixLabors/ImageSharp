@@ -10,6 +10,8 @@
 
 namespace ImageProcessor.Extensions
 {
+    using System.Globalization;
+
     /// <summary>
     /// Encapsulates a series of time saving extension methods to the <see cref="T:System.Int32"/> class.
     /// </summary>
@@ -31,6 +33,18 @@ namespace ImageProcessor.Extensions
         public static byte ToByte(this int integer)
         {
             return ((double)integer).ToByte();
+        }
+
+        /// <summary>
+        /// Converts the string representation of a number in a specified culture-specific format to its 
+        /// 32-bit signed integer equivalent using invariant culture.
+        /// </summary>
+        /// <param name="integer">The integer.</param>
+        /// <param name="s">A string containing a number to convert.</param>
+        /// <returns>A 32-bit signed integer equivalent to the number specified in s.</returns>
+        public static int ParseInvariant(this int integer, string s)
+        {
+            return int.Parse(s, CultureInfo.InvariantCulture);
         }
     }
 }

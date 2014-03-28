@@ -204,7 +204,7 @@ namespace ImageProcessor.Web.Config
 
                 if (presetElement != null)
                 {
-                    PresetSettings.Add(presetElement.Name, presetElement.Value);
+                    PresetSettings[presetElement.Name] = presetElement.Value;
                 }
             }
 

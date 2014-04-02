@@ -158,7 +158,7 @@ namespace ImageProcessor.Processors
                 {
                     // Work out the percentages.
                     float left = cropLayer.Left * sourceWidth;
-                    float top = cropLayer.Top * sourceWidth;
+                    float top = cropLayer.Top * sourceHeight;
                     float width  = (1 - cropLayer.Left - cropLayer.Right) * sourceWidth;
                     float height = (1 - cropLayer.Top - cropLayer.Bottom) * sourceHeight;
 

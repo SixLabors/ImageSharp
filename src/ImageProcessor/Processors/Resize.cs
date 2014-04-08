@@ -364,24 +364,26 @@ namespace ImageProcessor.Processors
                     }
                 }
 
-                // Constrain the image to fit the maximum possible height or width.
-                if (resizeMode == ResizeMode.Max)
-                {
-                    if (sourceWidth > width || sourceHeight > height)
-                    {
-                        double ratio = Math.Abs(height / width);
-                        double sourceRatio = Math.Abs(sourceHeight / sourceWidth);
+				// Constrain the image to fit the maximum possible height or width.
+				if (resizeMode == ResizeMode.Max)
+				{
+					//If either is 0, we don't need to figure out orientation
+					if (width > 0 && height > 0)
+					{
+						//integers must be cast to doubles to get needed precision
+						double ratio = (double)height / width;
+						double sourceRatio = (double)sourceHeight / sourceWidth;
 
-                        if (sourceRatio < ratio)
-                        {
-                            height = 0;
-                        }
-                        else
-                        {
-                            width = 0;
-                        }
-                    }
-                }
+						if (sourceRatio < ratio)
+						{
+							height = 0;
+						}
+						else
+						{
+							width = 0;
+						}
+					}
+				}
 
                 // If height or width is not passed we assume that the standard ratio is to be kept.
                 if (height == 0)

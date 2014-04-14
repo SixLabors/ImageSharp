@@ -305,7 +305,7 @@ namespace ImageProcessor.Web.Helpers
         {
             if (!this.IgnoreRemoteDownloadSettings && !AllowRemoteDownloads)
             {
-                throw new SecurityException("application is not configured to allow remote file downloads.");
+                throw new SecurityException("Application is not configured to allow remote file downloads.");
             }
         }
 
@@ -351,11 +351,15 @@ namespace ImageProcessor.Web.Helpers
         /// </summary>
         private void CheckSafeUrlLocation()
         {
-            bool validUrl = RemoteFileWhiteList.Any(item => this.url.Host.ToUpperInvariant().StartsWith(item.Host.ToUpperInvariant()));
+            string upper = this.url.Host.ToUpperInvariant();
+
+            // Check for root or subdomain.
+            bool validUrl = RemoteFileWhiteList.Any(item =>
+                upper.StartsWith(item.Host.ToUpperInvariant()) || upper.EndsWith(item.Host.ToUpperInvariant()));
 
             if (!validUrl)
             {
-                throw new SecurityException("application is not configured to allow remote file downloads from this domain.");
+                throw new SecurityException("Application is not configured to allow remote file downloads from this domain.");
             }
         }
         #endregion

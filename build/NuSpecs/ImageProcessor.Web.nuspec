@@ -37,8 +37,8 @@ Feedback is always welcome</description>
         </dependencies>
     </metadata>
     <files>
-        <file src="content\web.config.transform" target="content\web.config.transform" />
-        <file src="lib\net40\ImageProcessor.Web.dll" target="lib\net40\ImageProcessor.Web.dll" />
-        <file src="lib\net45\ImageProcessor.Web.dll" target="lib\net45\ImageProcessor.Web.dll" />
+        <file src="..\content\ImageProcessor.Web\web.config.transform" target="content\web.config.transform" />
+        <file src="..\_BuildOutput\ImageProcessor.Web\lib\net40\ImageProcessor.Web.dll" target="lib\net40\ImageProcessor.Web.dll" />
+        <file src="..\_BuildOutput\ImageProcessor.Web\lib\net45\ImageProcessor.Web.dll" target="lib\net45\ImageProcessor.Web.dll" />
     </files>
 </package>

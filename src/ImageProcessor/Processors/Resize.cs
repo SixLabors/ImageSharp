@@ -32,12 +32,17 @@ namespace ImageProcessor.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"((width|height)=\d+)|(mode=(pad|stretch|crop|max))|(anchor=(top|bottom|left|right|center))|(center=\d+(.\d+)?[,-]\d+(.\d+))|(bgcolor=(transparent|\d+,\d+,\d+,\d+|([0-9a-fA-F]{3}){1,2}))|(upscale=false)", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"(width|height)=|(width|height)ratio=|mode=|anchor=|center=|bgcolor=|upscale=", RegexOptions.Compiled);
 
         /// <summary>
         /// The regular expression to search strings for the size attribute.
         /// </summary>
         private static readonly Regex SizeRegex = new Regex(@"(width|height)=\d+", RegexOptions.Compiled);
+
+        /// <summary>
+        /// The regular expression to search strings for the ratio attribute.
+        /// </summary>
+        private static readonly Regex RatioRegex = new Regex(@"(width|height)ratio=\d+(.\d+)?", RegexOptions.Compiled);
 
         /// <summary>
         /// The regular expression to search strings for the mode attribute.
@@ -130,9 +135,8 @@ namespace ImageProcessor.Processors
                     {
                         // Set the index on the first instance only.
                         this.SortOrder = match.Index;
+                        stringBuilder.Append(queryString);
                     }
-
-                    stringBuilder.Append(match.Value);
 
                     index += 1;
                 }
@@ -364,26 +368,26 @@ namespace ImageProcessor.Processors
                     }
                 }
 
-				// Constrain the image to fit the maximum possible height or width.
-				if (resizeMode == ResizeMode.Max)
-				{
-					//If either is 0, we don't need to figure out orientation
-					if (width > 0 && height > 0)
-					{
-						//integers must be cast to doubles to get needed precision
-						double ratio = (double)height / width;
-						double sourceRatio = (double)sourceHeight / sourceWidth;
+                // Constrain the image to fit the maximum possible height or width.
+                if (resizeMode == ResizeMode.Max)
+                {
+                    // If either is 0, we don't need to figure out orientation
+                    if (width > 0 && height > 0)
+                    {
+                        // Integers must be cast to doubles to get needed precision
+                        double ratio = (double)height / width;
+                        double sourceRatio = (double)sourceHeight / sourceWidth;
 
-						if (sourceRatio < ratio)
-						{
-							height = 0;
-						}
-						else
-						{
-							width = 0;
-						}
-					}
-				}
+                        if (sourceRatio < ratio)
+                        {
+                            height = 0;
+                        }
+                        else
+                        {
+                            width = 0;
+                        }
+                    }
+                }
 
                 // If height or width is not passed we assume that the standard ratio is to be kept.
                 if (height == 0)
@@ -491,8 +495,10 @@ namespace ImageProcessor.Processors
         /// </returns>
         private Size ParseSize(string input)
         {
-            const string Width = "width";
-            const string Height = "height";
+            const string Width = "width=";
+            const string Height = "height=";
+            const string WidthRatio = "widthratio=";
+            const string HeightRatio = "heightratio=";
             Size size = new Size();
 
             // First merge the matches so we can parse .
@@ -524,6 +530,30 @@ namespace ImageProcessor.Processors
                 size = input.IndexOf(Width, StringComparison.Ordinal) < input.IndexOf(Height, StringComparison.Ordinal)
                     ? new Size(dimensions[0], dimensions[1])
                     : new Size(dimensions[1], dimensions[0]);
+            }
+
+            // Calculate any ratio driven sizes.
+            if (size.Width == 0 || size.Height == 0)
+            {
+                stringBuilder.Clear();
+                foreach (Match match in RatioRegex.Matches(input))
+                {
+                    stringBuilder.Append(match.Value);
+                }
+
+                value = stringBuilder.ToString();
+
+                // Replace 0 width
+                if (size.Width == 0 && size.Height > 0 && input.Contains(WidthRatio) && !input.Contains(HeightRatio))
+                {
+                    size.Width = (int)(value.ToPositiveFloatArray()[0] * size.Height);
+                }
+
+                // Replace 0 height
+                if (size.Height == 0 && size.Width > 0 && input.Contains(HeightRatio) && !input.Contains(WidthRatio))
+                {
+                    size.Height = (int)(value.ToPositiveFloatArray()[0] * size.Width);
+                }
             }
 
             return size;

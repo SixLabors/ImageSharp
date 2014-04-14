@@ -24,7 +24,6 @@ Feedback is always welcome.</description>
         <tags>Image Imaging ASP Performance Processing Resize Rotate RoundedCorners Flip Crop Filter Effects Quality Watermark Alpha Vignette Saturation Brightness Contrast Gif Jpg Jpeg Bitmap Png Fluent GDI Gaussian Blur Sharpen</tags>
     </metadata>
     <files>
-        <file src="lib\net40\ImageProcessor.dll" target="lib\net40\ImageProcessor.dll" />
-        <file src="lib\net45\ImageProcessor.dll" target="lib\net45\ImageProcessor.dll" />
+        <file src="..\_BuildOutput\ImageProcessor\lib\ImageProcessor.dll" target="lib\ImageProcessor.dll" />
     </files>
 </package>

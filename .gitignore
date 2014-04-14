@@ -138,7 +138,6 @@ Desktop.ini
 *.egg
 *.egg-info
 dist
-build
 eggs
 parts
 bin
@@ -163,3 +162,5 @@ pip-log.txt
 # Mac crap
 .DS_Store
 
+build/_BuildOutput/
+build/*.nupkg

@@ -1,0 +1,20 @@
+﻿<?xml version="1.0"?>
+<configuration>
+  <configSections>
+    <sectionGroup name="imageProcessor">
+      <section name="security" requirePermission="false" type="ImageProcessor.Web.Config.ImageSecuritySection, ImageProcessor.Web" />
+      <section name="processing" requirePermission="false" type="ImageProcessor.Web.Config.ImageProcessingSection, ImageProcessor.Web" />
+      <section name="cache" requirePermission="false" type="ImageProcessor.Web.Config.ImageCacheSection, ImageProcessor.Web" />
+    </sectionGroup>
+  </configSections>
+  
+  <imageProcessor>
+    <security configSource="config\imageprocessor\security.config" />
+    <cache configSource="config\imageprocessor\cache.config" />
+    <processing configSource="config\imageprocessor\processing.config" />
+  </imageProcessor>
+
+  <system.webServer>
+    <modules runAllManagedModulesForAllRequests="true"/>
+  </system.webServer>
+</configuration>

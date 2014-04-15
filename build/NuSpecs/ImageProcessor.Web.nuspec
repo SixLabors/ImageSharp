@@ -7,7 +7,7 @@
         <authors>James South</authors>
         <owners>James South</owners>
         <projectUrl>http://jimbobsquarepants.github.com/ImageProcessor/</projectUrl>
-        <iconUrl>http://raw.github.com/JimBobSquarePants/ImageProcessor/master/src/Nuget/imageprocessor.128.png</iconUrl>
+        <iconUrl>http://raw.githubusercontent.com/JimBobSquarePants/ImageProcessor/master/build/content/imageprocessor.128.png</iconUrl>
         <requireLicenseAcceptance>false</requireLicenseAcceptance>
         <description>ImageProcessor.Web adds a configurable HttpModule to your website which allows on-the-fly processing of image files. The module also comes with a file and browser based cache that can handle millions of images, increasing your processing output and saving precious server memory.
 

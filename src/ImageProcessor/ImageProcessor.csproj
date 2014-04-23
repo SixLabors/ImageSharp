@@ -62,6 +62,7 @@
     <Compile Include="Extensions\DoubleExtensions.cs" />
     <Compile Include="Extensions\ImageExtensions.cs" />
     <Compile Include="Extensions\ImageFormatExtensions.cs" />
+    <Compile Include="Extensions\ImageInfo.cs" />
     <Compile Include="Extensions\IntegerExtensions.cs" />
     <Compile Include="Extensions\StringExtensions.cs" />
     <Compile Include="ImageFactory.cs" />
@@ -72,6 +73,7 @@
     <Compile Include="Imaging\GaussianLayer.cs" />
     <Compile Include="Imaging\ColorQuantizer.cs" />
     <Compile Include="Imaging\GifEncoder.cs" />
+    <Compile Include="Imaging\GifFrame.cs" />
     <Compile Include="Imaging\ResizeLayer.cs" />
     <Compile Include="Imaging\Filters\BlackWhiteMatrixFilter.cs" />
     <Compile Include="Imaging\Filters\ColorMatrixes.cs" />

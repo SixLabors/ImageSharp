@@ -653,7 +653,25 @@ namespace ImageProcessor
 
                 Resize resize = new Resize { DynamicParameter = resizeLayer, Settings = resizeSettings };
 
-                this.Image = resize.ProcessImage(this);
+                ImageInfo imageInfo = this.Image.GetImageInfo();
+
+                if (imageInfo.IsAnimated)
+                {
+                    using (GifEncoder encoder = new GifEncoder(new MemoryStream(4096), resizeLayer.Size.Width, resizeLayer.Size.Height, imageInfo.LoopCount))
+                    {
+                        foreach (GifFrame frame in imageInfo.GifFrames)
+                        {
+                            frame.Image = ColorQuantizer.Quantize(resize.ProcessImage(this), PixelFormat.Format8bppIndexed);
+                            encoder.AddFrame(frame);
+                        }
+
+
+                    }
+                }
+                else
+                {
+                    this.Image = resize.ProcessImage(this);
+                }
             }
 
             return this;
@@ -956,6 +974,32 @@ namespace ImageProcessor
             this.isDisposed = true;
         }
         #endregion
+
+        /// <summary>
+        /// Gets a list of images contained within an animated gif.
+        /// </summary>
+        /// <param name="gifImage">
+        /// The gif image.
+        /// </param>
+        /// <returns>
+        /// The <see cref="IEnumerable{Image}"/>.
+        /// </returns>
+        protected IEnumerable<Image> GetImageFrames(Image gifImage)
+        {
+            // Gets the GUID
+            FrameDimension dimension = new FrameDimension(gifImage.FrameDimensionsList[0]);
+
+            // Total frames in the animation
+            int frameCount = gifImage.GetFrameCount(dimension);
+            for (int index = 0; index < frameCount; index++)
+            {
+                // Find the frame
+                gifImage.SelectActiveFrame(dimension, index);
+
+                // Return a copy of it
+                yield return (Image)gifImage.Clone();
+            }
+        }
 
         /// <summary>
         /// Uses the <see cref="T:ImageProcessor.Imaging.ColorQuantizer"/>

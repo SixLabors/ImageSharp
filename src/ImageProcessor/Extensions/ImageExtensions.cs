@@ -11,8 +11,11 @@
 namespace ImageProcessor.Extensions
 {
     using System;
+    using System.Collections.Generic;
     using System.Drawing;
     using System.Drawing.Imaging;
+
+    using ImageProcessor.Imaging;
 
     /// <summary>
     /// Encapsulates a series of time saving extension methods to the <see cref="T:System.Drawing.Imaging.Image" /> class.
@@ -48,61 +51,41 @@ namespace ImageProcessor.Extensions
 
                     int frameCount = image.GetFrameCount(frameDimension);
                     int delay = 0;
+                    int[] delays = new int[frameCount];
                     int index = 0;
+                    List<GifFrame> gifFrames = new List<GifFrame>();
 
                     for (int f = 0; f < frameCount; f++)
                     {
                         int thisDelay = BitConverter.ToInt32(image.GetPropertyItem(20736).Value, index) * 10;
-                        delay += thisDelay < 100 ? 100 : thisDelay; // Minimum delay is 100 ms
+                        thisDelay = thisDelay < 100 ? 100 : thisDelay; // Minimum delay is 100 ms
+                        delays[f] = thisDelay;
+
+                        // Find the frame
+                        image.SelectActiveFrame(frameDimension, f);
+
+                        // TODO: Get positions.
+                        gifFrames.Add(new GifFrame
+                                          {
+                                              Delay = thisDelay,
+                                              Image = (Image)image.Clone()
+                                          });
+
+                        delay += thisDelay;
                         index += 4;
                     }
 
                     info.AnimationLength = delay;
                     info.IsAnimated = true;
 
+                    info.LoopCount = BitConverter.ToInt16(image.GetPropertyItem(20737).Value, 0);
+
                     // Loop info is stored at byte 20737.
-                    info.IsLooped = BitConverter.ToInt16(image.GetPropertyItem(20737).Value, 0) != 1;
+                    info.IsLooped = info.LoopCount != 1;
                 }
             }
 
             return info;
-        }
-
-        /// <summary>
-        /// Provides information about an image.
-        /// <see cref="http://madskristensen.net/post/examine-animated-gife28099s-in-c"/>
-        /// </summary>
-        public struct ImageInfo
-        {
-            /// <summary>
-            /// The image width.
-            /// </summary>
-            public int Width;
-
-            /// <summary>
-            /// The image height.
-            /// </summary>
-            public int Height;
-
-            /// <summary>
-            /// Whether the is indexed.
-            /// </summary>
-            public bool IsIndexed;
-
-            /// <summary>
-            /// Whether the is animated.
-            /// </summary>
-            public bool IsAnimated;
-
-            /// <summary>
-            /// The is looped.
-            /// </summary>
-            public bool IsLooped;
-
-            /// <summary>
-            /// The animation length in milliseconds.
-            /// </summary>
-            public int AnimationLength;
         }
     }
 }

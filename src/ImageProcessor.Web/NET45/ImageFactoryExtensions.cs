@@ -11,9 +11,16 @@
 namespace ImageProcessor.Web
 {
     #region Using
+
+    using System;
     using System.Collections.Generic;
     using System.Drawing;
+    using System.Drawing.Imaging;
+    using System.IO;
     using System.Linq;
+
+    using ImageProcessor.Extensions;
+    using ImageProcessor.Imaging;
     using ImageProcessor.Processors;
     using ImageProcessor.Web.Config;
     #endregion
@@ -62,6 +69,29 @@ namespace ImageProcessor.Web
             }
 
             return factory;
+        }
+
+        private void ProcessImage(Func<ImageFactory, Image> processor)
+        {
+            ImageInfo imageInfo = this.Image.GetImageInfo();
+
+            if (imageInfo.IsAnimated)
+            {
+                using (GifEncoder encoder = new GifEncoder(new MemoryStream(4096), 0, 0, imageInfo.LoopCount))
+                {
+                    foreach (GifFrame frame in imageInfo.GifFrames)
+                    {
+                        frame.Image = ColorQuantizer.Quantize(processor.Invoke(this), PixelFormat.Format8bppIndexed);
+                        encoder.AddFrame(frame);
+                    }
+
+                    this.Image = encoder.Save();
+                }
+            }
+            else
+            {
+                this.Image = processor.Invoke(this);
+            }
         }
     }
 }

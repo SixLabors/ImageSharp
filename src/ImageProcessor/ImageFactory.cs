@@ -624,13 +624,15 @@ namespace ImageProcessor
                 int width = size.Width;
                 int height = size.Height;
 
-                Dictionary<string, string> resizeSettings = new Dictionary<string, string> { { "MaxWidth", width.ToString("G") }, { "MaxHeight", height.ToString("G") } };
+                //Dictionary<string, string> resizeSettings = new Dictionary<string, string> { { "MaxWidth", width.ToString("G") }, { "MaxHeight", height.ToString("G") } };
 
                 ResizeLayer resizeLayer = new ResizeLayer(new Size(width, height));
 
-                Resize resize = new Resize { DynamicParameter = resizeLayer, Settings = resizeSettings };
+                //Resize resize = new Resize { DynamicParameter = resizeLayer, Settings = resizeSettings };
 
-                this.Image = resize.ProcessImage(this);
+                //this.Image = resize.ProcessImage(this);
+
+                return this.Resize(resizeLayer);
             }
 
             return this;
@@ -653,25 +655,27 @@ namespace ImageProcessor
 
                 Resize resize = new Resize { DynamicParameter = resizeLayer, Settings = resizeSettings };
 
-                ImageInfo imageInfo = this.Image.GetImageInfo();
+                this.ProcessImage(resize.ProcessImage, resizeLayer.Size.Width, resizeLayer.Size.Height);
 
-                if (imageInfo.IsAnimated)
-                {
-                    using (GifEncoder encoder = new GifEncoder(new MemoryStream(4096), resizeLayer.Size.Width, resizeLayer.Size.Height, imageInfo.LoopCount))
-                    {
-                        foreach (GifFrame frame in imageInfo.GifFrames)
-                        {
-                            frame.Image = ColorQuantizer.Quantize(resize.ProcessImage(this), PixelFormat.Format8bppIndexed);
-                            encoder.AddFrame(frame);
-                        }
+                //ImageInfo imageInfo = this.Image.GetImageInfo();
 
+                //if (imageInfo.IsAnimated)
+                //{
+                //    using (GifEncoder encoder = new GifEncoder(new MemoryStream(4096), resizeLayer.Size.Width, resizeLayer.Size.Height, imageInfo.LoopCount))
+                //    {
+                //        foreach (GifFrame frame in imageInfo.GifFrames)
+                //        {
+                //            frame.Image = ColorQuantizer.Quantize(resize.ProcessImage(this), PixelFormat.Format8bppIndexed);
+                //            encoder.AddFrame(frame);
+                //        }
 
-                    }
-                }
-                else
-                {
-                    this.Image = resize.ProcessImage(this);
-                }
+                //        this.Image = encoder.Save();
+                //    }
+                //}
+                //else
+                //{
+                //    this.Image = resize.ProcessImage(this);
+                //}
             }
 
             return this;
@@ -1011,6 +1015,77 @@ namespace ImageProcessor
             if (this.isIndexed)
             {
                 this.Image = ColorQuantizer.Quantize(this.Image, PixelFormat.Format8bppIndexed);
+            }
+        }
+
+        private void ProcessImage(Func<ImageFactory, Image> processor, int width, int height)
+        {
+
+            string path = new Uri(System.Reflection.Assembly.GetExecutingAssembly().CodeBase).LocalPath;
+            // ReSharper disable once AssignNullToNotNullAttribute
+            string resolvedPath = Path.Combine(Path.GetDirectoryName(path), "frames-resized");
+            DirectoryInfo di = new DirectoryInfo(resolvedPath);
+            if (!di.Exists)
+            {
+                di.Create();
+            }
+
+            ImageInfo imageInfo = this.Image.GetImageInfo();
+
+            if (imageInfo.IsAnimated)
+            {
+                using (GifEncoder encoder = new GifEncoder(new MemoryStream(4096), width, height, imageInfo.LoopCount))
+                {
+                    int counter = 0;
+                    foreach (GifFrame frame in imageInfo.GifFrames)
+                    {
+                        this.Image = frame.Image;
+
+                        frame.Image = new Bitmap(ColorQuantizer.Quantize(processor.Invoke(this), PixelFormat.Format8bppIndexed));
+                        //using (Image temp = new Bitmap(ColorQuantizer.Quantize(processor.Invoke(this), PixelFormat.Format8bppIndexed)))
+                        //{
+
+                        encoder.AddFrame(frame);
+
+                        //frame.Image.Save(Path.Combine(resolvedPath, counter + ".gif"), ImageFormat.Gif);
+                        counter++;
+                    }
+
+                    this.Image = encoder.Save();
+
+
+                }
+                //var stream = new MemoryStream();
+                //using (GifEncoder2 encoder = new GifEncoder2(stream, width, height, imageInfo.LoopCount))
+                //{
+                //    foreach (GifFrame frame in imageInfo.GifFrames)
+                //    {
+                //        this.Image = frame.Image;
+
+                //        using (Image temp = new Bitmap(ColorQuantizer.Quantize(processor.Invoke(this), PixelFormat.Format8bppIndexed)))
+                //        {
+                //            encoder.AddFrame(temp, frame.X, frame.Y, TimeSpan.FromMilliseconds(frame.Delay));
+                //        }
+                //    }
+
+                //    stream.Position = 0;
+                //    this.Image = Image.FromStream(stream);
+
+                //    string path = new Uri(System.Reflection.Assembly.GetExecutingAssembly().CodeBase).LocalPath;
+                //    // ReSharper disable once AssignNullToNotNullAttribute
+                //    string resolvedPath = Path.Combine(Path.GetDirectoryName(path), "output");
+                //    DirectoryInfo di = new DirectoryInfo(resolvedPath);
+                //    if (!di.Exists)
+                //    {
+                //        di.Create();
+                //    }
+
+                //    this.Image.Save(Path.Combine(resolvedPath, "test.gif"), ImageFormat.Gif);
+                //}
+            }
+            else
+            {
+                this.Image = processor.Invoke(this);
             }
         }
         #endregion

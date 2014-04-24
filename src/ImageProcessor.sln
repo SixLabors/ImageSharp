@@ -32,6 +32,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor.Web_NET45", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test_Website_Webforms_NET45", "TestWebsites\NET45\Test_Website_Webforms_NET45\Test_Website_Webforms_NET45.csproj", "{8DA47D8C-DB1A-4D82-843F-896AB9C3B3D2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessorConsole", "ImageProcessorConsole\ImageProcessorConsole.csproj", "{7BF5274B-56A7-4B62-8105-E9BDF25BAFE7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		All|Any CPU = All|Any CPU
@@ -170,6 +172,21 @@ Global
 		{8DA47D8C-DB1A-4D82-843F-896AB9C3B3D2}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{8DA47D8C-DB1A-4D82-843F-896AB9C3B3D2}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{8DA47D8C-DB1A-4D82-843F-896AB9C3B3D2}.Release|x86.ActiveCfg = Release|Any CPU
+		{7BF5274B-56A7-4B62-8105-E9BDF25BAFE7}.All|Any CPU.ActiveCfg = Release|Any CPU
+		{7BF5274B-56A7-4B62-8105-E9BDF25BAFE7}.All|Any CPU.Build.0 = Release|Any CPU
+		{7BF5274B-56A7-4B62-8105-E9BDF25BAFE7}.All|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{7BF5274B-56A7-4B62-8105-E9BDF25BAFE7}.All|Mixed Platforms.Build.0 = Release|Any CPU
+		{7BF5274B-56A7-4B62-8105-E9BDF25BAFE7}.All|x86.ActiveCfg = Release|Any CPU
+		{7BF5274B-56A7-4B62-8105-E9BDF25BAFE7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7BF5274B-56A7-4B62-8105-E9BDF25BAFE7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7BF5274B-56A7-4B62-8105-E9BDF25BAFE7}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{7BF5274B-56A7-4B62-8105-E9BDF25BAFE7}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{7BF5274B-56A7-4B62-8105-E9BDF25BAFE7}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{7BF5274B-56A7-4B62-8105-E9BDF25BAFE7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7BF5274B-56A7-4B62-8105-E9BDF25BAFE7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7BF5274B-56A7-4B62-8105-E9BDF25BAFE7}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{7BF5274B-56A7-4B62-8105-E9BDF25BAFE7}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{7BF5274B-56A7-4B62-8105-E9BDF25BAFE7}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

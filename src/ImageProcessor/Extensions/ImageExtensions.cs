@@ -14,6 +14,7 @@ namespace ImageProcessor.Extensions
     using System.Collections.Generic;
     using System.Drawing;
     using System.Drawing.Imaging;
+    using System.IO;
 
     using ImageProcessor.Imaging;
 
@@ -31,61 +32,76 @@ namespace ImageProcessor.Extensions
         /// <returns>
         /// The <see cref="ImageInfo"/>.
         /// </returns>
-        public static ImageInfo GetImageInfo(this Image image)
+        public static ImageInfo GetImageInfo(this Image imagex)
         {
-            ImageInfo info = new ImageInfo
+            string path = new Uri(System.Reflection.Assembly.GetExecutingAssembly().CodeBase).LocalPath;
+            // ReSharper disable once AssignNullToNotNullAttribute
+            string resolvedPath = Path.Combine(Path.GetDirectoryName(path), "frames");
+            DirectoryInfo di = new DirectoryInfo(resolvedPath);
+            if (!di.Exists)
             {
-                Height = image.Height,
-                Width = image.Width,
+                di.Create();
+            }
+
+
+            ImageInfo info = new ImageInfo();
+
+            using (Image image = (Image)imagex.Clone())
+            {
+                info.Height = image.Height;
+                info.Width = image.Width;
 
                 // Test value of flags using bitwise AND.
                 // ReSharper disable once BitwiseOperatorOnEnumWithoutFlags
-                IsIndexed = (image.PixelFormat & PixelFormat.Indexed) != 0
-            };
+                info.IsIndexed = (image.PixelFormat & PixelFormat.Indexed) != 0;
 
-            if (image.RawFormat.Equals(ImageFormat.Gif))
-            {
-                if (ImageAnimator.CanAnimate(image))
+                if (image.RawFormat.Equals(ImageFormat.Gif))
                 {
-                    FrameDimension frameDimension = new FrameDimension(image.FrameDimensionsList[0]);
-
-                    int frameCount = image.GetFrameCount(frameDimension);
-                    int delay = 0;
-                    int[] delays = new int[frameCount];
-                    int index = 0;
-                    List<GifFrame> gifFrames = new List<GifFrame>();
-
-                    for (int f = 0; f < frameCount; f++)
+                    if (ImageAnimator.CanAnimate(image))
                     {
-                        int thisDelay = BitConverter.ToInt32(image.GetPropertyItem(20736).Value, index) * 10;
-                        thisDelay = thisDelay < 100 ? 100 : thisDelay; // Minimum delay is 100 ms
-                        delays[f] = thisDelay;
+                        FrameDimension frameDimension = new FrameDimension(image.FrameDimensionsList[0]);
 
-                        // Find the frame
-                        image.SelectActiveFrame(frameDimension, f);
+                        int frameCount = image.GetFrameCount(frameDimension);
+                        int delay = 0;
+                        int[] delays = new int[frameCount];
+                        int index = 0;
+                        List<GifFrame> gifFrames = new List<GifFrame>();
 
-                        // TODO: Get positions.
-                        gifFrames.Add(new GifFrame
-                                          {
-                                              Delay = thisDelay,
-                                              Image = (Image)image.Clone()
-                                          });
+                        for (int f = 0; f < frameCount; f++)
+                        {
+                            int thisDelay = BitConverter.ToInt32(image.GetPropertyItem(20736).Value, index);
+                            int toAddDelay = thisDelay * 10 < 100 ? 100 : thisDelay * 10; // Minimum delay is 100 ms
+                            delays[f] = thisDelay;
 
-                        delay += thisDelay;
-                        index += 4;
+                            // Find the frame
+                            image.SelectActiveFrame(frameDimension, f);
+
+                            image.Save(Path.Combine(resolvedPath, f + ".gif"), ImageFormat.Gif);
+
+                            // TODO: Get positions.
+                            gifFrames.Add(new GifFrame
+                                              {
+                                                  Delay = thisDelay,
+                                                  Image = (Image)image.Clone()
+                                              });
+
+                            delay += toAddDelay;
+                            index += 4;
+                        }
+
+                        info.GifFrames = gifFrames;
+                        info.AnimationLength = delay;
+                        info.IsAnimated = true;
+
+                        info.LoopCount = BitConverter.ToInt16(image.GetPropertyItem(20737).Value, 0);
+
+                        // Loop info is stored at byte 20737.
+                        info.IsLooped = info.LoopCount != 1;
                     }
-
-                    info.AnimationLength = delay;
-                    info.IsAnimated = true;
-
-                    info.LoopCount = BitConverter.ToInt16(image.GetPropertyItem(20737).Value, 0);
-
-                    // Loop info is stored at byte 20737.
-                    info.IsLooped = info.LoopCount != 1;
                 }
-            }
 
-            return info;
+                return info;
+            }
         }
     }
 }

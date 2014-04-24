@@ -72,6 +72,7 @@
     <Compile Include="Imaging\CropMode.cs" />
     <Compile Include="Imaging\GaussianLayer.cs" />
     <Compile Include="Imaging\ColorQuantizer.cs" />
+    <Compile Include="Imaging\GifEncoder - Copy.cs" />
     <Compile Include="Imaging\GifEncoder.cs" />
     <Compile Include="Imaging\GifFrame.cs" />
     <Compile Include="Imaging\ResizeLayer.cs" />

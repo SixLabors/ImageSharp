@@ -12,7 +12,6 @@
 namespace ImageProcessor.Extensions
 {
     using System.Collections.Generic;
-
     using ImageProcessor.Imaging;
 
     /// <summary>

@@ -63,15 +63,13 @@ namespace ImageProcessor.Extensions
 
                         int frameCount = image.GetFrameCount(frameDimension);
                         int delay = 0;
-                        int[] delays = new int[frameCount];
                         int index = 0;
                         List<GifFrame> gifFrames = new List<GifFrame>();
 
                         for (int f = 0; f < frameCount; f++)
                         {
                             int thisDelay = BitConverter.ToInt32(image.GetPropertyItem(20736).Value, index);
-                            int toAddDelay = thisDelay * 10 < 100 ? 100 : thisDelay * 10; // Minimum delay is 100 ms
-                            delays[f] = thisDelay;
+                            int toAddDelay = thisDelay * 10 < 20 ? 20 : thisDelay * 10; // Minimum delay is 20 ms
 
                             // Find the frame
                             image.SelectActiveFrame(frameDimension, f);
@@ -81,7 +79,7 @@ namespace ImageProcessor.Extensions
                             // TODO: Get positions.
                             gifFrames.Add(new GifFrame
                                               {
-                                                  Delay = thisDelay,
+                                                  Delay = toAddDelay,
                                                   Image = (Image)image.Clone()
                                               });
 

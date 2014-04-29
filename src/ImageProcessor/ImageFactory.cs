@@ -1036,52 +1036,21 @@ namespace ImageProcessor
             {
                 using (GifEncoder encoder = new GifEncoder(new MemoryStream(4096), width, height, imageInfo.LoopCount))
                 {
-                    int counter = 0;
                     foreach (GifFrame frame in imageInfo.GifFrames)
                     {
                         this.Image = frame.Image;
 
-                        frame.Image = new Bitmap(ColorQuantizer.Quantize(processor.Invoke(this), PixelFormat.Format8bppIndexed));
+                        //frame.Image = new Bitmap(ColorQuantizer.Quantize(processor.Invoke(this), PixelFormat.Format8bppIndexed));
                         //using (Image temp = new Bitmap(ColorQuantizer.Quantize(processor.Invoke(this), PixelFormat.Format8bppIndexed)))
                         //{
-
+                        frame.Image = new Bitmap(processor.Invoke(this));
                         encoder.AddFrame(frame);
 
                         //frame.Image.Save(Path.Combine(resolvedPath, counter + ".gif"), ImageFormat.Gif);
-                        counter++;
                     }
 
                     this.Image = encoder.Save();
-
-
                 }
-                //var stream = new MemoryStream();
-                //using (GifEncoder2 encoder = new GifEncoder2(stream, width, height, imageInfo.LoopCount))
-                //{
-                //    foreach (GifFrame frame in imageInfo.GifFrames)
-                //    {
-                //        this.Image = frame.Image;
-
-                //        using (Image temp = new Bitmap(ColorQuantizer.Quantize(processor.Invoke(this), PixelFormat.Format8bppIndexed)))
-                //        {
-                //            encoder.AddFrame(temp, frame.X, frame.Y, TimeSpan.FromMilliseconds(frame.Delay));
-                //        }
-                //    }
-
-                //    stream.Position = 0;
-                //    this.Image = Image.FromStream(stream);
-
-                //    string path = new Uri(System.Reflection.Assembly.GetExecutingAssembly().CodeBase).LocalPath;
-                //    // ReSharper disable once AssignNullToNotNullAttribute
-                //    string resolvedPath = Path.Combine(Path.GetDirectoryName(path), "output");
-                //    DirectoryInfo di = new DirectoryInfo(resolvedPath);
-                //    if (!di.Exists)
-                //    {
-                //        di.Create();
-                //    }
-
-                //    this.Image.Save(Path.Combine(resolvedPath, "test.gif"), ImageFormat.Gif);
-                //}
             }
             else
             {

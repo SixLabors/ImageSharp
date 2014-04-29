@@ -18,7 +18,7 @@ namespace ImageProcessorConsole
         {
             string path = new Uri(System.Reflection.Assembly.GetExecutingAssembly().CodeBase).LocalPath;
             // ReSharper disable once AssignNullToNotNullAttribute
-            string resolvedPath = Path.Combine(Path.GetDirectoryName(path), "images");
+            string resolvedPath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\input"));
             DirectoryInfo di = new DirectoryInfo(resolvedPath);
             if (!di.Exists)
             {
@@ -43,7 +43,7 @@ namespace ImageProcessorConsole
                         imageFactory.Load(inStream)
                             .Constrain(size)
                             .Format(format)
-                            .Save(Path.Combine(Path.GetDirectoryName(path), "output", fileInfo.Name));
+                            .Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", fileInfo.Name)));
                     }
                 }
             }

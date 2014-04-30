@@ -150,7 +150,7 @@ namespace ImageProcessor.Imaging
         private int? width;
         #endregion
 
-        #region Constructors and Destructors
+        #region Constructors
         /// <summary>
         /// Initializes a new instance of the <see cref="GifEncoder"/> class.
         /// </summary>

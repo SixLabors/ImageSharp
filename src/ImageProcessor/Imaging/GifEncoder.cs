@@ -278,11 +278,11 @@ namespace ImageProcessor.Imaging
             if (disposing)
             {
                 // Dispose of any managed resources here.
-                if (this.inputStream != null)
-                {
-                    this.inputStream.Dispose();
-                    this.inputStream = null;
-                }
+                //if (this.inputStream != null)
+                //{
+                //    this.inputStream.Dispose();
+                //    this.inputStream = null;
+                //}
             }
 
             // Call the appropriate methods to clean up

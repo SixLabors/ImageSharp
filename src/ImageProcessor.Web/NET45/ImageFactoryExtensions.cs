@@ -62,8 +62,9 @@ namespace ImageProcessor.Web
                     // Loop through and process the image.
                     foreach (IGraphicsProcessor graphicsProcessor in graphicsProcessors)
                     {
-                        Image img = graphicsProcessor.ProcessImage(factory);
-                        factory.Update(img);
+                        ProcessImage(graphicsProcessor.ProcessImage, factory);
+                        //Image img = graphicsProcessor.ProcessImage(factory);
+                        //factory.Update(img);
                     }
                 }
             }
@@ -71,26 +72,40 @@ namespace ImageProcessor.Web
             return factory;
         }
 
-        private void ProcessImage(Func<ImageFactory, Image> processor)
+        /// <summary>
+        /// The process image.
+        /// </summary>
+        /// <param name="processor">
+        /// The processor.
+        /// </param>
+        /// <param name="factory">
+        /// The factory.
+        /// </param>
+        private static void ProcessImage(Func<ImageFactory, Image> processor, ImageFactory factory)
         {
-            ImageInfo imageInfo = this.Image.GetImageInfo();
+            ImageInfo imageInfo = factory.Image.GetImageInfo(factory.ImageFormat);
 
             if (imageInfo.IsAnimated)
             {
-                using (GifEncoder encoder = new GifEncoder(new MemoryStream(4096), 0, 0, imageInfo.LoopCount))
+                Image image;
+                using (GifEncoder encoder = new GifEncoder(new MemoryStream(4096), null, null, imageInfo.LoopCount))
                 {
                     foreach (GifFrame frame in imageInfo.GifFrames)
                     {
-                        frame.Image = ColorQuantizer.Quantize(processor.Invoke(this), PixelFormat.Format8bppIndexed);
+                        factory.Update(frame.Image);
+                        frame.Image = new Bitmap(ColorQuantizer.Quantize(processor.Invoke(factory), PixelFormat.Format8bppIndexed));
+
                         encoder.AddFrame(frame);
                     }
 
-                    this.Image = encoder.Save();
+                    image = encoder.Save(); 
                 }
+
+                factory.Update(image);
             }
             else
             {
-                this.Image = processor.Invoke(this);
+                factory.Update(processor.Invoke(factory));
             }
         }
     }

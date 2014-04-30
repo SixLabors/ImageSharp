@@ -36,7 +36,7 @@ namespace ImageProcessorConsole
                 {
                     using (ImageFactory imageFactory = new ImageFactory())
                     {
-                        Size size = new Size(150, 150);
+                        Size size = new Size(200, 200);
                         ImageFormat format = ImageFormat.Gif;
 
                         // Load, resize, set the format and quality and save an image.

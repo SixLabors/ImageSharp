@@ -14,8 +14,6 @@ namespace ImageProcessor.Extensions
     using System.Collections.Generic;
     using System.Drawing;
     using System.Drawing.Imaging;
-    using System.IO;
-
     using ImageProcessor.Imaging;
 
     /// <summary>
@@ -27,41 +25,37 @@ namespace ImageProcessor.Extensions
         /// Returns information about the given <see cref="System.Drawing.Image"/>.
         /// </summary>
         /// <param name="image">
-        /// The image.
+        /// The image to extend.
+        /// </param>
+        /// <param name="format">
+        /// The image format.
+        /// </param>
+        /// <param name="fetchFrames">
+        /// Whether to fetch the images frames.
         /// </param>
         /// <returns>
         /// The <see cref="ImageInfo"/>.
         /// </returns>
-        public static ImageInfo GetImageInfo(this Image imagex)
+        public static ImageInfo GetImageInfo(this Image image, ImageFormat format, bool fetchFrames = true)
         {
-            string path = new Uri(System.Reflection.Assembly.GetExecutingAssembly().CodeBase).LocalPath;
-            // ReSharper disable once AssignNullToNotNullAttribute
-            string resolvedPath = Path.Combine(Path.GetDirectoryName(path), "frames");
-            DirectoryInfo di = new DirectoryInfo(resolvedPath);
-            if (!di.Exists)
+            ImageInfo info = new ImageInfo
+                                 {
+                                     Height = image.Height,
+                                     Width = image.Width,
+                                     IsIndexed = (image.PixelFormat & PixelFormat.Indexed) != 0
+                                 };
+
+            if (image.RawFormat.Guid == ImageFormat.Gif.Guid && format.Guid == ImageFormat.Gif.Guid)
             {
-                di.Create();
-            }
-
-
-            ImageInfo info = new ImageInfo();
-
-            using (Image image = (Image)imagex.Clone())
-            {
-                info.Height = image.Height;
-                info.Width = image.Width;
-
-                // Test value of flags using bitwise AND.
-                // ReSharper disable once BitwiseOperatorOnEnumWithoutFlags
-                info.IsIndexed = (image.PixelFormat & PixelFormat.Indexed) != 0;
-
-                if (image.RawFormat.Equals(ImageFormat.Gif))
+                if (ImageAnimator.CanAnimate(image))
                 {
-                    if (ImageAnimator.CanAnimate(image))
+                    info.IsAnimated = true;
+
+                    if (fetchFrames)
                     {
                         FrameDimension frameDimension = new FrameDimension(image.FrameDimensionsList[0]);
-
                         int frameCount = image.GetFrameCount(frameDimension);
+                        int last = frameCount - 1;
                         int delay = 0;
                         int index = 0;
                         List<GifFrame> gifFrames = new List<GifFrame>();
@@ -74,14 +68,14 @@ namespace ImageProcessor.Extensions
                             // Find the frame
                             image.SelectActiveFrame(frameDimension, f);
 
-                            image.Save(Path.Combine(resolvedPath, f + ".gif"), ImageFormat.Gif);
-
                             // TODO: Get positions.
-                            gifFrames.Add(new GifFrame
-                                              {
-                                                  Delay = toAddDelay,
-                                                  Image = (Image)image.Clone()
-                                              });
+                            gifFrames.Add(new GifFrame { Delay = toAddDelay, Image = (Image)image.Clone() });
+
+                            // Reset the position.
+                            if (f == last)
+                            {
+                                image.SelectActiveFrame(frameDimension, 0);
+                            }
 
                             delay += toAddDelay;
                             index += 4;
@@ -89,17 +83,15 @@ namespace ImageProcessor.Extensions
 
                         info.GifFrames = gifFrames;
                         info.AnimationLength = delay;
-                        info.IsAnimated = true;
-
-                        info.LoopCount = BitConverter.ToInt16(image.GetPropertyItem(20737).Value, 0);
 
                         // Loop info is stored at byte 20737.
+                        info.LoopCount = BitConverter.ToInt16(image.GetPropertyItem(20737).Value, 0);
                         info.IsLooped = info.LoopCount != 1;
                     }
                 }
-
-                return info;
             }
+
+            return info;
         }
     }
 }

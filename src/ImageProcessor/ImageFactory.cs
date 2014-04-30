@@ -624,13 +624,7 @@ namespace ImageProcessor
                 int width = size.Width;
                 int height = size.Height;
 
-                //Dictionary<string, string> resizeSettings = new Dictionary<string, string> { { "MaxWidth", width.ToString("G") }, { "MaxHeight", height.ToString("G") } };
-
                 ResizeLayer resizeLayer = new ResizeLayer(new Size(width, height));
-
-                //Resize resize = new Resize { DynamicParameter = resizeLayer, Settings = resizeSettings };
-
-                //this.Image = resize.ProcessImage(this);
 
                 return this.Resize(resizeLayer);
             }
@@ -656,26 +650,6 @@ namespace ImageProcessor
                 Resize resize = new Resize { DynamicParameter = resizeLayer, Settings = resizeSettings };
 
                 this.ProcessImage(resize.ProcessImage, resizeLayer.Size.Width, resizeLayer.Size.Height);
-
-                //ImageInfo imageInfo = this.Image.GetImageInfo();
-
-                //if (imageInfo.IsAnimated)
-                //{
-                //    using (GifEncoder encoder = new GifEncoder(new MemoryStream(4096), resizeLayer.Size.Width, resizeLayer.Size.Height, imageInfo.LoopCount))
-                //    {
-                //        foreach (GifFrame frame in imageInfo.GifFrames)
-                //        {
-                //            frame.Image = ColorQuantizer.Quantize(resize.ProcessImage(this), PixelFormat.Format8bppIndexed);
-                //            encoder.AddFrame(frame);
-                //        }
-
-                //        this.Image = encoder.Save();
-                //    }
-                //}
-                //else
-                //{
-                //    this.Image = resize.ProcessImage(this);
-                //}
             }
 
             return this;
@@ -980,57 +954,40 @@ namespace ImageProcessor
         #endregion
 
         /// <summary>
-        /// Gets a list of images contained within an animated gif.
-        /// </summary>
-        /// <param name="gifImage">
-        /// The gif image.
-        /// </param>
-        /// <returns>
-        /// The <see cref="IEnumerable{Image}"/>.
-        /// </returns>
-        protected IEnumerable<Image> GetImageFrames(Image gifImage)
-        {
-            // Gets the GUID
-            FrameDimension dimension = new FrameDimension(gifImage.FrameDimensionsList[0]);
-
-            // Total frames in the animation
-            int frameCount = gifImage.GetFrameCount(dimension);
-            for (int index = 0; index < frameCount; index++)
-            {
-                // Find the frame
-                gifImage.SelectActiveFrame(dimension, index);
-
-                // Return a copy of it
-                yield return (Image)gifImage.Clone();
-            }
-        }
-
-        /// <summary>
         /// Uses the <see cref="T:ImageProcessor.Imaging.ColorQuantizer"/>
         /// to fix the color palette of gif images.
         /// </summary>
         private void FixIndexedPallete()
         {
+            ImageFormat format = this.ImageFormat;
+
             // Fix the colour palette of indexed images.
-            if (this.isIndexed)
+            if (this.isIndexed || format.Equals(ImageFormat.Gif))
             {
-                this.Image = ColorQuantizer.Quantize(this.Image, PixelFormat.Format8bppIndexed);
+                ImageInfo imageInfo = this.Image.GetImageInfo(format, false);
+
+                if (!imageInfo.IsAnimated)
+                {
+                    this.Image = ColorQuantizer.Quantize(this.Image, PixelFormat.Format8bppIndexed);
+                }
             }
         }
 
+        /// <summary>
+        /// The process image.
+        /// </summary>
+        /// <param name="processor">
+        /// The processor.
+        /// </param>
+        /// <param name="width">
+        /// The width.
+        /// </param>
+        /// <param name="height">
+        /// The height.
+        /// </param>
         private void ProcessImage(Func<ImageFactory, Image> processor, int width, int height)
         {
-
-            string path = new Uri(System.Reflection.Assembly.GetExecutingAssembly().CodeBase).LocalPath;
-            // ReSharper disable once AssignNullToNotNullAttribute
-            string resolvedPath = Path.Combine(Path.GetDirectoryName(path), "frames-resized");
-            DirectoryInfo di = new DirectoryInfo(resolvedPath);
-            if (!di.Exists)
-            {
-                di.Create();
-            }
-
-            ImageInfo imageInfo = this.Image.GetImageInfo();
+            ImageInfo imageInfo = this.Image.GetImageInfo(this.ImageFormat);
 
             if (imageInfo.IsAnimated)
             {
@@ -1039,14 +996,8 @@ namespace ImageProcessor
                     foreach (GifFrame frame in imageInfo.GifFrames)
                     {
                         this.Image = frame.Image;
-
-                        //frame.Image = new Bitmap(ColorQuantizer.Quantize(processor.Invoke(this), PixelFormat.Format8bppIndexed));
-                        //using (Image temp = new Bitmap(ColorQuantizer.Quantize(processor.Invoke(this), PixelFormat.Format8bppIndexed)))
-                        //{
-                        frame.Image = new Bitmap(processor.Invoke(this));
+                        frame.Image = new Bitmap(ColorQuantizer.Quantize(processor.Invoke(this), PixelFormat.Format8bppIndexed));
                         encoder.AddFrame(frame);
-
-                        //frame.Image.Save(Path.Combine(resolvedPath, counter + ".gif"), ImageFormat.Gif);
                     }
 
                     this.Image = encoder.Save();

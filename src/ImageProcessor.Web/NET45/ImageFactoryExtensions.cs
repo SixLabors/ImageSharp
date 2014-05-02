@@ -15,10 +15,8 @@ namespace ImageProcessor.Web
     using System;
     using System.Collections.Generic;
     using System.Drawing;
-    using System.Drawing.Imaging;
     using System.IO;
     using System.Linq;
-
     using ImageProcessor.Extensions;
     using ImageProcessor.Imaging;
     using ImageProcessor.Processors;
@@ -63,8 +61,6 @@ namespace ImageProcessor.Web
                     foreach (IGraphicsProcessor graphicsProcessor in graphicsProcessors)
                     {
                         ProcessImage(graphicsProcessor.ProcessImage, factory);
-                        //Image img = graphicsProcessor.ProcessImage(factory);
-                        //factory.Update(img);
                     }
                 }
             }
@@ -73,7 +69,7 @@ namespace ImageProcessor.Web
         }
 
         /// <summary>
-        /// The process image.
+        /// Processes the image.
         /// </summary>
         /// <param name="processor">
         /// The processor.
@@ -87,21 +83,20 @@ namespace ImageProcessor.Web
 
             if (imageInfo.IsAnimated)
             {
-                Image image;
-                using (GifEncoder encoder = new GifEncoder(new MemoryStream(4096), null, null, imageInfo.LoopCount))
+                OctreeQuantizer quantizer = new OctreeQuantizer(255, 8);
+                MemoryStream stream = new MemoryStream(4096);
+                using (GifEncoder encoder = new GifEncoder(stream, null, null, imageInfo.LoopCount))
                 {
                     foreach (GifFrame frame in imageInfo.GifFrames)
                     {
                         factory.Update(frame.Image);
-                        frame.Image = new Bitmap(ColorQuantizer.Quantize(processor.Invoke(factory), PixelFormat.Format8bppIndexed));
-
+                        frame.Image = quantizer.Quantize(processor.Invoke(factory));
                         encoder.AddFrame(frame);
                     }
-
-                    image = encoder.Save(); 
                 }
 
-                factory.Update(image);
+                stream.Position = 0;
+                factory.Update(new Bitmap(stream));
             }
             else
             {

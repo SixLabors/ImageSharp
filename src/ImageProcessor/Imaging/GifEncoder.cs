@@ -114,7 +114,8 @@ namespace ImageProcessor.Imaging
         /// <summary>
         /// The stream.
         /// </summary>
-        private Stream inputStream;
+        // ReSharper disable once FieldCanBeMadeReadOnly.Local
+        private MemoryStream inputStream;
 
         /// <summary>
         /// The height.
@@ -166,7 +167,7 @@ namespace ImageProcessor.Imaging
         /// <param name="repeatCount">
         /// The number of times to repeat the animation.
         /// </param>
-        public GifEncoder(Stream stream, int? width = null, int? height = null, int? repeatCount = null)
+        public GifEncoder(MemoryStream stream, int? width = null, int? height = null, int? repeatCount = null)
         {
             this.inputStream = stream;
             this.width = width;
@@ -226,26 +227,6 @@ namespace ImageProcessor.Imaging
         }
 
         /// <summary>
-        /// Returns the gif as an image.
-        /// </summary>
-        /// <returns>
-        /// The <see cref="Image"/> containing the animated gif.
-        /// </returns>
-        public Image Save()
-        {
-            // Complete Application Block
-            this.WriteByte(0);
-
-            // Complete File
-            this.WriteByte(FileTrailer);
-
-            // Push the data
-            // this.inputStream.Flush();
-            this.inputStream.Position = 0;
-            return Image.FromStream(this.inputStream);
-        }
-
-        /// <summary>
         /// Disposes the object and frees resources for the Garbage Collector.
         /// </summary>
         public void Dispose()
@@ -277,12 +258,14 @@ namespace ImageProcessor.Imaging
 
             if (disposing)
             {
-                // Dispose of any managed resources here.
-                //if (this.inputStream != null)
-                //{
-                //    this.inputStream.Dispose();
-                //    this.inputStream = null;
-                //}
+                // Complete Application Block
+                this.WriteByte(0);
+
+                // Complete File
+                this.WriteByte(FileTrailer);
+
+                // Push the data
+                this.inputStream.Flush();
             }
 
             // Call the appropriate methods to clean up

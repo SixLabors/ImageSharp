@@ -2,7 +2,10 @@
   <GlobalSettings>
     <CollectionProperty Name="RecognizedWords">
       <Value>behaviour</Value>
+      <Value>colour</Value>
       <Value>lomograph</Value>
+      <Value>octree</Value>
+      <Value>quantizer</Value>
     </CollectionProperty>
   </GlobalSettings>
   <Analyzers>

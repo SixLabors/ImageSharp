@@ -180,6 +180,7 @@ namespace ImageProcessor.Web.HttpModules
                 // Dispose of any managed resources here.
                 foreach (KeyValuePair<string, SemaphoreSlim> semaphore in SemaphoreSlims)
                 {
+                    semaphore.Value.Wait();
                     semaphore.Value.Dispose();
                 }
 

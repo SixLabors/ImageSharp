@@ -968,7 +968,7 @@ namespace ImageProcessor
 
                 if (!imageInfo.IsAnimated)
                 {
-                    this.Image = ColorQuantizer.Quantize(this.Image, PixelFormat.Format8bppIndexed);
+                    this.Image = new OctreeQuantizer(255, 8).Quantize(this.Image);
                 }
             }
         }
@@ -991,17 +991,20 @@ namespace ImageProcessor
 
             if (imageInfo.IsAnimated)
             {
-                using (GifEncoder encoder = new GifEncoder(new MemoryStream(4096), width, height, imageInfo.LoopCount))
+                OctreeQuantizer quantizer = new OctreeQuantizer(255, 8);
+                MemoryStream stream = new MemoryStream(4096);
+                using (GifEncoder encoder = new GifEncoder(stream, width, height, imageInfo.LoopCount))
                 {
                     foreach (GifFrame frame in imageInfo.GifFrames)
                     {
                         this.Image = frame.Image;
-                        frame.Image = new Bitmap(ColorQuantizer.Quantize(processor.Invoke(this), PixelFormat.Format8bppIndexed));
+                        frame.Image = quantizer.Quantize(processor.Invoke(this));
                         encoder.AddFrame(frame);
                     }
-
-                    this.Image = encoder.Save();
                 }
+
+                stream.Position = 0;
+                this.Image = Image.FromStream(stream);
             }
             else
             {

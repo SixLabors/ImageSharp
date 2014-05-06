@@ -42,6 +42,7 @@ namespace ImageProcessor.Extensions
                                  {
                                      Height = image.Height,
                                      Width = image.Width,
+                                     // ReSharper disable once BitwiseOperatorOnEnumWithoutFlags
                                      IsIndexed = (image.PixelFormat & PixelFormat.Indexed) != 0
                                  };
 

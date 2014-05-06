@@ -43,7 +43,7 @@ namespace ImageProcessorConsole
                         // Load, resize, set the format and quality and save an image.
                         imageFactory.Load(inStream)
                             .Constrain(size)
-                            .Filter(MatrixFilters.Comic)
+                            .Tint(Color.FromArgb(255, 106, 166, 204))
                             .Format(format)
                             .Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", fileInfo.Name)));
                     }

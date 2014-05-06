@@ -60,7 +60,7 @@ namespace ImageProcessor.Web
                     // Loop through and process the image.
                     foreach (IGraphicsProcessor graphicsProcessor in graphicsProcessors)
                     {
-                        ProcessImage(graphicsProcessor.ProcessImage, factory);
+                        ApplyProcessor(graphicsProcessor.ProcessImage, factory);
                     }
                 }
             }
@@ -77,13 +77,16 @@ namespace ImageProcessor.Web
         /// <param name="factory">
         /// The factory.
         /// </param>
-        private static void ProcessImage(Func<ImageFactory, Image> processor, ImageFactory factory)
+        private static void ApplyProcessor(Func<ImageFactory, Image> processor, ImageFactory factory)
         {
             ImageInfo imageInfo = factory.Image.GetImageInfo(factory.ImageFormat);
 
             if (imageInfo.IsAnimated)
             {
                 OctreeQuantizer quantizer = new OctreeQuantizer(255, 8);
+
+                // We don't dispose of the memory stream as that is disposed when a new image is created and doing so 
+                // beforehand will cause an exception.
                 MemoryStream stream = new MemoryStream();
                 using (GifEncoder encoder = new GifEncoder(stream, null, null, imageInfo.LoopCount))
                 {
@@ -96,7 +99,7 @@ namespace ImageProcessor.Web
                 }
 
                 stream.Position = 0;
-                factory.Update(new Bitmap(stream));
+                factory.Update(Image.FromStream(stream));
             }
             else
             {

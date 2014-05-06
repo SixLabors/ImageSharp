@@ -9,6 +9,7 @@
 //   Always wire this up in a using block.
 //   Disposing the encoder will complete the file.
 //   Uses default .NET GIF encoding and adds animation headers.
+//   Adapted from <see cref="http://github.com/DataDink/Bumpkit/blob/master/BumpKit/BumpKit/GifEncoder.cs"/>
 //   </remarks>
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
@@ -17,7 +18,6 @@ namespace ImageProcessor.Imaging
 {
     #region Using
     using System;
-    using System.Drawing;
     using System.Drawing.Imaging;
     using System.IO;
     using System.Linq;
@@ -29,6 +29,7 @@ namespace ImageProcessor.Imaging
     /// Always wire this up in a using block.
     /// Disposing the encoder will complete the file.
     /// Uses default .NET GIF encoding and adds animation headers.
+    /// Adapted from <see cref="http://github.com/DataDink/Bumpkit/blob/master/BumpKit/BumpKit/GifEncoder.cs"/>
     /// </remarks>
     /// </summary>
     public class GifEncoder : IDisposable

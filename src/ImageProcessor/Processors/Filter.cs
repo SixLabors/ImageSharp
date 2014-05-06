@@ -11,9 +11,13 @@
 namespace ImageProcessor.Processors
 {
     #region Using
+    using System;
     using System.Collections.Generic;
     using System.Drawing;
     using System.Drawing.Imaging;
+    using System.Linq;
+    using System.Reflection;
+    using System.Text;
     using System.Text.RegularExpressions;
     using ImageProcessor.Imaging.Filters;
     #endregion
@@ -26,7 +30,7 @@ namespace ImageProcessor.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"filter=(lomograph|polaroid|blackwhite|sepia|greyscale|gotham|invert|hisatch|losatch|comic)", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = BuildRegex(); 
 
         #region IGraphicsProcessor Members
         /// <summary>
@@ -115,45 +119,12 @@ namespace ImageProcessor.Processors
         {
             Bitmap newImage = null;
             Image image = factory.Image;
-            IMatrixFilter matrix = null;
 
             try
             {
                 newImage = new Bitmap(image.Width, image.Height, PixelFormat.Format32bppPArgb);
 
-                switch ((string)this.DynamicParameter)
-                {
-                    case "polaroid":
-                        matrix = new PolaroidMatrixFilter();
-                        break;
-                    case "lomograph":
-                        matrix = new LomographMatrixFilter();
-                        break;
-                    case "sepia":
-                        matrix = new SepiaMatrixFilter();
-                        break;
-                    case "blackwhite":
-                        matrix = new BlackWhiteMatrixFilter();
-                        break;
-                    case "greyscale":
-                        matrix = new GreyScaleMatrixFilter();
-                        break;
-                    case "gotham":
-                        matrix = new GothamMatrixFilter();
-                        break;
-                    case "invert":
-                        matrix = new InvertMatrixFilter();
-                        break;
-                    case "hisatch":
-                        matrix = new HiSatchMatrixFilter();
-                        break;
-                    case "losatch":
-                        matrix = new LoSatchMatrixFilter();
-                        break;
-                    case "comic":
-                        matrix = new ComicMatrixFilter();
-                        break;
-                }
+                IMatrixFilter matrix = this.DynamicParameter as IMatrixFilter ?? this.ParseFilter((string)this.DynamicParameter);
 
                 if (matrix != null)
                 {
@@ -171,5 +142,66 @@ namespace ImageProcessor.Processors
             return image;
         }
         #endregion
+
+        /// <summary>
+        /// Builds a regular expression from the <see cref="MatrixFilters"/> type, this allows extensibility.
+        /// </summary>
+        /// <returns>
+        /// The <see cref="Regex"/> to match matrix filters.
+        /// </returns>
+        private static Regex BuildRegex()
+        {
+            const BindingFlags Flags = BindingFlags.Public | BindingFlags.Static;
+            Type type = typeof(MatrixFilters);
+            IEnumerable<PropertyInfo> filters = type.GetProperties(Flags)
+                              .Where(p => p.IsDefined(typeof(MatrixFilterRegexAttribute), false))
+                              .ToList();
+
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.Append("filter=(");
+            int counter = 0;
+
+            foreach (PropertyInfo filter in filters)
+            {
+                MatrixFilterRegexAttribute attribute = (MatrixFilterRegexAttribute)filter.GetCustomAttributes(typeof(MatrixFilterRegexAttribute), false).First();
+
+                if (counter == 0)
+                {
+                    stringBuilder.Append(attribute.RegexIdentifier);
+                }
+                else
+                {
+                    stringBuilder.AppendFormat("|{0}", attribute.RegexIdentifier);
+                }
+
+                counter++;
+            }
+
+            stringBuilder.Append(")");
+
+            return new Regex(stringBuilder.ToString(), RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        }
+
+        /// <summary>
+        /// Parses the filter.
+        /// </summary>
+        /// <param name="identifier">
+        /// The identifier.
+        /// </param>
+        /// <returns>
+        /// The <see cref="IMatrixFilter"/>.
+        /// </returns>
+        private IMatrixFilter ParseFilter(string identifier)
+        {
+            const BindingFlags Flags = BindingFlags.Public | BindingFlags.Static;
+
+            Type type = typeof(MatrixFilters);
+            PropertyInfo filter =
+                type.GetProperties(Flags)
+                    .Where(p => p.IsDefined(typeof(MatrixFilterRegexAttribute), false))
+                    .First(p => ((MatrixFilterRegexAttribute)p.GetCustomAttributes(typeof(MatrixFilterRegexAttribute), false).First()).RegexIdentifier == identifier);
+
+            return filter.GetValue(null, null) as IMatrixFilter;
+        }
     }
 }

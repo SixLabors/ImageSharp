@@ -77,5 +77,47 @@ namespace ImageProcessor.Imaging
         /// Gets or sets the <see cref="CropMode"/>.
         /// </summary>
         public CropMode CropMode { get; set; }
+
+        /// <summary>
+        /// Determines whether the specified <see cref="System.Object" />, is 
+        /// equal to this instance.
+        /// </summary>
+        /// <param name="obj">
+        /// The <see cref="System.Object" /> to compare with this instance.
+        /// </param>
+        /// <returns>
+        ///   <c>true</c> if the specified <see cref="System.Object" /> is equal to 
+        ///   this instance; otherwise, <c>false</c>.
+        /// </returns>
+        public override bool Equals(object obj)
+        {
+            CropLayer cropLayer = obj as CropLayer;
+
+            if (cropLayer == null)
+            {
+                return false;
+            }
+
+            // Define the tolerance for variation in their values 
+            return Math.Abs(this.Top - cropLayer.Top) <= Math.Abs(this.Top * .0001)
+                   && Math.Abs(this.Right - cropLayer.Right) <= Math.Abs(this.Right * .0001)
+                   && Math.Abs(this.Bottom - cropLayer.Bottom) <= Math.Abs(this.Bottom * .0001)
+                   && Math.Abs(this.Left - cropLayer.Left) <= Math.Abs(this.Left * .0001)
+                   && this.CropMode.Equals(cropLayer.CropMode);
+        }
+
+        /// <summary>
+        /// Returns a hash code for this instance.
+        /// </summary>
+        /// <returns>
+        /// A hash code for this instance, suitable for use in hashing algorithms 
+        /// and data structures like a hash table. 
+        /// </returns>
+        public override int GetHashCode()
+        {
+            return this.Top.GetHashCode() + this.Right.GetHashCode() +
+                   this.Bottom.GetHashCode() + this.Left.GetHashCode() +
+                   this.CropMode.GetHashCode();
+        }
     }
 }

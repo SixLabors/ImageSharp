@@ -79,14 +79,13 @@ namespace ImageProcessor.Tests
         [TestMethod]
         public void TestCropRegex()
         {
-            const string Querystring = "crop=0-0-150-300";
-            Rectangle expected = new Rectangle(0, 0, 150, 300);
+            const string Querystring = "crop=0,0,150,300";
+            CropLayer expected = new CropLayer(0, 0, 150, 300, CropMode.Pixels);
 
             Crop crop = new Crop();
             crop.MatchRegexIndex(Querystring);
 
-            Rectangle actual = crop.DynamicParameter;
-
+            CropLayer actual = crop.DynamicParameter;
             Assert.AreEqual(expected, actual);
         }
 

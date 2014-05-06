@@ -18,7 +18,7 @@ Feedback is always welcome</description>
         <releaseNotes />
         <copyright>James South</copyright>
         <language>en-GB</language>
-        <tags>Image Imaging ASP Performance Processing HttpModule Cache Resize Rotate RoundedCorners Flip Crop Filter Effects Quality Watermark Alpha Vignette Saturation Brightness Contrast Gif Jpg Jpeg Bitmap Png Fluent GDI Gaussian Blur Sharpen</tags>
+        <tags>Image Imaging ASP Performance Processing HttpModule Cache Resize Rotate RoundedCorners Flip Crop Filter Effects Quality Watermark Alpha Vignette Saturation Brightness Contrast Gif Jpg Jpeg Bitmap Png Fluent GDI Gaussian Blur Sharpen Tint Quantizer Animated</tags>
     </metadata>
     <files>
         <file src="..\..\src\ImageProcessor.Web\NET45\Config\Resources\cache.config" target="content\config\imageprocessor\cache.config" />

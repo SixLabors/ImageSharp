@@ -744,6 +744,26 @@ namespace ImageProcessor
         }
 
         /// <summary>
+        /// Tints the current image with the given color.
+        /// </summary>
+        /// <param name="color">
+        /// The <see cref="T:System.Drawing.Color"/> to tint the image with.
+        /// </param>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory Tint(Color color)
+        {
+            if (this.ShouldProcess)
+            {
+                Tint tint = new Tint { DynamicParameter = color };
+                this.ApplyProcessor(tint.ProcessImage);
+            }
+
+            return this;
+        }
+
+        /// <summary>
         /// Adds a vignette image effect to the current image.
         /// </summary>
         /// <returns>

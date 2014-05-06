@@ -11,6 +11,7 @@ namespace ImageProcessorConsole
     using System.IO;
 
     using ImageProcessor;
+    using ImageProcessor.Imaging.Filters;
 
     class Program
     {
@@ -42,6 +43,7 @@ namespace ImageProcessorConsole
                         // Load, resize, set the format and quality and save an image.
                         imageFactory.Load(inStream)
                             .Constrain(size)
+                            .Filter(MatrixFilters.Comic)
                             .Format(format)
                             .Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", fileInfo.Name)));
                     }

@@ -992,7 +992,7 @@ namespace ImageProcessor
             if (imageInfo.IsAnimated)
             {
                 OctreeQuantizer quantizer = new OctreeQuantizer(255, 8);
-                MemoryStream stream = new MemoryStream(4096);
+                MemoryStream stream = new MemoryStream();
                 using (GifEncoder encoder = new GifEncoder(stream, width, height, imageInfo.LoopCount))
                 {
                     foreach (GifFrame frame in imageInfo.GifFrames)

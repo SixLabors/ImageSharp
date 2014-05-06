@@ -22,6 +22,7 @@ namespace ImageProcessor
 
     using ImageProcessor.Extensions;
     using ImageProcessor.Imaging;
+    using ImageProcessor.Imaging.Filters;
     using ImageProcessor.Processors;
     #endregion
 
@@ -298,8 +299,7 @@ namespace ImageProcessor
                 }
 
                 Alpha alpha = new Alpha { DynamicParameter = percentage };
-
-                this.Image = alpha.ProcessImage(this);
+                this.ApplyProcessor(alpha.ProcessImage);
             }
 
             return this;
@@ -326,8 +326,7 @@ namespace ImageProcessor
                 }
 
                 Brightness brightness = new Brightness { DynamicParameter = percentage };
-
-                this.Image = brightness.ProcessImage(this);
+                this.ApplyProcessor(brightness.ProcessImage);
             }
 
             return this;
@@ -375,8 +374,7 @@ namespace ImageProcessor
                 }
 
                 Contrast contrast = new Contrast { DynamicParameter = percentage };
-
-                this.Image = contrast.ProcessImage(this);
+                this.ApplyProcessor(contrast.ProcessImage);
             }
 
             return this;
@@ -396,10 +394,7 @@ namespace ImageProcessor
             if (this.ShouldProcess)
             {
                 CropLayer cropLayer = new CropLayer(rectangle.Left, rectangle.Top, rectangle.Right, rectangle.Bottom, CropMode.Pixels);
-
-                Crop crop = new Crop { DynamicParameter = cropLayer };
-
-                this.Image = crop.ProcessImage(this);
+                return this.Crop(cropLayer);
             }
 
             return this;
@@ -419,13 +414,12 @@ namespace ImageProcessor
             if (this.ShouldProcess)
             {
                 Crop crop = new Crop { DynamicParameter = cropLayer };
-
-                this.Image = crop.ProcessImage(this);
+                this.ApplyProcessor(crop.ProcessImage);
             }
 
             return this;
         }
-
+        
         /// <summary>
         /// Applies a filter to the current image.
         /// </summary>
@@ -435,13 +429,34 @@ namespace ImageProcessor
         /// <returns>
         /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
         /// </returns>
+        [Obsolete("Will be removed in next major version. Filter(IMatrixFilter matrixFilter) instead.")]
         public ImageFactory Filter(string filterName)
         {
             if (this.ShouldProcess)
             {
                 Filter filter = new Filter { DynamicParameter = filterName };
+                this.ApplyProcessor(filter.ProcessImage);
+            }
 
-                this.Image = filter.ProcessImage(this);
+            return this;
+        }
+
+        /// <summary>
+        /// Applies a filter to the current image. Use the <see cref="MatrixFilters"/> class to 
+        /// assign the correct filter.
+        /// </summary>
+        /// <param name="matrixFilter">
+        /// The <see cref="IMatrixFilter"/> of the filter to add to the image.
+        /// </param>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory Filter(IMatrixFilter matrixFilter)
+        {
+            if (this.ShouldProcess)
+            {
+                Filter filter = new Filter { DynamicParameter = matrixFilter };
+                this.ApplyProcessor(filter.ProcessImage);
             }
 
             return this;
@@ -465,8 +480,7 @@ namespace ImageProcessor
                     : RotateFlipType.RotateNoneFlipY;
 
                 Flip flip = new Flip { DynamicParameter = rotateFlipType };
-
-                this.Image = flip.ProcessImage(this);
+                this.ApplyProcessor(flip.ProcessImage);
             }
 
             return this;
@@ -512,8 +526,7 @@ namespace ImageProcessor
             if (this.ShouldProcess && size > 0)
             {
                 GaussianLayer layer = new GaussianLayer(size);
-                GaussianBlur gaussianBlur = new GaussianBlur { DynamicParameter = layer };
-                this.Image = gaussianBlur.ProcessImage(this);
+                return this.GaussianBlur(layer);
             }
 
             return this;
@@ -534,7 +547,7 @@ namespace ImageProcessor
             if (this.ShouldProcess)
             {
                 GaussianBlur gaussianBlur = new GaussianBlur { DynamicParameter = gaussianLayer };
-                this.Image = gaussianBlur.ProcessImage(this);
+                this.ApplyProcessor(gaussianBlur.ProcessImage);
             }
 
             return this;
@@ -560,8 +573,7 @@ namespace ImageProcessor
             if (this.ShouldProcess && size > 0)
             {
                 GaussianLayer layer = new GaussianLayer(size);
-                GaussianSharpen gaussianSharpen = new GaussianSharpen { DynamicParameter = layer };
-                this.Image = gaussianSharpen.ProcessImage(this);
+                return this.GaussianSharpen(layer);
             }
 
             return this;
@@ -582,7 +594,7 @@ namespace ImageProcessor
             if (this.ShouldProcess)
             {
                 GaussianSharpen gaussianSharpen = new GaussianSharpen { DynamicParameter = gaussianLayer };
-                this.Image = gaussianSharpen.ProcessImage(this);
+                this.ApplyProcessor(gaussianSharpen.ProcessImage);
             }
 
             return this;
@@ -625,7 +637,6 @@ namespace ImageProcessor
                 int height = size.Height;
 
                 ResizeLayer resizeLayer = new ResizeLayer(new Size(width, height));
-
                 return this.Resize(resizeLayer);
             }
 
@@ -648,8 +659,7 @@ namespace ImageProcessor
                 var resizeSettings = new Dictionary<string, string> { { "MaxWidth", resizeLayer.Size.Width.ToString("G") }, { "MaxHeight", resizeLayer.Size.Height.ToString("G") } };
 
                 Resize resize = new Resize { DynamicParameter = resizeLayer, Settings = resizeSettings };
-
-                this.ProcessImage(resize.ProcessImage, resizeLayer.Size.Width, resizeLayer.Size.Height);
+                this.ApplyProcessor(resize.ProcessImage);
             }
 
             return this;
@@ -675,8 +685,7 @@ namespace ImageProcessor
                 }
 
                 Rotate rotate = new Rotate { DynamicParameter = rotateLayer };
-
-                this.Image = rotate.ProcessImage(this);
+                this.ApplyProcessor(rotate.ProcessImage);
             }
 
             return this;
@@ -701,8 +710,7 @@ namespace ImageProcessor
                 }
 
                 RoundedCorners roundedCorners = new RoundedCorners { DynamicParameter = roundedCornerLayer };
-
-                this.Image = roundedCorners.ProcessImage(this);
+                this.ApplyProcessor(roundedCorners.ProcessImage);
             }
 
             return this;
@@ -729,8 +737,7 @@ namespace ImageProcessor
                 }
 
                 Saturation saturate = new Saturation { DynamicParameter = percentage };
-
-                this.Image = saturate.ProcessImage(this);
+                this.ApplyProcessor(saturate.ProcessImage);
             }
 
             return this;
@@ -747,8 +754,7 @@ namespace ImageProcessor
             if (this.ShouldProcess)
             {
                 Vignette vignette = new Vignette();
-
-                this.Image = vignette.ProcessImage(this);
+                this.ApplyProcessor(vignette.ProcessImage);
             }
 
             return this;
@@ -769,8 +775,7 @@ namespace ImageProcessor
             if (this.ShouldProcess)
             {
                 Watermark watermark = new Watermark { DynamicParameter = textLayer };
-
-                this.Image = watermark.ProcessImage(this);
+                this.ApplyProcessor(watermark.ProcessImage);
             }
 
             return this;
@@ -974,26 +979,23 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// The process image.
+        /// Applies the given processor the current image.
         /// </summary>
         /// <param name="processor">
-        /// The processor.
+        /// The processor delegate.
         /// </param>
-        /// <param name="width">
-        /// The width.
-        /// </param>
-        /// <param name="height">
-        /// The height.
-        /// </param>
-        private void ProcessImage(Func<ImageFactory, Image> processor, int width, int height)
+        private void ApplyProcessor(Func<ImageFactory, Image> processor)
         {
             ImageInfo imageInfo = this.Image.GetImageInfo(this.ImageFormat);
 
             if (imageInfo.IsAnimated)
             {
                 OctreeQuantizer quantizer = new OctreeQuantizer(255, 8);
+
+                // We don't dispose of the memory stream as that is disposed when a new image is created and doing so 
+                // beforehand will cause an exception.
                 MemoryStream stream = new MemoryStream();
-                using (GifEncoder encoder = new GifEncoder(stream, width, height, imageInfo.LoopCount))
+                using (GifEncoder encoder = new GifEncoder(stream, null, null, imageInfo.LoopCount))
                 {
                     foreach (GifFrame frame in imageInfo.GifFrames)
                     {

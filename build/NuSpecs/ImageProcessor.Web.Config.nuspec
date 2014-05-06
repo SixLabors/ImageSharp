@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
     <metadata>
         <id>ImageProcessor.Web.Config</id>
-        <version>1.0.0.0</version>
+        <version>1.1.0.0</version>
         <title>ImageProcessor.Web.Config</title>
         <authors>James South</authors>
         <owners>James South</owners>
@@ -19,6 +19,16 @@ Feedback is always welcome</description>
         <copyright>James South</copyright>
         <language>en-GB</language>
         <tags>Image Imaging ASP Performance Processing HttpModule Cache Resize Rotate RoundedCorners Flip Crop Filter Effects Quality Watermark Alpha Vignette Saturation Brightness Contrast Gif Jpg Jpeg Bitmap Png Fluent GDI Gaussian Blur Sharpen Tint Quantizer Animated</tags>
+        <dependencies>
+            <group targetFramework=".NETFramework4.0">
+                <dependency id="ImageProcessor" version="1.9.0.0" />
+                <dependency id="ImageProcessor.Web" version="3.2.3.0" />
+            </group>
+            <group targetFramework=".NETFramework4.5">
+                <dependency id="ImageProcessor" version="1.9.0.0" />
+                <dependency id="ImageProcessor.Web" version="3.2.3.0" />
+            </group>
+        </dependencies>
     </metadata>
     <files>
         <file src="..\..\src\ImageProcessor.Web\NET45\Config\Resources\cache.config" target="content\config\imageprocessor\cache.config" />

@@ -1,17 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿
 
 namespace ImageProcessorConsole
 {
+    using System;
     using System.Drawing;
     using System.Drawing.Imaging;
     using System.IO;
-
     using ImageProcessor;
-    using ImageProcessor.Imaging.Filters;
 
     class Program
     {

@@ -12,6 +12,7 @@ namespace ImageProcessor.Web.HttpModules
 {
     #region Using
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
     using System.IO;
@@ -31,9 +32,6 @@ namespace ImageProcessor.Web.HttpModules
     using ImageProcessor.Web.Caching;
     using ImageProcessor.Web.Config;
     using ImageProcessor.Web.Helpers;
-
-    using Microsoft.Web.Infrastructure.DynamicModuleHelper;
-
     #endregion
 
     /// <summary>
@@ -60,7 +58,7 @@ namespace ImageProcessor.Web.HttpModules
         /// <summary>
         /// The collection of SemaphoreSlims for identifying given locking individual queries.
         /// </summary>
-        private static readonly Dictionary<string, SemaphoreSlim> SemaphoreSlims = new Dictionary<string, SemaphoreSlim>();
+        private static readonly ConcurrentDictionary<string, SemaphoreSlim> SemaphoreSlims = new ConcurrentDictionary<string, SemaphoreSlim>();
 
         /// <summary>
         /// The value to prefix any remote image requests with to ensure they get captured.
@@ -153,14 +151,7 @@ namespace ImageProcessor.Web.HttpModules
         private static SemaphoreSlim GetSemaphoreSlim(string id)
         {
             id = id.ToMD5Fingerprint();
-
-            if (SemaphoreSlims.ContainsKey(id))
-            {
-                return SemaphoreSlims[id];
-            }
-
-            SemaphoreSlim semaphore = new SemaphoreSlim(1, 1);
-            SemaphoreSlims.Add(id, semaphore);
+            SemaphoreSlim semaphore = SemaphoreSlims.GetOrAdd(id, new SemaphoreSlim(1, 1));
             return semaphore;
         }
 
@@ -180,7 +171,6 @@ namespace ImageProcessor.Web.HttpModules
                 // Dispose of any managed resources here.
                 foreach (KeyValuePair<string, SemaphoreSlim> semaphore in SemaphoreSlims)
                 {
-                    semaphore.Value.Wait();
                     semaphore.Value.Dispose();
                 }
 

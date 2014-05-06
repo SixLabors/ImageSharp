@@ -11,10 +11,6 @@
 namespace ImageProcessor.Imaging.Filters
 {
     #region Using
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
     using System.Drawing;
     using System.Drawing.Imaging;
     using ImageProcessor.Processors;

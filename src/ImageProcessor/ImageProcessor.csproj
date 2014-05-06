@@ -70,6 +70,8 @@
     <Compile Include="Imaging\Convolution.cs" />
     <Compile Include="Imaging\CropLayer.cs" />
     <Compile Include="Imaging\CropMode.cs" />
+    <Compile Include="Imaging\Filters\MatrixFilterRegexAttribute.cs" />
+    <Compile Include="Imaging\Filters\MatrixFilters.cs" />
     <Compile Include="Imaging\GaussianLayer.cs" />
     <Compile Include="Imaging\GifEncoder.cs" />
     <Compile Include="Imaging\GifFrame.cs" />

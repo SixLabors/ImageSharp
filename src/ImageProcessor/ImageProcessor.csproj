@@ -111,6 +111,7 @@
     <Compile Include="Processors\Quality.cs" />
     <Compile Include="Processors\Resize.cs" />
     <Compile Include="Processors\Format.cs" />
+    <Compile Include="Processors\Tint.cs" />
     <Compile Include="Processors\Vignette.cs" />
     <Compile Include="Processors\Watermark.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

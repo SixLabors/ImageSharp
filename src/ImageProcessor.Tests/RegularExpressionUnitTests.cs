@@ -149,12 +149,12 @@ namespace ImageProcessor.Tests
         public void TestResizeRegex()
         {
             const string Querystring = "width=300";
-            Size expected = new Size(300, 0);
+            ResizeLayer expected = new ResizeLayer(new Size(300, 0));
 
             Resize resize = new Resize();
 
             resize.MatchRegexIndex(Querystring);
-            Size actual = resize.DynamicParameter;
+            ResizeLayer actual = resize.DynamicParameter;
 
             Assert.AreEqual(expected, actual);
         }
@@ -191,6 +191,28 @@ namespace ImageProcessor.Tests
             RoundedCornerLayer actual = roundedCorners.DynamicParameter;
 
             Assert.AreEqual(expected, actual);
+        }
+
+        /// <summary>
+        /// The rounded corners regex unit test.
+        /// </summary>
+        [TestMethod]
+        public void TestTintRegex()
+        {
+            const string HexQuerystring = "tint=6aa6cc";
+            const string RgbaQuerystring = "tint=106,166,204,255";
+            Color expectedHex = ColorTranslator.FromHtml("#" + "6aa6cc");
+            Color expectedRgba = Color.FromArgb(255, 106, 166, 204);
+
+            Tint tint = new Tint();
+            tint.MatchRegexIndex(HexQuerystring);
+            Color actualHex = tint.DynamicParameter;
+            Assert.AreEqual(expectedHex, actualHex);
+
+            tint = new Tint();
+            tint.MatchRegexIndex(RgbaQuerystring);
+            Color actualRgba = tint.DynamicParameter;
+            Assert.AreEqual(expectedRgba, actualRgba);
         }
         #endregion
     }

@@ -261,7 +261,6 @@ namespace ImageProcessor.Web.HttpModules
             bool isRemote = request.Path.EndsWith(remotePrefix, StringComparison.OrdinalIgnoreCase);
             string requestPath = string.Empty;
             string queryString = string.Empty;
-
             bool validExtensionLessUrl = false;
             string urlParameters = "";
             string extensionLessExtension = "";
@@ -346,14 +345,12 @@ namespace ImageProcessor.Web.HttpModules
                 // in the UrlAuthorizationModule by creating a generic identity.
                 string virtualCachedPath = cache.GetVirtualCachedPath();
 
-                IPrincipal user = context.User
-                                  ?? new GenericPrincipal(new GenericIdentity(string.Empty, string.Empty), new string[0]);
+                IPrincipal user = context.User ?? new GenericPrincipal(new GenericIdentity(string.Empty, string.Empty), new string[0]);
 
                 // Do we have permission to call UrlAuthorizationModule.CheckUrlAccessForPrincipal?
                 PermissionSet permission = new PermissionSet(PermissionState.None);
                 permission.AddPermission(new AspNetHostingPermission(AspNetHostingPermissionLevel.Unrestricted));
                 bool hasPermission = permission.IsSubsetOf(AppDomain.CurrentDomain.PermissionSet);
-
                 bool isAllowed = true;
 
                 // Run the rewritten path past the auth system again, using the result as the default "AllowAccess" value
@@ -492,6 +489,11 @@ namespace ImageProcessor.Web.HttpModules
                 {
                     throw new HttpException(403, "Access denied");
                 }
+            }
+            else if (isRemote)
+            {
+                // Just repoint to the external url.
+                HttpContext.Current.Response.Redirect(requestPath);
             }
         }
 

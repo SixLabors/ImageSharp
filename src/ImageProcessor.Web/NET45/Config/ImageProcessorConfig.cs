@@ -12,6 +12,7 @@ namespace ImageProcessor.Web.Config
 {
     #region Using
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
     using System.Reflection;
@@ -37,14 +38,14 @@ namespace ImageProcessor.Web.Config
         /// A collection of the <see cref="T:ImageProcessor.Web.Config.ImageProcessingSection.SettingElementCollection"/> elements 
         /// for available plugins.
         /// </summary>
-        private static readonly Dictionary<string, Dictionary<string, string>> PluginSettings =
-            new Dictionary<string, Dictionary<string, string>>();
+        private static readonly ConcurrentDictionary<string, Dictionary<string, string>> PluginSettings =
+            new ConcurrentDictionary<string, Dictionary<string, string>>();
 
         /// <summary>
         /// A collection of the processing presets defined in the configuration. 
         /// for available plugins.
         /// </summary>
-        private static readonly Dictionary<string, string> PresetSettings = new Dictionary<string, string>();
+        private static readonly ConcurrentDictionary<string, string> PresetSettings = new ConcurrentDictionary<string, string>();
 
         /// <summary>
         /// The processing configuration section from the current application configuration. 
@@ -185,33 +186,26 @@ namespace ImageProcessor.Web.Config
 
         #region Methods
         /// <summary>
-        /// Returns the collection of the processing presets defined in the configuration.
+        /// Returns the processing instructions matching the preset defined in the configuration.
         /// </summary>
         /// <param name="name">
         /// The name of the plugin to get the settings for.
         /// </param>
         /// <returns>
-        /// The <see cref="T:Systems.Collections.Generic.Dictionary{string, string}"/> containing the processing presets defined in the configuration.
+        /// The <see cref="T:Systems.String"/> the processing instructions.
         /// </returns>
         public string GetPresetSettings(string name)
         {
-            if (!PresetSettings.ContainsKey(name))
-            {
-                var presetElement =
-                    GetImageProcessingSection().Presets
-                    .Cast<ImageProcessingSection.PresetElement>()
-                    .FirstOrDefault(x => x.Name == name);
-
-                if (presetElement != null)
-                {
-                    PresetSettings[presetElement.Name] = presetElement.Value;
-                }
-            }
-
-            string preset;
-            PresetSettings.TryGetValue(name, out preset);
-
-            return preset;
+            return PresetSettings.GetOrAdd(
+                   name,
+                   n =>
+                   {
+                       ImageProcessingSection.PresetElement presetElement = GetImageProcessingSection()
+                       .Presets
+                       .Cast<ImageProcessingSection.PresetElement>()
+                       .FirstOrDefault(x => x.Name == n);
+                       return presetElement != null ? presetElement.Value : null;
+                   });
         }
 
         /// <summary>
@@ -225,31 +219,30 @@ namespace ImageProcessor.Web.Config
         /// </returns>
         public Dictionary<string, string> GetPluginSettings(string name)
         {
-            if (!PluginSettings.ContainsKey(name))
-            {
-                var pluginElement =
-                    GetImageProcessingSection().Plugins
-                    .Cast<ImageProcessingSection.PluginElement>()
-                    .FirstOrDefault(x => x.Name == name);
-
-                Dictionary<string, string> settings;
-
-                if (pluginElement != null)
+            return PluginSettings.GetOrAdd(
+                name,
+                n =>
                 {
-                    settings = pluginElement.Settings
-                        .Cast<ImageProcessingSection.SettingElement>()
-                        .ToDictionary(setting => setting.Key, setting => setting.Value);
-                }
-                else
-                {
-                    settings = new Dictionary<string, string>();
-                }
+                    ImageProcessingSection.PluginElement pluginElement = GetImageProcessingSection()
+                        .Plugins
+                        .Cast<ImageProcessingSection.PluginElement>()
+                        .FirstOrDefault(x => x.Name == n);
 
-                PluginSettings.Add(name, settings);
-                return settings;
-            }
+                    Dictionary<string, string> settings;
 
-            return PluginSettings[name];
+                    if (pluginElement != null)
+                    {
+                        settings = pluginElement.Settings
+                            .Cast<ImageProcessingSection.SettingElement>()
+                            .ToDictionary(setting => setting.Key, setting => setting.Value);
+                    }
+                    else
+                    {
+                        settings = new Dictionary<string, string>();
+                    }
+
+                    return settings;
+                });
         }
 
         /// <summary>

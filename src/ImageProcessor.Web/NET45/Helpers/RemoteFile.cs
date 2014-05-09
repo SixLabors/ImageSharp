@@ -15,7 +15,6 @@ namespace ImageProcessor.Web.Helpers
     using System.Collections.Generic;
     using System.Globalization;
     using System.IO;
-    using System.Linq;
     using System.Net;
     using System.Security;
     using System.Text;
@@ -354,8 +353,24 @@ namespace ImageProcessor.Web.Helpers
             string upper = this.url.Host.ToUpperInvariant();
 
             // Check for root or subdomain.
-            bool validUrl = RemoteFileWhiteList.Any(item =>
-                upper.StartsWith(item.Host.ToUpperInvariant()) || upper.EndsWith(item.Host.ToUpperInvariant()));
+            bool validUrl = false;
+            foreach (Uri uri in RemoteFileWhiteList)
+            {
+                if (!uri.IsAbsoluteUri)
+                {
+                    Uri rebaseUri = new Uri("http://" + uri.ToString().TrimStart(new[] { '.', '/' }));
+                    validUrl = upper.StartsWith(rebaseUri.Host.ToUpperInvariant()) || upper.EndsWith(rebaseUri.Host.ToUpperInvariant());
+                }
+                else
+                {
+                    validUrl = upper.StartsWith(uri.Host.ToUpperInvariant()) || upper.EndsWith(uri.Host.ToUpperInvariant());
+                }
+
+                if (validUrl)
+                {
+                    break;
+                }
+            }
 
             if (!validUrl)
             {

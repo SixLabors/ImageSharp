@@ -131,7 +131,7 @@ namespace ImageProcessor.Imaging
                 for (int col = 0; col < width; col++)
                 {
                     this.InitialQuantizePixel(new Color32(sourcePixel));
-                    sourcePixel = (IntPtr)((int)sourcePixel + this.pixelSize);
+                    sourcePixel = (IntPtr)((long)sourcePixel + this.pixelSize);
                 }
 
                 // Now I have the pixel, call the FirstPassQuantize function...

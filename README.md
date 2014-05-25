@@ -5,4 +5,4 @@ Imageprocessor is a lightweight library written in C# that allows you to manipul
 
 It's fast, extensible, easy to use, comes bundled with some great features and is fully open source.
 
-For full documentation please see [http://jimbobsquarepants.github.io/ImageProcessor/](http://jimbobsquarepants.github.io/ImageProcessor/)
+For full documentation please see [http://imageprocessor.org/](http://imageprocessor.org/)

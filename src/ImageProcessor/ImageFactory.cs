@@ -12,6 +12,7 @@ namespace ImageProcessor
 {
     #region Using
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
     using System.Drawing;
@@ -19,7 +20,6 @@ namespace ImageProcessor
     using System.IO;
     using System.Linq;
     using System.Threading;
-
     using ImageProcessor.Extensions;
     using ImageProcessor.Imaging;
     using ImageProcessor.Imaging.Filters;
@@ -36,6 +36,11 @@ namespace ImageProcessor
         /// The default quality for jpeg files.
         /// </summary>
         private const int DefaultJpegQuality = 90;
+
+        /// <summary>
+        /// Whether to preserve exif metadata
+        /// </summary>
+        private readonly bool preserveExifData;
 
         /// <summary>
         /// The backup image format.
@@ -64,6 +69,20 @@ namespace ImageProcessor
         /// life in the Garbage Collector.
         /// </remarks>
         private bool isDisposed;
+        #endregion
+
+        #region Constructors
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ImageFactory"/> class.
+        /// </summary>
+        /// <param name="preserveExifData">
+        /// Whether to preserve exif metadata. Defaults to false.
+        /// </param>
+        public ImageFactory(bool preserveExifData = true)
+        {
+            this.preserveExifData = preserveExifData;
+            this.ExifPropertyItems = new ConcurrentDictionary<int, PropertyItem>();
+        }
         #endregion
 
         #region Destructors
@@ -124,6 +143,11 @@ namespace ImageProcessor
         }
 
         /// <summary>
+        /// Gets or sets the exif property items.
+        /// </summary>
+        public ConcurrentDictionary<int, PropertyItem> ExifPropertyItems { get; set; }
+
+        /// <summary>
         /// Gets or sets the original extension.
         /// </summary>
         internal string OriginalExtension { get; set; }
@@ -157,6 +181,15 @@ namespace ImageProcessor
             this.ImageFormat = this.Image.RawFormat;
             this.backupImageFormat = this.ImageFormat;
             this.isIndexed = ImageUtils.IsIndexed(this.Image);
+
+            if (this.preserveExifData)
+            {
+                foreach (PropertyItem propertyItem in this.Image.PropertyItems)
+                {
+                    this.ExifPropertyItems[propertyItem.Id] = propertyItem;
+                }
+            }
+
             this.ShouldProcess = true;
 
             return this;
@@ -210,6 +243,15 @@ namespace ImageProcessor
                     this.OriginalExtension = Path.GetExtension(this.ImagePath);
                     this.ImageFormat = imageFormat;
                     this.isIndexed = ImageUtils.IsIndexed(this.Image);
+
+                    if (this.preserveExifData)
+                    {
+                        foreach (PropertyItem propertyItem in this.Image.PropertyItems)
+                        {
+                            this.ExifPropertyItems[propertyItem.Id] = propertyItem;
+                        }
+                    }
+
                     this.ShouldProcess = true;
                 }
             }
@@ -419,7 +461,7 @@ namespace ImageProcessor
 
             return this;
         }
-        
+
         /// <summary>
         /// Applies a filter to the current image.
         /// </summary>
@@ -1031,6 +1073,25 @@ namespace ImageProcessor
             else
             {
                 this.Image = processor.Invoke(this);
+            }
+
+            // Set the property item information from any Exif metadata.
+            // We do this here so that they can be changed between processor methods.
+            if (this.preserveExifData)
+            {
+                foreach (KeyValuePair<int, PropertyItem> propertItem in this.ExifPropertyItems)
+                {
+                    try
+                    {
+                        this.Image.SetPropertyItem(propertItem.Value);
+                    }
+                    // ReSharper disable once EmptyGeneralCatchClause
+                    catch
+                    {
+                        // Do nothing. The image format does not handle EXIF data.
+                        // TODO: empty catch is fierce code smell.
+                    }
+                }
             }
         }
         #endregion

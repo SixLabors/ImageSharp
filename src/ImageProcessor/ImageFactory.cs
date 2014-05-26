@@ -38,11 +38,6 @@ namespace ImageProcessor
         private const int DefaultJpegQuality = 90;
 
         /// <summary>
-        /// Whether to preserve exif metadata
-        /// </summary>
-        private readonly bool preserveExifData;
-
-        /// <summary>
         /// The backup image format.
         /// </summary>
         private ImageFormat backupImageFormat;
@@ -76,11 +71,11 @@ namespace ImageProcessor
         /// Initializes a new instance of the <see cref="ImageFactory"/> class.
         /// </summary>
         /// <param name="preserveExifData">
-        /// Whether to preserve exif metadata. Defaults to false.
+        /// Whether to preserve exif metadata. Defaults to true.
         /// </param>
         public ImageFactory(bool preserveExifData = true)
         {
-            this.preserveExifData = preserveExifData;
+            this.PreserveExifData = preserveExifData;
             this.ExifPropertyItems = new ConcurrentDictionary<int, PropertyItem>();
         }
         #endregion
@@ -143,6 +138,11 @@ namespace ImageProcessor
         }
 
         /// <summary>
+        /// Gets or sets a value indicating whether to preserve exif metadata.
+        /// </summary>
+        public bool PreserveExifData { get; set; }
+
+        /// <summary>
         /// Gets or sets the exif property items.
         /// </summary>
         public ConcurrentDictionary<int, PropertyItem> ExifPropertyItems { get; set; }
@@ -182,7 +182,7 @@ namespace ImageProcessor
             this.backupImageFormat = this.ImageFormat;
             this.isIndexed = ImageUtils.IsIndexed(this.Image);
 
-            if (this.preserveExifData)
+            if (this.PreserveExifData)
             {
                 foreach (PropertyItem propertyItem in this.Image.PropertyItems)
                 {
@@ -244,7 +244,7 @@ namespace ImageProcessor
                     this.ImageFormat = imageFormat;
                     this.isIndexed = ImageUtils.IsIndexed(this.Image);
 
-                    if (this.preserveExifData)
+                    if (this.PreserveExifData)
                     {
                         foreach (PropertyItem propertyItem in this.Image.PropertyItems)
                         {
@@ -1077,7 +1077,7 @@ namespace ImageProcessor
 
             // Set the property item information from any Exif metadata.
             // We do this here so that they can be changed between processor methods.
-            if (this.preserveExifData)
+            if (this.PreserveExifData)
             {
                 foreach (KeyValuePair<int, PropertyItem> propertItem in this.ExifPropertyItems)
                 {

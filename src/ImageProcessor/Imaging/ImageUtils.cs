@@ -11,8 +11,12 @@
 namespace ImageProcessor.Imaging
 {
     #region Using
+
+    using System;
     using System.Drawing;
     using System.Drawing.Imaging;
+    using System.Reflection;
+
     #endregion
 
     /// <summary>
@@ -55,6 +59,20 @@ namespace ImageProcessor.Imaging
             // Test value of flags using bitwise AND.
             // ReSharper disable once BitwiseOperatorOnEnumWithoutFlags
             return (image.PixelFormat & PixelFormat.Indexed) != 0;
+        }
+
+        /// <summary>
+        /// Uses reflection to allow the creation of an instance of <see cref="PropertyItem"/>.
+        /// </summary>
+        /// <returns>
+        /// The <see cref="PropertyItem"/>.
+        /// </returns>
+        public static PropertyItem CreatePropertyItem()
+        {
+            Type type = typeof(PropertyItem);
+            ConstructorInfo constructor = type.GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public, null, new Type[] { }, null);
+
+            return (PropertyItem)constructor.Invoke(null);
         }
     }
 }

@@ -67,9 +67,11 @@
     <Compile Include="Extensions\StringExtensions.cs" />
     <Compile Include="ImageFactory.cs" />
     <Compile Include="Imaging\AnchorPosition.cs" />
+    <Compile Include="Imaging\ExifPropertyTagType.cs" />
     <Compile Include="Imaging\Convolution.cs" />
     <Compile Include="Imaging\CropLayer.cs" />
     <Compile Include="Imaging\CropMode.cs" />
+    <Compile Include="Imaging\ExifPropertyTag.cs" />
     <Compile Include="Imaging\Filters\MatrixFilterRegexAttribute.cs" />
     <Compile Include="Imaging\Filters\MatrixFilters.cs" />
     <Compile Include="Imaging\GaussianLayer.cs" />

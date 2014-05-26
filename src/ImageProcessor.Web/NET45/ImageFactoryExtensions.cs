@@ -15,6 +15,7 @@ namespace ImageProcessor.Web
     using System;
     using System.Collections.Generic;
     using System.Drawing;
+    using System.Drawing.Imaging;
     using System.IO;
     using System.Linq;
     using ImageProcessor.Extensions;
@@ -104,6 +105,25 @@ namespace ImageProcessor.Web
             else
             {
                 factory.Update(processor.Invoke(factory));
+            }
+
+            // Set the property item information from any Exif metadata.
+            // We do this here so that they can be changed between processor methods.
+            if (factory.PreserveExifData)
+            {
+                foreach (KeyValuePair<int, PropertyItem> propertItem in factory.ExifPropertyItems)
+                {
+                    try
+                    {
+                        factory.Image.SetPropertyItem(propertItem.Value);
+                    }
+                    // ReSharper disable once EmptyGeneralCatchClause
+                    catch
+                    {
+                        // Do nothing. The image format does not handle EXIF data.
+                        // TODO: empty catch is fierce code smell.
+                    }
+                }
             }
         }
     }

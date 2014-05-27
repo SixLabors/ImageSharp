@@ -29,6 +29,6 @@ ImageProcessor's documentation, included in this repo in the gh_pages directory,
 1. If necessary, [install Jekyll](http://jekyllrb.com/docs/installation) (requires v1.5.x).
   - **Windows users:** Read [this unofficial guide](https://github.com/juthilo/run-jekyll-on-windows/) to get Jekyll up and running without problems. 
 2. From the root `/ImageProcessor` directory, run `jekyll serve` in the command line.
-3. Open <http://localhost:400> in your browser to navigate to your site.
+3. Open <http://localhost:4000> in your browser to navigate to your site.
 Learn more about using Jekyll by reading its [documentation](http://jekyllrb.com/docs/home/).
 

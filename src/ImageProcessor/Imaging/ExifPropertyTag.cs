@@ -50,332 +50,356 @@ namespace ImageProcessor.Imaging
         ColorMap = 0x0140,
 
         /// <summary>
-        /// The color transfer function.
+        /// Table of values that specify color transfer functions.
         /// </summary>
         ColorTransferFunction = 0x501A,
 
         /// <summary>
-        /// The compression.
+        /// Compression scheme used for the image data.
         /// </summary>
         Compression = 0x0103,
 
         /// <summary>
-        /// The copyright.
+        /// Null-terminated character string that contains copyright information.
         /// </summary>
         Copyright = 0x8298,
 
         /// <summary>
-        /// The date time.
+        /// Date and time the image was created.
         /// </summary>
         DateTime = 0x0132,
 
         /// <summary>
-        /// The document name.
+        /// Null-terminated character string that specifies the name of the document from 
+        /// which the image was scanned.
         /// </summary>
         DocumentName = 0x010D,
 
         /// <summary>
-        /// The dot range.
+        /// Color component values that correspond to a 0 percent dot and a 100 percent dot.
         /// </summary>
         DotRange = 0x0150,
 
         /// <summary>
-        /// The equip make.
+        /// Null-terminated character string that specifies the manufacturer of the 
+        /// equipment used to record the image.
         /// </summary>
         EquipMake = 0x010F,
 
         /// <summary>
-        /// The equip model.
+        /// Null-terminated character string that specifies the model name or model number
+        /// of the equipment used to record the image.
         /// </summary>
         EquipModel = 0x0110,
 
         /// <summary>
-        /// The exif aperture.
+        /// Lens aperture. The unit is the APEX value.
         /// </summary>
         ExifAperture = 0x9202,
 
         /// <summary>
-        /// The exif brightness.
+        /// Brightness value. The unit is the APEX value. Ordinarily it is given 
+        /// in the range of -99.99 to 99.99.
         /// </summary>
         ExifBrightness = 0x9203,
 
         /// <summary>
-        /// The exif cfa pattern.
+        /// The color filter array (CFA) geometric pattern of the image sensor when a one-chip color 
+        /// area sensor is used. It does not apply to all sensing methods.
         /// </summary>
         ExifCfaPattern = 0xA302,
 
         /// <summary>
-        /// The exif color space.
+        /// Color space specifier. Normally sRGB (=1) is used to define the color space 
+        /// based on the PC monitor conditions and environment. If a color space other 
+        /// than sRGB is used, Uncalibrated (=0xFFFF) is set. Image data recorded as 
+        /// Uncalibrated can be treated as sRGB when it is converted to FlashPix.
         /// </summary>
         ExifColorSpace = 0xA001,
 
         /// <summary>
-        /// The exif comp bpp.
+        /// Information specific to compressed data. The compression mode used for a 
+        /// compressed image is indicated in unit BPP.
         /// </summary>
         ExifCompBPP = 0x9102,
 
         /// <summary>
-        /// The exif comp config.
+        /// Information specific to compressed data. The channels of each component are 
+        /// arranged in order from the first component to the fourth. For 
+        /// uncompressed data, the data arrangement is given in the 
+        /// PhotometricInterp tag.
+        /// <para>
+        /// However, because PhotometricInterp can only express the order of Y, Cb, and Cr, 
+        /// this tag is provided for cases when compressed data uses components other than 
+        /// Y, Cb, and Cr and to support other sequences.
+        /// </para>
         /// </summary>
         ExifCompConfig = 0x9101,
 
         /// <summary>
-        /// The exif dt digitized.
+        /// Date and time when the image was stored as digital data. If, for example, an image 
+        /// was captured by DSC and at the same time the file was recorded, then DateTimeOriginal 
+        /// and DateTimeDigitized will have the same contents.
+        /// <para>
+        /// The format is YYYY:MM:DD HH:MM:SS with time shown in 24-hour format and the date and 
+        /// time separated by one blank character (0x2000). The character string length is 20 bytes 
+        /// including the NULL terminator. When the field is empty, it is treated as unknown.
+        /// </para>
         /// </summary>
         ExifDTDigitized = 0x9004,
 
         /// <summary>
-        /// The exif dt dig ss.
+        /// Null-terminated character string that specifies a fraction of a second for the ExifDTDigitized tag.
         /// </summary>
         ExifDTDigSS = 0x9292,
 
         /// <summary>
-        /// The exif dt orig.
+        /// Date and time when the original image data was generated. For a DSC, the date and time when the picture was taken. The format is YYYY:MM:DD HH:MM:SS with time shown in 24-hour format and the date and time separated by one blank character (0x2000). The character string length is 20 bytes including the NULL terminator. When the field is empty, it is treated as unknown.
         /// </summary>
         ExifDTOrig = 0x9003,
 
         /// <summary>
-        /// The exif dt orig ss.
+        /// Null-terminated character string that specifies a fraction of a second for the PropertyTagExifDTOrig tag.
         /// </summary>
         ExifDTOrigSS = 0x9291,
 
         /// <summary>
-        /// The exif dt subsec.
+        /// Null-terminated character string that specifies a fraction of a second for the PropertyTagDateTime tag.
         /// </summary>
         ExifDTSubsec = 0x9290,
 
         /// <summary>
-        /// The exif exposure bias.
+        /// Exposure bias. The unit is the APEX value. Ordinarily it is given in the range -99.99 to 99.99.
         /// </summary>
         ExifExposureBias = 0x9204,
 
         /// <summary>
-        /// The exif exposure index.
+        /// Exposure index selected on the camera or input device at the time the image was captured.
         /// </summary>
         ExifExposureIndex = 0xA215,
 
         /// <summary>
-        /// The exif exposure prog.
+        /// Class of the program used by the camera to set exposure when the picture is taken.
         /// </summary>
         ExifExposureProg = 0x8822,
 
         /// <summary>
-        /// The exif exposure time.
+        /// Exposure time, measured in seconds.
         /// </summary>
         ExifExposureTime = 0x829A,
 
         /// <summary>
-        /// The exif file source.
+        /// The image source. If a DSC recorded the image, the value of this tag is 3.
         /// </summary>
         ExifFileSource = 0xA300,
 
         /// <summary>
-        /// The exif flash.
+        /// Flash status. This tag is recorded when an image is taken using a strobe light (flash). Bit 0 indicates the flash firing status, and bits 1 and 2 indicate the flash return status.
         /// </summary>
         ExifFlash = 0x9209,
 
         /// <summary>
-        /// The exif flash energy.
+        /// Strobe energy, in Beam Candle Power Seconds (BCPS), at the time the image was captured.
         /// </summary>
         ExifFlashEnergy = 0xA20B,
 
         /// <summary>
-        /// The exif f number.
+        /// F number.
         /// </summary>
         ExifFNumber = 0x829D,
 
         /// <summary>
-        /// The exif focal length.
+        /// Actual focal length, in millimeters, of the lens. Conversion is not made to the focal length of a 35 millimeter film camera.
         /// </summary>
         ExifFocalLength = 0x920A,
 
         /// <summary>
-        /// The exif focal res unit.
+        /// Unit of measure for PropertyTagExifFocalXRes and PropertyTagExifFocalYRes.
         /// </summary>
         ExifFocalResUnit = 0xA210,
 
         /// <summary>
-        /// The exif focal x res.
+        /// Number of pixels in the image width (x) direction per unit on the camera focal plane. The unit is specified in PropertyTagExifFocalResUnit.
         /// </summary>
         ExifFocalXRes = 0xA20E,
 
         /// <summary>
-        /// The exif focal y res.
+        /// Number of pixels in the image height (y) direction per unit on the camera focal plane. The unit is specified in PropertyTagExifFocalResUnit.
         /// </summary>
         ExifFocalYRes = 0xA20F,
 
         /// <summary>
-        /// The exif fpx ver.
+        /// FlashPix format version supported by an FPXR file. If the FPXR function supports FlashPix format version 1.0, this is indicated similarly to PropertyTagExifVer by recording 0100 as a 4-byte ASCII string. Because the type is PropertyTagTypeUndefined, there is no NULL terminator.
         /// </summary>
         ExifFPXVer = 0xA000,
 
         /// <summary>
-        /// The exif ifd.
+        /// Private tag used by GDI+. Not for public use. GDI+ uses this tag to locate Exif-specific information.
         /// </summary>
         ExifIFD = 0x8769,
 
         /// <summary>
-        /// The exif interop.
+        /// Offset to a block of property items that contain interoperability information.
         /// </summary>
         ExifInterop = 0xA005,
 
         /// <summary>
-        /// The exif iso speed.
+        /// ISO speed and ISO latitude of the camera or input device as specified in ISO 12232.
         /// </summary>
         ExifISOSpeed = 0x8827,
 
         /// <summary>
-        /// The exif light source.
+        /// Type of light source.
         /// </summary>
         ExifLightSource = 0x9208,
 
         /// <summary>
-        /// The exif maker note.
+        /// Note tag. A tag used by manufacturers of EXIF writers to record information. The contents are up to the manufacturer.
         /// </summary>
         ExifMakerNote = 0x927C,
 
         /// <summary>
-        /// The exif max aperture.
+        /// Smallest F number of the lens. The unit is the APEX value. Ordinarily it is given in the range of 00.00 to 99.99, but it is not limited to this range.
         /// </summary>
         ExifMaxAperture = 0x9205,
 
         /// <summary>
-        /// The exif metering mode.
+        /// Metering mode.
         /// </summary>
         ExifMeteringMode = 0x9207,
 
         /// <summary>
-        /// The exif oecf.
+        /// Optoelectronic conversion function (OECF) specified in ISO 14524. The OECF is the relationship between the camera optical input and the image values.
         /// </summary>
         ExifOECF = 0x8828,
 
         /// <summary>
-        /// The exif pix x dim.
+        /// Information specific to compressed data. When a compressed file is recorded, the valid width of the meaningful image must be recorded in this tag, whether or not there is padding data or a restart marker. This tag should not exist in an uncompressed file.
         /// </summary>
         ExifPixXDim = 0xA002,
 
         /// <summary>
-        /// The exif pix y dim.
+        /// Information specific to compressed data. When a compressed file is recorded, the valid height of the meaningful image must be recorded in this tag whether or not there is padding data or a restart marker. This tag should not exist in an uncompressed file. Because data padding is unnecessary in the vertical direction, the number of lines recorded in this valid image height tag will be the same as that recorded in the SOF.
         /// </summary>
         ExifPixYDim = 0xA003,
 
         /// <summary>
-        /// The exif related wav.
+        /// The name of an audio file related to the image data. The only relational information recorded is the EXIF audio file name and extension (an ASCII string that consists of 8 characters plus a period (.), plus 3 characters). The path is not recorded. When you use this tag, audio files must be recorded in conformance with the EXIF audio format. Writers can also store audio data within APP2 as FlashPix extension stream data.
         /// </summary>
         ExifRelatedWav = 0xA004,
 
         /// <summary>
-        /// The exif scene type.
+        /// The type of scene. If a DSC recorded the image, the value of this tag must be set to 1, indicating that the image was directly photographed.
         /// </summary>
         ExifSceneType = 0xA301,
 
         /// <summary>
-        /// The exif sensing method.
+        /// Image sensor type on the camera or input device.
         /// </summary>
         ExifSensingMethod = 0xA217,
 
         /// <summary>
-        /// The exif shutter speed.
+        /// Shutter speed. The unit is the Additive System of Photographic Exposure (APEX) value.
         /// </summary>
         ExifShutterSpeed = 0x9201,
 
         /// <summary>
-        /// The exif spatial fr.
+        /// Camera or input device spatial frequency table and SFR values in the image width, image height, and diagonal direction, as specified in ISO 12233.
         /// </summary>
         ExifSpatialFR = 0xA20C,
 
         /// <summary>
-        /// The exif spectral sense.
+        /// Null-terminated character string that specifies the spectral sensitivity of each channel of the camera used. The string is compatible with the standard developed by the ASTM Technical Committee.
         /// </summary>
         ExifSpectralSense = 0x8824,
 
         /// <summary>
-        /// The exif subject dist.
+        /// Distance to the subject, measured in meters.
         /// </summary>
         ExifSubjectDist = 0x9206,
 
         /// <summary>
-        /// The exif subject loc.
+        /// Location of the main subject in the scene. The value of this tag represents the pixel at the center of the main subject relative to the left edge. The first value indicates the column number, and the second value indicates the row number.
         /// </summary>
         ExifSubjectLoc = 0xA214,
 
         /// <summary>
-        /// The exif user comment.
+        /// Comment tag. A tag used by EXIF users to write keywords or comments about the image besides those in PropertyTagImageDescription and without the character-code limitations of the PropertyTagImageDescription tag.
         /// </summary>
         ExifUserComment = 0x9286,
 
         /// <summary>
-        /// The exif ver.
+        /// Version of the EXIF standard supported. Nonexistence of this field is taken to mean nonconformance to the standard. Conformance to the standard is indicated by recording 0210 as a 4-byte ASCII string. Because the type is PropertyTagTypeUndefined, there is no NULL terminator.
         /// </summary>
         ExifVer = 0x9000,
 
         /// <summary>
-        /// The extra samples.
+        /// Number of extra color components. For example, one extra component might hold an alpha value.
         /// </summary>
         ExtraSamples = 0x0152,
 
         /// <summary>
-        /// The fill order.
+        /// Logical order of bits in a byte.
         /// </summary>
         FillOrder = 0x010A,
 
         /// <summary>
-        /// The frame delay.
+        /// Time delay, in hundredths of a second, between two frames in an animated GIF image.
         /// </summary>
         FrameDelay = 0x5100,
 
         /// <summary>
-        /// The free byte counts.
+        /// For each string of contiguous unused bytes, the number of bytes in that string.
         /// </summary>
         FreeByteCounts = 0x0121,
 
         /// <summary>
-        /// The free offset.
+        /// For each string of contiguous unused bytes, the byte offset of that string.
         /// </summary>
         FreeOffset = 0x0120,
 
         /// <summary>
-        /// The gamma.
+        /// Gamma value attached to the image. The gamma value is stored as a rational number (pair of long) with a numerator of 100000. For example, a gamma value of 2.2 is stored as the pair (100000, 45455).
         /// </summary>
         Gamma = 0x0301,
 
         /// <summary>
-        /// The global palette.
+        /// Color palette for an indexed bitmap in a GIF image.
         /// </summary>
         GlobalPalette = 0x5102,
 
         /// <summary>
-        /// The gps altitude.
+        /// Altitude, in meters, based on the reference altitude specified by PropertyTagGpsAltitudeRef.
         /// </summary>
         GpsAltitude = 0x0006,
 
         /// <summary>
-        /// The gps altitude ref.
+        /// Reference altitude, in meters.
         /// </summary>
         GpsAltitudeRef = 0x0005,
 
         /// <summary>
-        /// The gps dest bear.
+        /// Bearing to the destination point. The range of values is from 0.00 to 359.99.
         /// </summary>
         GpsDestBear = 0x0018,
 
         /// <summary>
-        /// The gps dest bear ref.
+        /// Null-terminated character string that specifies the reference used for giving the bearing to the destination point. T specifies true direction, and M specifies magnetic direction.
         /// </summary>
         GpsDestBearRef = 0x0017,
 
         /// <summary>
-        /// The gps dest dist.
+        /// Distance to the destination point.
         /// </summary>
         GpsDestDist = 0x001A,
 
         /// <summary>
-        /// The gps dest dist ref.
+        /// Null-terminated character string that specifies the unit used to express the distance to the destination point. K, M, and N represent kilometers, miles, and knots respectively.
         /// </summary>
         GpsDestDistRef = 0x0019,
 
         /// <summary>
-        /// The gps dest lat.
+        /// Latitude of the destination point. The latitude is expressed as three rational values giving the degrees, minutes, and seconds respectively. When degrees, minutes, and seconds are expressed, the format is dd/1, mm/1, ss/1. When degrees and minutes are used and, for example, fractions of minutes are given up to two decimal places, the format is dd/1, mmmm/100, 0/1.
         /// </summary>
         GpsDestLat = 0x0014,
 

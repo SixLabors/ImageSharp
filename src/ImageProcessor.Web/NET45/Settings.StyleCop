@@ -1,6 +1,7 @@
 <StyleCopSettings Version="105">
   <GlobalSettings>
     <CollectionProperty Name="RecognizedWords">
+      <Value>exif</Value>
       <Value>Mutexes</Value>
       <Value>querystring</Value>
     </CollectionProperty>

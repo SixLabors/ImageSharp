@@ -90,6 +90,17 @@ namespace ImageProcessor.Web.Config
         /// </summary>
         public IList<IGraphicsProcessor> GraphicsProcessors { get; private set; }
 
+        /// <summary>
+        /// Gets a value indicating whether to preserve exif meta data.
+        /// </summary>
+        public bool PreserveExifMetaData
+        {
+            get
+            {
+                return GetImageProcessingSection().PreserveExifMetaData;
+            }
+        }
+
         #region Caching
         /// <summary>
         /// Gets the maximum number of days to store images in the cache.

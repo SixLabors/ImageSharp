@@ -66,6 +66,11 @@ namespace ImageProcessor.Web.HttpModules
         private static string remotePrefix;
 
         /// <summary>
+        /// Whether to preserve exif meta data.
+        /// </summary>
+        private static bool? preserveExifMetaData;
+
+        /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.
         /// </summary>
         /// <value><see langword="true"/> if this instance has been disposed; otherwise, <see langword="false"/>.</value>
@@ -113,6 +118,11 @@ namespace ImageProcessor.Web.HttpModules
             if (remotePrefix == null)
             {
                 remotePrefix = ImageProcessorConfig.Instance.RemotePrefix;
+            }
+
+            if (preserveExifMetaData == null)
+            {
+                preserveExifMetaData = ImageProcessorConfig.Instance.PreserveExifMetaData;
             }
 
 #if NET45
@@ -370,7 +380,7 @@ namespace ImageProcessor.Web.HttpModules
                         string cachedPath = cache.CachedPath;
 
                         // Process the image.
-                        using (ImageFactory imageFactory = new ImageFactory())
+                        using (ImageFactory imageFactory = new ImageFactory(preserveExifMetaData != null && preserveExifMetaData.Value))
                         {
                             if (isRemote)
                             {

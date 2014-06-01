@@ -71,9 +71,9 @@ namespace ImageProcessor
         /// Initializes a new instance of the <see cref="ImageFactory"/> class.
         /// </summary>
         /// <param name="preserveExifData">
-        /// Whether to preserve exif metadata. Defaults to true.
+        /// Whether to preserve exif metadata. Defaults to false.
         /// </param>
-        public ImageFactory(bool preserveExifData = true)
+        public ImageFactory(bool preserveExifData = false)
         {
             this.PreserveExifData = preserveExifData;
             this.ExifPropertyItems = new ConcurrentDictionary<int, PropertyItem>();

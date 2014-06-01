@@ -28,11 +28,11 @@ Feedback is always welcome</description>
                 <dependency id="Microsoft.Bcl.Async" version="1.0.168" />
                 <dependency id="Microsoft.Bcl" version="1.1.8" />
                 <dependency id="Microsoft.Web.Infrastructure" version="1.0.0.0" />
-                <dependency id="ImageProcessor" version="1.9.0.0" />
+                <dependency id="ImageProcessor" version="1.9.2.0" />
             </group>
             <group targetFramework=".NETFramework4.5">
                 <dependency id="Microsoft.Web.Infrastructure" version="1.0.0.0" />
-                <dependency id="ImageProcessor" version="1.9.0.0" />
+                <dependency id="ImageProcessor" version="1.9.2.0" />
             </group>
         </dependencies>
     </metadata>

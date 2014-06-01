@@ -26,6 +26,17 @@ namespace ImageProcessor.Web.Config
     public sealed class ImageProcessingSection : ConfigurationSection
     {
         #region Properties
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to preserve exif meta data.
+        /// </summary>
+        [ConfigurationProperty("preserveExifMetaData", IsRequired = false, DefaultValue = false)]
+        public bool PreserveExifMetaData
+        {
+            get { return (bool)this["preserveExifMetaData"]; }
+            set { this["preserveExifMetaData"] = value; }
+        }
+
         /// <summary>
         /// Gets the <see cref="T:ImageProcessor.Web.Config.ImageProcessingSection.PresetElementCollection"/>.
         /// </summary>

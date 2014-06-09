@@ -146,7 +146,8 @@ namespace ImageProcessor.Processors
 
             // Set the internal property.
             factory.OriginalExtension = string.Format(".{0}", format);
-            factory.Format(imageFormat, isIndexed);
+            // TODO: Fix this.
+            //factory.Format(imageFormat);
 
             return factory.Image;
         }

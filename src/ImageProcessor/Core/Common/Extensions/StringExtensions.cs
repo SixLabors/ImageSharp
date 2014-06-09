@@ -8,15 +8,17 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Extensions
+namespace ImageProcessor.Core.Common.Extensions
 {
     #region Using
+
     using System;
     using System.Globalization;
     using System.Linq;
     using System.Security.Cryptography;
     using System.Text;
     using System.Text.RegularExpressions;
+
     #endregion
 
     /// <summary>

@@ -51,14 +51,18 @@
     <Compile Include="Caching\CacheIndexer.cs" />
     <Compile Include="Config\ImageCacheSection.cs" />
     <Compile Include="Config\ImageProcessingSection.cs" />
-    <Compile Include="Config\ImageProcessorConfig.cs" />
+    <Compile Include="Config\ImageProcessorConfiguration.cs" />
     <Compile Include="Config\ImageSecuritySection.cs" />
+    <Compile Include="Helpers\ParameterParserUtilities.cs" />
     <Compile Include="Helpers\ResourceHelpers.cs" />
     <Compile Include="Helpers\ImageHelpers.cs" />
     <Compile Include="Helpers\RemoteFile.cs" />
     <Compile Include="Helpers\TaskHelpers.cs" />
     <Compile Include="HttpModules\ImageProcessingModule.cs" />
     <Compile Include="ImageFactoryExtensions.cs" />
+    <Compile Include="Processors\BackgroundColor.cs" />
+    <Compile Include="Processors\IWebGraphicsProcessor.cs" />
+    <Compile Include="Processors\Rotate.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

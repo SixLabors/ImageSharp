@@ -30,9 +30,7 @@ namespace ImageProcessor.Web.Helpers
         /// </exception>
         public static Task Run(Action action)
         {
-            Task task = new Task(action);
-            task.Start();
-            return task;
+            return Task.Factory.StartNew(action);
         }
 
         /// <summary> 
@@ -47,9 +45,7 @@ namespace ImageProcessor.Web.Helpers
         /// </exception> 
         public static Task<TResult> Run<TResult>(Func<TResult> function)
         {
-            Task<TResult> task = new Task<TResult>(function);
-            task.Start();
-            return task;
+            return Task<TResult>.Factory.StartNew(function);
         }
     }
 }

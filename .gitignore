@@ -165,3 +165,5 @@ pip-log.txt
 build/_BuildOutput/
 build/*.nupkg
 *.db
+
+_site/

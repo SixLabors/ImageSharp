@@ -1,6 +1,6 @@
 @ECHO OFF
 SET version=1.9.2.0
-SET webversion=3.2.5.0
+SET webversion=3.2.6.0
 SET webconfigversion=1.1.1.0
 
 ECHO Building ImageProcessor %version%, ImageProcess.Web %webversion% and ImageProcess.Web.Config %webconfigversion%

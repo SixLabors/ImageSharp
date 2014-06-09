@@ -18,7 +18,7 @@ namespace ImageProcessor.Processors
     using System.Text;
     using System.Text.RegularExpressions;
 
-    using ImageProcessor.Extensions;
+    using ImageProcessor.Core.Common.Extensions;
     using ImageProcessor.Imaging;
 
     #endregion

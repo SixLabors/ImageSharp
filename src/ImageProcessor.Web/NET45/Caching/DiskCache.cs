@@ -21,8 +21,8 @@ namespace ImageProcessor.Web.Caching
     using System.Web;
     using System.Web.Hosting;
 
-    using ImageProcessor.Extensions;
-    using ImageProcessor.Web.Config;
+    using ImageProcessor.Core.Common.Extensions;
+    using ImageProcessor.Web.Configuration;
     using ImageProcessor.Web.Helpers;
     #endregion
 
@@ -35,7 +35,7 @@ namespace ImageProcessor.Web.Caching
         /// <summary>
         /// The maximum number of days to cache files on the system for.
         /// </summary>
-        internal static readonly int MaxFileCachedDuration = ImageProcessorConfig.Instance.MaxCacheDays;
+        internal static readonly int MaxFileCachedDuration = ImageProcessorConfiguration.Instance.MaxCacheDays;
 
         /// <summary>
         /// The maximum number of files allowed in the directory.
@@ -53,7 +53,7 @@ namespace ImageProcessor.Web.Caching
         /// The absolute path to virtual cache path on the server.
         /// </summary>
         private static readonly string AbsoluteCachePath =
-            HostingEnvironment.MapPath(ImageProcessorConfig.Instance.VirtualCachePath);
+            HostingEnvironment.MapPath(ImageProcessorConfiguration.Instance.VirtualCachePath);
 
         /// <summary>
         /// The request for the image.

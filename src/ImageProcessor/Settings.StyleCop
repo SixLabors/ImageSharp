@@ -2,6 +2,7 @@
   <GlobalSettings>
     <CollectionProperty Name="RecognizedWords">
       <Value>behaviour</Value>
+      <Value>bootstrapper</Value>
       <Value>chrominance</Value>
       <Value>colour</Value>
       <Value>enum</Value>
@@ -9,6 +10,7 @@
       <Value>halftoning</Value>
       <Value>lomograph</Value>
       <Value>octree</Value>
+      <Value>png</Value>
       <Value>quantizer</Value>
     </CollectionProperty>
   </GlobalSettings>

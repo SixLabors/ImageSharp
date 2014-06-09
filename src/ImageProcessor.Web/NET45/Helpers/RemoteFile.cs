@@ -19,7 +19,7 @@ namespace ImageProcessor.Web.Helpers
     using System.Security;
     using System.Text;
     using System.Threading.Tasks;
-    using ImageProcessor.Web.Config;
+    using ImageProcessor.Web.Configuration;
     #endregion
 
     /// <summary>
@@ -48,27 +48,27 @@ namespace ImageProcessor.Web.Helpers
         /// <summary>
         /// The white-list of url[s] from which to download remote files.
         /// </summary>
-        public static readonly ImageSecuritySection.SafeUrl[] RemoteFileWhiteListExtensions = ImageProcessorConfig.Instance.RemoteFileWhiteListExtensions;
+        public static readonly ImageSecuritySection.SafeUrl[] RemoteFileWhiteListExtensions = ImageProcessorConfiguration.Instance.RemoteFileWhiteListExtensions;
 
         /// <summary>
         /// The white-list of url[s] from which to download remote files.
         /// </summary>
-        private static readonly Uri[] RemoteFileWhiteList = ImageProcessorConfig.Instance.RemoteFileWhiteList;
+        private static readonly Uri[] RemoteFileWhiteList = ImageProcessorConfiguration.Instance.RemoteFileWhiteList;
 
         /// <summary>
         /// The length of time, in milliseconds, that a remote file download attempt can last before timing out.
         /// </summary>
-        private static readonly int TimeoutMilliseconds = ImageProcessorConfig.Instance.Timeout;
+        private static readonly int TimeoutMilliseconds = ImageProcessorConfiguration.Instance.Timeout;
 
         /// <summary>
         /// The maximum size, in bytes, that a remote file download attempt can download.
         /// </summary>
-        private static readonly int MaxBytes = ImageProcessorConfig.Instance.MaxBytes;
+        private static readonly int MaxBytes = ImageProcessorConfiguration.Instance.MaxBytes;
 
         /// <summary>
         /// Whether to allow remote downloads.
         /// </summary>
-        private static readonly bool AllowRemoteDownloads = ImageProcessorConfig.Instance.AllowRemoteDownloads;
+        private static readonly bool AllowRemoteDownloads = ImageProcessorConfiguration.Instance.AllowRemoteDownloads;
 
         /// <summary>
         /// Whether this RemoteFile instance is ignoring remote download rules set in the current application 

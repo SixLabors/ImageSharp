@@ -60,12 +60,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Extensions\DoubleExtensions.cs" />
-    <Compile Include="Extensions\ImageExtensions.cs" />
-    <Compile Include="Extensions\ImageFormatExtensions.cs" />
-    <Compile Include="Extensions\ImageInfo.cs" />
-    <Compile Include="Extensions\IntegerExtensions.cs" />
-    <Compile Include="Extensions\StringExtensions.cs" />
+    <Compile Include="Configuration\ImageProcessorBootstrapper.cs" />
+    <Compile Include="Core\Common\Exceptions\ImageProcessingException.cs" />
+    <Compile Include="Core\Common\Extensions\DoubleExtensions.cs" />
+    <Compile Include="Core\Common\Extensions\ImageExtensions.cs" />
+    <Compile Include="Core\Common\Extensions\ImageFormatExtensions.cs" />
+    <Compile Include="Core\Common\Extensions\ImageInfo.cs" />
+    <Compile Include="Core\Common\Extensions\IntegerExtensions.cs" />
+    <Compile Include="Core\Common\Extensions\StringExtensions.cs" />
+    <Compile Include="Core\Common\Exceptions\ImageFormatException.cs" />
     <Compile Include="ImageFactory.cs" />
     <Compile Include="Imaging\AnchorPosition.cs" />
     <Compile Include="Imaging\ExifPropertyTagType.cs" />
@@ -75,6 +78,14 @@
     <Compile Include="Imaging\ExifPropertyTag.cs" />
     <Compile Include="Imaging\Filters\MatrixFilterRegexAttribute.cs" />
     <Compile Include="Imaging\Filters\MatrixFilters.cs" />
+    <Compile Include="Imaging\Formats\BitmapFormat.cs" />
+    <Compile Include="Imaging\Formats\TiffFormat.cs" />
+    <Compile Include="Imaging\Formats\PngFormat.cs" />
+    <Compile Include="Imaging\Formats\GifFormat.cs" />
+    <Compile Include="Imaging\Formats\JpegFormat.cs" />
+    <Compile Include="Imaging\Formats\FormatUtilities.cs" />
+    <Compile Include="Imaging\Formats\FormatBase.cs" />
+    <Compile Include="Imaging\Formats\ISupportedImageFormat.cs" />
     <Compile Include="Imaging\GaussianLayer.cs" />
     <Compile Include="Imaging\GifEncoder.cs" />
     <Compile Include="Imaging\GifFrame.cs" />
@@ -100,6 +111,7 @@
     <Compile Include="Imaging\TextLayer.cs" />
     <Compile Include="Imaging\OctreeQuantizer.cs" />
     <Compile Include="Processors\Alpha.cs" />
+    <Compile Include="Processors\BackgroundColor.cs" />
     <Compile Include="Processors\GaussianBlur.cs" />
     <Compile Include="Processors\Brightness.cs" />
     <Compile Include="Processors\Contrast.cs" />

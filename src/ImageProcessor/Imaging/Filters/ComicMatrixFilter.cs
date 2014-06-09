@@ -18,7 +18,7 @@ namespace ImageProcessor.Imaging.Filters
     using System.Drawing.Imaging;
     using System.Runtime.InteropServices;
 
-    using ImageProcessor.Extensions;
+    using ImageProcessor.Core.Common.Extensions;
 
     #endregion
 

@@ -9,7 +9,7 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Web.Config
+namespace ImageProcessor.Web.Configuration
 {
     #region Using
     using System.Configuration;

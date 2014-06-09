@@ -20,7 +20,7 @@ namespace ImageProcessor.Processors
     using System.Linq;
     using System.Text.RegularExpressions;
 
-    using ImageProcessor.Extensions;
+    using ImageProcessor.Core.Common.Extensions;
     using ImageProcessor.Imaging;
     #endregion
 

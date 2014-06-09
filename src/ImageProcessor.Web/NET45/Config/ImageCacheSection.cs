@@ -8,14 +8,14 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Web.Config
+namespace ImageProcessor.Web.Configuration
 {
     #region Using
     using System.Configuration;
     using System.IO;
     using System.Xml;
 
-    using ImageProcessor.Extensions;
+    using ImageProcessor.Core.Common.Extensions;
     using ImageProcessor.Web.Helpers;
 
     #endregion

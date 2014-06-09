@@ -28,9 +28,10 @@ namespace ImageProcessor.Web.HttpModules
     using System.Web;
     using System.Web.Hosting;
     using System.Web.Security;
-    using ImageProcessor.Extensions;
+
+    using ImageProcessor.Core.Common.Extensions;
     using ImageProcessor.Web.Caching;
-    using ImageProcessor.Web.Config;
+    using ImageProcessor.Web.Configuration;
     using ImageProcessor.Web.Helpers;
     #endregion
 
@@ -117,12 +118,12 @@ namespace ImageProcessor.Web.HttpModules
         {
             if (remotePrefix == null)
             {
-                remotePrefix = ImageProcessorConfig.Instance.RemotePrefix;
+                remotePrefix = ImageProcessorConfiguration.Instance.RemotePrefix;
             }
 
             if (preserveExifMetaData == null)
             {
-                preserveExifMetaData = ImageProcessorConfig.Instance.PreserveExifMetaData;
+                preserveExifMetaData = ImageProcessorConfiguration.Instance.PreserveExifMetaData;
             }
 
 #if NET45
@@ -453,7 +454,7 @@ namespace ImageProcessor.Web.HttpModules
                                     imageFactory.Load(fullPath).AutoProcess().Save(cachedPath);
 
                                     // Store the response type in the context for later retrieval.
-                                    context.Items[CachedResponseTypeKey] = imageFactory.MimeType;
+                                    context.Items[CachedResponseTypeKey] = imageFactory.CurrentImageFormat.MimeType;
 
                                     // Ensure that the LastWriteTime property of the source and cached file match.
                                     Tuple<DateTime, DateTime> creationAndLastWriteDateTimes = await cache.SetCachedLastWriteTimeAsync();
@@ -555,7 +556,7 @@ namespace ImageProcessor.Web.HttpModules
                     string preset = match.Value.Split('=')[1];
 
                     // We use the processor config system to store the preset values.
-                    string replacements = ImageProcessorConfig.Instance.GetPresetSettings(preset);
+                    string replacements = ImageProcessorConfiguration.Instance.GetPresetSettings(preset);
                     queryString = Regex.Replace(queryString, preset, replacements ?? string.Empty);
                 }
             }

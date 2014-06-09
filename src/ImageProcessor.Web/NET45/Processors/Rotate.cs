@@ -1,31 +1,36 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="Quality.cs" company="James South">
+// <copyright file="Rotate.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   Encapsulates methods to change the quality component of the image.
+//   Encapsulates methods to rotate an image.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Processors
+namespace ImageProcessor.Web.Processors
 {
-    #region Using
-    using System.Collections.Generic;
-    using System.Drawing;
-    using System.Globalization;
     using System.Text.RegularExpressions;
-    #endregion
+    using ImageProcessor.Processors;
+    using ImageProcessor.Web.Helpers;
 
     /// <summary>
-    /// Encapsulates methods to change the quality component of the image.
+    /// Encapsulates methods to rotate an image.
     /// </summary>
-    public class Quality : IGraphicsProcessor
+    public class Rotate : IWebGraphicsProcessor
     {
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"quality=(?:100|[1-9]?[0-9])", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"(rotate|angle)(=|-)[^&|,]*", RegexOptions.Compiled);
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Rotate"/> class.
+        /// </summary>
+        public Rotate()
+        {
+            this.Processor = new ImageProcessor.Processors.Rotate();
+        }
 
         #region IGraphicsProcessor Members
         /// <summary>
@@ -40,15 +45,6 @@ namespace ImageProcessor.Processors
         }
 
         /// <summary>
-        /// Gets or sets DynamicParameter.
-        /// </summary>
-        public dynamic DynamicParameter
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
         /// Gets the order in which this processor is to be used in a chain.
         /// </summary>
         public int SortOrder
@@ -58,13 +54,9 @@ namespace ImageProcessor.Processors
         }
 
         /// <summary>
-        /// Gets or sets any additional settings required by the processor.
+        /// Gets the associated graphics processor.
         /// </summary>
-        public Dictionary<string, string> Settings
-        {
-            get;
-            set;
-        }
+        public IGraphicsProcessor Processor { get; private set; }
 
         /// <summary>
         /// The position in the original string where the first character of the captured substring was found.
@@ -90,9 +82,7 @@ namespace ImageProcessor.Processors
                     {
                         // Set the index on the first instance only.
                         this.SortOrder = match.Index;
-                        int percentage = int.Parse(match.Value.Split('=')[1], CultureInfo.InvariantCulture);
-
-                        this.DynamicParameter = percentage;
+                        this.Processor.DynamicParameter = ParameterParserUtilities.ParseAngle(match.Value);
                     }
 
                     index += 1;
@@ -100,24 +90,6 @@ namespace ImageProcessor.Processors
             }
 
             return this.SortOrder;
-        }
-
-        /// <summary>
-        /// Processes the image.
-        /// </summary>
-        /// <param name="factory">
-        /// The the current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class containing
-        /// the image to process.
-        /// </param>
-        /// <returns>
-        /// The processed image from the current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
-        /// </returns>
-        public Image ProcessImage(ImageFactory factory)
-        {
-            // Set the internal property.
-            factory.CurrentImageFormat.Quality = this.DynamicParameter;
-
-            return factory.Image;
         }
         #endregion
     }

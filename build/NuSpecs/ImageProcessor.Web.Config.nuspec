@@ -6,7 +6,7 @@
         <title>ImageProcessor.Web.Config</title>
         <authors>James South</authors>
         <owners>James South</owners>
-        <projectUrl>http://jimbobsquarepants.github.com/ImageProcessor/</projectUrl>
+        <projectUrl>http://imageprocessor.org</projectUrl>
         <iconUrl>http://raw.githubusercontent.com/JimBobSquarePants/ImageProcessor/master/build/content/imageprocessor.128.png</iconUrl>
         <requireLicenseAcceptance>false</requireLicenseAcceptance>
         <description>Adds configuration to your ImageProcessor.Web solution to allow you to override the default settings.

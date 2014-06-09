@@ -8,7 +8,7 @@
 //   <see cref="http://csharpindepth.com/Articles/General/Singleton.aspx" />
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
-namespace ImageProcessor.Web.Config
+namespace ImageProcessor.Web.Configuration
 {
     #region Using
     using System;
@@ -24,15 +24,15 @@ namespace ImageProcessor.Web.Config
     /// Encapsulates methods to allow the retrieval of ImageProcessor settings.
     /// <see cref="http://csharpindepth.com/Articles/General/Singleton.aspx"/>
     /// </summary>
-    public sealed class ImageProcessorConfig
+    public sealed class ImageProcessorConfiguration
     {
         #region Fields
         /// <summary>
         /// A new instance Initializes a new instance of the <see cref="T:ImageProcessor.Web.Config.ImageProcessorConfig"/> class.
         /// with lazy initialization.
         /// </summary>
-        private static readonly Lazy<ImageProcessorConfig> Lazy =
-                        new Lazy<ImageProcessorConfig>(() => new ImageProcessorConfig());
+        private static readonly Lazy<ImageProcessorConfiguration> Lazy =
+                        new Lazy<ImageProcessorConfiguration>(() => new ImageProcessorConfiguration());
 
         /// <summary>
         /// A collection of the <see cref="T:ImageProcessor.Web.Config.ImageProcessingSection.SettingElementCollection"/> elements 
@@ -67,7 +67,7 @@ namespace ImageProcessor.Web.Config
         /// <summary>
         /// Prevents a default instance of the <see cref="T:ImageProcessor.Web.Config.ImageProcessorConfig"/> class from being created.
         /// </summary>
-        private ImageProcessorConfig()
+        private ImageProcessorConfiguration()
         {
             this.LoadGraphicsProcessors();
         }
@@ -77,7 +77,7 @@ namespace ImageProcessor.Web.Config
         /// <summary>
         /// Gets the current instance of the <see cref="T:ImageProcessor.Web.Config.ImageProcessorConfig"/> class.
         /// </summary>
-        public static ImageProcessorConfig Instance
+        public static ImageProcessorConfiguration Instance
         {
             get
             {

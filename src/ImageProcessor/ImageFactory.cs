@@ -92,11 +92,6 @@ namespace ImageProcessor
 
         #region Properties
         /// <summary>
-        /// Gets the local image for manipulation.
-        /// </summary>
-        public Image Image { get; private set; }
-
-        /// <summary>
         /// Gets the path to the local image for manipulation.
         /// </summary>
         public string ImagePath { get; private set; }
@@ -125,6 +120,11 @@ namespace ImageProcessor
         /// Gets or sets the exif property items.
         /// </summary>
         public ConcurrentDictionary<int, PropertyItem> ExifPropertyItems { get; set; }
+
+        /// <summary>
+        /// Gets or sets the local image for manipulation.
+        /// </summary>
+        internal Image Image { get; set; }
 
         /// <summary>
         /// Gets or sets the original extension.
@@ -248,33 +248,6 @@ namespace ImageProcessor
                     }
 
                     this.ShouldProcess = true;
-                }
-            }
-
-            return this;
-        }
-
-        /// <summary>
-        /// Updates the specified image. Used by the various IProcessors.
-        /// </summary>
-        /// <param name="image">The image.</param>
-        /// <returns>
-        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
-        /// </returns>
-        public ImageFactory Update(Image image)
-        {
-            if (this.ShouldProcess)
-            {
-                this.Image = image;
-
-                // Get the correct image format for the image.
-                using (MemoryStream stream = new MemoryStream())
-                {
-                    image.Save(stream, image.RawFormat);
-                    stream.Position = 0;
-                    int quality = this.CurrentImageFormat.Quality;
-                    this.CurrentImageFormat = FormatUtilities.GetFormat(stream);
-                    this.CurrentImageFormat.Quality = quality;
                 }
             }
 

@@ -13,8 +13,8 @@ namespace ImageProcessor.Web
     #region Using
     using System.Collections.Generic;
     using System.Linq;
-    using ImageProcessor.Processors;
     using ImageProcessor.Web.Configuration;
+    using ImageProcessor.Web.Processors;
     #endregion
 
     /// <summary>
@@ -45,16 +45,16 @@ namespace ImageProcessor.Web
                 lock (SyncRoot)
                 {
                     // Get a list of all graphics processors that have parsed and matched the query string.
-                    List<IGraphicsProcessor> graphicsProcessors =
+                    List<IWebGraphicsProcessor> graphicsProcessors =
                         ImageProcessorConfiguration.Instance.GraphicsProcessors
                         .Where(x => x.MatchRegexIndex(factory.QueryString) != int.MaxValue)
                         .OrderBy(y => y.SortOrder)
                         .ToList();
 
                     // Loop through and process the image.
-                    foreach (IGraphicsProcessor graphicsProcessor in graphicsProcessors)
+                    foreach (IWebGraphicsProcessor graphicsProcessor in graphicsProcessors)
                     {
-                        factory.CurrentImageFormat.ApplyProcessor(graphicsProcessor.ProcessImage, factory);
+                        factory.CurrentImageFormat.ApplyProcessor(graphicsProcessor.Processor.ProcessImage, factory);
                     }
                 }
             }

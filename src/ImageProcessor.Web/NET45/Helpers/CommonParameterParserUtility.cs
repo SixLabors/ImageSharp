@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="ParameterParserUtilities.cs" company="James South">
+// <copyright file="CommonParameterParserUtility.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -18,7 +18,7 @@ namespace ImageProcessor.Web.Helpers
     /// <summary>
     /// Encapsulates methods to correctly parse querystring parameters.
     /// </summary>
-    public static class ParameterParserUtilities
+    public static class CommonParameterParserUtility
     {
         /// <summary>
         /// The regular expression to search strings for colors.
@@ -29,6 +29,11 @@ namespace ImageProcessor.Web.Helpers
         /// The regular expression to search strings for angles.
         /// </summary>
         private static readonly Regex AngleRegex = new Regex(@"(rotate|angle)(=|-)(?:3[0-5][0-9]|[12][0-9]{2}|[1-9][0-9]?)", RegexOptions.Compiled);
+
+        /// <summary>
+        /// The regular expression to search strings for values between 1 and 100.
+        /// </summary>
+        private static readonly Regex In100RangeRegex = new Regex(@"(-?(?:100)|-?([1-9]?[0-9]))", RegexOptions.Compiled);
 
         /// <summary>
         /// Returns the correct <see cref="T:System.Int32"/> containing the angle for the given string.
@@ -85,6 +90,26 @@ namespace ImageProcessor.Web.Helpers
             }
 
             return Color.Transparent;
+        }
+
+        /// <summary>
+        /// Returns the correct <see cref="T:System.Int32"/> for the given string.
+        /// </summary>
+        /// <param name="input">
+        /// The input string containing the value to parse.
+        /// </param>
+        /// <returns>
+        /// The correct <see cref="T:System.Int32"/> between -100 and 100.
+        /// </returns>
+        public static int ParseIn100Range(string input)
+        {
+            int value = 0;
+            foreach (Match match in In100RangeRegex.Matches(input))
+            {
+                value = int.Parse(match.Value, CultureInfo.InvariantCulture);
+            }
+
+            return value;
         }
     }
 }

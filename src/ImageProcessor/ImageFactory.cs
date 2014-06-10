@@ -860,9 +860,9 @@ namespace ImageProcessor
                 int length = filePath.LastIndexOf(".", StringComparison.Ordinal);
                 string extension = this.ImageFormat.GetFileExtension(this.OriginalExtension);
 
-                if (!string.IsNullOrWhiteSpace(extension))
+                if (length == -1)
                 {
-                    filePath = length == -1 ? filePath + extension : filePath.Substring(0, length) + extension;
+                    filePath = filePath + extension;
                 }
 
                 // Fix the colour palette of indexed images.

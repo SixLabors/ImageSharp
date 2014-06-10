@@ -50,15 +50,14 @@ namespace ImageProcessor.Imaging.Filters
                     attributes.SetColorMatrix(this.Matrix);
 
                     Rectangle rectangle = new Rectangle(0, 0, image.Width, image.Height);
-
                     graphics.DrawImage(image, rectangle, 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, attributes);
                 }
             }
 
             // Add a vignette to finish the effect.
-            factory.Update(newImage);
+            factory.Image = newImage;
             Vignette vignette = new Vignette();
-            newImage = (Bitmap)vignette.ProcessImage(factory);
+            newImage = vignette.ProcessImage(factory);
 
             // Reassign the image.
             image.Dispose();

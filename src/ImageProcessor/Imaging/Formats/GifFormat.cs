@@ -86,14 +86,14 @@ namespace ImageProcessor.Imaging.Formats
                 {
                     foreach (GifFrame frame in imageInfo.GifFrames)
                     {
-                        factory.Update(frame.Image);
+                        factory.Image = frame.Image;
                         frame.Image = quantizer.Quantize(processor.Invoke(factory));
                         encoder.AddFrame(frame);
                     }
                 }
 
                 stream.Position = 0;
-                factory.Update(Image.FromStream(stream));
+                factory.Image = Image.FromStream(stream);
             }
             else
             {

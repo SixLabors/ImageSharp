@@ -73,7 +73,7 @@ namespace ImageProcessor.Imaging.Formats
         /// <param name="factory">The <see cref="ImageFactory" />.</param>
         public virtual void ApplyProcessor(Func<ImageFactory, Image> processor, ImageFactory factory)
         {
-            processor.Invoke(factory);
+            factory.Image = processor.Invoke(factory);
         }
 
         /// <summary>

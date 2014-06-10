@@ -67,6 +67,7 @@
     <Compile Include="Processors\Crop.cs" />
     <Compile Include="Processors\IWebGraphicsProcessor.cs" />
     <Compile Include="Processors\Quality.cs" />
+    <Compile Include="Processors\Resize.cs" />
     <Compile Include="Processors\Rotate.cs" />
     <Compile Include="Processors\Saturation.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

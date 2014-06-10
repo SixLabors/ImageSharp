@@ -49,20 +49,26 @@
     <Compile Include="Caching\MemCache.cs" />
     <Compile Include="Caching\DiskCache.cs" />
     <Compile Include="Caching\CacheIndexer.cs" />
-    <Compile Include="Config\ImageCacheSection.cs" />
-    <Compile Include="Config\ImageProcessingSection.cs" />
-    <Compile Include="Config\ImageProcessorConfiguration.cs" />
-    <Compile Include="Config\ImageSecuritySection.cs" />
-    <Compile Include="Helpers\ParameterParserUtilities.cs" />
+    <Compile Include="Configuration\ImageCacheSection.cs" />
+    <Compile Include="Configuration\ImageProcessingSection.cs" />
+    <Compile Include="Configuration\ImageProcessorConfiguration.cs" />
+    <Compile Include="Configuration\ImageSecuritySection.cs" />
+    <Compile Include="Helpers\CommonParameterParserUtility.cs" />
     <Compile Include="Helpers\ResourceHelpers.cs" />
     <Compile Include="Helpers\ImageHelpers.cs" />
     <Compile Include="Helpers\RemoteFile.cs" />
     <Compile Include="Helpers\TaskHelpers.cs" />
     <Compile Include="HttpModules\ImageProcessingModule.cs" />
     <Compile Include="ImageFactoryExtensions.cs" />
+    <Compile Include="Processors\Alpha.cs" />
     <Compile Include="Processors\BackgroundColor.cs" />
+    <Compile Include="Processors\Brightness.cs" />
+    <Compile Include="Processors\Contrast.cs" />
+    <Compile Include="Processors\Crop.cs" />
     <Compile Include="Processors\IWebGraphicsProcessor.cs" />
+    <Compile Include="Processors\Quality.cs" />
     <Compile Include="Processors\Rotate.cs" />
+    <Compile Include="Processors\Saturation.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -72,13 +78,18 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Config\Resources\cache.config">
+    <EmbeddedResource Include="Configuration\Resources\cache.config">
       <SubType>Designer</SubType>
     </EmbeddedResource>
-    <EmbeddedResource Include="Config\Resources\processing.config">
+    <EmbeddedResource Include="Configuration\Resources\processing.config">
       <SubType>Designer</SubType>
     </EmbeddedResource>
-    <EmbeddedResource Include="Config\Resources\security.config" />
+    <EmbeddedResource Include="Configuration\Resources\security.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Configuration\Resources\processing - Copy.config">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />

@@ -43,11 +43,15 @@ namespace ImageProcessor.Imaging.Formats
             // ReSharper disable once LoopCanBeConvertedToQuery
             foreach (ISupportedImageFormat supportedImageFormat in supportedImageFormats)
             {
-                byte[] header = supportedImageFormat.FileHeader;
-                if (header.SequenceEqual(buffer.Take(header.Length)))
+                byte[][] headers = supportedImageFormat.FileHeaders;
+
+                foreach (byte[] header in headers)
                 {
-                    stream.Position = 0;
-                    return supportedImageFormat;
+                    if (header.SequenceEqual(buffer.Take(header.Length)))
+                    {
+                        stream.Position = 0;
+                        return supportedImageFormat;
+                    }
                 }
             }
 

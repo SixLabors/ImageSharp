@@ -365,7 +365,7 @@ namespace ImageProcessor
         {
             if (this.ShouldProcess)
             {
-                ResizeLayer layer = new ResizeLayer(size, Color.Transparent, ResizeMode.Max);
+                ResizeLayer layer = new ResizeLayer(size, ResizeMode.Max);
 
                 return this.Resize(layer);
             }

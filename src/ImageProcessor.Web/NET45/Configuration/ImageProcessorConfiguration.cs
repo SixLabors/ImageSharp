@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="ImageProcessorConfig.cs" company="James South">
+// <copyright file="ImageProcessorConfiguration.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -18,6 +18,8 @@ namespace ImageProcessor.Web.Configuration
     using System.Reflection;
     using System.Web.Compilation;
     using ImageProcessor.Processors;
+    using ImageProcessor.Web.Processors;
+
     #endregion
 
     /// <summary>
@@ -64,8 +66,9 @@ namespace ImageProcessor.Web.Configuration
         #endregion
 
         #region Constructors
+
         /// <summary>
-        /// Prevents a default instance of the <see cref="T:ImageProcessor.Web.Config.ImageProcessorConfig"/> class from being created.
+        /// Prevents a default instance of the <see cref="ImageProcessorConfiguration"/> class from being created.
         /// </summary>
         private ImageProcessorConfiguration()
         {
@@ -75,7 +78,7 @@ namespace ImageProcessor.Web.Configuration
 
         #region Properties
         /// <summary>
-        /// Gets the current instance of the <see cref="T:ImageProcessor.Web.Config.ImageProcessorConfig"/> class.
+        /// Gets the current instance of the <see cref="ImageProcessorConfiguration"/> class.
         /// </summary>
         public static ImageProcessorConfiguration Instance
         {
@@ -88,7 +91,7 @@ namespace ImageProcessor.Web.Configuration
         /// <summary>
         /// Gets the list of available GraphicsProcessors.
         /// </summary>
-        public IList<IGraphicsProcessor> GraphicsProcessors { get; private set; }
+        public IList<IWebGraphicsProcessor> GraphicsProcessors { get; private set; }
 
         /// <summary>
         /// Gets a value indicating whether to preserve exif meta data.
@@ -292,7 +295,7 @@ namespace ImageProcessor.Web.Configuration
             {
                 if (GetImageProcessingSection().Plugins.AutoLoadPlugins)
                 {
-                    Type type = typeof(IGraphicsProcessor);
+                    Type type = typeof(IWebGraphicsProcessor);
                     try
                     {
                         // Build a list of native IGraphicsProcessor instances.
@@ -303,12 +306,12 @@ namespace ImageProcessor.Web.Configuration
                                                                 .ToList();
 
                         // Create them and add.
-                        this.GraphicsProcessors = availableTypes.Select(x => (Activator.CreateInstance(x) as IGraphicsProcessor)).ToList();
+                        this.GraphicsProcessors = availableTypes.Select(x => (Activator.CreateInstance(x) as IWebGraphicsProcessor)).ToList();
 
                         // Add the available settings.
-                        foreach (IGraphicsProcessor processor in this.GraphicsProcessors)
+                        foreach (IWebGraphicsProcessor webProcessor in this.GraphicsProcessors)
                         {
-                            processor.Settings = this.GetPluginSettings(processor.GetType().Name);
+                            webProcessor.Processor.Settings = this.GetPluginSettings(webProcessor.GetType().Name);
                         }
                     }
                     catch (ReflectionTypeLoadException)
@@ -332,23 +335,23 @@ namespace ImageProcessor.Web.Configuration
         private void LoadGraphicsProcessorsFromConfiguration()
         {
             ImageProcessingSection.PluginElementCollection pluginConfigs = imageProcessingSection.Plugins;
-            this.GraphicsProcessors = new List<IGraphicsProcessor>();
+            this.GraphicsProcessors = new List<IWebGraphicsProcessor>();
             foreach (ImageProcessingSection.PluginElement pluginConfig in pluginConfigs)
             {
                 Type type = Type.GetType(pluginConfig.Type);
 
                 if (type == null)
                 {
-                    throw new TypeLoadException("Couldn't load IGraphicsProcessor: " + pluginConfig.Type);
+                    throw new TypeLoadException("Couldn't load IWebGraphicsProcessor: " + pluginConfig.Type);
                 }
 
-                this.GraphicsProcessors.Add(Activator.CreateInstance(type) as IGraphicsProcessor);
+                this.GraphicsProcessors.Add(Activator.CreateInstance(type) as IWebGraphicsProcessor);
             }
 
             // Add the available settings.
-            foreach (IGraphicsProcessor processor in this.GraphicsProcessors)
+            foreach (IWebGraphicsProcessor webProcessor in this.GraphicsProcessors)
             {
-                processor.Settings = this.GetPluginSettings(processor.GetType().Name);
+                webProcessor.Processor.Settings = this.GetPluginSettings(webProcessor.GetType().Name);
             }
         }
         #endregion

@@ -1,10 +1,10 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="Rotate.cs" company="James South">
+// <copyright file="Saturation.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   Encapsulates methods to rotate an image.
+//   Encapsulates methods to change the saturation component of the image.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -15,24 +15,26 @@ namespace ImageProcessor.Web.Processors
     using ImageProcessor.Web.Helpers;
 
     /// <summary>
-    /// Encapsulates methods to rotate an image.
+    /// Encapsulates methods to change the saturation component of the image.
     /// </summary>
-    public class Rotate : IWebGraphicsProcessor
+    /// <remarks>
+    /// <see cref="http://www.bobpowell.net/imagesaturation.htm"/> 
+    /// </remarks>
+    public class Saturation : IWebGraphicsProcessor
     {
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"(rotate|angle)(=|-)[^&|,]*", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"saturation=[^&|,]*", RegexOptions.Compiled);
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Rotate"/> class.
+        /// Initializes a new instance of the <see cref="Saturation"/> class.
         /// </summary>
-        public Rotate()
+        public Saturation()
         {
-            this.Processor = new ImageProcessor.Processors.Rotate();
+            this.Processor = new ImageProcessor.Processors.Saturation();
         }
 
-        #region IGraphicsProcessor Members
         /// <summary>
         /// Gets the regular expression to search strings for.
         /// </summary>
@@ -47,11 +49,7 @@ namespace ImageProcessor.Web.Processors
         /// <summary>
         /// Gets the order in which this processor is to be used in a chain.
         /// </summary>
-        public int SortOrder
-        {
-            get;
-            private set;
-        }
+        public int SortOrder { get; private set; }
 
         /// <summary>
         /// Gets the associated graphics processor.
@@ -61,9 +59,7 @@ namespace ImageProcessor.Web.Processors
         /// <summary>
         /// The position in the original string where the first character of the captured substring was found.
         /// </summary>
-        /// <param name="queryString">
-        /// The query string to search.
-        /// </param>
+        /// <param name="queryString">The query string to search.</param>
         /// <returns>
         /// The zero-based starting position in the original string where the captured substring was found.
         /// </returns>
@@ -82,7 +78,8 @@ namespace ImageProcessor.Web.Processors
                     {
                         // Set the index on the first instance only.
                         this.SortOrder = match.Index;
-                        this.Processor.DynamicParameter = CommonParameterParserUtility.ParseAngle(match.Value);
+                        int percentage = CommonParameterParserUtility.ParseIn100Range(match.Value);
+                        this.Processor.DynamicParameter = percentage;
                     }
 
                     index += 1;
@@ -91,6 +88,5 @@ namespace ImageProcessor.Web.Processors
 
             return this.SortOrder;
         }
-        #endregion
     }
 }

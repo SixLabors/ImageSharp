@@ -21,11 +21,11 @@ namespace ImageProcessor.Imaging.Formats
         /// <summary>
         /// Gets the file header.
         /// </summary>
-        public override byte[] FileHeader
+        public override byte[][] FileHeaders
         {
             get
             {
-                return Encoding.ASCII.GetBytes("BM");
+                return new[] { Encoding.ASCII.GetBytes("BM") };
             }
         }
 

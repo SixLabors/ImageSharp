@@ -23,11 +23,11 @@ namespace ImageProcessor.Imaging.Formats
         /// <summary>
         /// Gets the file header.
         /// </summary>
-        public override byte[][] FileHeaders
+        public override byte[] FileHeader
         {
             get
             {
-                return new[] { new byte[] { 77, 77, 42 } };
+                return new byte[] { 77, 77, 42 };
             }
         }
 

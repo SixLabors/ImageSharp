@@ -25,11 +25,11 @@ namespace ImageProcessor.Imaging.Formats
         /// <summary>
         /// Gets the file header.
         /// </summary>
-        public override byte[][] FileHeaders
+        public override byte[] FileHeader
         {
             get
             {
-                return new[] { Encoding.ASCII.GetBytes("GIF") };
+                return Encoding.ASCII.GetBytes("GIF");
             }
         }
 

@@ -23,7 +23,7 @@ namespace ImageProcessor.Imaging.Formats
         /// <summary>
         /// Gets the file header.
         /// </summary>
-        public abstract byte[][] FileHeaders { get; }
+        public abstract byte[] FileHeader { get; }
 
         /// <summary>
         /// Gets the list of file extensions.

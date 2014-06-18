@@ -416,11 +416,8 @@ namespace ImageProcessor.Web.HttpModules
                                                     // Store the response type in the context for later retrieval.
                                                     context.Items[CachedResponseTypeKey] = imageFactory.CurrentImageFormat.MimeType;
 
-                                                    // Ensure that the LastWriteTime property of the source and cached file match.
-                                                    Tuple<DateTime, DateTime> creationAndLastWriteDateTimes = await cache.SetCachedLastWriteTimeAsync();
-
                                                     // Add to the cache.
-                                                    cache.AddImageToCache(creationAndLastWriteDateTimes);
+                                                    cache.AddImageToCache();
 
                                                     // Trim the cache.
                                                     await cache.TrimCachedFolderAsync(cachedPath);
@@ -456,11 +453,8 @@ namespace ImageProcessor.Web.HttpModules
                                     // Store the response type in the context for later retrieval.
                                     context.Items[CachedResponseTypeKey] = imageFactory.CurrentImageFormat.MimeType;
 
-                                    // Ensure that the LastWriteTime property of the source and cached file match.
-                                    Tuple<DateTime, DateTime> creationAndLastWriteDateTimes = await cache.SetCachedLastWriteTimeAsync();
-
                                     // Add to the cache.
-                                    cache.AddImageToCache(creationAndLastWriteDateTimes);
+                                    cache.AddImageToCache();
 
                                     // Trim the cache.
                                     await cache.TrimCachedFolderAsync(cachedPath);

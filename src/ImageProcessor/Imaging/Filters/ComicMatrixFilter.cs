@@ -17,9 +17,7 @@ namespace ImageProcessor.Imaging.Filters
     using System.Drawing.Drawing2D;
     using System.Drawing.Imaging;
     using System.Runtime.InteropServices;
-
     using ImageProcessor.Core.Common.Extensions;
-
     #endregion
 
     /// <summary>
@@ -37,16 +35,6 @@ namespace ImageProcessor.Imaging.Filters
             /// The blue channel
             /// </summary>
             Blue = 0,
-
-            /// <summary>
-            /// The green channel
-            /// </summary>
-            Green = 1,
-
-            /// <summary>
-            /// The red channel
-            /// </summary>
-            Red = 2,
 
             /// <summary>
             /// The alpha channel

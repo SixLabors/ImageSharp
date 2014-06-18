@@ -18,9 +18,8 @@ namespace ImageProcessor.Imaging.Filters
     public static class MatrixFilters
     {
         /// <summary>
-        /// Gets the black white filter.
+        /// Gets the <see cref="IMatrixFilter"/> for generating the black and white filter.
         /// </summary>
-        [MatrixFilterRegex("blackwhite")]
         public static IMatrixFilter BlackWhite
         {
             get
@@ -30,9 +29,8 @@ namespace ImageProcessor.Imaging.Filters
         }
 
         /// <summary>
-        /// Gets the comic filter.
+        /// Gets the <see cref="IMatrixFilter"/> for generating the comic filter.
         /// </summary>
-        [MatrixFilterRegex("comic")]
         public static IMatrixFilter Comic
         {
             get
@@ -42,9 +40,8 @@ namespace ImageProcessor.Imaging.Filters
         }
 
         /// <summary>
-        /// Gets the gotham filter.
+        /// Gets the <see cref="IMatrixFilter"/> for generating the gotham filter.
         /// </summary>
-        [MatrixFilterRegex("gotham")]
         public static IMatrixFilter Gotham
         {
             get
@@ -54,9 +51,8 @@ namespace ImageProcessor.Imaging.Filters
         }
 
         /// <summary>
-        /// Gets the greyscale filter.
+        /// Gets the <see cref="IMatrixFilter"/> for generating the greyscale filter.
         /// </summary>
-        [MatrixFilterRegex("greyscale")]
         public static IMatrixFilter GreyScale
         {
             get
@@ -66,9 +62,8 @@ namespace ImageProcessor.Imaging.Filters
         }
 
         /// <summary>
-        /// Gets the high saturation filter.
+        /// Gets the <see cref="IMatrixFilter"/> for generating the high saturation filter.
         /// </summary>
-        [MatrixFilterRegex("hisatch")]
         public static IMatrixFilter HiSatch
         {
             get
@@ -78,9 +73,8 @@ namespace ImageProcessor.Imaging.Filters
         }
 
         /// <summary>
-        /// Gets the invert filter.
+        /// Gets the <see cref="IMatrixFilter"/> for generating the invert filter.
         /// </summary>
-        [MatrixFilterRegex("invert")]
         public static IMatrixFilter Invert
         {
             get
@@ -90,9 +84,8 @@ namespace ImageProcessor.Imaging.Filters
         }
 
         /// <summary>
-        /// Gets the lomograph filter.
+        /// Gets the <see cref="IMatrixFilter"/> for generating the lomograph filter.
         /// </summary>
-        [MatrixFilterRegex("lomograph")]
         public static IMatrixFilter Lomograph
         {
             get
@@ -102,9 +95,8 @@ namespace ImageProcessor.Imaging.Filters
         }
 
         /// <summary>
-        /// Gets the low saturation filter.
+        /// Gets the <see cref="IMatrixFilter"/> for generating the low saturation filter.
         /// </summary>
-        [MatrixFilterRegex("losatch")]
         public static IMatrixFilter LoSatch
         {
             get
@@ -114,9 +106,8 @@ namespace ImageProcessor.Imaging.Filters
         }
 
         /// <summary>
-        /// Gets the polaroid filter.
+        /// Gets the <see cref="IMatrixFilter"/> for generating the polaroid filter.
         /// </summary>
-        [MatrixFilterRegex("polaroid")]
         public static IMatrixFilter Polaroid
         {
             get
@@ -126,9 +117,8 @@ namespace ImageProcessor.Imaging.Filters
         }
 
         /// <summary>
-        /// Gets the sepia filter.
+        /// Gets the <see cref="IMatrixFilter"/> for generating the sepia filter.
         /// </summary>
-        [MatrixFilterRegex("sepia")]
         public static IMatrixFilter Sepia
         {
             get

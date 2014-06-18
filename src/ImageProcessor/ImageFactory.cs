@@ -182,12 +182,10 @@ namespace ImageProcessor
             this.backupImageFormat = this.ImageFormat;
             this.isIndexed = ImageUtils.IsIndexed(this.Image);
 
-            if (this.PreserveExifData)
+            // Always load the data.
+            foreach (PropertyItem propertyItem in this.Image.PropertyItems)
             {
-                foreach (PropertyItem propertyItem in this.Image.PropertyItems)
-                {
-                    this.ExifPropertyItems[propertyItem.Id] = propertyItem;
-                }
+                this.ExifPropertyItems[propertyItem.Id] = propertyItem;
             }
 
             this.ShouldProcess = true;
@@ -244,12 +242,10 @@ namespace ImageProcessor
                     this.ImageFormat = imageFormat;
                     this.isIndexed = ImageUtils.IsIndexed(this.Image);
 
-                    if (this.PreserveExifData)
+                    // Always load the data.
+                    foreach (PropertyItem propertyItem in this.Image.PropertyItems)
                     {
-                        foreach (PropertyItem propertyItem in this.Image.PropertyItems)
-                        {
-                            this.ExifPropertyItems[propertyItem.Id] = propertyItem;
-                        }
+                        this.ExifPropertyItems[propertyItem.Id] = propertyItem;
                     }
 
                     this.ShouldProcess = true;
@@ -348,6 +344,24 @@ namespace ImageProcessor
         }
 
         /// <summary>
+        /// Performs auto-rotation to ensure that EXIF defined rotation is reflected in 
+        /// the final image.
+        /// </summary>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory AutoRotate()
+        {
+            if (this.ShouldProcess)
+            {
+                AutoRotate autoRotate = new AutoRotate();
+                this.ApplyProcessor(autoRotate.ProcessImage);
+            }
+
+            return this;
+        }
+
+        /// <summary>
         /// Changes the brightness of the current image.
         /// </summary>
         /// <param name="percentage">
@@ -435,7 +449,7 @@ namespace ImageProcessor
         {
             if (this.ShouldProcess)
             {
-                CropLayer cropLayer = new CropLayer(rectangle.Left, rectangle.Top, rectangle.Right, rectangle.Bottom, CropMode.Pixels);
+                CropLayer cropLayer = new CropLayer(rectangle.Left, rectangle.Top, rectangle.Width, rectangle.Height, CropMode.Pixels);
                 return this.Crop(cropLayer);
             }
 
@@ -868,6 +882,25 @@ namespace ImageProcessor
                 // Fix the colour palette of indexed images.
                 this.FixIndexedPallete();
 
+                // Set the property item information from any Exif metadata.
+                // We do this here so that they can be changed between processor methods.
+                if (this.PreserveExifData)
+                {
+                    foreach (KeyValuePair<int, PropertyItem> propertItem in this.ExifPropertyItems)
+                    {
+                        try
+                        {
+                            this.Image.SetPropertyItem(propertItem.Value);
+                        }
+                        // ReSharper disable once EmptyGeneralCatchClause
+                        catch
+                        {
+                            // Do nothing. The image format does not handle EXIF data.
+                            // TODO: empty catch is fierce code smell.
+                        }
+                    }
+                }
+
                 // ReSharper disable once AssignNullToNotNullAttribute
                 DirectoryInfo directoryInfo = new DirectoryInfo(Path.GetDirectoryName(filePath));
 
@@ -943,6 +976,25 @@ namespace ImageProcessor
             {
                 // Fix the colour palette of gif and png8 images.
                 this.FixIndexedPallete();
+
+                // Set the property item information from any Exif metadata.
+                // We do this here so that they can be changed between processor methods.
+                if (this.PreserveExifData)
+                {
+                    foreach (KeyValuePair<int, PropertyItem> propertItem in this.ExifPropertyItems)
+                    {
+                        try
+                        {
+                            this.Image.SetPropertyItem(propertItem.Value);
+                        }
+                        // ReSharper disable once EmptyGeneralCatchClause
+                        catch
+                        {
+                            // Do nothing. The image format does not handle EXIF data.
+                            // TODO: empty catch is fierce code smell.
+                        }
+                    }
+                }
 
                 if (this.ImageFormat.Equals(ImageFormat.Jpeg))
                 {
@@ -1073,25 +1125,6 @@ namespace ImageProcessor
             else
             {
                 this.Image = processor.Invoke(this);
-            }
-
-            // Set the property item information from any Exif metadata.
-            // We do this here so that they can be changed between processor methods.
-            if (this.PreserveExifData)
-            {
-                foreach (KeyValuePair<int, PropertyItem> propertItem in this.ExifPropertyItems)
-                {
-                    try
-                    {
-                        this.Image.SetPropertyItem(propertItem.Value);
-                    }
-                    // ReSharper disable once EmptyGeneralCatchClause
-                    catch
-                    {
-                        // Do nothing. The image format does not handle EXIF data.
-                        // TODO: empty catch is fierce code smell.
-                    }
-                }
             }
         }
         #endregion

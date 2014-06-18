@@ -33,10 +33,5 @@ namespace ImageProcessor.Web.Caching
         /// Gets or sets the creation time of the cached image.
         /// </summary>
         public DateTime CreationTimeUtc { get; set; }
-
-        /// <summary>
-        /// Gets or sets the last write time of the cached image.
-        /// </summary>
-        public DateTime LastWriteTimeUtc { get; set; }
     }
 }

@@ -21,37 +21,38 @@ namespace ImageProcessor.Imaging.Filters
     internal static class ColorMatrixes
     {
         /// <summary>
-        /// Gets Sepia.
+        /// Gets the <see cref="T:System.Drawing.Imaging.ColorMatrix"/> for generating the sepia filter.
         /// </summary>
         internal static ColorMatrix Sepia
         {
             get
             {
-                return new ColorMatrix(
-                    new float[][]
+                return
+                    new ColorMatrix(
+                        new[]
                             {
-                                new float[] { .393f, .349f, .272f, 0, 0 }, 
-                                new float[] { .769f, .686f, .534f, 0, 0 },
-                                new float[] { .189f, .168f, .131f, 0, 0 },
+                                new[] { .393f, .349f, .272f, 0, 0 }, 
+                                new[] { .769f, .686f, .534f, 0, 0 },
+                                new[] { .189f, .168f, .131f, 0, 0 }, 
                                 new float[] { 0, 0, 0, 1, 0 },
                                 new float[] { 0, 0, 0, 0, 1 }
-                          });
+                            });
             }
         }
 
         /// <summary>
-        /// Gets BlackWhite.
+        /// Gets the <see cref="T:System.Drawing.Imaging.ColorMatrix"/> for generating the black and white filter.
         /// </summary>
         internal static ColorMatrix BlackWhite
         {
             get
             {
                 return new ColorMatrix(
-                    new float[][]
+                    new[]
                             {
-                                new float[] { 1.5f, 1.5f, 1.5f, 0, 0 }, 
-                                new float[] { 1.5f, 1.5f, 1.5f, 0, 0 },
-                                new float[] { 1.5f, 1.5f, 1.5f, 0, 0 },
+                                new[] { 1.5f, 1.5f, 1.5f, 0, 0 }, 
+                                new[] { 1.5f, 1.5f, 1.5f, 0, 0 },
+                                new[] { 1.5f, 1.5f, 1.5f, 0, 0 },
                                 new float[] { 0, 0, 0, 1, 0 },
                                 new float[] { -1, -1, -1, 0, 1 }
                           });
@@ -59,57 +60,56 @@ namespace ImageProcessor.Imaging.Filters
         }
 
         /// <summary>
-        /// Gets Polaroid.
+        /// Gets the <see cref="T:System.Drawing.Imaging.ColorMatrix"/> for generating the polaroid filter.
         /// </summary>
         internal static ColorMatrix Polaroid
         {
             get
             {
                 return new ColorMatrix(
-                    new float[][]
+                    new[]
                             {
-                                new float[] { 1.638f, -0.062f, -0.262f, 0, 0 },
-                                new float[] { -0.122f, 1.378f, -0.122f, 0, 0 },
-                                new float[] { 1.016f, -0.016f, 1.383f, 0, 0 },
+                                new[] { 1.638f, -0.062f, -0.262f, 0, 0 },
+                                new[] { -0.122f, 1.378f, -0.122f, 0, 0 },
+                                new[] { 1.016f, -0.016f, 1.383f, 0, 0 },
                                 new float[] { 0, 0, 0, 1, 0 },
-                                new float[] { 0.06f, -0.05f, -0.05f, 0, 1 }
+                                new[] { 0.06f, -0.05f, -0.05f, 0, 1 }
                           });
             }
         }
 
         /// <summary>
-        /// Gets Lomograph.
+        /// Gets the <see cref="T:System.Drawing.Imaging.ColorMatrix"/> for generating the lomograph filter.
         /// </summary>
-        [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1650:ElementDocumentationMustBeSpelledCorrectly", Justification = "Reviewed. Suppression is OK here.")]
         internal static ColorMatrix Lomograph
         {
             get
             {
                 return new ColorMatrix(
-                    new float[][]
+                    new[]
                             {
-                                new float[] { 1.50f, 0, 0, 0, 0 }, 
-                                new float[] { 0, 1.45f, 0, 0, 0 },
-                                new float[] { 0, 0, 1.09f, 0, 0 }, 
+                                new[] { 1.50f, 0, 0, 0, 0 }, 
+                                new[] { 0, 1.45f, 0, 0, 0 },
+                                new[] { 0, 0, 1.09f, 0, 0 }, 
                                 new float[] { 0, 0, 0, 1, 0 },
-                                new float[] { -0.10f, 0.05f, -0.08f, 0, 1 }
+                                new[] { -0.10f, 0.05f, -0.08f, 0, 1 }
                             });
             }
         }
 
         /// <summary>
-        /// Gets GreyScale.
+        /// Gets the <see cref="T:System.Drawing.Imaging.ColorMatrix"/> for generating the greyscale filter.
         /// </summary>
         internal static ColorMatrix GreyScale
         {
             get
             {
                 return new ColorMatrix(
-                    new float[][]
+                    new[]
                             {
-                                new float[] { .33f, .33f, .33f, 0, 0 }, 
-                                new float[] { .59f, .59f, .59f, 0, 0 },
-                                new float[] { .11f, .11f, .11f, 0, 0 }, 
+                                new[] { .33f, .33f, .33f, 0, 0 }, 
+                                new[] { .59f, .59f, .59f, 0, 0 },
+                                new[] { .11f, .11f, .11f, 0, 0 }, 
                                 new float[] { 0, 0, 0, 1, 0 },
                                 new float[] { 0, 0, 0, 0, 1 }
                             });
@@ -117,14 +117,14 @@ namespace ImageProcessor.Imaging.Filters
         }
 
         /// <summary>
-        /// Gets Invert.
+        /// Gets the <see cref="T:System.Drawing.Imaging.ColorMatrix"/> for generating the invert filter.
         /// </summary>
         internal static ColorMatrix Invert
         {
             get
             {
                 return new ColorMatrix(
-                    new float[][]
+                    new[]
                             {
                                 new float[] { -1, 0, 0, 0, 0 }, 
                                 new float[] { 0, -1, 0, 0, 0 },  
@@ -136,7 +136,7 @@ namespace ImageProcessor.Imaging.Filters
         }
 
         /// <summary>
-        /// Gets HiSatch.
+        /// Gets the <see cref="T:System.Drawing.Imaging.ColorMatrix"/> for generating the high saturation filter.
         /// </summary>
         [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1650:ElementDocumentationMustBeSpelledCorrectly", Justification = "Reviewed. Suppression is OK here.")]
         internal static ColorMatrix HiSatch
@@ -144,7 +144,7 @@ namespace ImageProcessor.Imaging.Filters
             get
             {
                 return new ColorMatrix(
-                    new float[][]
+                    new[]
                             {
                                 new float[] { 3, -1, -1, 0, 0 }, 
                                 new float[] { -1, 3, -1, 0, 0 },  
@@ -156,7 +156,7 @@ namespace ImageProcessor.Imaging.Filters
         }
 
         /// <summary>
-        /// Gets LoSatch.
+        /// Gets the <see cref="T:System.Drawing.Imaging.ColorMatrix"/> for generating the low saturation filter.
         /// </summary>
         [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1650:ElementDocumentationMustBeSpelledCorrectly", Justification = "Reviewed. Suppression is OK here.")]
         internal static ColorMatrix LoSatch
@@ -164,19 +164,19 @@ namespace ImageProcessor.Imaging.Filters
             get
             {
                 return new ColorMatrix(
-                       new float[][]
+                       new[]
                             {
                                 new float[] { 1, 0, 0, 0, 0 }, 
                                 new float[] { 0, 1, 0, 0, 0 },  
                                 new float[] { 0, 0, 1, 0, 0 }, 
                                 new float[] { 0, 0, 0, 1, 0 },
-                                new float[] { .25f, .25f, .25f, 0, 1 }
+                                new[] { .25f, .25f, .25f, 0, 1 }
                             });
             }
         }
 
         /// <summary>
-        /// Gets <see cref="T:System.Drawing.Imaging.ColorMatrix"/> for generating the high pass
+        /// Gets the <see cref="T:System.Drawing.Imaging.ColorMatrix"/> for generating the high pass
         /// on the comic book filter.
         /// </summary>
         internal static ColorMatrix ComicHigh
@@ -184,11 +184,11 @@ namespace ImageProcessor.Imaging.Filters
             get
             {
                 return new ColorMatrix(
-                    new float[][]
+                    new[]
                             {
-                                new float[] { 2, -0.5f, -0.5f, 0, 0 }, 
-                                new float[] { -0.5f, 2, -0.5f, 0, 0 },  
-                                new float[] { -0.5f, -0.5f, 2, 0, 0 }, 
+                                new[] { 2, -0.5f, -0.5f, 0, 0 }, 
+                                new[] { -0.5f, 2, -0.5f, 0, 0 },  
+                                new[] { -0.5f, -0.5f, 2, 0, 0 }, 
                                 new float[] { 0, 0, 0, 1, 0 },
                                 new float[] { 0, 0, 0, 0, 1 }
                             });
@@ -204,16 +204,15 @@ namespace ImageProcessor.Imaging.Filters
             get
             {
                 return new ColorMatrix(
-                       new float[][]
+                       new[]
                             {
                                 new float[] { 1, 0, 0, 0, 0 }, 
                                 new float[] { 0, 1, 0, 0, 0 },  
                                 new float[] { 0, 0, 1, 0, 0 }, 
                                 new float[] { 0, 0, 0, 1, 0 },
-                                new float[] { .075f, .075f, .075f, 0, 1 }
+                                new[] { .075f, .075f, .075f, 0, 1 }
                             });
             }
         }
-
     }
 }

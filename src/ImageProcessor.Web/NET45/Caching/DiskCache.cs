@@ -14,9 +14,9 @@ namespace ImageProcessor.Web.Caching
     using System;
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
+    using System.Globalization;
     using System.IO;
     using System.Linq;
-    using System.Security.Cryptography;
     using System.Threading.Tasks;
     using System.Web;
     using System.Web.Hosting;
@@ -286,14 +286,11 @@ namespace ImageProcessor.Web.Caching
                         {
                             // Pull the latest info.
                             imageFileInfo.Refresh();
-                            using (MD5 md5 = MD5.Create())
-                            {
-                                using (FileStream stream = File.OpenRead(imageFileInfo.FullName))
-                                {
-                                    byte[] hash = md5.ComputeHash(stream);
-                                    streamHash = BitConverter.ToString(hash);
-                                }
-                            }
+
+                            // Checking the stream itself is far too processor intensive so we make a best guess.
+                            string creation = imageFileInfo.CreationTimeUtc.ToString(CultureInfo.InvariantCulture);
+                            string length = imageFileInfo.Length.ToString(CultureInfo.InvariantCulture);
+                            streamHash = string.Format("{0}{1}", creation, length);
                         }
                     }
                 }

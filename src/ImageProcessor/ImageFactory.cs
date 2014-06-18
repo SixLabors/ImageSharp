@@ -169,12 +169,10 @@ namespace ImageProcessor
             format.Quality = DefaultQuality;
             format.IsIndexed = ImageUtils.IsIndexed(this.Image);
 
-            if (this.PreserveExifData)
+            // Always load the data.
+            foreach (PropertyItem propertyItem in this.Image.PropertyItems)
             {
-                foreach (PropertyItem propertyItem in this.Image.PropertyItems)
-                {
-                    this.ExifPropertyItems[propertyItem.Id] = propertyItem;
-                }
+                this.ExifPropertyItems[propertyItem.Id] = propertyItem;
             }
 
             this.ShouldProcess = true;
@@ -239,12 +237,10 @@ namespace ImageProcessor
 
                     this.OriginalExtension = Path.GetExtension(this.ImagePath);
 
-                    if (this.PreserveExifData)
+                    // Always load the data.
+                    foreach (PropertyItem propertyItem in this.Image.PropertyItems)
                     {
-                        foreach (PropertyItem propertyItem in this.Image.PropertyItems)
-                        {
-                            this.ExifPropertyItems[propertyItem.Id] = propertyItem;
-                        }
+                        this.ExifPropertyItems[propertyItem.Id] = propertyItem;
                     }
 
                     this.ShouldProcess = true;
@@ -320,6 +316,24 @@ namespace ImageProcessor
 
                 Alpha alpha = new Alpha { DynamicParameter = percentage };
                 this.CurrentImageFormat.ApplyProcessor(alpha.ProcessImage, this);
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Performs auto-rotation to ensure that EXIF defined rotation is reflected in 
+        /// the final image.
+        /// </summary>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory AutoRotate()
+        {
+            if (this.ShouldProcess)
+            {
+                AutoRotate autoRotate = new AutoRotate();
+                this.ApplyProcessor(autoRotate.ProcessImage);
             }
 
             return this;
@@ -413,7 +427,7 @@ namespace ImageProcessor
         {
             if (this.ShouldProcess)
             {
-                CropLayer cropLayer = new CropLayer(rectangle.Left, rectangle.Top, rectangle.Right, rectangle.Bottom, CropMode.Pixels);
+                CropLayer cropLayer = new CropLayer(rectangle.Left, rectangle.Top, rectangle.Width, rectangle.Height, CropMode.Pixels);
                 return this.Crop(cropLayer);
             }
 

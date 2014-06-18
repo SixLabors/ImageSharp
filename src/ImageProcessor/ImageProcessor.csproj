@@ -76,7 +76,6 @@
     <Compile Include="Imaging\CropLayer.cs" />
     <Compile Include="Imaging\CropMode.cs" />
     <Compile Include="Imaging\ExifPropertyTag.cs" />
-    <Compile Include="Imaging\Filters\MatrixFilterRegexAttribute.cs" />
     <Compile Include="Imaging\Filters\MatrixFilters.cs" />
     <Compile Include="Imaging\Formats\BitmapFormat.cs" />
     <Compile Include="Imaging\Formats\TiffFormat.cs" />
@@ -112,6 +111,7 @@
     <Compile Include="Imaging\OctreeQuantizer.cs" />
     <Compile Include="Processors\Alpha.cs" />
     <Compile Include="Processors\BackgroundColor.cs" />
+    <Compile Include="Processors\AutoRotate.cs" />
     <Compile Include="Processors\GaussianBlur.cs" />
     <Compile Include="Processors\Brightness.cs" />
     <Compile Include="Processors\Contrast.cs" />

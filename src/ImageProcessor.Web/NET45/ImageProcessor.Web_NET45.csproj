@@ -61,10 +61,12 @@
     <Compile Include="HttpModules\ImageProcessingModule.cs" />
     <Compile Include="ImageFactoryExtensions.cs" />
     <Compile Include="Processors\Alpha.cs" />
+    <Compile Include="Processors\AutoRotate.cs" />
     <Compile Include="Processors\BackgroundColor.cs" />
     <Compile Include="Processors\Brightness.cs" />
     <Compile Include="Processors\Contrast.cs" />
     <Compile Include="Processors\Crop.cs" />
+    <Compile Include="Processors\Filter.cs" />
     <Compile Include="Processors\IWebGraphicsProcessor.cs" />
     <Compile Include="Processors\Quality.cs" />
     <Compile Include="Processors\Resize.cs" />
@@ -86,11 +88,6 @@
       <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="Configuration\Resources\security.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="Configuration\Resources\processing - Copy.config">
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />

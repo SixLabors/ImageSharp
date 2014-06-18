@@ -14,13 +14,12 @@ namespace ImageProcessor.Web.Caching
     using System;
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
-    using System.Globalization;
     using System.IO;
     using System.Linq;
+    using System.Security.Cryptography;
     using System.Threading.Tasks;
     using System.Web;
     using System.Web.Hosting;
-
     using ImageProcessor.Core.Common.Extensions;
     using ImageProcessor.Web.Configuration;
     using ImageProcessor.Web.Helpers;
@@ -52,8 +51,7 @@ namespace ImageProcessor.Web.Caching
         /// <summary>
         /// The absolute path to virtual cache path on the server.
         /// </summary>
-        private static readonly string AbsoluteCachePath =
-            HostingEnvironment.MapPath(ImageProcessorConfiguration.Instance.VirtualCachePath);
+        private static readonly string AbsoluteCachePath = HostingEnvironment.MapPath(ImageProcessorConfig.Instance.VirtualCachePath);
 
         /// <summary>
         /// The request for the image.
@@ -142,18 +140,14 @@ namespace ImageProcessor.Web.Caching
         /// <summary>
         /// Adds an image to the cache.
         /// </summary>
-        /// <param name="creationAndLastWriteDateTimes">
-        /// The creation and last write times.
-        /// </param>
-        internal void AddImageToCache(Tuple<DateTime, DateTime> creationAndLastWriteDateTimes)
+        internal void AddImageToCache()
         {
             string key = Path.GetFileNameWithoutExtension(this.CachedPath);
             CachedImage cachedImage = new CachedImage
                                           {
                                               Key = key,
                                               Path = this.CachedPath,
-                                              CreationTimeUtc = creationAndLastWriteDateTimes.Item1,
-                                              LastWriteTimeUtc = creationAndLastWriteDateTimes.Item2
+                                              CreationTimeUtc = DateTime.UtcNow
                                           };
 
             CacheIndexer.Add(cachedImage);
@@ -196,26 +190,7 @@ namespace ImageProcessor.Web.Caching
                 // Test now for locally requested files.
                 cachedImage = await CacheIndexer.GetValueAsync(path);
 
-                if (cachedImage != null)
-                {
-                    FileInfo imageFileInfo = new FileInfo(this.requestPath);
-
-                    if (imageFileInfo.Exists)
-                    {
-                        // Pull the latest info.
-                        imageFileInfo.Refresh();
-
-                        // Check to see if the last write time is different of whether the
-                        // cached image is set to expire or if the max age is different.
-                        if (!this.RoughDateTimeCompare(imageFileInfo.LastWriteTimeUtc, cachedImage.LastWriteTimeUtc)
-                            || this.IsExpired(cachedImage.CreationTimeUtc))
-                        {
-                            CacheIndexer.Remove(path);
-                            isUpdated = true;
-                        }
-                    }
-                }
-                else
+                if (cachedImage == null)
                 {
                     // Nothing in the cache so we should return true.
                     isUpdated = true;
@@ -223,38 +198,6 @@ namespace ImageProcessor.Web.Caching
             }
 
             return isUpdated;
-        }
-
-        /// <summary>
-        /// Gets the <see cref="T:System.DateTime"/> set to the last write time of the file.
-        /// </summary>
-        /// <returns>
-        /// The last write time of the file.
-        /// </returns>
-        internal async Task<DateTime> GetLastWriteTimeAsync()
-        {
-            DateTime dateTime = DateTime.UtcNow;
-
-            CachedImage cachedImage = await CacheIndexer.GetValueAsync(this.CachedPath);
-
-            if (cachedImage != null)
-            {
-                dateTime = cachedImage.LastWriteTimeUtc;
-            }
-
-            return dateTime;
-        }
-
-        /// <summary>
-        /// Sets the LastWriteTime of the cached file to match the original file.
-        /// </summary>
-        /// <returns>
-        /// The <see cref="T:System.DateTime"/> set to the last write time of the file.
-        /// </returns>
-        internal async Task<Tuple<DateTime, DateTime>> SetCachedLastWriteTimeAsync()
-        {
-            // Create Action delegate for SetCachedLastWriteTime.
-            return await TaskHelpers.Run(() => this.SetCachedLastWriteTime());
         }
 
         /// <summary>
@@ -273,46 +216,6 @@ namespace ImageProcessor.Web.Caching
         #endregion
 
         #region Private
-        /// <summary>
-        /// Sets the LastWriteTime of the cached file to match the original file.
-        /// </summary>
-        /// <returns>
-        /// The <see cref="T:System.DateTime"/> of the original and cached file.
-        /// </returns>
-        private Tuple<DateTime, DateTime> SetCachedLastWriteTime()
-        {
-            FileInfo cachedFileInfo = new FileInfo(this.CachedPath);
-
-            // DateTime.Min explodes when used east of GMT.
-            DateTime baseDateTime = DateTime.UtcNow;
-            DateTime creationTime = baseDateTime;
-            DateTime lastWriteTime = baseDateTime;
-
-            if (this.isRemote)
-            {
-                if (cachedFileInfo.Exists)
-                {
-                    creationTime = cachedFileInfo.CreationTimeUtc;
-                    lastWriteTime = cachedFileInfo.LastWriteTimeUtc;
-                }
-            }
-            else
-            {
-                FileInfo imageFileInfo = new FileInfo(this.requestPath);
-
-                if (imageFileInfo.Exists && cachedFileInfo.Exists)
-                {
-                    DateTime dateTime = imageFileInfo.LastWriteTimeUtc;
-                    creationTime = cachedFileInfo.CreationTimeUtc;
-
-                    cachedFileInfo.LastWriteTimeUtc = dateTime;
-                    lastWriteTime = dateTime;
-                }
-            }
-
-            return new Tuple<DateTime, DateTime>(creationTime, lastWriteTime);
-        }
-
         /// <summary>
         /// Trims a cached folder ensuring that it does not exceed the maximum file count.
         /// </summary>
@@ -368,15 +271,43 @@ namespace ImageProcessor.Web.Caching
         private string GetCachePath()
         {
             string cachedPath = string.Empty;
+            string streamHash = string.Empty;
 
             if (AbsoluteCachePath != null)
             {
+                try
+                {
+                    if (new Uri(this.requestPath).IsFile)
+                    {
+                        // Get the hash for the filestream. That way we can ensure that if the image is 
+                        // updated but has the same name we will know.
+                        FileInfo imageFileInfo = new FileInfo(this.requestPath);
+                        if (imageFileInfo.Exists)
+                        {
+                            // Pull the latest info.
+                            imageFileInfo.Refresh();
+                            using (MD5 md5 = MD5.Create())
+                            {
+                                using (FileStream stream = File.OpenRead(imageFileInfo.FullName))
+                                {
+                                    byte[] hash = md5.ComputeHash(stream);
+                                    streamHash = BitConverter.ToString(hash);
+                                }
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    streamHash = string.Empty;
+                }
+
                 // Use an sha1 hash of the full path including the querystring to create the image name. 
                 // That name can also be used as a key for the cached image and we should be able to use 
                 // The characters of that hash as subfolders.
                 string parsedExtension = ImageHelpers.GetExtension(this.fullPath);
                 string fallbackExtension = this.imageName.Substring(this.imageName.LastIndexOf(".", StringComparison.Ordinal) + 1);
-                string encryptedName = this.fullPath.ToSHA1Fingerprint();
+                string encryptedName = (streamHash + this.fullPath).ToSHA1Fingerprint();
 
                 // Collision rate of about 1 in 10000 for the folder structure.
                 string pathFromKey = string.Join("\\", encryptedName.ToCharArray().Take(6));
@@ -390,28 +321,6 @@ namespace ImageProcessor.Web.Caching
             }
 
             return cachedPath;
-        }
-
-        /// <summary>
-        /// The rough date time compare.
-        /// </summary>
-        /// <param name="first">
-        /// The first.
-        /// </param>
-        /// <param name="second">
-        /// The second.
-        /// </param>
-        /// <returns>
-        /// The <see cref="bool"/> true if the DateTimes roughly compare; otherwise, false.
-        /// </returns>
-        private bool RoughDateTimeCompare(DateTime first, DateTime second)
-        {
-            if (first.ToString(CultureInfo.InvariantCulture) == second.ToString(CultureInfo.InvariantCulture))
-            {
-                return true;
-            }
-
-            return false;
         }
 
         /// <summary>

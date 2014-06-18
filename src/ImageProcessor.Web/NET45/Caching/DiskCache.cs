@@ -14,9 +14,9 @@ namespace ImageProcessor.Web.Caching
     using System;
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
+    using System.Globalization;
     using System.IO;
     using System.Linq;
-    using System.Security.Cryptography;
     using System.Threading.Tasks;
     using System.Web;
     using System.Web.Hosting;
@@ -51,7 +51,7 @@ namespace ImageProcessor.Web.Caching
         /// <summary>
         /// The absolute path to virtual cache path on the server.
         /// </summary>
-        private static readonly string AbsoluteCachePath = HostingEnvironment.MapPath(ImageProcessorConfig.Instance.VirtualCachePath);
+        private static readonly string AbsoluteCachePath = HostingEnvironment.MapPath(ImageProcessorConfiguration.Instance.VirtualCachePath);
 
         /// <summary>
         /// The request for the image.
@@ -171,8 +171,7 @@ namespace ImageProcessor.Web.Caching
 
                 if (cachedImage != null)
                 {
-                    // Can't check the last write time so check to see if the cached image is set to expire 
-                    // or if the max age is different.
+                    // Can't check the filestream so check to see if the cached image is set to expire.
                     if (this.IsExpired(cachedImage.CreationTimeUtc))
                     {
                         CacheIndexer.Remove(path);
@@ -286,14 +285,11 @@ namespace ImageProcessor.Web.Caching
                         {
                             // Pull the latest info.
                             imageFileInfo.Refresh();
-                            using (MD5 md5 = MD5.Create())
-                            {
-                                using (FileStream stream = File.OpenRead(imageFileInfo.FullName))
-                                {
-                                    byte[] hash = md5.ComputeHash(stream);
-                                    streamHash = BitConverter.ToString(hash);
-                                }
-                            }
+
+                            // Checking the stream itself is far too processor intensive so we make a best guess.
+                            string creation = imageFileInfo.CreationTimeUtc.ToString(CultureInfo.InvariantCulture);
+                            string length = imageFileInfo.Length.ToString(CultureInfo.InvariantCulture);
+                            streamHash = string.Format("{0}{1}", creation, length);
                         }
                     }
                 }
@@ -304,7 +300,7 @@ namespace ImageProcessor.Web.Caching
 
                 // Use an sha1 hash of the full path including the querystring to create the image name. 
                 // That name can also be used as a key for the cached image and we should be able to use 
-                // The characters of that hash as subfolders.
+                // The characters of that hash as sub-folders.
                 string parsedExtension = ImageHelpers.GetExtension(this.fullPath);
                 string fallbackExtension = this.imageName.Substring(this.imageName.LastIndexOf(".", StringComparison.Ordinal) + 1);
                 string encryptedName = (streamHash + this.fullPath).ToSHA1Fingerprint();

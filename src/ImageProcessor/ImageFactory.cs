@@ -17,8 +17,6 @@ namespace ImageProcessor
     using System.Drawing;
     using System.Drawing.Imaging;
     using System.IO;
-    using System.Linq;
-
     using ImageProcessor.Core.Common.Exceptions;
     using ImageProcessor.Imaging;
     using ImageProcessor.Imaging.Filters;
@@ -333,7 +331,7 @@ namespace ImageProcessor
             if (this.ShouldProcess)
             {
                 AutoRotate autoRotate = new AutoRotate();
-                this.ApplyProcessor(autoRotate.ProcessImage);
+                this.CurrentImageFormat.ApplyProcessor(autoRotate.ProcessImage, this);
             }
 
             return this;
@@ -846,19 +844,6 @@ namespace ImageProcessor
         {
             if (this.ShouldProcess)
             {
-                // We need to check here if the path has an extension and remove it if so.
-                // This is so we can add the correct image format.
-                int length = filePath.LastIndexOf(".", StringComparison.Ordinal);
-                string extension = Path.GetExtension(filePath).TrimStart('.');
-                string fallback = this.CurrentImageFormat.DefaultExtension;
-
-                if (extension != fallback && !this.CurrentImageFormat.FileExtensions.Contains(extension))
-                {
-                    filePath = length == -1
-                        ? string.Format("{0}.{1}", filePath, fallback)
-                        : filePath.Substring(0, length + 1) + fallback;
-                }
-
                 // ReSharper disable once AssignNullToNotNullAttribute
                 DirectoryInfo directoryInfo = new DirectoryInfo(Path.GetDirectoryName(filePath));
                 if (!directoryInfo.Exists)

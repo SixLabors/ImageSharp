@@ -58,7 +58,7 @@ namespace ImageProcessor.Processors
             try
             {
                 newImage = new Bitmap(image.Width, image.Height, PixelFormat.Format32bppPArgb);
-                IMatrixFilter matrix = this.DynamicParameter as IMatrixFilter;
+                IMatrixFilter matrix = this.DynamicParameter;
 
                 if (matrix != null)
                 {

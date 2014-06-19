@@ -133,13 +133,14 @@ namespace ImageProcessor.Web.Processors
         private ISupportedImageFormat ParseFormat(string identifier)
         {
             identifier = identifier.ToLowerInvariant();
+            string finalIdentifier = identifier.Equals("png8") ? "png" : identifier;
             ISupportedImageFormat format = ImageProcessorBootstrapper.Instance.SupportedImageFormats
-                                           .FirstOrDefault(f => f.FileExtensions.Any(e => e.Equals(identifier, StringComparison.InvariantCultureIgnoreCase)));
+                                           .FirstOrDefault(f => f.FileExtensions.Any(e => e.Equals(finalIdentifier, StringComparison.InvariantCultureIgnoreCase)));
 
             if (format != null)
             {
-                // I wish this wasn't hardcoded but there's no way I can
-                // find to preserve the pallete.
+                // I wish this wasn't hard-coded but there's no way I can
+                // find to preserve the palette.
                 if (identifier.Equals("png8"))
                 {
                     format.IsIndexed = true;

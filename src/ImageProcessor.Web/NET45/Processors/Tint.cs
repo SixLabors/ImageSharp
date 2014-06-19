@@ -1,10 +1,10 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="BackgroundColor.cs" company="James South">
+// <copyright file="Tint.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   Changes the background color of an image.
+//   Tints an image with the given color.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -15,21 +15,21 @@ namespace ImageProcessor.Web.Processors
     using ImageProcessor.Web.Helpers;
 
     /// <summary>
-    /// Changes the background color of an image.
+    /// Tints an image with the given color.
     /// </summary>
-    public class BackgroundColor : IWebGraphicsProcessor
+    public class Tint : IWebGraphicsProcessor
     {
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"bgcolor(=|-)[^&]*", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"tint=[^&]*", RegexOptions.Compiled);
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="BackgroundColor"/> class.
+        /// Initializes a new instance of the <see cref="Tint"/> class.
         /// </summary>
-        public BackgroundColor()
+        public Tint()
         {
-            this.Processor = new ImageProcessor.Processors.BackgroundColor();
+            this.Processor = new ImageProcessor.Processors.Tint();
         }
 
         /// <summary>
@@ -37,10 +37,7 @@ namespace ImageProcessor.Web.Processors
         /// </summary>
         public Regex RegexPattern
         {
-            get
-            {
-                return QueryRegex;
-            }
+            get { return QueryRegex; }
         }
 
         /// <summary>

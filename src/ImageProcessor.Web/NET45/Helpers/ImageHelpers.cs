@@ -10,15 +10,10 @@
 
 namespace ImageProcessor.Web.Helpers
 {
-    #region Using
-
     using System.Text;
     using System.Text.RegularExpressions;
-
     using ImageProcessor.Configuration;
     using ImageProcessor.Imaging.Formats;
-
-    #endregion
 
     /// <summary>
     /// The image helpers.
@@ -47,8 +42,7 @@ namespace ImageProcessor.Web.Helpers
         /// <returns>True the value contains a valid image extension, otherwise false.</returns>
         public static bool IsValidImageExtension(string fileName)
         {
-            Match match = EndFormatRegex.Matches(fileName)[0];
-
+            Match match = EndFormatRegex.Match(fileName);
             if (match.Success && !match.Value.ToLowerInvariant().EndsWith("png8"))
             {
                 return true;
@@ -68,7 +62,7 @@ namespace ImageProcessor.Web.Helpers
         /// </returns>
         public static string GetExtension(string input)
         {
-            Match match = FormatRegex.Matches(input)[0];
+            Match match = FormatRegex.Match(input);
 
             if (match.Success)
             {

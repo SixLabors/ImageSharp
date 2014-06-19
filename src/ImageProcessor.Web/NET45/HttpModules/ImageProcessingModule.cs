@@ -347,7 +347,7 @@ namespace ImageProcessor.Web.HttpModules
                 }
 
                 // Create a new cache to help process and cache the request.
-                DiskCache cache = new DiskCache(request, requestPath, fullPath, imageName, isRemote);
+                DiskCache cache = new DiskCache(request, requestPath, fullPath, imageName);
 
                 // Since we are now rewriting the path we need to check again that the current user has access
                 // to the rewritten path.

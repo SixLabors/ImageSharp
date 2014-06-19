@@ -67,6 +67,8 @@
     <Compile Include="Processors\Contrast.cs" />
     <Compile Include="Processors\Crop.cs" />
     <Compile Include="Processors\Filter.cs" />
+    <Compile Include="Processors\Flip.cs" />
+    <Compile Include="Processors\Format.cs" />
     <Compile Include="Processors\IWebGraphicsProcessor.cs" />
     <Compile Include="Processors\Quality.cs" />
     <Compile Include="Processors\Resize.cs" />

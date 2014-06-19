@@ -72,11 +72,6 @@ namespace ImageProcessor.Web.Caching
         /// The image name
         /// </summary>
         private readonly string imageName;
-
-        /// <summary>
-        /// Whether the request is for a remote image.
-        /// </summary>
-        private readonly bool isRemote;
         #endregion
 
         #region Constructors
@@ -95,16 +90,12 @@ namespace ImageProcessor.Web.Caching
         /// <param name="imageName">
         /// The image name.
         /// </param>
-        /// <param name="isRemote">
-        /// Whether the request is for a remote image.
-        /// </param>
-        public DiskCache(HttpRequest request, string requestPath, string fullPath, string imageName, bool isRemote)
+        public DiskCache(HttpRequest request, string requestPath, string fullPath, string imageName)
         {
             this.request = request;
             this.requestPath = requestPath;
             this.fullPath = fullPath;
             this.imageName = imageName;
-            this.isRemote = isRemote;
             this.CachedPath = this.GetCachePath();
         }
         #endregion
@@ -163,35 +154,19 @@ namespace ImageProcessor.Web.Caching
         {
             string path = this.CachedPath;
             bool isUpdated = false;
-            CachedImage cachedImage;
+            CachedImage cachedImage = await CacheIndexer.GetValueAsync(path);
 
-            if (this.isRemote)
+            if (cachedImage == null)
             {
-                cachedImage = await CacheIndexer.GetValueAsync(path);
-
-                if (cachedImage != null)
-                {
-                    // Can't check the filestream so check to see if the cached image is set to expire.
-                    if (this.IsExpired(cachedImage.CreationTimeUtc))
-                    {
-                        CacheIndexer.Remove(path);
-                        isUpdated = true;
-                    }
-                }
-                else
-                {
-                    // Nothing in the cache so we should return true.
-                    isUpdated = true;
-                }
+                // Nothing in the cache so we should return true.
+                isUpdated = true;
             }
             else
             {
-                // Test now for locally requested files.
-                cachedImage = await CacheIndexer.GetValueAsync(path);
-
-                if (cachedImage == null)
+                // Check to see if the cached image is set to expire.
+                if (this.IsExpired(cachedImage.CreationTimeUtc))
                 {
-                    // Nothing in the cache so we should return true.
+                    CacheIndexer.Remove(path);
                     isUpdated = true;
                 }
             }

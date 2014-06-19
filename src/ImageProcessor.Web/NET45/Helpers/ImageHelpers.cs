@@ -28,7 +28,7 @@ namespace ImageProcessor.Web.Helpers
         /// <summary>
         /// The image format regex.
         /// </summary>
-        private static readonly Regex FormatRegex = new Regex(@"(\.?)" + RegexPattern, RegexOptions.IgnoreCase | RegexOptions.RightToLeft);
+        private static readonly Regex FormatRegex = new Regex(@"(\.?)(png8|" + RegexPattern + ")", RegexOptions.IgnoreCase | RegexOptions.RightToLeft);
 
         /// <summary>
         /// The image format regex for matching the file format at the end of a string.
@@ -42,13 +42,7 @@ namespace ImageProcessor.Web.Helpers
         /// <returns>True the value contains a valid image extension, otherwise false.</returns>
         public static bool IsValidImageExtension(string fileName)
         {
-            Match match = EndFormatRegex.Match(fileName);
-            if (match.Success && !match.Value.ToLowerInvariant().EndsWith("png8"))
-            {
-                return true;
-            }
-
-            return false;
+            return EndFormatRegex.IsMatch(fileName);
         }
 
         /// <summary>

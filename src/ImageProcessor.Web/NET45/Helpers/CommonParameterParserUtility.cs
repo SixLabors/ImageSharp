@@ -25,7 +25,7 @@ namespace ImageProcessor.Web.Helpers
         /// <summary>
         /// The regular expression to search strings for colors.
         /// </summary>
-        private static readonly Regex ColorRegex = new Regex(@"(bgcolor|color)(=|-)(\d+,\d+,\d+,\d+|([0-9a-fA-F]{3}){1,2})", RegexOptions.Compiled);
+        private static readonly Regex ColorRegex = new Regex(@"(bgcolor|color|tint)(=|-)(\d+,\d+,\d+,\d+|([0-9a-fA-F]{3}){1,2})", RegexOptions.Compiled);
 
         /// <summary>
         /// The regular expression to search strings for angles.
@@ -36,11 +36,6 @@ namespace ImageProcessor.Web.Helpers
         /// The regular expression to search strings for values between 1 and 100.
         /// </summary>
         private static readonly Regex In100RangeRegex = new Regex(@"(-?(?:100)|-?([1-9]?[0-9]))", RegexOptions.Compiled);
-
-        /// <summary>
-        /// The regular expression to search strings for.
-        /// </summary>
-        private static readonly Regex GuassianRegex = new Regex(@"(blur|sharpen|sigma|threshold)(=|-)[^&]*", RegexOptions.Compiled);
 
         /// <summary>
         /// The sharpen regex.
@@ -56,7 +51,6 @@ namespace ImageProcessor.Web.Helpers
         /// The threshold regex.
         /// </summary>
         private static readonly Regex ThresholdRegex = new Regex(@"threshold(=|-)\d+", RegexOptions.Compiled);
-
 
         /// <summary>
         /// Returns the correct <see cref="T:System.Int32"/> containing the angle for the given string.
@@ -202,7 +196,7 @@ namespace ImageProcessor.Web.Helpers
             foreach (Match match in SigmaRegex.Matches(input))
             {
                 // split on text-
-                return Convert.ToDouble(match.Value.Split('-')[1]);
+                return Convert.ToDouble(match.Value.Split(new[] { '=', '-' })[1]);
             }
 
             return 1.4d;
@@ -223,7 +217,7 @@ namespace ImageProcessor.Web.Helpers
             // ReSharper disable once LoopCanBeConvertedToQuery
             foreach (Match match in ThresholdRegex.Matches(input))
             {
-                return Convert.ToInt32(match.Value.Split('-')[1]);
+                return Convert.ToInt32(match.Value.Split(new[] { '=', '-' })[1]);
             }
 
             return 0;

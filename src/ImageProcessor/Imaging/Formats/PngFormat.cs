@@ -39,7 +39,7 @@ namespace ImageProcessor.Imaging.Formats
         {
             get
             {
-                return new[] { "png8", "png" };
+                return new[] { "png" };
             }
         }
 

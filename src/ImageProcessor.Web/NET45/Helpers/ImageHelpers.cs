@@ -11,7 +11,13 @@
 namespace ImageProcessor.Web.Helpers
 {
     #region Using
+
+    using System.Text;
     using System.Text.RegularExpressions;
+
+    using ImageProcessor.Configuration;
+    using ImageProcessor.Imaging.Formats;
+
     #endregion
 
     /// <summary>
@@ -20,14 +26,19 @@ namespace ImageProcessor.Web.Helpers
     public static class ImageHelpers
     {
         /// <summary>
+        /// The regex pattern.
+        /// </summary>
+        private static readonly string RegexPattern = BuildRegexPattern();
+
+        /// <summary>
         /// The image format regex.
         /// </summary>
-        private static readonly Regex FormatRegex = new Regex(@"(\.?)(j(pg|peg)|bmp|png|gif|ti(ff|f)|ico)", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.RightToLeft);
+        private static readonly Regex FormatRegex = new Regex(@"(\.?)" + RegexPattern, RegexOptions.IgnoreCase | RegexOptions.RightToLeft);
 
         /// <summary>
         /// The image format regex for matching the file format at the end of a string.
         /// </summary>
-        private static readonly Regex EndFormatRegex = new Regex(@"(\.)(j(pg|peg)|bmp|png|gif|ti(ff|f)|ico)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.RightToLeft);
+        private static readonly Regex EndFormatRegex = new Regex(@"(\.)" + RegexPattern + "$", RegexOptions.IgnoreCase | RegexOptions.RightToLeft);
 
         /// <summary>
         /// Checks a given string to check whether the value contains a valid image extension.
@@ -36,7 +47,14 @@ namespace ImageProcessor.Web.Helpers
         /// <returns>True the value contains a valid image extension, otherwise false.</returns>
         public static bool IsValidImageExtension(string fileName)
         {
-            return EndFormatRegex.IsMatch(fileName);
+            Match match = EndFormatRegex.Matches(fileName)[0];
+
+            if (match.Success && !match.Value.ToLowerInvariant().EndsWith("png8"))
+            {
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -51,7 +69,51 @@ namespace ImageProcessor.Web.Helpers
         public static string GetExtension(string input)
         {
             Match match = FormatRegex.Matches(input)[0];
-            return match.Success ? match.Value : string.Empty;
+
+            if (match.Success)
+            {
+                // Ah the enigma that is the png file.
+                if (match.Value.ToLowerInvariant().EndsWith("png8"))
+                {
+                    return "png";
+                }
+
+                return match.Value;
+            }
+
+            return string.Empty;
+        }
+
+        /// <summary>
+        /// Builds a regular expression from the <see cref="T:ImageProcessor.Imaging.Formats.ISupportedImageFormat"/> type, this allows extensibility.
+        /// </summary>
+        /// <returns>
+        /// The <see cref="Regex"/> to match matrix filters.
+        /// </returns>
+        private static string BuildRegexPattern()
+        {
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.Append("(");
+            int counter = 0;
+            foreach (ISupportedImageFormat imageFormat in ImageProcessorBootstrapper.Instance.SupportedImageFormats)
+            {
+                foreach (string fileExtension in imageFormat.FileExtensions)
+                {
+                    if (counter == 0)
+                    {
+                        stringBuilder.Append(fileExtension.ToLowerInvariant());
+                    }
+                    else
+                    {
+                        stringBuilder.AppendFormat("|{0}", fileExtension.ToLowerInvariant());
+                    }
+                }
+
+                counter++;
+            }
+
+            stringBuilder.Append(")");
+            return stringBuilder.ToString();
         }
     }
 }

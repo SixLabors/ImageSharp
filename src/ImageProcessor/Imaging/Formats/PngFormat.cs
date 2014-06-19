@@ -32,12 +32,14 @@ namespace ImageProcessor.Imaging.Formats
 
         /// <summary>
         /// Gets the list of file extensions.
+        /// Obviously png8 isn't a valid file extension but it's a neat way to 
+        /// add the value to the format method detection.
         /// </summary>
         public override string[] FileExtensions
         {
             get
             {
-                return new[] { "png" };
+                return new[] { "png8", "png" };
             }
         }
 
@@ -73,7 +75,7 @@ namespace ImageProcessor.Imaging.Formats
         /// </returns>
         public override Image Save(MemoryStream memoryStream, Image image)
         {
-            if (FormatUtilities.IsIndexed(image))
+            if (this.IsIndexed)
             {
                 image = new OctreeQuantizer(255, 8).Quantize(image);
             }
@@ -92,7 +94,7 @@ namespace ImageProcessor.Imaging.Formats
         /// </returns>
         public override Image Save(string path, Image image)
         {
-            if (FormatUtilities.IsIndexed(image))
+            if (this.IsIndexed)
             {
                 image = new OctreeQuantizer(255, 8).Quantize(image);
             }

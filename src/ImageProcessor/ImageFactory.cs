@@ -125,11 +125,6 @@ namespace ImageProcessor
         internal Image Image { get; set; }
 
         /// <summary>
-        /// Gets or sets the original extension.
-        /// </summary>
-        internal string OriginalExtension { get; set; }
-
-        /// <summary>
         /// Gets or sets the memory stream for storing any input stream to prevent disposal.
         /// </summary>
         internal MemoryStream InputStream { get; set; }
@@ -232,8 +227,6 @@ namespace ImageProcessor
                     // Set the other properties.
                     format.Quality = DefaultQuality;
                     format.IsIndexed = ImageUtils.IsIndexed(this.Image);
-
-                    this.OriginalExtension = Path.GetExtension(this.ImagePath);
 
                     // Always load the data.
                     foreach (PropertyItem propertyItem in this.Image.PropertyItems)

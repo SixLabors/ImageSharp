@@ -69,6 +69,8 @@
     <Compile Include="Processors\Filter.cs" />
     <Compile Include="Processors\Flip.cs" />
     <Compile Include="Processors\Format.cs" />
+    <Compile Include="Processors\GaussianSharpen.cs" />
+    <Compile Include="Processors\GaussianBlur.cs" />
     <Compile Include="Processors\IWebGraphicsProcessor.cs" />
     <Compile Include="Processors\Quality.cs" />
     <Compile Include="Processors\Resize.cs" />

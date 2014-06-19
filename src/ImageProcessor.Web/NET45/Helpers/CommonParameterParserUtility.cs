@@ -10,10 +10,12 @@
 
 namespace ImageProcessor.Web.Helpers
 {
+    using System;
     using System.Drawing;
     using System.Globalization;
     using System.Text.RegularExpressions;
     using ImageProcessor.Core.Common.Extensions;
+    using ImageProcessor.Imaging;
 
     /// <summary>
     /// Encapsulates methods to correctly parse querystring parameters.
@@ -34,6 +36,27 @@ namespace ImageProcessor.Web.Helpers
         /// The regular expression to search strings for values between 1 and 100.
         /// </summary>
         private static readonly Regex In100RangeRegex = new Regex(@"(-?(?:100)|-?([1-9]?[0-9]))", RegexOptions.Compiled);
+
+        /// <summary>
+        /// The regular expression to search strings for.
+        /// </summary>
+        private static readonly Regex GuassianRegex = new Regex(@"(blur|sharpen|sigma|threshold)(=|-)[^&]*", RegexOptions.Compiled);
+
+        /// <summary>
+        /// The sharpen regex.
+        /// </summary>
+        private static readonly Regex BlurSharpenRegex = new Regex(@"(blur|sharpen)=\d+", RegexOptions.Compiled);
+
+        /// <summary>
+        /// The sigma regex.
+        /// </summary>
+        private static readonly Regex SigmaRegex = new Regex(@"sigma(=|-)\d+(.?\d+)?", RegexOptions.Compiled);
+
+        /// <summary>
+        /// The threshold regex.
+        /// </summary>
+        private static readonly Regex ThresholdRegex = new Regex(@"threshold(=|-)\d+", RegexOptions.Compiled);
+
 
         /// <summary>
         /// Returns the correct <see cref="T:System.Int32"/> containing the angle for the given string.
@@ -110,6 +133,100 @@ namespace ImageProcessor.Web.Helpers
             }
 
             return value;
+        }
+
+        /// <summary>
+        /// Returns the correct <see cref="GaussianLayer"/> for the given string.
+        /// </summary>
+        /// <param name="input">
+        /// The input string containing the value to parse.
+        /// </param>
+        /// <param name="maxSize">
+        /// The maximum size to set the Gaussian kernel to.
+        /// </param>
+        /// <param name="maxSigma">
+        /// The maximum Sigma value (standard deviation) for Gaussian function used to calculate the kernel.
+        /// </param>
+        /// <param name="maxThreshold">
+        /// The maximum threshold value, which is added to each weighted sum of pixels.
+        /// </param>
+        /// <returns>
+        /// The correct <see cref="GaussianLayer"/> .
+        /// </returns>
+        public static GaussianLayer ParseGaussianLayer(string input, int maxSize, double maxSigma, int maxThreshold)
+        {
+            int size = ParseBlurSharpen(input);
+            double sigma = ParseSigma(input);
+            int threshold = ParseThreshold(input);
+
+            size = maxSize < size ? maxSize : size;
+            sigma = maxSigma < sigma ? maxSigma : sigma;
+            threshold = maxThreshold < threshold ? maxThreshold : threshold;
+
+            return new GaussianLayer(size, sigma, threshold);
+        }
+
+        /// <summary>
+        /// Returns the correct <see cref="T:System.Int32"/> containing the blur value
+        /// for the given string.
+        /// </summary>
+        /// <param name="input">
+        /// The input string containing the value to parse.
+        /// </param>
+        /// <returns>
+        /// The correct <see cref="T:System.Int32"/> for the given string.
+        /// </returns>
+        private static int ParseBlurSharpen(string input)
+        {
+            // ReSharper disable once LoopCanBeConvertedToQuery
+            foreach (Match match in BlurSharpenRegex.Matches(input))
+            {
+                return Convert.ToInt32(match.Value.Split('=')[1]);
+            }
+
+            return 0;
+        }
+
+        /// <summary>
+        /// Returns the correct <see cref="T:System.Double"/> containing the sigma value
+        /// for the given string.
+        /// </summary>
+        /// <param name="input">
+        /// The input string containing the value to parse.
+        /// </param>
+        /// <returns>
+        /// The correct <see cref="T:System.Double"/> for the given string.
+        /// </returns>
+        private static double ParseSigma(string input)
+        {
+            foreach (Match match in SigmaRegex.Matches(input))
+            {
+                // split on text-
+                return Convert.ToDouble(match.Value.Split('-')[1]);
+            }
+
+            return 1.4d;
+        }
+
+        /// <summary>
+        /// Returns the correct <see cref="T:System.Int32"/> containing the threshold value
+        /// for the given string.
+        /// </summary>
+        /// <param name="input">
+        /// The input string containing the value to parse.
+        /// </param>
+        /// <returns>
+        /// The correct <see cref="T:System.Int32"/> for the given string.
+        /// </returns>
+        private static int ParseThreshold(string input)
+        {
+            // ReSharper disable once LoopCanBeConvertedToQuery
+            foreach (Match match in ThresholdRegex.Matches(input))
+            {
+                return Convert.ToInt32(match.Value.Split('-')[1]);
+            }
+
+            return 0;
         }
     }
 }

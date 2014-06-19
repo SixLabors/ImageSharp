@@ -38,7 +38,7 @@ namespace ImageProcessor.Imaging.Formats
         {
             get
             {
-                return new[] { "tif", "tiff" };
+                return new[] { "tiff", "tif" };
             }
         }
 

@@ -1,28 +1,27 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="Filter.cs" company="James South">
+// <copyright file="Format.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   Encapsulates methods with which to add filters to an image.
+//   Sets the output of the image to a specific format.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Web.Processors
 {
     using System;
-    using System.Collections.Generic;
     using System.Linq;
-    using System.Reflection;
     using System.Text;
     using System.Text.RegularExpressions;
-    using ImageProcessor.Imaging.Filters;
+    using ImageProcessor.Configuration;
+    using ImageProcessor.Imaging.Formats;
     using ImageProcessor.Processors;
 
     /// <summary>
-    /// Encapsulates methods with which to add filters to an image.
+    /// Sets the output of the image to a specific format.
     /// </summary>
-    public class Filter : IWebGraphicsProcessor
+    public class Format : IWebGraphicsProcessor
     {
         /// <summary>
         /// The regular expression to search strings for.
@@ -30,11 +29,11 @@ namespace ImageProcessor.Web.Processors
         private static readonly Regex QueryRegex = BuildRegex();
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Filter"/> class.
+        /// Initializes a new instance of the <see cref="Format"/> class.
         /// </summary>
-        public Filter()
+        public Format()
         {
-            this.Processor = new ImageProcessor.Processors.Filter();
+            this.Processor = new ImageProcessor.Processors.Format();
         }
 
         /// <summary>
@@ -51,18 +50,11 @@ namespace ImageProcessor.Web.Processors
         /// <summary>
         /// Gets the order in which this processor is to be used in a chain.
         /// </summary>
-        public int SortOrder
-        {
-            get;
-            private set;
-        }
+        public int SortOrder { get; private set; }
 
         /// <summary>
-        /// Gets the processor.
+        /// Gets the associated graphics processor.
         /// </summary>
-        /// <value>
-        /// The processor.
-        /// </value>
         public IGraphicsProcessor Processor { get; private set; }
 
         /// <summary>
@@ -89,7 +81,12 @@ namespace ImageProcessor.Web.Processors
                     {
                         // Set the index on the first instance only.
                         this.SortOrder = match.Index;
-                        this.Processor.DynamicParameter = this.ParseFilter(match.Value.Split('=')[1]);
+
+                        ISupportedImageFormat format = this.ParseFormat(match.Value.Split('=')[1]);
+                        if (format != null)
+                        {
+                            this.Processor.DynamicParameter = format;
+                        }
                     }
 
                     index += 1;
@@ -100,35 +97,23 @@ namespace ImageProcessor.Web.Processors
         }
 
         /// <summary>
-        /// Builds a regular expression from the <see cref="MatrixFilters"/> type, this allows extensibility.
+        /// Builds a regular expression from the <see cref="T:ImageProcessor.Imaging.Formats.ISupportedImageFormat"/> type, this allows extensibility.
         /// </summary>
         /// <returns>
         /// The <see cref="Regex"/> to match matrix filters.
         /// </returns>
         private static Regex BuildRegex()
         {
-            const BindingFlags Flags = BindingFlags.Public | BindingFlags.Static;
-            Type type = typeof(MatrixFilters);
-            IEnumerable<PropertyInfo> filters = type.GetProperties(Flags)
-                              .Where(p => p.PropertyType.IsAssignableFrom(typeof(IMatrixFilter)))
-                              .ToList();
-
             StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.Append("filter=(");
-            int counter = 0;
 
-            foreach (PropertyInfo filter in filters)
+            // png8 is a special case for determining indexed pngs.
+            stringBuilder.Append("format=(png8");
+            foreach (ISupportedImageFormat imageFormat in ImageProcessorBootstrapper.Instance.SupportedImageFormats)
             {
-                if (counter == 0)
+                foreach (string fileExtension in imageFormat.FileExtensions)
                 {
-                    stringBuilder.Append(filter.Name.ToLowerInvariant());
+                    stringBuilder.AppendFormat("|{0}", fileExtension.ToLowerInvariant());
                 }
-                else
-                {
-                    stringBuilder.AppendFormat("|{0}", filter.Name.ToLowerInvariant());
-                }
-
-                counter++;
             }
 
             stringBuilder.Append(")");
@@ -137,25 +122,35 @@ namespace ImageProcessor.Web.Processors
         }
 
         /// <summary>
-        /// Parses the input string to return the correct <see cref="IMatrixFilter"/>.
+        /// Parses the input string to return the correct <see cref="ISupportedImageFormat"/>.
         /// </summary>
         /// <param name="identifier">
         /// The identifier.
         /// </param>
         /// <returns>
-        /// The <see cref="IMatrixFilter"/>.
+        /// The <see cref="ISupportedImageFormat"/>.
         /// </returns>
-        private IMatrixFilter ParseFilter(string identifier)
+        private ISupportedImageFormat ParseFormat(string identifier)
         {
-            const BindingFlags Flags = BindingFlags.Public | BindingFlags.Static;
+            identifier = identifier.ToLowerInvariant();
+            ISupportedImageFormat format = ImageProcessorBootstrapper.Instance.SupportedImageFormats
+                                           .FirstOrDefault(f => f.FileExtensions.Any(e => e.Equals(identifier, StringComparison.InvariantCultureIgnoreCase)));
 
-            Type type = typeof(MatrixFilters);
-            PropertyInfo filter =
-                type.GetProperties(Flags)
-                    .Where(p => p.PropertyType.IsAssignableFrom(typeof(IMatrixFilter)))
-                    .First(p => p.Name.Equals(identifier, StringComparison.InvariantCultureIgnoreCase));
+            if (format != null)
+            {
+                // I wish this wasn't hardcoded but there's no way I can
+                // find to preserve the pallete.
+                if (identifier.Equals("png8"))
+                {
+                    format.IsIndexed = true;
+                }
+                else if (identifier.Equals("png"))
+                {
+                    format.IsIndexed = false;
+                }
+            }
 
-            return filter.GetValue(null, null) as IMatrixFilter;
+            return format;
         }
     }
 }

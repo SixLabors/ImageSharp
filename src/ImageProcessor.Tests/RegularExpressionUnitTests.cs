@@ -8,6 +8,8 @@ namespace ImageProcessor.Tests
 {
     #region Using
     using System.Drawing;
+
+    using ImageProcessor.Configuration;
     using ImageProcessor.Imaging;
     using ImageProcessor.Processors;
     using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -31,10 +33,10 @@ namespace ImageProcessor.Tests
             const string Querystring = "alpha=56";
             const int Expected = 56;
 
-            Alpha alpha = new Alpha();
+            Web.Processors.Alpha alpha = new Web.Processors.Alpha();
             alpha.MatchRegexIndex(Querystring);
 
-            int actual = alpha.DynamicParameter;
+            int actual = alpha.Processor.DynamicParameter;
 
             Assert.AreEqual(Expected, actual);
         }
@@ -48,10 +50,10 @@ namespace ImageProcessor.Tests
             const string Querystring = "brightness=56";
             const int Expected = 56;
 
-            Brightness brightness = new Brightness();
+            Web.Processors.Brightness brightness = new Web.Processors.Brightness();
             brightness.MatchRegexIndex(Querystring);
 
-            int actual = brightness.DynamicParameter;
+            int actual = brightness.Processor.DynamicParameter;
 
             Assert.AreEqual(Expected, actual);
         }
@@ -65,10 +67,10 @@ namespace ImageProcessor.Tests
             const string Querystring = "contrast=56";
             const int Expected = 56;
 
-            Contrast contrast = new Contrast();
+            Web.Processors.Contrast contrast = new Web.Processors.Contrast();
             contrast.MatchRegexIndex(Querystring);
 
-            int actual = contrast.DynamicParameter;
+            int actual = contrast.Processor.DynamicParameter;
 
             Assert.AreEqual(Expected, actual);
         }
@@ -82,10 +84,10 @@ namespace ImageProcessor.Tests
             const string Querystring = "crop=0,0,150,300";
             CropLayer expected = new CropLayer(0, 0, 150, 300, CropMode.Pixels);
 
-            Crop crop = new Crop();
+            Web.Processors.Crop crop = new Web.Processors.Crop();
             crop.MatchRegexIndex(Querystring);
 
-            CropLayer actual = crop.DynamicParameter;
+            CropLayer actual = crop.Processor.DynamicParameter;
             Assert.AreEqual(expected, actual);
         }
 
@@ -99,10 +101,10 @@ namespace ImageProcessor.Tests
             const string Querystring = "filter=lomograph";
             const string Expected = "lomograph";
 
-            Filter filter = new Filter();
+            Web.Processors.Filter filter = new Web.Processors.Filter();
             filter.MatchRegexIndex(Querystring);
 
-            string actual = filter.DynamicParameter;
+            string actual = filter.Processor.DynamicParameter;
 
             Assert.AreEqual(Expected, actual);
         }
@@ -116,10 +118,10 @@ namespace ImageProcessor.Tests
             const string Querystring = "format=gif";
             const string Expected = "gif";
 
-            Format format = new Format();
+            Web.Processors.Format format = new Web.Processors.Format();
             format.MatchRegexIndex(Querystring);
 
-            string actual = format.DynamicParameter;
+            string actual = format.Processor.DynamicParameter;
 
             Assert.AreEqual(Expected, actual);
         }
@@ -133,10 +135,10 @@ namespace ImageProcessor.Tests
             const string Querystring = "quality=56";
             const int Expected = 56;
 
-            Quality quality = new Quality();
+            Web.Processors.Quality quality = new Web.Processors.Quality();
             quality.MatchRegexIndex(Querystring);
 
-            int actual = quality.DynamicParameter;
+            int actual = quality.Processor.DynamicParameter;
 
             Assert.AreEqual(Expected, actual);
         }
@@ -150,10 +152,10 @@ namespace ImageProcessor.Tests
             const string Querystring = "width=300";
             ResizeLayer expected = new ResizeLayer(new Size(300, 0));
 
-            Resize resize = new Resize();
+            Web.Processors.Resize resize = new Web.Processors.Resize();
 
             resize.MatchRegexIndex(Querystring);
-            ResizeLayer actual = resize.DynamicParameter;
+            ResizeLayer actual = resize.Processor.DynamicParameter;
 
             Assert.AreEqual(expected, actual);
         }
@@ -167,10 +169,10 @@ namespace ImageProcessor.Tests
             const string Querystring = "rotate=270";
             RotateLayer expected = new RotateLayer(270, Color.Transparent);
 
-            Rotate rotate = new Rotate();
+            Web.Processors.Rotate rotate = new Web.Processors.Rotate();
             rotate.MatchRegexIndex(Querystring);
 
-            RotateLayer actual = rotate.DynamicParameter;
+            RotateLayer actual = rotate.Processor.DynamicParameter;
 
             Assert.AreEqual(expected, actual);
         }
@@ -203,14 +205,14 @@ namespace ImageProcessor.Tests
             Color expectedHex = ColorTranslator.FromHtml("#" + "6aa6cc");
             Color expectedRgba = Color.FromArgb(255, 106, 166, 204);
 
-            Tint tint = new Tint();
+            Web.Processors.Tint tint = new Web.Processors.Tint();
             tint.MatchRegexIndex(HexQuerystring);
-            Color actualHex = tint.DynamicParameter;
+            Color actualHex = tint.Processor.DynamicParameter;
             Assert.AreEqual(expectedHex, actualHex);
 
-            tint = new Tint();
+            tint = new Web.Processors.Tint();
             tint.MatchRegexIndex(RgbaQuerystring);
-            Color actualRgba = tint.DynamicParameter;
+            Color actualRgba = tint.Processor.DynamicParameter;
             Assert.AreEqual(expectedRgba, actualRgba);
         }
         #endregion

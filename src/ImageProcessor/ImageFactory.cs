@@ -788,14 +788,23 @@ namespace ImageProcessor
         /// <summary>
         /// Adds a vignette image effect to the current image.
         /// </summary>
+        /// <param name="color">
+        /// The <see cref="T:System.Drawing.Color"/> to tint the image with. Defaults to black.
+        /// </param>
         /// <returns>
         /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
         /// </returns>
-        public ImageFactory Vignette()
+        public ImageFactory Vignette(Color? color = null)
         {
             if (this.ShouldProcess)
             {
-                Vignette vignette = new Vignette();
+                Vignette vignette = new Vignette
+                                        {
+                                            DynamicParameter = color.HasValue && !color.Equals(Color.Transparent)
+                                                                ? color.Value
+                                                                : Color.Black
+                                        };
+
                 this.CurrentImageFormat.ApplyProcessor(vignette.ProcessImage, this);
             }
 

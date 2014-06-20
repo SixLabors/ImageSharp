@@ -24,20 +24,11 @@ namespace ImageProcessor.Processors
     public class Vignette : IGraphicsProcessor
     {
         /// <summary>
-        /// The regular expression to search strings for.
+        /// Initializes a new instance of the <see cref="Vignette"/> class.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"vignette=true", RegexOptions.Compiled);
-
-        #region IGraphicsProcessor Members
-        /// <summary>
-        /// Gets the regular expression to search strings for.
-        /// </summary>
-        public Regex RegexPattern
+        public Vignette()
         {
-            get
-            {
-                return QueryRegex;
-            }
+            this.DynamicParameter = Color.Black;
         }
 
         /// <summary>
@@ -50,56 +41,12 @@ namespace ImageProcessor.Processors
         }
 
         /// <summary>
-        /// Gets the order in which this processor is to be used in a chain.
-        /// </summary>
-        public int SortOrder
-        {
-            get;
-            private set;
-        }
-
-        /// <summary>
         /// Gets or sets any additional settings required by the processor.
         /// </summary>
         public Dictionary<string, string> Settings
         {
             get;
             set;
-        }
-
-        /// <summary>
-        /// The position in the original string where the first character of the captured substring was found.
-        /// </summary>
-        /// <param name="queryString">
-        /// The query string to search.
-        /// </param>
-        /// <returns>
-        /// The zero-based starting position in the original string where the captured substring was found.
-        /// </returns>
-        public int MatchRegexIndex(string queryString)
-        {
-            int index = 0;
-
-            // Set the sort order to max to allow filtering.
-            this.SortOrder = int.MaxValue;
-
-            foreach (Match match in this.RegexPattern.Matches(queryString))
-            {
-                if (match.Success)
-                {
-                    if (index == 0)
-                    {
-                        // Set the index on the first instance only.
-                        this.SortOrder = match.Index;
-                        bool doVignette;
-                        this.DynamicParameter = bool.TryParse(match.Value.Split('=')[1], out doVignette);
-                    }
-
-                    index += 1;
-                }
-            }
-
-            return this.SortOrder;
         }
 
         /// <summary>
@@ -139,12 +86,15 @@ namespace ImageProcessor.Processors
                         path.AddEllipse(ellipsebounds);
                         using (PathGradientBrush brush = new PathGradientBrush(path))
                         {
-                            // Fill a rectangle with an elliptical gradient brush that goes from white to black.
-                            // Change the colour from white to pure transparent black and from black to pure opaque black. 
-                            // This has the effect of painting the far corners black and shade less on the way in to the centre.
+                            // Fill a rectangle with an elliptical gradient brush that goes from transparent to opaque. 
+                            // This has the effect of painting the far corners with the given color and shade less on the way in to the centre.
+                            Color baseColor = (Color)this.DynamicParameter;
+                            Color centerColor = Color.FromArgb(0, baseColor.R, baseColor.G, baseColor.B);
+                            Color edgeColor = Color.FromArgb(255, baseColor.R, baseColor.G, baseColor.B);
+                            
                             brush.WrapMode = WrapMode.Tile;
-                            brush.CenterColor = Color.FromArgb(0, 0, 0, 0);
-                            brush.SurroundColors = new[] { Color.FromArgb(255, 0, 0, 0) };
+                            brush.CenterColor = centerColor;
+                            brush.SurroundColors = new[] { edgeColor };
 
                             Blend blend = new Blend
                                 {
@@ -176,6 +126,5 @@ namespace ImageProcessor.Processors
 
             return image;
         }
-        #endregion
     }
 }

@@ -20,13 +20,13 @@ namespace ImageProcessor.Imaging.Formats
     public class PngFormat : FormatBase
     {
         /// <summary>
-        /// Gets the file header.
+        /// Gets the file headers.
         /// </summary>
-        public override byte[] FileHeader
+        public override byte[][] FileHeaders
         {
             get
             {
-                return new byte[] { 137, 80, 78, 71 };
+                return new[] { new byte[] { 137, 80, 78, 71 } };
             }
         }
 

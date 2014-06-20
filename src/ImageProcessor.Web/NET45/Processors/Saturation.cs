@@ -25,7 +25,7 @@ namespace ImageProcessor.Web.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"saturation=[^&|,]*", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"saturation=[^&|,]+", RegexOptions.Compiled);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Saturation"/> class.

@@ -98,14 +98,14 @@ namespace ImageProcessor.Imaging.Formats
         /// <summary>
         /// Saves the current image to the specified output stream.
         /// </summary>
-        /// <param name="memoryStream">
-        /// The <see cref="T:System.IO.MemoryStream" /> to save the image information to.
+        /// <param name="stream">
+        /// The <see cref="T:System.IO.Stream" /> to save the image information to.
         /// </param>
         /// <param name="image">The <see cref="T:System.Drawing.Image" /> to save.</param>
         /// <returns>
         /// The <see cref="T:System.Drawing.Image" />.
         /// </returns>
-        public override Image Save(MemoryStream memoryStream, Image image)
+        public override Image Save(Stream stream, Image image)
         {
             // Jpegs can be saved with different settings to include a quality setting for the JPEG compression.
             // This improves output compression and quality. 
@@ -117,7 +117,7 @@ namespace ImageProcessor.Imaging.Formats
 
                 if (imageCodecInfo != null)
                 {
-                    image.Save(memoryStream, imageCodecInfo, encoderParameters);
+                    image.Save(stream, imageCodecInfo, encoderParameters);
                 }
             }
 

@@ -86,8 +86,8 @@ namespace ImageProcessor.Imaging.Formats
         /// <summary>
         /// Saves the current image to the specified output stream.
         /// </summary>
-        /// <param name="memoryStream">
-        /// The <see cref="T:System.IO.MemoryStream"/> to save the image information to.
+        /// <param name="stream">
+        /// The <see cref="T:System.IO.Stream"/> to save the image information to.
         /// </param>
         /// <param name="image">
         /// The <see cref="T:System.Drawing.Image"/> to save.
@@ -95,7 +95,7 @@ namespace ImageProcessor.Imaging.Formats
         /// <returns>
         /// The <see cref="T:System.Drawing.Image"/>.
         /// </returns>
-        Image Save(MemoryStream memoryStream, Image image);
+        Image Save(Stream stream, Image image);
 
         /// <summary>
         /// Saves the current image to the specified file path.

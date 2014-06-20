@@ -101,7 +101,7 @@ namespace ImageProcessor.Imaging.Filters
         {
             get
             {
-                return new LomographMatrixFilter();
+                return new LoSatchMatrixFilter();
             }
         }
 

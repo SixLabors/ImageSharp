@@ -25,7 +25,7 @@ namespace ImageProcessor.Web.Helpers
         /// <summary>
         /// The regular expression to search strings for colors.
         /// </summary>
-        private static readonly Regex ColorRegex = new Regex(@"(bgcolor|color|tint)(=|-)(\d+,\d+,\d+,\d+|([0-9a-fA-F]{3}){1,2})", RegexOptions.Compiled);
+        private static readonly Regex ColorRegex = new Regex(@"(bgcolor|color|tint|vignette)(=|-)(\d+,\d+,\d+,\d+|([0-9a-fA-F]{3}){1,2})", RegexOptions.Compiled);
 
         /// <summary>
         /// The regular expression to search strings for angles.

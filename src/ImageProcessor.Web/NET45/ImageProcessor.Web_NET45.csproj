@@ -77,6 +77,7 @@
     <Compile Include="Processors\Rotate.cs" />
     <Compile Include="Processors\Saturation.cs" />
     <Compile Include="Processors\Tint.cs" />
+    <Compile Include="Processors\Vignette.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

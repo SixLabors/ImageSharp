@@ -21,9 +21,9 @@ namespace ImageProcessor.Imaging.Formats
     public abstract class FormatBase : ISupportedImageFormat
     {
         /// <summary>
-        /// Gets the file header.
+        /// Gets the file headers.
         /// </summary>
-        public abstract byte[] FileHeader { get; }
+        public abstract byte[][] FileHeaders { get; }
 
         /// <summary>
         /// Gets the list of file extensions.

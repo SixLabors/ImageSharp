@@ -23,13 +23,13 @@ namespace ImageProcessor.Imaging.Formats
     public sealed class JpegFormat : FormatBase
     {
         /// <summary>
-        /// Gets the file header.
+        /// Gets the file headers.
         /// </summary>
-        public override byte[] FileHeader
+        public override byte[][] FileHeaders
         {
             get
             {
-                return new byte[] { 255, 216, 255 };
+                return new[] { new byte[] { 255, 216, 255 } };
             }
         }
 

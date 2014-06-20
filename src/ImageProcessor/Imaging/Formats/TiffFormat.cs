@@ -21,13 +21,17 @@ namespace ImageProcessor.Imaging.Formats
     public class TiffFormat : FormatBase
     {
         /// <summary>
-        /// Gets the file header.
+        /// Gets the file headers.
         /// </summary>
-        public override byte[] FileHeader
+        public override byte[][] FileHeaders
         {
             get
             {
-                return new byte[] { 77, 77, 42 };
+                return new[]
+                { 
+                    new byte[] { 73, 73, 42 }, 
+                    new byte[] { 77, 77, 42 } 
+                };
             }
         }
 

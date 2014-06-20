@@ -49,7 +49,7 @@ namespace ImageProcessor.Web.HttpModules
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex PresetRegex = new Regex(@"preset=[^&]*", RegexOptions.Compiled);
+        private static readonly Regex PresetRegex = new Regex(@"preset=[^&]+", RegexOptions.Compiled);
 
         /// <summary>
         /// The assembly version.
@@ -406,6 +406,9 @@ namespace ImageProcessor.Web.HttpModules
                                                 if (responseStream != null)
                                                 {
                                                     responseStream.CopyTo(memoryStream);
+
+                                                    // Reset the position of the stream to ensure we're reading the correct part.
+                                                    memoryStream.Position = 0;
 
                                                     // Process the Image
                                                     imageFactory.Load(memoryStream)

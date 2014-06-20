@@ -22,7 +22,7 @@ namespace ImageProcessor.Web.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"contrast=[^&|,]*", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"contrast=[^&|,]+", RegexOptions.Compiled);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Contrast"/> class.

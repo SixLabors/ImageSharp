@@ -23,13 +23,13 @@ namespace ImageProcessor.Imaging.Formats
     public class GifFormat : FormatBase
     {
         /// <summary>
-        /// Gets the file header.
+        /// Gets the file headers.
         /// </summary>
-        public override byte[] FileHeader
+        public override byte[][] FileHeaders
         {
             get
             {
-                return Encoding.ASCII.GetBytes("GIF");
+                return new[] { Encoding.ASCII.GetBytes("GIF") };
             }
         }
 

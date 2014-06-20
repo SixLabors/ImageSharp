@@ -43,14 +43,18 @@ namespace ImageProcessor.Imaging.Formats
             byte[] buffer = new byte[4];
             stream.Read(buffer, 0, buffer.Length);
 
-            // ReSharper disable once LoopCanBeConvertedToQuery
             foreach (ISupportedImageFormat supportedImageFormat in supportedImageFormats)
             {
-                byte[] header = supportedImageFormat.FileHeader;
-                if (header.SequenceEqual(buffer.Take(header.Length)))
+                byte[][] headers = supportedImageFormat.FileHeaders;
+
+                // ReSharper disable once LoopCanBeConvertedToQuery
+                foreach (byte[] header in headers)
                 {
-                    stream.Position = 0;
-                    return supportedImageFormat;
+                    if (header.SequenceEqual(buffer.Take(header.Length)))
+                    {
+                        stream.Position = 0;
+                        return supportedImageFormat;
+                    }
                 }
             }
 

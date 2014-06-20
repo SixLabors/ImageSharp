@@ -21,9 +21,9 @@ namespace ImageProcessor.Imaging.Formats
     public interface ISupportedImageFormat
     {
         /// <summary>
-        /// Gets the file header.
+        /// Gets the file headers.
         /// </summary>
-        byte[] FileHeader { get; }
+        byte[][] FileHeaders { get; }
 
         /// <summary>
         /// Gets the list of file extensions.

@@ -34,6 +34,9 @@ namespace ImageProcessor.Imaging.Formats
         /// </returns>
         public static ISupportedImageFormat GetFormat(Stream stream)
         {
+            // Reset the position of the stream to ensure we're reading the correct part.
+            stream.Position = 0;
+
             IEnumerable<ISupportedImageFormat> supportedImageFormats =
                 ImageProcessorBootstrapper.Instance.SupportedImageFormats;
 

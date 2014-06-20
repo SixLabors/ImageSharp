@@ -68,19 +68,19 @@ namespace ImageProcessor.Imaging.Formats
         /// <summary>
         /// Saves the current image to the specified output stream.
         /// </summary>
-        /// <param name="memoryStream">The <see cref="T:System.IO.MemoryStream" /> to save the image information to.</param>
+        /// <param name="stream">The <see cref="T:System.IO.Stream" /> to save the image information to.</param>
         /// <param name="image">The <see cref="T:System.Drawing.Image" /> to save.</param>
         /// <returns>
         /// The <see cref="T:System.Drawing.Image" />.
         /// </returns>
-        public override Image Save(MemoryStream memoryStream, Image image)
+        public override Image Save(Stream stream, Image image)
         {
             if (this.IsIndexed)
             {
                 image = new OctreeQuantizer(255, 8).Quantize(image);
             }
 
-            return base.Save(memoryStream, image);
+            return base.Save(stream, image);
         }
 
         /// <summary>

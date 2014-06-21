@@ -26,6 +26,14 @@ namespace ImageProcessor.Processors
     public class Format : IGraphicsProcessor
     {
         /// <summary>
+        /// Initializes a new instance of the <see cref="Format"/> class.
+        /// </summary>
+        public Format()
+        {
+            this.Settings = new Dictionary<string, string>();
+        }
+
+        /// <summary>
         /// Gets or sets DynamicParameter.
         /// </summary>
         public dynamic DynamicParameter

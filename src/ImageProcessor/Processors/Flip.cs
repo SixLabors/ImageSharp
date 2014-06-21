@@ -22,6 +22,14 @@ namespace ImageProcessor.Processors
     public class Flip : IGraphicsProcessor
     {
         /// <summary>
+        /// Initializes a new instance of the <see cref="Flip"/> class.
+        /// </summary>
+        public Flip()
+        {
+            this.Settings = new Dictionary<string, string>();
+        }
+
+        /// <summary>
         /// Gets or sets DynamicParameter.
         /// </summary>
         public dynamic DynamicParameter

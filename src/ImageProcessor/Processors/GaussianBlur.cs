@@ -20,6 +20,14 @@ namespace ImageProcessor.Processors
     public class GaussianBlur : IGraphicsProcessor
     {
         /// <summary>
+        /// Initializes a new instance of the <see cref="GaussianBlur"/> class.
+        /// </summary>
+        public GaussianBlur()
+        {
+            this.Settings = new Dictionary<string, string>();
+        }
+
+        /// <summary>
         /// Gets or sets the DynamicParameter.
         /// </summary>
         public dynamic DynamicParameter { get; set; }

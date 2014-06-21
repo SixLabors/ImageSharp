@@ -106,7 +106,6 @@
     <Compile Include="Imaging\ImageUtils.cs" />
     <Compile Include="Imaging\ResizeMode.cs" />
     <Compile Include="Imaging\ResponseType.cs" />
-    <Compile Include="Imaging\RotateLayer.cs" />
     <Compile Include="Imaging\RoundedCornerLayer.cs" />
     <Compile Include="Imaging\TextLayer.cs" />
     <Compile Include="Imaging\OctreeQuantizer.cs" />

@@ -10,7 +10,6 @@
 
 namespace ImageProcessor.Processors
 {
-    #region Using
     using System;
     using System.Collections.Generic;
     using System.Drawing;
@@ -19,14 +18,20 @@ namespace ImageProcessor.Processors
     using System.Globalization;
     using System.Linq;
     using ImageProcessor.Imaging;
-    #endregion
 
     /// <summary>
     /// Resizes an image to the given dimensions.
     /// </summary>
     public class Resize : IGraphicsProcessor
     {
-        #region IGraphicsProcessor Members
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Resize"/> class.
+        /// </summary>
+        public Resize()
+        {
+            this.Settings = new Dictionary<string, string>();
+        }
+
         /// <summary>
         /// Gets or sets DynamicParameter.
         /// </summary>
@@ -77,7 +82,6 @@ namespace ImageProcessor.Processors
 
             return this.ResizeImage(factory, width, height, defaultMaxWidth, defaultMaxHeight, this.RestrictedSizes, mode, anchor, upscale, centerCoordinates);
         }
-        #endregion
 
         /// <summary>
         /// The resize image.

@@ -24,6 +24,14 @@ namespace ImageProcessor.Processors
     public class Crop : IGraphicsProcessor
     {
         /// <summary>
+        /// Initializes a new instance of the <see cref="Crop"/> class.
+        /// </summary>
+        public Crop()
+        {
+            this.Settings = new Dictionary<string, string>();
+        }
+
+        /// <summary>
         /// Gets or sets DynamicParameter.
         /// </summary>
         public dynamic DynamicParameter

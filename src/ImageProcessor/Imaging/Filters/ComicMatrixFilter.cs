@@ -23,7 +23,7 @@ namespace ImageProcessor.Imaging.Filters
     /// <summary>
     /// Encapsulates methods with which to add a comic filter to an image.
     /// </summary>
-    internal class ComicMatrixFilter : IMatrixFilter
+    internal class ComicMatrixFilter : MatrixFilterBase
     {
         /// <summary>
         /// Enumerates Argb color channels.
@@ -45,7 +45,7 @@ namespace ImageProcessor.Imaging.Filters
         /// <summary>
         /// Gets the <see cref="T:System.Drawing.Imaging.ColorMatrix"/> for this filter instance.
         /// </summary>
-        public ColorMatrix Matrix
+        public override ColorMatrix Matrix
         {
             get { return ColorMatrixes.ComicLow; }
         }
@@ -54,7 +54,7 @@ namespace ImageProcessor.Imaging.Filters
         /// Processes the image.
         /// </summary>
         /// <param name="factory">
-        /// The the current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class containing
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class containing
         /// the image to process.
         /// </param>
         /// <param name="image">The current image to process</param>
@@ -62,7 +62,7 @@ namespace ImageProcessor.Imaging.Filters
         /// <returns>
         /// The processed image from the current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
         /// </returns>
-        public Image TransformImage(ImageFactory factory, Image image, Image newImage)
+        public override Image TransformImage(ImageFactory factory, Image image, Image newImage)
         {
             // Bitmaps for comic pattern
             Bitmap highBitmap = null;
@@ -135,7 +135,7 @@ namespace ImageProcessor.Imaging.Filters
                         graphics.DrawImage(highBitmap, 0, 0);
                         graphics.DrawImage(lowBitmap, 0, 0);
                         graphics.DrawImage(edgeBitmap, 0, 0);
-                      
+
                         // Draw an edge around the image.
                         using (Pen blackPen = new Pen(Color.Black))
                         {

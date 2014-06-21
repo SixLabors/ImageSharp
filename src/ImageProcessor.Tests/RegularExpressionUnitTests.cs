@@ -11,6 +11,8 @@ namespace ImageProcessor.Tests
 
     using ImageProcessor.Configuration;
     using ImageProcessor.Imaging;
+    using ImageProcessor.Imaging.Filters;
+    using ImageProcessor.Imaging.Formats;
     using ImageProcessor.Processors;
     using Microsoft.VisualStudio.TestTools.UnitTesting;
     #endregion
@@ -99,14 +101,14 @@ namespace ImageProcessor.Tests
         {
             // Should really write more for the other filters.
             const string Querystring = "filter=lomograph";
-            const string Expected = "lomograph";
+            IMatrixFilter expected = MatrixFilters.Lomograph;
 
             Web.Processors.Filter filter = new Web.Processors.Filter();
             filter.MatchRegexIndex(Querystring);
 
-            string actual = filter.Processor.DynamicParameter;
+            IMatrixFilter actual = filter.Processor.DynamicParameter;
 
-            Assert.AreEqual(Expected, actual);
+            Assert.AreEqual(expected, actual);
         }
 
         /// <summary>
@@ -116,14 +118,14 @@ namespace ImageProcessor.Tests
         public void TestFormatRegex()
         {
             const string Querystring = "format=gif";
-            const string Expected = "gif";
+            ISupportedImageFormat expected = new GifFormat();
 
             Web.Processors.Format format = new Web.Processors.Format();
             format.MatchRegexIndex(Querystring);
 
-            string actual = format.Processor.DynamicParameter;
+            ISupportedImageFormat actual = format.Processor.DynamicParameter;
 
-            Assert.AreEqual(Expected, actual);
+            Assert.AreEqual(expected, actual);
         }
 
         /// <summary>
@@ -185,17 +187,16 @@ namespace ImageProcessor.Tests
         {
             const string Querystring = "roundedcorners=30";
             RoundedCornerLayer expected = new RoundedCornerLayer(30, true, true, true, true);
-
-            RoundedCorners roundedCorners = new RoundedCorners();
+            Web.Processors.RoundedCorners roundedCorners = new Web.Processors.RoundedCorners();
             roundedCorners.MatchRegexIndex(Querystring);
 
-            RoundedCornerLayer actual = roundedCorners.DynamicParameter;
+            RoundedCornerLayer actual = roundedCorners.Processor.DynamicParameter;
 
             Assert.AreEqual(expected, actual);
         }
 
         /// <summary>
-        /// The rounded corners regex unit test.
+        /// The tint regex unit test.
         /// </summary>
         [TestMethod]
         public void TestTintRegex()

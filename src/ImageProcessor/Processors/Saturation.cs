@@ -24,7 +24,14 @@ namespace ImageProcessor.Processors
     /// </remarks>
     public class Saturation : IGraphicsProcessor
     {
-        #region IGraphicsProcessor Members
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Saturation"/> class.
+        /// </summary>
+        public Saturation()
+        {
+            this.Settings = new Dictionary<string, string>();
+        }
+
         /// <summary>
         /// Gets or sets DynamicParameter.
         /// </summary>
@@ -129,6 +136,5 @@ namespace ImageProcessor.Processors
 
             return image;
         }
-        #endregion
     }
 }

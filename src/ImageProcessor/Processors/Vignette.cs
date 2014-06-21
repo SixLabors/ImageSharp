@@ -29,6 +29,7 @@ namespace ImageProcessor.Processors
         public Vignette()
         {
             this.DynamicParameter = Color.Black;
+            this.Settings = new Dictionary<string, string>();
         }
 
         /// <summary>

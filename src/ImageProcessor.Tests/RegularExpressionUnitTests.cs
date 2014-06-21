@@ -8,12 +8,9 @@ namespace ImageProcessor.Tests
 {
     #region Using
     using System.Drawing;
-
-    using ImageProcessor.Configuration;
     using ImageProcessor.Imaging;
     using ImageProcessor.Imaging.Filters;
     using ImageProcessor.Imaging.Formats;
-    using ImageProcessor.Processors;
     using Microsoft.VisualStudio.TestTools.UnitTesting;
     #endregion
 
@@ -169,14 +166,14 @@ namespace ImageProcessor.Tests
         public void TestRotateRegex()
         {
             const string Querystring = "rotate=270";
-            RotateLayer expected = new RotateLayer(270, Color.Transparent);
+            const int Expected = 270;
 
             Web.Processors.Rotate rotate = new Web.Processors.Rotate();
             rotate.MatchRegexIndex(Querystring);
 
-            RotateLayer actual = rotate.Processor.DynamicParameter;
+            int actual = rotate.Processor.DynamicParameter;
 
-            Assert.AreEqual(expected, actual);
+            Assert.AreEqual(Expected, actual);
         }
 
         /// <summary>

@@ -20,6 +20,14 @@ namespace ImageProcessor.Processors
     public class GaussianSharpen : IGraphicsProcessor
     {
         /// <summary>
+        /// Initializes a new instance of the <see cref="GaussianSharpen"/> class.
+        /// </summary>
+        public GaussianSharpen()
+        {
+            this.Settings = new Dictionary<string, string>();
+        }
+
+        /// <summary>
         /// Gets or sets the DynamicParameter.
         /// </summary>
         public dynamic DynamicParameter { get; set; }

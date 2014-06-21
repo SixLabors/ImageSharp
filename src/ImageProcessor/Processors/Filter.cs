@@ -23,6 +23,14 @@ namespace ImageProcessor.Processors
     public class Filter : IGraphicsProcessor
     {
         /// <summary>
+        /// Initializes a new instance of the <see cref="Filter"/> class.
+        /// </summary>
+        public Filter()
+        {
+            this.Settings = new Dictionary<string, string>();
+        }
+
+        /// <summary>
         /// Gets or sets DynamicParameter.
         /// </summary>
         public dynamic DynamicParameter

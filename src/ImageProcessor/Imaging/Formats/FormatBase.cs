@@ -14,6 +14,7 @@ namespace ImageProcessor.Imaging.Formats
     using System.Drawing;
     using System.Drawing.Imaging;
     using System.IO;
+    using System.Linq;
 
     /// <summary>
     /// The supported format base. Implement this class when building a supported format.
@@ -83,7 +84,7 @@ namespace ImageProcessor.Imaging.Formats
         /// The <see cref="T:System.IO.stream" /> containing the image information.
         /// </param>
         /// <returns>
-        /// The the <see cref="T:System.Drawing.Image" />.
+        /// The <see cref="T:System.Drawing.Image" />.
         /// </returns>
         public virtual Image Load(Stream stream)
         {
@@ -118,6 +119,36 @@ namespace ImageProcessor.Imaging.Formats
         {
             image.Save(path, this.ImageFormat);
             return image;
+        }
+
+        /// <summary>
+        /// Determines whether the specified <see cref="System.Object" />, is equal to this instance.
+        /// </summary>
+        /// <param name="obj">The <see cref="System.Object" /> to compare with this instance.</param>
+        /// <returns>
+        ///   <c>true</c> if the specified <see cref="System.Object" /> is equal to this instance; otherwise, <c>false</c>.
+        /// </returns>
+        public override bool Equals(object obj)
+        {
+            ISupportedImageFormat format = obj as ISupportedImageFormat;
+
+            if (format == null)
+            {
+                return false;
+            }
+
+            return this.MimeType.Equals(format.MimeType);
+        }
+
+        /// <summary>
+        /// Returns a hash code for this instance.
+        /// </summary>
+        /// <returns>
+        /// A hash code for this instance, suitable for use in hashing algorithms and data structures like a hash table. 
+        /// </returns>
+        public override int GetHashCode()
+        {
+            return this.MimeType.GetHashCode();
         }
     }
 }

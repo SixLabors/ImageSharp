@@ -75,6 +75,7 @@
     <Compile Include="Processors\Quality.cs" />
     <Compile Include="Processors\Resize.cs" />
     <Compile Include="Processors\Rotate.cs" />
+    <Compile Include="Processors\RoundedCorners.cs" />
     <Compile Include="Processors\Saturation.cs" />
     <Compile Include="Processors\Tint.cs" />
     <Compile Include="Processors\Vignette.cs" />

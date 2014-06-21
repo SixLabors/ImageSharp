@@ -21,6 +21,14 @@ namespace ImageProcessor.Processors
     public class Tint : IGraphicsProcessor
     {
         /// <summary>
+        /// Initializes a new instance of the <see cref="Tint"/> class.
+        /// </summary>
+        public Tint()
+        {
+            this.Settings = new Dictionary<string, string>();
+        }
+
+        /// <summary>
         /// Gets or sets DynamicParameter.
         /// </summary>
         public dynamic DynamicParameter { get; set; }

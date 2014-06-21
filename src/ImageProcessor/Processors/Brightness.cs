@@ -20,6 +20,14 @@ namespace ImageProcessor.Processors
     public class Brightness : IGraphicsProcessor
     {
         /// <summary>
+        /// Initializes a new instance of the <see cref="Brightness"/> class.
+        /// </summary>
+        public Brightness()
+        {
+            this.Settings = new Dictionary<string, string>();
+        }
+
+        /// <summary>
         /// Gets or sets DynamicParameter.
         /// </summary>
         public dynamic DynamicParameter

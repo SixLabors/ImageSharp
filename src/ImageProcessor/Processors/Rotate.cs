@@ -10,19 +10,24 @@
 
 namespace ImageProcessor.Processors
 {
-    #region Using
     using System;
     using System.Collections.Generic;
     using System.Drawing;
     using System.Drawing.Drawing2D;
-    #endregion
 
     /// <summary>
     /// Encapsulates methods to rotate an image.
     /// </summary>
     public class Rotate : IGraphicsProcessor
     {
-        #region IGraphicsProcessor members
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Rotate"/> class.
+        /// </summary>
+        public Rotate()
+        {
+            this.Settings = new Dictionary<string, string>();
+        }
+
         /// <summary>
         /// Gets or sets DynamicParameter.
         /// </summary>
@@ -80,7 +85,6 @@ namespace ImageProcessor.Processors
 
             return image;
         }
-        #endregion
 
         #region Private Methods
         /// <summary>

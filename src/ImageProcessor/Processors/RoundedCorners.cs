@@ -14,8 +14,6 @@ namespace ImageProcessor.Processors
     using System.Collections.Generic;
     using System.Drawing;
     using System.Drawing.Drawing2D;
-    using System.Globalization;
-    using System.Text.RegularExpressions;
     using ImageProcessor.Imaging;
     #endregion
 
@@ -24,6 +22,14 @@ namespace ImageProcessor.Processors
     /// </summary>
     public class RoundedCorners : IGraphicsProcessor
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RoundedCorners"/> class.
+        /// </summary>
+        public RoundedCorners()
+        {
+            this.Settings = new Dictionary<string, string>();
+        }
+
         /// <summary>
         /// Gets or sets DynamicParameter.
         /// </summary>

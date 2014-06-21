@@ -22,6 +22,14 @@ namespace ImageProcessor.Processors
     public class Watermark : IGraphicsProcessor
     {
         /// <summary>
+        /// Initializes a new instance of the <see cref="Watermark"/> class.
+        /// </summary>
+        public Watermark()
+        {
+            this.Settings = new Dictionary<string, string>();
+        }
+
+        /// <summary>
         /// Gets or sets DynamicParameter.
         /// </summary>
         public dynamic DynamicParameter

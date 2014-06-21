@@ -76,6 +76,7 @@
     <Compile Include="Imaging\CropLayer.cs" />
     <Compile Include="Imaging\CropMode.cs" />
     <Compile Include="Imaging\ExifPropertyTag.cs" />
+    <Compile Include="Imaging\Filters\MatrixFilterBase.cs" />
     <Compile Include="Imaging\Filters\MatrixFilters.cs" />
     <Compile Include="Imaging\Formats\BitmapFormat.cs" />
     <Compile Include="Imaging\Formats\TiffFormat.cs" />

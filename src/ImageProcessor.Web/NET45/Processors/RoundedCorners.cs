@@ -1,11 +1,20 @@
-﻿
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="RoundedCorners.cs" company="James South">
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
+// </copyright>
+// <summary>
+//   Encapsulates methods to add rounded corners to an image.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
+
 namespace ImageProcessor.Web.Processors
 {
-    using System.Drawing;
     using System.Globalization;
     using System.Text.RegularExpressions;
     using ImageProcessor.Imaging;
     using ImageProcessor.Processors;
+    using ImageProcessor.Web.Helpers;
 
     /// <summary>
     /// Encapsulates methods to add rounded corners to an image.
@@ -15,37 +24,40 @@ namespace ImageProcessor.Web.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"roundedcorners=(\d+|[^&]*)", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"roundedcorners=[^&]+", RegexOptions.Compiled);
 
         /// <summary>
         /// The regular expression to search strings for the angle attribute.
         /// </summary>
-        private static readonly Regex RadiusRegex = new Regex(@"radius-(\d+)", RegexOptions.Compiled);
-
-        /// <summary>
-        /// The regular expression to search strings for the color attribute.
-        /// </summary>
-        private static readonly Regex ColorRegex = new Regex(@"bgcolor-([0-9a-fA-F]{3}){1,2}", RegexOptions.Compiled);
+        private static readonly Regex RadiusRegex = new Regex(@"(roundedcorners|radius)(=|-)(\d+)", RegexOptions.Compiled);
 
         /// <summary>
         /// The regular expression to search strings for the top left attribute.
         /// </summary>
-        private static readonly Regex TopLeftRegex = new Regex(@"tl-(true|false)", RegexOptions.Compiled);
+        private static readonly Regex TopLeftRegex = new Regex(@"tl(=|-)(true|false)", RegexOptions.Compiled);
 
         /// <summary>
         /// The regular expression to search strings for the top right attribute.
         /// </summary>
-        private static readonly Regex TopRightRegex = new Regex(@"tr-(true|false)", RegexOptions.Compiled);
+        private static readonly Regex TopRightRegex = new Regex(@"tr(=|-)(true|false)", RegexOptions.Compiled);
 
         /// <summary>
         /// The regular expression to search strings for the bottom left attribute.
         /// </summary>
-        private static readonly Regex BottomLeftRegex = new Regex(@"bl-(true|false)", RegexOptions.Compiled);
+        private static readonly Regex BottomLeftRegex = new Regex(@"bl(=|-)(true|false)", RegexOptions.Compiled);
 
         /// <summary>
         /// The regular expression to search strings for the bottom right attribute.
         /// </summary>
-        private static readonly Regex BottomRightRegex = new Regex(@"br-(true|false)", RegexOptions.Compiled);
+        private static readonly Regex BottomRightRegex = new Regex(@"br(=|-)(true|false)", RegexOptions.Compiled);
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RoundedCorners"/> class.
+        /// </summary>
+        public RoundedCorners()
+        {
+            this.Processor = new ImageProcessor.Processors.RoundedCorners();
+        }
 
         /// <summary>
         /// Gets the regular expression to search strings for.
@@ -91,21 +103,13 @@ namespace ImageProcessor.Web.Processors
                         // Set the index on the first instance only.
                         this.SortOrder = match.Index;
 
-                        RoundedCornerLayer roundedCornerLayer;
-
-                        string toParse = match.Value;
-
-                        if (toParse.Contains("bgcolor"))
-                        {
-                            roundedCornerLayer = new RoundedCornerLayer(this.ParseRadius(toParse), this.ParseColor(toParse), this.ParseCorner(TopLeftRegex, toParse), this.ParseCorner(TopRightRegex, toParse), this.ParseCorner(BottomLeftRegex, toParse), this.ParseCorner(BottomRightRegex, toParse));
-                        }
-                        else
-                        {
-                            int radius;
-                            int.TryParse(match.Value.Split('=')[1], NumberStyles.Any, CultureInfo.InvariantCulture, out radius);
-
-                            roundedCornerLayer = new RoundedCornerLayer(radius, this.ParseCorner(TopLeftRegex, toParse), this.ParseCorner(TopRightRegex, toParse), this.ParseCorner(BottomLeftRegex, toParse), this.ParseCorner(BottomRightRegex, toParse));
-                        }
+                        RoundedCornerLayer roundedCornerLayer = new RoundedCornerLayer(
+                                this.ParseRadius(queryString), 
+                                CommonParameterParserUtility.ParseColor(queryString), 
+                                this.ParseCorner(TopLeftRegex, queryString),
+                                this.ParseCorner(TopRightRegex, queryString),
+                                this.ParseCorner(BottomLeftRegex, queryString),
+                                this.ParseCorner(BottomRightRegex, queryString));
 
                         this.Processor.DynamicParameter = roundedCornerLayer;
                     }
@@ -133,32 +137,12 @@ namespace ImageProcessor.Web.Processors
             {
                 // Split on radius-
                 int radius;
-                int.TryParse(match.Value.Split('-')[1], NumberStyles.Any, CultureInfo.InvariantCulture, out radius);
+                int.TryParse(match.Value.Split(new[] { '=', '-' })[1], NumberStyles.Any, CultureInfo.InvariantCulture, out radius);
                 return radius;
             }
 
-            // No rotate - matches the RotateLayer default.
+            // No corners - matches the RoundedCorner default.
             return 0;
-        }
-
-        /// <summary>
-        /// Returns the correct <see cref="T:System.Drawing.Color"/> for the given string.
-        /// </summary>
-        /// <param name="input">
-        /// The input string containing the value to parse.
-        /// </param>
-        /// <returns>
-        /// The correct <see cref="T:System.Drawing.Color"/>
-        /// </returns>
-        private Color ParseColor(string input)
-        {
-            foreach (Match match in ColorRegex.Matches(input))
-            {
-                // split on color-hex
-                return ColorTranslator.FromHtml("#" + match.Value.Split('-')[1]);
-            }
-
-            return Color.Transparent;
         }
 
         /// <summary>
@@ -179,11 +163,11 @@ namespace ImageProcessor.Web.Processors
             {
                 // Split on corner-
                 bool cornerRound;
-                bool.TryParse(match.Value.Split('-')[1], out cornerRound);
+                bool.TryParse(match.Value.Split(new[] { '=', '-' })[1], out cornerRound);
                 return cornerRound;
             }
 
-            // No rotate - matches the RotateLayer default.
+            // No corners - matches the RoundedCorner default.
             return true;
         }
         #endregion

@@ -46,7 +46,7 @@ namespace ImageProcessor.Processors
         /// Processes the image.
         /// </summary>
         /// <param name="factory">
-        /// The the current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class containing
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class containing
         /// the image to process.
         /// </param>
         /// <returns>

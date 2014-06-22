@@ -10,8 +10,11 @@
 
 namespace ImageProcessor.Processors
 {
+    using System;
     using System.Collections.Generic;
     using System.Drawing;
+
+    using ImageProcessor.Core.Common.Exceptions;
     using ImageProcessor.Imaging.Formats;
 
     /// <summary>
@@ -57,8 +60,16 @@ namespace ImageProcessor.Processors
         /// </returns>
         public Image ProcessImage(ImageFactory factory)
         {
-            ISupportedImageFormat format = this.DynamicParameter;
-            factory.Format(format);
+            try
+            {
+                ISupportedImageFormat format = this.DynamicParameter;
+                factory.Format(format);
+            }
+            catch (Exception ex)
+            {
+                throw new ImageProcessingException("Error processing image with " + this.GetType().Name, ex);
+            }
+
             return factory.Image;
         }
     }

@@ -15,6 +15,8 @@ namespace ImageProcessor.Processors
     using System.Drawing;
     using System.Drawing.Drawing2D;
 
+    using ImageProcessor.Core.Common.Exceptions;
+
     /// <summary>
     /// Encapsulates methods to rotate an image.
     /// </summary>
@@ -75,7 +77,11 @@ namespace ImageProcessor.Processors
                 image.Dispose();
                 image = newImage;
             }
-            catch
+            catch (Exception ex)
+            {
+                throw new ImageProcessingException("Error processing image with " + this.GetType().Name, ex);
+            }
+            finally
             {
                 if (newImage != null)
                 {

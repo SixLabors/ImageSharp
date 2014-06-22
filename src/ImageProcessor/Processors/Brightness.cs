@@ -10,9 +10,12 @@
 
 namespace ImageProcessor.Processors
 {
+    using System;
     using System.Collections.Generic;
     using System.Drawing;
     using System.Drawing.Imaging;
+
+    using ImageProcessor.Core.Common.Exceptions;
 
     /// <summary>
     /// Encapsulates methods to change the brightness component of the image.
@@ -96,7 +99,11 @@ namespace ImageProcessor.Processors
                     }
                 }
             }
-            catch
+            catch (Exception ex)
+            {
+                throw new ImageProcessingException("Error processing image with " + this.GetType().Name, ex);
+            }
+            finally
             {
                 if (newImage != null)
                 {

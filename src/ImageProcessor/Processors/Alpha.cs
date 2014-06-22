@@ -10,9 +10,12 @@
 
 namespace ImageProcessor.Processors
 {
+    using System;
     using System.Collections.Generic;
     using System.Drawing;
     using System.Drawing.Imaging;
+
+    using ImageProcessor.Core.Common.Exceptions;
 
     /// <summary>
     /// Encapsulates methods to change the alpha component of the image to effect its transparency.
@@ -76,14 +79,26 @@ namespace ImageProcessor.Processors
                     {
                         imageAttributes.SetColorMatrix(colorMatrix);
 
-                        graphics.DrawImage(image, new Rectangle(0, 0, image.Width, image.Height), 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, imageAttributes);
+                        graphics.DrawImage(
+                            image,
+                            new Rectangle(0, 0, image.Width, image.Height),
+                            0,
+                            0,
+                            image.Width,
+                            image.Height,
+                            GraphicsUnit.Pixel,
+                            imageAttributes);
 
                         image.Dispose();
                         image = newImage;
                     }
                 }
             }
-            catch
+            catch (Exception ex)
+            {
+                throw new ImageProcessingException("Error processing image with " + this.GetType().Name, ex);
+            }
+            finally
             {
                 if (newImage != null)
                 {

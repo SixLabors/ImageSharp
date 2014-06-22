@@ -11,6 +11,7 @@
 namespace ImageProcessor.Core.Common.Exceptions
 {
     using System;
+    using System.Runtime.Serialization;
 
     /// <summary>
     /// The exception that is thrown when loading the supported image format types has failed.

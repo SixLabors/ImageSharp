@@ -10,6 +10,7 @@
 
 namespace ImageProcessor.Imaging.Formats
 {
+    using System;
     using System.Collections.Generic;
     using System.Drawing;
     using System.Drawing.Imaging;
@@ -53,7 +54,9 @@ namespace ImageProcessor.Imaging.Formats
                     if (header.SequenceEqual(buffer.Take(header.Length)))
                     {
                         stream.Position = 0;
-                        return supportedImageFormat;
+
+                        // Return a new instance as we want to use instance properties.
+                        return Activator.CreateInstance(supportedImageFormat.GetType()) as ISupportedImageFormat;
                     }
                 }
             }

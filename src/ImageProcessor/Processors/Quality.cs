@@ -11,8 +11,13 @@
 namespace ImageProcessor.Processors
 {
     #region Using
+
+    using System;
     using System.Collections.Generic;
     using System.Drawing;
+
+    using ImageProcessor.Core.Common.Exceptions;
+
     #endregion
 
     /// <summary>
@@ -58,7 +63,15 @@ namespace ImageProcessor.Processors
         /// </returns>
         public Image ProcessImage(ImageFactory factory)
         {
-            factory.CurrentImageFormat.Quality = this.DynamicParameter;
+            try
+            {
+                factory.CurrentImageFormat.Quality = this.DynamicParameter;
+            }
+            catch (Exception ex)
+            {
+                throw new ImageProcessingException("Error processing image with " + this.GetType().Name, ex);
+            }
+
             return factory.Image;
         }
     }

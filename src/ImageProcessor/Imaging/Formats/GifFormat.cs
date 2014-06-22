@@ -113,10 +113,7 @@ namespace ImageProcessor.Imaging.Formats
         /// </returns>
         public override Image Save(Stream stream, Image image)
         {
-            // TODO: Move this in here. It doesn't need to be anywhere else.
-            ImageInfo imageInfo = image.GetImageInfo(this.ImageFormat, false);
-
-            if (!imageInfo.IsAnimated)
+            if (!ImageAnimator.CanAnimate(image))
             {
                 image = new OctreeQuantizer(255, 8).Quantize(image);
             }
@@ -135,10 +132,7 @@ namespace ImageProcessor.Imaging.Formats
         /// </returns>
         public override Image Save(string path, Image image)
         {
-            // TODO: Move this in here. It doesn't need to be anywhere else.
-            ImageInfo imageInfo = image.GetImageInfo(this.ImageFormat, false);
-
-            if (!imageInfo.IsAnimated)
+            if (!ImageAnimator.CanAnimate(image))
             {
                 image = new OctreeQuantizer(255, 8).Quantize(image);
             }

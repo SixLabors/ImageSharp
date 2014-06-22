@@ -10,11 +10,9 @@
 
 namespace ImageProcessor.Processors
 {
-    #region Using
     using System.Collections.Generic;
     using System.Drawing;
     using ImageProcessor.Imaging.Formats;
-    #endregion
 
     /// <summary>
     /// Sets the output of the image to a specific format.

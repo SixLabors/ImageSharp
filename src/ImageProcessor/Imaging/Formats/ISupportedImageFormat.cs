@@ -51,11 +51,6 @@ namespace ImageProcessor.Imaging.Formats
         bool IsIndexed { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether the image format is animated.
-        /// </summary>
-        bool IsAnimated { get; set; }
-
-        /// <summary>
         /// Gets or sets the quality of output for images.
         /// </summary>
         int Quality { get; set; }

@@ -11,10 +11,14 @@
 namespace ImageProcessor.Processors
 {
     #region Using
+
+    using System;
     using System.Collections.Generic;
     using System.Drawing;
     using System.Drawing.Drawing2D;
     using System.Drawing.Imaging;
+
+    using ImageProcessor.Core.Common.Exceptions;
     using ImageProcessor.Imaging;
     #endregion
 
@@ -132,7 +136,11 @@ namespace ImageProcessor.Processors
                     }
                 }
             }
-            catch
+            catch (Exception ex)
+            {
+                throw new ImageProcessingException("Error processing image with " + this.GetType().Name, ex);
+            }
+            finally
             {
                 if (newImage != null)
                 {

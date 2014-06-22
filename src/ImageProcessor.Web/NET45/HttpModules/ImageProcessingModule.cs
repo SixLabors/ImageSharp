@@ -412,8 +412,7 @@ namespace ImageProcessor.Web.HttpModules
 
                                                     // Process the Image
                                                     imageFactory.Load(memoryStream)
-                                                                .AddQueryString(queryString)
-                                                                .AutoProcess()
+                                                                .AutoProcess(queryString)
                                                                 .Save(cachedPath);
 
                                                     // Store the response type in the context for later retrieval.
@@ -451,7 +450,9 @@ namespace ImageProcessor.Web.HttpModules
                                     semaphore.Wait();
 
                                     // Process the Image
-                                    imageFactory.Load(fullPath).AutoProcess().Save(cachedPath);
+                                    imageFactory.Load(requestPath)
+                                                .AutoProcess(queryString)
+                                                .Save(cachedPath);
 
                                     // Store the response type in the context for later retrieval.
                                     context.Items[CachedResponseTypeKey] = imageFactory.CurrentImageFormat.MimeType;

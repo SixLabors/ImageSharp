@@ -134,24 +134,30 @@ namespace ImageProcessor.Web.Processors
         {
             identifier = identifier.ToLowerInvariant();
             string finalIdentifier = identifier.Equals("png8") ? "png" : identifier;
+            ISupportedImageFormat newFormat = null;
             ISupportedImageFormat format = ImageProcessorBootstrapper.Instance.SupportedImageFormats
                                            .FirstOrDefault(f => f.FileExtensions.Any(e => e.Equals(finalIdentifier, StringComparison.InvariantCultureIgnoreCase)));
 
             if (format != null)
             {
-                // I wish this wasn't hard-coded but there's no way I can
-                // find to preserve the palette.
-                if (identifier.Equals("png8"))
+                // Return a new instance as we want to use instance properties.
+                newFormat = Activator.CreateInstance(format.GetType()) as ISupportedImageFormat;
+                if (newFormat != null)
                 {
-                    format.IsIndexed = true;
-                }
-                else if (identifier.Equals("png"))
-                {
-                    format.IsIndexed = false;
+                    // I wish this wasn't hard-coded but there's no way I can
+                    // find to preserve the palette.
+                    if (identifier.Equals("png8"))
+                    {
+                        newFormat.IsIndexed = true;
+                    }
+                    else if (identifier.Equals("png"))
+                    {
+                        newFormat.IsIndexed = false;
+                    }
                 }
             }
 
-            return format;
+            return newFormat;
         }
     }
 }

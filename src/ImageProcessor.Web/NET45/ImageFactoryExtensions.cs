@@ -34,10 +34,11 @@ namespace ImageProcessor.Web
         /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class
         /// that this method extends.
         /// </param>
+        /// <param name="queryString">The collection of querystring parameters to process.</param>
         /// <returns>
         /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
         /// </returns>
-        public static ImageFactory AutoProcess(this ImageFactory factory)
+        public static ImageFactory AutoProcess(this ImageFactory factory, string queryString)
         {
             if (factory.ShouldProcess)
             {
@@ -47,7 +48,7 @@ namespace ImageProcessor.Web
                     // Get a list of all graphics processors that have parsed and matched the query string.
                     List<IWebGraphicsProcessor> graphicsProcessors =
                         ImageProcessorConfiguration.Instance.GraphicsProcessors
-                        .Where(x => x.MatchRegexIndex(factory.QueryString) != int.MaxValue)
+                        .Where(x => x.MatchRegexIndex(queryString) != int.MaxValue)
                         .OrderBy(y => y.SortOrder)
                         .ToList();
 

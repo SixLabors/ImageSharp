@@ -13,11 +13,7 @@ namespace ImageProcessor.Processors
     #region Using
     using System.Collections.Generic;
     using System.Drawing;
-    using System.Drawing.Imaging;
-    using System.Text.RegularExpressions;
-
     using ImageProcessor.Imaging.Formats;
-
     #endregion
 
     /// <summary>

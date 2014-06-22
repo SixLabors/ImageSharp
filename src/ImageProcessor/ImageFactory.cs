@@ -95,11 +95,6 @@ namespace ImageProcessor
         public string ImagePath { get; private set; }
 
         /// <summary>
-        /// Gets the query-string parameters for web image manipulation.
-        /// </summary>
-        public string QueryString { get; private set; }
-
-        /// <summary>
         /// Gets a value indicating whether the image factory should process the file.
         /// </summary>
         public bool ShouldProcess { get; private set; }
@@ -182,23 +177,13 @@ namespace ImageProcessor
         /// </returns>
         public ImageFactory Load(string imagePath)
         {
-            // Remove any querystring parameters passed by web requests.
-            string[] paths = imagePath.Split('?');
-            string path = paths[0];
-            string query = string.Empty;
-
-            if (paths.Length > 1)
+            FileInfo fileInfo = new FileInfo(imagePath);
+            if (fileInfo.Exists)
             {
-                query = paths[1];
-            }
-
-            if (File.Exists(path))
-            {
-                this.ImagePath = path;
-                this.QueryString = query;
+                this.ImagePath = imagePath;
 
                 // Open a file stream to prevent the need for lock.
-                using (FileStream fileStream = new FileStream(path, FileMode.Open, FileAccess.Read))
+                using (FileStream fileStream = new FileStream(imagePath, FileMode.Open, FileAccess.Read))
                 {
                     ISupportedImageFormat format = FormatUtilities.GetFormat(fileStream);
 
@@ -237,6 +222,10 @@ namespace ImageProcessor
                     this.ShouldProcess = true;
                 }
             }
+            else
+            {
+                throw new FileNotFoundException(imagePath);
+            }
 
             return this;
         }
@@ -267,24 +256,6 @@ namespace ImageProcessor
         }
 
         #region Manipulation
-        /// <summary>
-        /// Adds a query-string to the image factory to allow auto-processing of remote files.
-        /// </summary>
-        /// <param name="query">The query-string parameter to process.</param>
-        /// <returns>
-        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
-        /// </returns>
-        public ImageFactory AddQueryString(string query)
-        {
-            // TODO: Remove this.
-            if (this.ShouldProcess)
-            {
-                this.QueryString = query;
-            }
-
-            return this;
-        }
-
         /// <summary>
         /// Changes the opacity of the current image.
         /// </summary>

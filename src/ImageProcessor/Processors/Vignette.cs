@@ -10,13 +10,12 @@
 
 namespace ImageProcessor.Processors
 {
-    #region Using
     using System;
     using System.Collections.Generic;
     using System.Drawing;
     using System.Drawing.Drawing2D;
-    using System.Text.RegularExpressions;
-    #endregion
+
+    using ImageProcessor.Core.Common.Exceptions;
 
     /// <summary>
     /// Encapsulates methods with which to add a vignette image effect to an image.
@@ -117,7 +116,11 @@ namespace ImageProcessor.Processors
                     }
                 }
             }
-            catch
+            catch (Exception ex)
+            {
+                throw new ImageProcessingException("Error processing image with " + this.GetType().Name, ex);
+            }
+            finally
             {
                 if (newImage != null)
                 {

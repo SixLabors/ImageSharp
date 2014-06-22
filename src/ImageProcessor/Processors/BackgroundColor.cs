@@ -10,8 +10,11 @@
 
 namespace ImageProcessor.Processors
 {
+    using System;
     using System.Collections.Generic;
     using System.Drawing;
+
+    using ImageProcessor.Core.Common.Exceptions;
 
     /// <summary>
     /// Changes the background color of an image.
@@ -68,7 +71,11 @@ namespace ImageProcessor.Processors
                 image.Dispose();
                 image = newImage;
             }
-            catch
+            catch (Exception ex)
+            {
+                throw new ImageProcessingException("Error processing image with " + this.GetType().Name, ex);
+            }
+            finally
             {
                 if (newImage != null)
                 {

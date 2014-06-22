@@ -14,13 +14,20 @@ namespace ImageProcessor.Imaging.Formats
     using System.Drawing;
     using System.Drawing.Imaging;
     using System.IO;
-    using System.Linq;
 
     /// <summary>
     /// The supported format base. Implement this class when building a supported format.
     /// </summary>
     public abstract class FormatBase : ISupportedImageFormat
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FormatBase"/> class.
+        /// </summary>
+        protected FormatBase()
+        {
+            this.Quality = 90;
+        }
+
         /// <summary>
         /// Gets the file headers.
         /// </summary>
@@ -56,11 +63,6 @@ namespace ImageProcessor.Imaging.Formats
         /// Gets or sets a value indicating whether the image format is indexed.
         /// </summary>
         public bool IsIndexed { get; set; }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether the image format is animated.
-        /// </summary>
-        public bool IsAnimated { get; set; }
 
         /// <summary>
         /// Gets or sets the quality of output for images.
@@ -137,7 +139,7 @@ namespace ImageProcessor.Imaging.Formats
                 return false;
             }
 
-            return this.MimeType.Equals(format.MimeType);
+            return this.MimeType.Equals(format.MimeType) && this.IsIndexed.Equals(format.IsIndexed);
         }
 
         /// <summary>

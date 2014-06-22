@@ -10,11 +10,11 @@
 
 namespace ImageProcessor.Processors
 {
-    #region Using
+    using System;
     using System.Collections.Generic;
     using System.Drawing;
-    using System.Text.RegularExpressions;
-    #endregion
+
+    using ImageProcessor.Core.Common.Exceptions;
 
     /// <summary>
     /// Flips an image horizontally or vertically.
@@ -74,7 +74,11 @@ namespace ImageProcessor.Processors
                 image.Dispose();
                 image = newImage;
             }
-            catch
+            catch (Exception ex)
+            {
+                throw new ImageProcessingException("Error processing image with " + this.GetType().Name, ex);
+            }
+            finally
             {
                 if (newImage != null)
                 {

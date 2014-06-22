@@ -144,9 +144,6 @@ namespace ImageProcessor
                 throw new ImageFormatException("Input stream is not a supported format.");
             }
 
-            this.backupFormat = format;
-            this.CurrentImageFormat = format;
-
             // Set our image as the memory stream value.
             this.Image = format.Load(memoryStream);
 
@@ -156,6 +153,8 @@ namespace ImageProcessor
             // Set the other properties.
             format.Quality = DefaultQuality;
             format.IsIndexed = ImageUtils.IsIndexed(this.Image);
+            this.backupFormat = format;
+            this.CurrentImageFormat = format;
 
             // Always load the data.
             foreach (PropertyItem propertyItem in this.Image.PropertyItems)
@@ -192,9 +191,6 @@ namespace ImageProcessor
                         throw new ImageFormatException("Input stream is not a supported format.");
                     }
 
-                    this.backupFormat = format;
-                    this.CurrentImageFormat = format;
-
                     MemoryStream memoryStream = new MemoryStream();
 
                     // Copy the stream.
@@ -212,6 +208,8 @@ namespace ImageProcessor
                     // Set the other properties.
                     format.Quality = DefaultQuality;
                     format.IsIndexed = ImageUtils.IsIndexed(this.Image);
+                    this.backupFormat = format;
+                    this.CurrentImageFormat = format;
 
                     // Always load the data.
                     foreach (PropertyItem propertyItem in this.Image.PropertyItems)

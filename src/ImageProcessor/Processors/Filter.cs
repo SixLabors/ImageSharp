@@ -11,9 +11,13 @@
 namespace ImageProcessor.Processors
 {
     #region Using
+
+    using System;
     using System.Collections.Generic;
     using System.Drawing;
     using System.Drawing.Imaging;
+
+    using ImageProcessor.Core.Common.Exceptions;
     using ImageProcessor.Imaging.Filters;
     #endregion
 
@@ -73,7 +77,11 @@ namespace ImageProcessor.Processors
                     return matrix.TransformImage(factory, image, newImage);
                 }
             }
-            catch
+            catch (Exception ex)
+            {
+                throw new ImageProcessingException("Error processing image with " + this.GetType().Name, ex);
+            }
+            finally
             {
                 if (newImage != null)
                 {

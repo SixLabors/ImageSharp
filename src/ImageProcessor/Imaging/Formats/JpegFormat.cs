@@ -23,6 +23,14 @@ namespace ImageProcessor.Imaging.Formats
     public sealed class JpegFormat : FormatBase
     {
         /// <summary>
+        /// Initializes a new instance of the <see cref="JpegFormat"/> class.
+        /// </summary>
+        public JpegFormat()
+        {
+            this.Quality = 90;
+        }
+
+        /// <summary>
         /// Gets the file headers.
         /// </summary>
         public override byte[][] FileHeaders

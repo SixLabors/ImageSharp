@@ -17,6 +17,8 @@ namespace ImageProcessor.Processors
     using System.Drawing.Imaging;
     using System.Globalization;
     using System.Linq;
+
+    using ImageProcessor.Core.Common.Exceptions;
     using ImageProcessor.Imaging;
 
     /// <summary>
@@ -359,7 +361,11 @@ namespace ImageProcessor.Processors
                     }
                 }
             }
-            catch
+            catch (Exception ex)
+            {
+                throw new ImageProcessingException("Error processing image with " + this.GetType().Name, ex);
+            }
+            finally
             {
                 if (newImage != null)
                 {

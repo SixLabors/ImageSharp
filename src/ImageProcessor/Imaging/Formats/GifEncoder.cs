@@ -14,14 +14,12 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Imaging
+namespace ImageProcessor.Imaging.Formats
 {
-    #region Using
     using System;
     using System.Drawing.Imaging;
     using System.IO;
     using System.Linq;
-    #endregion
 
     /// <summary>
     /// Encodes multiple images as an animated gif to a stream.

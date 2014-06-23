@@ -1,5 +1,5 @@
 // --------------------------------------------------------------------------------------------------------------------
-// <copyright file="ImageInfo.cs" company="James South">
+// <copyright file="GifInfo.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -9,17 +9,16 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Core.Common.Extensions
+namespace ImageProcessor.Imaging.Formats
 {
     using System.Collections.Generic;
-
     using ImageProcessor.Imaging;
 
     /// <summary>
     /// Provides information about an image.
     /// <see cref="http://madskristensen.net/post/examine-animated-gife28099s-in-c"/>
     /// </summary>
-    public class ImageInfo
+    public class GifInfo
     {
         /// <summary>
         /// Gets or sets the image width.
@@ -30,11 +29,6 @@ namespace ImageProcessor.Core.Common.Extensions
         /// Gets or sets the image height.
         /// </summary>
         public int Height { get; set; }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether the image is indexed.
-        /// </summary>
-        public bool IsIndexed { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the image is animated.

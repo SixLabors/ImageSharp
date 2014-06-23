@@ -16,6 +16,8 @@ namespace ImageProcessor.Imaging.Formats
     using System.Drawing.Imaging;
     using System.IO;
     using System.Linq;
+    using System.Reflection;
+
     using ImageProcessor.Configuration;
 
     /// <summary>
@@ -93,6 +95,121 @@ namespace ImageProcessor.Imaging.Formats
         public static bool IsAnimated(Image image)
         {
             return ImageAnimator.CanAnimate(image);
+        }
+
+        /// <summary>
+        /// Returns information about the given <see cref="System.Drawing.Image"/>.
+        /// </summary>
+        /// <param name="image">
+        /// The image to extend.
+        /// </param>
+        /// <param name="format">
+        /// The image format.
+        /// </param>
+        /// <param name="fetchFrames">
+        /// Whether to fetch the images frames.
+        /// </param>
+        /// <returns>
+        /// The <see cref="GifInfo"/>.
+        /// </returns>
+        public static GifInfo GetGifInfo(Image image, ImageFormat format, bool fetchFrames = true)
+        {
+            if (image.RawFormat.Guid != ImageFormat.Gif.Guid && format.Guid != ImageFormat.Gif.Guid)
+            {
+                throw new ArgumentException("Image is not a gif.");
+            }
+
+            GifInfo info = new GifInfo
+            {
+                Height = image.Height,
+                Width = image.Width
+            };
+
+            if (IsAnimated(image))
+            {
+                info.IsAnimated = true;
+
+                if (fetchFrames)
+                {
+                    FrameDimension frameDimension = new FrameDimension(image.FrameDimensionsList[0]);
+                    int frameCount = image.GetFrameCount(frameDimension);
+                    int last = frameCount - 1;
+                    int delay = 0;
+                    int index = 0;
+                    List<GifFrame> gifFrames = new List<GifFrame>();
+
+                    for (int f = 0; f < frameCount; f++)
+                    {
+                        int thisDelay = BitConverter.ToInt32(image.GetPropertyItem(20736).Value, index);
+                        int toAddDelay = thisDelay * 10 < 20 ? 20 : thisDelay * 10; // Minimum delay is 20 ms
+
+                        // Find the frame
+                        image.SelectActiveFrame(frameDimension, f);
+
+                        // TODO: Get positions.
+                        gifFrames.Add(new GifFrame { Delay = toAddDelay, Image = (Image)image.Clone() });
+
+                        // Reset the position.
+                        if (f == last)
+                        {
+                            image.SelectActiveFrame(frameDimension, 0);
+                        }
+
+                        delay += toAddDelay;
+                        index += 4;
+                    }
+
+                    info.GifFrames = gifFrames;
+                    info.AnimationLength = delay;
+
+                    // Loop info is stored at byte 20737.
+                    info.LoopCount = BitConverter.ToInt16(image.GetPropertyItem(20737).Value, 0);
+                    info.IsLooped = info.LoopCount != 1;
+                }
+            }
+
+            return info;
+        }
+
+        /// <summary>
+        /// Returns an instance of EncodingParameters for jpeg compression. 
+        /// </summary>
+        /// <param name="quality">The quality to return the image at.</param>
+        /// <returns>The encodingParameters for jpeg compression. </returns>
+        public static EncoderParameters GetEncodingParameters(int quality)
+        {
+            EncoderParameters encoderParameters = null;
+            try
+            {
+                // Create a series of encoder parameters.
+                encoderParameters = new EncoderParameters(1);
+
+                // Set the quality.
+                encoderParameters.Param[0] = new EncoderParameter(Encoder.Quality, quality);
+            }
+            catch
+            {
+                if (encoderParameters != null)
+                {
+                    encoderParameters.Dispose();
+                }
+            }
+
+            return encoderParameters;
+        }
+
+        /// <summary>
+        /// Uses reflection to allow the creation of an instance of <see cref="PropertyItem"/>.
+        /// </summary>
+        /// <returns>
+        /// The <see cref="PropertyItem"/>.
+        /// </returns>
+        public static PropertyItem CreatePropertyItem()
+        {
+            Type type = typeof(PropertyItem);
+            ConstructorInfo constructor = type.GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public, null, new Type[] { }, null);
+
+            return (PropertyItem)constructor.Invoke(null);
         }
     }
 }

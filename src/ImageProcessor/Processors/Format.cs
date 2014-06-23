@@ -13,7 +13,6 @@ namespace ImageProcessor.Processors
     using System;
     using System.Collections.Generic;
     using System.Drawing;
-
     using ImageProcessor.Core.Common.Exceptions;
     using ImageProcessor.Imaging.Formats;
 

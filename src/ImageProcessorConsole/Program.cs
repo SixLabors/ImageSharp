@@ -43,6 +43,7 @@
                         // Load, resize, set the format and quality and save an image.
                         imageFactory.Load(inStream)
                             .Constrain(size)
+                            // ReSharper disable once AssignNullToNotNullAttribute
                             .Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", fileInfo.Name)));
                     }
                 }

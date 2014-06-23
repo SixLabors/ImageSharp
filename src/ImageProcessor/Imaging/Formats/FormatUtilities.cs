@@ -138,19 +138,19 @@ namespace ImageProcessor.Imaging.Formats
                     int index = 0;
                     List<GifFrame> gifFrames = new List<GifFrame>();
 
-                    for (int f = 0; f < frameCount; f++)
+                    for (int i = 0; i < frameCount; i++)
                     {
                         int thisDelay = BitConverter.ToInt32(image.GetPropertyItem(20736).Value, index);
                         int toAddDelay = thisDelay * 10 < 20 ? 20 : thisDelay * 10; // Minimum delay is 20 ms
 
                         // Find the frame
-                        image.SelectActiveFrame(frameDimension, f);
+                        image.SelectActiveFrame(frameDimension, i);
 
                         // TODO: Get positions.
                         gifFrames.Add(new GifFrame { Delay = toAddDelay, Image = (Image)image.Clone() });
 
                         // Reset the position.
-                        if (f == last)
+                        if (i == last)
                         {
                             image.SelectActiveFrame(frameDimension, 0);
                         }

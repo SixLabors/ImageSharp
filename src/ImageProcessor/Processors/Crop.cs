@@ -10,17 +10,13 @@
 
 namespace ImageProcessor.Processors
 {
-    #region Using
-
     using System;
     using System.Collections.Generic;
     using System.Drawing;
     using System.Drawing.Drawing2D;
     using System.Drawing.Imaging;
-
     using ImageProcessor.Core.Common.Exceptions;
     using ImageProcessor.Imaging;
-    #endregion
 
     /// <summary>
     /// Crops an image to the given directions.
@@ -138,14 +134,12 @@ namespace ImageProcessor.Processors
             }
             catch (Exception ex)
             {
-                throw new ImageProcessingException("Error processing image with " + this.GetType().Name, ex);
-            }
-            finally
-            {
                 if (newImage != null)
                 {
                     newImage.Dispose();
                 }
+
+                throw new ImageProcessingException("Error processing image with " + this.GetType().Name, ex);
             }
 
             return image;

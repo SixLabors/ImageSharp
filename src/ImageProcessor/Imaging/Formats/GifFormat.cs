@@ -15,7 +15,6 @@ namespace ImageProcessor.Imaging.Formats
     using System.Drawing.Imaging;
     using System.IO;
     using System.Text;
-    using ImageProcessor.Core.Common.Extensions;
 
     /// <summary>
     /// Provides the necessary information to support gif images.
@@ -73,18 +72,18 @@ namespace ImageProcessor.Imaging.Formats
         /// <param name="factory">The <see cref="ImageFactory" />.</param>
         public override void ApplyProcessor(Func<ImageFactory, Image> processor, ImageFactory factory)
         {
-            ImageInfo imageInfo = factory.Image.GetImageInfo(this.ImageFormat);
+            GifInfo info = FormatUtilities.GetGifInfo(factory.Image, this.ImageFormat);
 
-            if (imageInfo.IsAnimated)
+            if (info.IsAnimated)
             {
                 OctreeQuantizer quantizer = new OctreeQuantizer(255, 8);
 
                 // We don't dispose of the memory stream as that is disposed when a new image is created and doing so 
                 // beforehand will cause an exception.
                 MemoryStream stream = new MemoryStream();
-                using (GifEncoder encoder = new GifEncoder(stream, null, null, imageInfo.LoopCount))
+                using (GifEncoder encoder = new GifEncoder(stream, null, null, info.LoopCount))
                 {
-                    foreach (GifFrame frame in imageInfo.GifFrames)
+                    foreach (GifFrame frame in info.GifFrames)
                     {
                         factory.Image = frame.Image;
                         frame.Image = quantizer.Quantize(processor.Invoke(factory));
@@ -113,7 +112,7 @@ namespace ImageProcessor.Imaging.Formats
         /// </returns>
         public override Image Save(Stream stream, Image image)
         {
-            if (!ImageAnimator.CanAnimate(image))
+            if (!FormatUtilities.IsAnimated(image))
             {
                 image = new OctreeQuantizer(255, 8).Quantize(image);
             }
@@ -132,7 +131,7 @@ namespace ImageProcessor.Imaging.Formats
         /// </returns>
         public override Image Save(string path, Image image)
         {
-            if (!ImageAnimator.CanAnimate(image))
+            if (!FormatUtilities.IsAnimated(image))
             {
                 image = new OctreeQuantizer(255, 8).Quantize(image);
             }

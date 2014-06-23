@@ -109,7 +109,7 @@ namespace ImageProcessor.Imaging.Formats
         {
             // Jpegs can be saved with different settings to include a quality setting for the JPEG compression.
             // This improves output compression and quality. 
-            using (EncoderParameters encoderParameters = ImageUtils.GetEncodingParameters(this.Quality))
+            using (EncoderParameters encoderParameters = FormatUtilities.GetEncodingParameters(this.Quality))
             {
                 ImageCodecInfo imageCodecInfo =
                     ImageCodecInfo.GetImageEncoders()
@@ -137,7 +137,7 @@ namespace ImageProcessor.Imaging.Formats
         {
             // Jpegs can be saved with different settings to include a quality setting for the JPEG compression.
             // This improves output compression and quality. 
-            using (EncoderParameters encoderParameters = ImageUtils.GetEncodingParameters(this.Quality))
+            using (EncoderParameters encoderParameters = FormatUtilities.GetEncodingParameters(this.Quality))
             {
                 ImageCodecInfo imageCodecInfo =
                     ImageCodecInfo.GetImageEncoders()

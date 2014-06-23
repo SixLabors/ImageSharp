@@ -13,7 +13,6 @@ namespace ImageProcessor.Processors
     using System;
     using System.Collections.Generic;
     using System.Drawing;
-
     using ImageProcessor.Core.Common.Exceptions;
 
     /// <summary>
@@ -76,14 +75,12 @@ namespace ImageProcessor.Processors
             }
             catch (Exception ex)
             {
-                throw new ImageProcessingException("Error processing image with " + this.GetType().Name, ex);
-            }
-            finally
-            {
                 if (newImage != null)
                 {
                     newImage.Dispose();
                 }
+
+                throw new ImageProcessingException("Error processing image with " + this.GetType().Name, ex);
             }
 
             return image;

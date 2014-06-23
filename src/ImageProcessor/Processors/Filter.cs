@@ -10,16 +10,12 @@
 
 namespace ImageProcessor.Processors
 {
-    #region Using
-
     using System;
     using System.Collections.Generic;
     using System.Drawing;
     using System.Drawing.Imaging;
-
     using ImageProcessor.Core.Common.Exceptions;
     using ImageProcessor.Imaging.Filters;
-    #endregion
 
     /// <summary>
     /// Encapsulates methods with which to add filters to an image.
@@ -79,14 +75,12 @@ namespace ImageProcessor.Processors
             }
             catch (Exception ex)
             {
-                throw new ImageProcessingException("Error processing image with " + this.GetType().Name, ex);
-            }
-            finally
-            {
                 if (newImage != null)
                 {
                     newImage.Dispose();
                 }
+
+                throw new ImageProcessingException("Error processing image with " + this.GetType().Name, ex);
             }
 
             return image;

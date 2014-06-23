@@ -1,16 +1,22 @@
-﻿
-
-namespace ImageProcessorConsole
+﻿namespace ImageProcessorConsole
 {
     using System;
     using System.Drawing;
-    using System.Drawing.Imaging;
     using System.IO;
     using ImageProcessor;
 
-    class Program
+    /// <summary>
+    /// The program.
+    /// </summary>
+    public class Program
     {
-        static void Main(string[] args)
+        /// <summary>
+        /// The main routine.
+        /// </summary>
+        /// <param name="args">
+        /// The args.
+        /// </param>
+        public static void Main(string[] args)
         {
             string path = new Uri(System.Reflection.Assembly.GetExecutingAssembly().CodeBase).LocalPath;
             // ReSharper disable once AssignNullToNotNullAttribute
@@ -33,12 +39,11 @@ namespace ImageProcessorConsole
                     using (ImageFactory imageFactory = new ImageFactory())
                     {
                         Size size = new Size(200, 200);
-                        ImageFormat format = ImageFormat.Gif;
 
                         // Load, resize, set the format and quality and save an image.
                         imageFactory.Load(inStream)
                             .Constrain(size)
-                            .Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", fileInfo.Name.TrimEnd(".gif".ToCharArray()) + ".jpg")));
+                            .Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", fileInfo.Name)));
                     }
                 }
             }

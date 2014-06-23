@@ -152,7 +152,7 @@ namespace ImageProcessor
 
             // Set the other properties.
             format.Quality = DefaultQuality;
-            format.IsIndexed = ImageUtils.IsIndexed(this.Image);
+            format.IsIndexed = FormatUtilities.IsIndexed(this.Image);
             this.backupFormat = format;
             this.CurrentImageFormat = format;
 
@@ -207,7 +207,7 @@ namespace ImageProcessor
 
                     // Set the other properties.
                     format.Quality = DefaultQuality;
-                    format.IsIndexed = ImageUtils.IsIndexed(this.Image);
+                    format.IsIndexed = FormatUtilities.IsIndexed(this.Image);
                     this.backupFormat = format;
                     this.CurrentImageFormat = format;
 

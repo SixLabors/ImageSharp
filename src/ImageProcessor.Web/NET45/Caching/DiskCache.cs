@@ -13,7 +13,6 @@ namespace ImageProcessor.Web.Caching
     #region Using
     using System;
     using System.Collections.Generic;
-    using System.Diagnostics.CodeAnalysis;
     using System.Globalization;
     using System.IO;
     using System.Linq;
@@ -96,24 +95,33 @@ namespace ImageProcessor.Web.Caching
             this.requestPath = requestPath;
             this.fullPath = fullPath;
             this.imageName = imageName;
-            this.CachedPath = this.GetCachePath();
         }
-        #endregion
-
-        #region Properties
-        /// <summary>
-        /// Gets the cached path.
-        /// </summary>
-        internal string CachedPath { get; private set; }
         #endregion
 
         #region Methods
         #region Internal
         /// <summary>
+        /// Gets the full transformed cached path for the image. 
+        /// The images are stored in paths that are based upon the SHA1 of their full request path
+        /// taking the individual characters of the hash to determine their location.
+        /// This allows us to store millions of images.
+        /// </summary>
+        /// <returns>The full cached path for the image.</returns>
+        internal Task<string> GetCachePathAsync()
+        {
+            return TaskHelpers.Run<string>(this.GetCachePath);
+        }
+
+        /// <summary>
         /// Gets the virtual path to the cached processed image.
         /// </summary>
-        /// <returns>The virtual path to the cached processed image.</returns>
-        internal string GetVirtualCachedPath()
+        /// <param name="cachedPath">
+        /// The path to the cached image.
+        /// </param>
+        /// <returns>
+        /// The virtual path to the cached processed image.
+        /// </returns>
+        internal string GetVirtualCachedPath(string cachedPath)
         {
             string applicationPath = this.request.PhysicalApplicationPath;
             string virtualDir = this.request.ApplicationPath;
@@ -121,7 +129,7 @@ namespace ImageProcessor.Web.Caching
 
             if (applicationPath != null)
             {
-                return this.CachedPath.Replace(applicationPath, virtualDir).Replace(@"\", "/");
+                return cachedPath.Replace(applicationPath, virtualDir).Replace(@"\", "/");
             }
 
             throw new InvalidOperationException(
@@ -131,13 +139,16 @@ namespace ImageProcessor.Web.Caching
         /// <summary>
         /// Adds an image to the cache.
         /// </summary>
-        internal void AddImageToCache()
+        /// <param name="cachedPath">
+        /// The path to the cached image.
+        /// </param>
+        internal void AddImageToCache(string cachedPath)
         {
-            string key = Path.GetFileNameWithoutExtension(this.CachedPath);
+            string key = Path.GetFileNameWithoutExtension(cachedPath);
             CachedImage cachedImage = new CachedImage
                                           {
                                               Key = key,
-                                              Path = this.CachedPath,
+                                              Path = cachedPath,
                                               CreationTimeUtc = DateTime.UtcNow
                                           };
 
@@ -147,14 +158,16 @@ namespace ImageProcessor.Web.Caching
         /// <summary>
         /// Returns a value indicating whether the original file is new or has been updated.
         /// </summary>
+        /// <param name="cachedPath">
+        /// The path to the cached image.
+        /// </param>
         /// <returns>
         /// True if the the original file is new or has been updated; otherwise, false.
         /// </returns>
-        internal async Task<bool> IsNewOrUpdatedFileAsync()
+        internal async Task<bool> IsNewOrUpdatedFileAsync(string cachedPath)
         {
-            string path = this.CachedPath;
             bool isUpdated = false;
-            CachedImage cachedImage = await CacheIndexer.GetValueAsync(path);
+            CachedImage cachedImage = await CacheIndexer.GetValueAsync(cachedPath);
 
             if (cachedImage == null)
             {
@@ -166,7 +179,7 @@ namespace ImageProcessor.Web.Caching
                 // Check to see if the cached image is set to expire.
                 if (this.IsExpired(cachedImage.CreationTimeUtc))
                 {
-                    CacheIndexer.Remove(path);
+                    CacheIndexer.Remove(cachedPath);
                     isUpdated = true;
                 }
             }
@@ -236,12 +249,11 @@ namespace ImageProcessor.Web.Caching
 
         /// <summary>
         /// Gets the full transformed cached path for the image. 
-        /// The images are stored in paths that are based upon the sha1 of their full request path
+        /// The images are stored in paths that are based upon the SHA1 of their full request path
         /// taking the individual characters of the hash to determine their location.
         /// This allows us to store millions of images.
         /// </summary>
         /// <returns>The full cached path for the image.</returns>
-        [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1650:ElementDocumentationMustBeSpelledCorrectly", Justification = "Reviewed. Suppression is OK here.")]
         private string GetCachePath()
         {
             string cachedPath = string.Empty;

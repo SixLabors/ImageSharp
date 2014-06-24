@@ -120,24 +120,24 @@ namespace ImageProcessor
         internal Image Image { get; set; }
 
         /// <summary>
-        /// Gets or sets the memory stream for storing any input stream to prevent disposal.
+        /// Gets or sets the stream for storing any input stream to prevent disposal.
         /// </summary>
-        internal MemoryStream InputStream { get; set; }
+        internal Stream InputStream { get; set; }
         #endregion
 
         #region Methods
         /// <summary>
         /// Loads the image to process. Always call this method first.
         /// </summary>
-        /// <param name="memoryStream">
-        /// The <see cref="T:System.IO.MemoryStream"/> containing the image information.
+        /// <param name="stream">
+        /// The <see cref="T:System.IO.Stream"/> containing the image information.
         /// </param>
         /// <returns>
         /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
         /// </returns>
-        public ImageFactory Load(MemoryStream memoryStream)
+        public ImageFactory Load(Stream stream)
         {
-            ISupportedImageFormat format = FormatUtilities.GetFormat(memoryStream);
+            ISupportedImageFormat format = FormatUtilities.GetFormat(stream);
 
             if (format == null)
             {
@@ -145,10 +145,10 @@ namespace ImageProcessor
             }
 
             // Set our image as the memory stream value.
-            this.Image = format.Load(memoryStream);
+            this.Image = format.Load(stream);
 
             // Store the stream so we can dispose of it later.
-            this.InputStream = memoryStream;
+            this.InputStream = stream;
 
             // Set the other properties.
             format.Quality = DefaultQuality;
@@ -831,17 +831,17 @@ namespace ImageProcessor
         /// <summary>
         /// Saves the current image to the specified output stream.
         /// </summary>
-        /// <param name="memoryStream">
+        /// <param name="stream">
         /// The <see cref="T:System.IO.MemoryStream"/> to save the image information to.
         /// </param>
         /// <returns>
         /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
         /// </returns>
-        public ImageFactory Save(MemoryStream memoryStream)
+        public ImageFactory Save(Stream stream)
         {
             if (this.ShouldProcess)
             {
-                this.Image = this.CurrentImageFormat.Save(memoryStream, this.Image);
+                this.Image = this.CurrentImageFormat.Save(stream, this.Image);
             }
 
             return this;

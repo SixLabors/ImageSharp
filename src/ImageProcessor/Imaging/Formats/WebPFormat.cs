@@ -13,12 +13,15 @@
 namespace ImageProcessor.Imaging.Formats
 {
     using System;
+    using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
     using System.Drawing;
     using System.Drawing.Imaging;
     using System.IO;
     using System.Runtime.InteropServices;
     using System.Text;
+
+    using ImageProcessor.Core.Common.Exceptions;
 
     /// <summary>
     /// Provides the necessary information to support webp images.
@@ -69,6 +72,35 @@ namespace ImageProcessor.Imaging.Formats
             get
             {
                 return null;
+            }
+        }
+
+        /// <summary>
+        /// Applies the given processor the current image.
+        /// </summary>
+        /// <param name="processor">The processor delegate.</param>
+        /// <param name="factory">The <see cref="ImageFactory" />.</param>
+        public override void ApplyProcessor(Func<ImageFactory, Image> processor, ImageFactory factory)
+        {
+            base.ApplyProcessor(processor, factory);
+
+            // Set the property item information from any Exif metadata.
+            // We do this here so that they can be changed between processor methods.
+            if (factory.PreserveExifData)
+            {
+                foreach (KeyValuePair<int, PropertyItem> propertItem in factory.ExifPropertyItems)
+                {
+                    try
+                    {
+                        factory.Image.SetPropertyItem(propertItem.Value);
+                    }
+                    // ReSharper disable once EmptyGeneralCatchClause
+                    catch
+                    {
+                        // Do nothing. The image format does not handle EXIF data.
+                        // TODO: empty catch is fierce code smell.
+                    }
+                }
             }
         }
 
@@ -151,49 +183,48 @@ namespace ImageProcessor.Imaging.Formats
             IntPtr ptrData = pinnedWebP.AddrOfPinnedObject();
             uint dataSize = (uint)webpData.Length;
 
-            int imgWidth;
-            int imgHeight;
+            int width;
+            int height;
 
-            if (WebPGetInfo(ptrData, dataSize, out imgWidth, out imgHeight) != 1)
+            if (WebPGetInfo(ptrData, dataSize, out width, out height) != 1)
             {
-                // TODO: Throw error?
-                return null;
+                throw new ImageFormatException("WebP image is corrupted.");
             }
 
             // Create a BitmapData and Lock all pixels to be written
-            Bitmap bmp = new Bitmap(imgWidth, imgHeight, PixelFormat.Format24bppRgb);
-            BitmapData bmpData = bmp.LockBits(new Rectangle(0, 0, bmp.Width, bmp.Height), ImageLockMode.WriteOnly, bmp.PixelFormat);
+            Bitmap bitmap = new Bitmap(width, height, PixelFormat.Format32bppArgb);
+            BitmapData bitmapData = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.WriteOnly, bitmap.PixelFormat);
 
             // Allocate memory for uncompress image
-            int outputBufferSize = bmpData.Stride * imgHeight;
+            int outputBufferSize = bitmapData.Stride * height;
             IntPtr outputBuffer = Marshal.AllocHGlobal(outputBufferSize);
 
             // Uncompress the image
-            outputBuffer = WebPDecodeBGRInto(ptrData, dataSize, outputBuffer, outputBufferSize, bmpData.Stride);
+            outputBuffer = WebPDecodeBGRAInto(ptrData, dataSize, outputBuffer, outputBufferSize, bitmapData.Stride);
 
             // Write image to bitmap using Marshal
             byte[] buffer = new byte[outputBufferSize];
             Marshal.Copy(outputBuffer, buffer, 0, outputBufferSize);
-            Marshal.Copy(buffer, 0, bmpData.Scan0, outputBufferSize);
+            Marshal.Copy(buffer, 0, bitmapData.Scan0, outputBufferSize);
 
             // Unlock the pixels
-            bmp.UnlockBits(bmpData);
+            bitmap.UnlockBits(bitmapData);
 
             // Free memory
             pinnedWebP.Free();
             Marshal.FreeHGlobal(outputBuffer);
 
-            return bmp;
+            return bitmap;
         }
 
         /// <summary>
-        /// Lossly encodes the image in bitmap.
+        /// Lossy encodes the image in bitmap.
         /// </summary>
         /// <param name="bitmap">
         /// Bitmap with the image
         /// </param>
         /// <param name="quality">
-        /// Quality. 0 = minimum ... 100 = maximimun quality
+        /// Quality. 0 = minimum ... 100 = maximum quality
         /// </param>
         /// <param name="webpData">
         /// The byte array containing the encoded image data.
@@ -207,9 +238,9 @@ namespace ImageProcessor.Imaging.Formats
 
             try
             {
-                BitmapData bmpData = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.ReadOnly, PixelFormat.Format24bppRgb);
+                BitmapData bmpData = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
                 IntPtr unmanagedData;
-                int size = WebPEncodeBGR(bmpData.Scan0, bitmap.Width, bitmap.Height, bmpData.Stride, quality, out unmanagedData);
+                int size = WebPEncodeBGRA(bmpData.Scan0, bitmap.Width, bitmap.Height, bmpData.Stride, quality, out unmanagedData);
 
                 // Copy image compress data to output array
                 webpData = new byte[size];
@@ -266,16 +297,16 @@ namespace ImageProcessor.Imaging.Formats
         /// Size of allocated buffer
         /// </param>
         /// <param name="outputStride">
-        /// Specifies the distance between scanlines
+        /// Specifies the distance between scan-lines
         /// </param>
         /// <returns>
         /// output_buffer if function succeeds; NULL otherwise
         /// </returns>
         [DllImport("libwebp.dll", CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr WebPDecodeBGRInto(IntPtr data, uint dataSize, IntPtr outputBuffer, int outputBufferSize, int outputStride);
+        private static extern IntPtr WebPDecodeBGRAInto(IntPtr data, uint dataSize, IntPtr outputBuffer, int outputBufferSize, int outputStride);
 
         /// <summary>
-        /// Lossless encoding images pointed to by *data in WebP format
+        /// Lossy encoding images pointed to by *data in WebP format
         /// </summary>
         /// <param name="rgb">
         /// Pointer to RGB image data
@@ -299,7 +330,7 @@ namespace ImageProcessor.Imaging.Formats
         /// Size of WebP Image
         /// </returns>
         [DllImport("libwebp.dll", CallingConvention = CallingConvention.Cdecl)]
-        private static extern int WebPEncodeBGR(IntPtr rgb, int width, int height, int stride, float qualityFactor, out IntPtr output);
+        private static extern int WebPEncodeBGRA(IntPtr rgb, int width, int height, int stride, float qualityFactor, out IntPtr output);
 
         /// <summary>
         /// Frees the unmanaged memory.

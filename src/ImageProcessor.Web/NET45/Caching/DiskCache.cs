@@ -45,7 +45,7 @@ namespace ImageProcessor.Web.Caching
         /// <see cref="http://stackoverflow.com/questions/115882/how-do-you-deal-with-lots-of-small-files"/>
         /// <see cref="http://stackoverflow.com/questions/1638219/millions-of-small-graphics-files-and-how-to-overcome-slow-file-system-access-on"/>
         /// </remarks>
-        private const int MaxFilesCount = 50;
+        private const int MaxFilesCount = 100;
 
         /// <summary>
         /// The absolute path to virtual cache path on the server.

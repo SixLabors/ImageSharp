@@ -161,7 +161,6 @@ namespace ImageProcessor.Web.HttpModules
         /// </returns>
         private static SemaphoreSlim GetSemaphoreSlim(string id)
         {
-            id = id.ToMD5Fingerprint();
             SemaphoreSlim semaphore = SemaphoreSlims.GetOrAdd(id, new SemaphoreSlim(1, 1));
             return semaphore;
         }
@@ -348,13 +347,14 @@ namespace ImageProcessor.Web.HttpModules
 
                 // Create a new cache to help process and cache the request.
                 DiskCache cache = new DiskCache(request, requestPath, fullPath, imageName);
+                string cachedPath = await cache.GetCachePathAsync();
 
                 // Since we are now rewriting the path we need to check again that the current user has access
                 // to the rewritten path.
                 // Get the user for the current request
                 // If the user is anonymous or authentication doesn't work for this suffix avoid a NullReferenceException 
                 // in the UrlAuthorizationModule by creating a generic identity.
-                string virtualCachedPath = cache.GetVirtualCachedPath();
+                string virtualCachedPath = cache.GetVirtualCachedPath(cachedPath);
 
                 IPrincipal user = context.User ?? new GenericPrincipal(new GenericIdentity(string.Empty, string.Empty), new string[0]);
 
@@ -362,6 +362,7 @@ namespace ImageProcessor.Web.HttpModules
                 PermissionSet permission = new PermissionSet(PermissionState.None);
                 permission.AddPermission(new AspNetHostingPermission(AspNetHostingPermissionLevel.Unrestricted));
                 bool hasPermission = permission.IsSubsetOf(AppDomain.CurrentDomain.PermissionSet);
+                
                 bool isAllowed = true;
 
                 // Run the rewritten path past the auth system again, using the result as the default "AllowAccess" value
@@ -373,13 +374,11 @@ namespace ImageProcessor.Web.HttpModules
                 if (isAllowed)
                 {
                     // Is the file new or updated?
-                    bool isNewOrUpdated = await cache.IsNewOrUpdatedFileAsync();
+                    bool isNewOrUpdated = await cache.IsNewOrUpdatedFileAsync(cachedPath);
 
                     // Only process if the file has been updated.
                     if (isNewOrUpdated)
                     {
-                        string cachedPath = cache.CachedPath;
-
                         // Process the image.
                         using (ImageFactory imageFactory = new ImageFactory(preserveExifMetaData != null && preserveExifMetaData.Value))
                         {
@@ -419,7 +418,7 @@ namespace ImageProcessor.Web.HttpModules
                                                     context.Items[CachedResponseTypeKey] = imageFactory.CurrentImageFormat.MimeType;
 
                                                     // Add to the cache.
-                                                    cache.AddImageToCache();
+                                                    cache.AddImageToCache(cachedPath);
 
                                                     // Trim the cache.
                                                     await cache.TrimCachedFolderAsync(cachedPath);
@@ -458,7 +457,7 @@ namespace ImageProcessor.Web.HttpModules
                                     context.Items[CachedResponseTypeKey] = imageFactory.CurrentImageFormat.MimeType;
 
                                     // Add to the cache.
-                                    cache.AddImageToCache();
+                                    cache.AddImageToCache(cachedPath);
 
                                     // Trim the cache.
                                     await cache.TrimCachedFolderAsync(cachedPath);
@@ -480,7 +479,7 @@ namespace ImageProcessor.Web.HttpModules
                         context.Response.AddHeader("Content-Length", "0");
                         context.Response.StatusCode = (int)HttpStatusCode.NotModified;
                         context.Response.SuppressContent = true;
-                        context.Response.AddFileDependency(context.Server.MapPath(cache.GetVirtualCachedPath()));
+                        context.Response.AddFileDependency(context.Server.MapPath(virtualCachedPath));
                         this.SetHeaders(context, (string)context.Items[CachedResponseTypeKey]);
 
                         if (!isRemote)
@@ -489,10 +488,8 @@ namespace ImageProcessor.Web.HttpModules
                         }
                     }
 
-                    string virtualPath = cache.GetVirtualCachedPath();
-
                     // The cached file is valid so just rewrite the path.
-                    context.RewritePath(virtualPath, false);
+                    context.RewritePath(virtualCachedPath, false);
                 }
                 else
                 {

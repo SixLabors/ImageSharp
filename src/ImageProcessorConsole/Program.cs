@@ -1,4 +1,13 @@
-﻿namespace ImageProcessorConsole
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="Program.cs" company="James South">
+//   Copyright James South
+// </copyright>
+// <summary>
+//   The program.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
+
+namespace ImageProcessorConsole
 {
     using System;
     using System.Drawing;

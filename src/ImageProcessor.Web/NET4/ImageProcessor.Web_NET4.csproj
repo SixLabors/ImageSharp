@@ -83,10 +83,21 @@
     <Compile Include="..\NET45\Caching\MemCache.cs">
       <Link>MemCache.cs</Link>
     </Compile>
-    <Compile Include="..\NET45\Config\ImageCacheSection.cs" />
-    <Compile Include="..\NET45\Config\ImageProcessingSection.cs" />
-    <Compile Include="..\NET45\Config\ImageProcessorConfig.cs" />
-    <Compile Include="..\NET45\Config\ImageSecuritySection.cs" />
+    <Compile Include="..\NET45\Configuration\ImageCacheSection.cs">
+      <Link>ImageCacheSection.cs</Link>
+    </Compile>
+    <Compile Include="..\NET45\Configuration\ImageProcessingSection.cs">
+      <Link>ImageProcessingSection.cs</Link>
+    </Compile>
+    <Compile Include="..\NET45\Configuration\ImageProcessorConfiguration.cs">
+      <Link>ImageProcessorConfiguration.cs</Link>
+    </Compile>
+    <Compile Include="..\NET45\Configuration\ImageSecuritySection.cs">
+      <Link>ImageSecuritySection.cs</Link>
+    </Compile>
+    <Compile Include="..\NET45\Helpers\CommonParameterParserUtility.cs">
+      <Link>CommonParameterParserUtility.cs</Link>
+    </Compile>
     <Compile Include="..\NET45\Helpers\ImageHelpers.cs">
       <Link>ImageHelpers.cs</Link>
     </Compile>
@@ -97,6 +108,66 @@
     <Compile Include="..\NET45\Helpers\TaskHelpers.cs" />
     <Compile Include="..\NET45\HttpModules\ImageProcessingModule.cs" />
     <Compile Include="..\NET45\ImageFactoryExtensions.cs" />
+    <Compile Include="..\NET45\Processors\Alpha.cs">
+      <Link>Alpha.cs</Link>
+    </Compile>
+    <Compile Include="..\NET45\Processors\AutoRotate.cs">
+      <Link>AutoRotate.cs</Link>
+    </Compile>
+    <Compile Include="..\NET45\Processors\BackgroundColor.cs">
+      <Link>BackgroundColor.cs</Link>
+    </Compile>
+    <Compile Include="..\NET45\Processors\Brightness.cs">
+      <Link>Brightness.cs</Link>
+    </Compile>
+    <Compile Include="..\NET45\Processors\Contrast.cs">
+      <Link>Contrast.cs</Link>
+    </Compile>
+    <Compile Include="..\NET45\Processors\Crop.cs">
+      <Link>Crop.cs</Link>
+    </Compile>
+    <Compile Include="..\NET45\Processors\Filter.cs">
+      <Link>Filter.cs</Link>
+    </Compile>
+    <Compile Include="..\NET45\Processors\Flip.cs">
+      <Link>Flip.cs</Link>
+    </Compile>
+    <Compile Include="..\NET45\Processors\Format.cs">
+      <Link>Format.cs</Link>
+    </Compile>
+    <Compile Include="..\NET45\Processors\GaussianBlur.cs">
+      <Link>GaussianBlur.cs</Link>
+    </Compile>
+    <Compile Include="..\NET45\Processors\GaussianSharpen.cs">
+      <Link>GaussianSharpen.cs</Link>
+    </Compile>
+    <Compile Include="..\NET45\Processors\IWebGraphicsProcessor.cs">
+      <Link>IWebGraphicsProcessor.cs</Link>
+    </Compile>
+    <Compile Include="..\NET45\Processors\Quality.cs">
+      <Link>Quality.cs</Link>
+    </Compile>
+    <Compile Include="..\NET45\Processors\Resize.cs">
+      <Link>Resize.cs</Link>
+    </Compile>
+    <Compile Include="..\NET45\Processors\Rotate.cs">
+      <Link>Rotate.cs</Link>
+    </Compile>
+    <Compile Include="..\NET45\Processors\RoundedCorners.cs">
+      <Link>RoundedCorners.cs</Link>
+    </Compile>
+    <Compile Include="..\NET45\Processors\Saturation.cs">
+      <Link>Saturation.cs</Link>
+    </Compile>
+    <Compile Include="..\NET45\Processors\Tint.cs">
+      <Link>Tint.cs</Link>
+    </Compile>
+    <Compile Include="..\NET45\Processors\Vignette.cs">
+      <Link>Vignette.cs</Link>
+    </Compile>
+    <Compile Include="..\NET45\Processors\Watermark.cs">
+      <Link>Watermark.cs</Link>
+    </Compile>
     <Compile Include="..\NET45\Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -106,15 +177,15 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="..\NET45\Config\Resources\cache.config">
-      <Link>Config\Resources\cache.config</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\NET45\Config\Resources\processing.config">
-      <Link>Config\Resources\processing.config</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\NET45\Config\Resources\security.config">
-      <Link>Config\Resources\security.config</Link>
-    </EmbeddedResource>
+    <None Include="..\NET45\Configuration\Resources\cache.config">
+      <Link>Configuration\Resources\cache.config</Link>
+    </None>
+    <None Include="..\NET45\Configuration\Resources\processing.config">
+      <Link>Configuration\Resources\processing.config</Link>
+    </None>
+    <None Include="..\NET45\Configuration\Resources\security.config">
+      <Link>Configuration\Resources\security.config</Link>
+    </None>
     <None Include="app.config">
       <SubType>Designer</SubType>
     </None>

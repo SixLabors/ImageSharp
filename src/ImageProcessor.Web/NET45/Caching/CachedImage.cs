@@ -10,9 +10,7 @@
 
 namespace ImageProcessor.Web.Caching
 {
-    #region Using
     using System;
-    #endregion
 
     /// <summary>
     /// Describes a cached image 

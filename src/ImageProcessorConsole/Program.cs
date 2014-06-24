@@ -13,6 +13,7 @@ namespace ImageProcessorConsole
     using System.Drawing;
     using System.IO;
     using ImageProcessor;
+    using ImageProcessor.Imaging.Formats;
 
     /// <summary>
     /// The program.
@@ -36,7 +37,8 @@ namespace ImageProcessorConsole
                 di.Create();
             }
 
-            FileInfo[] files = di.GetFiles("*.gif");
+            //FileInfo[] files = di.GetFiles("*.gif");
+            FileInfo[] files = di.GetFiles();
 
             foreach (FileInfo fileInfo in files)
             {
@@ -52,7 +54,9 @@ namespace ImageProcessorConsole
                         // Load, resize, set the format and quality and save an image.
                         imageFactory.Load(inStream)
                             .Constrain(size)
+                            //.Format(new JpegFormat())
                             // ReSharper disable once AssignNullToNotNullAttribute
+                            // .Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", Path.GetFileNameWithoutExtension(fileInfo.Name) + ".jpg")));
                             .Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", fileInfo.Name)));
                     }
                 }

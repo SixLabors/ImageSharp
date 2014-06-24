@@ -13,6 +13,7 @@
       <Value>octree</Value>
       <Value>png</Value>
       <Value>quantizer</Value>
+      <Value>webp</Value>
     </CollectionProperty>
   </GlobalSettings>
   <Analyzers>

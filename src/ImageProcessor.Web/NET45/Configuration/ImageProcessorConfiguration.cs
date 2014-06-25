@@ -5,7 +5,7 @@
 // </copyright>
 // <summary>
 //   Encapsulates methods to allow the retrieval of ImageProcessor settings.
-//   <see cref="http://csharpindepth.com/Articles/General/Singleton.aspx" />
+//   <see href="http://csharpindepth.com/Articles/General/Singleton.aspx" />
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 namespace ImageProcessor.Web.Configuration
@@ -24,7 +24,7 @@ namespace ImageProcessor.Web.Configuration
 
     /// <summary>
     /// Encapsulates methods to allow the retrieval of ImageProcessor settings.
-    /// <see cref="http://csharpindepth.com/Articles/General/Singleton.aspx"/>
+    /// <see href="http://csharpindepth.com/Articles/General/Singleton.aspx"/>
     /// </summary>
     public sealed class ImageProcessorConfiguration
     {

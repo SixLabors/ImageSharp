@@ -38,6 +38,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="RegularExpressionUnitTests.cs" />
+    <Compile Include="ImageFactoryUnitTests.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -48,5 +49,120 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="..\Images\Chrysanthemum.jpg">
+      <Link>Images\Chrysanthemum.jpg</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Images\Desert.jpg">
+      <Link>Images\Desert.jpg</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Images\Hydrangeas.jpg">
+      <Link>Images\Hydrangeas.jpg</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Images\Jellyfish.jpg">
+      <Link>Images\Jellyfish.jpg</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Images\Koala.jpg">
+      <Link>Images\Koala.jpg</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Images\Lighthouse.jpg">
+      <Link>Images\Lighthouse.jpg</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Images\Penguins-200.jpg">
+      <Link>Images\Penguins-200.jpg</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Images\Penguins-8.png">
+      <Link>Images\Penguins-8.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Images\Penguins.bmp">
+      <Link>Images\Penguins.bmp</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Images\Penguins.gif">
+      <Link>Images\Penguins.gif</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Images\Penguins.jpg">
+      <Link>Images\Penguins.jpg</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Images\Penguins.png">
+      <Link>Images\Penguins.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Images\Penguins.tif">
+      <Link>Images\Penguins.tif</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Images\Tulips.jpg">
+      <Link>Images\Tulips.jpg</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Images\bus.jpg">
+      <Link>Images\bus.jpg</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Images\cmyk.jpg">
+      <Link>Images\cmyk.jpg</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Images\cmyk.png">
+      <Link>Images\cmyk.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Images\jrt.jpg">
+      <Link>Images\jrt.jpg</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Images\meter.gif">
+      <Link>Images\meter.gif</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Images\rocks.jpg">
+      <Link>Images\rocks.jpg</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Images\rotate.jpg">
+      <Link>Images\rotate.jpg</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Images\sample1.jpg">
+      <Link>Images\sample1.jpg</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Images\srgb.jpg">
+      <Link>Images\srgb.jpg</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Images\srgb.png">
+      <Link>Images\srgb.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Images\text.png">
+      <Link>Images\text.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Images\thor.jpg">
+      <Link>Images\thor.jpg</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Images\udendørs-374.jpg">
+      <Link>Images\udendørs-374.jpg</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Images\udendørs.jpg">
+      <Link>Images\udendørs.jpg</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Images\" />
   </ItemGroup>
 </Project>

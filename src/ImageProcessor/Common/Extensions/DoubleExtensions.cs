@@ -8,7 +8,7 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Core.Common.Extensions
+namespace ImageProcessor.Common.Extensions
 {
     /// <summary>
     /// Encapsulates a series of time saving extension methods to the <see cref="T:System.Double"/> class.

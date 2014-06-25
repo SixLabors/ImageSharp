@@ -14,7 +14,8 @@ namespace ImageProcessor.Processors
     using System.Collections.Generic;
     using System.Drawing;
     using System.Drawing.Imaging;
-    using ImageProcessor.Core.Common.Exceptions;
+
+    using ImageProcessor.Common.Exceptions;
 
     /// <summary>
     /// Encapsulates methods to change the alpha component of the image to effect its transparency.

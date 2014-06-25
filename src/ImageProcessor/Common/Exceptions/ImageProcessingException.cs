@@ -8,7 +8,7 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Core.Common.Exceptions
+namespace ImageProcessor.Common.Exceptions
 {
     using System;
 

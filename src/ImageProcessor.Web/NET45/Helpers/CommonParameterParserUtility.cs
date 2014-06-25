@@ -14,7 +14,8 @@ namespace ImageProcessor.Web.Helpers
     using System.Drawing;
     using System.Globalization;
     using System.Text.RegularExpressions;
-    using ImageProcessor.Core.Common.Extensions;
+
+    using ImageProcessor.Common.Extensions;
     using ImageProcessor.Imaging;
 
     /// <summary>

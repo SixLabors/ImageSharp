@@ -8,7 +8,7 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Core.Common.Extensions
+namespace ImageProcessor.Common.Extensions
 {
     using System.Globalization;
 

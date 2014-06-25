@@ -15,6 +15,7 @@ namespace ImageProcessor.Common.Exceptions
     /// <summary>
     /// The exception that is thrown when processing an image has failed.
     /// </summary>
+    [Serializable]
     public sealed class ImageProcessingException : Exception
     {
         /// <summary>

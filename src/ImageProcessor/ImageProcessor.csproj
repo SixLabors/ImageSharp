@@ -60,12 +60,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Configuration\ImageProcessorBootstrapper.cs" />
-    <Compile Include="Core\Common\Exceptions\ImageProcessingException.cs" />
-    <Compile Include="Core\Common\Extensions\DoubleExtensions.cs" />
+    <Compile Include="Common\Exceptions\ImageProcessingException.cs" />
+    <Compile Include="Common\Extensions\DoubleExtensions.cs" />
     <Compile Include="Imaging\Formats\GifInfo.cs" />
-    <Compile Include="Core\Common\Extensions\IntegerExtensions.cs" />
-    <Compile Include="Core\Common\Extensions\StringExtensions.cs" />
-    <Compile Include="Core\Common\Exceptions\ImageFormatException.cs" />
+    <Compile Include="Common\Extensions\IntegerExtensions.cs" />
+    <Compile Include="Common\Extensions\StringExtensions.cs" />
+    <Compile Include="Common\Exceptions\ImageFormatException.cs" />
     <Compile Include="ImageFactory.cs" />
     <Compile Include="Imaging\AnchorPosition.cs" />
     <Compile Include="Imaging\ExifPropertyTagType.cs" />

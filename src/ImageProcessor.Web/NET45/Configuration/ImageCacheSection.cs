@@ -15,7 +15,7 @@ namespace ImageProcessor.Web.Configuration
     using System.IO;
     using System.Xml;
 
-    using ImageProcessor.Core.Common.Extensions;
+    using ImageProcessor.Common.Extensions;
     using ImageProcessor.Web.Helpers;
 
     #endregion

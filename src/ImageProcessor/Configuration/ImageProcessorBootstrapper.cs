@@ -13,7 +13,8 @@ namespace ImageProcessor.Configuration
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using ImageProcessor.Core.Common.Exceptions;
+
+    using ImageProcessor.Common.Exceptions;
     using ImageProcessor.Imaging.Formats;
 
     /// <summary>

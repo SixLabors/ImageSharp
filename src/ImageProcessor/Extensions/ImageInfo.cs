@@ -16,7 +16,7 @@ namespace ImageProcessor.Extensions
 
     /// <summary>
     /// Provides information about an image.
-    /// <see cref="http://madskristensen.net/post/examine-animated-gife28099s-in-c"/>
+    /// <see href="http://madskristensen.net/post/examine-animated-gife28099s-in-c"/>
     /// </summary>
     public class ImageInfo
     {

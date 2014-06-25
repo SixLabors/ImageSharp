@@ -29,7 +29,7 @@ namespace ImageProcessor.Web.HttpModules
     using System.Web.Hosting;
     using System.Web.Security;
 
-    using ImageProcessor.Core.Common.Extensions;
+    using ImageProcessor.Common.Extensions;
     using ImageProcessor.Web.Caching;
     using ImageProcessor.Web.Configuration;
     using ImageProcessor.Web.Helpers;

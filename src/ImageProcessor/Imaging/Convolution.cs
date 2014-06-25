@@ -15,7 +15,7 @@ namespace ImageProcessor.Imaging
     using System.Drawing.Imaging;
     using System.Runtime.InteropServices;
 
-    using ImageProcessor.Core.Common.Extensions;
+    using ImageProcessor.Common.Extensions;
 
     /// <summary>
     /// Provides methods for applying blurring and sharpening effects to an image..

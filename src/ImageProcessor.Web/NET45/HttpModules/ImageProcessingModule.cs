@@ -125,7 +125,7 @@ namespace ImageProcessor.Web.HttpModules
                 preserveExifMetaData = ImageProcessorConfig.Instance.PreserveExifMetaData;
             }
 
-#if NET45
+#if NET45 && !__MonoCS__
             EventHandlerTaskAsyncHelper wrapper = new EventHandlerTaskAsyncHelper(this.PostAuthorizeRequest);
             context.AddOnPostAuthorizeRequestAsync(wrapper.BeginEventHandler, wrapper.EndEventHandler);
 #else
@@ -194,7 +194,7 @@ namespace ImageProcessor.Web.HttpModules
         }
         #endregion
 
-#if NET45
+#if NET45 && !__MonoCS__
 
         /// <summary>
         /// Occurs when the user for the current request has been authorized.

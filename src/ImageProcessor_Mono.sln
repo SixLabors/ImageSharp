@@ -18,8 +18,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{1E656C
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor", "ImageProcessor\ImageProcessor.csproj", "{3B5DD734-FB7A-487D-8CE6-55E7AF9AEA7E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test_Website_MVC_NET4", "TestWebsites\NET4\Test_Website_MVC_NET4.csproj", "{30327C08-7574-4D7E-AC95-6A58753C6855}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor.Web_NET4", "ImageProcessor.Web\NET4\ImageProcessor.Web_NET4.csproj", "{4F7050F2-465F-4E10-8DB2-2FB97AC6AA43}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor.Web_NET45", "ImageProcessor.Web\NET45\ImageProcessor.Web_NET45.csproj", "{D011A778-59C8-4BFA-A770-C350216BF161}"
@@ -39,24 +37,6 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{30327C08-7574-4D7E-AC95-6A58753C6855}.All|Any CPU.ActiveCfg = All|Any CPU
-		{30327C08-7574-4D7E-AC95-6A58753C6855}.All|Any CPU.Build.0 = All|Any CPU
-		{30327C08-7574-4D7E-AC95-6A58753C6855}.All|Mixed Platforms.ActiveCfg = All|x86
-		{30327C08-7574-4D7E-AC95-6A58753C6855}.All|Mixed Platforms.Build.0 = All|x86
-		{30327C08-7574-4D7E-AC95-6A58753C6855}.All|x86.ActiveCfg = All|x86
-		{30327C08-7574-4D7E-AC95-6A58753C6855}.All|x86.Build.0 = All|x86
-		{30327C08-7574-4D7E-AC95-6A58753C6855}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{30327C08-7574-4D7E-AC95-6A58753C6855}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{30327C08-7574-4D7E-AC95-6A58753C6855}.Debug|Mixed Platforms.ActiveCfg = Debug|x86
-		{30327C08-7574-4D7E-AC95-6A58753C6855}.Debug|Mixed Platforms.Build.0 = Debug|x86
-		{30327C08-7574-4D7E-AC95-6A58753C6855}.Debug|x86.ActiveCfg = Debug|x86
-		{30327C08-7574-4D7E-AC95-6A58753C6855}.Debug|x86.Build.0 = Debug|x86
-		{30327C08-7574-4D7E-AC95-6A58753C6855}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{30327C08-7574-4D7E-AC95-6A58753C6855}.Release|Any CPU.Build.0 = Release|Any CPU
-		{30327C08-7574-4D7E-AC95-6A58753C6855}.Release|Mixed Platforms.ActiveCfg = Release|x86
-		{30327C08-7574-4D7E-AC95-6A58753C6855}.Release|Mixed Platforms.Build.0 = Release|x86
-		{30327C08-7574-4D7E-AC95-6A58753C6855}.Release|x86.ActiveCfg = Release|x86
-		{30327C08-7574-4D7E-AC95-6A58753C6855}.Release|x86.Build.0 = Release|x86
 		{3B5DD734-FB7A-487D-8CE6-55E7AF9AEA7E}.All|Any CPU.ActiveCfg = All|Any CPU
 		{3B5DD734-FB7A-487D-8CE6-55E7AF9AEA7E}.All|Any CPU.Build.0 = All|Any CPU
 		{3B5DD734-FB7A-487D-8CE6-55E7AF9AEA7E}.All|Mixed Platforms.ActiveCfg = All|Any CPU

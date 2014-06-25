@@ -12,7 +12,7 @@ namespace ImageProcessor.Imaging
 {
     /// <summary>
     /// The following enum gives descriptions of the property items supported by Windows GDI+.
-    /// <see cref="http://msdn.microsoft.com/en-us/library/ms534417%28VS.85%29.aspx"/>
+    /// <see href="http://msdn.microsoft.com/en-us/library/ms534417%28VS.85%29.aspx"/>
     /// TODO: Add more XML descriptions.
     /// </summary>
     public enum ExifPropertyTag

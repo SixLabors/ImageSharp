@@ -1,4 +1,14 @@
-﻿namespace ImageProcessor.UnitTests
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="RegularExpressionUnitTests.cs" company="James South">
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
+// </copyright>
+// <summary>
+//   Unit tests for the ImageProcessor regular expressions
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
+
+namespace ImageProcessor.UnitTests
 {
     using System;
     using System.Drawing;
@@ -6,13 +16,16 @@
     using ImageProcessor.Processors;
     using NUnit.Framework;
 
-    [TestFixture ()]
+    /// <summary>
+    /// Test harness for the regular expressions
+    /// </summary>
+    [TestFixture]
     public class RegularExpressionUnitTests
     {
         /// <summary>
         /// The alpha regex unit test.
         /// </summary>
-        [Test ()]
+        [Test]
         public void TestAlphaRegex()
         {
             const string Querystring = "alpha=56";
@@ -29,7 +42,7 @@
         /// <summary>
         /// The brightness regex unit test.
         /// </summary>
-        [Test ()]
+        [Test]
         public void TestBrightnessRegex()
         {
             const string Querystring = "brightness=56";
@@ -46,7 +59,7 @@
         /// <summary>
         /// The contrast regex unit test.
         /// </summary>
-        [Test ()]
+        [Test]
         public void TestContrastRegex()
         {
             const string Querystring = "contrast=56";
@@ -63,7 +76,7 @@
         /// <summary>
         /// The rotate regex unit test.
         /// </summary>
-        [Test ()]
+        [Test]
         public void TestCropRegex()
         {
             const string Querystring = "crop=0,0,150,300";
@@ -79,7 +92,7 @@
         /// <summary>
         /// The filter regex unit test.
         /// </summary>
-        [Test ()]
+        [Test]
         public void TestFilterRegex()
         {
             // Should really write more for the other filters.
@@ -97,7 +110,7 @@
         /// <summary>
         /// The format regex unit test.
         /// </summary>
-        [Test ()]
+        [Test]
         public void TestFormatRegex()
         {
             const string Querystring = "format=gif";
@@ -114,7 +127,7 @@
         /// <summary>
         /// The quality regex unit test.
         /// </summary>
-        [Test ()]
+        [Test]
         public void TestQualityRegex()
         {
             const string Querystring = "quality=56";
@@ -131,7 +144,7 @@
         /// <summary>
         /// The resize regex unit test.
         /// </summary>
-        [Test ()]
+        [Test]
         public void TestResizeRegex()
         {
             const string Querystring = "width=300";
@@ -148,7 +161,7 @@
         /// <summary>
         /// The rotate regex unit test.
         /// </summary>
-        [Test ()]
+        [Test]
         public void TestRotateRegex()
         {
             const string Querystring = "rotate=270";
@@ -165,7 +178,7 @@
         /// <summary>
         /// The rounded corners regex unit test.
         /// </summary>
-        [Test ()]
+        [Test]
         public void TestRoundedCornersRegex()
         {
             const string Querystring = "roundedcorners=30";
@@ -182,7 +195,7 @@
         /// <summary>
         /// The rounded corners regex unit test.
         /// </summary>
-        [Test ()]
+        [Test]
         public void TestTintRegex()
         {
             const string HexQuerystring = "tint=6aa6cc";
@@ -202,4 +215,3 @@
         }
     }
 }
-

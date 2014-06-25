@@ -11,9 +11,12 @@
 namespace ImageProcessor.Web.Processors
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
     using System.Text;
     using System.Text.RegularExpressions;
+    using System.Web;
+
     using ImageProcessor.Configuration;
     using ImageProcessor.Imaging.Formats;
     using ImageProcessor.Processors;
@@ -135,13 +138,14 @@ namespace ImageProcessor.Web.Processors
             identifier = identifier.ToLowerInvariant();
             string finalIdentifier = identifier.Equals("png8") ? "png" : identifier;
             ISupportedImageFormat newFormat = null;
-            ISupportedImageFormat format = ImageProcessorBootstrapper.Instance.SupportedImageFormats
-                                           .FirstOrDefault(f => f.FileExtensions.Any(e => e.Equals(finalIdentifier, StringComparison.InvariantCultureIgnoreCase)));
+            List<ISupportedImageFormat> formats = ImageProcessorBootstrapper.Instance.SupportedImageFormats.ToList();
+            ISupportedImageFormat format = formats.FirstOrDefault(f => f.FileExtensions.Any(e => e.Equals(finalIdentifier, StringComparison.InvariantCultureIgnoreCase)));
 
             if (format != null)
             {
                 // Return a new instance as we want to use instance properties.
                 newFormat = Activator.CreateInstance(format.GetType()) as ISupportedImageFormat;
+
                 if (newFormat != null)
                 {
                     // I wish this wasn't hard-coded but there's no way I can

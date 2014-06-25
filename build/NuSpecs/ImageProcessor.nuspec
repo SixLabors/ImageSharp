@@ -25,5 +25,6 @@ Feedback is always welcome.</description>
     </metadata>
     <files>
         <file src="..\_BuildOutput\ImageProcessor\lib\ImageProcessor.dll" target="lib\ImageProcessor.dll" />
+        <file src="..\_BuildOutput\ImageProcessor\lib\libwebp.dll" target="lib\libwebp.dll" />
     </files>
 </package>

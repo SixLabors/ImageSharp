@@ -40,7 +40,7 @@ namespace ImageProcessor.Web.Helpers
     /// There shouldn't be any security issues there, as the internal WebRequest instance is still calling it remotely. 
     /// Any local files that shouldn't be accessed by this won't be allowed by the remote call.
     /// </para>
-    /// Adapted from <see cref="http://blogengine.codeplex.com">BlogEngine.Net</see>
+    /// Adapted from <see href="http://blogengine.codeplex.com">BlogEngine.Net</see>
     /// </remarks>
     internal sealed class RemoteFile
     {

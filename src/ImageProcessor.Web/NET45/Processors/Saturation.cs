@@ -18,7 +18,7 @@ namespace ImageProcessor.Web.Processors
     /// Encapsulates methods to change the saturation component of the image.
     /// </summary>
     /// <remarks>
-    /// <see cref="http://www.bobpowell.net/imagesaturation.htm"/> 
+    /// <see href="http://www.bobpowell.net/imagesaturation.htm"/> 
     /// </remarks>
     public class Saturation : IWebGraphicsProcessor
     {

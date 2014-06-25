@@ -27,7 +27,7 @@ namespace ImageProcessor.Imaging.Formats
     {
         /// <summary>
         /// Gets the correct <see cref="ISupportedImageFormat"/> from the given stream.
-        /// <see cref="http://stackoverflow.com/questions/55869/determine-file-type-of-an-image"/>
+        /// <see href="http://stackoverflow.com/questions/55869/determine-file-type-of-an-image"/>
         /// </summary>
         /// <param name="stream">
         /// The <see cref="System.IO.Stream"/> to read from.

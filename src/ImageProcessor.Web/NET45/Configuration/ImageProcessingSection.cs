@@ -5,7 +5,7 @@
 // </copyright>
 // <summary>
 //   Represents an image processing section within a configuration file.
-//   Nested syntax adapted from <see cref="http://tneustaedter.blogspot.co.uk/2011/09/how-to-create-one-or-more-nested.html" />
+//   Nested syntax adapted from <see href="http://tneustaedter.blogspot.co.uk/2011/09/how-to-create-one-or-more-nested.html" />
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -21,7 +21,7 @@ namespace ImageProcessor.Web.Configuration
 
     /// <summary>
     /// Represents an image processing section within a configuration file.
-    /// Nested syntax adapted from <see cref="http://tneustaedter.blogspot.co.uk/2011/09/how-to-create-one-or-more-nested.html"/>
+    /// Nested syntax adapted from <see href="http://tneustaedter.blogspot.co.uk/2011/09/how-to-create-one-or-more-nested.html"/>
     /// </summary>
     public sealed class ImageProcessingSection : ConfigurationSection
     {

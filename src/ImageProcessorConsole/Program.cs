@@ -52,7 +52,7 @@ namespace ImageProcessorConsole
                 // ImageProcessor
                 using (MemoryStream inStream = new MemoryStream(photoBytes))
                 {
-                    using (ImageFactory imageFactory = new ImageFactory(true))
+                    using (ImageFactory imageFactory = new ImageFactory())
                     {
                         Size size = new Size(200, 200);
 

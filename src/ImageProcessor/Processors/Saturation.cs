@@ -23,13 +23,13 @@ namespace ImageProcessor.Processors
     /// Encapsulates methods to change the saturation component of the image.
     /// </summary>
     /// <remarks>
-    /// <see cref="http://www.bobpowell.net/imagesaturation.htm"/> 
+    /// <see href="http://www.bobpowell.net/imagesaturation.htm"/> 
     /// </remarks>
     public class Saturation : IGraphicsProcessor
     {
         /// <summary>
         /// The regular expression to search strings for.
-        /// <see cref="http://stackoverflow.com/a/6400969/427899"/> 
+        /// <see href="http://stackoverflow.com/a/6400969/427899"/> 
         /// </summary>
         private static readonly Regex QueryRegex = new Regex(@"saturation=(-?(?:100)|-?([1-9]?[0-9]))", RegexOptions.Compiled);
 

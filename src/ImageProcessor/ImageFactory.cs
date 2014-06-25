@@ -17,7 +17,8 @@ namespace ImageProcessor
     using System.Drawing;
     using System.Drawing.Imaging;
     using System.IO;
-    using ImageProcessor.Core.Common.Exceptions;
+
+    using ImageProcessor.Common.Exceptions;
     using ImageProcessor.Imaging;
     using ImageProcessor.Imaging.Filters;
     using ImageProcessor.Imaging.Formats;

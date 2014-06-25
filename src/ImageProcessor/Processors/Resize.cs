@@ -17,7 +17,8 @@ namespace ImageProcessor.Processors
     using System.Drawing.Imaging;
     using System.Globalization;
     using System.Linq;
-    using ImageProcessor.Core.Common.Exceptions;
+
+    using ImageProcessor.Common.Exceptions;
     using ImageProcessor.Imaging;
 
     /// <summary>

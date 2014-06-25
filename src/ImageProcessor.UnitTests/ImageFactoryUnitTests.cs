@@ -29,14 +29,20 @@ namespace ImageProcessor.UnitTests
         /// Tests the loading of image from a file
         /// </summary>
         [Test]
-        public void TestLoadImageFromFile()
+        [TestCase("Chrysanthemum.jpg", "image/jpeg")]
+        [TestCase("Desert.jpg", "image/jpeg")]
+        [TestCase("cmyk.png", "image/png")]
+        [TestCase("Penguins.bmp", "image/bmp")]
+        [TestCase("Penguins.gif", "image/gif")]
+        public void TestLoadImageFromFile(string fileName, string expectedMime)
         {
-            var testPhoto = Path.Combine(this.localPath, "Images/Chrysanthemum.jpg");
+            var testPhoto = Path.Combine(this.localPath, string.Format("Images/{0}", fileName));
             using (ImageFactory imageFactory = new ImageFactory())
             {
                 imageFactory.Load(testPhoto);
                 Assert.AreEqual(testPhoto, imageFactory.ImagePath);
-                Assert.AreEqual("image/jpeg", imageFactory.MimeType);
+                Assert.AreEqual(expectedMime, imageFactory.MimeType);
+                Assert.IsNotNull(imageFactory.Image);
             }
         }
     }

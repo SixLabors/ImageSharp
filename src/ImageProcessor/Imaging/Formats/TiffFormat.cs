@@ -83,16 +83,7 @@ namespace ImageProcessor.Imaging.Formats
             {
                 foreach (KeyValuePair<int, PropertyItem> propertItem in factory.ExifPropertyItems)
                 {
-                    try
-                    {
-                        factory.Image.SetPropertyItem(propertItem.Value);
-                    }
-                    // ReSharper disable once EmptyGeneralCatchClause
-                    catch
-                    {
-                        // Do nothing. The image format does not handle EXIF data.
-                        // TODO: empty catch is fierce code smell.
-                    }
+                    factory.Image.SetPropertyItem(propertItem.Value);
                 }
             }
         }

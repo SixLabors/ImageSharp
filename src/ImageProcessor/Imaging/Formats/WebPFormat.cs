@@ -90,16 +90,7 @@ namespace ImageProcessor.Imaging.Formats
             {
                 foreach (KeyValuePair<int, PropertyItem> propertItem in factory.ExifPropertyItems)
                 {
-                    try
-                    {
-                        factory.Image.SetPropertyItem(propertItem.Value);
-                    }
-                    // ReSharper disable once EmptyGeneralCatchClause
-                    catch
-                    {
-                        // Do nothing. The image format does not handle EXIF data.
-                        // TODO: empty catch is fierce code smell.
-                    }
+                    factory.Image.SetPropertyItem(propertItem.Value);
                 }
             }
         }
@@ -193,7 +184,7 @@ namespace ImageProcessor.Imaging.Formats
             int width;
             int height;
 
-            if (WebPGetInfo(ptrData, dataSize, out width, out height) != 1)
+            if (NativeMethods.WebPGetInfo(ptrData, dataSize, out width, out height) != 1)
             {
                 throw new ImageFormatException("WebP image header is corrupted.");
             }
@@ -209,7 +200,7 @@ namespace ImageProcessor.Imaging.Formats
                 outputBuffer = Marshal.AllocHGlobal(outputBufferSize);
 
                 // Uncompress the image
-                outputBuffer = WebPDecodeBGRAInto(ptrData, dataSize, outputBuffer, outputBufferSize, bitmapData.Stride);
+                outputBuffer = NativeMethods.WebPDecodeBGRAInto(ptrData, dataSize, outputBuffer, outputBufferSize, bitmapData.Stride);
 
                 if (bitmapData.Scan0 != outputBuffer)
                 {
@@ -262,7 +253,7 @@ namespace ImageProcessor.Imaging.Formats
             try
             {
                 // Attempt to lossy encode the image.
-                int size = WebPEncodeBGRA(bmpData.Scan0, bitmap.Width, bitmap.Height, bmpData.Stride, quality, out unmanagedData);
+                int size = NativeMethods.WebPEncodeBGRA(bmpData.Scan0, bitmap.Width, bitmap.Height, bmpData.Stride, quality, out unmanagedData);
 
                 // Copy image compress data to output array
                 webpData = new byte[size];
@@ -279,94 +270,10 @@ namespace ImageProcessor.Imaging.Formats
                 bitmap.UnlockBits(bmpData);
 
                 // Free memory
-                WebPFree(unmanagedData);
+                NativeMethods.WebPFree(unmanagedData);
             }
 
             return encoded;
         }
-
-        /// <summary>
-        /// Validate the WebP image header and retrieve the image height and width. Pointers *width and *height can be passed NULL if deemed irrelevant
-        /// </summary>
-        /// <param name="data">
-        /// Pointer to WebP image data
-        /// </param>
-        /// <param name="dataSize">
-        /// This is the size of the memory block pointed to by data containing the image data
-        /// </param>
-        /// <param name="width">
-        /// The width range is limited currently from 1 to 16383
-        /// </param>
-        /// <param name="height">
-        /// The height range is limited currently from 1 to 16383
-        /// </param>
-        /// <returns>
-        /// 1 if success, otherwise error code returned in the case of (a) formatting error(s).
-        /// </returns>
-        [DllImport("libwebp.dll", CallingConvention = CallingConvention.Cdecl)]
-        private static extern int WebPGetInfo(IntPtr data, uint dataSize, out int width, out int height);
-
-        /// <summary>
-        /// Decode WEBP image pointed to by *data and returns BGR samples into a pre-allocated buffer
-        /// </summary>
-        /// <param name="data">
-        /// Pointer to WebP image data
-        /// </param>
-        /// <param name="dataSize">
-        /// This is the size of the memory block pointed to by data containing the image data
-        /// </param>
-        /// <param name="outputBuffer">
-        /// Pointer to decoded WebP image
-        /// </param>
-        /// <param name="outputBufferSize">
-        /// Size of allocated buffer
-        /// </param>
-        /// <param name="outputStride">
-        /// Specifies the distance between scan-lines
-        /// </param>
-        /// <returns>
-        /// output_buffer if function succeeds; NULL otherwise
-        /// </returns>
-        [DllImport("libwebp.dll", CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr WebPDecodeBGRAInto(IntPtr data, uint dataSize, IntPtr outputBuffer, int outputBufferSize, int outputStride);
-
-        /// <summary>
-        /// Lossy encoding images pointed to by *data in WebP format
-        /// </summary>
-        /// <param name="rgb">
-        /// Pointer to RGB image data
-        /// </param>
-        /// <param name="width">
-        /// The width range is limited currently from 1 to 16383
-        /// </param>
-        /// <param name="height">
-        /// The height range is limited currently from 1 to 16383
-        /// </param>
-        /// <param name="stride">
-        /// The stride.
-        /// </param>
-        /// <param name="qualityFactor">
-        /// Ranges from 0 (lower quality) to 100 (highest quality). Controls the loss and quality during compression
-        /// </param>
-        /// <param name="output">
-        /// output_buffer with WebP image
-        /// </param>
-        /// <returns>
-        /// Size of WebP Image
-        /// </returns>
-        [DllImport("libwebp.dll", CallingConvention = CallingConvention.Cdecl)]
-        private static extern int WebPEncodeBGRA(IntPtr rgb, int width, int height, int stride, float qualityFactor, out IntPtr output);
-
-        /// <summary>
-        /// Frees the unmanaged memory.
-        /// </summary>
-        /// <param name="pointer">
-        /// The pointer.
-        /// </param>
-        /// <returns>
-        /// 1 if success, otherwise error code returned in the case of (a) error(s).
-        /// </returns>
-        [DllImport("libwebp.dll", CallingConvention = CallingConvention.Cdecl)]
-        private static extern int WebPFree(IntPtr pointer);
     }
 }

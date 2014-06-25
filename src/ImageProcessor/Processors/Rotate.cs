@@ -100,7 +100,7 @@ namespace ImageProcessor.Processors
         /// <param name="angle">The angle in degrees at which to rotate the image.</param>
         /// <returns>The image rotated to the given angle at the given position.</returns>
         /// <remarks> 
-        /// Based on <see cref="http://www.codeproject.com/Articles/58815/C-Image-PictureBox-Rotations?msg=4155374#xx4155374xx"/> 
+        /// Based on <see href="http://www.codeproject.com/Articles/58815/C-Image-PictureBox-Rotations?msg=4155374#xx4155374xx"/> 
         /// </remarks>
         private Bitmap RotateImage(Image image, float rotateAtX, float rotateAtY, float angle)
         {

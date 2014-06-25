@@ -5,7 +5,7 @@
 // </copyright>
 // <summary>
 //   Provides the necessary information to support webp images.
-//   Adapted from <see cref="https://groups.google.com/a/webmproject.org/forum/#!topic/webp-discuss/1coeidT0rQU"/>
+//   Adapted from <see href="https://groups.google.com/a/webmproject.org/forum/#!topic/webp-discuss/1coeidT0rQU"/>
 //   by Jose M. Piñeiro
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
@@ -25,7 +25,7 @@ namespace ImageProcessor.Imaging.Formats
 
     /// <summary>
     /// Provides the necessary information to support webp images.
-    /// Adapted from <see cref="http://groups.google.com/a/webmproject.org/forum/#!topic/webp-discuss/1coeidT0rQU"/>
+    /// Adapted from <see href="http://groups.google.com/a/webmproject.org/forum/#!topic/webp-discuss/1coeidT0rQU"/>
     /// by Jose M. Piñeiro
     /// </summary>
     [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1650:ElementDocumentationMustBeSpelledCorrectly", Justification = "Reviewed. Suppression is OK here.")]

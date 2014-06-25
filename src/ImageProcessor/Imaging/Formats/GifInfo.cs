@@ -5,7 +5,7 @@
 // </copyright>
 // <summary>
 //   Provides information about an image.
-//   <see cref="http://madskristensen.net/post/examine-animated-gife28099s-in-c" />
+//   <see href="http://madskristensen.net/post/examine-animated-gife28099s-in-c" />
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -16,7 +16,7 @@ namespace ImageProcessor.Imaging.Formats
 
     /// <summary>
     /// Provides information about an image.
-    /// <see cref="http://madskristensen.net/post/examine-animated-gife28099s-in-c"/>
+    /// <see href="http://madskristensen.net/post/examine-animated-gife28099s-in-c"/>
     /// </summary>
     public class GifInfo
     {

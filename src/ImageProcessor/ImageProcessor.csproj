@@ -76,6 +76,7 @@
     <Compile Include="Imaging\Filters\MatrixFilterBase.cs" />
     <Compile Include="Imaging\Filters\MatrixFilters.cs" />
     <Compile Include="Imaging\Formats\BitmapFormat.cs" />
+    <Compile Include="Imaging\Formats\NativeMethods.cs" />
     <Compile Include="Imaging\Formats\TiffFormat.cs" />
     <Compile Include="Imaging\Formats\PngFormat.cs" />
     <Compile Include="Imaging\Formats\GifFormat.cs" />

@@ -15,6 +15,7 @@ namespace ImageProcessor.Common.Exceptions
     /// <summary>
     /// The exception that is thrown when loading the supported image format types has failed.
     /// </summary>
+    [Serializable]
     public sealed class ImageFormatException : Exception
     {
         /// <summary>

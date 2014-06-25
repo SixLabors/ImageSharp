@@ -23,7 +23,7 @@ namespace ImageProcessor.Processors
     {
         /// <summary>
         /// The regular expression to search strings for.
-        /// <see cref="http://stackoverflow.com/a/6400969/427899"/>
+        /// <see href="http://stackoverflow.com/a/6400969/427899"/>
         /// </summary>
         private static readonly Regex QueryRegex = new Regex(@"flip=(horizontal|vertical|both)", RegexOptions.Compiled);
 

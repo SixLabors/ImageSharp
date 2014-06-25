@@ -13,7 +13,8 @@ namespace ImageProcessor.Processors
     using System;
     using System.Collections.Generic;
     using System.Drawing;
-    using ImageProcessor.Core.Common.Exceptions;
+
+    using ImageProcessor.Common.Exceptions;
 
     /// <summary>
     /// Encapsulates methods to change the quality component of the image.

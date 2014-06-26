@@ -79,7 +79,7 @@ namespace ImageProcessor.Web.Configuration
                 return imageCacheSection;
             }
 
-            string section = ResourceHelpers.ResourceAsString("ImageProcessor.Web.Config.Resources.cache.config");
+            string section = ResourceHelpers.ResourceAsString("ImageProcessor.Web.Configuration.Resources.cache.config");
             XmlReader reader = new XmlTextReader(new StringReader(section));
             imageCacheSection = new ImageCacheSection();
             imageCacheSection.DeserializeSection(reader);

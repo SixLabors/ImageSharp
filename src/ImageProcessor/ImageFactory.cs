@@ -116,9 +116,9 @@ namespace ImageProcessor
         public ConcurrentDictionary<int, PropertyItem> ExifPropertyItems { get; set; }
 
         /// <summary>
-        /// Gets or sets the local image for manipulation.
+        /// Gets or the local image for manipulation.
         /// </summary>
-        internal Image Image { get; set; }
+        public Image Image { get; internal set; }
 
         /// <summary>
         /// Gets or sets the stream for storing any input stream to prevent disposal.
@@ -410,27 +410,6 @@ namespace ImageProcessor
             {
                 Crop crop = new Crop { DynamicParameter = cropLayer };
                 this.CurrentImageFormat.ApplyProcessor(crop.ProcessImage, this);
-            }
-
-            return this;
-        }
-
-        /// <summary>
-        /// Applies a filter to the current image.
-        /// </summary>
-        /// <param name="filterName">
-        /// The name of the filter to add to the image.
-        /// </param>
-        /// <returns>
-        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
-        /// </returns>
-        [Obsolete("Will be removed in next major version. Filter(IMatrixFilter matrixFilter) instead.")]
-        public ImageFactory Filter(string filterName)
-        {
-            if (this.ShouldProcess)
-            {
-                Filter filter = new Filter { DynamicParameter = filterName };
-                this.CurrentImageFormat.ApplyProcessor(filter.ProcessImage, this);
             }
 
             return this;

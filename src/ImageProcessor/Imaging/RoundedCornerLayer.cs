@@ -1,8 +1,16 @@
-﻿namespace ImageProcessor.Imaging
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="RoundedCornerLayer.cs" company="James South">
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
+// </copyright>
+// <summary>
+//   Encapsulates the properties required to add rounded corners to an image.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
+
+namespace ImageProcessor.Imaging
 {
-    #region Using
     using System.Drawing;
-    #endregion
 
     /// <summary>
     /// Encapsulates the properties required to add rounded corners to an image.

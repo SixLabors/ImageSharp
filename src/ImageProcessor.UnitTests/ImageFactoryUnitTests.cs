@@ -42,7 +42,7 @@ namespace ImageProcessor.UnitTests
         [TestCase("Penguins.gif", "image/gif")]
         public void TestLoadImageFromFile(string fileName, string expectedMime)
         {
-            var testPhoto = Path.Combine(this.localPath, string.Format("Images/{0}", fileName));
+            string testPhoto = Path.Combine(this.localPath, string.Format("../../Images/{0}", fileName));
             using (ImageFactory imageFactory = new ImageFactory())
             {
                 imageFactory.Load(testPhoto);

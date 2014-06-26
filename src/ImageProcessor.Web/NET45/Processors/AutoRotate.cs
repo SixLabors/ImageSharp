@@ -1,4 +1,15 @@
-﻿namespace ImageProcessor.Web.Processors
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="AutoRotate.cs" company="James South">
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
+// </copyright>
+// <summary>
+//   Performs auto-rotation to ensure that EXIF defined rotation is reflected in
+//   the final image.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
+
+namespace ImageProcessor.Web.Processors
 {
     using System.Text.RegularExpressions;
     using ImageProcessor.Processors;

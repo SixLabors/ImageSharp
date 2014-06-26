@@ -1,14 +1,19 @@
-﻿using System.Reflection;
-using System.Runtime.CompilerServices;
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="AssemblyInfo.cs" company="James South">
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
+// </copyright>
+// <summary>
+//   AssemblyInfo.cs
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
+
+using System.Reflection;
 using System.Runtime.InteropServices;
 
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-using System.Web;
-
-using ImageProcessor.Web.HttpModules;
-
 [assembly: AssemblyTitle("ImageProcessor.Web")]
 [assembly: AssemblyDescription("A library for on-the-fly processing of image files with ASP.NET written in C#")]
 [assembly: AssemblyConfiguration("James South")]

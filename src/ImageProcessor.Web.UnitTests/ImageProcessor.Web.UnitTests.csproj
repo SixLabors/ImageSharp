@@ -3,12 +3,12 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{633B1C4C-4823-47BE-9A01-A665F3118C8C}</ProjectGuid>
+    <ProjectGuid>{961340C8-8C93-401D-A0A2-FF9EC61E5260}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>ImageProcessor.UnitTests</RootNamespace>
-    <AssemblyName>ImageProcessor.UnitTests</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <RootNamespace>ImageProcessor.Web.UnitTests</RootNamespace>
+    <AssemblyName>ImageProcessor.Web.UnitTests</AssemblyName>
+    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{3AC096D0-A1C2-E12C-1390-A8335801FDAB};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
@@ -18,7 +18,6 @@
     <TestProjectType>UnitTest</TestProjectType>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
-    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -38,6 +37,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Microsoft.CSharp" />
     <Reference Include="nunit.framework">
       <HintPath>..\packages\NUnit.2.6.3\lib\nunit.framework.dll</HintPath>
     </Reference>
@@ -53,138 +53,17 @@
     <Otherwise />
   </Choose>
   <ItemGroup>
-    <Compile Include="ImageFactoryUnitTests.cs" />
+    <Compile Include="RegularExpressionUnitTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="..\Images\1182076_e8c402e938_z.jpg">
-      <Link>Images\1182076_e8c402e938_z.jpg</Link>
-    </Content>
-    <Content Include="..\Images\bus.jpg">
-      <Link>Images\bus.jpg</Link>
-    </Content>
-    <Content Include="..\Images\Chrysanthemum.jpg">
-      <Link>Images\Chrysanthemum.jpg</Link>
-    </Content>
-    <Content Include="..\Images\circle.png">
-      <Link>Images\circle.png</Link>
-    </Content>
-    <Content Include="..\Images\cmyk.jpg">
-      <Link>Images\cmyk.jpg</Link>
-    </Content>
-    <Content Include="..\Images\cmyk.png">
-      <Link>Images\cmyk.png</Link>
-    </Content>
-    <Content Include="..\Images\color-vision-test.gif">
-      <Link>Images\color-vision-test.gif</Link>
-    </Content>
-    <Content Include="..\Images\Desert.jpg">
-      <Link>Images\Desert.jpg</Link>
-    </Content>
-    <Content Include="..\Images\emma.jpg">
-      <Link>Images\emma.jpg</Link>
-    </Content>
-    <Content Include="..\Images\falahill_design__160p.jpg">
-      <Link>Images\falahill_design__160p.jpg</Link>
-    </Content>
-    <Content Include="..\Images\fid11246.jpg">
-      <Link>Images\fid11246.jpg</Link>
-    </Content>
-    <Content Include="..\Images\fid9141.jpg">
-      <Link>Images\fid9141.jpg</Link>
-    </Content>
-    <Content Include="..\Images\header_1.jpg">
-      <Link>Images\header_1.jpg</Link>
-    </Content>
-    <Content Include="..\Images\Hydrangeas.jpg">
-      <Link>Images\Hydrangeas.jpg</Link>
-    </Content>
-    <Content Include="..\Images\Jellyfish.jpg">
-      <Link>Images\Jellyfish.jpg</Link>
-    </Content>
-    <Content Include="..\Images\jrt.jpg">
-      <Link>Images\jrt.jpg</Link>
-    </Content>
-    <Content Include="..\Images\Koala.jpg">
-      <Link>Images\Koala.jpg</Link>
-    </Content>
-    <Content Include="..\Images\Lighthouse.jpg">
-      <Link>Images\Lighthouse.jpg</Link>
-    </Content>
-    <Content Include="..\Images\lomo.jpg">
-      <Link>Images\lomo.jpg</Link>
-    </Content>
-    <Content Include="..\Images\meter.gif">
-      <Link>Images\meter.gif</Link>
-    </Content>
-    <Content Include="..\Images\negative.png">
-      <Link>Images\negative.png</Link>
-    </Content>
-    <Content Include="..\Images\negative2.png">
-      <Link>Images\negative2.png</Link>
-    </Content>
-    <Content Include="..\Images\Penguins-200.jpg">
-      <Link>Images\Penguins-200.jpg</Link>
-    </Content>
-    <Content Include="..\Images\Penguins-8.png">
-      <Link>Images\Penguins-8.png</Link>
-    </Content>
-    <Content Include="..\Images\Penguins.bmp">
-      <Link>Images\Penguins.bmp</Link>
-    </Content>
-    <Content Include="..\Images\Penguins.gif">
-      <Link>Images\Penguins.gif</Link>
-    </Content>
-    <Content Include="..\Images\Penguins.jpg">
-      <Link>Images\Penguins.jpg</Link>
-    </Content>
-    <Content Include="..\Images\Penguins.png">
-      <Link>Images\Penguins.png</Link>
-    </Content>
-    <Content Include="..\Images\Penguins.tif">
-      <Link>Images\Penguins.tif</Link>
-    </Content>
-    <Content Include="..\Images\rocks.jpg">
-      <Link>Images\rocks.jpg</Link>
-    </Content>
-    <Content Include="..\Images\rotate.jpg">
-      <Link>Images\rotate.jpg</Link>
-    </Content>
-    <Content Include="..\Images\sample1.jpg">
-      <Link>Images\sample1.jpg</Link>
-    </Content>
-    <Content Include="..\Images\srgb.jpg">
-      <Link>Images\srgb.jpg</Link>
-    </Content>
-    <Content Include="..\Images\srgb.png">
-      <Link>Images\srgb.png</Link>
-    </Content>
-    <Content Include="..\Images\text.png">
-      <Link>Images\text.png</Link>
-    </Content>
-    <Content Include="..\Images\thor.jpg">
-      <Link>Images\thor.jpg</Link>
-    </Content>
-    <Content Include="..\Images\Tulips.jpg">
-      <Link>Images\Tulips.jpg</Link>
-    </Content>
-    <Content Include="..\Images\udendørs-374.jpg">
-      <Link>Images\udendørs-374.jpg</Link>
-    </Content>
-    <Content Include="..\Images\udendørs.jpg">
-      <Link>Images\udendørs.jpg</Link>
-    </Content>
-    <Content Include="..\Images\war_horse_quad.jpg">
-      <Link>Images\war_horse_quad.jpg</Link>
-    </Content>
-    <Content Include="..\Images\WP_000009.jpg">
-      <Link>Images\WP_000009.jpg</Link>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
+    <ProjectReference Include="..\ImageProcessor.Web\NET45\ImageProcessor.Web_NET45.csproj">
+      <Project>{d011a778-59c8-4bfa-a770-c350216bf161}</Project>
+      <Name>ImageProcessor.Web_NET45</Name>
+    </ProjectReference>
     <ProjectReference Include="..\ImageProcessor\ImageProcessor.csproj">
       <Project>{3b5dd734-fb7a-487d-8ce6-55e7af9aea7e}</Project>
       <Name>ImageProcessor</Name>

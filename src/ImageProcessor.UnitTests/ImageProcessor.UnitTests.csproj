@@ -206,6 +206,14 @@
       <Name>ImageProcessor</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <Content Include="Images\Chrysanthemum.jpg" />
+    <Content Include="Images\cmyk.png" />
+    <Content Include="Images\Desert.jpg" />
+    <Content Include="Images\Penguins.bmp" />
+    <Content Include="Images\Penguins.gif" />
+  </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">
       <ItemGroup>

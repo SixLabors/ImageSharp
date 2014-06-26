@@ -1,4 +1,5 @@
 @ECHO OFF
+
 SET version=2.0.0.0
 SET webversion=4.0.0.0
 SET webconfigversion=2.0.0.0

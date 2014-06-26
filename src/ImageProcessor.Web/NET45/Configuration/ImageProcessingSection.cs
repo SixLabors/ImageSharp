@@ -83,7 +83,7 @@ namespace ImageProcessor.Web.Configuration
                 return imageProcessingSection;
             }
 
-            string section = ResourceHelpers.ResourceAsString("ImageProcessor.Web.Config.Resources.processing.config");
+            string section = ResourceHelpers.ResourceAsString("ImageProcessor.Web.Configuration.Resources.processing.config");
             XmlReader reader = new XmlTextReader(new StringReader(section));
             imageProcessingSection = new ImageProcessingSection();
             imageProcessingSection.DeserializeSection(reader);

@@ -1,31 +1,31 @@
-﻿// -----------------------------------------------------------------------
+﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="RegularExpressionUnitTests.cs" company="James South">
-//     Copyright (c) James South.
-//     Licensed under the Apache License, Version 2.0.
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
 // </copyright>
-// -----------------------------------------------------------------------
-namespace ImageProcessor.Tests
+// <summary>
+//   Unit tests for the ImageProcessor regular expressions
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
+
+namespace ImageProcessor.UnitTests
 {
-    #region Using
+    using System;
     using System.Drawing;
     using ImageProcessor.Imaging;
     using ImageProcessor.Processors;
-    using Microsoft.VisualStudio.TestTools.UnitTesting;
-    #endregion
+    using NUnit.Framework;
 
     /// <summary>
-    /// The regular expression unit tests.
-    /// This is a work in progress. YAWN!
+    /// Test harness for the regular expressions
     /// </summary>
-    [TestClass]
+    [TestFixture]
     public class RegularExpressionUnitTests
     {
-        #region Regular Expression Tests
-
         /// <summary>
         /// The alpha regex unit test.
         /// </summary>
-        [TestMethod]
+        [Test]
         public void TestAlphaRegex()
         {
             const string Querystring = "alpha=56";
@@ -42,7 +42,7 @@ namespace ImageProcessor.Tests
         /// <summary>
         /// The brightness regex unit test.
         /// </summary>
-        [TestMethod]
+        [Test]
         public void TestBrightnessRegex()
         {
             const string Querystring = "brightness=56";
@@ -59,7 +59,7 @@ namespace ImageProcessor.Tests
         /// <summary>
         /// The contrast regex unit test.
         /// </summary>
-        [TestMethod]
+        [Test]
         public void TestContrastRegex()
         {
             const string Querystring = "contrast=56";
@@ -76,7 +76,7 @@ namespace ImageProcessor.Tests
         /// <summary>
         /// The rotate regex unit test.
         /// </summary>
-        [TestMethod]
+        [Test]
         public void TestCropRegex()
         {
             const string Querystring = "crop=0,0,150,300";
@@ -92,7 +92,7 @@ namespace ImageProcessor.Tests
         /// <summary>
         /// The filter regex unit test.
         /// </summary>
-        [TestMethod]
+        [Test]
         public void TestFilterRegex()
         {
             // Should really write more for the other filters.
@@ -110,7 +110,7 @@ namespace ImageProcessor.Tests
         /// <summary>
         /// The format regex unit test.
         /// </summary>
-        [TestMethod]
+        [Test]
         public void TestFormatRegex()
         {
             const string Querystring = "format=gif";
@@ -127,7 +127,7 @@ namespace ImageProcessor.Tests
         /// <summary>
         /// The quality regex unit test.
         /// </summary>
-        [TestMethod]
+        [Test]
         public void TestQualityRegex()
         {
             const string Querystring = "quality=56";
@@ -144,7 +144,7 @@ namespace ImageProcessor.Tests
         /// <summary>
         /// The resize regex unit test.
         /// </summary>
-        [TestMethod]
+        [Test]
         public void TestResizeRegex()
         {
             const string Querystring = "width=300";
@@ -161,7 +161,7 @@ namespace ImageProcessor.Tests
         /// <summary>
         /// The rotate regex unit test.
         /// </summary>
-        [TestMethod]
+        [Test]
         public void TestRotateRegex()
         {
             const string Querystring = "rotate=270";
@@ -178,7 +178,7 @@ namespace ImageProcessor.Tests
         /// <summary>
         /// The rounded corners regex unit test.
         /// </summary>
-        [TestMethod]
+        [Test]
         public void TestRoundedCornersRegex()
         {
             const string Querystring = "roundedcorners=30";
@@ -195,7 +195,7 @@ namespace ImageProcessor.Tests
         /// <summary>
         /// The rounded corners regex unit test.
         /// </summary>
-        [TestMethod]
+        [Test]
         public void TestTintRegex()
         {
             const string HexQuerystring = "tint=6aa6cc";
@@ -213,6 +213,5 @@ namespace ImageProcessor.Tests
             Color actualRgba = tint.DynamicParameter;
             Assert.AreEqual(expectedRgba, actualRgba);
         }
-        #endregion
     }
 }

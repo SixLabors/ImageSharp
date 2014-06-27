@@ -59,6 +59,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Common\Extensions\AssemblyExtensions.cs" />
     <Compile Include="Configuration\ImageProcessorBootstrapper.cs" />
     <Compile Include="Common\Exceptions\ImageProcessingException.cs" />
     <Compile Include="Common\Extensions\DoubleExtensions.cs" />

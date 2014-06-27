@@ -1,6 +1,8 @@
 ImageProcessor
 ===============
 
+[![Build status](https://ci.appveyor.com/api/projects/status/8ypr7527dnao04yr)](https://ci.appveyor.com/project/JamesSouth/imageprocessor)
+
 Imageprocessor is a lightweight library written in C# that allows you to manipulate images on-the-fly using .NET 4.0.
 
 It's fast, extensible, easy to use, comes bundled with some great features and is fully open source.

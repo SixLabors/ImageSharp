@@ -8,7 +8,7 @@ ECHO Building ImageProcessor %version%, ImageProcess.Web %webversion% and ImageP
 
 ECHO Installing the Microsoft.Bcl.Build package before anything else, otherwise you'd have to run build.cmd twice
 SET nuGetFolder=%CD%\..\src\packages\
-..\src\.nuget\NuGet.exe install ..\src\ImageProcessor.Web\NET45\packages.config -OutputDirectory %nuGetFolder%
+..\src\.nuget\NuGet.exe install ..\src\ImageProcessor.Web\NET4\packages.config -OutputDirectory %nuGetFolder%
 
 ECHO Removing _BuildOutput directory so everything is nice and clean
 RD _BuildOutput /q /s

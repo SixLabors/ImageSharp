@@ -10,17 +10,16 @@
 // --------------------------------------------------------------------------------------------------------------------
 namespace ImageProcessor.Web.Configuration
 {
-    #region Using
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
     using System.Reflection;
     using System.Web.Compilation;
+
+    using ImageProcessor.Common.Extensions;
     using ImageProcessor.Processors;
     using ImageProcessor.Web.Processors;
-
-    #endregion
 
     /// <summary>
     /// Encapsulates methods to allow the retrieval of ImageProcessor settings.
@@ -301,8 +300,8 @@ namespace ImageProcessor.Web.Configuration
                         // Build a list of native IGraphicsProcessor instances.
                         List<Type> availableTypes = BuildManager.GetReferencedAssemblies()
                                                                 .Cast<Assembly>()
-                                                                .SelectMany(s => s.GetTypes())
-                                                                .Where(t => t != null && type.IsAssignableFrom(t) && t.IsClass && !t.IsAbstract)
+                                                                .SelectMany(s => s.GetLoadableTypes())
+                                                                .Where(t => type.IsAssignableFrom(t) && t.IsClass && !t.IsAbstract)
                                                                 .ToList();
 
                         // Create them and add.

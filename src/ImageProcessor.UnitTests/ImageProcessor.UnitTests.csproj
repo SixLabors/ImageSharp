@@ -224,10 +224,6 @@
       <Link>Images\Lighthouse.jpg</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="..\Images\Penguins-200.jpg">
-      <Link>Images\Penguins-200.jpg</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Include="..\Images\Penguins-8.png">
       <Link>Images\Penguins-8.png</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

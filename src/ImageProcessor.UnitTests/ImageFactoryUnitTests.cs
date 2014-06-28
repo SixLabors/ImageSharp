@@ -22,11 +22,6 @@ namespace ImageProcessor.UnitTests
     public class ImageFactoryUnitTests
     {
         /// <summary>
-        /// The path to the binary's folder
-        /// </summary>
-        private readonly string localPath = Path.GetDirectoryName(new Uri(System.Reflection.Assembly.GetExecutingAssembly().CodeBase).LocalPath);
-
-        /// <summary>
         /// Lists the input files in the Images folder
         /// </summary>
         /// <returns>The list of files.</returns>
@@ -107,6 +102,25 @@ namespace ImageProcessor.UnitTests
                     imageFactory.Load(fileName);
                     var original = imageFactory.Image.Clone();
                     imageFactory.Brightness(50);
+                    var modified = imageFactory.Image.Clone();
+                    Assert.AreNotEqual(original, modified);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Tests that the image is well resized using constraints
+        /// </summary>
+        [Test]
+        public void ApplyConstraints()
+        {
+            foreach (var fileName in ListInputFiles())
+            {
+                using (var imageFactory = new ImageFactory())
+                {
+                    imageFactory.Load(fileName);
+                    var original = imageFactory.Image.Clone();
+                    imageFactory.Constrain(new System.Drawing.Size(200, 200));
                     var modified = imageFactory.Image.Clone();
                     Assert.AreNotEqual(original, modified);
                 }

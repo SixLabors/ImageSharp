@@ -74,7 +74,7 @@ namespace ImageProcessor.UnitTests
         /// Tests that a filter is really applied by checking that the image is modified
         /// </summary>
         [Test]
-        public void ApplyEffectAlpha()
+        public void TestApplyEffectAlpha()
         {
             foreach (var fileName in ListInputFiles())
             {
@@ -92,7 +92,7 @@ namespace ImageProcessor.UnitTests
         /// Tests that a filter is really applied by checking that the image is modified
         /// </summary>
         [Test]
-        public void ApplyEffectBrightness()
+        public void TestApplyEffectBrightness()
         {
             foreach (var fileName in ListInputFiles())
             {
@@ -107,10 +107,84 @@ namespace ImageProcessor.UnitTests
         }
 
         /// <summary>
+        /// Tests that a filter is really applied by checking that the image is modified
+        /// </summary>
+        [Test]
+        public void TestApplyEffectContrast()
+        {
+            foreach (var fileName in ListInputFiles())
+            {
+                using (var imageFactory = new ImageFactory())
+                {
+                    imageFactory.Load(fileName);
+                    var original = imageFactory.Image.Clone();
+                    imageFactory.Contrast(50);
+                    Assert.AreNotEqual(original, imageFactory.Image);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Tests that all filters can be applied
+        /// </summary>
+        [Test]
+        public void TestApplyEffectFilter()
+        {
+            foreach (var fileName in ListInputFiles())
+            {
+                using (var imageFactory = new ImageFactory())
+                {
+                    imageFactory.Load(fileName);
+                    var original = imageFactory.Image.Clone();
+
+                    imageFactory.Filter(Imaging.Filters.MatrixFilters.BlackWhite);
+                    Assert.AreNotEqual(original, imageFactory.Image);
+                    imageFactory.Reset();
+
+                    imageFactory.Filter(Imaging.Filters.MatrixFilters.Comic);
+                    Assert.AreNotEqual(original, imageFactory.Image);
+                    imageFactory.Reset();
+
+                    imageFactory.Filter(Imaging.Filters.MatrixFilters.Gotham);
+                    Assert.AreNotEqual(original, imageFactory.Image);
+                    imageFactory.Reset();
+
+                    imageFactory.Filter(Imaging.Filters.MatrixFilters.GreyScale);
+                    Assert.AreNotEqual(original, imageFactory.Image);
+                    imageFactory.Reset();
+
+                    imageFactory.Filter(Imaging.Filters.MatrixFilters.HiSatch);
+                    Assert.AreNotEqual(original, imageFactory.Image);
+                    imageFactory.Reset();
+
+                    imageFactory.Filter(Imaging.Filters.MatrixFilters.Invert);
+                    Assert.AreNotEqual(original, imageFactory.Image);
+                    imageFactory.Reset();
+
+                    imageFactory.Filter(Imaging.Filters.MatrixFilters.Lomograph);
+                    Assert.AreNotEqual(original, imageFactory.Image);
+                    imageFactory.Reset();
+
+                    imageFactory.Filter(Imaging.Filters.MatrixFilters.LoSatch);
+                    Assert.AreNotEqual(original, imageFactory.Image);
+                    imageFactory.Reset();
+
+                    imageFactory.Filter(Imaging.Filters.MatrixFilters.Polaroid);
+                    Assert.AreNotEqual(original, imageFactory.Image);
+                    imageFactory.Reset();
+
+                    imageFactory.Filter(Imaging.Filters.MatrixFilters.Sepia);
+                    Assert.AreNotEqual(original, imageFactory.Image);
+                    imageFactory.Reset();
+                }
+            }
+        }
+
+        /// <summary>
         /// Tests that the image is well resized using constraints
         /// </summary>
         [Test]
-        public void ApplyConstraints()
+        public void TestResizeConstraints()
         {
             const int maxSize = 200;
             foreach (var fileName in ListInputFiles())
@@ -123,6 +197,48 @@ namespace ImageProcessor.UnitTests
                     Assert.AreNotEqual(original, imageFactory.Image);
                     Assert.LessOrEqual(imageFactory.Image.Width, maxSize);
                     Assert.LessOrEqual(imageFactory.Image.Height, maxSize);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Tests that the image is well cropped
+        /// </summary>
+        [Test]
+        public void TestCrop()
+        {
+            const int maxSize = 20;
+            foreach (var fileName in ListInputFiles())
+            {
+                using (var imageFactory = new ImageFactory())
+                {
+                    imageFactory.Load(fileName);
+                    var original = imageFactory.Image.Clone();
+                    imageFactory.Crop(new System.Drawing.Rectangle(0, 0, maxSize, maxSize));
+                    Assert.AreNotEqual(original, imageFactory.Image);
+                    Assert.AreEqual(maxSize, imageFactory.Image.Width);
+                    Assert.LessOrEqual(maxSize, imageFactory.Image.Height);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Tests that the image is well cropped
+        /// </summary>
+        [Test]
+        public void TestCropWithCropLayer()
+        {
+            const int maxSize = 20;
+            foreach (var fileName in ListInputFiles())
+            {
+                using (var imageFactory = new ImageFactory())
+                {
+                    imageFactory.Load(fileName);
+                    var original = imageFactory.Image.Clone();
+                    imageFactory.Crop(new Imaging.CropLayer(0, 0, maxSize, maxSize, Imaging.CropMode.Pixels));
+                    Assert.AreNotEqual(original, imageFactory.Image);
+                    Assert.AreEqual(maxSize, imageFactory.Image.Width);
+                    Assert.LessOrEqual(maxSize, imageFactory.Image.Height);
                 }
             }
         }

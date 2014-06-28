@@ -61,6 +61,45 @@ namespace ImageProcessor.UnitTests
         }
 
         /// <summary>
+        /// Tests that the save method actually saves a file
+        /// </summary>
+        [Test]
+        public void TestSaveToDisk()
+        {
+            foreach (var fileName in ListInputFiles())
+            {
+                var outputFileName = string.Format("./output/{0}", Path.GetFileName(fileName));
+                using (var imageFactory = new ImageFactory())
+                {
+                    imageFactory.Load(fileName);
+                    imageFactory.Save(outputFileName);
+                    Assert.AreEqual(true, File.Exists(outputFileName));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Tests that the save method actually writes to memory
+        /// </summary>
+        [Test]
+        public void TestSaveToMemory()
+        {
+            foreach (var fileName in ListInputFiles())
+            {
+                using (var imageFactory = new ImageFactory())
+                {
+                    imageFactory.Load(fileName);
+                    using (var s = new MemoryStream())
+                    {
+                        imageFactory.Save(s);
+                        s.Seek(0, SeekOrigin.Begin);
+                        Assert.AreEqual(true, s.Capacity > 0);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
         /// Tests that a filter is really applied by checking that the image is modified
         /// </summary>
         [Test]

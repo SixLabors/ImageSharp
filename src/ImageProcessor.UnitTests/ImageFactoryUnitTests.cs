@@ -154,7 +154,43 @@ namespace ImageProcessor.UnitTests
                 {
                     imageFactory.Load(fileName);
                     var original = imageFactory.Image.Clone();
-                    imageFactory.GaussianBlur(new Imaging.GaussianLayer() { Sigma = 10, Size = 5, Threshold = 2 });
+                    imageFactory.GaussianBlur(new Imaging.GaussianLayer { Sigma = 10, Size = 5, Threshold = 2 });
+                    Assert.AreNotEqual(original, imageFactory.Image);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Tests that a filter is really applied by checking that the image is modified
+        /// </summary>
+        [Test]
+        public void TestApplyEffectSharpen()
+        {
+            foreach (var fileName in ListInputFiles())
+            {
+                using (var imageFactory = new ImageFactory())
+                {
+                    imageFactory.Load(fileName);
+                    var original = imageFactory.Image.Clone();
+                    imageFactory.GaussianSharpen(5);
+                    Assert.AreNotEqual(original, imageFactory.Image);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Tests that a filter is really applied by checking that the image is modified
+        /// </summary>
+        [Test]
+        public void TestApplyEffectSharpenWithLayer()
+        {
+            foreach (var fileName in ListInputFiles())
+            {
+                using (var imageFactory = new ImageFactory())
+                {
+                    imageFactory.Load(fileName);
+                    var original = imageFactory.Image.Clone();
+                    imageFactory.GaussianSharpen(new Imaging.GaussianLayer { Sigma = 10, Size = 5, Threshold = 2 });
                     Assert.AreNotEqual(original, imageFactory.Image);
                 }
             }
@@ -228,9 +264,7 @@ namespace ImageProcessor.UnitTests
                 using (var imageFactory = new ImageFactory())
                 {
                     imageFactory.Load(fileName);
-                    var original = imageFactory.Image.Clone();
                     imageFactory.Constrain(new System.Drawing.Size(maxSize, maxSize));
-                    Assert.AreNotEqual(original, imageFactory.Image);
                     Assert.LessOrEqual(imageFactory.Image.Width, maxSize);
                     Assert.LessOrEqual(imageFactory.Image.Height, maxSize);
                 }
@@ -301,6 +335,48 @@ namespace ImageProcessor.UnitTests
                     Assert.AreNotEqual(original, imageFactory.Image);
                     Assert.AreEqual(original.Width, imageFactory.Image.Width);
                     Assert.AreEqual(original.Height, imageFactory.Image.Height);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Tests that the image is resized
+        /// </summary>
+        [Test]
+        public void TestResize()
+        {
+            const int newSize = 150;
+            foreach (var fileName in ListInputFiles())
+            {
+                using (var imageFactory = new ImageFactory())
+                {
+                    imageFactory.Load(fileName);
+                    imageFactory.Resize(new System.Drawing.Size(newSize, newSize));
+                    Assert.AreEqual(newSize, imageFactory.Image.Width);
+                    Assert.AreEqual(newSize, imageFactory.Image.Height);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Tests that the image is resized
+        /// </summary>
+        [Test]
+        public void TestResizeWithLayer()
+        {
+            const int newSize = 150;
+            foreach (var fileName in ListInputFiles())
+            {
+                using (var imageFactory = new ImageFactory())
+                {
+                    imageFactory.Load(fileName);
+                    imageFactory.Resize(new Imaging.ResizeLayer(
+                            new System.Drawing.Size(newSize, newSize), 
+                            Imaging.ResizeMode.Stretch, 
+                            Imaging.AnchorPosition.Left,
+                            true));
+                    Assert.AreEqual(newSize, imageFactory.Image.Width);
+                    Assert.AreEqual(newSize, imageFactory.Image.Height);
                 }
             }
         }

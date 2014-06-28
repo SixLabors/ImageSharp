@@ -121,8 +121,8 @@ namespace ImageProcessor.UnitTests
                     var original = imageFactory.Image.Clone();
                     imageFactory.Constrain(new System.Drawing.Size(maxSize, maxSize));
                     Assert.AreNotEqual(original, imageFactory.Image);
-                    Assert.LessOrEqual(maxSize, imageFactory.Image.Width);
-                    Assert.LessOrEqual(maxSize, imageFactory.Image.Height);
+                    Assert.LessOrEqual(imageFactory.Image.Width, maxSize);
+                    Assert.LessOrEqual(imageFactory.Image.Height, maxSize);
                 }
             }
         }

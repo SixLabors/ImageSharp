@@ -12,6 +12,7 @@ namespace ImageProcessor.UnitTests
 {
     using System;
     using System.IO;
+    using System.Collections.Generic;
     using NUnit.Framework;
 
     /// <summary>
@@ -26,61 +27,88 @@ namespace ImageProcessor.UnitTests
         private readonly string localPath = Path.GetDirectoryName(new Uri(System.Reflection.Assembly.GetExecutingAssembly().CodeBase).LocalPath);
 
         /// <summary>
+        /// Lists the input files in the Images folder
+        /// </summary>
+        /// <returns>The list of files.</returns>
+        private static IEnumerable<string> ListInputFiles()
+        {
+            return Directory.GetFiles("./Images");
+        }
+
+        /// <summary>
         /// Tests the loading of image from a file
         /// </summary>
-        /// <param name="fileName">
-        /// The file Name.
-        /// </param>
-        /// <param name="expectedMime">
-        /// The expected mime type.
-        /// </param>
         [Test]
-        [TestCase("Chrysanthemum.jpg", "image/jpeg")]
-        [TestCase("Desert.jpg", "image/jpeg")]
-        [TestCase("cmyk.png", "image/png")]
-        [TestCase("Penguins.bmp", "image/bmp")]
-        [TestCase("Penguins.gif", "image/gif")]
-        public void TestLoadImageFromFile(string fileName, string expectedMime)
+        public void TestLoadImageFromFile()
         {
-            string testPhoto = Path.Combine(this.localPath, string.Format("../../Images/{0}", fileName));
-            using (ImageFactory imageFactory = new ImageFactory())
+            foreach (var fileName in ListInputFiles())
             {
-                imageFactory.Load(testPhoto);
-                Assert.AreEqual(testPhoto, imageFactory.ImagePath);
-                Assert.AreEqual(expectedMime, imageFactory.CurrentImageFormat.MimeType);
-                Assert.IsNotNull(imageFactory.Image);
+                using (var imageFactory = new ImageFactory())
+                {
+                    imageFactory.Load(fileName);
+                    Assert.AreEqual(fileName, imageFactory.ImagePath);
+                    Assert.IsNotNull(imageFactory.Image);
+                }
             }
+         
         }
 
         /// <summary>>
         /// Tests the loading of image from a memory stream
         /// </summary>
-        /// <param name="fileName">
-        /// The file Name.
-        /// </param>
-        /// <param name="expectedMime">
-        /// The expected mime type.
-        /// </param>
         [Test]
-        [TestCase("Chrysanthemum.jpg", "image/jpeg")]
-        [TestCase("Desert.jpg", "image/jpeg")]
-        [TestCase("cmyk.png", "image/png")]
-        [TestCase("Penguins.bmp", "image/bmp")]
-        [TestCase("Penguins.gif", "image/gif")]
-        public void TestLoadImageFromMemory(string fileName, string expectedMime)
+        public void TestLoadImageFromMemory()
         {
-            string testPhoto = Path.Combine(this.localPath, string.Format("../../Images/{0}", fileName));
-            byte[] photoBytes = File.ReadAllBytes(testPhoto);
-
-            // ImageProcessor
-            using (MemoryStream inStream = new MemoryStream(photoBytes))
+            foreach (var fileName in ListInputFiles())
             {
-                using (ImageFactory imageFactory = new ImageFactory())
+                byte[] photoBytes = File.ReadAllBytes(fileName);
+
+                using (var inStream = new MemoryStream(photoBytes))
                 {
-                    imageFactory.Load(inStream);
-                    Assert.AreEqual(null, imageFactory.ImagePath);
-                    Assert.AreEqual(expectedMime, imageFactory.CurrentImageFormat.MimeType);
-                    Assert.IsNotNull(imageFactory.Image);
+                    using (var imageFactory = new ImageFactory())
+                    {
+                        imageFactory.Load(inStream);
+                        Assert.AreEqual(null, imageFactory.ImagePath);
+                        Assert.IsNotNull(imageFactory.Image);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Tests that a filter is really applied by checking that the image is modified
+        /// </summary>
+        [Test]
+        public void ApplyEffectAlpha()
+        {
+            foreach (var fileName in ListInputFiles())
+            {
+                using (var imageFactory = new ImageFactory())
+                {
+                    imageFactory.Load(fileName);
+                    var original = imageFactory.Image.Clone();
+                    imageFactory.Alpha(50);
+                    var modified = imageFactory.Image.Clone();
+                    Assert.AreNotEqual(original, modified);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Tests that a filter is really applied by checking that the image is modified
+        /// </summary>
+        [Test]
+        public void ApplyEffectBrightness()
+        {
+            foreach (var fileName in ListInputFiles())
+            {
+                using (var imageFactory = new ImageFactory())
+                {
+                    imageFactory.Load(fileName);
+                    var original = imageFactory.Image.Clone();
+                    imageFactory.Brightness(50);
+                    var modified = imageFactory.Image.Clone();
+                    Assert.AreNotEqual(original, modified);
                 }
             }
         }

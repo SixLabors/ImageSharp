@@ -83,8 +83,7 @@ namespace ImageProcessor.UnitTests
                     imageFactory.Load(fileName);
                     var original = imageFactory.Image.Clone();
                     imageFactory.Alpha(50);
-                    var modified = imageFactory.Image.Clone();
-                    Assert.AreNotEqual(original, modified);
+                    Assert.AreNotEqual(original, imageFactory.Image);
                 }
             }
         }
@@ -102,8 +101,7 @@ namespace ImageProcessor.UnitTests
                     imageFactory.Load(fileName);
                     var original = imageFactory.Image.Clone();
                     imageFactory.Brightness(50);
-                    var modified = imageFactory.Image.Clone();
-                    Assert.AreNotEqual(original, modified);
+                    Assert.AreNotEqual(original, imageFactory.Image);
                 }
             }
         }
@@ -114,15 +112,17 @@ namespace ImageProcessor.UnitTests
         [Test]
         public void ApplyConstraints()
         {
+            const int maxSize = 200;
             foreach (var fileName in ListInputFiles())
             {
                 using (var imageFactory = new ImageFactory())
                 {
                     imageFactory.Load(fileName);
                     var original = imageFactory.Image.Clone();
-                    imageFactory.Constrain(new System.Drawing.Size(200, 200));
-                    var modified = imageFactory.Image.Clone();
-                    Assert.AreNotEqual(original, modified);
+                    imageFactory.Constrain(new System.Drawing.Size(maxSize, maxSize));
+                    Assert.AreNotEqual(original, imageFactory.Image);
+                    Assert.LessOrEqual(maxSize, imageFactory.Image.Width);
+                    Assert.LessOrEqual(maxSize, imageFactory.Image.Height);
                 }
             }
         }

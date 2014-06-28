@@ -51,5 +51,38 @@ namespace ImageProcessor.UnitTests
                 Assert.IsNotNull(imageFactory.Image);
             }
         }
+
+        /// <summary>>
+        /// Tests the loading of image from a memory stream
+        /// </summary>
+        /// <param name="fileName">
+        /// The file Name.
+        /// </param>
+        /// <param name="expectedMime">
+        /// The expected mime type.
+        /// </param>
+        [Test]
+        [TestCase("Chrysanthemum.jpg", "image/jpeg")]
+        [TestCase("Desert.jpg", "image/jpeg")]
+        [TestCase("cmyk.png", "image/png")]
+        [TestCase("Penguins.bmp", "image/bmp")]
+        [TestCase("Penguins.gif", "image/gif")]
+        public void TestLoadImageFromMemory(string fileName, string expectedMime)
+        {
+            string testPhoto = Path.Combine(this.localPath, string.Format("../../Images/{0}", fileName));
+            byte[] photoBytes = File.ReadAllBytes(testPhoto);
+
+            // ImageProcessor
+            using (MemoryStream inStream = new MemoryStream(photoBytes))
+            {
+                using (ImageFactory imageFactory = new ImageFactory())
+                {
+                    imageFactory.Load(inStream);
+                    Assert.AreEqual(null, imageFactory.ImagePath);
+                    Assert.AreEqual(expectedMime, imageFactory.CurrentImageFormat.MimeType);
+                    Assert.IsNotNull(imageFactory.Image);
+                }
+            }
+        }
     }
 }

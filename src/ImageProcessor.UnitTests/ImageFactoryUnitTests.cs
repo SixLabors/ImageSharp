@@ -125,6 +125,42 @@ namespace ImageProcessor.UnitTests
         }
 
         /// <summary>
+        /// Tests that a filter is really applied by checking that the image is modified
+        /// </summary>
+        [Test]
+        public void TestApplyEffectBlur()
+        {
+            foreach (var fileName in ListInputFiles())
+            {
+                using (var imageFactory = new ImageFactory())
+                {
+                    imageFactory.Load(fileName);
+                    var original = imageFactory.Image.Clone();
+                    imageFactory.GaussianBlur(5);
+                    Assert.AreNotEqual(original, imageFactory.Image);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Tests that a filter is really applied by checking that the image is modified
+        /// </summary>
+        [Test]
+        public void TestApplyEffectBlurWithLayer()
+        {
+            foreach (var fileName in ListInputFiles())
+            {
+                using (var imageFactory = new ImageFactory())
+                {
+                    imageFactory.Load(fileName);
+                    var original = imageFactory.Image.Clone();
+                    imageFactory.GaussianBlur(new Imaging.GaussianLayer() { Sigma = 10, Size = 5, Threshold = 2 });
+                    Assert.AreNotEqual(original, imageFactory.Image);
+                }
+            }
+        }
+
+        /// <summary>
         /// Tests that all filters can be applied
         /// </summary>
         [Test]
@@ -239,6 +275,32 @@ namespace ImageProcessor.UnitTests
                     Assert.AreNotEqual(original, imageFactory.Image);
                     Assert.AreEqual(maxSize, imageFactory.Image.Width);
                     Assert.LessOrEqual(maxSize, imageFactory.Image.Height);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Tests that the image is flipped
+        /// </summary>
+        [Test]
+        public void TestFlip()
+        {
+            foreach (var fileName in ListInputFiles())
+            {
+                using (var imageFactory = new ImageFactory())
+                {
+                    imageFactory.Load(fileName);
+                    var original = (System.Drawing.Image)imageFactory.Image.Clone();
+                    imageFactory.Flip(true);
+                    Assert.AreNotEqual(original, imageFactory.Image);
+                    Assert.AreEqual(original.Width, imageFactory.Image.Width);
+                    Assert.AreEqual(original.Height, imageFactory.Image.Height);
+                    imageFactory.Reset();
+
+                    imageFactory.Flip(false);
+                    Assert.AreNotEqual(original, imageFactory.Image);
+                    Assert.AreEqual(original.Width, imageFactory.Image.Width);
+                    Assert.AreEqual(original.Height, imageFactory.Image.Height);
                 }
             }
         }

@@ -177,13 +177,13 @@ namespace ImageProcessor
         /// </returns>
         public ImageFactory Load(string imagePath)
         {
-            var fileInfo = new FileInfo(imagePath);
+            FileInfo fileInfo = new FileInfo(imagePath);
             if (fileInfo.Exists)
             {
                 this.ImagePath = imagePath;
 
                 // Open a file stream to prevent the need for lock.
-                using (var fileStream = new FileStream(imagePath, FileMode.Open, FileAccess.Read))
+                using (FileStream fileStream = new FileStream(imagePath, FileMode.Open, FileAccess.Read))
                 {
                     ISupportedImageFormat format = FormatUtilities.GetFormat(fileStream);
 
@@ -192,7 +192,7 @@ namespace ImageProcessor
                         throw new ImageFormatException("Input stream is not a supported format.");
                     }
 
-                    var memoryStream = new MemoryStream();
+                    MemoryStream memoryStream = new MemoryStream();
 
                     // Copy the stream.
                     fileStream.CopyTo(memoryStream);
@@ -279,7 +279,7 @@ namespace ImageProcessor
                     percentage = 0;
                 }
 
-                var alpha = new Alpha { DynamicParameter = percentage };
+                Alpha alpha = new Alpha { DynamicParameter = percentage };
                 this.CurrentImageFormat.ApplyProcessor(alpha.ProcessImage, this);
             }
 
@@ -297,7 +297,7 @@ namespace ImageProcessor
         {
             if (this.ShouldProcess)
             {
-                var autoRotate = new AutoRotate();
+                AutoRotate autoRotate = new AutoRotate();
                 this.CurrentImageFormat.ApplyProcessor(autoRotate.ProcessImage, this);
             }
 
@@ -324,7 +324,7 @@ namespace ImageProcessor
                     percentage = 0;
                 }
 
-                var brightness = new Brightness { DynamicParameter = percentage };
+                Brightness brightness = new Brightness { DynamicParameter = percentage };
                 this.CurrentImageFormat.ApplyProcessor(brightness.ProcessImage, this);
             }
 
@@ -344,7 +344,7 @@ namespace ImageProcessor
         {
             if (this.ShouldProcess)
             {
-                var layer = new ResizeLayer(size, ResizeMode.Max);
+                ResizeLayer layer = new ResizeLayer(size, ResizeMode.Max);
 
                 return this.Resize(layer);
             }
@@ -372,7 +372,7 @@ namespace ImageProcessor
                     percentage = 0;
                 }
 
-                var contrast = new Contrast { DynamicParameter = percentage };
+                Contrast contrast = new Contrast { DynamicParameter = percentage };
                 this.CurrentImageFormat.ApplyProcessor(contrast.ProcessImage, this);
             }
 
@@ -392,7 +392,7 @@ namespace ImageProcessor
         {
             if (this.ShouldProcess)
             {
-                var cropLayer = new CropLayer(rectangle.Left, rectangle.Top, rectangle.Width, rectangle.Height, CropMode.Pixels);
+                CropLayer cropLayer = new CropLayer(rectangle.Left, rectangle.Top, rectangle.Width, rectangle.Height, CropMode.Pixels);
                 return this.Crop(cropLayer);
             }
 
@@ -412,7 +412,7 @@ namespace ImageProcessor
         {
             if (this.ShouldProcess)
             {
-                var crop = new Crop { DynamicParameter = cropLayer };
+                Crop crop = new Crop { DynamicParameter = cropLayer };
                 this.CurrentImageFormat.ApplyProcessor(crop.ProcessImage, this);
             }
 
@@ -433,7 +433,7 @@ namespace ImageProcessor
         {
             if (this.ShouldProcess)
             {
-                var filter = new Filter { DynamicParameter = matrixFilter };
+                Filter filter = new Filter { DynamicParameter = matrixFilter };
                 this.CurrentImageFormat.ApplyProcessor(filter.ProcessImage, this);
             }
 
@@ -457,7 +457,7 @@ namespace ImageProcessor
                     ? RotateFlipType.RotateNoneFlipY
                     : RotateFlipType.RotateNoneFlipX;
 
-                var flip = new Flip { DynamicParameter = rotateFlipType };
+                Flip flip = new Flip { DynamicParameter = rotateFlipType };
                 this.CurrentImageFormat.ApplyProcessor(flip.ProcessImage, this);
             }
 
@@ -500,7 +500,7 @@ namespace ImageProcessor
         {
             if (this.ShouldProcess && size > 0)
             {
-                var layer = new GaussianLayer(size);
+                GaussianLayer layer = new GaussianLayer(size);
                 return this.GaussianBlur(layer);
             }
 
@@ -521,7 +521,7 @@ namespace ImageProcessor
         {
             if (this.ShouldProcess)
             {
-                var gaussianBlur = new GaussianBlur { DynamicParameter = gaussianLayer };
+                GaussianBlur gaussianBlur = new GaussianBlur { DynamicParameter = gaussianLayer };
                 this.CurrentImageFormat.ApplyProcessor(gaussianBlur.ProcessImage, this);
             }
 
@@ -547,7 +547,7 @@ namespace ImageProcessor
         {
             if (this.ShouldProcess && size > 0)
             {
-                var layer = new GaussianLayer(size);
+                GaussianLayer layer = new GaussianLayer(size);
                 return this.GaussianSharpen(layer);
             }
 
@@ -568,7 +568,7 @@ namespace ImageProcessor
         {
             if (this.ShouldProcess)
             {
-                var gaussianSharpen = new GaussianSharpen { DynamicParameter = gaussianLayer };
+                GaussianSharpen gaussianSharpen = new GaussianSharpen { DynamicParameter = gaussianLayer };
                 this.CurrentImageFormat.ApplyProcessor(gaussianSharpen.ProcessImage, this);
             }
 
@@ -611,7 +611,7 @@ namespace ImageProcessor
                 int width = size.Width;
                 int height = size.Height;
 
-                var resizeLayer = new ResizeLayer(new Size(width, height));
+                ResizeLayer resizeLayer = new ResizeLayer(new Size(width, height));
                 return this.Resize(resizeLayer);
             }
 
@@ -631,9 +631,9 @@ namespace ImageProcessor
         {
             if (this.ShouldProcess)
             {
-                var resizeSettings = new Dictionary<string, string> { { "MaxWidth", resizeLayer.Size.Width.ToString("G") }, { "MaxHeight", resizeLayer.Size.Height.ToString("G") } };
+                Dictionary<string, string> resizeSettings = new Dictionary<string, string> { { "MaxWidth", resizeLayer.Size.Width.ToString("G") }, { "MaxHeight", resizeLayer.Size.Height.ToString("G") } };
 
-                var resize = new Resize { DynamicParameter = resizeLayer, Settings = resizeSettings };
+                Resize resize = new Resize { DynamicParameter = resizeLayer, Settings = resizeSettings };
                 this.CurrentImageFormat.ApplyProcessor(resize.ProcessImage, this);
             }
 
@@ -659,7 +659,7 @@ namespace ImageProcessor
                     degrees = 0;
                 }
 
-                var rotate = new Rotate { DynamicParameter = degrees };
+                Rotate rotate = new Rotate { DynamicParameter = degrees };
                 this.CurrentImageFormat.ApplyProcessor(rotate.ProcessImage, this);
             }
 
@@ -684,7 +684,7 @@ namespace ImageProcessor
                     roundedCornerLayer.Radius = 0;
                 }
 
-                var roundedCorners = new RoundedCorners { DynamicParameter = roundedCornerLayer };
+                RoundedCorners roundedCorners = new RoundedCorners { DynamicParameter = roundedCornerLayer };
                 this.CurrentImageFormat.ApplyProcessor(roundedCorners.ProcessImage, this);
             }
 
@@ -711,7 +711,7 @@ namespace ImageProcessor
                     percentage = 0;
                 }
 
-                var saturate = new Saturation { DynamicParameter = percentage };
+                Saturation saturate = new Saturation { DynamicParameter = percentage };
                 this.CurrentImageFormat.ApplyProcessor(saturate.ProcessImage, this);
             }
 
@@ -731,7 +731,7 @@ namespace ImageProcessor
         {
             if (this.ShouldProcess)
             {
-                var tint = new Tint { DynamicParameter = color };
+                Tint tint = new Tint { DynamicParameter = color };
                 this.CurrentImageFormat.ApplyProcessor(tint.ProcessImage, this);
             }
 
@@ -751,12 +751,12 @@ namespace ImageProcessor
         {
             if (this.ShouldProcess)
             {
-                var vignette = new Vignette
-                                        {
-                                            DynamicParameter = color.HasValue && !color.Equals(Color.Transparent)
-                                                                ? color.Value
-                                                                : Color.Black
-                                        };
+                Vignette vignette = new Vignette
+                {
+                    DynamicParameter = color.HasValue && !color.Equals(Color.Transparent)
+                                        ? color.Value
+                                        : Color.Black
+                };
 
                 this.CurrentImageFormat.ApplyProcessor(vignette.ProcessImage, this);
             }
@@ -778,7 +778,7 @@ namespace ImageProcessor
         {
             if (this.ShouldProcess)
             {
-                var watermark = new Watermark { DynamicParameter = textLayer };
+                Watermark watermark = new Watermark { DynamicParameter = textLayer };
                 this.CurrentImageFormat.ApplyProcessor(watermark.ProcessImage, this);
             }
 
@@ -800,7 +800,7 @@ namespace ImageProcessor
             if (this.ShouldProcess)
             {
                 // ReSharper disable once AssignNullToNotNullAttribute
-                var directoryInfo = new DirectoryInfo(Path.GetDirectoryName(filePath));
+                DirectoryInfo directoryInfo = new DirectoryInfo(Path.GetDirectoryName(filePath));
                 if (!directoryInfo.Exists)
                 {
                     directoryInfo.Create();

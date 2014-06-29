@@ -101,6 +101,9 @@
     <Compile Include="..\NET45\Helpers\ImageHelpers.cs">
       <Link>ImageHelpers.cs</Link>
     </Compile>
+    <Compile Include="..\NET45\Helpers\NativeMethods.cs">
+      <Link>NativeMethods.cs</Link>
+    </Compile>
     <Compile Include="..\NET45\Helpers\RemoteFile.cs" />
     <Compile Include="..\NET45\Helpers\ResourceHelpers.cs">
       <Link>ResourceHelpers.cs</Link>

@@ -37,7 +37,7 @@ namespace ImageProcessor.Imaging.Formats
         /// <returns>
         /// 1 if success, otherwise error code returned in the case of (a) formatting error(s).
         /// </returns>
-        [DllImport("x86\\libwebp.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "WebPGetInfo")]
+        [DllImport("libwebp32.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "WebPGetInfo")]
         public static extern int WebPGetInfo86(IntPtr data, uint dataSize, out int width, out int height);
 
         /// <summary>
@@ -58,7 +58,7 @@ namespace ImageProcessor.Imaging.Formats
         /// <returns>
         /// 1 if success, otherwise error code returned in the case of (a) formatting error(s).
         /// </returns>
-        [DllImport("x64\\libwebp.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "WebPGetInfo")]
+        [DllImport("libwebp64.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "WebPGetInfo")]
         public static extern int WebPGetInfo64(IntPtr data, uint dataSize, out int width, out int height);
 
         /// <summary>
@@ -82,7 +82,7 @@ namespace ImageProcessor.Imaging.Formats
         /// <returns>
         /// output_buffer if function succeeds; NULL otherwise
         /// </returns>
-        [DllImport("x86\\libwebp.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "WebPDecodeBGRAInto")]
+        [DllImport("libwebp32.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "WebPDecodeBGRAInto")]
         public static extern IntPtr WebPDecodeBGRAInto86(IntPtr data, uint dataSize, IntPtr outputBuffer, int outputBufferSize, int outputStride);
 
         /// <summary>
@@ -106,7 +106,7 @@ namespace ImageProcessor.Imaging.Formats
         /// <returns>
         /// output_buffer if function succeeds; NULL otherwise
         /// </returns>
-        [DllImport("x64\\libwebp.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "WebPDecodeBGRAInto")]
+        [DllImport("libwebp64.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "WebPDecodeBGRAInto")]
         public static extern IntPtr WebPDecodeBGRAInto64(IntPtr data, uint dataSize, IntPtr outputBuffer, int outputBufferSize, int outputStride);
 
         /// <summary>
@@ -133,7 +133,7 @@ namespace ImageProcessor.Imaging.Formats
         /// <returns>
         /// Size of WebP Image
         /// </returns>
-        [DllImport("x86\\libwebp.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "WebPEncodeBGRA")]
+        [DllImport("libwebp32.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "WebPEncodeBGRA")]
         public static extern int WebPEncodeBGRA86(IntPtr rgb, int width, int height, int stride, float qualityFactor, out IntPtr output);
 
         /// <summary>
@@ -160,7 +160,7 @@ namespace ImageProcessor.Imaging.Formats
         /// <returns>
         /// Size of WebP Image
         /// </returns>
-        [DllImport("x64\\libwebp.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "WebPEncodeBGRA")]
+        [DllImport("libwebp64.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "WebPEncodeBGRA")]
         public static extern int WebPEncodeBGRA64(IntPtr rgb, int width, int height, int stride, float qualityFactor, out IntPtr output);
 
         /// <summary>
@@ -172,7 +172,7 @@ namespace ImageProcessor.Imaging.Formats
         /// <returns>
         /// 1 if success, otherwise error code returned in the case of (a) error(s).
         /// </returns>
-        [DllImport("x86\\libwebp.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "WebPFree")]
+        [DllImport("libwebp32.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "WebPFree")]
         public static extern int WebPFree86(IntPtr pointer);
 
         /// <summary>
@@ -184,7 +184,7 @@ namespace ImageProcessor.Imaging.Formats
         /// <returns>
         /// 1 if success, otherwise error code returned in the case of (a) error(s).
         /// </returns>
-        [DllImport("x64\\libwebp.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "WebPFree")]
+        [DllImport("libwebp64.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "WebPFree")]
         public static extern int WebPFree64(IntPtr pointer);
         #endregion
     }

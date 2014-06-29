@@ -47,6 +47,7 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Compile>
     <Compile Include="Extensions\DoubleExtensionsUnitTests.cs" />
+    <Compile Include="Extensions\IntegerExtensionsUnitTests.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

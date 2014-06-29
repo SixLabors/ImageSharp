@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{03CA9055-F997-428C-BF28-F50F991777C6}</ProjectGuid>
+    <ProjectGuid>{633B1C4C-4823-47BE-9A01-A665F3118C8C}</ProjectGuid>
     <OutputType>Library</OutputType>
     <RootNamespace>ImageProcessor.UnitTests</RootNamespace>
     <AssemblyName>ImageProcessor.UnitTests</AssemblyName>
@@ -338,7 +338,5 @@
     </PropertyGroup>
     <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
   </Target>
-  <ItemGroup>
-    <Folder Include="Images\" />
-  </ItemGroup>
+  <ItemGroup />
 </Project>

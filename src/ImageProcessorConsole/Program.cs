@@ -40,9 +40,9 @@ namespace ImageProcessorConsole
                 di.Create();
             }
 
-            FileInfo[] files = di.GetFiles("*.jpg");
+            //FileInfo[] files = di.GetFiles("*.jpg");
             //FileInfo[] files = di.GetFiles();
-            //var files = GetFilesByExtensions(di, ".gif", ".webp");
+            IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif", ".webp");
 
 
             foreach (FileInfo fileInfo in files)
@@ -60,11 +60,11 @@ namespace ImageProcessorConsole
                         imageFactory.Load(inStream)
                             .AutoRotate()
                             .Constrain(size)
-                            .Format(new WebPFormat())
-                            .Quality(5)
+                            //.Format(new WebPFormat())
+                            //.Quality(5)
                             // ReSharper disable once AssignNullToNotNullAttribute
-                             .Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", Path.GetFileNameWithoutExtension(fileInfo.Name) + ".webp")));
-                            //.Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", fileInfo.Name)));
+                             // .Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", Path.GetFileNameWithoutExtension(fileInfo.Name) + ".webp")));
+                            .Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", fileInfo.Name)));
                     }
                 }
             }

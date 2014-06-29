@@ -12,7 +12,10 @@ namespace ImageProcessor.Configuration
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
+    using System.Reflection;
+
     using ImageProcessor.Common.Exceptions;
     using ImageProcessor.Common.Extensions;
     using ImageProcessor.Imaging.Formats;

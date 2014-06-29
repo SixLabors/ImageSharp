@@ -43,7 +43,9 @@
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ImageFactoryUnitTests.cs" />
+    <Compile Include="ImageFactoryUnitTests.cs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Compile>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -59,26 +61,66 @@
   <ItemGroup>
     <None Include="packages.config" />
     <None Include="Images\autorotate.jpg" />
-    <None Include="Images\cmyk-profile-euroscale.jpg" />
-    <None Include="Images\cmyk.jpg" />
-    <None Include="Images\color-vision-test.gif" />
-    <None Include="Images\exif-Tulips.jpg" />
-    <None Include="Images\exif-rocks.jpg" />
-    <None Include="Images\format-Penguins-8bit.png" />
-    <None Include="Images\format-Penguins.bmp" />
-    <None Include="Images\format-Penguins.gif" />
-    <None Include="Images\format-Penguins.jpg" />
-    <None Include="Images\format-Penguins.png" />
-    <None Include="Images\format-Penguins.tif" />
-    <None Include="Images\format-animated.gif" />
-    <None Include="Images\hi-color.png" />
-    <None Include="Images\hi-contrast.jpg" />
-    <None Include="Images\hi-saturation.jpg" />
-    <None Include="Images\profile-adobe-rgb.jpg" />
-    <None Include="Images\profile-srgb.jpg" />
-    <None Include="Images\size-Penguins-200.jpg" />
-    <None Include="Images\text-over-transparent.png" />
-    <None Include="Images\udendørs.jpg" />
+    <None Include="Images\cmyk-profile-euroscale.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Images\cmyk.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Images\color-vision-test.gif">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Images\exif-Tulips.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Images\exif-rocks.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Images\format-Penguins-8bit.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Images\format-Penguins.bmp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Images\format-Penguins.gif">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Images\format-Penguins.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Images\format-Penguins.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Images\format-Penguins.tif">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Images\format-animated.gif">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Images\hi-color.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Images\hi-contrast.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Images\hi-saturation.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Images\profile-adobe-rgb.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Images\profile-srgb.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Images\size-Penguins-200.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Images\text-over-transparent.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Images\udendørs.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />

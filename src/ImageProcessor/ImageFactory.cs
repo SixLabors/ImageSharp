@@ -183,7 +183,7 @@ namespace ImageProcessor
                 this.ImagePath = imagePath;
 
                 // Open a file stream to prevent the need for lock.
-                using (FileStream fileStream = new FileStream(imagePath, FileMode.Open, FileAccess.Read))
+                using (var fileStream = new FileStream(imagePath, FileMode.Open, FileAccess.Read))
                 {
                     ISupportedImageFormat format = FormatUtilities.GetFormat(fileStream);
 
@@ -192,7 +192,7 @@ namespace ImageProcessor
                         throw new ImageFormatException("Input stream is not a supported format.");
                     }
 
-                    MemoryStream memoryStream = new MemoryStream();
+                    var memoryStream = new MemoryStream();
 
                     // Copy the stream.
                     fileStream.CopyTo(memoryStream);

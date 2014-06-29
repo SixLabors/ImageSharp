@@ -13,12 +13,16 @@ namespace ImageProcessor.Web.Configuration
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Diagnostics;
+    using System.IO;
     using System.Linq;
     using System.Reflection;
+    using System.Web;
     using System.Web.Compilation;
 
     using ImageProcessor.Common.Extensions;
     using ImageProcessor.Processors;
+    using ImageProcessor.Web.Helpers;
     using ImageProcessor.Web.Processors;
 
     /// <summary>
@@ -28,6 +32,12 @@ namespace ImageProcessor.Web.Configuration
     public sealed class ImageProcessorConfiguration
     {
         #region Fields
+        /// <summary>
+        /// Whether the process is running in 64bit mode. Used for calling the correct dllimport method.
+        /// Clunky I know but I couldn't get dynamic methods to work.
+        /// </summary>
+        private static readonly bool Is64Bit = Environment.Is64BitProcess;
+
         /// <summary>
         /// A new instance Initializes a new instance of the <see cref="T:ImageProcessor.Web.Config.ImageProcessorConfig"/> class.
         /// with lazy initialization.
@@ -71,6 +81,7 @@ namespace ImageProcessor.Web.Configuration
         /// </summary>
         private ImageProcessorConfiguration()
         {
+            this.EnsureNativeBinariesLoaded();
             this.LoadGraphicsProcessors();
         }
         #endregion
@@ -351,6 +362,38 @@ namespace ImageProcessor.Web.Configuration
             foreach (IWebGraphicsProcessor webProcessor in this.GraphicsProcessors)
             {
                 webProcessor.Processor.Settings = this.GetPluginSettings(webProcessor.GetType().Name);
+            }
+        }
+
+        /// <summary>
+        /// Ensures that the native binaries are loaded.
+        /// </summary>
+        private void EnsureNativeBinariesLoaded()
+        {
+            string binary = Is64Bit ? "libwebp64.dll" : "libwebp32.dll";
+            string sourcePath = HttpContext.Current.Server.MapPath("~/bin");
+            string targetPath = new Uri(Assembly.GetExecutingAssembly().Location).LocalPath;
+            IntPtr pointer = IntPtr.Zero;
+
+            // Shadow copy the native binaries.
+            sourcePath = Path.Combine(sourcePath, binary);
+            targetPath = Path.GetFullPath(Path.Combine(targetPath, "..\\" + binary));
+
+            File.Copy(sourcePath, targetPath, true);
+
+            try
+            {
+                // Load the binary into memory.
+                pointer = NativeMethods.LoadLibrary(targetPath);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.Message);
+            }
+
+            if (pointer == IntPtr.Zero)
+            {
+                throw new ApplicationException("Cannot open " + binary);
             }
         }
         #endregion

@@ -32,7 +32,7 @@ namespace ImageProcessor.Imaging.Formats
     public class WebPFormat : FormatBase
     {
         /// <summary>
-        /// Whether the process is running in 63bit mode. Used for calling the correct dllimport method.
+        /// Whether the process is running in 64bit mode. Used for calling the correct dllimport method.
         /// Clunky I know but I couldn't get dynamic methods to work.
         /// </summary>
         private static readonly bool Is64Bit = Environment.Is64BitProcess;
@@ -225,11 +225,6 @@ namespace ImageProcessor.Imaging.Formats
                 {
                     // Uncompress the image
                     outputBuffer = NativeMethods.WebPDecodeBGRAInto86(ptrData, dataSize, outputBuffer, outputBufferSize, bitmapData.Stride);
-                }
-
-                if (bitmapData.Scan0 != outputBuffer)
-                {
-                    throw new ImageFormatException("Failed to decode WebP image with error " + (long)outputBuffer);
                 }
 
                 // Write image to bitmap using Marshal

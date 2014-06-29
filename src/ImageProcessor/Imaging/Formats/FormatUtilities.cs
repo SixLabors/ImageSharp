@@ -142,7 +142,7 @@ namespace ImageProcessor.Imaging.Formats
                         // GDI returns a single array with all delays, while Mono returns a different array for each frame
                         image.SelectActiveFrame(frameDimension, i);
                         var times = image.GetPropertyItem(20736).Value;
-                        int thisDelay = BitConverter.ToInt32(times, 4*i % times.Length);
+                        int thisDelay = BitConverter.ToInt32(times, (4 * i) % times.Length);
                         int toAddDelay = thisDelay * 10 < 20 ? 20 : thisDelay * 10; // Minimum delay is 20 ms
 
                         // Find the frame

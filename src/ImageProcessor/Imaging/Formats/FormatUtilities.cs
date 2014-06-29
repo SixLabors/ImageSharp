@@ -135,12 +135,14 @@ namespace ImageProcessor.Imaging.Formats
                     int frameCount = image.GetFrameCount(frameDimension);
                     int last = frameCount - 1;
                     int delay = 0;
-                    int index = 0;
                     List<GifFrame> gifFrames = new List<GifFrame>();
 
                     for (int i = 0; i < frameCount; i++)
                     {
-                        int thisDelay = BitConverter.ToInt32(image.GetPropertyItem(20736).Value, index);
+                        // GDI returns a single array with all delays, while Mono returns a different array for each frame
+                        image.SelectActiveFrame(frameDimension, i);
+                        var times = image.GetPropertyItem(20736).Value;
+                        int thisDelay = BitConverter.ToInt32(times, (4 * i) % times.Length);
                         int toAddDelay = thisDelay * 10 < 20 ? 20 : thisDelay * 10; // Minimum delay is 20 ms
 
                         // Find the frame
@@ -156,7 +158,6 @@ namespace ImageProcessor.Imaging.Formats
                         }
 
                         delay += toAddDelay;
-                        index += 4;
                     }
 
                     info.GifFrames = gifFrames;

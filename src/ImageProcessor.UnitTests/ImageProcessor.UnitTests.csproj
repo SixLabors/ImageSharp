@@ -1,195 +1,63 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{633B1C4C-4823-47BE-9A01-A665F3118C8C}</ProjectGuid>
     <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>ImageProcessor.UnitTests</RootNamespace>
     <AssemblyName>ImageProcessor.UnitTests</AssemblyName>
-    <TargetFrameworkProfile>
-    </TargetFrameworkProfile>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <ProjectTypeGuids>{3AC096D0-A1C2-E12C-1390-A8335801FDAB};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
+    <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
+    <ReferencePath>$(ProgramFiles)\Common Files\microsoft shared\VSTT\$(VisualStudioVersion)\UITestExtensionPackages</ReferencePath>
+    <IsCodedUITest>False</IsCodedUITest>
+    <TestProjectType>UnitTest</TestProjectType>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>DEBUG;</DefineConstants>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <ConsolePause>false</ConsolePause>
-    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>full</DebugType>
+    <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>bin\Release</OutputPath>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <ConsolePause>false</ConsolePause>
-    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="System.Drawing" />
     <Reference Include="nunit.framework">
       <HintPath>..\packages\NUnit.2.6.3\lib\nunit.framework.dll</HintPath>
     </Reference>
-    <Reference Include="System.Core" />
-    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System" />
+    <Reference Include="System.Drawing" />
   </ItemGroup>
+  <Choose>
+    <When Condition="('$(VisualStudioVersion)' == '10.0' or '$(VisualStudioVersion)' == '') and '$(TargetFrameworkVersion)' == 'v3.5'">
+      <ItemGroup>
+        <Reference Include="Microsoft.VisualStudio.QualityTools.UnitTestFramework, Version=10.1.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
+      </ItemGroup>
+    </When>
+    <Otherwise />
+  </Choose>
   <ItemGroup>
     <Compile Include="ImageFactoryUnitTests.cs" />
-  </ItemGroup>
-  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
-  <ItemGroup>
-    <ProjectReference Include="..\ImageProcessor.Web\NET45\ImageProcessor.Web_NET45.csproj">
-      <Project>{D011A778-59C8-4BFA-A770-C350216BF161}</Project>
-      <Name>ImageProcessor.Web_NET45</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\ImageProcessor\ImageProcessor.csproj">
-      <Project>{3B5DD734-FB7A-487D-8CE6-55E7AF9AEA7E}</Project>
-      <Name>ImageProcessor</Name>
-    </ProjectReference>
+    <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup />
-  <ItemGroup>
-    <Content Include="Images\Chrysanthemum.jpg" />
-    <Content Include="Images\cmyk.png" />
-    <Content Include="Images\Desert.jpg" />
-    <Content Include="Images\Penguins.bmp" />
-    <Content Include="Images\Penguins.gif" />
-  </ItemGroup>
-    <Content Include="..\Images\1182076_e8c402e938_z.jpg">
-      <Link>Images\1182076_e8c402e938_z.jpg</Link>
-    </Content>
-    <Content Include="..\Images\bus.jpg">
-      <Link>Images\bus.jpg</Link>
-    </Content>
-    <Content Include="..\Images\Chrysanthemum.jpg">
-      <Link>Images\Chrysanthemum.jpg</Link>
-    </Content>
-    <Content Include="..\Images\circle.png">
-      <Link>Images\circle.png</Link>
-    </Content>
-    <Content Include="..\Images\cmyk.jpg">
-      <Link>Images\cmyk.jpg</Link>
-    </Content>
-    <Content Include="..\Images\cmyk.png">
-      <Link>Images\cmyk.png</Link>
-    </Content>
-    <Content Include="..\Images\color-vision-test.gif">
-      <Link>Images\color-vision-test.gif</Link>
-    </Content>
-    <Content Include="..\Images\Desert.jpg">
-      <Link>Images\Desert.jpg</Link>
-    </Content>
-    <Content Include="..\Images\emma.jpg">
-      <Link>Images\emma.jpg</Link>
-    </Content>
-    <Content Include="..\Images\falahill_design__160p.jpg">
-      <Link>Images\falahill_design__160p.jpg</Link>
-    </Content>
-    <Content Include="..\Images\fid11246.jpg">
-      <Link>Images\fid11246.jpg</Link>
-    </Content>
-    <Content Include="..\Images\fid9141.jpg">
-      <Link>Images\fid9141.jpg</Link>
-    </Content>
-    <Content Include="..\Images\header_1.jpg">
-      <Link>Images\header_1.jpg</Link>
-    </Content>
-    <Content Include="..\Images\Hydrangeas.jpg">
-      <Link>Images\Hydrangeas.jpg</Link>
-    </Content>
-    <Content Include="..\Images\Jellyfish.jpg">
-      <Link>Images\Jellyfish.jpg</Link>
-    </Content>
-    <Content Include="..\Images\jrt.jpg">
-      <Link>Images\jrt.jpg</Link>
-    </Content>
-    <Content Include="..\Images\Koala.jpg">
-      <Link>Images\Koala.jpg</Link>
-    </Content>
-    <Content Include="..\Images\Lighthouse.jpg">
-      <Link>Images\Lighthouse.jpg</Link>
-    </Content>
-    <Content Include="..\Images\lomo.jpg">
-      <Link>Images\lomo.jpg</Link>
-    </Content>
-    <Content Include="..\Images\meter.gif">
-      <Link>Images\meter.gif</Link>
-    </Content>
-    <Content Include="..\Images\negative.png">
-      <Link>Images\negative.png</Link>
-    </Content>
-    <Content Include="..\Images\negative2.png">
-      <Link>Images\negative2.png</Link>
-    </Content>
-    <Content Include="..\Images\Penguins-200.jpg">
-      <Link>Images\Penguins-200.jpg</Link>
-    </Content>
-    <Content Include="..\Images\Penguins-8.png">
-      <Link>Images\Penguins-8.png</Link>
-    </Content>
-    <Content Include="..\Images\Penguins.bmp">
-      <Link>Images\Penguins.bmp</Link>
-    </Content>
-    <Content Include="..\Images\Penguins.gif">
-      <Link>Images\Penguins.gif</Link>
-    </Content>
-    <Content Include="..\Images\Penguins.jpg">
-      <Link>Images\Penguins.jpg</Link>
-    </Content>
-    <Content Include="..\Images\Penguins.png">
-      <Link>Images\Penguins.png</Link>
-    </Content>
-    <Content Include="..\Images\Penguins.tif">
-      <Link>Images\Penguins.tif</Link>
-    </Content>
-    <Content Include="..\Images\rocks.jpg">
-      <Link>Images\rocks.jpg</Link>
-    </Content>
-    <Content Include="..\Images\rotate.jpg">
-      <Link>Images\rotate.jpg</Link>
-    </Content>
-    <Content Include="..\Images\sample1.jpg">
-      <Link>Images\sample1.jpg</Link>
-    </Content>
-    <Content Include="..\Images\srgb.jpg">
-      <Link>Images\srgb.jpg</Link>
-    </Content>
-    <Content Include="..\Images\srgb.png">
-      <Link>Images\srgb.png</Link>
-    </Content>
-    <Content Include="..\Images\text.png">
-      <Link>Images\text.png</Link>
-    </Content>
-    <Content Include="..\Images\thor.jpg">
-      <Link>Images\thor.jpg</Link>
-    </Content>
-    <Content Include="..\Images\Tulips.jpg">
-      <Link>Images\Tulips.jpg</Link>
-    </Content>
-    <Content Include="..\Images\udendørs-374.jpg">
-      <Link>Images\udendørs-374.jpg</Link>
-    </Content>
-    <Content Include="..\Images\udendørs.jpg">
-      <Link>Images\udendørs.jpg</Link>
-    </Content>
-    <Content Include="..\Images\war_horse_quad.jpg">
-      <Link>Images\war_horse_quad.jpg</Link>
-    </Content>
-    <Content Include="..\Images\WP_000009.jpg">
-      <Link>Images\WP_000009.jpg</Link>
-    </Content>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ImageProcessor\ImageProcessor.csproj">
@@ -197,140 +65,31 @@
       <Name>ImageProcessor</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup />
   <ItemGroup>
-    <None Include="packages.config" />
-    <None Include="..\Images\Chrysanthemum.jpg">
-      <Link>Images\Chrysanthemum.jpg</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Images\Desert.jpg">
-      <Link>Images\Desert.jpg</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Images\Hydrangeas.jpg">
-      <Link>Images\Hydrangeas.jpg</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Images\Jellyfish.jpg">
-      <Link>Images\Jellyfish.jpg</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Images\Koala.jpg">
-      <Link>Images\Koala.jpg</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Images\Lighthouse.jpg">
-      <Link>Images\Lighthouse.jpg</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Images\Penguins-8.png">
-      <Link>Images\Penguins-8.png</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Images\Penguins.bmp">
-      <Link>Images\Penguins.bmp</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Images\Penguins.gif">
-      <Link>Images\Penguins.gif</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Images\Penguins.jpg">
-      <Link>Images\Penguins.jpg</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Images\Penguins.png">
-      <Link>Images\Penguins.png</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Images\Penguins.tif">
-      <Link>Images\Penguins.tif</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Images\Tulips.jpg">
-      <Link>Images\Tulips.jpg</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Images\bus.jpg">
-      <Link>Images\bus.jpg</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Images\cmyk.jpg">
-      <Link>Images\cmyk.jpg</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Images\cmyk.png">
-      <Link>Images\cmyk.png</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Images\jrt.jpg">
-      <Link>Images\jrt.jpg</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Images\meter.gif">
-      <Link>Images\meter.gif</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Images\rocks.jpg">
-      <Link>Images\rocks.jpg</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Images\rotate.jpg">
-      <Link>Images\rotate.jpg</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Images\sample1.jpg">
-      <Link>Images\sample1.jpg</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Images\srgb.jpg">
-      <Link>Images\srgb.jpg</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Images\srgb.png">
-      <Link>Images\srgb.png</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Images\text.png">
-      <Link>Images\text.png</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Images\thor.jpg">
-      <Link>Images\thor.jpg</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Images\udendørs-374.jpg">
-      <Link>Images\udendørs-374.jpg</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Images\udendørs.jpg">
-      <Link>Images\udendørs.jpg</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Images\autorotate.jpg" />
-    <None Include="Images\cmyk-profile-euroscale.jpg" />
-    <None Include="Images\cmyk.jpg" />
-    <None Include="Images\color-vision-test.gif" />
-    <None Include="Images\exif-Tulips.jpg" />
-    <None Include="Images\exif-rocks.jpg" />
-    <None Include="Images\format-Penguins-8bit.png" />
-    <None Include="Images\format-Penguins.bmp" />
-    <None Include="Images\format-Penguins.gif" />
-    <None Include="Images\format-Penguins.jpg" />
-    <None Include="Images\format-Penguins.png" />
-    <None Include="Images\format-Penguins.tif" />
-    <None Include="Images\format-animated.gif" />
-    <None Include="Images\hi-color.png" />
-    <None Include="Images\hi-contrast.jpg" />
-    <None Include="Images\hi-saturation.jpg" />
-    <None Include="Images\profile-adobe-rgb.jpg" />
-    <None Include="Images\profile-srgb.jpg" />
-    <None Include="Images\size-Penguins-200.jpg" />
-    <None Include="Images\text-over-transparent.png" />
-    <None Include="Images\udendørs.jpg" />
+    <Content Include="Images\autorotate.jpg" />
+    <Content Include="Images\cmyk-profile-euroscale.jpg" />
+    <Content Include="Images\cmyk.jpg" />
+    <Content Include="Images\color-vision-test.gif" />
+    <Content Include="Images\exif-rocks.jpg" />
+    <Content Include="Images\exif-Tulips.jpg" />
+    <Content Include="Images\format-animated.gif" />
+    <Content Include="Images\format-Penguins-8bit.png" />
+    <Content Include="Images\format-Penguins.bmp" />
+    <Content Include="Images\format-Penguins.gif" />
+    <Content Include="Images\format-Penguins.jpg" />
+    <Content Include="Images\format-Penguins.png" />
+    <Content Include="Images\format-Penguins.tif" />
+    <Content Include="Images\hi-color.png" />
+    <Content Include="Images\hi-contrast.jpg" />
+    <Content Include="Images\hi-saturation.jpg" />
+    <Content Include="Images\profile-adobe-rgb.jpg" />
+    <Content Include="Images\profile-srgb.jpg" />
+    <Content Include="Images\size-Penguins-200.jpg" />
+    <Content Include="Images\text-over-transparent.png" />
+    <Content Include="Images\udendørs.jpg" />
   </ItemGroup>
-  <ItemGroup />
+  <Import Project="$(VSToolsPath)\TeamTest\Microsoft.TestTools.targets" Condition="Exists('$(VSToolsPath)\TeamTest\Microsoft.TestTools.targets')" />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
@@ -338,5 +97,11 @@
     </PropertyGroup>
     <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
   </Target>
-  <ItemGroup />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
 </Project>

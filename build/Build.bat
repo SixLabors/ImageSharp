@@ -20,7 +20,7 @@ ECHO Packing the NuGet release files
 ..\src\.nuget\NuGet.exe pack NuSpecs\ImageProcessor.nuspec -Version %version%
 ..\src\.nuget\NuGet.exe pack NuSpecs\ImageProcessor.Web.nuspec -Version %webversion%
 ..\src\.nuget\NuGet.exe pack NuSpecs\ImageProcessor.Web.Config.nuspec -Version %webconfigversion%
-
+PAUSE
 
 IF ERRORLEVEL 1 GOTO :showerror
 

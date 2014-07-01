@@ -22,8 +22,8 @@ namespace ImageProcessor.Web.Configuration
 
     using ImageProcessor.Common.Extensions;
     using ImageProcessor.Processors;
-    using ImageProcessor.Web.Processors;
     using ImageProcessor.Web.Helpers;
+    using ImageProcessor.Web.Processors;
 
     /// <summary>
     /// Encapsulates methods to allow the retrieval of ImageProcessor settings.

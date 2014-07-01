@@ -87,6 +87,9 @@
     <Compile Include="..\NET45\Config\ImageProcessingSection.cs" />
     <Compile Include="..\NET45\Config\ImageProcessorConfig.cs" />
     <Compile Include="..\NET45\Config\ImageSecuritySection.cs" />
+    <Compile Include="..\NET45\Extensions\DirectoryInfoExtensions.cs">
+      <Link>DirectoryInfoExtensions.cs</Link>
+    </Compile>
     <Compile Include="..\NET45\Helpers\ImageHelpers.cs">
       <Link>ImageHelpers.cs</Link>
     </Compile>

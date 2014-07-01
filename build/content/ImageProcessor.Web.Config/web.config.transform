@@ -13,8 +13,4 @@
     <cache configSource="config\imageprocessor\cache.config" />
     <processing configSource="config\imageprocessor\processing.config" />
   </imageProcessor>
-
-  <system.webServer>
-    <modules runAllManagedModulesForAllRequests="true"/>
-  </system.webServer>
 </configuration>

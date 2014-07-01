@@ -51,7 +51,7 @@ namespace ImageProcessor.Web.Caching
         /// <summary>
         /// The absolute path to virtual cache path on the server.
         /// </summary>
-        private static readonly string AbsoluteCachePath = HostingEnvironment.MapPath(ImageProcessorConfig.Instance.VirtualCachePath);
+        public static readonly string AbsoluteCachePath = HostingEnvironment.MapPath(ImageProcessorConfig.Instance.VirtualCachePath);
 
         /// <summary>
         /// The request for the image.
@@ -229,7 +229,7 @@ namespace ImageProcessor.Web.Caching
             DirectoryInfo parentDirectoryInfo = directoryInfo.Parent;
 
             // ReSharper disable once PossibleNullReferenceException
-            foreach (DirectoryInfo enumerateDirectory in parentDirectoryInfo.EnumerateDirectories())
+            foreach (DirectoryInfo enumerateDirectory in SafeEnumerateDirectories(parentDirectoryInfo))
             {
                 IEnumerable<FileInfo> files = enumerateDirectory.EnumerateFiles().OrderBy(f => f.CreationTimeUtc);
                 int count = files.Count();
@@ -258,6 +258,22 @@ namespace ImageProcessor.Web.Caching
                     }
                 }
             }
+        }
+
+        public static IEnumerable<DirectoryInfo> SafeEnumerateDirectories(DirectoryInfo directoryInfo)
+        {
+            IEnumerable<DirectoryInfo> directories;
+
+            try
+            {
+                directories = directoryInfo.EnumerateDirectories();
+            }
+            catch
+            {
+                return Enumerable.Empty<DirectoryInfo>();
+            }
+
+            return directories;
         }
 
         /// <summary>

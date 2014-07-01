@@ -1,6 +1,7 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="Program.cs" company="James South">
-//   Copyright James South
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
 //   The program.
@@ -58,7 +59,7 @@ namespace ImageProcessorConsole
 
                         // Load, resize, set the format and quality and save an image.
                         imageFactory.Load(inStream)
-                            .AutoRotate()
+                            //.AutoRotate()
                             .Constrain(size)
                             //.Format(new WebPFormat())
                             //.Quality(5)

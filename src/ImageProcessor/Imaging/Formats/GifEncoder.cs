@@ -193,13 +193,6 @@ namespace ImageProcessor.Imaging.Formats
         }
         #endregion
 
-        #region Properties
-        /// <summary>
-        ///     Gets or sets the frame delay.
-        /// </summary>
-        public TimeSpan FrameDelay { get; set; }
-        #endregion
-
         #region Public Methods and Operators
         /// <summary>
         /// Adds a frame to the gif.
@@ -289,13 +282,18 @@ namespace ImageProcessor.Imaging.Formats
         {
             int count = this.repeatCount.GetValueOrDefault(0);
 
-            // File Header
+            // File Header sinature and version.
             this.WriteString(FileType);
             this.WriteString(FileVersion);
+
+            // Write the logical screen descriptor.
             this.WriteShort(this.width.GetValueOrDefault(w)); // Initial Logical Width
             this.WriteShort(this.height.GetValueOrDefault(h)); // Initial Logical Height
+            
+            // Read the global color table info.
             sourceGif.Position = SourceGlobalColorInfoPosition;
-            this.WriteByte(sourceGif.ReadByte()); // Global Color Table Info
+            this.WriteByte(sourceGif.ReadByte()); 
+
             this.WriteByte(0); // Background Color Index
             this.WriteByte(0); // Pixel aspect ratio
             this.WriteColorTable(sourceGif);
@@ -387,6 +385,7 @@ namespace ImageProcessor.Imaging.Formats
         /// </param>
         private void WriteImageBlock(Stream sourceGif, bool includeColorTable, int x, int y, int h, int w)
         {
+            // Local Image Descriptor
             sourceGif.Position = SourceImageBlockPosition; // Locating the image block
             byte[] header = new byte[SourceImageBlockHeaderLength];
             sourceGif.Read(header, 0, header.Length);
@@ -435,6 +434,7 @@ namespace ImageProcessor.Imaging.Formats
         /// </param>
         private void WriteShort(int value)
         {
+            // Leave only one significant byte.
             this.inputStream.WriteByte(Convert.ToByte(value & 0xff));
             this.inputStream.WriteByte(Convert.ToByte((value >> 8) & 0xff));
         }

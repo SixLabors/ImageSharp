@@ -359,7 +359,7 @@ namespace ImageProcessor.Web.HttpModules
                 IPrincipal user = context.User ?? new GenericPrincipal(new GenericIdentity(string.Empty, string.Empty), new string[0]);
 
                 // Do we have permission to call UrlAuthorizationModule.CheckUrlAccessForPrincipal?
-                PermissionSet permission = new PermissionSet(PermissionState.Unrestricted);
+                PermissionSet permission = new PermissionSet(PermissionState.None);
                 permission.AddPermission(new AspNetHostingPermission(AspNetHostingPermissionLevel.Unrestricted));
                 bool hasPermission = permission.IsSubsetOf(AppDomain.CurrentDomain.PermissionSet);
                 

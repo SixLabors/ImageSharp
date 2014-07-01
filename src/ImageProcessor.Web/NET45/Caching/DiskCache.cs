@@ -22,6 +22,7 @@ namespace ImageProcessor.Web.Caching
     using System.Web.Hosting;
     using ImageProcessor.Extensions;
     using ImageProcessor.Web.Config;
+    using ImageProcessor.Web.Extensions;
     using ImageProcessor.Web.Helpers;
     #endregion
 
@@ -224,56 +225,42 @@ namespace ImageProcessor.Web.Caching
         /// </param>
         private void TrimCachedFolders(string path)
         {
-            // ReSharper disable once AssignNullToNotNullAttribute
-            DirectoryInfo directoryInfo = new DirectoryInfo(Path.GetDirectoryName(path));
-            DirectoryInfo parentDirectoryInfo = directoryInfo.Parent;
-
-            // ReSharper disable once PossibleNullReferenceException
-            foreach (DirectoryInfo enumerateDirectory in SafeEnumerateDirectories(parentDirectoryInfo))
+            string directory = Path.GetDirectoryName(path);
+            if (directory != null)
             {
-                IEnumerable<FileInfo> files = enumerateDirectory.EnumerateFiles().OrderBy(f => f.CreationTimeUtc);
-                int count = files.Count();
+                DirectoryInfo directoryInfo = new DirectoryInfo(directory);
+                DirectoryInfo parentDirectoryInfo = directoryInfo.Parent;
 
-                foreach (FileInfo fileInfo in files)
+                foreach (DirectoryInfo enumerateDirectory in parentDirectoryInfo.SafeEnumerateDirectories())
                 {
-                    try
-                    {
-                        // If the group count is equal to the max count minus 1 then we know we
-                        // have reduced the number of items below the maximum allowed.
-                        // We'll cleanup any orphaned expired files though.
-                        if (!this.IsExpired(fileInfo.CreationTimeUtc) && count <= MaxFilesCount - 1)
-                        {
-                            break;
-                        }
+                    IEnumerable<FileInfo> files = enumerateDirectory.EnumerateFiles().OrderBy(f => f.CreationTimeUtc);
+                    int count = files.Count();
 
-                        // Remove from the cache and delete each CachedImage.
-                        CacheIndexer.Remove(fileInfo.Name);
-                        fileInfo.Delete();
-                        count -= 1;
-                    }
-                    // ReSharper disable once EmptyGeneralCatchClause
-                    catch
+                    foreach (FileInfo fileInfo in files)
                     {
-                        // Do nothing; skip to the next file.
+                        try
+                        {
+                            // If the group count is equal to the max count minus 1 then we know we
+                            // have reduced the number of items below the maximum allowed.
+                            // We'll cleanup any orphaned expired files though.
+                            if (!this.IsExpired(fileInfo.CreationTimeUtc) && count <= MaxFilesCount - 1)
+                            {
+                                break;
+                            }
+
+                            // Remove from the cache and delete each CachedImage.
+                            CacheIndexer.Remove(fileInfo.Name);
+                            fileInfo.Delete();
+                            count -= 1;
+                        }
+                            // ReSharper disable once EmptyGeneralCatchClause
+                        catch
+                        {
+                            // Do nothing; skip to the next file.
+                        }
                     }
                 }
             }
-        }
-
-        public static IEnumerable<DirectoryInfo> SafeEnumerateDirectories(DirectoryInfo directoryInfo)
-        {
-            IEnumerable<DirectoryInfo> directories;
-
-            try
-            {
-                directories = directoryInfo.EnumerateDirectories();
-            }
-            catch
-            {
-                return Enumerable.Empty<DirectoryInfo>();
-            }
-
-            return directories;
         }
 
         /// <summary>

@@ -131,40 +131,42 @@ namespace ImageProcessor.Imaging.Formats
 
                 if (fetchFrames)
                 {
-                    FrameDimension frameDimension = new FrameDimension(image.FrameDimensionsList[0]);
-                    int frameCount = image.GetFrameCount(frameDimension);
+                    int frameCount = image.GetFrameCount(FrameDimension.Time);
                     int last = frameCount - 1;
-                    int delay = 0;
+                    int length = 0;
+                   
                     List<GifFrame> gifFrames = new List<GifFrame>();
+
+                    // Get the times stored in the gif.
+                    byte[] times = image.GetPropertyItem((int)ExifPropertyTag.FrameDelay).Value;
 
                     for (int i = 0; i < frameCount; i++)
                     {
+                        // Convert each 4-byte chunk into an integer.
                         // GDI returns a single array with all delays, while Mono returns a different array for each frame.
-                        image.SelectActiveFrame(frameDimension, i);
-                        byte[] times = image.GetPropertyItem(20736).Value;
-                        int thisDelay = BitConverter.ToInt32(times, (4 * i) % times.Length);
-                        int toAddDelay = thisDelay * 10 < 20 ? 20 : thisDelay * 10; // Minimum delay is 20 ms
+                        int delay = BitConverter.ToInt32(times, (4 * i) % times.Length);
+                        delay = delay * 10 < 20 ? 20 : delay * 10; // Minimum delay is 20 ms
 
                         // Find the frame
-                        image.SelectActiveFrame(frameDimension, i);
+                        image.SelectActiveFrame(FrameDimension.Time, i);
 
                         // TODO: Get positions.
-                        gifFrames.Add(new GifFrame { Delay = toAddDelay, Image = (Image)image.Clone() });
+                        gifFrames.Add(new GifFrame { Delay = delay, Image = (Image)image.Clone() });
 
                         // Reset the position.
                         if (i == last)
                         {
-                            image.SelectActiveFrame(frameDimension, 0);
+                            image.SelectActiveFrame(FrameDimension.Time, 0);
                         }
 
-                        delay += toAddDelay;
+                        length += delay;
                     }
 
                     info.GifFrames = gifFrames;
-                    info.AnimationLength = delay;
+                    info.AnimationLength = length;
 
                     // Loop info is stored at byte 20737.
-                    info.LoopCount = BitConverter.ToInt16(image.GetPropertyItem(20737).Value, 0);
+                    info.LoopCount = BitConverter.ToInt16(image.GetPropertyItem((int)ExifPropertyTag.LoopCount).Value, 0);
                     info.IsLooped = info.LoopCount != 1;
                 }
             }

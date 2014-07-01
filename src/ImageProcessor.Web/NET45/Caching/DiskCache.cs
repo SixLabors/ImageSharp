@@ -51,7 +51,7 @@ namespace ImageProcessor.Web.Caching
         /// <summary>
         /// The absolute path to virtual cache path on the server.
         /// </summary>
-        public static readonly string AbsoluteCachePath = HostingEnvironment.MapPath(ImageProcessorConfig.Instance.VirtualCachePath);
+        private static readonly string AbsoluteCachePath = HostingEnvironment.MapPath(ImageProcessorConfig.Instance.VirtualCachePath);
 
         /// <summary>
         /// The request for the image.

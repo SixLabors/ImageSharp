@@ -124,5 +124,45 @@ namespace ImageProcessor.UnitTests
                 Assert.AreEqual(item.Value, result);
             }
         }
+
+        /// <summary>
+        /// Tests if the value is a valid URI
+        /// </summary>
+        /// <param name="input">The value to test</param>
+        /// <param name="expected">Whether the value is correct</param>
+        /// <remarks>
+        /// The full RFC3986 does not seem to pass the test with the square brackets
+        /// </remarks>
+        [Test]
+        [TestCase("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789", true)]
+        [TestCase("-", true)]
+        [TestCase(".", true)]
+        [TestCase("_", true)]
+        [TestCase("~", true)]
+        [TestCase(":", true)]
+        [TestCase("/", true)]
+        [TestCase("?", true)]
+        [TestCase("#", true)]
+        [TestCase("[", false)]
+        [TestCase("]", false)]
+        [TestCase("@", true)]
+        [TestCase("!", true)]
+        [TestCase("$", true)]
+        [TestCase("&", true)]
+        [TestCase("'", true)]
+        [TestCase("(", true)]
+        [TestCase(")", true)]
+        [TestCase("*", true)]
+        [TestCase("+", true)]
+        [TestCase(",", true)]
+        [TestCase(";", true)]
+        [TestCase("=", true)]
+        [TestCase("lorem ipsum", false)]
+        [TestCase("é", false)]
+        public void TestIsValidUri(string input, bool expected)
+        {
+            var result = input.IsValidVirtualPathName();
+            Assert.AreEqual(expected, result);
+        }
     }
 }

@@ -11,6 +11,7 @@
 namespace ImageProcessor.UnitTests
 {
     using System;
+    using System.Collections.Generic;
     using Common.Extensions;
     using NUnit.Framework;
 
@@ -86,6 +87,42 @@ namespace ImageProcessor.UnitTests
             var result = input.ToSHA512Fingerprint();
             var comparison = result.Equals(expected, StringComparison.InvariantCultureIgnoreCase);
             Assert.True(comparison);
+        }
+
+        /// <summary>
+        /// Tests the pasing to an integer array
+        /// </summary>
+        [Test]
+        public void TestToIntegerArray()
+        {
+            Dictionary<string, int[]> data = new Dictionary<string, int[]>();
+            data.Add("123-456,78-90", new int[] { 123, 456, 78, 90 });
+            data.Add("87390174,741897498,74816,748297,57355", new int[] { 87390174, 741897498, 74816, 748297, 57355 });
+            data.Add("1-2-3", new int[] { 1, 2, 3 });
+
+            foreach (var item in data)
+            {
+                var result = item.Key.ToPositiveIntegerArray();
+                Assert.AreEqual(item.Value, result);
+            }
+        }
+
+        /// <summary>
+        /// Tests the pasing to an float array
+        /// </summary>
+        [Test]
+        public void TestToFloatArray()
+        {
+            Dictionary<string, float[]> data = new Dictionary<string, float[]>();
+            data.Add("12.3-4.56,78-9.0", new float[] { 12.3F, 4.56F, 78, 9 });
+            data.Add("87390.174,7.41897498,748.16,748297,5.7355", new float[] { 87390.174F, 7.41897498F, 748.16F, 748297, 5.7355F });
+            data.Add("1-2-3", new float[] { 1, 2, 3 });
+
+            foreach (var item in data)
+            {
+                var result = item.Key.ToPositiveFloatArray();
+                Assert.AreEqual(item.Value, result);
+            }
         }
     }
 }

@@ -282,17 +282,17 @@ namespace ImageProcessor.Imaging.Formats
         {
             int count = this.repeatCount.GetValueOrDefault(0);
 
-            // File Header sinature and version.
+            // File Header signature and version.
             this.WriteString(FileType);
             this.WriteString(FileVersion);
 
             // Write the logical screen descriptor.
             this.WriteShort(this.width.GetValueOrDefault(w)); // Initial Logical Width
             this.WriteShort(this.height.GetValueOrDefault(h)); // Initial Logical Height
-            
+
             // Read the global color table info.
             sourceGif.Position = SourceGlobalColorInfoPosition;
-            this.WriteByte(sourceGif.ReadByte()); 
+            this.WriteByte(sourceGif.ReadByte());
 
             this.WriteByte(0); // Background Color Index
             this.WriteByte(0); // Pixel aspect ratio
@@ -301,7 +301,7 @@ namespace ImageProcessor.Imaging.Formats
             // The different browsers interpret the spec differently when adding a loop.
             // If the loop count is one IE and FF &lt; 3 (incorrectly) loop an extra number of times.
             // Removing the Netscape header should fix this.
-            if (count != 1)
+            if (count > -1 && count != 1)
             {
                 // Application Extension Header
                 this.WriteShort(ApplicationExtensionBlockIdentifier);
@@ -357,7 +357,7 @@ namespace ImageProcessor.Imaging.Formats
             this.WriteShort(GraphicControlExtensionBlockIdentifier); // Identifier
             this.WriteByte(GraphicControlExtensionBlockSize); // Block Size
             this.WriteByte(blockhead[3] & 0xf7 | 0x08); // Setting disposal flag
-            this.WriteShort(Convert.ToInt32(frameDelay / 10)); // Setting frame delay
+            this.WriteShort(Convert.ToInt32(frameDelay / 10.0f)); // Setting frame delay
             this.WriteByte(blockhead[6]); // Transparent color index
             this.WriteByte(0); // Terminator
         }

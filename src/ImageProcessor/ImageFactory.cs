@@ -158,9 +158,10 @@ namespace ImageProcessor
             this.CurrentImageFormat = format;
 
             // Always load the data.
-            foreach (PropertyItem propertyItem in this.Image.PropertyItems)
+            // TODO. Some custom data doesn't seem to get copied by default methods.
+            foreach (int id in this.Image.PropertyIdList)
             {
-                this.ExifPropertyItems[propertyItem.Id] = propertyItem;
+                this.ExifPropertyItems[id] = this.Image.GetPropertyItem(id);
             }
 
             this.ShouldProcess = true;

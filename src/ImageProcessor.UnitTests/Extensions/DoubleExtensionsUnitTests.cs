@@ -8,9 +8,8 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.UnitTests
+namespace ImageProcessor.UnitTests.Extensions
 {
-    using System;
     using System.Collections.Generic;
     using Common.Extensions;
     using NUnit.Framework;
@@ -32,11 +31,13 @@ namespace ImageProcessor.UnitTests
         [TestFixtureSetUp]
         public void Init()
         {
-            this.doubleToByteTests = new Dictionary<double, byte>();
-            this.doubleToByteTests.Add(-10, 0x0);
-            this.doubleToByteTests.Add(1.5, 0x1);
-            this.doubleToByteTests.Add(25.7, 0x19);
-            this.doubleToByteTests.Add(1289047, 0xFF);
+            this.doubleToByteTests = new Dictionary<double, byte>
+            {
+                { -10, 0x0 },
+                { 1.5, 0x1 },
+                { 25.7, 0x19 },
+                { 1289047, 0xFF }
+            };
         }
 
         /// <summary>

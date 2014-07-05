@@ -8,9 +8,8 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.UnitTests
+namespace ImageProcessor.UnitTests.Extensions
 {
-    using System;
     using Common.Extensions;
     using NUnit.Framework;
 
@@ -31,7 +30,7 @@ namespace ImageProcessor.UnitTests
         [TestCase(3156, 0xFF)]
         public void ToByteTest(int input, byte expected)
         {
-            var result = input.ToByte();
+            byte result = input.ToByte();
             Assert.AreEqual(expected, result);
         }
     }

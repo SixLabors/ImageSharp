@@ -57,6 +57,7 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
+    <Reference Include="System.Security" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Common\Extensions\AssemblyExtensions.cs" />

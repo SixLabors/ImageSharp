@@ -90,7 +90,11 @@ namespace ImageProcessor.Imaging.Formats
         /// </returns>
         public virtual Image Load(Stream stream)
         {
+#if !__MonoCS__
             return Image.FromStream(stream, true);
+#else
+            return Image.FromStream(stream);
+#endif
         }
 
         /// <summary>

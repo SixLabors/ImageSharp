@@ -15,9 +15,7 @@ namespace ImageProcessorConsole
     using System.Drawing;
     using System.IO;
     using System.Linq;
-
     using ImageProcessor;
-    using ImageProcessor.Imaging.Formats;
 
     /// <summary>
     /// The program.
@@ -33,6 +31,7 @@ namespace ImageProcessorConsole
         public static void Main(string[] args)
         {
             string path = new Uri(System.Reflection.Assembly.GetExecutingAssembly().CodeBase).LocalPath;
+
             // ReSharper disable once AssignNullToNotNullAttribute
             string resolvedPath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\input"));
             DirectoryInfo di = new DirectoryInfo(resolvedPath);
@@ -41,10 +40,8 @@ namespace ImageProcessorConsole
                 di.Create();
             }
 
-            //FileInfo[] files = di.GetFiles("*.jpg");
-            //FileInfo[] files = di.GetFiles();
-            IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif", ".webp");
-
+			IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif");
+            //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif", ".webp", ".bmp", ".jpg", ".png");
 
             foreach (FileInfo fileInfo in files)
             {
@@ -53,18 +50,13 @@ namespace ImageProcessorConsole
                 // ImageProcessor
                 using (MemoryStream inStream = new MemoryStream(photoBytes))
                 {
-                    using (ImageFactory imageFactory = new ImageFactory())
+                    using (ImageFactory imageFactory = new ImageFactory(true))
                     {
                         Size size = new Size(200, 200);
 
                         // Load, resize, set the format and quality and save an image.
                         imageFactory.Load(inStream)
-                            //.AutoRotate()
                             .Constrain(size)
-                            //.Format(new WebPFormat())
-                            //.Quality(5)
-                            // ReSharper disable once AssignNullToNotNullAttribute
-                             // .Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", Path.GetFileNameWithoutExtension(fileInfo.Name) + ".webp")));
                             .Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", fileInfo.Name)));
                     }
                 }
@@ -74,7 +66,10 @@ namespace ImageProcessorConsole
         public static IEnumerable<FileInfo> GetFilesByExtensions(DirectoryInfo dir, params string[] extensions)
         {
             if (extensions == null)
+            {
                 throw new ArgumentNullException("extensions");
+            }
+
             IEnumerable<FileInfo> files = dir.EnumerateFiles();
             return files.Where(f => extensions.Contains(f.Extension, StringComparer.OrdinalIgnoreCase));
         }

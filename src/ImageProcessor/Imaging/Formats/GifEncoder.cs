@@ -298,20 +298,14 @@ namespace ImageProcessor.Imaging.Formats
             this.WriteByte(0); // Pixel aspect ratio
             this.WriteColorTable(sourceGif);
 
-            // The different browsers interpret the spec differently when adding a loop.
-            // If the loop count is one IE and FF &lt; 3 (incorrectly) loop an extra number of times.
-            // Removing the Netscape header should fix this.
-            if (count > -1 && count != 1)
-            {
-                // Application Extension Header
-                this.WriteShort(ApplicationExtensionBlockIdentifier);
-                this.WriteByte(ApplicationBlockSize);
-                this.WriteString(ApplicationIdentification);
-                this.WriteByte(3); // Application block length
-                this.WriteByte(1);
-                this.WriteShort(count); // Repeat count for images.
-                this.WriteByte(0); // Terminator
-            }
+            // Application Extension Header
+            this.WriteShort(ApplicationExtensionBlockIdentifier);
+            this.WriteByte(ApplicationBlockSize);
+            this.WriteString(ApplicationIdentification);
+            this.WriteByte(3); // Application block length
+            this.WriteByte(1);
+            this.WriteShort(count); // Repeat count for images.
+            this.WriteByte(0); // Terminator
         }
 
         /// <summary>

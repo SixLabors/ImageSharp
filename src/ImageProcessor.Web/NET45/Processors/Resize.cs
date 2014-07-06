@@ -17,9 +17,9 @@ namespace ImageProcessor.Web.Processors
     using System.Text;
     using System.Text.RegularExpressions;
 
-    using ImageProcessor.Common.Extensions;
     using ImageProcessor.Imaging;
     using ImageProcessor.Processors;
+    using ImageProcessor.Web.Extensions;
 
     /// <summary>
     /// Resizes an image to the given dimensions.

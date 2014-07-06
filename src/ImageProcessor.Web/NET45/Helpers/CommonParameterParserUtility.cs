@@ -17,6 +17,7 @@ namespace ImageProcessor.Web.Helpers
 
     using ImageProcessor.Common.Extensions;
     using ImageProcessor.Imaging;
+    using ImageProcessor.Web.Extensions;
 
     /// <summary>
     /// Encapsulates methods to correctly parse querystring parameters.

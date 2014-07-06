@@ -75,7 +75,7 @@ namespace ImageProcessor.Imaging.Formats
         {
             base.ApplyProcessor(processor, factory);
 
-			// Set the property item information from any Exif metadata.
+            // Set the property item information from any Exif metadata.
             // We do this here so that they can be changed between processor methods.
             if (factory.PreserveExifData)
             {

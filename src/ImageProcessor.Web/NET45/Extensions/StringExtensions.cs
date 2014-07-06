@@ -8,10 +8,13 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Common.Extensions
+namespace ImageProcessor.Web.Extensions
 {
     using System;
     using System.Globalization;
+    using System.Linq;
+    using System.Security.Cryptography;
+    using System.Text;
     using System.Text.RegularExpressions;
 
     /// <summary>
@@ -19,6 +22,51 @@ namespace ImageProcessor.Common.Extensions
     /// </summary>
     public static class StringExtensions
     {
+        #region Cryptography
+        /// <summary>
+        /// Creates an MD5 fingerprint of the String.
+        /// </summary>
+        /// <param name="expression">The <see cref="T:System.String">String</see> instance that this method extends.</param>
+        /// <returns>An MD5 fingerprint of the String.</returns>
+        public static string ToMD5Fingerprint(this string expression)
+        {
+            byte[] bytes = Encoding.Unicode.GetBytes(expression.ToCharArray());
+
+            using (MD5CryptoServiceProvider md5 = new MD5CryptoServiceProvider())
+            {
+                byte[] hash = md5.ComputeHash(bytes);
+
+                // Concatenate the hash bytes into one long String.
+                return hash.Aggregate(
+                    new StringBuilder(32),
+                    (sb, b) => sb.Append(b.ToString("X2", CultureInfo.InvariantCulture)))
+                    .ToString().ToLowerInvariant();
+            }
+        }
+
+        /// <summary>
+        /// Creates an SHA1 fingerprint of the String.
+        /// </summary>
+        /// <param name="expression">The <see cref="T:System.String">String</see> instance that this method extends.</param>
+        /// <returns>An SHA1 fingerprint of the String.</returns>
+        public static string ToSHA1Fingerprint(this string expression)
+        {
+            byte[] bytes = Encoding.ASCII.GetBytes(expression.ToCharArray());
+
+            using (SHA1CryptoServiceProvider sha1 = new SHA1CryptoServiceProvider())
+            {
+                byte[] hash = sha1.ComputeHash(bytes);
+
+                // Concatenate the hash bytes into one long String.
+                return hash.Aggregate(
+                    new StringBuilder(40),
+                    (sb, b) => sb.Append(b.ToString("X2", CultureInfo.InvariantCulture)))
+                    .ToString().ToLowerInvariant();
+            }
+        }
+        #endregion
+        
+        #region Numbers
         /// <summary>
         /// Creates an array of integers scraped from the String.
         /// </summary>
@@ -76,5 +124,20 @@ namespace ImageProcessor.Common.Extensions
 
             return matches;
         }
+        #endregion
+
+        #region Files and Paths
+        /// <summary>
+        /// Checks the string to see whether the value is a valid virtual path name.
+        /// </summary>
+        /// <param name="expression">The <see cref="T:System.String">String</see> instance that this method extends.</param>
+        /// <returns>True if the given string is a valid virtual path name</returns>
+        public static bool IsValidVirtualPathName(this string expression)
+        {
+            Uri uri;
+
+            return Uri.TryCreate(expression, UriKind.Relative, out uri) && uri.IsWellFormedOriginalString();
+        }
+        #endregion
     }
 }

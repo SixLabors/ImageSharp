@@ -29,9 +29,9 @@ namespace ImageProcessor.Web.HttpModules
     using System.Web.Hosting;
     using System.Web.Security;
 
-    using ImageProcessor.Common.Extensions;
     using ImageProcessor.Web.Caching;
     using ImageProcessor.Web.Configuration;
+    using ImageProcessor.Web.Extensions;
     using ImageProcessor.Web.Helpers;
     #endregion
 

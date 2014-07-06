@@ -98,6 +98,9 @@
     <Compile Include="..\NET45\Extensions\DirectoryInfoExtensions.cs">
       <Link>DirectoryInfoExtensions.cs</Link>
     </Compile>
+    <Compile Include="..\NET45\Extensions\StringExtensions.cs">
+      <Link>StringExtensions.cs</Link>
+    </Compile>
     <Compile Include="..\NET45\Helpers\CommonParameterParserUtility.cs">
       <Link>CommonParameterParserUtility.cs</Link>
     </Compile>

@@ -18,6 +18,12 @@ namespace ImageProcessor.Imaging.Formats
     /// </summary>
     internal static class NativeMethods
     {
+        /// <summary>
+        /// Whether the process is running in 64bit mode. Used for calling the correct dllimport method.
+        /// Clunky I know but I couldn't get dynamic methods to work.
+        /// </summary>
+        private static readonly bool Is64Bit = Environment.Is64BitProcess;
+
         #region WebP
         /// <summary>
         /// Validate the WebP image header and retrieve the image height and width. Pointers *width and *height can be passed NULL if deemed irrelevant

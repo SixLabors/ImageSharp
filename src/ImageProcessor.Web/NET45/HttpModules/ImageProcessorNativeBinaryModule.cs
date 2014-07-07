@@ -109,7 +109,8 @@ namespace ImageProcessor.Web.HttpModules
 
             string folder = Is64Bit ? "x64" : "x86";
             string sourcePath = HttpContext.Current.Server.MapPath("~/bin/" + folder);
-            string targetBasePath = new Uri(Assembly.GetExecutingAssembly().Location).LocalPath;
+            Assembly assembly = Assembly.GetExecutingAssembly();
+            string targetBasePath = new Uri(assembly.Location).LocalPath;
 
             DirectoryInfo directoryInfo = new DirectoryInfo(sourcePath);
             if (directoryInfo.Exists)
@@ -120,6 +121,7 @@ namespace ImageProcessor.Web.HttpModules
                     {
                         IntPtr pointer;
                         string targetPath = Path.GetFullPath(Path.Combine(targetBasePath, "..\\" + folder + "\\" + fileInfo.Name));
+
                         File.Copy(sourcePath, targetPath, true);
 
                         try

@@ -10,15 +10,12 @@
 
 namespace ImageProcessor.Web.Configuration
 {
-    #region Using
     using System.Configuration;
     using System.IO;
     using System.Xml;
 
-    using ImageProcessor.Common.Extensions;
+    using ImageProcessor.Web.Extensions;
     using ImageProcessor.Web.Helpers;
-
-    #endregion
 
     /// <summary>
     /// Represents an image cache section within a configuration file.

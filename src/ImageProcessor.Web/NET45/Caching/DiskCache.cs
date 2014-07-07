@@ -20,7 +20,6 @@ namespace ImageProcessor.Web.Caching
     using System.Web;
     using System.Web.Hosting;
 
-    using ImageProcessor.Common.Extensions;
     using ImageProcessor.Web.Configuration;
     using ImageProcessor.Web.Extensions;
     using ImageProcessor.Web.Helpers;
@@ -245,7 +244,7 @@ namespace ImageProcessor.Web.Caching
                                 fileInfo.Delete();
                                 count -= 1;
                             }
-                                // ReSharper disable once EmptyGeneralCatchClause
+                            // ReSharper disable once EmptyGeneralCatchClause
                             catch
                             {
                                 // Do nothing; skip to the next file.

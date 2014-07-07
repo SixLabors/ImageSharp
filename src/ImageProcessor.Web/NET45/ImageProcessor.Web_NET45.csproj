@@ -54,6 +54,7 @@
     <Compile Include="Configuration\ImageProcessorConfiguration.cs" />
     <Compile Include="Configuration\ImageSecuritySection.cs" />
     <Compile Include="Extensions\DirectoryInfoExtensions.cs" />
+    <Compile Include="Extensions\StringExtensions.cs" />
     <Compile Include="Helpers\CommonParameterParserUtility.cs" />
     <Compile Include="Helpers\NativeMethods.cs" />
     <Compile Include="Helpers\ResourceHelpers.cs" />
@@ -61,6 +62,7 @@
     <Compile Include="Helpers\RemoteFile.cs" />
     <Compile Include="Helpers\TaskHelpers.cs" />
     <Compile Include="HttpModules\ImageProcessingModule.cs" />
+    <Compile Include="HttpModules\ImageProcessorNativeBinaryModule.cs" />
     <Compile Include="ImageFactoryExtensions.cs" />
     <Compile Include="Processors\Alpha.cs" />
     <Compile Include="Processors\AutoRotate.cs" />

@@ -32,12 +32,6 @@ namespace ImageProcessor.Imaging.Formats
     public class WebPFormat : FormatBase
     {
         /// <summary>
-        /// Whether the process is running in 64bit mode. Used for calling the correct dllimport method.
-        /// Clunky I know but I couldn't get dynamic methods to work.
-        /// </summary>
-        private static readonly bool Is64Bit = Environment.Is64BitProcess;
-
-        /// <summary>
         /// Gets the file headers.
         /// </summary>
         public override byte[][] FileHeaders
@@ -190,19 +184,9 @@ namespace ImageProcessor.Imaging.Formats
             int width;
             int height;
 
-            if (Is64Bit)
+            if (NativeMethods.WebPGetInfo(ptrData, dataSize, out width, out height) != 1)
             {
-                if (NativeMethods.WebPGetInfo64(ptrData, dataSize, out width, out height) != 1)
-                {
-                    throw new ImageFormatException("WebP image header is corrupted.");
-                }
-            }
-            else
-            {
-                if (NativeMethods.WebPGetInfo86(ptrData, dataSize, out width, out height) != 1)
-                {
-                    throw new ImageFormatException("WebP image header is corrupted.");
-                }
+                throw new ImageFormatException("WebP image header is corrupted.");
             }
 
             try
@@ -215,17 +199,8 @@ namespace ImageProcessor.Imaging.Formats
                 int outputBufferSize = bitmapData.Stride * height;
                 outputBuffer = Marshal.AllocHGlobal(outputBufferSize);
 
-                // ReSharper disable once ConvertIfStatementToConditionalTernaryExpression
-                if (Is64Bit)
-                {
-                    // Uncompress the image
-                    outputBuffer = NativeMethods.WebPDecodeBGRAInto64(ptrData, dataSize, outputBuffer, outputBufferSize, bitmapData.Stride);
-                }
-                else
-                {
-                    // Uncompress the image
-                    outputBuffer = NativeMethods.WebPDecodeBGRAInto86(ptrData, dataSize, outputBuffer, outputBufferSize, bitmapData.Stride);
-                }
+                // Uncompress the image
+                outputBuffer = NativeMethods.WebPDecodeBGRAInto(ptrData, dataSize, outputBuffer, outputBufferSize, bitmapData.Stride);
 
                 // Write image to bitmap using Marshal
                 byte[] buffer = new byte[outputBufferSize];
@@ -272,19 +247,8 @@ namespace ImageProcessor.Imaging.Formats
 
             try
             {
-                int size;
-
-                // ReSharper disable once ConvertIfStatementToConditionalTernaryExpression
-                if (Is64Bit)
-                {
-                    // Attempt to lossy encode the image.
-                    size = NativeMethods.WebPEncodeBGRA64(bmpData.Scan0, bitmap.Width, bitmap.Height, bmpData.Stride, quality, out unmanagedData);
-                }
-                else
-                {
-                    // Attempt to lossy encode the image.
-                    size = NativeMethods.WebPEncodeBGRA86(bmpData.Scan0, bitmap.Width, bitmap.Height, bmpData.Stride, quality, out unmanagedData);
-                }
+                // Attempt to lossy encode the image.
+                int size = NativeMethods.WebPEncodeBGRA(bmpData.Scan0, bitmap.Width, bitmap.Height, bmpData.Stride, quality, out unmanagedData);
 
                 // Copy image compress data to output array
                 webpData = new byte[size];
@@ -300,16 +264,8 @@ namespace ImageProcessor.Imaging.Formats
                 // Unlock the pixels
                 bitmap.UnlockBits(bmpData);
 
-                if (Is64Bit)
-                {
-                    // Free memory
-                    NativeMethods.WebPFree64(unmanagedData);
-                }
-                else
-                {
-                    // Free memory
-                    NativeMethods.WebPFree86(unmanagedData);
-                }
+                // Free memory
+                NativeMethods.WebPFree(unmanagedData);
             }
 
             return encoded;

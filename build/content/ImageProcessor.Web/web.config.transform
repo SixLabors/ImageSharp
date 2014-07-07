@@ -3,6 +3,7 @@
   <system.web>
     <httpModules>
       <add name="ImageProcessorModule" type="ImageProcessor.Web.HttpModules.ImageProcessingModule, ImageProcessor.Web"/>
+      <add name="ImageProcessorNativeBinaryModule" type="ImageProcessor.Web.HttpModules.ImageProcessorNativeBinaryModule, ImageProcessor.Web"/>
     </httpModules>
   </system.web>
   <system.webServer>
@@ -13,6 +14,7 @@
     </staticContent>
     <modules>
       <add name="ImageProcessorModule" type="ImageProcessor.Web.HttpModules.ImageProcessingModule, ImageProcessor.Web"/>
+      <add name="ImageProcessorNativeBinaryModule" type="ImageProcessor.Web.HttpModules.ImageProcessorNativeBinaryModule, ImageProcessor.Web"/>
     </modules>
   </system.webServer>
 </configuration>

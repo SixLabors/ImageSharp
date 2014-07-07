@@ -25,8 +25,8 @@ Feedback is always welcome.</description>
     </metadata>
     <files>
         <file src="..\_BuildOutput\ImageProcessor\lib\ImageProcessor.dll" target="lib\ImageProcessor.dll" />
-        <file src="..\_BuildOutput\ImageProcessor\lib\libwebp32.dll" target="build\native\lib\libwebp32.dll" />
-        <file src="..\_BuildOutput\ImageProcessor\lib\libwebp64.dll" target="build\native\lib\libwebp64.dll" />
+        <file src="..\_BuildOutput\ImageProcessor\lib\x86\imageprocessor.libwebp.dll" target="build\native\lib\x86\imageprocessor.libwebp.dll" />
+        <file src="..\_BuildOutput\ImageProcessor\lib\x64\imageprocessor.libwebp.dll" target="build\native\lib\x64\imageprocessor.libwebp.dll" />
         <file src="..\content\ImageProcessor\imageprocessor.targets" target="build\imageprocessor.targets" /> 
     </files>
 </package>

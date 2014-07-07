@@ -98,6 +98,9 @@
     <Compile Include="..\NET45\Extensions\DirectoryInfoExtensions.cs">
       <Link>DirectoryInfoExtensions.cs</Link>
     </Compile>
+    <Compile Include="..\NET45\Extensions\StringExtensions.cs">
+      <Link>StringExtensions.cs</Link>
+    </Compile>
     <Compile Include="..\NET45\Helpers\CommonParameterParserUtility.cs">
       <Link>CommonParameterParserUtility.cs</Link>
     </Compile>
@@ -113,6 +116,9 @@
     </Compile>
     <Compile Include="..\NET45\Helpers\TaskHelpers.cs" />
     <Compile Include="..\NET45\HttpModules\ImageProcessingModule.cs" />
+    <Compile Include="..\NET45\HttpModules\ImageProcessorNativeBinaryModule.cs">
+      <Link>ImageProcessorNativeBinaryModule.cs</Link>
+    </Compile>
     <Compile Include="..\NET45\ImageFactoryExtensions.cs" />
     <Compile Include="..\NET45\Processors\Alpha.cs">
       <Link>Alpha.cs</Link>

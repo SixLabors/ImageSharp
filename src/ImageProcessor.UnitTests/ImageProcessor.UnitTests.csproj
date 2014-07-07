@@ -133,4 +133,5 @@
   <ItemGroup>
     <Folder Include="Extensions\" />
   </ItemGroup>
+  <ItemGroup />
 </Project>

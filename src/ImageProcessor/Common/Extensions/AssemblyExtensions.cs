@@ -1,4 +1,13 @@
-﻿
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="AssemblyExtensions.cs" company="James South">
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
+// </copyright>
+// <summary>
+//   Encapsulates a series of time saving extension methods to the <see cref="T:System.Reflection.Assembly" /> class.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
+
 namespace ImageProcessor.Common.Extensions
 {
     using System;

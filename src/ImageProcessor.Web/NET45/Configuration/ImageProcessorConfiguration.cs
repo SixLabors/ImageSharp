@@ -23,6 +23,7 @@ namespace ImageProcessor.Web.Configuration
     using ImageProcessor.Common.Extensions;
     using ImageProcessor.Processors;
     using ImageProcessor.Web.Helpers;
+    using ImageProcessor.Web.HttpModules;
     using ImageProcessor.Web.Processors;
 
     /// <summary>
@@ -370,30 +371,14 @@ namespace ImageProcessor.Web.Configuration
         /// </summary>
         private void EnsureNativeBinariesLoaded()
         {
-            string binary = Is64Bit ? "libwebp64.dll" : "libwebp32.dll";
-            string sourcePath = HttpContext.Current.Server.MapPath("~/bin");
-            string targetPath = new Uri(Assembly.GetExecutingAssembly().Location).LocalPath;
-            IntPtr pointer = IntPtr.Zero;
+            // Load the correct method from the native binary module.
+            // We do it here as on init will cause an UnauthorizedAccessException.
+            HttpModuleCollection modules = HttpContext.Current.ApplicationInstance.Modules;
+            ImageProcessorNativeBinaryModule nativeBinaryModule = modules.Get("ImageProcessorNativeBinaryModule") as ImageProcessorNativeBinaryModule;
 
-            // Shadow copy the native binaries.
-            sourcePath = Path.Combine(sourcePath, binary);
-            targetPath = Path.GetFullPath(Path.Combine(targetPath, "..\\" + binary));
-
-            File.Copy(sourcePath, targetPath, true);
-
-            try
+            if (nativeBinaryModule != null)
             {
-                // Load the binary into memory.
-                pointer = NativeMethods.LoadLibrary(targetPath);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine(ex.Message);
-            }
-
-            if (pointer == IntPtr.Zero)
-            {
-                throw new ApplicationException("Cannot open " + binary);
+                nativeBinaryModule.LoadNativeBinaries();
             }
         }
         #endregion

@@ -64,6 +64,8 @@
     <Compile Include="Configuration\ImageProcessorBootstrapper.cs" />
     <Compile Include="Common\Exceptions\ImageProcessingException.cs" />
     <Compile Include="Common\Extensions\DoubleExtensions.cs" />
+    <Compile Include="Configuration\NativeBinaryFactory.cs" />
+    <Compile Include="Configuration\NativeMethods.cs" />
     <Compile Include="Imaging\Formats\GifInfo.cs" />
     <Compile Include="Common\Extensions\IntegerExtensions.cs" />
     <Compile Include="Common\Exceptions\ImageFormatException.cs" />
@@ -130,12 +132,8 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="x64\imageprocessor.libwebp.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="x86\imageprocessor.libwebp.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    <EmbeddedResource Include="Resources\Unmanaged\x64\libwebp.dll" />
+    <EmbeddedResource Include="Resources\Unmanaged\x86\libwebp.dll" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

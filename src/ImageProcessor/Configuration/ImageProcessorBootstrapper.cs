@@ -12,9 +12,7 @@ namespace ImageProcessor.Configuration
 {
     using System;
     using System.Collections.Generic;
-    using System.IO;
     using System.Linq;
-    using System.Reflection;
 
     using ImageProcessor.Common.Exceptions;
     using ImageProcessor.Common.Extensions;
@@ -38,6 +36,7 @@ namespace ImageProcessor.Configuration
         private ImageProcessorBootstrapper()
         {
             this.LoadSupportedImageFormats();
+            this.NativeBinaryFactory = new NativeBinaryFactory();
         }
 
         /// <summary>
@@ -55,6 +54,11 @@ namespace ImageProcessor.Configuration
         /// Gets the supported image formats.
         /// </summary>
         public IEnumerable<ISupportedImageFormat> SupportedImageFormats { get; private set; }
+
+        /// <summary>
+        /// Gets the native binary factory for registering embedded (unmanaged) binaries.
+        /// </summary>
+        public NativeBinaryFactory NativeBinaryFactory { get; private set; }
 
         /// <summary>
         /// Creates a list, using reflection, of supported image formats that ImageProcessor can run.

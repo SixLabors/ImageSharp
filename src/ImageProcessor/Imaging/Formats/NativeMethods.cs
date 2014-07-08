@@ -66,7 +66,7 @@ namespace ImageProcessor.Imaging.Formats
         /// <returns>
         /// 1 if success, otherwise error code returned in the case of (a) formatting error(s).
         /// </returns>
-        [DllImport("libwebp.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "WebPGetInfo")]
+        [DllImport("libwebp", CallingConvention = CallingConvention.Cdecl, EntryPoint = "WebPGetInfo")]
         public static extern int WebPGetInfo(IntPtr data, uint dataSize, out int width, out int height);
 
         /// <summary>
@@ -90,7 +90,7 @@ namespace ImageProcessor.Imaging.Formats
         /// <returns>
         /// output_buffer if function succeeds; NULL otherwise
         /// </returns>
-        [DllImport("libwebp.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "WebPDecodeBGRAInto")]
+        [DllImport("libwebp", CallingConvention = CallingConvention.Cdecl, EntryPoint = "WebPDecodeBGRAInto")]
         public static extern IntPtr WebPDecodeBGRAInto(IntPtr data, uint dataSize, IntPtr outputBuffer, int outputBufferSize, int outputStride);
 
         /// <summary>
@@ -117,7 +117,7 @@ namespace ImageProcessor.Imaging.Formats
         /// <returns>
         /// Size of WebP Image
         /// </returns>
-        [DllImport("libwebp.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "WebPEncodeBGRA")]
+        [DllImport("libwebp", CallingConvention = CallingConvention.Cdecl, EntryPoint = "WebPEncodeBGRA")]
         public static extern int WebPEncodeBGRA(IntPtr rgb, int width, int height, int stride, float qualityFactor, out IntPtr output);
 
         /// <summary>
@@ -129,7 +129,7 @@ namespace ImageProcessor.Imaging.Formats
         /// <returns>
         /// 1 if success, otherwise error code returned in the case of (a) error(s).
         /// </returns>
-        [DllImport("libwebp.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "WebPFree")]
+        [DllImport("libwebp", CallingConvention = CallingConvention.Cdecl, EntryPoint = "WebPFree")]
         public static extern int WebPFree(IntPtr pointer);
         #endregion
     }

@@ -241,11 +241,11 @@ namespace ImageProcessor
             if (this.ShouldProcess)
             {
                 // Set our new image as the memory stream value.
-                #if !__MonoCS__
+#if !__MonoCS__
                 Image newImage = Image.FromStream(this.InputStream, true);
-                #else
+#else
                 Image newImage = Image.FromStream(this.InputStream);
-                #endif
+#endif
 
                 // Dispose and reassign the image.
                 this.Image.Dispose();

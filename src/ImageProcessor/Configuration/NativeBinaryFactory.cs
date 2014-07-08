@@ -94,7 +94,7 @@ namespace ImageProcessor.Configuration
                     Assembly assembly = Assembly.GetExecutingAssembly();
                     string targetBasePath = new Uri(assembly.Location).LocalPath;
                     string targetPath = Path.GetFullPath(Path.Combine(targetBasePath, "..\\" + folder + "\\" + name));
-
+                    
                     // Copy the file across if necessary.
                     FileInfo fileInfo = new FileInfo(targetPath);
                     bool rewrite = true;

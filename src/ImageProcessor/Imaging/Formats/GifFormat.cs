@@ -86,7 +86,7 @@ namespace ImageProcessor.Imaging.Formats
                     foreach (GifFrame frame in info.GifFrames)
                     {
                         factory.Image = frame.Image;
-                        frame.Image = quantizer.Quantize(processor.Invoke(factory));
+						frame.Image = quantizer.Quantize(processor.Invoke(factory));
                         encoder.AddFrame(frame);
                     }
                 }

@@ -13,17 +13,12 @@ namespace ImageProcessor.Web.Configuration
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
-    using System.Diagnostics;
-    using System.IO;
     using System.Linq;
     using System.Reflection;
-    using System.Web;
     using System.Web.Compilation;
 
     using ImageProcessor.Common.Extensions;
     using ImageProcessor.Processors;
-    using ImageProcessor.Web.Helpers;
-    using ImageProcessor.Web.HttpModules;
     using ImageProcessor.Web.Processors;
 
     /// <summary>
@@ -33,12 +28,6 @@ namespace ImageProcessor.Web.Configuration
     public sealed class ImageProcessorConfiguration
     {
         #region Fields
-        /// <summary>
-        /// Whether the process is running in 64bit mode. Used for calling the correct dllimport method.
-        /// Clunky I know but I couldn't get dynamic methods to work.
-        /// </summary>
-        private static readonly bool Is64Bit = Environment.Is64BitProcess;
-
         /// <summary>
         /// A new instance Initializes a new instance of the <see cref="T:ImageProcessor.Web.Config.ImageProcessorConfig"/> class.
         /// with lazy initialization.
@@ -82,7 +71,6 @@ namespace ImageProcessor.Web.Configuration
         /// </summary>
         private ImageProcessorConfiguration()
         {
-            this.EnsureNativeBinariesLoaded();
             this.LoadGraphicsProcessors();
         }
         #endregion
@@ -363,22 +351,6 @@ namespace ImageProcessor.Web.Configuration
             foreach (IWebGraphicsProcessor webProcessor in this.GraphicsProcessors)
             {
                 webProcessor.Processor.Settings = this.GetPluginSettings(webProcessor.GetType().Name);
-            }
-        }
-
-        /// <summary>
-        /// Ensures that the native binaries are loaded.
-        /// </summary>
-        private void EnsureNativeBinariesLoaded()
-        {
-            // Load the correct method from the native binary module.
-            // We do it here as on init will cause an UnauthorizedAccessException.
-            HttpModuleCollection modules = HttpContext.Current.ApplicationInstance.Modules;
-            ImageProcessorNativeBinaryModule nativeBinaryModule = modules.Get("ImageProcessorNativeBinaryModule") as ImageProcessorNativeBinaryModule;
-
-            if (nativeBinaryModule != null)
-            {
-                nativeBinaryModule.LoadNativeBinaries();
             }
         }
         #endregion

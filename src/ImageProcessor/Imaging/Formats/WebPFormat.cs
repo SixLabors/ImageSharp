@@ -22,7 +22,6 @@ namespace ImageProcessor.Imaging.Formats
     using System.Text;
 
     using ImageProcessor.Common.Exceptions;
-    using ImageProcessor.Configuration;
 
     /// <summary>
     /// Provides the necessary information to support webp images.

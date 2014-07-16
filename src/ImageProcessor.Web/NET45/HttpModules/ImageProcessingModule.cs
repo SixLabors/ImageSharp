@@ -157,12 +157,11 @@ namespace ImageProcessor.Web.HttpModules
         /// The id representing the <see cref="T:System.Threading.SemaphoreSlim"/>.
         /// </param>
         /// <returns>
-        /// The <see cref="T:System.Threading.Mutex"/> for the given id.
+        /// The <see cref="T:System.Threading.SemaphoreSlim"/> for the given id.
         /// </returns>
         private static SemaphoreSlim GetSemaphoreSlim(string id)
         {
-            SemaphoreSlim semaphore = SemaphoreSlims.GetOrAdd(id, new SemaphoreSlim(1, 1));
-            return semaphore;
+            return SemaphoreSlims.GetOrAdd(id, new SemaphoreSlim(1, 1));
         }
 
         /// <summary>
@@ -362,7 +361,7 @@ namespace ImageProcessor.Web.HttpModules
                 PermissionSet permission = new PermissionSet(PermissionState.None);
                 permission.AddPermission(new AspNetHostingPermission(AspNetHostingPermissionLevel.Unrestricted));
                 bool hasPermission = permission.IsSubsetOf(AppDomain.CurrentDomain.PermissionSet);
-                
+
                 bool isAllowed = true;
 
                 // Run the rewritten path past the authorization system again.
@@ -385,17 +384,21 @@ namespace ImageProcessor.Web.HttpModules
                         {
                             if (isRemote)
                             {
-                                Uri uri = new Uri(requestPath + "?" + urlParameters);
-
-                                RemoteFile remoteFile = new RemoteFile(uri, false);
-
-                                // Prevent response blocking.
-                                WebResponse webResponse = await remoteFile.GetWebResponseAsync().ConfigureAwait(false);
-
                                 SemaphoreSlim semaphore = GetSemaphoreSlim(cachedPath);
                                 try
                                 {
-                                    semaphore.Wait();
+                                    // This should not happen :(  
+                                    if (semaphore != null)
+                                    {
+                                        semaphore.Wait();
+                                    }
+
+                                    Uri uri = new Uri(requestPath + "?" + urlParameters);
+
+                                    RemoteFile remoteFile = new RemoteFile(uri, false);
+
+                                    // Prevent response blocking.
+                                    WebResponse webResponse = await remoteFile.GetWebResponseAsync().ConfigureAwait(false);
 
                                     using (MemoryStream memoryStream = new MemoryStream())
                                     {
@@ -430,24 +433,32 @@ namespace ImageProcessor.Web.HttpModules
                                 }
                                 finally
                                 {
-                                    semaphore.Release();
+                                    // This should not happen :(  
+                                    if (semaphore != null)
+                                    {
+                                        semaphore.Release();
+                                    }
                                 }
                             }
                             else
                             {
-                                // Check to see if the file exists.
-                                // ReSharper disable once AssignNullToNotNullAttribute
-                                FileInfo fileInfo = new FileInfo(requestPath);
-
-                                if (!fileInfo.Exists)
-                                {
-                                    throw new HttpException(404, "No image exists at " + fullPath);
-                                }
-
                                 SemaphoreSlim semaphore = GetSemaphoreSlim(cachedPath);
                                 try
                                 {
-                                    semaphore.Wait();
+                                    // This should not happen :(  
+                                    if (semaphore != null)
+                                    {
+                                        semaphore.Wait();
+                                    }
+
+                                    // Check to see if the file exists.
+                                    // ReSharper disable once AssignNullToNotNullAttribute
+                                    FileInfo fileInfo = new FileInfo(requestPath);
+
+                                    if (!fileInfo.Exists)
+                                    {
+                                        throw new HttpException(404, "No image exists at " + fullPath);
+                                    }
 
                                     // Process the Image
                                     imageFactory.Load(requestPath)
@@ -465,7 +476,11 @@ namespace ImageProcessor.Web.HttpModules
                                 }
                                 finally
                                 {
-                                    semaphore.Release();
+                                    // This should not happen :(  
+                                    if (semaphore != null)
+                                    {
+                                        semaphore.Release();
+                                    }
                                 }
                             }
                         }

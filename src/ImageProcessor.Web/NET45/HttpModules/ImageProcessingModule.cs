@@ -13,7 +13,6 @@ namespace ImageProcessor.Web.HttpModules
     #region Using
     using System;
     using System.Collections.Concurrent;
-    using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
     using System.IO;
     using System.Linq;
@@ -178,12 +177,6 @@ namespace ImageProcessor.Web.HttpModules
             if (disposing)
             {
                 // Dispose of any managed resources here.
-                foreach (KeyValuePair<string, SemaphoreSlim> semaphore in SemaphoreSlims)
-                {
-                    semaphore.Value.Dispose();
-                }
-
-                SemaphoreSlims.Clear();
             }
 
             // Call the appropriate methods to clean up
@@ -385,7 +378,7 @@ namespace ImageProcessor.Web.HttpModules
                             if (isRemote)
                             {
                                 SemaphoreSlim semaphore = GetSemaphoreSlim(cachedPath);
-#if NET45
+#if NET45 && !__MonoCS__
                                 await semaphore.WaitAsync();
 #else
                                 semaphore.Wait();
@@ -437,7 +430,7 @@ namespace ImageProcessor.Web.HttpModules
                             else
                             {
                                 SemaphoreSlim semaphore = GetSemaphoreSlim(cachedPath);
-#if NET45
+#if NET45 && !__MonoCS__
                                 await semaphore.WaitAsync();
 #else
                                 semaphore.Wait();

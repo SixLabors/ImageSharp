@@ -94,7 +94,7 @@ namespace ImageProcessor.Configuration
                     Assembly assembly = Assembly.GetExecutingAssembly();
                     string targetBasePath = new Uri(assembly.Location).LocalPath;
                     string targetPath = Path.GetFullPath(Path.Combine(targetBasePath, "..\\" + folder + "\\" + name));
-                    
+
                     // Copy the file across if necessary.
                     FileInfo fileInfo = new FileInfo(targetPath);
                     bool rewrite = true;
@@ -122,8 +122,13 @@ namespace ImageProcessor.Configuration
 
                     try
                     {
+#if !__MonoCS__
                         // Load the binary into memory.
                         pointer = NativeMethods.LoadLibrary(targetPath);
+#else
+                        // Load the binary into memory. The second parameter forces it to load immediately.
+                        pointer = NativeMethods.dlopen(targetPath, 2);
+#endif
                     }
                     catch (Exception ex)
                     {
@@ -187,9 +192,13 @@ namespace ImageProcessor.Configuration
             {
                 IntPtr pointer = nativeBinary.Value;
 
+#if !__MonoCS__
                 // According to http://stackoverflow.com/a/2445558/427899 you need to call this twice.
                 NativeMethods.FreeLibrary(pointer);
                 NativeMethods.FreeLibrary(pointer);
+#else
+                NativeMethods.dlclose(pointer);
+#endif
             }
         }
     }

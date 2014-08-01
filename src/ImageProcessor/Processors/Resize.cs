@@ -546,13 +546,13 @@ namespace ImageProcessor.Processors
                 // Replace 0 width
                 if (size.Width == 0 && size.Height > 0 && input.Contains(WidthRatio) && !input.Contains(HeightRatio))
                 {
-                    size.Width = (int)(value.ToPositiveFloatArray()[0] * size.Height);
+                    size.Width = (int)Math.Ceiling(value.ToPositiveFloatArray()[0] * size.Height);
                 }
 
                 // Replace 0 height
                 if (size.Height == 0 && size.Width > 0 && input.Contains(HeightRatio) && !input.Contains(WidthRatio))
                 {
-                    size.Height = (int)(value.ToPositiveFloatArray()[0] * size.Width);
+                    size.Height = (int)Math.Ceiling(value.ToPositiveFloatArray()[0] * size.Width);
                 }
             }
 

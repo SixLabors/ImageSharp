@@ -338,15 +338,15 @@ namespace ImageProcessor.Web.HttpModules
                 }
 
                 // Create a new cache to help process and cache the request.
-                DiskCache cache = new DiskCache(request, requestPath, fullPath, imageName);
-                string cachedPath = await cache.GetCachePathAsync();
+                DiskCache cache = new DiskCache(requestPath, fullPath, imageName);
+                string cachedPath = cache.CachedPath;
 
                 // Since we are now rewriting the path we need to check again that the current user has access
                 // to the rewritten path.
                 // Get the user for the current request
                 // If the user is anonymous or authentication doesn't work for this suffix avoid a NullReferenceException 
                 // in the UrlAuthorizationModule by creating a generic identity.
-                string virtualCachedPath = cache.GetVirtualCachedPath(cachedPath);
+                string virtualCachedPath = cache.VirtualCachedPath;
 
                 IPrincipal user = context.User ?? new GenericPrincipal(new GenericIdentity(string.Empty, string.Empty), new string[0]);
 

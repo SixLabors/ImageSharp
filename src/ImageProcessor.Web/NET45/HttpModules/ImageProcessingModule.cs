@@ -13,7 +13,6 @@ namespace ImageProcessor.Web.HttpModules
     #region Using
     using System;
     using System.Collections.Concurrent;
-    using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
     using System.IO;
     using System.Linq;
@@ -157,12 +156,11 @@ namespace ImageProcessor.Web.HttpModules
         /// The id representing the <see cref="T:System.Threading.SemaphoreSlim"/>.
         /// </param>
         /// <returns>
-        /// The <see cref="T:System.Threading.Mutex"/> for the given id.
+        /// The <see cref="T:System.Threading.SemaphoreSlim"/> for the given id.
         /// </returns>
         private static SemaphoreSlim GetSemaphoreSlim(string id)
         {
-            SemaphoreSlim semaphore = SemaphoreSlims.GetOrAdd(id, new SemaphoreSlim(1, 1));
-            return semaphore;
+            return SemaphoreSlims.GetOrAdd(id, new SemaphoreSlim(1, 1));
         }
 
         /// <summary>
@@ -179,12 +177,6 @@ namespace ImageProcessor.Web.HttpModules
             if (disposing)
             {
                 // Dispose of any managed resources here.
-                foreach (KeyValuePair<string, SemaphoreSlim> semaphore in SemaphoreSlims)
-                {
-                    semaphore.Value.Dispose();
-                }
-
-                SemaphoreSlims.Clear();
             }
 
             // Call the appropriate methods to clean up
@@ -346,15 +338,15 @@ namespace ImageProcessor.Web.HttpModules
                 }
 
                 // Create a new cache to help process and cache the request.
-                DiskCache cache = new DiskCache(request, requestPath, fullPath, imageName);
-                string cachedPath = await cache.GetCachePathAsync();
+                DiskCache cache = new DiskCache(requestPath, fullPath, imageName);
+                string cachedPath = cache.CachedPath;
 
                 // Since we are now rewriting the path we need to check again that the current user has access
                 // to the rewritten path.
                 // Get the user for the current request
                 // If the user is anonymous or authentication doesn't work for this suffix avoid a NullReferenceException 
                 // in the UrlAuthorizationModule by creating a generic identity.
-                string virtualCachedPath = cache.GetVirtualCachedPath(cachedPath);
+                string virtualCachedPath = cache.VirtualCachedPath;
 
                 IPrincipal user = context.User ?? new GenericPrincipal(new GenericIdentity(string.Empty, string.Empty), new string[0]);
 
@@ -362,7 +354,7 @@ namespace ImageProcessor.Web.HttpModules
                 PermissionSet permission = new PermissionSet(PermissionState.None);
                 permission.AddPermission(new AspNetHostingPermission(AspNetHostingPermissionLevel.Unrestricted));
                 bool hasPermission = permission.IsSubsetOf(AppDomain.CurrentDomain.PermissionSet);
-                
+
                 bool isAllowed = true;
 
                 // Run the rewritten path past the authorization system again.
@@ -385,17 +377,19 @@ namespace ImageProcessor.Web.HttpModules
                         {
                             if (isRemote)
                             {
-                                Uri uri = new Uri(requestPath + "?" + urlParameters);
-
-                                RemoteFile remoteFile = new RemoteFile(uri, false);
-
-                                // Prevent response blocking.
-                                WebResponse webResponse = await remoteFile.GetWebResponseAsync().ConfigureAwait(false);
-
                                 SemaphoreSlim semaphore = GetSemaphoreSlim(cachedPath);
+#if NET45 && !__MonoCS__
+                                await semaphore.WaitAsync();
+#else
+                                semaphore.Wait();
+#endif
                                 try
                                 {
-                                    semaphore.Wait();
+                                    Uri uri = new Uri(requestPath + "?" + urlParameters);
+                                    RemoteFile remoteFile = new RemoteFile(uri, false);
+
+                                    // Prevent response blocking.
+                                    WebResponse webResponse = await remoteFile.GetWebResponseAsync().ConfigureAwait(false);
 
                                     using (MemoryStream memoryStream = new MemoryStream())
                                     {
@@ -435,19 +429,22 @@ namespace ImageProcessor.Web.HttpModules
                             }
                             else
                             {
-                                // Check to see if the file exists.
-                                // ReSharper disable once AssignNullToNotNullAttribute
-                                FileInfo fileInfo = new FileInfo(requestPath);
-
-                                if (!fileInfo.Exists)
-                                {
-                                    throw new HttpException(404, "No image exists at " + fullPath);
-                                }
-
                                 SemaphoreSlim semaphore = GetSemaphoreSlim(cachedPath);
+#if NET45 && !__MonoCS__
+                                await semaphore.WaitAsync();
+#else
+                                semaphore.Wait();
+#endif
                                 try
                                 {
-                                    semaphore.Wait();
+                                    // Check to see if the file exists.
+                                    // ReSharper disable once AssignNullToNotNullAttribute
+                                    FileInfo fileInfo = new FileInfo(requestPath);
+
+                                    if (!fileInfo.Exists)
+                                    {
+                                        throw new HttpException(404, "No image exists at " + fullPath);
+                                    }
 
                                     // Process the Image
                                     imageFactory.Load(requestPath)

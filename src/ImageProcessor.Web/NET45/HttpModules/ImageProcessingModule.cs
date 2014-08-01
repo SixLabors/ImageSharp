@@ -346,14 +346,14 @@ namespace ImageProcessor.Web.HttpModules
                 }
 
                 // Create a new cache to help process and cache the request.
-                DiskCache cache = new DiskCache(request, requestPath, fullPath, imageName, isRemote);
+                DiskCache cache = new DiskCache(requestPath, fullPath, imageName, isRemote);
 
                 // Since we are now rewriting the path we need to check again that the current user has access
                 // to the rewritten path.
                 // Get the user for the current request
                 // If the user is anonymous or authentication doesn't work for this suffix avoid a NullReferenceException 
                 // in the UrlAuthorizationModule by creating a generic identity.
-                string virtualCachedPath = cache.GetVirtualCachedPath();
+                string virtualCachedPath = cache.VirtualCachedPath;
 
                 IPrincipal user = context.User ?? new GenericPrincipal(new GenericIdentity(string.Empty, string.Empty), new string[0]);
 
@@ -475,7 +475,7 @@ namespace ImageProcessor.Web.HttpModules
                         context.Response.AddHeader("Content-Length", "0");
                         context.Response.StatusCode = (int)HttpStatusCode.NotModified;
                         context.Response.SuppressContent = true;
-                        context.Response.AddFileDependency(context.Server.MapPath(cache.GetVirtualCachedPath()));
+                        context.Response.AddFileDependency(context.Server.MapPath(virtualCachedPath));
                         this.SetHeaders(context, (string)context.Items[CachedResponseTypeKey]);
 
                         if (!isRemote)
@@ -484,10 +484,8 @@ namespace ImageProcessor.Web.HttpModules
                         }
                     }
 
-                    string virtualPath = cache.GetVirtualCachedPath();
-
                     // The cached file is valid so just rewrite the path.
-                    context.RewritePath(virtualPath, false);
+                    context.RewritePath(virtualCachedPath, false);
                 }
                 else
                 {

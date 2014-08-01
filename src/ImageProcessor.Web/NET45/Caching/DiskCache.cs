@@ -49,14 +49,14 @@ namespace ImageProcessor.Web.Caching
         private const int MaxFilesCount = 100;
 
         /// <summary>
+        /// The virtual cache path.
+        /// </summary>
+        private static readonly string VirtualCachePath = ImageProcessorConfiguration.Instance.VirtualCachePath;
+
+        /// <summary>
         /// The absolute path to virtual cache path on the server.
         /// </summary>
         private static readonly string AbsoluteCachePath = HostingEnvironment.MapPath(ImageProcessorConfiguration.Instance.VirtualCachePath);
-
-        /// <summary>
-        /// The request for the image.
-        /// </summary>
-        private readonly HttpRequest request;
 
         /// <summary>
         /// The request path for the image.
@@ -72,15 +72,22 @@ namespace ImageProcessor.Web.Caching
         /// The image name
         /// </summary>
         private readonly string imageName;
+
+        /// <summary>
+        /// The physical cached path.
+        /// </summary>
+        private string physicalCachedPath;
+
+        /// <summary>
+        /// The virtual cached path.
+        /// </summary>
+        private string virtualCachedPath;
         #endregion
 
         #region Constructors
         /// <summary>
         /// Initializes a new instance of the <see cref="DiskCache"/> class.
         /// </summary>
-        /// <param name="request">
-        /// The request for the image.
-        /// </param>
         /// <param name="requestPath">
         /// The request path for the image.
         /// </param>
@@ -90,53 +97,41 @@ namespace ImageProcessor.Web.Caching
         /// <param name="imageName">
         /// The image name.
         /// </param>
-        public DiskCache(HttpRequest request, string requestPath, string fullPath, string imageName)
+        public DiskCache(string requestPath, string fullPath, string imageName)
         {
-            this.request = request;
             this.requestPath = requestPath;
             this.fullPath = fullPath;
             this.imageName = imageName;
+
+            // Get the physical and virtual paths.
+            this.GetCachePaths();
         }
         #endregion
 
+        /// <summary>
+        /// Gets the cached path.
+        /// </summary>
+        public string CachedPath
+        {
+            get
+            {
+                return this.physicalCachedPath;
+            }
+        }
+
+        /// <summary>
+        /// Gets the cached path.
+        /// </summary>
+        public string VirtualCachedPath
+        {
+            get
+            {
+                return this.virtualCachedPath;
+            }
+        }
+
         #region Methods
         #region Internal
-        /// <summary>
-        /// Gets the full transformed cached path for the image. 
-        /// The images are stored in paths that are based upon the SHA1 of their full request path
-        /// taking the individual characters of the hash to determine their location.
-        /// This allows us to store millions of images.
-        /// </summary>
-        /// <returns>The full cached path for the image.</returns>
-        internal Task<string> GetCachePathAsync()
-        {
-            return TaskHelpers.Run<string>(this.GetCachePath);
-        }
-
-        /// <summary>
-        /// Gets the virtual path to the cached processed image.
-        /// </summary>
-        /// <param name="cachedPath">
-        /// The path to the cached image.
-        /// </param>
-        /// <returns>
-        /// The virtual path to the cached processed image.
-        /// </returns>
-        internal string GetVirtualCachedPath(string cachedPath)
-        {
-            string applicationPath = this.request.PhysicalApplicationPath;
-            string virtualDir = this.request.ApplicationPath;
-            virtualDir = virtualDir == "/" ? virtualDir : (virtualDir + "/");
-
-            if (applicationPath != null)
-            {
-                return cachedPath.Replace(applicationPath, virtualDir).Replace(@"\", "/");
-            }
-
-            throw new InvalidOperationException(
-                "We can only map an absolute back to a relative path if the application path is available.");
-        }
-
         /// <summary>
         /// Adds an image to the cache.
         /// </summary>
@@ -256,15 +251,13 @@ namespace ImageProcessor.Web.Caching
         }
 
         /// <summary>
-        /// Gets the full transformed cached path for the image. 
+        /// Gets the full transformed cached paths for the image. 
         /// The images are stored in paths that are based upon the SHA1 of their full request path
         /// taking the individual characters of the hash to determine their location.
         /// This allows us to store millions of images.
         /// </summary>
-        /// <returns>The full cached path for the image.</returns>
-        private string GetCachePath()
+        private void GetCachePaths()
         {
-            string cachedPath = string.Empty;
             string streamHash = string.Empty;
 
             if (AbsoluteCachePath != null)
@@ -302,16 +295,16 @@ namespace ImageProcessor.Web.Caching
 
                 // Collision rate of about 1 in 10000 for the folder structure.
                 string pathFromKey = string.Join("\\", encryptedName.ToCharArray().Take(6));
+                string virtualPathFromKey = pathFromKey.Replace(@"\", "/");
 
                 string cachedFileName = string.Format(
                     "{0}.{1}",
                     encryptedName,
                     !string.IsNullOrWhiteSpace(parsedExtension) ? parsedExtension.Replace(".", string.Empty) : fallbackExtension);
 
-                cachedPath = Path.Combine(AbsoluteCachePath, pathFromKey, cachedFileName);
+                this.physicalCachedPath = Path.Combine(AbsoluteCachePath, pathFromKey, cachedFileName);
+                this.virtualCachedPath = Path.Combine(VirtualCachePath, virtualPathFromKey, cachedFileName).Replace(@"\", "/");
             }
-
-            return cachedPath;
         }
 
         /// <summary>

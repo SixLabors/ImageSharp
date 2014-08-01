@@ -179,12 +179,12 @@ namespace ImageProcessor.Web.HttpModules
             if (disposing)
             {
                 // Dispose of any managed resources here.
-                foreach (KeyValuePair<string, SemaphoreSlim> semaphore in SemaphoreSlims)
-                {
-                    semaphore.Value.Dispose();
-                }
+                //foreach (KeyValuePair<string, SemaphoreSlim> semaphore in SemaphoreSlims)
+                //{
+                //    semaphore.Value.Dispose();
+                //}
 
-                SemaphoreSlims.Clear();
+                //SemaphoreSlims.Clear();
             }
 
             // Call the appropriate methods to clean up

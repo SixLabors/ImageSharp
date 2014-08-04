@@ -12,7 +12,6 @@ namespace ImageProcessor.Web.HttpModules
 {
     #region Using
     using System;
-    using System.Collections.Concurrent;
     using System.Diagnostics.CodeAnalysis;
     using System.IO;
     using System.Linq;
@@ -22,7 +21,6 @@ namespace ImageProcessor.Web.HttpModules
     using System.Security.Permissions;
     using System.Security.Principal;
     using System.Text.RegularExpressions;
-    using System.Threading;
     using System.Threading.Tasks;
     using System.Web;
     using System.Web.Hosting;
@@ -56,9 +54,9 @@ namespace ImageProcessor.Web.HttpModules
         private static readonly string AssemblyVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
 
         /// <summary>
-        /// The collection of SemaphoreSlims for identifying given locking individual queries.
+        /// The locker for preventing duplicate requests.
         /// </summary>
-        private static readonly ConcurrentDictionary<string, SemaphoreSlim> SemaphoreSlims = new ConcurrentDictionary<string, SemaphoreSlim>();
+        private static readonly AsyncDeDuperLock Locker = new AsyncDeDuperLock();
 
         /// <summary>
         /// The value to prefix any remote image requests with to ensure they get captured.
@@ -147,20 +145,6 @@ namespace ImageProcessor.Web.HttpModules
             // and prevent finalization code for this object
             // from executing a second time.
             GC.SuppressFinalize(this);
-        }
-
-        /// <summary>
-        /// Gets the specific <see cref="T:System.Threading.SemaphoreSlim"/> for the given id.
-        /// </summary>
-        /// <param name="id">
-        /// The id representing the <see cref="T:System.Threading.SemaphoreSlim"/>.
-        /// </param>
-        /// <returns>
-        /// The <see cref="T:System.Threading.SemaphoreSlim"/> for the given id.
-        /// </returns>
-        private static SemaphoreSlim GetSemaphoreSlim(string id)
-        {
-            return SemaphoreSlims.GetOrAdd(id, new SemaphoreSlim(1, 1));
         }
 
         /// <summary>
@@ -377,13 +361,11 @@ namespace ImageProcessor.Web.HttpModules
                         {
                             if (isRemote)
                             {
-                                SemaphoreSlim semaphore = GetSemaphoreSlim(cachedPath);
 #if NET45 && !__MonoCS__
-                                await semaphore.WaitAsync();
+                                using (await Locker.LockAsync(cachedPath))
 #else
-                                semaphore.Wait();
+                                using (Locker.Lock(cachedPath))
 #endif
-                                try
                                 {
                                     Uri uri = new Uri(requestPath + "?" + urlParameters);
                                     RemoteFile remoteFile = new RemoteFile(uri, false);
@@ -422,20 +404,14 @@ namespace ImageProcessor.Web.HttpModules
                                         }
                                     }
                                 }
-                                finally
-                                {
-                                    semaphore.Release();
-                                }
                             }
                             else
                             {
-                                SemaphoreSlim semaphore = GetSemaphoreSlim(cachedPath);
 #if NET45 && !__MonoCS__
-                                await semaphore.WaitAsync();
+                                using (await Locker.LockAsync(cachedPath))
 #else
-                                semaphore.Wait();
+                                using (Locker.Lock(cachedPath))
 #endif
-                                try
                                 {
                                     // Check to see if the file exists.
                                     // ReSharper disable once AssignNullToNotNullAttribute
@@ -459,10 +435,6 @@ namespace ImageProcessor.Web.HttpModules
 
                                     // Trim the cache.
                                     await cache.TrimCachedFolderAsync(cachedPath);
-                                }
-                                finally
-                                {
-                                    semaphore.Release();
                                 }
                             }
                         }

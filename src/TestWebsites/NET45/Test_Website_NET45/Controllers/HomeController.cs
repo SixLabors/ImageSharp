@@ -41,6 +41,11 @@ namespace Test_Website_NET45.Controllers
             return View();
         }
 
+        public ActionResult WebP()
+        {
+            return View();
+        }
+
         public ActionResult External()
         {
             return this.View();

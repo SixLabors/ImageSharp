@@ -23,7 +23,8 @@ namespace ImageProcessor.Web.Helpers
         /// <summary>
         /// The semaphore slims.
         /// </summary>
-        private static readonly ConcurrentDictionary<string, SemaphoreSlim> SemaphoreSlims = new ConcurrentDictionary<string, SemaphoreSlim>();
+        private static readonly ConcurrentDictionary<string, SemaphoreSlim> SemaphoreSlims
+                                = new ConcurrentDictionary<string, SemaphoreSlim>();
 
         /// <summary>
         /// The lock.
@@ -79,7 +80,7 @@ namespace ImageProcessor.Web.Helpers
 
             Task<IDisposable> releaserTask = Task.FromResult(releaser as IDisposable);
             SemaphoreSlim semaphore = SemaphoreSlims.GetOrAdd(key, new SemaphoreSlim(1, 1));
-            
+
             Task waitTask = semaphore.WaitAsync();
 
             return waitTask.IsCompleted
@@ -95,7 +96,7 @@ namespace ImageProcessor.Web.Helpers
         /// <summary>
         /// The disposable scope.
         /// </summary>
-        internal sealed class DisposableScope : IDisposable
+        private sealed class DisposableScope : IDisposable
         {
             /// <summary>
             /// The key

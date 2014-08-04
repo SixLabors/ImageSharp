@@ -10,7 +10,7 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Imaging.Formats
+namespace ImageProcessor.Plugins.WebP.Imaging.Formats
 {
     using System;
     using System.Collections.Generic;
@@ -22,6 +22,7 @@ namespace ImageProcessor.Imaging.Formats
     using System.Text;
 
     using ImageProcessor.Common.Exceptions;
+    using ImageProcessor.Imaging.Formats;
 
     /// <summary>
     /// Provides the necessary information to support webp images.

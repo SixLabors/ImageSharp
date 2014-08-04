@@ -8,7 +8,7 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Imaging.Formats
+namespace ImageProcessor.Plugins.WebP.Imaging.Formats
 {
     using System;
     using System.IO;
@@ -23,7 +23,7 @@ namespace ImageProcessor.Imaging.Formats
     internal static class NativeMethods
     {
         /// <summary>
-        /// Whether the process is running in 64bit mode. Used for calling the correct dllimport method.
+        /// Whether the process is running in 64bit mode. Used for calling the correct method.
         /// Clunky I know but I couldn't get dynamic methods to work.
         /// </summary>
         private static readonly bool Is64Bit = Environment.Is64BitProcess;
@@ -34,7 +34,7 @@ namespace ImageProcessor.Imaging.Formats
         static NativeMethods()
         {
             string folder = Is64Bit ? "x64" : "x86";
-            string name = string.Format("ImageProcessor.Resources.Unmanaged.{0}.libwebp.dll", folder);
+            string name = string.Format("ImageProcessor.Plugins.WebP.Resources.Unmanaged.{0}.libwebp.dll", folder);
             Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(name);
 
             using (MemoryStream memoryStream = new MemoryStream())

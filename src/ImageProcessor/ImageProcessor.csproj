@@ -79,7 +79,6 @@
     <Compile Include="Imaging\Filters\MatrixFilterBase.cs" />
     <Compile Include="Imaging\Filters\MatrixFilters.cs" />
     <Compile Include="Imaging\Formats\BitmapFormat.cs" />
-    <Compile Include="Imaging\Formats\NativeMethods.cs" />
     <Compile Include="Imaging\Formats\TiffFormat.cs" />
     <Compile Include="Imaging\Formats\PngFormat.cs" />
     <Compile Include="Imaging\Formats\GifFormat.cs" />
@@ -87,7 +86,6 @@
     <Compile Include="Imaging\Formats\FormatUtilities.cs" />
     <Compile Include="Imaging\Formats\FormatBase.cs" />
     <Compile Include="Imaging\Formats\ISupportedImageFormat.cs" />
-    <Compile Include="Imaging\Formats\WebPFormat.cs" />
     <Compile Include="Imaging\GaussianLayer.cs" />
     <Compile Include="Imaging\Formats\GifEncoder.cs" />
     <Compile Include="Imaging\Formats\GifFrame.cs" />
@@ -130,10 +128,6 @@
     <Compile Include="Processors\Vignette.cs" />
     <Compile Include="Processors\Watermark.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="Resources\Unmanaged\x64\libwebp.dll" />
-    <EmbeddedResource Include="Resources\Unmanaged\x86\libwebp.dll" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

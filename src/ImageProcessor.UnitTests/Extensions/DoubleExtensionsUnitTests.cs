@@ -10,7 +10,6 @@
 
 namespace ImageProcessor.UnitTests.Extensions
 {
-    using System.Collections.Generic;
     using Common.Extensions;
     using NUnit.Framework;
 
@@ -21,36 +20,19 @@ namespace ImageProcessor.UnitTests.Extensions
     public class DoubleExtensionsUnitTests
     {
         /// <summary>
-        /// Stores the values to test for the ToByte() extension method
-        /// </summary>
-        private Dictionary<double, byte> doubleToByteTests;
-
-        /// <summary>
-        /// Sets up the values for the tests
-        /// </summary>
-        [TestFixtureSetUp]
-        public void Init()
-        {
-            this.doubleToByteTests = new Dictionary<double, byte>
-            {
-                { -10, 0x0 },
-                { 1.5, 0x1 },
-                { 25.7, 0x19 },
-                { 1289047, 0xFF }
-            };
-        }
-
-        /// <summary>
         /// Tests the double to byte conversion
         /// </summary>
+        /// <param name="input">Double input</param>
+        /// <param name="expected">Expected result</param>
         [Test]
-        public void TestDoubleToByte()
+        [TestCase(-10, 0x0)]
+        [TestCase(1.5, 0x1)]
+        [TestCase(25.7, 0x19)]
+        [TestCase(1289047, 0xFF)]
+        public void TestDoubleToByte(double input, byte expected)
         {
-            foreach (var item in this.doubleToByteTests)
-            {
-                var result = item.Key.ToByte();
-                Assert.AreEqual(item.Value, result);
-            }
+            byte result = input.ToByte();
+            Assert.AreEqual(expected, result);
         }
     }
 }

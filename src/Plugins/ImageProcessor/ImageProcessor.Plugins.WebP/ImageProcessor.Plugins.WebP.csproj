@@ -4,19 +4,16 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{7BF5274B-56A7-4B62-8105-E9BDF25BAFE7}</ProjectGuid>
-    <OutputType>Exe</OutputType>
+    <ProjectGuid>{2CF69699-959A-44DC-A281-4E2596C25043}</ProjectGuid>
+    <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>ImageProcessorConsole</RootNamespace>
-    <AssemblyName>ImageProcessorConsole</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <RootNamespace>ImageProcessor.Plugins.WebP</RootNamespace>
+    <AssemblyName>ImageProcessor.Plugins.WebP</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <TargetFrameworkProfile>
-    </TargetFrameworkProfile>
+    <TargetFrameworkProfile>Client</TargetFrameworkProfile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -26,7 +23,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
@@ -45,20 +41,19 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Program.cs" />
+    <Compile Include="Imaging\Formats\WebPFormat.cs" />
+    <Compile Include="Imaging\Formats\NativeMethods.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
-    <None Include="App.config" />
+    <EmbeddedResource Include="Resources\Unmanaged\x64\libwebp.dll" />
+    <EmbeddedResource Include="Resources\Unmanaged\x86\libwebp.dll" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\ImageProcessor\ImageProcessor.csproj">
-      <Project>{3B5DD734-FB7A-487D-8CE6-55E7AF9AEA7E}</Project>
+    <ProjectReference Include="..\..\..\ImageProcessor\ImageProcessor.csproj">
+      <Project>{3b5dd734-fb7a-487d-8ce6-55e7af9aea7e}</Project>
       <Name>ImageProcessor</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Plugins\ImageProcessor\ImageProcessor.Plugins.WebP\ImageProcessor.Plugins.WebP.csproj">
-      <Project>{2cf69699-959a-44dc-a281-4e2596c25043}</Project>
-      <Name>ImageProcessor.Plugins.WebP</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

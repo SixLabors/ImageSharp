@@ -69,6 +69,10 @@
       <Project>{3b5dd734-fb7a-487d-8ce6-55e7af9aea7e}</Project>
       <Name>ImageProcessor</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Plugins\ImageProcessor\ImageProcessor.Plugins.WebP\ImageProcessor.Plugins.WebP.csproj">
+      <Project>{2cf69699-959a-44dc-a281-4e2596c25043}</Project>
+      <Name>ImageProcessor.Plugins.WebP</Name>
+    </ProjectReference>
   </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">

@@ -29,18 +29,25 @@ namespace ImageProcessor.Web.UnitTests
         /// <summary>
         /// The alpha regex unit test.
         /// </summary>
+        /// <param name="input">
+        /// The input string.
+        /// </param>
+        /// <param name="expected">
+        /// The expected result.
+        /// </param>
         [Test]
-        public void TestAlphaRegex()
+        [TestCase("alpha=66", 66)]
+        [TestCase("alpha=-66", 66)]
+        [TestCase("alpha=101", 1)]
+        [TestCase("alpha=-101", 1)]
+        [TestCase("alpha=000053", 53)]
+        public void TestAlphaRegex(string input, int expected)
         {
-            const string Querystring = "alpha=56";
-            const int Expected = 56;
-
             Processors.Alpha alpha = new Processors.Alpha();
-            alpha.MatchRegexIndex(Querystring);
+            alpha.MatchRegexIndex(input);
+            int result = alpha.Processor.DynamicParameter;
 
-            int actual = alpha.Processor.DynamicParameter;
-
-            Assert.AreEqual(Expected, actual);
+            Assert.AreEqual(expected, result);
         }
 
         /// <summary>
@@ -91,6 +98,32 @@ namespace ImageProcessor.Web.UnitTests
             Processors.Contrast contrast = new Processors.Contrast();
             contrast.MatchRegexIndex(input);
             int result = contrast.Processor.DynamicParameter;
+
+            Assert.AreEqual(expected, result);
+        }
+
+        /// <summary>
+        /// The saturation regex unit test.
+        /// </summary>
+        /// <param name="input">
+        /// The input string.
+        /// </param>
+        /// <param name="expected">
+        /// The expected result.
+        /// </param>
+        [Test]
+        [TestCase("saturation=56", 56)]
+        [TestCase("saturation=84", 84)]
+        [TestCase("saturation=66", 66)]
+        [TestCase("saturation=101", 1)]
+        [TestCase("saturation=00001", 1)]
+        [TestCase("saturation=-50", -50)]
+        [TestCase("saturation=0", 0)]
+        public void TestSaturationRegex(string input, int expected)
+        {
+            Processors.Saturation saturation = new Processors.Saturation();
+            saturation.MatchRegexIndex(input);
+            int result = saturation.Processor.DynamicParameter;
 
             Assert.AreEqual(expected, result);
         }
@@ -288,20 +321,29 @@ namespace ImageProcessor.Web.UnitTests
         [Test]
         public void TestTintRegex()
         {
-            const string HexQuerystring = "tint=6aa6cc";
-            const string RgbaQuerystring = "tint=106,166,204,255";
-            Color expectedHex = ColorTranslator.FromHtml("#" + "6aa6cc");
-            Color expectedRgba = Color.FromArgb(255, 106, 166, 204);
+            Dictionary<string, Color> data = new Dictionary<string, Color>
+            {
+                {
+                    "tint=6aa6cc", ColorTranslator.FromHtml("#" + "6aa6cc")
+                },
+                {
+                    "tint=106,166,204,255", Color.FromArgb(255, 106, 166, 204)
+                },
+                {
+                    "tint=fff", Color.FromArgb(255, 255, 255, 255)
+                },
+                {
+                    "tint=white", Color.White
+                }
+            };
 
             Processors.Tint tint = new Processors.Tint();
-            tint.MatchRegexIndex(HexQuerystring);
-            Color actualHex = tint.Processor.DynamicParameter;
-            Assert.AreEqual(expectedHex, actualHex);
-
-            tint = new Processors.Tint();
-            tint.MatchRegexIndex(RgbaQuerystring);
-            Color actualRgba = tint.Processor.DynamicParameter;
-            Assert.AreEqual(expectedRgba, actualRgba);
+            foreach (KeyValuePair<string, Color> item in data)
+            {
+                tint.MatchRegexIndex(item.Key);
+                Color result = tint.Processor.DynamicParameter;
+                Assert.AreEqual(item.Value, result);
+            }
         }
     }
 }

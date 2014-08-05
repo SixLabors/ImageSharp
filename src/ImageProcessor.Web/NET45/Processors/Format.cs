@@ -15,7 +15,6 @@ namespace ImageProcessor.Web.Processors
     using System.Linq;
     using System.Text;
     using System.Text.RegularExpressions;
-    using System.Web;
 
     using ImageProcessor.Configuration;
     using ImageProcessor.Imaging.Formats;

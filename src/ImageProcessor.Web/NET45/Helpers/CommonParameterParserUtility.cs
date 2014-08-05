@@ -11,8 +11,10 @@
 namespace ImageProcessor.Web.Helpers
 {
     using System;
+    using System.Collections.Generic;
     using System.Drawing;
     using System.Globalization;
+    using System.Text;
     using System.Text.RegularExpressions;
 
     using ImageProcessor.Common.Extensions;
@@ -25,9 +27,14 @@ namespace ImageProcessor.Web.Helpers
     public static class CommonParameterParserUtility
     {
         /// <summary>
+        /// The collection of known colors.
+        /// </summary>
+        private static readonly Dictionary<string, KnownColor> KnownColors = new Dictionary<string, KnownColor>();
+
+        /// <summary>
         /// The regular expression to search strings for colors.
         /// </summary>
-        private static readonly Regex ColorRegex = new Regex(@"(bgcolor|color|tint|vignette)(=|-)(\d+,\d+,\d+,\d+|([0-9a-fA-F]{3}){1,2})", RegexOptions.Compiled);
+        private static readonly Regex ColorRegex = BuildColorRegex();
 
         /// <summary>
         /// The regular expression to search strings for angles.
@@ -92,6 +99,11 @@ namespace ImageProcessor.Web.Helpers
             foreach (Match match in ColorRegex.Matches(input))
             {
                 string value = match.Value.Split(new[] { '=', '-' })[1];
+
+                if (KnownColors.ContainsKey(value))
+                {
+                    return Color.FromKnownColor(KnownColors[value]);
+                }
 
                 if (value.Contains(","))
                 {
@@ -223,6 +235,34 @@ namespace ImageProcessor.Web.Helpers
             }
 
             return 0;
+        }
+
+        /// <summary>
+        /// Builds a regular expression for the three main colour types.
+        /// </summary>
+        /// <returns>
+        /// The <see cref="Regex"/> to match colors.
+        /// </returns>
+        private static Regex BuildColorRegex()
+        {
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.Append(@"(bgcolor|color|tint|vignette)(=|-)(\d+,\d+,\d+,\d+|([0-9a-fA-F]{3}){1,2}|(");
+
+            KnownColor[] knownColors = (KnownColor[])Enum.GetValues(typeof(KnownColor));
+
+            for (int i = 0; i < knownColors.Length; i++)
+            {
+                KnownColor knownColor = knownColors[i];
+                string name = knownColor.ToString().ToLowerInvariant();
+
+                KnownColors.Add(name, knownColor);
+
+                stringBuilder.Append(i > 0 ? "|" + name : name);
+            }
+
+            stringBuilder.Append("))");
+
+            return new Regex(stringBuilder.ToString(), RegexOptions.IgnoreCase);
         }
     }
 }

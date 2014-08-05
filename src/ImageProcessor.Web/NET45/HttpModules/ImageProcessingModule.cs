@@ -44,6 +44,11 @@ namespace ImageProcessor.Web.HttpModules
         private const string CachedResponseTypeKey = "CACHED_IMAGE_RESPONSE_TYPE_054F217C-11CF-49FF-8D2F-698E8E6EB58F";
 
         /// <summary>
+        /// The key for storing the file dependency of the current image.
+        /// </summary>
+        private const string CachedResponseFileDependency = "CACHED_IMAGE_DEPENDENCY_054F217C-11CF-49FF-8D2F-698E8E6EB58F";
+
+        /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
         private static readonly Regex PresetRegex = new Regex(@"preset=[^&]+", RegexOptions.Compiled);
@@ -215,15 +220,18 @@ namespace ImageProcessor.Web.HttpModules
             HttpContext context = ((HttpApplication)sender).Context;
 
             object responseTypeObject = context.Items[CachedResponseTypeKey];
+            object dependencyFileObject = context.Items[CachedResponseFileDependency];
 
-            if (responseTypeObject != null)
+            if (responseTypeObject != null && dependencyFileObject != null)
             {
                 string responseType = (string)responseTypeObject;
+                string dependencyFile = (string)dependencyFileObject;
 
                 // Set the headers
-                this.SetHeaders(context, responseType);
+                this.SetHeaders(context, responseType, dependencyFile);
 
                 context.Items[CachedResponseTypeKey] = null;
+                context.Items[CachedResponseFileDependency] = null;
             }
         }
 
@@ -440,7 +448,15 @@ namespace ImageProcessor.Web.HttpModules
                         }
                     }
 
-                    string incomingEtag = context.Request.Headers["If-None-Match"];
+                    // Image is from the cache so the mime-type will need to be set.
+                    if (context.Items[CachedResponseTypeKey] == null)
+                    {
+                        context.Items[CachedResponseTypeKey] = ImageHelpers.GetExtension(cachedPath).Replace(".", "image/");
+                    }
+
+                    context.Items[CachedResponseFileDependency] = cachedPath;
+
+                    string incomingEtag = context.Request.Headers["If" + "-None-Match"];
 
                     if (incomingEtag != null && !isNewOrUpdated)
                     {
@@ -449,8 +465,7 @@ namespace ImageProcessor.Web.HttpModules
                         context.Response.AddHeader("Content-Length", "0");
                         context.Response.StatusCode = (int)HttpStatusCode.NotModified;
                         context.Response.SuppressContent = true;
-                        context.Response.AddFileDependency(context.Server.MapPath(virtualCachedPath));
-                        this.SetHeaders(context, (string)context.Items[CachedResponseTypeKey]);
+                        this.SetHeaders(context, (string)context.Items[CachedResponseTypeKey], cachedPath);
 
                         if (!isRemote)
                         {
@@ -482,18 +497,28 @@ namespace ImageProcessor.Web.HttpModules
         /// the <see cref="T:System.Web.HttpContext">HttpContext</see> object that provides 
         /// references to the intrinsic server objects 
         /// </param>
-        /// <param name="responseType">The HTTP MIME type to to send.</param>
-        private void SetHeaders(HttpContext context, string responseType)
+        /// <param name="responseType">
+        /// The HTTP MIME type to to send.
+        /// </param>
+        /// <param name="dependencyPath">
+        /// The dependency path for the cache dependency.
+        /// </param>
+        private void SetHeaders(HttpContext context, string responseType, string dependencyPath)
         {
             HttpResponse response = context.Response;
 
             response.ContentType = responseType;
 
-            response.AddHeader("Image-Served-By", "ImageProcessor.Web/" + AssemblyVersion);
+            if (response.Headers["Image-Served-By"] == null)
+            {
+                response.AddHeader("Image-Served-By", "ImageProcessor.Web/" + AssemblyVersion);
+            }
 
             HttpCachePolicy cache = response.Cache;
             cache.SetCacheability(HttpCacheability.Public);
             cache.VaryByHeaders["Accept-Encoding"] = true;
+
+            context.Response.AddFileDependency(dependencyPath);
             cache.SetLastModifiedFromFileDependencies();
 
             int maxDays = DiskCache.MaxFileCachedDuration;

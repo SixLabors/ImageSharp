@@ -73,13 +73,6 @@ namespace ImageProcessor.Configuration
                 try
                 {
                     Type type = typeof(ISupportedImageFormat);
-                    HashSet<string> found = new HashSet<string>();
-
-                    // Get any references and used assemblies.
-                    foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
-                    {
-                        this.LoadReferencedAssemblies(found, assembly);
-                    }
 
                     // Get any referenced but not used assemblies.
                     Assembly executingAssembly = Assembly.GetExecutingAssembly();
@@ -88,6 +81,7 @@ namespace ImageProcessor.Configuration
                     // ReSharper disable once AssignNullToNotNullAttribute
                     FileInfo[] files = new DirectoryInfo(targetBasePath).GetFiles("*.dll", SearchOption.AllDirectories);
 
+                    HashSet<string> found = new HashSet<string>();
                     foreach (FileInfo fileInfo in files)
                     {
                         AssemblyName assemblyName = AssemblyName.GetAssemblyName(fileInfo.FullName);

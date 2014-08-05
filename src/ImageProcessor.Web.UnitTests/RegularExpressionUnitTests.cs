@@ -10,10 +10,14 @@
 
 namespace ImageProcessor.Web.UnitTests
 {
+    using System;
+    using System.Collections.Generic;
     using System.Drawing;
     using ImageProcessor.Imaging;
     using ImageProcessor.Imaging.Filters;
     using ImageProcessor.Imaging.Formats;
+    using ImageProcessor.Plugins.WebP.Imaging.Formats;
+
     using NUnit.Framework;
 
     /// <summary>
@@ -40,37 +44,55 @@ namespace ImageProcessor.Web.UnitTests
         }
 
         /// <summary>
-        /// The brightness regex unit test.
+        /// The contrast regex unit test.
         /// </summary>
+        /// <param name="input">
+        /// The input string.
+        /// </param>
+        /// <param name="expected">
+        /// The expected result.
+        /// </param>
         [Test]
-        public void TestBrightnessRegex()
+        [TestCase("brightness=56", 56)]
+        [TestCase("brightness=84", 84)]
+        [TestCase("brightness=66", 66)]
+        [TestCase("brightness=101", 1)]
+        [TestCase("brightness=00001", 1)]
+        [TestCase("brightness=-50", -50)]
+        [TestCase("brightness=0", 0)]
+        public void TestBrightnesstRegex(string input, int expected)
         {
-            const string Querystring = "brightness=56";
-            const int Expected = 56;
-
             Processors.Brightness brightness = new Processors.Brightness();
-            brightness.MatchRegexIndex(Querystring);
+            brightness.MatchRegexIndex(input);
+            int result = brightness.Processor.DynamicParameter;
 
-            int actual = brightness.Processor.DynamicParameter;
-
-            Assert.AreEqual(Expected, actual);
+            Assert.AreEqual(expected, result);
         }
 
         /// <summary>
         /// The contrast regex unit test.
         /// </summary>
+        /// <param name="input">
+        /// The input string.
+        /// </param>
+        /// <param name="expected">
+        /// The expected result.
+        /// </param>
         [Test]
-        public void TestContrastRegex()
+        [TestCase("contrast=56", 56)]
+        [TestCase("contrast=84", 84)]
+        [TestCase("contrast=66", 66)]
+        [TestCase("contrast=101", 1)]
+        [TestCase("contrast=00001", 1)]
+        [TestCase("contrast=-50", -50)]
+        [TestCase("contrast=0", 0)]
+        public void TestContrastRegex(string input, int expected)
         {
-            const string Querystring = "contrast=56";
-            const int Expected = 56;
-
             Processors.Contrast contrast = new Processors.Contrast();
-            contrast.MatchRegexIndex(Querystring);
+            contrast.MatchRegexIndex(input);
+            int result = contrast.Processor.DynamicParameter;
 
-            int actual = contrast.Processor.DynamicParameter;
-
-            Assert.AreEqual(Expected, actual);
+            Assert.AreEqual(expected, result);
         }
 
         /// <summary>
@@ -93,52 +115,102 @@ namespace ImageProcessor.Web.UnitTests
         /// The filter regex unit test.
         /// </summary>
         [Test]
+
         public void TestFilterRegex()
         {
-            // Should really write more for the other filters.
-            const string Querystring = "filter=lomograph";
-            IMatrixFilter expected = MatrixFilters.Lomograph;
+            Dictionary<string, IMatrixFilter> data = new Dictionary<string, IMatrixFilter>
+            {
+                {
+                    "filter=lomograph", MatrixFilters.Lomograph
+                },
+                {
+                    "filter=polaroid", MatrixFilters.Polaroid
+                },
+                {
+                    "filter=comic", MatrixFilters.Comic
+                },
+                {
+                    "filter=greyscale", MatrixFilters.GreyScale
+                },
+                {
+                    "filter=blackwhite", MatrixFilters.BlackWhite
+                },
+                {
+                    "filter=invert", MatrixFilters.Invert
+                },
+                {
+                    "filter=gotham", MatrixFilters.Gotham
+                },
+                {
+                    "filter=hisatch", MatrixFilters.HiSatch
+                },
+                {
+                    "filter=losatch", MatrixFilters.LoSatch
+                },
+                {
+                    "filter=sepia", MatrixFilters.Sepia
+                }
+            };
 
             Processors.Filter filter = new Processors.Filter();
-            filter.MatchRegexIndex(Querystring);
-
-            IMatrixFilter actual = filter.Processor.DynamicParameter;
-
-            Assert.AreEqual(expected, actual);
+            foreach (KeyValuePair<string, IMatrixFilter> item in data)
+            {
+                filter.MatchRegexIndex(item.Key);
+                IMatrixFilter result = filter.Processor.DynamicParameter;
+                Assert.AreEqual(item.Value, result);
+            }
         }
 
         /// <summary>
         /// The format regex unit test.
         /// </summary>
+        /// <param name="input">
+        /// The input querystring.
+        /// </param>
+        /// <param name="expected">
+        /// The expected type.
+        /// </param>
         [Test]
-        public void TestFormatRegex()
+        [TestCase("format=bmp", typeof(BitmapFormat))]
+        [TestCase("format=png", typeof(PngFormat))]
+        [TestCase("format=png8", typeof(PngFormat))]
+        [TestCase("format=jpeg", typeof(JpegFormat))]
+        [TestCase("format=jpg", typeof(JpegFormat))]
+        [TestCase("format=gif", typeof(GifFormat))]
+        [TestCase("format=webp", typeof(WebPFormat))]
+        public void TestFormatRegex(string input, Type expected)
         {
-            const string Querystring = "format=gif";
-            ISupportedImageFormat expected = new GifFormat();
-
             Processors.Format format = new Processors.Format();
-            format.MatchRegexIndex(Querystring);
+            format.MatchRegexIndex(input);
+            Type result = format.Processor.DynamicParameter.GetType();
 
-            ISupportedImageFormat actual = format.Processor.DynamicParameter;
-
-            Assert.AreEqual(expected, actual);
+            Assert.AreEqual(expected, result);
         }
 
         /// <summary>
         /// The quality regex unit test.
         /// </summary>
+        /// <param name="input">
+        /// The input.
+        /// </param>
+        /// <param name="expected">
+        /// The expected result.
+        /// </param>
         [Test]
-        public void TestQualityRegex()
+        [TestCase("quality=56", 56)]
+        [TestCase("quality=84", 84)]
+        [TestCase("quality=66", 66)]
+        [TestCase("quality=101", 1)]
+        [TestCase("quality=00001", 1)]
+        [TestCase("quality=-50", 50)]
+        [TestCase("quality=0", 0)]
+        public void TestQualityRegex(string input, int expected)
         {
-            const string Querystring = "quality=56";
-            const int Expected = 56;
-
             Processors.Quality quality = new Processors.Quality();
-            quality.MatchRegexIndex(Querystring);
+            quality.MatchRegexIndex(input);
+            int result = quality.Processor.DynamicParameter;
 
-            int actual = quality.Processor.DynamicParameter;
-
-            Assert.AreEqual(Expected, actual);
+            Assert.AreEqual(expected, result);
         }
 
         /// <summary>
@@ -161,18 +233,25 @@ namespace ImageProcessor.Web.UnitTests
         /// <summary>
         /// The rotate regex unit test.
         /// </summary>
+        /// <param name="input">
+        /// The input string.
+        /// </param>
+        /// <param name="expected">
+        /// The expected result.
+        /// </param>
         [Test]
-        public void TestRotateRegex()
+        [TestCase("rotate=0", 0)]
+        [TestCase("rotate=270", 270)]
+        [TestCase("rotate=-270", 0)]
+        [TestCase("rotate=angle-28", 28)]
+        public void TestRotateRegex(string input, int expected)
         {
-            const string Querystring = "rotate=270";
-            const int Expected = 270;
-
             Processors.Rotate rotate = new Processors.Rotate();
-            rotate.MatchRegexIndex(Querystring);
+            rotate.MatchRegexIndex(input);
 
-            int actual = rotate.Processor.DynamicParameter;
+            int result = rotate.Processor.DynamicParameter;
 
-            Assert.AreEqual(Expected, actual);
+            Assert.AreEqual(expected, result);
         }
 
         /// <summary>
@@ -181,14 +260,26 @@ namespace ImageProcessor.Web.UnitTests
         [Test]
         public void TestRoundedCornersRegex()
         {
-            const string Querystring = "roundedcorners=30";
-            RoundedCornerLayer expected = new RoundedCornerLayer(30, true, true, true, true);
+            Dictionary<string, RoundedCornerLayer> data = new Dictionary<string, RoundedCornerLayer>
+            {
+                {
+                    "roundedcorners=30", new RoundedCornerLayer(30, true, true, true, true)
+                },
+                {
+                    "roundedcorners=radius-26|tl-true|tr-false|bl-true|br-false", new RoundedCornerLayer(26, true, false, true, false)
+                },
+                {
+                    "roundedcorners=26,tl=true,tr=false,bl=true,br=false", new RoundedCornerLayer(26, true, false, true, false)
+                }
+            };
+
             Processors.RoundedCorners roundedCorners = new Processors.RoundedCorners();
-            roundedCorners.MatchRegexIndex(Querystring);
-
-            RoundedCornerLayer actual = roundedCorners.Processor.DynamicParameter;
-
-            Assert.AreEqual(expected, actual);
+            foreach (KeyValuePair<string, RoundedCornerLayer> item in data)
+            {
+                roundedCorners.MatchRegexIndex(item.Key);
+                RoundedCornerLayer result = roundedCorners.Processor.DynamicParameter;
+                Assert.AreEqual(item.Value, result);
+            }
         }
 
         /// <summary>

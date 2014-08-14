@@ -175,8 +175,6 @@ namespace ImageProcessor.Web.HttpModules
         }
         #endregion
 
-#if NET45 && !__MonoCS__
-
         /// <summary>
         /// Occurs when the user for the current request has been authorized.
         /// </summary>
@@ -194,21 +192,6 @@ namespace ImageProcessor.Web.HttpModules
             HttpContext context = ((HttpApplication)sender).Context;
             return this.ProcessImageAsync(context);
         }
-
-#else
-
-        /// <summary>
-        /// Occurs when the user for the current request has been authorized.
-        /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="e">An <see cref="T:System.EventArgs">EventArgs</see> that contains the event data.</param>
-        private async void PostAuthorizeRequest(object sender, EventArgs e)
-        {
-            HttpContext context = ((HttpApplication)sender).Context;
-            await this.ProcessImageAsync(context);
-        }
-
-#endif
 
         /// <summary>
         /// Occurs just before ASP.NET send HttpHeaders to the client.

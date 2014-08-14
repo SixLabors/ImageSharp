@@ -17,7 +17,6 @@ namespace ImageProcessor.Web.Caching
     using System.IO;
     using System.Linq;
     using System.Threading.Tasks;
-    using System.Web;
     using System.Web.Hosting;
 
     using ImageProcessor.Web.Configuration;

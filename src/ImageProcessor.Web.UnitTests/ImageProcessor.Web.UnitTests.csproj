@@ -8,7 +8,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>ImageProcessor.Web.UnitTests</RootNamespace>
     <AssemblyName>ImageProcessor.Web.UnitTests</AssemblyName>
-    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{3AC096D0-A1C2-E12C-1390-A8335801FDAB};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
@@ -18,6 +18,7 @@
     <TestProjectType>UnitTest</TestProjectType>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -61,9 +62,9 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\ImageProcessor.Web\NET45\ImageProcessor.Web_NET45.csproj">
+    <ProjectReference Include="..\ImageProcessor.Web\ImageProcessor.Web.csproj">
       <Project>{d011a778-59c8-4bfa-a770-c350216bf161}</Project>
-      <Name>ImageProcessor.Web_NET45</Name>
+      <Name>ImageProcessor.Web</Name>
     </ProjectReference>
     <ProjectReference Include="..\ImageProcessor\ImageProcessor.csproj">
       <Project>{3b5dd734-fb7a-487d-8ce6-55e7af9aea7e}</Project>

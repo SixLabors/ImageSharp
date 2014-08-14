@@ -54,7 +54,6 @@ namespace ImageProcessor.Web.Helpers
             return releaser;
         }
 
-#if NET45 && !__MonoCS__
         /// <summary>
         /// The lock async.
         /// </summary>
@@ -92,7 +91,7 @@ namespace ImageProcessor.Web.Helpers
                            TaskContinuationOptions.ExecuteSynchronously,
                            TaskScheduler.Default);
         }
-#endif
+
         /// <summary>
         /// The disposable scope.
         /// </summary>

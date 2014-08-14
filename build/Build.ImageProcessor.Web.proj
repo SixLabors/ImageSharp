@@ -2,15 +2,15 @@
   <PropertyGroup>
     <MSBuildCommunityTasksPath>.\</MSBuildCommunityTasksPath>
   </PropertyGroup>
-  
-  <Import Project=".\MSBuildCommunityTasks\MSBuild.Community.Tasks.Targets" />	
-  
-  <!-- 
+
+  <Import Project=".\MSBuildCommunityTasks\MSBuild.Community.Tasks.Targets" />
+
+  <!--
  ****************************************************
- VARIABLES 
+ VARIABLES
  *****************************************************
  -->
- 
+
   <PropertyGroup>
     <BuildConfiguration>Release</BuildConfiguration>
     <BuildFolder>_BuildOutput\</BuildFolder>
@@ -19,42 +19,39 @@
     <BuildFolderAbsolutePath>$(MSBuildProjectDirectory)\$(BuildFolder)</BuildFolderAbsolutePath>
     <SolutionBinFolder>$(BuildFolder)bin\</SolutionBinFolder>
     <SolutionBinFolderRelativeToProjects>$(BuildFolderRelativeToProjects)bin\</SolutionBinFolderRelativeToProjects>
-    <SolutionBinFolderAbsolutePath4>$(BuildFolderAbsolutePath)ImageProcessor.Web\lib\net40</SolutionBinFolderAbsolutePath4>
-    <SolutionBinFolderAbsolutePath45>$(BuildFolderAbsolutePath)ImageProcessor.Web\lib\net45</SolutionBinFolderAbsolutePath45>
+    <SolutionBinFolderAbsolutePath>$(BuildFolderAbsolutePath)ImageProcessor.Web\lib\net45</SolutionBinFolderAbsolutePath>
     <BuildInputDir>..\src\ImageProcessor.Web\</BuildInputDir>
   </PropertyGroup>
 
-  <!-- 
+  <!--
  ****************************************************
- TARGETS 
+ TARGETS
  *****************************************************
  -->
 
  <Target Name="Build" DependsOnTargets="BuildImageProcessorWeb">
     <Message Text="Build finished" />
  </Target>
- 
+
   <Target Name="BuildImageProcessorWeb" DependsOnTargets="SetVersionNumber">
     <Message Text="Compiling ImageProcessor.Web projects to build\$(BuildFolder)" Importance="High" />
-    
-	<MSBuild Projects="$(BuildInputDir)NET4\ImageProcessor.Web_NET4.csproj" Properties="WarningLevel=0;Configuration=$(BuildConfiguration);PipelineDependsOnBuild=False;OutDir=$(SolutionBinFolderAbsolutePath4);" Targets="Clean;Rebuild;" BuildInParallel="False" ToolsVersion="4.0" UnloadProjectsOnCompletion="False" />
-	
-	<MSBuild Projects="$(BuildInputDir)NET45\ImageProcessor.Web_NET45.csproj" Properties="WarningLevel=0;Configuration=$(BuildConfiguration);PipelineDependsOnBuild=False;OutDir=$(SolutionBinFolderAbsolutePath45);" Targets="Clean;Rebuild;" BuildInParallel="False" ToolsVersion="4.0" UnloadProjectsOnCompletion="False" />
+
+    <MSBuild Projects="$(BuildInputDir)\ImageProcessor.Web.csproj" Properties="WarningLevel=0;Configuration=$(BuildConfiguration);PipelineDependsOnBuild=False;OutDir=$(SolutionBinFolderAbsolutePath);" Targets="Clean;Rebuild;" BuildInParallel="False" ToolsVersion="4.0" UnloadProjectsOnCompletion="False" />
 
     <Message Text="Finished compiling projects" Importance="High" />
   </Target>
- 
+
   <Target Name="SetVersionNumber" Condition="'$(BUILD_RELEASE)'!=''">
     <Message Text="Creating Version File: $(BUILD_RELEASE)"/>
     <ItemGroup>
-      <AssemblyFiles Include="$(BuildInputDir)NET45\Properties\AssemblyInfo.cs;" />
-	</ItemGroup>
-	
+      <AssemblyFiles Include="$(BuildInputDir)Properties\AssemblyInfo.cs;" />
+	  </ItemGroup>
+
     <FileUpdate Files="@(AssemblyFiles)"
         Multiline="true"
         Singleline="false"
         Regex="(AssemblyVersion|AssemblyFileVersionAttribute|AssemblyFileVersion)\(&quot;([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)?&quot;\)"
         ReplacementText="$1(&quot;$(BUILD_RELEASE)&quot;)" />
-		
+
   </Target>
 </Project>

@@ -14,7 +14,6 @@ namespace Test_Website_Webforms_NET45
         void Application_Start(object sender, EventArgs e)
         {
             // Code that runs on application startup
-            BundleConfig.RegisterBundles(BundleTable.Bundles);
             RouteConfig.RegisterRoutes(RouteTable.Routes);
         }
 

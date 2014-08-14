@@ -87,7 +87,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\ImageProcessor\ImageProcessor.csproj">
+    <ProjectReference Include="..\ImageProcessor\ImageProcessor.csproj">
       <Project>{3b5dd734-fb7a-487d-8ce6-55e7af9aea7e}</Project>
       <Name>ImageProcessor</Name>
     </ProjectReference>

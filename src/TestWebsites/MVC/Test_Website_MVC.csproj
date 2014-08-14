@@ -151,15 +151,15 @@
     <Content Include="Views\Home\Index.cshtml" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\ImageProcessor.Web\NET45\ImageProcessor.Web_NET45.csproj">
+    <ProjectReference Include="..\..\ImageProcessor.Web\ImageProcessor.Web.csproj">
       <Project>{d011a778-59c8-4bfa-a770-c350216bf161}</Project>
-      <Name>ImageProcessor.Web_NET45</Name>
+      <Name>ImageProcessor.Web</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\ImageProcessor\ImageProcessor.csproj">
+    <ProjectReference Include="..\..\ImageProcessor\ImageProcessor.csproj">
       <Project>{3b5dd734-fb7a-487d-8ce6-55e7af9aea7e}</Project>
       <Name>ImageProcessor</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\Plugins\ImageProcessor\ImageProcessor.Plugins.WebP\ImageProcessor.Plugins.WebP.csproj">
+    <ProjectReference Include="..\..\Plugins\ImageProcessor\ImageProcessor.Plugins.WebP\ImageProcessor.Plugins.WebP.csproj">
       <Project>{2cf69699-959a-44dc-a281-4e2596c25043}</Project>
       <Name>ImageProcessor.Plugins.WebP</Name>
     </ProjectReference>

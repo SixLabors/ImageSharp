@@ -132,7 +132,7 @@ namespace ImageProcessor.Configuration
             // Store root assembly (level 0) directly into results list 
             stack.Push(assembly.ToString());
 
-            // Do a preorder, non-recursive traversal 
+            // Do a pre-order, non-recursive traversal 
             while (stack.Count > 0)
             {
                 string info = (string)stack.Pop();

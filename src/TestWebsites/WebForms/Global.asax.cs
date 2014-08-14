@@ -15,7 +15,6 @@ namespace Test_Website_Webforms_NET45
         {
             // Code that runs on application startup
             BundleConfig.RegisterBundles(BundleTable.Bundles);
-            AuthConfig.RegisterOpenAuth();
             RouteConfig.RegisterRoutes(RouteTable.Routes);
         }
 

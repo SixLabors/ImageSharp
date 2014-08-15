@@ -10,6 +10,9 @@
 
 namespace ImageProcessor.Web.Helpers
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
     using System.Text;
     using System.Text.RegularExpressions;
     using ImageProcessor.Configuration;
@@ -23,17 +26,17 @@ namespace ImageProcessor.Web.Helpers
         /// <summary>
         /// The regex pattern.
         /// </summary>
-        private static readonly string RegexPattern = BuildRegexPattern();
+        private static readonly string ExtensionRegexPattern = BuildExtensionRegexPattern();
 
         /// <summary>
         /// The image format regex.
         /// </summary>
-        private static readonly Regex FormatRegex = new Regex(@"(\.?)(png8|" + RegexPattern + ")", RegexOptions.IgnoreCase | RegexOptions.RightToLeft);
+        private static readonly Regex FormatRegex = new Regex(@"(\.?)(png8|" + ExtensionRegexPattern + ")", RegexOptions.IgnoreCase | RegexOptions.RightToLeft);
 
         /// <summary>
         /// The image format regex for matching the file format at the end of a string.
         /// </summary>
-        private static readonly Regex EndFormatRegex = new Regex(@"(\.)" + RegexPattern + "$", RegexOptions.IgnoreCase | RegexOptions.RightToLeft);
+        private static readonly Regex EndFormatRegex = new Regex(@"(\.)" + ExtensionRegexPattern + "$", RegexOptions.IgnoreCase | RegexOptions.RightToLeft);
 
         /// <summary>
         /// Checks a given string to check whether the value contains a valid image extension.
@@ -73,12 +76,35 @@ namespace ImageProcessor.Web.Helpers
         }
 
         /// <summary>
+        /// Get the correct mime-type for the given string input.
+        /// </summary>
+        /// <param name="identifier">
+        /// The identifier.
+        /// </param>
+        /// <returns>
+        /// The <see cref="string"/> matching the correct mime-type.
+        /// </returns>
+        public static string GetMimeType(string identifier)
+        {
+            identifier = GetExtension(identifier).Replace(".", string.Empty);
+            List<ISupportedImageFormat> formats = ImageProcessorBootstrapper.Instance.SupportedImageFormats.ToList();
+            ISupportedImageFormat format = formats.FirstOrDefault(f => f.FileExtensions.Any(e => e.Equals(identifier, StringComparison.InvariantCultureIgnoreCase)));
+
+            if (format != null)
+            {
+                return format.MimeType;
+            }
+
+            return string.Empty;
+        }
+
+        /// <summary>
         /// Builds a regular expression from the <see cref="T:ImageProcessor.Imaging.Formats.ISupportedImageFormat"/> type, this allows extensibility.
         /// </summary>
         /// <returns>
         /// The <see cref="Regex"/> to match matrix filters.
         /// </returns>
-        private static string BuildRegexPattern()
+        private static string BuildExtensionRegexPattern()
         {
             StringBuilder stringBuilder = new StringBuilder();
             stringBuilder.Append("(");

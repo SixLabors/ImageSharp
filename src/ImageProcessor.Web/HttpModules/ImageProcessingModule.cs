@@ -12,6 +12,7 @@ namespace ImageProcessor.Web.HttpModules
 {
     #region Using
     using System;
+    using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
     using System.IO;
     using System.Linq;
@@ -208,10 +209,10 @@ namespace ImageProcessor.Web.HttpModules
             if (responseTypeObject != null && dependencyFileObject != null)
             {
                 string responseType = (string)responseTypeObject;
-                string dependencyFile = (string)dependencyFileObject;
+                List<string> dependencyFiles = (List<string>)dependencyFileObject;
 
                 // Set the headers
-                this.SetHeaders(context, responseType, dependencyFile);
+                this.SetHeaders(context, responseType, dependencyFiles);
 
                 context.Items[CachedResponseTypeKey] = null;
                 context.Items[CachedResponseFileDependency] = null;
@@ -352,11 +353,7 @@ namespace ImageProcessor.Web.HttpModules
                         {
                             if (isRemote)
                             {
-#if NET45 && !__MonoCS__
                                 using (await Locker.LockAsync(cachedPath))
-#else
-                                using (Locker.Lock(cachedPath))
-#endif
                                 {
                                     Uri uri = new Uri(requestPath + "?" + urlParameters);
                                     RemoteFile remoteFile = new RemoteFile(uri, false);
@@ -382,14 +379,15 @@ namespace ImageProcessor.Web.HttpModules
                                                                 .AutoProcess(queryString)
                                                                 .Save(cachedPath);
 
-                                                    // Store the response type in the context for later retrieval.
-                                                    context.Items[CachedResponseTypeKey] = imageFactory.CurrentImageFormat.MimeType;
-
                                                     // Add to the cache.
                                                     cache.AddImageToCache(cachedPath);
 
                                                     // Trim the cache.
                                                     await cache.TrimCachedFolderAsync(cachedPath);
+
+                                                    // Store the response type and cache dependency in the context for later retrieval.
+                                                    context.Items[CachedResponseTypeKey] = imageFactory.CurrentImageFormat.MimeType;
+                                                    context.Items[CachedResponseFileDependency] = new List<string> { cachedPath };
                                                 }
                                             }
                                         }
@@ -398,11 +396,7 @@ namespace ImageProcessor.Web.HttpModules
                             }
                             else
                             {
-#if NET45 && !__MonoCS__
                                 using (await Locker.LockAsync(cachedPath))
-#else
-                                using (Locker.Lock(cachedPath))
-#endif
                                 {
                                     // Check to see if the file exists.
                                     // ReSharper disable once AssignNullToNotNullAttribute
@@ -418,14 +412,15 @@ namespace ImageProcessor.Web.HttpModules
                                                 .AutoProcess(queryString)
                                                 .Save(cachedPath);
 
-                                    // Store the response type in the context for later retrieval.
-                                    context.Items[CachedResponseTypeKey] = imageFactory.CurrentImageFormat.MimeType;
-
                                     // Add to the cache.
                                     cache.AddImageToCache(cachedPath);
 
                                     // Trim the cache.
                                     await cache.TrimCachedFolderAsync(cachedPath);
+
+                                    // Store the response type and cache dependencies in the context for later retrieval.
+                                    context.Items[CachedResponseTypeKey] = imageFactory.CurrentImageFormat.MimeType;
+                                    context.Items[CachedResponseFileDependency] = new List<string> { requestPath, cachedPath };
                                 }
                             }
                         }
@@ -434,26 +429,32 @@ namespace ImageProcessor.Web.HttpModules
                     // Image is from the cache so the mime-type will need to be set.
                     if (context.Items[CachedResponseTypeKey] == null)
                     {
-                        context.Items[CachedResponseTypeKey] = ImageHelpers.GetExtension(cachedPath).Replace(".", "image/");
-                    }
+                        string mimetype = ImageHelpers.GetMimeType(cachedPath);
 
-                    context.Items[CachedResponseFileDependency] = cachedPath;
+                        if (!string.IsNullOrEmpty(mimetype))
+                        {
+                            context.Items[CachedResponseTypeKey] = mimetype;
+                        }
+                    }
 
                     string incomingEtag = context.Request.Headers["If" + "-None-Match"];
 
                     if (incomingEtag != null && !isNewOrUpdated)
                     {
-                        // Explicitly set the Content-Length header so the client doesn't wait for
-                        // content but keeps the connection open for other requests
+                        // Set the Content-Length header so the client doesn't wait for
+                        // content but keeps the connection open for other requests.
                         context.Response.AddHeader("Content-Length", "0");
                         context.Response.StatusCode = (int)HttpStatusCode.NotModified;
                         context.Response.SuppressContent = true;
-                        this.SetHeaders(context, (string)context.Items[CachedResponseTypeKey], cachedPath);
 
                         if (!isRemote)
                         {
+                            // Set the headers and quit.
+                            this.SetHeaders(context, (string)context.Items[CachedResponseTypeKey], new List<string> { requestPath, cachedPath });
                             return;
                         }
+
+                        this.SetHeaders(context, (string)context.Items[CachedResponseTypeKey], new List<string> { cachedPath });
                     }
 
                     // The cached file is valid so just rewrite the path.
@@ -483,10 +484,10 @@ namespace ImageProcessor.Web.HttpModules
         /// <param name="responseType">
         /// The HTTP MIME type to to send.
         /// </param>
-        /// <param name="dependencyPath">
+        /// <param name="dependencyPaths">
         /// The dependency path for the cache dependency.
         /// </param>
-        private void SetHeaders(HttpContext context, string responseType, string dependencyPath)
+        private void SetHeaders(HttpContext context, string responseType, IEnumerable<string> dependencyPaths)
         {
             HttpResponse response = context.Response;
 
@@ -501,7 +502,7 @@ namespace ImageProcessor.Web.HttpModules
             cache.SetCacheability(HttpCacheability.Public);
             cache.VaryByHeaders["Accept-Encoding"] = true;
 
-            context.Response.AddFileDependency(dependencyPath);
+            context.Response.AddFileDependencies(dependencyPaths.ToArray());
             cache.SetLastModifiedFromFileDependencies();
 
             int maxDays = DiskCache.MaxFileCachedDuration;

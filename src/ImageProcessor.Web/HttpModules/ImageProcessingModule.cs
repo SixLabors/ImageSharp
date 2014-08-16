@@ -62,7 +62,7 @@ namespace ImageProcessor.Web.HttpModules
         /// <summary>
         /// The locker for preventing duplicate requests.
         /// </summary>
-        private static readonly AsyncDeDuperLock Locker = new AsyncDeDuperLock();
+        private static readonly AsyncDuplicateLock Locker = new AsyncDuplicateLock();
 
         /// <summary>
         /// The value to prefix any remote image requests with to ensure they get captured.
@@ -108,6 +108,11 @@ namespace ImageProcessor.Web.HttpModules
         }
         #endregion
 
+        /// <summary>
+        /// The event that is called when a new image is processed.
+        /// </summary>
+        public static event EventHandler<PostProcessingEventArgs> OnPostProcessing;
+
         #region IHttpModule Members
         /// <summary>
         /// Initializes a module and prepares it to handle requests.
@@ -129,12 +134,8 @@ namespace ImageProcessor.Web.HttpModules
                 preserveExifMetaData = ImageProcessorConfiguration.Instance.PreserveExifMetaData;
             }
 
-#if NET45 && !__MonoCS__
             EventHandlerTaskAsyncHelper wrapper = new EventHandlerTaskAsyncHelper(this.PostAuthorizeRequest);
             context.AddOnPostAuthorizeRequestAsync(wrapper.BeginEventHandler, wrapper.EndEventHandler);
-#else
-            context.PostAuthorizeRequest += this.PostAuthorizeRequest;
-#endif
             context.PreSendRequestHeaders += this.ContextPreSendRequestHeaders;
         }
 
@@ -385,6 +386,13 @@ namespace ImageProcessor.Web.HttpModules
                                                     // Trim the cache.
                                                     await cache.TrimCachedFolderAsync(cachedPath);
 
+                                                    // Fire the post processing event.
+                                                    EventHandler<PostProcessingEventArgs> handler = OnPostProcessing;
+                                                    if (handler != null)
+                                                    {
+                                                        handler.Invoke(this, new PostProcessingEventArgs() { CachedImagePath = cachedPath });
+                                                    }
+
                                                     // Store the response type and cache dependency in the context for later retrieval.
                                                     context.Items[CachedResponseTypeKey] = imageFactory.CurrentImageFormat.MimeType;
                                                     context.Items[CachedResponseFileDependency] = new List<string> { cachedPath };
@@ -417,6 +425,13 @@ namespace ImageProcessor.Web.HttpModules
 
                                     // Trim the cache.
                                     await cache.TrimCachedFolderAsync(cachedPath);
+
+                                    // Fire the post processing event.
+                                    EventHandler<PostProcessingEventArgs> handler = OnPostProcessing;
+                                    if (handler != null)
+                                    {
+                                        handler.Invoke(this, new PostProcessingEventArgs() { CachedImagePath = cachedPath });
+                                    }
 
                                     // Store the response type and cache dependencies in the context for later retrieval.
                                     context.Items[CachedResponseTypeKey] = imageFactory.CurrentImageFormat.MimeType;
@@ -467,7 +482,7 @@ namespace ImageProcessor.Web.HttpModules
             }
             else if (isRemote)
             {
-                // Just repoint to the external url.
+                // Just re-point to the external url.
                 HttpContext.Current.Response.Redirect(requestPath);
             }
         }

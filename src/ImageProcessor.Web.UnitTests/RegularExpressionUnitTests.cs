@@ -103,32 +103,6 @@ namespace ImageProcessor.Web.UnitTests
         }
 
         /// <summary>
-        /// The saturation regex unit test.
-        /// </summary>
-        /// <param name="input">
-        /// The input string.
-        /// </param>
-        /// <param name="expected">
-        /// The expected result.
-        /// </param>
-        [Test]
-        [TestCase("saturation=56", 56)]
-        [TestCase("saturation=84", 84)]
-        [TestCase("saturation=66", 66)]
-        [TestCase("saturation=101", 1)]
-        [TestCase("saturation=00001", 1)]
-        [TestCase("saturation=-50", -50)]
-        [TestCase("saturation=0", 0)]
-        public void TestSaturationRegex(string input, int expected)
-        {
-            Processors.Saturation saturation = new Processors.Saturation();
-            saturation.MatchRegexIndex(input);
-            int result = saturation.Processor.DynamicParameter;
-
-            Assert.AreEqual(expected, result);
-        }
-
-        /// <summary>
         /// The rotate regex unit test.
         /// </summary>
         [Test]
@@ -247,20 +221,52 @@ namespace ImageProcessor.Web.UnitTests
         }
 
         /// <summary>
+        /// The meta regex unit test.
+        /// </summary>
+        /// <param name="input">
+        /// The input.
+        /// </param>
+        /// <param name="expected">
+        /// The expected result.
+        /// </param>
+        [Test]
+        [TestCase("meta=true", true)]
+        [TestCase("meta=false", false)]
+        public void TestMetaRegex(string input, bool expected)
+        {
+            Processors.Meta meta = new Processors.Meta();
+            meta.MatchRegexIndex(input);
+            bool result = meta.Processor.DynamicParameter;
+
+            Assert.AreEqual(expected, result);
+        }
+
+        /// <summary>
         /// The resize regex unit test.
         /// </summary>
         [Test]
         public void TestResizeRegex()
         {
-            const string Querystring = "width=300";
-            ResizeLayer expected = new ResizeLayer(new Size(300, 0));
+            Dictionary<string, ResizeLayer> data = new Dictionary<string, ResizeLayer>
+            {
+                {
+                    "width=300", new ResizeLayer(new Size(300, 0))
+                },
+                {
+                    "height=300", new ResizeLayer(new Size(0, 300))
+                },
+                {
+                    "height=300&mode=crop", new ResizeLayer(new Size(0, 300), ResizeMode.Crop)
+                }
+            };
 
             Processors.Resize resize = new Processors.Resize();
-
-            resize.MatchRegexIndex(Querystring);
-            ResizeLayer actual = resize.Processor.DynamicParameter;
-
-            Assert.AreEqual(expected, actual);
+            foreach (KeyValuePair<string, ResizeLayer> item in data)
+            {
+                resize.MatchRegexIndex(item.Key);
+                ResizeLayer result = resize.Processor.DynamicParameter;
+                Assert.AreEqual(item.Value, result);
+            }
         }
 
         /// <summary>
@@ -316,6 +322,32 @@ namespace ImageProcessor.Web.UnitTests
         }
 
         /// <summary>
+        /// The saturation regex unit test.
+        /// </summary>
+        /// <param name="input">
+        /// The input string.
+        /// </param>
+        /// <param name="expected">
+        /// The expected result.
+        /// </param>
+        [Test]
+        [TestCase("saturation=56", 56)]
+        [TestCase("saturation=84", 84)]
+        [TestCase("saturation=66", 66)]
+        [TestCase("saturation=101", 1)]
+        [TestCase("saturation=00001", 1)]
+        [TestCase("saturation=-50", -50)]
+        [TestCase("saturation=0", 0)]
+        public void TestSaturationRegex(string input, int expected)
+        {
+            Processors.Saturation saturation = new Processors.Saturation();
+            saturation.MatchRegexIndex(input);
+            int result = saturation.Processor.DynamicParameter;
+
+            Assert.AreEqual(expected, result);
+        }
+
+        /// <summary>
         /// The tint regex unit test.
         /// </summary>
         [Test]
@@ -342,6 +374,43 @@ namespace ImageProcessor.Web.UnitTests
             {
                 tint.MatchRegexIndex(item.Key);
                 Color result = tint.Processor.DynamicParameter;
+                Assert.AreEqual(item.Value, result);
+            }
+        }
+
+        /// <summary>
+        /// The vignette regex unit test.
+        /// </summary>
+        [Test]
+        public void TestVignetteRegex()
+        {
+            Dictionary<string, Color> data = new Dictionary<string, Color>
+            {
+                {
+                    "vignette", Color.Black
+                },
+                {
+                    "vignette=true", Color.Black
+                },
+                {
+                    "vignette=6aa6cc", ColorTranslator.FromHtml("#" + "6aa6cc")
+                },
+                {
+                    "vignette=106,166,204,255", Color.FromArgb(255, 106, 166, 204)
+                },
+                {
+                    "vignette=fff", Color.FromArgb(255, 255, 255, 255)
+                },
+                {
+                    "vignette=white", Color.White
+                }
+            };
+
+            Processors.Vignette vignette = new Processors.Vignette();
+            foreach (KeyValuePair<string, Color> item in data)
+            {
+                vignette.MatchRegexIndex(item.Key);
+                Color result = vignette.Processor.DynamicParameter;
                 Assert.AreEqual(item.Value, result);
             }
         }

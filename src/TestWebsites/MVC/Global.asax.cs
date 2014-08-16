@@ -8,6 +8,10 @@ using System.Web.Routing;
 
 namespace Test_Website_NET45
 {
+    using System.Diagnostics;
+
+    using ImageProcessor.Web.HttpModules;
+
     // Note: For instructions on enabling IIS6 or IIS7 classic mode, 
     // visit http://go.microsoft.com/?LinkId=9394801
     public class MvcApplication : System.Web.HttpApplication
@@ -19,6 +23,9 @@ namespace Test_Website_NET45
             WebApiConfig.Register(GlobalConfiguration.Configuration);
             FilterConfig.RegisterGlobalFilters(GlobalFilters.Filters);
             RouteConfig.RegisterRoutes(RouteTable.Routes);
+
+            // Test the post processing event.
+            ImageProcessingModule.OnPostProcessing += (sender, args) => Debug.WriteLine(args.CachedImagePath);
         }
     }
 }

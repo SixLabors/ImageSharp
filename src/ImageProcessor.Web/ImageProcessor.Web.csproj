@@ -56,8 +56,9 @@
     <Compile Include="Extensions\DirectoryInfoExtensions.cs" />
     <Compile Include="Extensions\StringExtensions.cs" />
     <Compile Include="Helpers\CommonParameterParserUtility.cs" />
-    <Compile Include="Helpers\AsyncDeDuperLock.cs" />
+    <Compile Include="Helpers\AsyncHighlanderLock.cs" />
     <Compile Include="Helpers\NativeMethods.cs" />
+    <Compile Include="Helpers\PostProcessingEventArgs.cs" />
     <Compile Include="Helpers\ResourceHelpers.cs" />
     <Compile Include="Helpers\ImageHelpers.cs" />
     <Compile Include="Helpers\RemoteFile.cs" />

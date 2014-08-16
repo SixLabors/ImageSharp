@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="AsyncDeDuperLock.cs" company="James South">
+// <copyright file="AsyncDuplicateLock.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -18,24 +18,24 @@ namespace ImageProcessor.Web.Helpers
     /// Throttles duplicate requests.
     /// Based loosely on <see href="http://stackoverflow.com/a/21011273/427899"/>
     /// </summary>
-    public sealed class AsyncDeDuperLock
+    public sealed class AsyncDuplicateLock
     {
         /// <summary>
-        /// The semaphore slims.
+        /// The collection of semaphore slims.
         /// </summary>
-        private static readonly ConcurrentDictionary<string, SemaphoreSlim> SemaphoreSlims
-                                = new ConcurrentDictionary<string, SemaphoreSlim>();
+        private static readonly ConcurrentDictionary<object, SemaphoreSlim> SemaphoreSlims
+                                = new ConcurrentDictionary<object, SemaphoreSlim>();
 
         /// <summary>
-        /// The lock.
+        /// Locks against the given key.
         /// </summary>
         /// <param name="key">
-        /// The hash.
+        /// The key that identifies the current object.
         /// </param>
         /// <returns>
-        /// The <see cref="IDisposable"/>.
+        /// The disposable <see cref="Task"/>.
         /// </returns>
-        public IDisposable Lock(string key)
+        public IDisposable Lock(object key)
         {
             DisposableScope releaser = new DisposableScope(
             key,
@@ -55,15 +55,15 @@ namespace ImageProcessor.Web.Helpers
         }
 
         /// <summary>
-        /// The lock async.
+        /// Asynchronously locks against the given key.
         /// </summary>
         /// <param name="key">
-        /// The key.
+        /// The key that identifies the current object.
         /// </param>
         /// <returns>
-        /// The <see cref="Task"/>.
+        /// The disposable <see cref="Task"/>.
         /// </returns>
-        public Task<IDisposable> LockAsync(string key)
+        public Task<IDisposable> LockAsync(object key)
         {
             DisposableScope releaser = new DisposableScope(
             key,
@@ -100,12 +100,12 @@ namespace ImageProcessor.Web.Helpers
             /// <summary>
             /// The key
             /// </summary>
-            private readonly string key;
+            private readonly object key;
 
             /// <summary>
             /// The close scope action.
             /// </summary>
-            private readonly Action<string> closeScopeAction;
+            private readonly Action<object> closeScopeAction;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="DisposableScope"/> class.
@@ -116,7 +116,7 @@ namespace ImageProcessor.Web.Helpers
             /// <param name="closeScopeAction">
             /// The close scope action.
             /// </param>
-            public DisposableScope(string key, Action<string> closeScopeAction)
+            public DisposableScope(object key, Action<object> closeScopeAction)
             {
                 this.key = key;
                 this.closeScopeAction = closeScopeAction;

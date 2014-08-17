@@ -45,6 +45,11 @@ namespace ImageProcessor.Web.HttpModules
         private const string CachedResponseTypeKey = "CACHED_IMAGE_RESPONSE_TYPE_054F217C-11CF-49FF-8D2F-698E8E6EB58F";
 
         /// <summary>
+        /// The key for storing the cached path of the current image.
+        /// </summary>
+        private const string CachedPathKey = "CACHED_IMAGE_PATH_TYPE_E0741478-C17B-433D-96A8-6CDA797644E9";
+
+        /// <summary>
         /// The key for storing the file dependency of the current image.
         /// </summary>
         private const string CachedResponseFileDependency = "CACHED_IMAGE_DEPENDENCY_054F217C-11CF-49FF-8D2F-698E8E6EB58F";
@@ -134,8 +139,12 @@ namespace ImageProcessor.Web.HttpModules
                 preserveExifMetaData = ImageProcessorConfiguration.Instance.PreserveExifMetaData;
             }
 
-            EventHandlerTaskAsyncHelper wrapper = new EventHandlerTaskAsyncHelper(this.PostAuthorizeRequest);
-            context.AddOnPostAuthorizeRequestAsync(wrapper.BeginEventHandler, wrapper.EndEventHandler);
+            EventHandlerTaskAsyncHelper postAuthorizeHelper = new EventHandlerTaskAsyncHelper(this.PostAuthorizeRequest);
+            context.AddOnPostAuthorizeRequestAsync(postAuthorizeHelper.BeginEventHandler, postAuthorizeHelper.EndEventHandler);
+
+            EventHandlerTaskAsyncHelper postProcessHelper = new EventHandlerTaskAsyncHelper(this.PostProcessImage);
+            context.AddOnPostRequestHandlerExecuteAsync(postProcessHelper.BeginEventHandler, postProcessHelper.EndEventHandler);
+
             context.PreSendRequestHeaders += this.ContextPreSendRequestHeaders;
         }
 
@@ -193,6 +202,39 @@ namespace ImageProcessor.Web.HttpModules
         {
             HttpContext context = ((HttpApplication)sender).Context;
             return this.ProcessImageAsync(context);
+        }
+
+        /// <summary>
+        /// Occurs when the ASP.NET event handler finishes execution.
+        /// </summary>
+        /// <param name="sender">
+        /// The source of the event.
+        /// </param>
+        /// <param name="e">
+        /// An <see cref="T:System.EventArgs">EventArgs</see> that contains the event data.
+        /// </param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task"/>.
+        /// </returns>
+        private Task PostProcessImage(object sender, EventArgs e)
+        {
+            HttpContext context = ((HttpApplication)sender).Context;
+            object cachedPathObject = context.Items[CachedPathKey];
+
+            if (cachedPathObject != null)
+            {
+                string cachedPath = cachedPathObject.ToString();
+
+                // Fire the post processing event.
+                EventHandler<PostProcessingEventArgs> handler = OnPostProcessing;
+                if (handler != null)
+                {
+                    context.Items[CachedPathKey] = null;
+                    return Task.Run(() => handler(this, new PostProcessingEventArgs { CachedImagePath = cachedPath }));
+                }
+            }
+
+            return Task.FromResult<object>(null);
         }
 
         /// <summary>
@@ -386,14 +428,8 @@ namespace ImageProcessor.Web.HttpModules
                                                     // Trim the cache.
                                                     await cache.TrimCachedFolderAsync(cachedPath);
 
-                                                    // Fire the post processing event.
-                                                    EventHandler<PostProcessingEventArgs> handler = OnPostProcessing;
-                                                    if (handler != null)
-                                                    {
-                                                        handler.Invoke(this, new PostProcessingEventArgs() { CachedImagePath = cachedPath });
-                                                    }
-
-                                                    // Store the response type and cache dependency in the context for later retrieval.
+                                                    // Store the cached path, response type, and cache dependency in the context for later retrieval.
+                                                    context.Items[CachedPathKey] = cachedPath;
                                                     context.Items[CachedResponseTypeKey] = imageFactory.CurrentImageFormat.MimeType;
                                                     context.Items[CachedResponseFileDependency] = new List<string> { cachedPath };
                                                 }
@@ -426,14 +462,8 @@ namespace ImageProcessor.Web.HttpModules
                                     // Trim the cache.
                                     await cache.TrimCachedFolderAsync(cachedPath);
 
-                                    // Fire the post processing event.
-                                    EventHandler<PostProcessingEventArgs> handler = OnPostProcessing;
-                                    if (handler != null)
-                                    {
-                                        handler.Invoke(this, new PostProcessingEventArgs() { CachedImagePath = cachedPath });
-                                    }
-
-                                    // Store the response type and cache dependencies in the context for later retrieval.
+                                    // Store the cached path, response type, and cache dependencies in the context for later retrieval.
+                                    context.Items[CachedPathKey] = cachedPath;
                                     context.Items[CachedResponseTypeKey] = imageFactory.CurrentImageFormat.MimeType;
                                     context.Items[CachedResponseFileDependency] = new List<string> { requestPath, cachedPath };
                                 }

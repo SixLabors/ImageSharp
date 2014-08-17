@@ -193,7 +193,7 @@ namespace ImageProcessor.Web.Caching
         /// </returns>
         internal async Task TrimCachedFolderAsync(string path)
         {
-            await TaskHelpers.Run(() => this.TrimCachedFolders(path));
+            await Task.Run(() => this.TrimCachedFolders(path));
         }
         #endregion
 

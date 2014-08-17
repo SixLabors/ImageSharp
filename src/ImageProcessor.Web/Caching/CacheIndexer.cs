@@ -41,7 +41,7 @@ namespace ImageProcessor.Web.Caching
 
             if (cachedImage == null)
             {
-                cachedImage = await TaskHelpers.Run(() => GetCachedImage(cachedPath));
+                cachedImage = await Task.Run(() => GetCachedImage(cachedPath));
 
                 if (cachedImage != null)
                 {

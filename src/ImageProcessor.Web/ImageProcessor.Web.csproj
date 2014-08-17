@@ -62,7 +62,6 @@
     <Compile Include="Helpers\ResourceHelpers.cs" />
     <Compile Include="Helpers\ImageHelpers.cs" />
     <Compile Include="Helpers\RemoteFile.cs" />
-    <Compile Include="Helpers\TaskHelpers.cs" />
     <Compile Include="HttpModules\ImageProcessingModule.cs" />
     <Compile Include="ImageFactoryExtensions.cs" />
     <Compile Include="Processors\Alpha.cs" />

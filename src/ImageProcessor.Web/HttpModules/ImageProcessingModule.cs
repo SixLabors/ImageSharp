@@ -386,7 +386,7 @@ namespace ImageProcessor.Web.HttpModules
                 if (isAllowed)
                 {
                     // Is the file new or updated?
-                    bool isNewOrUpdated = await cache.IsNewOrUpdatedFileAsync(cachedPath);
+                    bool isNewOrUpdated = cache.IsNewOrUpdatedFile(cachedPath);
 
                     // Only process if the file has been updated.
                     if (isNewOrUpdated)

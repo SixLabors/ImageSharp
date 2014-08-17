@@ -10,13 +10,9 @@
 
 namespace ImageProcessor.Web.Caching
 {
-    #region Using
     using System.Collections.Generic;
     using System.IO;
     using System.Runtime.Caching;
-    using System.Threading.Tasks;
-    using ImageProcessor.Web.Helpers;
-    #endregion
 
     /// <summary>
     /// Represents an in memory collection of keys and values whose operations are concurrent.
@@ -34,19 +30,32 @@ namespace ImageProcessor.Web.Caching
         /// The <see cref="CachedImage"/> matching the given key if the <see cref="CacheIndexer"/> contains an element with 
         /// the specified key; otherwise, null.
         /// </returns>
-        public static async Task<CachedImage> GetValueAsync(string cachedPath)
+        public static CachedImage GetValue(string cachedPath)
         {
             string key = Path.GetFileNameWithoutExtension(cachedPath);
             CachedImage cachedImage = (CachedImage)MemCache.GetItem(key);
 
             if (cachedImage == null)
             {
-                cachedImage = await Task.Run(() => GetCachedImage(cachedPath));
+                // FileInfo is thread safe.
+                FileInfo fileInfo = new FileInfo(cachedPath);
 
-                if (cachedImage != null)
+                if (!fileInfo.Exists)
                 {
-                    Add(cachedImage);
+                    return null;
                 }
+
+                // Pull the latest info.
+                fileInfo.Refresh();
+
+                cachedImage = new CachedImage
+                {
+                    Key = Path.GetFileNameWithoutExtension(cachedPath),
+                    Path = cachedPath,
+                    CreationTimeUtc = fileInfo.CreationTimeUtc
+                };
+
+                Add(cachedImage);
             }
 
             return cachedImage;
@@ -87,35 +96,5 @@ namespace ImageProcessor.Web.Caching
             return cachedImage;
         }
         #endregion
-
-        /// <summary>
-        /// Creates a new cached image from the cache instance on disk.
-        /// </summary>
-        /// <param name="cachePath">
-        /// The cache path.
-        /// </param>
-        /// <returns>
-        /// The <see cref="CachedImage"/> from the cache instance on disk.
-        /// </returns>
-        private static CachedImage GetCachedImage(string cachePath)
-        {
-            // FileInfo is thread safe.
-            FileInfo fileInfo = new FileInfo(cachePath);
-
-            if (!fileInfo.Exists)
-            {
-                return null;
-            }
-
-            // Pull the latest info.
-            fileInfo.Refresh();
-
-            return new CachedImage
-            {
-                Key = Path.GetFileNameWithoutExtension(cachePath),
-                Path = cachePath,
-                CreationTimeUtc = fileInfo.CreationTimeUtc
-            };
-        }
     }
 }

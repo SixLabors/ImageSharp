@@ -9,7 +9,9 @@ using System.Web.Routing;
 namespace Test_Website_NET45
 {
     using System.Diagnostics;
+    using System.Threading.Tasks;
 
+    using ImageProcessor.Web.Helpers;
     using ImageProcessor.Web.HttpModules;
 
     // Note: For instructions on enabling IIS6 or IIS7 classic mode, 
@@ -26,6 +28,12 @@ namespace Test_Website_NET45
 
             // Test the post processing event.
             ImageProcessingModule.OnPostProcessing += (sender, args) => Debug.WriteLine(args.CachedImagePath);
+            //ImageProcessingModule.OnPostProcessing += this.WritePath;
+        }
+
+        private async void WritePath(object sender, PostProcessingEventArgs e)
+        {
+            await Task.Run(() => Debug.WriteLine(e.CachedImagePath));
         }
     }
 }

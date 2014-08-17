@@ -159,10 +159,10 @@ namespace ImageProcessor.Web.Caching
         /// <returns>
         /// True if the the original file is new or has been updated; otherwise, false.
         /// </returns>
-        internal async Task<bool> IsNewOrUpdatedFileAsync(string cachedPath)
+        internal bool IsNewOrUpdatedFile(string cachedPath)
         {
             bool isUpdated = false;
-            CachedImage cachedImage = await CacheIndexer.GetValueAsync(cachedPath);
+            CachedImage cachedImage = CacheIndexer.GetValue(cachedPath);
 
             if (cachedImage == null)
             {

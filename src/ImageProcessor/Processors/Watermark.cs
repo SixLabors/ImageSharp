@@ -69,7 +69,7 @@ namespace ImageProcessor.Processors
                 newImage = new Bitmap(image);
                 TextLayer textLayer = this.DynamicParameter;
                 string text = textLayer.Text;
-                int opacity = textLayer.Opacity;
+                int opacity = Math.Min((int)Math.Ceiling((textLayer.Opacity / 100f) * 255), 255);
                 int fontSize = textLayer.FontSize;
                 FontStyle fontStyle = textLayer.Style;
 

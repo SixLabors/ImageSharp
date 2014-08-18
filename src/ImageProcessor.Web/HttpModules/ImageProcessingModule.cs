@@ -225,6 +225,9 @@ namespace ImageProcessor.Web.HttpModules
             {
                 string cachedPath = cachedPathObject.ToString();
 
+                // Trim the cache.
+                DiskCache.TrimCachedFolders(cachedPath);
+
                 // Fire the post processing event.
                 EventHandler<PostProcessingEventArgs> handler = OnPostProcessing;
                 if (handler != null)
@@ -347,7 +350,7 @@ namespace ImageProcessor.Web.HttpModules
                     {
                         string hashedUrlParameters = urlParameters.ToMD5Fingerprint();
 
-                        // TODO: Add hash for querystring parameters.    
+                        // TODO: Add hash for querystring parameters?    
                         imageName += hashedUrlParameters;
                         fullPath += hashedUrlParameters;
                     }
@@ -425,9 +428,6 @@ namespace ImageProcessor.Web.HttpModules
                                                     // Add to the cache.
                                                     cache.AddImageToCache(cachedPath);
 
-                                                    // Trim the cache.
-                                                    await cache.TrimCachedFolderAsync(cachedPath);
-
                                                     // Store the cached path, response type, and cache dependency in the context for later retrieval.
                                                     context.Items[CachedPathKey] = cachedPath;
                                                     context.Items[CachedResponseTypeKey] = imageFactory.CurrentImageFormat.MimeType;
@@ -440,7 +440,7 @@ namespace ImageProcessor.Web.HttpModules
                             }
                             else
                             {
-                                using (await Locker.LockAsync(cachedPath))
+                                using (Locker.Lock(cachedPath))
                                 {
                                     // Check to see if the file exists.
                                     // ReSharper disable once AssignNullToNotNullAttribute
@@ -458,9 +458,6 @@ namespace ImageProcessor.Web.HttpModules
 
                                     // Add to the cache.
                                     cache.AddImageToCache(cachedPath);
-
-                                    // Trim the cache.
-                                    await cache.TrimCachedFolderAsync(cachedPath);
 
                                     // Store the cached path, response type, and cache dependencies in the context for later retrieval.
                                     context.Items[CachedPathKey] = cachedPath;

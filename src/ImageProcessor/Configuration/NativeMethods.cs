@@ -27,7 +27,7 @@ namespace ImageProcessor.Configuration
         /// an executable module. 
         /// </param>
         /// <returns>If the function succeeds, the return value is a handle to the module; otherwise null.</returns>
-        [DllImport("kernel32", CharSet = CharSet.Auto, SetLastError = true)]
+        [DllImport("kernel32", SetLastError = true, CharSet = CharSet.Auto)]
         public static extern IntPtr LoadLibrary(string libname);
 
         /// <summary>
@@ -38,7 +38,7 @@ namespace ImageProcessor.Configuration
         /// <param name="hModule">A handle to the loaded library module. 
         /// The LoadLibrary, LoadLibraryEx, GetModuleHandle, or GetModuleHandleEx function returns this handle.</param>
         /// <returns>If the function succeeds, the return value is nonzero; otherwise zero.</returns>
-        [DllImport("kernel32", CharSet = CharSet.Auto)]
+        [DllImport("kernel32", SetLastError = true)]
         public static extern bool FreeLibrary(IntPtr hModule);
 
         /// <summary>

@@ -100,17 +100,8 @@ namespace ImageProcessor.Imaging
         /// </summary>
         public int Opacity
         {
-            get
-            {
-                int alpha = (int)Math.Ceiling((this.opacity / 100d) * 255);
-
-                return alpha < 255 ? alpha : 255;
-            }
-
-            set
-            {
-                this.opacity = value;
-            }
+            get { return this.opacity; }
+            set { this.opacity = value; }
         }
 
         /// <summary>
@@ -127,5 +118,54 @@ namespace ImageProcessor.Imaging
         /// </summary>
         public bool DropShadow { get; set; }
         #endregion
+
+        /// <summary>
+        /// Returns a value that indicates whether the specified object is an 
+        /// <see cref="TextLayer"/> object that is equivalent to 
+        /// this <see cref="TextLayer"/> object.
+        /// </summary>
+        /// <param name="obj">
+        /// The object to test.
+        /// </param>
+        /// <returns>
+        /// True if the given object  is an <see cref="TextLayer"/> object that is equivalent to 
+        /// this <see cref="TextLayer"/> object; otherwise, false.
+        /// </returns>
+        public override bool Equals(object obj)
+        {
+            TextLayer textLayer = obj as TextLayer;
+
+            if (textLayer == null)
+            {
+                return false;
+            }
+
+            return this.Text == textLayer.Text
+                && this.TextColor == textLayer.TextColor
+                && this.Font == textLayer.Font
+                && this.FontSize == textLayer.FontSize
+                && this.Style == textLayer.Style
+                && this.DropShadow == textLayer.DropShadow
+                && this.Opacity == textLayer.Opacity
+                && this.Position == textLayer.Position;
+        }
+
+        /// <summary>
+        /// Returns a hash code value that represents this object.
+        /// </summary>
+        /// <returns>
+        /// A hash code that represents this object.
+        /// </returns>
+        public override int GetHashCode()
+        {
+            return this.Text.GetHashCode() +
+                this.TextColor.GetHashCode() +
+                this.Font.GetHashCode() +
+                this.FontSize.GetHashCode() +
+                this.Style.GetHashCode() +
+                this.DropShadow.GetHashCode() +
+                this.Opacity.GetHashCode() +
+                this.Position.GetHashCode();
+        }
     }
 }

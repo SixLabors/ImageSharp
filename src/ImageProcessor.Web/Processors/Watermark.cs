@@ -308,7 +308,7 @@ namespace ImageProcessor.Web.Processors
         {
             if (color.A < 255)
             {
-                return color.A;
+                return (color.A / 255) * 100;
             }
 
             foreach (Match match in OpacityRegex.Matches(input))
@@ -317,7 +317,7 @@ namespace ImageProcessor.Web.Processors
                 return int.Parse(match.Value.Split(new[] { '=', '-' })[1], CultureInfo.InvariantCulture);
             }
 
-            // Full opacity - matches the Textlayer default.
+            // Full opacity - matches the TextLayer default.
             return 100;
         }
 

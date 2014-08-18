@@ -13,12 +13,15 @@ namespace ImageProcessor.Web.Helpers
     #region Using
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Globalization;
     using System.IO;
     using System.Net;
     using System.Security;
     using System.Text;
     using System.Threading.Tasks;
+    using System.Web;
+
     using ImageProcessor.Web.Configuration;
     #endregion
 
@@ -241,27 +244,43 @@ namespace ImageProcessor.Web.Helpers
         /// </returns>
         internal async Task<WebResponse> GetWebResponseAsync()
         {
-            WebResponse response = await this.GetWebRequest().GetResponseAsync();
-
-            long contentLength = response.ContentLength;
-
-            // WebResponse.ContentLength doesn't always know the value, it returns -1 in this case.
-            if (contentLength == -1)
+            WebResponse response = null;
+            try
             {
-                // Response headers may still have the Content-Length inside of it.
-                string headerContentLength = response.Headers["Content-Length"];
-
-                if (!string.IsNullOrWhiteSpace(headerContentLength))
+                response = await this.GetWebRequest().GetResponseAsync();
+            }
+            catch (WebException ex)
+            {
+                if (ex.Status == WebExceptionStatus.NameResolutionFailure)
                 {
-                    contentLength = long.Parse(headerContentLength, CultureInfo.InvariantCulture);
+                    throw new HttpException(404, "No image exists at " + Uri);
                 }
+
+                throw;
             }
 
-            // We don't need to check the url here since any external urls are available only from the web.config.
-            if ((this.MaxDownloadSize > 0) && (contentLength > this.MaxDownloadSize))
+            if (response != null)
             {
-                response.Close();
-                throw new SecurityException("An attempt to download a remote file has been halted because the file is larger than allowed.");
+                long contentLength = response.ContentLength;
+
+                // WebResponse.ContentLength doesn't always know the value, it returns -1 in this case.
+                if (contentLength == -1)
+                {
+                    // Response headers may still have the Content-Length inside of it.
+                    string headerContentLength = response.Headers["Content-Length"];
+
+                    if (!string.IsNullOrWhiteSpace(headerContentLength))
+                    {
+                        contentLength = long.Parse(headerContentLength, CultureInfo.InvariantCulture);
+                    }
+                }
+
+                // We don't need to check the url here since any external urls are available only from the web.config.
+                if ((this.MaxDownloadSize > 0) && (contentLength > this.MaxDownloadSize))
+                {
+                    response.Close();
+                    throw new SecurityException("An attempt to download a remote file has been halted because the file is larger than allowed.");
+                }
             }
 
             return response;

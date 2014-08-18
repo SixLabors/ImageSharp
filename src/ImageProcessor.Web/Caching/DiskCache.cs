@@ -16,7 +16,6 @@ namespace ImageProcessor.Web.Caching
     using System.Globalization;
     using System.IO;
     using System.Linq;
-    using System.Threading.Tasks;
     using System.Web.Hosting;
 
     using ImageProcessor.Web.Configuration;
@@ -130,81 +129,14 @@ namespace ImageProcessor.Web.Caching
         }
 
         #region Methods
-        #region Internal
-        /// <summary>
-        /// Adds an image to the cache.
-        /// </summary>
-        /// <param name="cachedPath">
-        /// The path to the cached image.
-        /// </param>
-        internal void AddImageToCache(string cachedPath)
-        {
-            string key = Path.GetFileNameWithoutExtension(cachedPath);
-            CachedImage cachedImage = new CachedImage
-                                          {
-                                              Key = key,
-                                              Path = cachedPath,
-                                              CreationTimeUtc = DateTime.UtcNow
-                                          };
-
-            CacheIndexer.Add(cachedImage);
-        }
-
-        /// <summary>
-        /// Returns a value indicating whether the original file is new or has been updated.
-        /// </summary>
-        /// <param name="cachedPath">
-        /// The path to the cached image.
-        /// </param>
-        /// <returns>
-        /// True if the the original file is new or has been updated; otherwise, false.
-        /// </returns>
-        internal bool IsNewOrUpdatedFile(string cachedPath)
-        {
-            bool isUpdated = false;
-            CachedImage cachedImage = CacheIndexer.GetValue(cachedPath);
-
-            if (cachedImage == null)
-            {
-                // Nothing in the cache so we should return true.
-                isUpdated = true;
-            }
-            else
-            {
-                // Check to see if the cached image is set to expire.
-                if (this.IsExpired(cachedImage.CreationTimeUtc))
-                {
-                    CacheIndexer.Remove(cachedPath);
-                    isUpdated = true;
-                }
-            }
-
-            return isUpdated;
-        }
-
+        #region Public
         /// <summary>
         /// Trims a cached folder ensuring that it does not exceed the maximum file count.
         /// </summary>
         /// <param name="path">
         /// The path to the folder.
         /// </param>
-        /// <returns>
-        /// The <see cref="T:System.Threading.Tasks.Task"/>.
-        /// </returns>
-        internal async Task TrimCachedFolderAsync(string path)
-        {
-            await Task.Run(() => this.TrimCachedFolders(path));
-        }
-        #endregion
-
-        #region Private
-        /// <summary>
-        /// Trims a cached folder ensuring that it does not exceed the maximum file count.
-        /// </summary>
-        /// <param name="path">
-        /// The path to the folder.
-        /// </param>
-        private void TrimCachedFolders(string path)
+        public static void TrimCachedFolders(string path)
         {
             string directory = Path.GetDirectoryName(path);
 
@@ -228,7 +160,7 @@ namespace ImageProcessor.Web.Caching
                                 // If the group count is equal to the max count minus 1 then we know we
                                 // have reduced the number of items below the maximum allowed.
                                 // We'll cleanup any orphaned expired files though.
-                                if (!this.IsExpired(fileInfo.CreationTimeUtc) && count <= MaxFilesCount - 1)
+                                if (!IsExpired(fileInfo.CreationTimeUtc) && count <= MaxFilesCount - 1)
                                 {
                                     break;
                                 }
@@ -247,6 +179,74 @@ namespace ImageProcessor.Web.Caching
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Adds an image to the cache.
+        /// </summary>
+        /// <param name="cachedPath">
+        /// The path to the cached image.
+        /// </param>
+        public void AddImageToCache(string cachedPath)
+        {
+            string key = Path.GetFileNameWithoutExtension(cachedPath);
+            CachedImage cachedImage = new CachedImage
+                                          {
+                                              Key = key,
+                                              Path = cachedPath,
+                                              CreationTimeUtc = DateTime.UtcNow
+                                          };
+
+            CacheIndexer.Add(cachedImage);
+        }
+
+        /// <summary>
+        /// Returns a value indicating whether the original file is new or has been updated.
+        /// </summary>
+        /// <param name="cachedPath">
+        /// The path to the cached image.
+        /// </param>
+        /// <returns>
+        /// True if the the original file is new or has been updated; otherwise, false.
+        /// </returns>
+        public bool IsNewOrUpdatedFile(string cachedPath)
+        {
+            bool isUpdated = false;
+            CachedImage cachedImage = CacheIndexer.GetValue(cachedPath);
+
+            if (cachedImage == null)
+            {
+                // Nothing in the cache so we should return true.
+                isUpdated = true;
+            }
+            else
+            {
+                // Check to see if the cached image is set to expire.
+                if (IsExpired(cachedImage.CreationTimeUtc))
+                {
+                    CacheIndexer.Remove(cachedPath);
+                    isUpdated = true;
+                }
+            }
+
+            return isUpdated;
+        }
+        #endregion
+
+        #region Private
+        /// <summary>
+        /// Gets a value indicating whether the given images creation date is out with 
+        /// the prescribed limit.
+        /// </summary>
+        /// <param name="creationDate">
+        /// The creation date.
+        /// </param>
+        /// <returns>
+        /// The true if the date is out with the limit, otherwise; false.
+        /// </returns>
+        private static bool IsExpired(DateTime creationDate)
+        {
+            return creationDate.AddDays(MaxFileCachedDuration) < DateTime.UtcNow.AddDays(-MaxFileCachedDuration);
         }
 
         /// <summary>
@@ -304,21 +304,6 @@ namespace ImageProcessor.Web.Caching
                 this.physicalCachedPath = Path.Combine(AbsoluteCachePath, pathFromKey, cachedFileName);
                 this.virtualCachedPath = Path.Combine(VirtualCachePath, virtualPathFromKey, cachedFileName).Replace(@"\", "/");
             }
-        }
-
-        /// <summary>
-        /// Gets a value indicating whether the given images creation date is out with 
-        /// the prescribed limit.
-        /// </summary>
-        /// <param name="creationDate">
-        /// The creation date.
-        /// </param>
-        /// <returns>
-        /// The true if the date is out with the limit, otherwise; false.
-        /// </returns>
-        private bool IsExpired(DateTime creationDate)
-        {
-            return creationDate.AddDays(MaxFileCachedDuration) < DateTime.UtcNow.AddDays(-MaxFileCachedDuration);
         }
         #endregion
         #endregion

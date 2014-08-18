@@ -257,6 +257,15 @@ namespace ImageProcessor.Web.UnitTests
                 },
                 {
                     "height=300&mode=crop", new ResizeLayer(new Size(0, 300), ResizeMode.Crop)
+                },
+                {
+                    "width=300&mode=crop", new ResizeLayer(new Size(300, 0), ResizeMode.Crop)
+                },
+                {
+                    "width=600&heightratio=0.416", new ResizeLayer(new Size(600, 250))
+                },
+                {
+                    "width=600&height=250&mode=max", new ResizeLayer(new Size(600, 250), ResizeMode.Max)
                 }
             };
 
@@ -411,6 +420,53 @@ namespace ImageProcessor.Web.UnitTests
             {
                 vignette.MatchRegexIndex(item.Key);
                 Color result = vignette.Processor.DynamicParameter;
+                Assert.AreEqual(item.Value, result);
+            }
+        }
+
+        /// <summary>
+        /// The watermark regex unit test.
+        /// </summary>
+        [Test]
+        public void TestWaterMarkRegex()
+        {
+            Dictionary<string, TextLayer> data = new Dictionary<string, TextLayer>
+            {
+                {
+                    "watermark=text-watermark goodness,color-fff,size-36,style-italic,opacity-80,position-30,150,shadow-true,font-arial", 
+                    new TextLayer
+                        {
+                            Text = "watermark goodness", 
+                            TextColor = ColorTranslator.FromHtml("#" + "ffffff"), 
+                            FontSize = 36,
+                            Style = FontStyle.Italic,
+                            Opacity = 80, 
+                            Position = new Point(30, 150),
+                            DropShadow = true, 
+                            Font = "arial"
+                        }
+                },
+                {
+                    "watermark=watermark goodness&color=fff&fontsize=36&fontstyle=italic&fontopacity=80&textposition=30,150&textshadow=true&font=arial", 
+                    new TextLayer
+                        {
+                            Text = "watermark goodness", 
+                            TextColor = ColorTranslator.FromHtml("#" + "ffffff"), 
+                            FontSize = 36,
+                            Style = FontStyle.Italic,
+                            Opacity = 80, 
+                            Position = new Point(30, 150),
+                            DropShadow = true, 
+                            Font = "arial"
+                        }
+                }
+            };
+
+            Processors.Watermark watermark = new Processors.Watermark();
+            foreach (KeyValuePair<string, TextLayer> item in data)
+            {
+                watermark.MatchRegexIndex(item.Key);
+                TextLayer result = watermark.Processor.DynamicParameter;
                 Assert.AreEqual(item.Value, result);
             }
         }

@@ -6,11 +6,11 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("ImageProcessor.Plugins.WebP")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("Adds support to ImageProcessor for the WebP image format.")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("James South")]
 [assembly: AssemblyProduct("ImageProcessor.Plugins.WebP")]
-[assembly: AssemblyCopyright("Copyright ©  2014")]
+[assembly: AssemblyCopyright("Copyright ©  James South")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

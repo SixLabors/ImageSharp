@@ -13,6 +13,7 @@ namespace ImageProcessor.Configuration
     using System;
     using System.Collections;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.IO;
     using System.Linq;
     using System.Reflection;
@@ -70,19 +71,19 @@ namespace ImageProcessor.Configuration
         {
             if (this.SupportedImageFormats == null)
             {
-                try
+                Type type = typeof(ISupportedImageFormat);
+
+                // Get any referenced but not used assemblies.
+                Assembly executingAssembly = Assembly.GetExecutingAssembly();
+                string targetBasePath = Path.GetDirectoryName(new Uri(executingAssembly.Location).LocalPath);
+
+                // ReSharper disable once AssignNullToNotNullAttribute
+                FileInfo[] files = new DirectoryInfo(targetBasePath).GetFiles("*.dll", SearchOption.AllDirectories);
+
+                HashSet<string> found = new HashSet<string>();
+                foreach (FileInfo fileInfo in files)
                 {
-                    Type type = typeof(ISupportedImageFormat);
-
-                    // Get any referenced but not used assemblies.
-                    Assembly executingAssembly = Assembly.GetExecutingAssembly();
-                    string targetBasePath = Path.GetDirectoryName(new Uri(executingAssembly.Location).LocalPath);
-
-                    // ReSharper disable once AssignNullToNotNullAttribute
-                    FileInfo[] files = new DirectoryInfo(targetBasePath).GetFiles("*.dll", SearchOption.AllDirectories);
-
-                    HashSet<string> found = new HashSet<string>();
-                    foreach (FileInfo fileInfo in files)
+                    try
                     {
                         AssemblyName assemblyName = AssemblyName.GetAssemblyName(fileInfo.FullName);
 
@@ -91,23 +92,26 @@ namespace ImageProcessor.Configuration
                         {
                             // In a web app, this assembly will automatically be bound from the 
                             // Asp.Net Temporary folder from where the site actually runs.
+                            Assembly.Load(assemblyName);
                             this.LoadReferencedAssemblies(found, Assembly.Load(assemblyName));
                         }
                     }
-
-                    List<Type> availableTypes = AppDomain.CurrentDomain
-                    .GetAssemblies()
-                    .SelectMany(a => a.GetLoadableTypes())
-                    .Where(t => type.IsAssignableFrom(t) && t.IsClass && !t.IsAbstract)
-                    .ToList();
-
-                    this.SupportedImageFormats = availableTypes
-                        .Select(f => (Activator.CreateInstance(f) as ISupportedImageFormat)).ToList();
+                    catch (Exception ex)
+                    {
+                        // Log the exception for debugging only. There could be any old junk 
+                        // thrown in to the bin folder by someone else.
+                        Debug.WriteLine(ex.Message);
+                    }
                 }
-                catch (Exception ex)
-                {
-                    throw new ImageFormatException(ex.Message, ex.InnerException);
-                }
+
+                List<Type> availableTypes = AppDomain.CurrentDomain
+                .GetAssemblies()
+                .SelectMany(a => a.GetLoadableTypes())
+                .Where(t => type.IsAssignableFrom(t) && t.IsClass && !t.IsAbstract)
+                .ToList();
+
+                this.SupportedImageFormats = availableTypes
+                    .Select(f => (Activator.CreateInstance(f) as ISupportedImageFormat)).ToList();
             }
         }
 

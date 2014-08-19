@@ -40,8 +40,8 @@ namespace ImageProcessorConsole
                 di.Create();
             }
 
-			IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".webp");
-            //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif", ".webp", ".bmp", ".jpg", ".png");
+            //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".jpg");
+            IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif", ".webp", ".bmp", ".jpg", ".png");
 
             foreach (FileInfo fileInfo in files)
             {

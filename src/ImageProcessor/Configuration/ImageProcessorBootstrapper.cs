@@ -18,7 +18,6 @@ namespace ImageProcessor.Configuration
     using System.Linq;
     using System.Reflection;
 
-    using ImageProcessor.Common.Exceptions;
     using ImageProcessor.Common.Extensions;
     using ImageProcessor.Imaging.Formats;
 

@@ -1,0 +1,54 @@
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildCommunityTasksPath>.\</MSBuildCommunityTasksPath>
+  </PropertyGroup>
+
+  <Import Project=".\MSBuildCommunityTasks\MSBuild.Community.Tasks.Targets" />
+
+  <!--
+ ****************************************************
+ VARIABLES
+ *****************************************************
+ -->
+
+  <PropertyGroup>
+    <BuildConfiguration>Release</BuildConfiguration>
+    <BuildFolder>_BuildOutput\</BuildFolder>
+    <IncludeSymbols>False</IncludeSymbols>
+    <BuildFolderAbsolutePath>$(MSBuildProjectDirectory)\$(BuildFolder)</BuildFolderAbsolutePath>
+    <SolutionBinFolderAbsolutePath>$(BuildFolderAbsolutePath)ImageProcessor.Plugins.WebP\lib\net45</SolutionBinFolderAbsolutePath>
+    <BuildInputDir>..\src\Plugins\ImageProcessor\ImageProcessor.Plugins.WebP\</BuildInputDir>
+  </PropertyGroup>
+
+  <!--
+ ****************************************************
+ TARGETS
+ *****************************************************
+ -->
+
+ <Target Name="Build" DependsOnTargets="BuildImageProcessorPluginsWebP">
+    <Message Text="Build finished" />
+ </Target>
+
+  <Target Name="BuildImageProcessorPluginsWebP" DependsOnTargets="SetVersionNumber">
+    <Message Text="Compiling ImageProcessor.Plugins.WebP project to build\$(BuildFolder)" Importance="High" />
+
+	<MSBuild Projects="$(BuildInputDir)\ImageProcessor.Plugins.WebP.csproj" Properties="WarningLevel=0;Configuration=$(BuildConfiguration);PipelineDependsOnBuild=False;OutDir=$(SolutionBinFolderAbsolutePath);" Targets="Clean;Rebuild;" BuildInParallel="False" ToolsVersion="4.0" UnloadProjectsOnCompletion="False" />
+
+    <Message Text="Finished compiling project" Importance="High" />
+  </Target>
+
+  <Target Name="SetVersionNumber" Condition="'$(BUILD_RELEASE)'!=''">
+    <Message Text="Creating Version File: $(BUILD_RELEASE)"/>
+    <ItemGroup>
+      <AssemblyFiles Include="$(BuildInputDir)Properties\AssemblyInfo.cs;" />
+	  </ItemGroup>
+
+    <FileUpdate Files="@(AssemblyFiles)"
+        Multiline="true"
+        Singleline="false"
+        Regex="(AssemblyVersion|AssemblyFileVersionAttribute|AssemblyFileVersion)\(&quot;([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)?&quot;\)"
+        ReplacementText="$1(&quot;$(BUILD_RELEASE)&quot;)" />
+
+  </Target>
+</Project>

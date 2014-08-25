@@ -10,11 +10,8 @@
 
 namespace ImageProcessor.Imaging
 {
-    #region Using
-
-    using System;
     using System.Drawing;
-    #endregion
+    using System.Drawing.Text;
 
     /// <summary>
     /// Encapsulates the properties required to add a layer of text to an image.
@@ -38,6 +35,11 @@ namespace ImageProcessor.Imaging
         private FontStyle fontStyle = FontStyle.Regular;
 
         /// <summary>
+        /// The font family to render the text.
+        /// </summary>
+        private FontFamily fontFamily = new FontFamily(GenericFontFamilies.SansSerif);
+
+        /// <summary>
         /// The font size to render the text.
         /// </summary>
         private int fontSize = 48;
@@ -55,21 +57,28 @@ namespace ImageProcessor.Imaging
         public string Text { get; set; }
 
         /// <summary>
-        /// Gets or sets the Color to render the font.
+        /// Gets or sets the <see cref="System.Drawing.Color"/> to render the font.
         /// <remarks>
         /// <para>Defaults to black.</para>
         /// </remarks>
         /// </summary>
-        public Color TextColor
+        public Color FontColor
         {
             get { return this.textColor; }
             set { this.textColor = value; }
         }
 
         /// <summary>
-        /// Gets or sets the name of the font.
+        /// Gets or sets the name of the font family.
+        /// <remarks>
+        /// <para>Defaults to generic sans-serif font family.</para>
+        /// </remarks>
         /// </summary>
-        public string Font { get; set; }
+        public FontFamily FontFamily
+        {
+            get { return this.fontFamily; }
+            set { this.fontFamily = value; }
+        }
 
         /// <summary>
         /// Gets or sets the size of the font in pixels.
@@ -141,8 +150,8 @@ namespace ImageProcessor.Imaging
             }
 
             return this.Text == textLayer.Text
-                && this.TextColor == textLayer.TextColor
-                && this.Font == textLayer.Font
+                && this.FontColor == textLayer.FontColor
+                && this.FontFamily.Equals(textLayer.FontFamily)
                 && this.FontSize == textLayer.FontSize
                 && this.Style == textLayer.Style
                 && this.DropShadow == textLayer.DropShadow
@@ -159,8 +168,8 @@ namespace ImageProcessor.Imaging
         public override int GetHashCode()
         {
             return this.Text.GetHashCode() +
-                this.TextColor.GetHashCode() +
-                this.Font.GetHashCode() +
+                this.FontColor.GetHashCode() +
+                this.FontFamily.GetHashCode() +
                 this.FontSize.GetHashCode() +
                 this.Style.GetHashCode() +
                 this.DropShadow.GetHashCode() +

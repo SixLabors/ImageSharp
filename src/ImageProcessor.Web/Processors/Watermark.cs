@@ -11,6 +11,7 @@
 namespace ImageProcessor.Web.Processors
 {
     using System.Drawing;
+    using System.Drawing.Text;
     using System.Globalization;
     using System.Linq;
     using System.Text.RegularExpressions;
@@ -53,7 +54,7 @@ namespace ImageProcessor.Web.Processors
         /// <summary>
         /// The regular expression to search strings for the font family attribute.
         /// </summary>
-        private static readonly Regex FontFamilyRegex = new Regex(@"font(=|-)[^/:?#\[\]@!$&'()*%\|,;=0-9]+", RegexOptions.Compiled);
+        private static readonly Regex FontFamilyRegex = new Regex(@"font(family)?(=|-)[^/:?#\[\]@!$&'()*%\|,;=0-9]+", RegexOptions.Compiled);
 
         /// <summary>
         /// The regular expression to search strings for the opacity attribute.
@@ -63,7 +64,7 @@ namespace ImageProcessor.Web.Processors
         /// <summary>
         /// The regular expression to search strings for the shadow attribute.
         /// </summary>
-        private static readonly Regex ShadowRegex = new Regex(@"((text)?)shadow(=|-)true", RegexOptions.Compiled);
+        private static readonly Regex ShadowRegex = new Regex(@"((text|font|drop)?)shadow(=|-)true", RegexOptions.Compiled);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Watermark"/> class.
@@ -123,14 +124,14 @@ namespace ImageProcessor.Web.Processors
                         {
                             Text = this.ParseText(queryString),
                             Position = this.ParsePosition(queryString),
-                            TextColor = this.ParseColor(queryString),
+                            FontColor = this.ParseColor(queryString),
                             FontSize = this.ParseFontSize(queryString),
-                            Font = this.ParseFontFamily(queryString),
+                            FontFamily = this.ParseFontFamily(queryString),
                             Style = this.ParseFontStyle(queryString),
                             DropShadow = this.ParseDropShadow(queryString)
                         };
 
-                        textLayer.Opacity = this.ParseOpacity(queryString, textLayer.TextColor);
+                        textLayer.Opacity = this.ParseOpacity(queryString, textLayer.FontColor);
 
                         this.Processor.DynamicParameter = textLayer;
                     }
@@ -279,17 +280,17 @@ namespace ImageProcessor.Web.Processors
         /// <returns>
         /// The correct <see cref="T:System.String"/> containing the font family for the given string.
         /// </returns>
-        private string ParseFontFamily(string input)
+        private FontFamily ParseFontFamily(string input)
         {
             foreach (Match match in FontFamilyRegex.Matches(input))
             {
                 // split on font-
                 string font = match.Value.Split(new[] { '=', '-' })[1].Replace("+", " ");
 
-                return font;
+                return new FontFamily(font);
             }
 
-            return string.Empty;
+            return new FontFamily(GenericFontFamilies.SansSerif);
         }
 
         /// <summary>

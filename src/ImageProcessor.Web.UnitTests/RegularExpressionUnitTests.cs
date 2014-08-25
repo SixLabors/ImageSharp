@@ -437,27 +437,27 @@ namespace ImageProcessor.Web.UnitTests
                     new TextLayer
                         {
                             Text = "watermark goodness", 
-                            TextColor = ColorTranslator.FromHtml("#" + "ffffff"), 
+                            FontColor = ColorTranslator.FromHtml("#" + "ffffff"), 
                             FontSize = 36,
                             Style = FontStyle.Italic,
                             Opacity = 80, 
                             Position = new Point(30, 150),
                             DropShadow = true, 
-                            Font = "arial"
+                            FontFamily = new FontFamily("arial") 
                         }
                 },
                 {
-                    "watermark=watermark goodness&color=fff&fontsize=36&fontstyle=italic&fontopacity=80&textposition=30,150&textshadow=true&font=arial", 
+                    "watermark=watermark goodness&color=fff&fontsize=36&fontstyle=italic&fontopacity=80&textposition=30,150&textshadow=true&fontfamily=arial", 
                     new TextLayer
                         {
                             Text = "watermark goodness", 
-                            TextColor = ColorTranslator.FromHtml("#" + "ffffff"), 
+                            FontColor = ColorTranslator.FromHtml("#" + "ffffff"), 
                             FontSize = 36,
                             Style = FontStyle.Italic,
                             Opacity = 80, 
                             Position = new Point(30, 150),
                             DropShadow = true, 
-                            Font = "arial"
+                            FontFamily = new FontFamily("arial") 
                         }
                 }
             };

@@ -75,11 +75,11 @@ namespace ImageProcessor.Processors
 
                 using (Graphics graphics = Graphics.FromImage(newImage))
                 {
-                    using (Font font = this.GetFont(textLayer.Font, fontSize, fontStyle))
+                    using (Font font = this.GetFont(textLayer.FontFamily, fontSize, fontStyle))
                     {
                         using (StringFormat drawFormat = new StringFormat())
                         {
-                            using (Brush brush = new SolidBrush(Color.FromArgb(opacity, textLayer.TextColor)))
+                            using (Brush brush = new SolidBrush(Color.FromArgb(opacity, textLayer.FontColor)))
                             {
                                 Point origin = textLayer.Position;
 
@@ -148,7 +148,7 @@ namespace ImageProcessor.Processors
         /// <summary>
         /// Returns the correct <see cref="T:System.Drawing.Font"/> for the given parameters.
         /// </summary>
-        /// <param name="font">
+        /// <param name="fontFamily">
         /// The name of the font.
         /// </param>
         /// <param name="fontSize">
@@ -160,20 +160,20 @@ namespace ImageProcessor.Processors
         /// <returns>
         /// The correct <see cref="T:System.Drawing.Font"/>
         /// </returns>
-        private Font GetFont(string font, int fontSize, FontStyle fontStyle)
+        private Font GetFont(FontFamily fontFamily, int fontSize, FontStyle fontStyle)
         {
             try
             {
-                using (FontFamily fontFamily = new FontFamily(font))
+                using (fontFamily)
                 {
                     return new Font(fontFamily, fontSize, fontStyle, GraphicsUnit.Pixel);
                 }
             }
             catch
             {
-                using (FontFamily fontFamily = FontFamily.GenericSansSerif)
+                using (FontFamily genericFontFamily = FontFamily.GenericSansSerif)
                 {
-                    return new Font(fontFamily, fontSize, fontStyle, GraphicsUnit.Pixel);
+                    return new Font(genericFontFamily, fontSize, fontStyle, GraphicsUnit.Pixel);
                 }
             }
         }

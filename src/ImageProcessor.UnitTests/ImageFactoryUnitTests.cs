@@ -396,7 +396,7 @@ namespace ImageProcessor.UnitTests
                 {
                     imageFactory.Load(file.FullName);
                     Image original = (Image)imageFactory.Image.Clone();
-                    imageFactory.RoundedCorners(new Imaging.RoundedCornerLayer(5, true, true, true, true));
+                    imageFactory.RoundedCorners(new Imaging.RoundedCornerLayer(5));
                     Assert.AreNotEqual(original, imageFactory.Image);
                 }
             }

@@ -311,7 +311,7 @@ namespace ImageProcessor.Web.UnitTests
             Dictionary<string, RoundedCornerLayer> data = new Dictionary<string, RoundedCornerLayer>
             {
                 {
-                    "roundedcorners=30", new RoundedCornerLayer(30, true, true, true, true)
+                    "roundedcorners=30", new RoundedCornerLayer(30)
                 },
                 {
                     "roundedcorners=radius-26|tl-true|tr-false|bl-true|br-false", new RoundedCornerLayer(26, true, false, true, false)

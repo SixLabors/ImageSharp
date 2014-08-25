@@ -68,14 +68,13 @@ namespace ImageProcessor.Processors
             {
                 RoundedCornerLayer roundedCornerLayer = this.DynamicParameter;
                 int radius = roundedCornerLayer.Radius;
-                Color backgroundColor = roundedCornerLayer.BackgroundColor;
                 bool topLeft = roundedCornerLayer.TopLeft;
                 bool topRight = roundedCornerLayer.TopRight;
                 bool bottomLeft = roundedCornerLayer.BottomLeft;
                 bool bottomRight = roundedCornerLayer.BottomRight;
 
                 // Create a rounded image.
-                newImage = this.RoundCornerImage(image, radius, backgroundColor, topLeft, topRight, bottomLeft, bottomRight);
+                newImage = this.RoundCornerImage(image, radius, topLeft, topRight, bottomLeft, bottomRight);
 
                 image.Dispose();
                 image = newImage;
@@ -98,13 +97,12 @@ namespace ImageProcessor.Processors
         /// </summary>
         /// <param name="image">The image to add corners too</param>
         /// <param name="cornerRadius">The radius of the corners.</param>
-        /// <param name="backgroundColor">The background color to fill an image with.</param>
         /// <param name="topLeft">If the top left corner will have a rounded corner?</param>
         /// <param name="topRight">If the top right corner will have a rounded corner?</param>
         /// <param name="bottomLeft">If the bottom left corner will have a rounded corner?</param>
         /// <param name="bottomRight">If the bottom right corner will have a rounded corner?</param>
         /// <returns>The image with rounded corners.</returns>
-        private Bitmap RoundCornerImage(Image image, int cornerRadius, Color backgroundColor, bool topLeft = false, bool topRight = false, bool bottomLeft = false, bool bottomRight = false)
+        private Bitmap RoundCornerImage(Image image, int cornerRadius, bool topLeft = false, bool topRight = false, bool bottomLeft = false, bool bottomRight = false)
         {
             int width = image.Width;
             int height = image.Height;
@@ -119,14 +117,9 @@ namespace ImageProcessor.Processors
             {
                 // Reduce the jagged edge.
                 graphics.SmoothingMode = SmoothingMode.HighQuality;
-
-                // Contrary to everything I have read bicubic is producing the best results.
                 graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
                 graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-                graphics.CompositingQuality = CompositingQuality.HighSpeed;
-
-                // Fill the background.
-                graphics.Clear(backgroundColor);
+                graphics.CompositingQuality = CompositingQuality.HighQuality;
 
                 // Add rounded corners
                 using (GraphicsPath path = new GraphicsPath())

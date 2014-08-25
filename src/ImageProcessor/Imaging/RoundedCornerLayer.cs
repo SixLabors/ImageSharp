@@ -10,27 +10,11 @@
 
 namespace ImageProcessor.Imaging
 {
-    using System.Drawing;
-
     /// <summary>
     /// Encapsulates the properties required to add rounded corners to an image.
     /// </summary>
     public class RoundedCornerLayer
     {
-        #region Constructors
-        /// <summary>
-        /// Initializes a new instance of the <see cref="RoundedCornerLayer"/> class.
-        /// </summary>
-        public RoundedCornerLayer()
-        {
-            this.Radius = 10;
-            this.BackgroundColor = Color.Transparent;
-            this.TopLeft = true;
-            this.TopRight = true;
-            this.BottomLeft = true;
-            this.BottomRight = true;
-        }
-
         /// <summary>
         /// Initializes a new instance of the <see cref="RoundedCornerLayer"/> class.
         /// </summary>
@@ -49,59 +33,20 @@ namespace ImageProcessor.Imaging
         /// <param name="bottomRight">
         /// Set if bottom right is rounded
         /// </param>
-        public RoundedCornerLayer(int radius, bool topLeft, bool topRight, bool bottomLeft, bool bottomRight)
+        public RoundedCornerLayer(int radius, bool topLeft = true, bool topRight = true, bool bottomLeft = true, bool bottomRight = true)
         {
             this.Radius = radius;
-            this.BackgroundColor = Color.Transparent;
             this.TopLeft = topLeft;
             this.TopRight = topRight;
             this.BottomLeft = bottomLeft;
             this.BottomRight = bottomRight;
         }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="RoundedCornerLayer"/> class.
-        /// </summary>
-        /// <param name="radius">
-        /// The radius at which the corner will be done.
-        /// </param>
-        /// <param name="backgroundColor">
-        /// The <see cref="T:System.Drawing.Color"/> to set as the background color.
-        /// <remarks>Used for image formats that do not support transparency</remarks>
-        /// </param>
-        /// <param name="topLeft">
-        /// Set if top left is rounded
-        /// </param>
-        /// <param name="topRight">
-        /// Set if top right is rounded
-        /// </param>
-        /// <param name="bottomLeft">
-        /// Set if bottom left is rounded
-        /// </param>
-        /// <param name="bottomRight">
-        /// Set if bottom right is rounded
-        /// </param>
-        public RoundedCornerLayer(int radius, Color backgroundColor, bool topLeft, bool topRight, bool bottomLeft, bool bottomRight)
-        {
-            this.Radius = radius;
-            this.BackgroundColor = backgroundColor;
-            this.TopLeft = topLeft;
-            this.TopRight = topRight;
-            this.BottomLeft = bottomLeft;
-            this.BottomRight = bottomRight;
-        }
-        #endregion
 
         #region Properties
         /// <summary>
         /// Gets or sets the radius of the corners.
         /// </summary>
         public int Radius { get; set; }
-
-        /// <summary>
-        /// Gets or sets the background color.
-        /// </summary>
-        public Color BackgroundColor { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether top left corners are to be added.
@@ -145,7 +90,7 @@ namespace ImageProcessor.Imaging
                 return false;
             }
 
-            return this.Radius == rounded.Radius && this.BackgroundColor == rounded.BackgroundColor
+            return this.Radius == rounded.Radius
                    && this.TopLeft == rounded.TopLeft && this.TopRight == rounded.TopRight
                    && this.BottomLeft == rounded.BottomLeft && this.BottomRight == rounded.BottomRight;
         }
@@ -158,7 +103,7 @@ namespace ImageProcessor.Imaging
         /// </returns>
         public override int GetHashCode()
         {
-            return this.Radius.GetHashCode() + this.BackgroundColor.GetHashCode() +
+            return this.Radius.GetHashCode() +
                    this.TopLeft.GetHashCode() + this.TopRight.GetHashCode() +
                    this.BottomLeft.GetHashCode() + this.BottomRight.GetHashCode();
         }

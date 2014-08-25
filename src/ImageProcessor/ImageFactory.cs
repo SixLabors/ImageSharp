@@ -470,7 +470,7 @@ namespace ImageProcessor
         /// <returns>
         /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
         /// </returns>
-        public ImageFactory Flip(bool flipVertically)
+        public ImageFactory Flip(bool flipVertically = false)
         {
             if (this.ShouldProcess)
             {
@@ -682,6 +682,33 @@ namespace ImageProcessor
 
                 Rotate rotate = new Rotate { DynamicParameter = degrees };
                 this.CurrentImageFormat.ApplyProcessor(rotate.ProcessImage, this);
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Adds rounded corners to the current image.
+        /// </summary>
+        /// <param name="radius">
+        /// The radius at which the corner will be rounded.
+        /// </param>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory RoundedCorners(int radius)
+        {
+            if (this.ShouldProcess)
+            {
+                if (radius < 0)
+                {
+                    radius = 0;
+                }
+
+                RoundedCornerLayer roundedCornerLayer = new RoundedCornerLayer(radius);
+
+                RoundedCorners roundedCorners = new RoundedCorners { DynamicParameter = roundedCornerLayer };
+                this.CurrentImageFormat.ApplyProcessor(roundedCorners.ProcessImage, this);
             }
 
             return this;

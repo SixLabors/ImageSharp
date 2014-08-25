@@ -125,7 +125,7 @@ namespace ImageProcessor.UnitTests
         }
 
         /// <summary>
-        /// Tests that a filter is really applied by checking that the image is modified
+        /// Tests that brightness changes is really applied by checking that the image is modified
         /// </summary>
         [Test]
         public void TestApplyEffectBrightness()
@@ -143,7 +143,25 @@ namespace ImageProcessor.UnitTests
         }
 
         /// <summary>
-        /// Tests that a filter is really applied by checking that the image is modified
+        /// Tests that background color changes are really applied by checking that the image is modified
+        /// </summary>
+        [Test]
+        public void TestApplyEffectBackgroundColor()
+        {
+            foreach (FileInfo file in this.ListInputFiles())
+            {
+                using (ImageFactory imageFactory = new ImageFactory())
+                {
+                    imageFactory.Load(file.FullName);
+                    Image original = (Image)imageFactory.Image.Clone();
+                    imageFactory.BackgroundColor(Color.Yellow);
+                    Assert.AreNotEqual(original, imageFactory.Image);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Tests that a contrast change is really applied by checking that the image is modified
         /// </summary>
         [Test]
         public void TestApplyEffectContrast()
@@ -161,7 +179,7 @@ namespace ImageProcessor.UnitTests
         }
 
         /// <summary>
-        /// Tests that a filter is really applied by checking that the image is modified
+        /// Tests that a saturation change is really applied by checking that the image is modified
         /// </summary>
         [Test]
         public void TestApplyEffectSaturation()
@@ -179,7 +197,7 @@ namespace ImageProcessor.UnitTests
         }
 
         /// <summary>
-        /// Tests that a filter is really applied by checking that the image is modified
+        /// Tests that a tint change is really applied by checking that the image is modified
         /// </summary>
         [Test]
         public void TestApplyEffectTint()
@@ -197,7 +215,7 @@ namespace ImageProcessor.UnitTests
         }
 
         /// <summary>
-        /// Tests that a filter is really applied by checking that the image is modified
+        /// Tests that a vignette change is really applied by checking that the image is modified
         /// </summary>
         [Test]
         public void TestApplyEffectVignette()

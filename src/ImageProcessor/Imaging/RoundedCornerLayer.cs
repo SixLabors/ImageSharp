@@ -19,7 +19,7 @@ namespace ImageProcessor.Imaging
         /// Initializes a new instance of the <see cref="RoundedCornerLayer"/> class.
         /// </summary>
         /// <param name="radius">
-        /// The radius at which the corner will be done.
+        /// The radius at which the corner will be rounded.
         /// </param>
         /// <param name="topLeft">
         /// Set if top left is rounded

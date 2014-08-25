@@ -246,7 +246,7 @@ namespace ImageProcessor.UnitTests
                     Image original = (Image)imageFactory.Image.Clone();
                     imageFactory.Watermark(new Imaging.TextLayer
                     {
-                        Font = "Arial",
+                        FontFamily = new FontFamily("Arial"),
                         FontSize = 10,
                         Position = new Point(10, 10),
                         Text = "Lorem ipsum dolor"

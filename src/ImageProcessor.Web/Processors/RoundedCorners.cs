@@ -14,7 +14,6 @@ namespace ImageProcessor.Web.Processors
     using System.Text.RegularExpressions;
     using ImageProcessor.Imaging;
     using ImageProcessor.Processors;
-    using ImageProcessor.Web.Helpers;
 
     /// <summary>
     /// Encapsulates methods to add rounded corners to an image.
@@ -104,12 +103,11 @@ namespace ImageProcessor.Web.Processors
                         this.SortOrder = match.Index;
 
                         RoundedCornerLayer roundedCornerLayer = new RoundedCornerLayer(
-                                this.ParseRadius(queryString), 
-                                CommonParameterParserUtility.ParseColor(queryString), 
-                                this.ParseCorner(TopLeftRegex, queryString),
-                                this.ParseCorner(TopRightRegex, queryString),
-                                this.ParseCorner(BottomLeftRegex, queryString),
-                                this.ParseCorner(BottomRightRegex, queryString));
+                            this.ParseRadius(queryString),
+                            this.ParseCorner(TopLeftRegex, queryString),
+                            this.ParseCorner(TopRightRegex, queryString),
+                            this.ParseCorner(BottomLeftRegex, queryString),
+                            this.ParseCorner(BottomRightRegex, queryString));
 
                         this.Processor.DynamicParameter = roundedCornerLayer;
                     }

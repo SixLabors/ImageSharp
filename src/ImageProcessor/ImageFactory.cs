@@ -333,6 +333,26 @@ namespace ImageProcessor
         }
 
         /// <summary>
+        /// Changes the background color of the current image.
+        /// </summary>
+        /// <param name="color">
+        /// The <see cref="T:System.Drawing.Color"/> to paint the image with.
+        /// </param>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory BackgroundColor(Color color)
+        {
+            if (this.ShouldProcess)
+            {
+                BackgroundColor backgroundColor = new BackgroundColor { DynamicParameter = color };
+                this.CurrentImageFormat.ApplyProcessor(backgroundColor.ProcessImage, this);
+            }
+
+            return this;
+        }
+
+        /// <summary>
         /// Constrains the current image, resizing it to fit within the given dimensions whilst keeping its aspect ratio.
         /// </summary>
         /// <param name="size">

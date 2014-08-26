@@ -23,17 +23,11 @@ namespace ImageProcessor.Plugins.WebP.Imaging.Formats
     internal static class NativeMethods
     {
         /// <summary>
-        /// Whether the process is running in 64bit mode. Used for calling the correct method.
-        /// Clunky I know but I couldn't get dynamic methods to work.
-        /// </summary>
-        private static readonly bool Is64Bit = Environment.Is64BitProcess;
-
-        /// <summary>
         /// Initializes static members of the <see cref="NativeMethods"/> class.
         /// </summary>
         static NativeMethods()
         {
-            string folder = Is64Bit ? "x64" : "x86";
+            string folder = ImageProcessorBootstrapper.Instance.NativeBinaryFactory.Is64BitEnvironment ? "x64" : "x86";
             string name = string.Format("ImageProcessor.Plugins.WebP.Resources.Unmanaged.{0}.libwebp.dll", folder);
             Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(name);
 

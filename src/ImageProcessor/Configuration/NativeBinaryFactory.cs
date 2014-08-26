@@ -72,6 +72,17 @@ namespace ImageProcessor.Configuration
         }
 
         /// <summary>
+        /// Gets a value indicating whether the operating environment is 64 bit.
+        /// </summary>
+        public bool Is64BitEnvironment
+        {
+            get
+            {
+                return Is64Bit;
+            }
+        }
+
+        /// <summary>
         /// Registers any embedded native (unmanaged) binaries required by ImageProcessor.
         /// </summary>
         /// <param name="name">
@@ -90,7 +101,7 @@ namespace ImageProcessor.Configuration
                 b =>
                 {
                     IntPtr pointer;
-                    string folder = Is64Bit ? "x64" : "x86";
+                    string folder = Is64BitEnvironment ? "x64" : "x86";
                     Assembly assembly = Assembly.GetExecutingAssembly();
                     string targetBasePath = new Uri(assembly.Location).LocalPath;
                     string targetPath = Path.GetFullPath(Path.Combine(targetBasePath, "..\\" + folder + "\\" + name));

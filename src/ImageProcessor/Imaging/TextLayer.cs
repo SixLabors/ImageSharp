@@ -10,11 +10,8 @@
 
 namespace ImageProcessor.Imaging
 {
-    #region Using
-
-    using System;
     using System.Drawing;
-    #endregion
+    using System.Drawing.Text;
 
     /// <summary>
     /// Encapsulates the properties required to add a layer of text to an image.
@@ -38,6 +35,11 @@ namespace ImageProcessor.Imaging
         private FontStyle fontStyle = FontStyle.Regular;
 
         /// <summary>
+        /// The font family to render the text.
+        /// </summary>
+        private FontFamily fontFamily = new FontFamily(GenericFontFamilies.SansSerif);
+
+        /// <summary>
         /// The font size to render the text.
         /// </summary>
         private int fontSize = 48;
@@ -55,21 +57,28 @@ namespace ImageProcessor.Imaging
         public string Text { get; set; }
 
         /// <summary>
-        /// Gets or sets the Color to render the font.
+        /// Gets or sets the <see cref="System.Drawing.Color"/> to render the font.
         /// <remarks>
         /// <para>Defaults to black.</para>
         /// </remarks>
         /// </summary>
-        public Color TextColor
+        public Color FontColor
         {
             get { return this.textColor; }
             set { this.textColor = value; }
         }
 
         /// <summary>
-        /// Gets or sets the name of the font.
+        /// Gets or sets the name of the font family.
+        /// <remarks>
+        /// <para>Defaults to generic sans-serif font family.</para>
+        /// </remarks>
         /// </summary>
-        public string Font { get; set; }
+        public FontFamily FontFamily
+        {
+            get { return this.fontFamily; }
+            set { this.fontFamily = value; }
+        }
 
         /// <summary>
         /// Gets or sets the size of the font in pixels.
@@ -100,17 +109,8 @@ namespace ImageProcessor.Imaging
         /// </summary>
         public int Opacity
         {
-            get
-            {
-                int alpha = (int)Math.Ceiling((this.opacity / 100d) * 255);
-
-                return alpha < 255 ? alpha : 255;
-            }
-
-            set
-            {
-                this.opacity = value;
-            }
+            get { return this.opacity; }
+            set { this.opacity = value; }
         }
 
         /// <summary>
@@ -127,5 +127,54 @@ namespace ImageProcessor.Imaging
         /// </summary>
         public bool DropShadow { get; set; }
         #endregion
+
+        /// <summary>
+        /// Returns a value that indicates whether the specified object is an 
+        /// <see cref="TextLayer"/> object that is equivalent to 
+        /// this <see cref="TextLayer"/> object.
+        /// </summary>
+        /// <param name="obj">
+        /// The object to test.
+        /// </param>
+        /// <returns>
+        /// True if the given object  is an <see cref="TextLayer"/> object that is equivalent to 
+        /// this <see cref="TextLayer"/> object; otherwise, false.
+        /// </returns>
+        public override bool Equals(object obj)
+        {
+            TextLayer textLayer = obj as TextLayer;
+
+            if (textLayer == null)
+            {
+                return false;
+            }
+
+            return this.Text == textLayer.Text
+                && this.FontColor == textLayer.FontColor
+                && this.FontFamily.Equals(textLayer.FontFamily)
+                && this.FontSize == textLayer.FontSize
+                && this.Style == textLayer.Style
+                && this.DropShadow == textLayer.DropShadow
+                && this.Opacity == textLayer.Opacity
+                && this.Position == textLayer.Position;
+        }
+
+        /// <summary>
+        /// Returns a hash code value that represents this object.
+        /// </summary>
+        /// <returns>
+        /// A hash code that represents this object.
+        /// </returns>
+        public override int GetHashCode()
+        {
+            return this.Text.GetHashCode() +
+                this.FontColor.GetHashCode() +
+                this.FontFamily.GetHashCode() +
+                this.FontSize.GetHashCode() +
+                this.Style.GetHashCode() +
+                this.DropShadow.GetHashCode() +
+                this.Opacity.GetHashCode() +
+                this.Position.GetHashCode();
+        }
     }
 }

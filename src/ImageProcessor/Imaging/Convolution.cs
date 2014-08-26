@@ -14,7 +14,8 @@ namespace ImageProcessor.Imaging
     using System.Drawing;
     using System.Drawing.Imaging;
     using System.Runtime.InteropServices;
-    using ImageProcessor.Extensions;
+
+    using ImageProcessor.Common.Extensions;
 
     /// <summary>
     /// Provides methods for applying blurring and sharpening effects to an image..
@@ -256,7 +257,7 @@ namespace ImageProcessor.Imaging
         /// <summary>
         /// Processes the given kernel to produce an array of pixels representing a bitmap.
         /// </summary>
-        /// <param name="sourceBitmap">The the image to process.</param>
+        /// <param name="sourceBitmap">The image to process.</param>
         /// <param name="kernel">The Gaussian kernel to use when performing the method</param>
         /// <returns>A processed bitmap.</returns>
         public Bitmap ProcessKernel(Bitmap sourceBitmap, double[,] kernel)

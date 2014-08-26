@@ -49,11 +49,6 @@
     <Compile Include="Caching\MemCache.cs" />
     <Compile Include="Caching\DiskCache.cs" />
     <Compile Include="Caching\CacheIndexer.cs" />
-    <Compile Include="Config\ImageCacheSection.cs" />
-    <Compile Include="Config\ImageProcessingSection.cs" />
-    <Compile Include="Config\ImageProcessorConfig.cs" />
-    <Compile Include="Config\ImageSecuritySection.cs" />
-    <Compile Include="Extensions\DirectoryInfoExtensions.cs" />
     <Compile Include="Configuration\ImageCacheSection.cs" />
     <Compile Include="Configuration\ImageProcessingSection.cs" />
     <Compile Include="Configuration\ImageProcessorConfiguration.cs" />

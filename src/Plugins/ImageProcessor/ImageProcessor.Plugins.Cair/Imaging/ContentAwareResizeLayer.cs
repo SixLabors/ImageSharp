@@ -1,0 +1,179 @@
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="ContentAwareResizeLayer.cs" company="James South">
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
+// </copyright>
+// <summary>
+//   Encapsulates the properties required to resize an image using content aware resizing.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
+
+namespace ImageProcessor.Plugins.Cair.Imaging
+{
+    using System.Drawing;
+
+    /// <summary>
+    /// Encapsulates the properties required to resize an image using content aware resizing.
+    /// </summary>
+    public class ContentAwareResizeLayer
+    {
+        /// <summary>
+        /// The convolution type to apply to the layer.
+        /// </summary>
+        private ContentAwareResizeConvolutionType convolutionType = ContentAwareResizeConvolutionType.Prewitt;
+
+        /// <summary>
+        /// The energy function to apply to the layer.
+        /// </summary>
+        private EnergyFunction energyFunction = EnergyFunction.Forward;
+
+        /// <summary>
+        /// Whether to assign multiple threads to the resizing method.
+        /// </summary>
+        private bool parallelize = true;
+
+        /// <summary>
+        /// Whether to pre-scale the image to reduce errors in the output.
+        /// </summary>
+        private bool prescale = true;
+
+        /// <summary>
+        /// The timeout in milliseconds to attempt to resize for.
+        /// </summary>
+        private int timeout = 60000;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ContentAwareResizeLayer"/> class.
+        /// </summary>
+        /// <param name="size">
+        /// The <see cref="T:System.Drawing.Size"/> containing the width and height to set the image to.
+        /// </param>
+        public ContentAwareResizeLayer(Size size)
+        {
+            this.Size = size;
+        }
+
+        /// <summary>
+        /// Gets or sets the size.
+        /// </summary>
+        public Size Size { get; set; }
+
+        /// <summary>
+        /// Gets or sets the content aware resize convolution type (Default ContentAwareResizeConvolutionType.Prewitt).
+        /// </summary>
+        public ContentAwareResizeConvolutionType ConvolutionType
+        {
+            get
+            {
+                return this.convolutionType;
+            }
+
+            set
+            {
+                this.convolutionType = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the energy function (Default EnergyFunction.Forward).
+        /// </summary>
+        public EnergyFunction EnergyFunction
+        {
+            get
+            {
+                return this.energyFunction;
+            }
+
+            set
+            {
+                this.energyFunction = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to assign multiple threads to the resizing method.
+        /// (Default true)
+        /// </summary>
+        public bool Parallelize
+        {
+            get
+            {
+                return this.parallelize;
+            }
+
+            set
+            {
+                this.parallelize = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to pre-scale the image to reduce errors in the output.
+        /// (Default true)
+        /// </summary>
+        public bool PreScale
+        {
+            get
+            {
+                return this.prescale;
+            }
+
+            set
+            {
+                this.prescale = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the timeout in milliseconds to attempt to resize for (Default 60000).
+        /// </summary>
+        public int Timeout
+        {
+            get
+            {
+                return this.timeout;
+            }
+
+            set
+            {
+                this.timeout = value;
+            }
+        }
+
+        /// <summary>
+        /// Returns a value that indicates whether the specified object is an 
+        /// <see cref="ContentAwareResizeLayer"/> object that is equivalent to 
+        /// this <see cref="ContentAwareResizeLayer"/> object.
+        /// </summary>
+        /// <param name="obj">
+        /// The object to test.
+        /// </param>
+        /// <returns>
+        /// True if the given object  is an <see cref="ContentAwareResizeLayer"/> object that is equivalent to 
+        /// this <see cref="ContentAwareResizeLayer"/> object; otherwise, false.
+        /// </returns>
+        public override bool Equals(object obj)
+        {
+            ContentAwareResizeLayer resizeLayer = obj as ContentAwareResizeLayer;
+
+            if (resizeLayer == null)
+            {
+                return false;
+            }
+
+            return this.Size == resizeLayer.Size
+                && this.ConvolutionType == resizeLayer.ConvolutionType;
+        }
+
+        /// <summary>
+        /// Returns a hash code value that represents this object.
+        /// </summary>
+        /// <returns>
+        /// A hash code that represents this object.
+        /// </returns>
+        public override int GetHashCode()
+        {
+            return this.Size.GetHashCode() + this.ConvolutionType.GetHashCode();
+        }
+    }
+}

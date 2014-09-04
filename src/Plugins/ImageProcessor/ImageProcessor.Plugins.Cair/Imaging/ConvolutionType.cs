@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="ContentAwareResizeConvolutionType.cs" company="James South">
+// <copyright file="ConvolutionType.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -13,7 +13,7 @@ namespace ImageProcessor.Plugins.Cair.Imaging
     /// <summary>
     /// Provides enumeration of the content aware resize convolution types.
     /// </summary>
-    public enum ContentAwareResizeConvolutionType
+    public enum ConvolutionType
     {
         /// <summary>
         /// The Prewitt kernel convolution type.

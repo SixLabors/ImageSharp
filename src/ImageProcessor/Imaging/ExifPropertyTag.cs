@@ -13,7 +13,6 @@ namespace ImageProcessor.Imaging
     /// <summary>
     /// The following enum gives descriptions of the property items supported by Windows GDI+.
     /// <see href="http://msdn.microsoft.com/en-us/library/ms534417%28VS.85%29.aspx"/>
-    /// TODO: Add more XML descriptions.
     /// </summary>
     public enum ExifPropertyTag
     {
@@ -159,12 +158,12 @@ namespace ImageProcessor.Imaging
         ExifDTOrig = 0x9003,
 
         /// <summary>
-        /// Null-terminated character string that specifies a fraction of a second for the PropertyTagExifDTOrig tag.
+        /// Null-terminated character string that specifies a fraction of a second for the <see cref="ExifPropertyTag.ExifDTOrig"/> tag.
         /// </summary>
         ExifDTOrigSS = 0x9291,
 
         /// <summary>
-        /// Null-terminated character string that specifies a fraction of a second for the PropertyTagDateTime tag.
+        /// Null-terminated character string that specifies a fraction of a second for the <see cref="ExifPropertyTag.DateTime"/> tag.
         /// </summary>
         ExifDTSubsec = 0x9290,
 
@@ -214,27 +213,31 @@ namespace ImageProcessor.Imaging
         ExifFocalLength = 0x920A,
 
         /// <summary>
-        /// Unit of measure for PropertyTagExifFocalXRes and PropertyTagExifFocalYRes.
+        /// Unit of measure for <see cref="ExifPropertyTag.ExifFocalXRes"/> and <see cref="ExifPropertyTag.ExifFocalYRes"/>.
         /// </summary>
         ExifFocalResUnit = 0xA210,
 
         /// <summary>
-        /// Number of pixels in the image width (x) direction per unit on the camera focal plane. The unit is specified in PropertyTagExifFocalResUnit.
+        /// Number of pixels in the image width (x) direction per unit on the camera focal plane. The unit is specified 
+        /// in <see cref="ExifPropertyTag.ExifFocalResUnit"/>.
         /// </summary>
         ExifFocalXRes = 0xA20E,
 
         /// <summary>
-        /// Number of pixels in the image height (y) direction per unit on the camera focal plane. The unit is specified in PropertyTagExifFocalResUnit.
+        /// Number of pixels in the image height (y) direction per unit on the camera focal plane. The unit is specified 
+        /// in <see cref="ExifPropertyTag.ExifFocalResUnit"/>.
         /// </summary>
         ExifFocalYRes = 0xA20F,
 
         /// <summary>
-        /// FlashPix format version supported by an FPXR file. If the FPXR function supports FlashPix format version 1.0, this is indicated similarly to PropertyTagExifVer by recording 0100 as a 4-byte ASCII string. Because the type is PropertyTagTypeUndefined, there is no NULL terminator.
+        /// FlashPix format version supported by an FPXR file. If the FPXR function supports FlashPix format version 1.0, 
+        /// this is indicated similarly to <see cref="ExifPropertyTag.ExifVer"/> by recording 0100 as a 4-byte ASCII string. 
+        /// Because the type is <see cref="ExifPropertyTagType.Undefined"/>, there is no NULL terminator.
         /// </summary>
         ExifFPXVer = 0xA000,
 
         /// <summary>
-        /// Private tag used by GDI+. Not for public use. GDI+ uses this tag to locate Exif-specific information.
+        /// Private tag used by GDI+. Not for public use. GDI+ uses this tag to locate Exif specific information.
         /// </summary>
         ExifIFD = 0x8769,
 
@@ -319,17 +322,23 @@ namespace ImageProcessor.Imaging
         ExifSubjectDist = 0x9206,
 
         /// <summary>
-        /// Location of the main subject in the scene. The value of this tag represents the pixel at the center of the main subject relative to the left edge. The first value indicates the column number, and the second value indicates the row number.
+        /// Location of the main subject in the scene. The value of this tag represents the pixel at the center 
+        /// of the main subject relative to the left edge. The first value indicates the column number, and 
+        /// the second value indicates the row number.
         /// </summary>
         ExifSubjectLoc = 0xA214,
 
         /// <summary>
-        /// Comment tag. A tag used by EXIF users to write keywords or comments about the image besides those in PropertyTagImageDescription and without the character-code limitations of the PropertyTagImageDescription tag.
+        /// Comment tag. A tag used by EXIF users to write keywords or comments about the image besides those 
+        /// in <see cref="ExifPropertyTag.ImageDescription"/> and without the character-code limitations of 
+        /// the <see cref="ExifPropertyTag.ImageDescription"/> tag.
         /// </summary>
         ExifUserComment = 0x9286,
 
         /// <summary>
-        /// Version of the EXIF standard supported. Nonexistence of this field is taken to mean nonconformance to the standard. Conformance to the standard is indicated by recording 0210 as a 4-byte ASCII string. Because the type is PropertyTagTypeUndefined, there is no NULL terminator.
+        /// Version of the EXIF standard supported. Nonexistence of this field is taken to mean non-conformance to the 
+        /// standard. Conformance to the standard is indicated by recording 0210 as a 4-byte ASCII string. 
+        /// Because the type is <see cref="ExifPropertyTagType.Undefined"/>, there is no NULL terminator.
         /// </summary>
         ExifVer = 0x9000,
 
@@ -369,7 +378,7 @@ namespace ImageProcessor.Imaging
         GlobalPalette = 0x5102,
 
         /// <summary>
-        /// Altitude, in meters, based on the reference altitude specified by PropertyTagGpsAltitudeRef.
+        /// Altitude, in meters, based on the reference altitude specified by <see cref="ExifPropertyTag.GpsAltitudeRef"/>.
         /// </summary>
         GpsAltitude = 0x0006,
 
@@ -394,297 +403,325 @@ namespace ImageProcessor.Imaging
         GpsDestDist = 0x001A,
 
         /// <summary>
-        /// Null-terminated character string that specifies the unit used to express the distance to the destination point. K, M, and N represent kilometers, miles, and knots respectively.
+        /// Null-terminated character string that specifies the unit used to express the distance to the destination point. 
+        /// K, M, and N represent kilometers, miles, and knots respectively.
         /// </summary>
         GpsDestDistRef = 0x0019,
 
         /// <summary>
-        /// Latitude of the destination point. The latitude is expressed as three rational values giving the degrees, minutes, and seconds respectively. When degrees, minutes, and seconds are expressed, the format is dd/1, mm/1, ss/1. When degrees and minutes are used and, for example, fractions of minutes are given up to two decimal places, the format is dd/1, mmmm/100, 0/1.
+        /// Latitude of the destination point. The latitude is expressed as three rational values giving the degrees, 
+        /// minutes, and seconds respectively. When degrees, minutes, and seconds are expressed, the format is 
+        /// dd/1, mm/1, ss/1. When degrees and minutes are used and, for example, fractions of minutes are given up to 
+        /// two decimal places, the format is dd/1, mmmm/100, 0/1.
         /// </summary>
         GpsDestLat = 0x0014,
 
         /// <summary>
-        /// The gps dest lat ref.
+        /// Null-terminated character string that specifies whether the latitude of the destination point is north or south 
+        /// latitude. N specifies north latitude, and S specifies south latitude.
         /// </summary>
         GpsDestLatRef = 0x0013,
 
         /// <summary>
-        /// The gps dest long.
+        /// Longitude of the destination point. The longitude is expressed as three rational values giving the degrees, minutes, and seconds respectively. When degrees, minutes, and seconds are expressed, the format is ddd/1, mm/1, ss/1. When degrees and minutes are used and, for example, fractions of minutes are given up to two decimal places, the format is ddd/1, mmmm/100, 0/1.
         /// </summary>
         GpsDestLong = 0x0016,
 
         /// <summary>
-        /// The gps dest long ref.
+        /// Null-terminated character string that specifies whether the longitude of the destination point is east or west longitude. E specifies east longitude, and W specifies west longitude.
         /// </summary>
         GpsDestLongRef = 0x0015,
 
         /// <summary>
-        /// The gps gps dop.
+        /// GPS DOP (data degree of precision). An HDOP value is written during 2-D measurement, and a PDOP value is written during 3-D measurement.
         /// </summary>
         GpsGpsDop = 0x000B,
 
         /// <summary>
-        /// The gps gps measure mode.
+        /// Null-terminated character string that specifies the GPS measurement mode. 2 specifies 2-D measurement, and 3 specifies 3-D measurement.
         /// </summary>
         GpsGpsMeasureMode = 0x000A,
 
         /// <summary>
-        /// The gps gps satellites.
+        /// Null-terminated character string that specifies the GPS satellites used for measurements. This tag can be used to specify the ID number, angle of elevation, azimuth, SNR, and other information about each satellite. The format is not specified. If the GPS receiver is incapable of taking measurements, the value of the tag must be set to NULL.
         /// </summary>
         GpsGpsSatellites = 0x0008,
 
         /// <summary>
-        /// The gps gps status.
+        /// Null-terminated character string that specifies the status of the GPS receiver when the image is recorded. A means measurement is in progress, and V means the measurement is Interoperability.
         /// </summary>
         GpsGpsStatus = 0x0009,
 
         /// <summary>
-        /// The gps gps time.
+        /// Time as coordinated universal time (UTC). The value is expressed as three rational numbers that give the hour, minute, and second.
         /// </summary>
         GpsGpsTime = 0x0007,
 
         /// <summary>
-        /// The gps ifd.
+        /// Offset to a block of GPS property items. Property items whose tags have the prefix Gps are stored in the GPS block. 
+        /// The GPS property items are defined in the EXIF specification. GDI+ uses this tag to locate GPS information, 
+        /// but GDI+ does not expose this tag for public use.
         /// </summary>
         GpsIFD = 0x8825,
 
         /// <summary>
-        /// The gps img dir.
+        /// Direction of the image when it was captured. The range of values is from 0.00 to 359.99.
         /// </summary>
         GpsImgDir = 0x0011,
 
         /// <summary>
-        /// The gps img dir ref.
+        /// Null-terminated character string that specifies the reference for the direction of the image when it is captured. T specifies true direction, and M specifies magnetic direction.
         /// </summary>
         GpsImgDirRef = 0x0010,
 
         /// <summary>
-        /// The gps latitude.
+        /// Latitude. Latitude is expressed as three rational values giving the degrees, minutes, and seconds respectively. When degrees, minutes, and seconds are expressed, the format is dd/1, mm/1, ss/1. When degrees and minutes are used and, for example, fractions of minutes are given up to two decimal places, the format is dd/1, mmmm/100, 0/1.
         /// </summary>
         GpsLatitude = 0x0002,
 
         /// <summary>
-        /// The gps latitude ref.
+        /// Null-terminated character string that specifies whether the longitude is east or west longitude. 
+        /// E specifies east longitude, and W specifies west longitude.
         /// </summary>
         GpsLatitudeRef = 0x0001,
 
         /// <summary>
-        /// The gps longitude.
+        /// Longitude. Longitude is expressed as three rational values giving the degrees, minutes, and seconds 
+        /// respectively. When degrees, minutes and seconds are expressed, the format is ddd/1, mm/1, ss/1. 
+        /// When degrees and minutes are used and, for example, fractions of minutes are given up to two 
+        /// decimal places, the format is ddd/1, mmmm/100, 0/1.
         /// </summary>
         GpsLongitude = 0x0004,
 
         /// <summary>
-        /// The gps longitude ref.
+        /// Null-terminated character string that specifies whether the longitude is east or west longitude. 
+        /// E specifies east longitude, and W specifies west longitude.
         /// </summary>
         GpsLongitudeRef = 0x0003,
 
         /// <summary>
-        /// The gps map datum.
+        /// Null-terminated character string that specifies geodetic survey data used by the GPS receiver. 
+        /// If the survey data is restricted to Japan, the value of this tag is TOKYO or WGS-84.
         /// </summary>
         GpsMapDatum = 0x0012,
 
         /// <summary>
-        /// The gps speed.
+        /// Speed of the GPS receiver movement.
         /// </summary>
         GpsSpeed = 0x000D,
 
         /// <summary>
-        /// The gps speed ref.
+        /// Null-terminated character string that specifies the unit used to express the GPS receiver speed of movement. 
+        /// K, M, and N represent kilometers per hour, miles per hour, and knots respectively.
         /// </summary>
         GpsSpeedRef = 0x000C,
 
         /// <summary>
-        /// The gps track.
+        /// Direction of GPS receiver movement. The range of values is from 0.00 to 359.99.
         /// </summary>
         GpsTrack = 0x000F,
 
         /// <summary>
-        /// The gps track ref.
+        /// Null-terminated character string that specifies the reference for giving the direction of 
+        /// GPS receiver movement. T specifies true direction, and M specifies magnetic direction.
         /// </summary>
         GpsTrackRef = 0x000E,
 
         /// <summary>
-        /// The gps ver.
+        /// Version of the Global Positioning Systems (GPS) IFD, given as 2.0.0.0. This tag is mandatory when 
+        /// the <see cref="ExifPropertyTag.GpsIFD"/> tag is present. When the version is 2.0.0.0, the tag value is 0x02000000.
         /// </summary>
         GpsVer = 0x0000,
 
         /// <summary>
-        /// The gray response curve.
+        /// For each possible pixel value in a grayscale image, the optical density of that pixel value.
         /// </summary>
         GrayResponseCurve = 0x0123,
 
         /// <summary>
-        /// The gray response unit.
+        /// Precision of the number specified by <see cref="ExifPropertyTag.GrayResponseCurve"/>. 1 specifies tenths, 
+        /// 2 specifies hundredths, 3 specifies thousandths, and so on.
         /// </summary>
         GrayResponseUnit = 0x0122,
 
         /// <summary>
-        /// The grid size.
+        /// Block of information about grids and guides.
         /// </summary>
         GridSize = 0x5011,
 
         /// <summary>
-        /// The halftone degree.
+        /// Angle for screen.
         /// </summary>
         HalftoneDegree = 0x500C,
 
         /// <summary>
-        /// The halftone hints.
+        /// Information used by the halftone function.
         /// </summary>
         HalftoneHints = 0x0141,
 
         /// <summary>
-        /// The halftone lpi.
+        /// Ink's screen frequency, in lines per inch.
         /// </summary>
         HalftoneLPI = 0x500A,
 
         /// <summary>
-        /// The halftone lpi unit.
+        /// Units for the screen frequency.
         /// </summary>
         HalftoneLPIUnit = 0x500B,
 
         /// <summary>
-        /// The halftone misc.
+        /// Miscellaneous halftone information.
         /// </summary>
         HalftoneMisc = 0x500E,
 
         /// <summary>
-        /// The halftone screen.
+        /// Boolean value that specifies whether to use the printer's default screens.
         /// </summary>
         HalftoneScreen = 0x500F,
 
         /// <summary>
-        /// The halftone shape.
+        /// Shape of the halftone dots.
         /// </summary>
         HalftoneShape = 0x500D,
 
         /// <summary>
-        /// The host computer.
+        /// Null-terminated character string that specifies the computer and/or operating system used to create the image.
         /// </summary>
         HostComputer = 0x013C,
 
         /// <summary>
-        /// The icc profile.
+        /// ICC profile embedded in the image.
         /// </summary>
         ICCProfile = 0x8773,
 
         /// <summary>
-        /// The icc profile descriptor.
+        /// Null-terminated character string that identifies an ICC profile.
         /// </summary>
         ICCProfileDescriptor = 0x0302,
 
         /// <summary>
-        /// The image description.
+        /// Null-terminated character string that specifies the title of the image.
         /// </summary>
         ImageDescription = 0x010E,
 
         /// <summary>
-        /// The image height.
+        /// Number of pixel rows.
         /// </summary>
         ImageHeight = 0x0101,
 
         /// <summary>
-        /// The image title.
+        /// Null-terminated character string that specifies the title of the image.
         /// </summary>
         ImageTitle = 0x0320,
 
         /// <summary>
-        /// The image width.
+        /// Number of pixels per row.
         /// </summary>
         ImageWidth = 0x0100,
 
         /// <summary>
-        /// The index background.
+        /// Index of the background color in the palette of a GIF image.
         /// </summary>
         IndexBackground = 0x5103,
 
         /// <summary>
-        /// The index transparent.
+        /// Index of the transparent color in the palette of a GIF image.
         /// </summary>
         IndexTransparent = 0x5104,
 
         /// <summary>
-        /// The ink names.
+        /// Sequence of concatenated, null-terminated, character strings that specify the names of the 
+        /// inks used in a separated image.
         /// </summary>
         InkNames = 0x014D,
 
         /// <summary>
-        /// The ink set.
+        /// Set of inks used in a separated image.
         /// </summary>
         InkSet = 0x014C,
 
         /// <summary>
-        /// The jpegac tables.
+        /// For each color component, the offset to the AC Huffman table for that component. 
+        /// See also <see cref="ExifPropertyTag.SamplesPerPixel"/>.
         /// </summary>
         JPEGACTables = 0x0209,
 
         /// <summary>
-        /// The jpegdc tables.
+        /// For each color component, the offset to the DC Huffman table (or lossless Huffman table) for that 
+        /// component. See also <see cref="ExifPropertyTag.SamplesPerPixel"/>.
         /// </summary>
         JPEGDCTables = 0x0208,
 
         /// <summary>
-        /// The jpeg inter format.
+        /// Offset to the start of a JPEG bitstream.
         /// </summary>
         JPEGInterFormat = 0x0201,
 
         /// <summary>
-        /// The jpeg inter length.
+        /// Length, in bytes, of the JPEG bitstream.
         /// </summary>
         JPEGInterLength = 0x0202,
 
         /// <summary>
-        /// The jpeg lossless predictors.
+        /// For each color component, a lossless predictor-selection value for that component. 
+        /// See also <see cref="ExifPropertyTag.SamplesPerPixel"/>.
         /// </summary>
         JPEGLosslessPredictors = 0x0205,
 
         /// <summary>
-        /// The jpeg point transforms.
+        /// For each color component, a point transformation value for that component. 
+        /// See also <see cref="ExifPropertyTag.SamplesPerPixel"/>.
         /// </summary>
         JPEGPointTransforms = 0x0206,
 
         /// <summary>
-        /// The jpeg proc.
+        /// JPEG compression process.
         /// </summary>
         JPEGProc = 0x0200,
 
         /// <summary>
-        /// The jpegq tables.
+        /// For each color component, the offset to the quantization table for that 
+        /// component. See also <see cref="ExifPropertyTag.SamplesPerPixel"/>.
         /// </summary>
         JPEGQTables = 0x0207,
 
         /// <summary>
-        /// The jpeg quality.
+        /// Private tag used by the Adobe Photoshop format. Not for public use.
         /// </summary>
         JPEGQuality = 0x5010,
 
         /// <summary>
-        /// The jpeg restart interval.
+        /// Length of the restart interval.
         /// </summary>
         JPEGRestartInterval = 0x0203,
 
         /// <summary>
-        /// The loop count.
+        /// For an animated GIF image, the number of times to display the animation. 
+        /// A value of 0 specifies that the animation should be displayed infinitely.
         /// </summary>
         LoopCount = 0x5101,
 
         /// <summary>
-        /// The luminance table.
+        /// Luminance table. The luminance table and the chrominance table are used to control JPEG quality. 
+        /// A valid luminance or chrominance table has 64 entries of type <see cref="ExifPropertyTagType.Int16"/>. 
+        /// If an image has either a luminance table or a chrominance table, then it must have both tables.
         /// </summary>
         LuminanceTable = 0x5090,
 
         /// <summary>
-        /// The max sample value.
+        /// For each color component, the maximum value assigned to that component. 
+        /// See also <see cref="ExifPropertyTag.SamplesPerPixel"/>.
         /// </summary>
         MaxSampleValue = 0x0119,
 
         /// <summary>
-        /// The min sample value.
+        /// For each color component, the minimum value assigned to that component. 
+        /// See also <see cref="ExifPropertyTag.SamplesPerPixel"/>.
         /// </summary>
         MinSampleValue = 0x0118,
 
         /// <summary>
-        /// The new subfile type.
+        /// Type of data in a subfile.
         /// </summary>
         NewSubfileType = 0x00FE,
 
@@ -694,17 +731,17 @@ namespace ImageProcessor.Imaging
         NumberOfInks = 0x014E,
 
         /// <summary>
-        /// The orientation.
+        /// Image orientation viewed in terms of rows and columns.
         /// </summary>
         Orientation = 0x0112,
 
         /// <summary>
-        /// The page name.
+        /// Null-terminated character string that specifies the name of the page from which the image was scanned.
         /// </summary>
         PageName = 0x011D,
 
         /// <summary>
-        /// The page number.
+        /// Page number of the page from which the image was scanned.
         /// </summary>
         PageNumber = 0x0129,
 
@@ -714,42 +751,42 @@ namespace ImageProcessor.Imaging
         PaletteHistogram = 0x5113,
 
         /// <summary>
-        /// The photometric interp.
+        /// How pixel data will be interpreted.
         /// </summary>
         PhotometricInterp = 0x0106,
 
         /// <summary>
-        /// The pixel per unit x.
+        /// Pixels per unit in the x direction.
         /// </summary>
         PixelPerUnitX = 0x5111,
 
         /// <summary>
-        /// The pixel per unit y.
+        /// Pixels per unit in the y direction.
         /// </summary>
         PixelPerUnitY = 0x5112,
 
         /// <summary>
-        /// The pixel unit.
+        /// Unit for <see cref="ExifPropertyTag.PixelPerUnitX"/> and <see cref="ExifPropertyTag.PixelPerUnitY"/>.
         /// </summary>
         PixelUnit = 0x5110,
 
         /// <summary>
-        /// The planar config.
+        /// Whether pixel components are recorded in chunky or planar format.
         /// </summary>
         PlanarConfig = 0x011C,
 
         /// <summary>
-        /// The predictor.
+        /// TType of prediction scheme that was applied to the image data before the encoding scheme was applied.
         /// </summary>
         Predictor = 0x013D,
 
         /// <summary>
-        /// The primary chromaticities.
+        /// For each of the three primary colors in the image, the chromaticity of that color.
         /// </summary>
         PrimaryChromaticities = 0x013F,
 
         /// <summary>
-        /// The print flags.
+        /// Sequence of one-byte Boolean values that specify printing options.
         /// </summary>
         PrintFlags = 0x5005,
 
@@ -764,7 +801,7 @@ namespace ImageProcessor.Imaging
         PrintFlagsBleedWidthScale = 0x5009,
 
         /// <summary>
-        /// The print flags crop.
+        /// The print flags crop marks.
         /// </summary>
         PrintFlagsCrop = 0x5007,
 
@@ -774,357 +811,381 @@ namespace ImageProcessor.Imaging
         PrintFlagsVersion = 0x5006,
 
         /// <summary>
-        /// The ref black white.
+        /// Reference black point value and reference white point value.
         /// </summary>
         REFBlackWhite = 0x0214,
 
         /// <summary>
-        /// The resolution unit.
+        /// Unit of measure for the horizontal resolution and the vertical resolution.
         /// </summary>
         ResolutionUnit = 0x0128,
 
         /// <summary>
-        /// The resolution x length unit.
+        /// Units in which to display the image width.
         /// </summary>
         ResolutionXLengthUnit = 0x5003,
 
         /// <summary>
-        /// The resolution x unit.
+        /// Units in which to display horizontal resolution.
         /// </summary>
         ResolutionXUnit = 0x5001,
 
         /// <summary>
-        /// The resolution y length unit.
+        /// Units in which to display the image height.
         /// </summary>
         ResolutionYLengthUnit = 0x5004,
 
         /// <summary>
-        /// The resolution y unit.
+        /// Units in which to display vertical resolution.
         /// </summary>
         ResolutionYUnit = 0x5002,
 
         /// <summary>
-        /// The rows per strip.
+        /// Number of rows per strip. See also <see cref="ExifPropertyTag.StripBytesCount"/> and <see cref="ExifPropertyTag.StripOffsets"/>.
         /// </summary>
         RowsPerStrip = 0x0116,
 
         /// <summary>
-        /// The sample format.
+        /// For each color component, the numerical format (unsigned, signed, floating point) of that component. 
+        /// See also <see cref="ExifPropertyTag.SamplesPerPixel"/>.
         /// </summary>
         SampleFormat = 0x0153,
 
         /// <summary>
-        /// The samples per pixel.
+        /// Number of color components per pixel.
         /// </summary>
         SamplesPerPixel = 0x0115,
 
         /// <summary>
-        /// The s max sample value.
+        /// For each color component, the maximum value of that component. See also <see cref="ExifPropertyTag.SamplesPerPixel"/>.
         /// </summary>
         SMaxSampleValue = 0x0155,
 
         /// <summary>
-        /// The s min sample value.
+        /// For each color component, the minimum value of that component. See also <see cref="ExifPropertyTag.SamplesPerPixel"/>.
         /// </summary>
         SMinSampleValue = 0x0154,
 
         /// <summary>
-        /// The software used.
+        /// Null-terminated character string that specifies the name and version of the software or 
+        /// firmware of the device used to generate the image.
         /// </summary>
         SoftwareUsed = 0x0131,
 
         /// <summary>
-        /// The srgb rendering intent.
+        /// How the image should be displayed as defined by the International Color Consortium (ICC). If a GDI+ Image object
+        /// is constructed with the useEmbeddedColorManagement parameter set to TRUE, then GDI+ renders the image 
+        /// according to the specified rendering intent. The intent can be set to perceptual, relative colorimetric, 
+        /// saturation, or absolute colorimetric.
         /// </summary>
         SRGBRenderingIntent = 0x0303,
 
         /// <summary>
-        /// The strip bytes count.
+        /// For each strip, the total number of bytes in that strip.
         /// </summary>
         StripBytesCount = 0x0117,
 
         /// <summary>
-        /// The strip offsets.
+        /// For each strip, the byte offset of that strip. See also <see cref="ExifPropertyTag.RowsPerStrip"/> 
+        /// and <see cref="ExifPropertyTag.StripBytesCount"/>.
         /// </summary>
         StripOffsets = 0x0111,
 
         /// <summary>
-        /// The subfile type.
+        /// The type of data in a subfile.
         /// </summary>
         SubfileType = 0x00FF,
 
         /// <summary>
-        /// The t 4 option.
+        /// Set of flags that relate to T4 encoding.
         /// </summary>
         T4Option = 0x0124,
 
         /// <summary>
-        /// The t 6 option.
+        /// Set of flags that relate to T6 encoding.
         /// </summary>
         T6Option = 0x0125,
 
         /// <summary>
-        /// The target printer.
+        /// Null-terminated character string that describes the intended printing environment.
         /// </summary>
         TargetPrinter = 0x0151,
 
         /// <summary>
-        /// The thresh holding.
+        /// Technique used to convert from gray pixels to black and white pixels.
         /// </summary>
         ThreshHolding = 0x0107,
 
         /// <summary>
-        /// The thumbnail artist.
+        /// Null-terminated character string that specifies the name of the person who created the thumbnail image.
         /// </summary>
         ThumbnailArtist = 0x5034,
 
         /// <summary>
-        /// The thumbnail bits per sample.
+        /// Number of bits per color component in the thumbnail image. See also <see cref="ExifPropertyTag.ThumbnailSamplesPerPixel"/>.
         /// </summary>
         ThumbnailBitsPerSample = 0x5022,
 
         /// <summary>
-        /// The thumbnail color depth.
+        /// Bits per pixel (BPP) for the thumbnail image.
         /// </summary>
         ThumbnailColorDepth = 0x5015,
 
         /// <summary>
-        /// The thumbnail compressed size.
+        /// Compressed size, in bytes, of the thumbnail image.
         /// </summary>
         ThumbnailCompressedSize = 0x5019,
 
         /// <summary>
-        /// The thumbnail compression.
+        /// Compression scheme used for thumbnail image data.
         /// </summary>
         ThumbnailCompression = 0x5023,
 
         /// <summary>
-        /// The thumbnail copy right.
+        /// Null-terminated character string that contains copyright information for the thumbnail image.
         /// </summary>
         ThumbnailCopyRight = 0x503B,
 
         /// <summary>
-        /// The thumbnail data.
+        /// Raw thumbnail bits in JPEG or RGB format. Depends on <see cref="ExifPropertyTag.ThumbnailFormat"/>.
         /// </summary>
         ThumbnailData = 0x501B,
 
         /// <summary>
-        /// The thumbnail date time.
+        /// Date and time the thumbnail image was created. See also <see cref="ExifPropertyTag.DateTime"/>.
         /// </summary>
         ThumbnailDateTime = 0x5033,
 
         /// <summary>
-        /// The thumbnail equip make.
+        /// Null-terminated character string that specifies the manufacturer of the equipment used to 
+        /// record the thumbnail image.
         /// </summary>
         ThumbnailEquipMake = 0x5026,
 
         /// <summary>
-        /// The thumbnail equip model.
+        /// Null-terminated character string that specifies the model name or model number of the 
+        /// equipment used to record the thumbnail image.
         /// </summary>
         ThumbnailEquipModel = 0x5027,
 
         /// <summary>
-        /// The thumbnail format.
+        /// Format of the thumbnail image.
         /// </summary>
         ThumbnailFormat = 0x5012,
 
         /// <summary>
-        /// The thumbnail height.
+        /// Height, in pixels, of the thumbnail image.
         /// </summary>
         ThumbnailHeight = 0x5014,
 
         /// <summary>
-        /// The thumbnail image description.
+        /// Null-terminated character string that specifies the title of the image.
         /// </summary>
         ThumbnailImageDescription = 0x5025,
 
         /// <summary>
-        /// The thumbnail image height.
+        /// Number of pixel rows in the thumbnail image.
         /// </summary>
         ThumbnailImageHeight = 0x5021,
 
         /// <summary>
-        /// The thumbnail image width.
+        /// Number of pixels per row in the thumbnail image.
         /// </summary>
         ThumbnailImageWidth = 0x5020,
 
         /// <summary>
-        /// The thumbnail orientation.
+        /// Thumbnail image orientation in terms of rows and columns. See also <see cref="ExifPropertyTag.Orientation"/>.
         /// </summary>
         ThumbnailOrientation = 0x5029,
 
         /// <summary>
-        /// The thumbnail photometric interp.
+        /// How thumbnail pixel data will be interpreted.
         /// </summary>
         ThumbnailPhotometricInterp = 0x5024,
 
         /// <summary>
-        /// The thumbnail planar config.
+        /// Whether pixel components in the thumbnail image are recorded in chunky or planar format. 
+        /// See also <see cref="ExifPropertyTag.PlanarConfig"/>.
         /// </summary>
         ThumbnailPlanarConfig = 0x502F,
 
         /// <summary>
-        /// The thumbnail planes.
+        /// Number of color planes for the thumbnail image.
         /// </summary>
         ThumbnailPlanes = 0x5016,
 
         /// <summary>
-        /// The thumbnail primary chromaticities.
+        /// For each of the three primary colors in the thumbnail image, the chromaticity 
+        /// of that color. See also <see cref="ExifPropertyTag.PrimaryChromaticities"/>.
         /// </summary>
         ThumbnailPrimaryChromaticities = 0x5036,
 
         /// <summary>
-        /// The thumbnail raw bytes.
+        /// Byte offset between rows of pixel data.
         /// </summary>
         ThumbnailRawBytes = 0x5017,
 
         /// <summary>
-        /// The thumbnail ref black white.
+        /// Reference black point value and reference white point value 
+        /// for the thumbnail image. See also <see cref="ExifPropertyTag.REFBlackWhite"/>.
         /// </summary>
         ThumbnailRefBlackWhite = 0x503A,
 
         /// <summary>
-        /// The thumbnail resolution unit.
+        /// Unit of measure for the horizontal resolution and the vertical resolution of 
+        /// the thumbnail image. See also <see cref="ExifPropertyTag.ResolutionUnit"/>.
         /// </summary>
         ThumbnailResolutionUnit = 0x5030,
 
         /// <summary>
-        /// The thumbnail resolution x.
+        /// Thumbnail resolution in the width direction. 
+        /// The resolution unit is given in <see cref="ExifPropertyTag.ThumbnailResolutionUnit"/>.
         /// </summary>
         ThumbnailResolutionX = 0x502D,
 
         /// <summary>
-        /// The thumbnail resolution y.
+        /// Thumbnail resolution in the height direction. The resolution unit is given 
+        /// in <see cref="ExifPropertyTag.ThumbnailResolutionUnit"/>.
         /// </summary>
         ThumbnailResolutionY = 0x502E,
 
         /// <summary>
-        /// The thumbnail rows per strip.
+        /// Number of rows per strip in the thumbnail image. See also <see cref="ExifPropertyTag.ThumbnailStripBytesCount"/> 
+        /// and <see cref="ExifPropertyTag.ThumbnailStripOffsets"/>.
         /// </summary>
         ThumbnailRowsPerStrip = 0x502B,
 
         /// <summary>
-        /// The thumbnail samples per pixel.
+        /// Number of color components per pixel in the thumbnail image.
         /// </summary>
         ThumbnailSamplesPerPixel = 0x502A,
 
         /// <summary>
-        /// The thumbnail size.
+        /// Total size, in bytes, of the thumbnail image.
         /// </summary>
         ThumbnailSize = 0x5018,
 
         /// <summary>
-        /// The thumbnail software used.
+        /// Null-terminated character string that specifies the name and version of the software 
+        /// or firmware of the device used to generate the thumbnail image.
         /// </summary>
         ThumbnailSoftwareUsed = 0x5032,
 
         /// <summary>
-        /// The thumbnail strip bytes count.
+        /// For each thumbnail image strip, the total number of bytes in that strip.
         /// </summary>
         ThumbnailStripBytesCount = 0x502C,
 
         /// <summary>
-        /// The thumbnail strip offsets.
+        /// For each strip in the thumbnail image, the byte offset of that strip. See also <see cref="ExifPropertyTag.ThumbnailRowsPerStrip"/> 
+        /// and <see cref="ExifPropertyTag.ThumbnailStripBytesCount"/>.
         /// </summary>
         ThumbnailStripOffsets = 0x5028,
 
         /// <summary>
-        /// The thumbnail transfer function.
+        /// Tables that specify transfer functions for the thumbnail image. See also <see cref="ExifPropertyTag.TransferFunction"/>.
         /// </summary>
         ThumbnailTransferFunction = 0x5031,
 
         /// <summary>
-        /// The thumbnail white point.
+        /// Chromaticity of the white point of the thumbnail image. See also <see cref="ExifPropertyTag.WhitePoint"/>.
         /// </summary>
         ThumbnailWhitePoint = 0x5035,
 
         /// <summary>
-        /// The thumbnail width.
+        /// Width, in pixels, of the thumbnail image.
         /// </summary>
         ThumbnailWidth = 0x5013,
 
         /// <summary>
-        /// The thumbnail y cb cr coefficients.
+        /// Coefficients for transformation from RGB to YCbCr data for the thumbnail image. 
+        /// See also <see cref="ExifPropertyTag.YCbCrCoefficients"/>.
         /// </summary>
         ThumbnailYCbCrCoefficients = 0x5037,
 
         /// <summary>
-        /// The thumbnail y cb cr positioning.
+        /// Position of chrominance components in relation to the luminance component for 
+        /// the thumbnail image. See also <see cref="ExifPropertyTag.YCbCrPositioning"/>.
         /// </summary>
         ThumbnailYCbCrPositioning = 0x5039,
 
         /// <summary>
-        /// The thumbnail y cb cr subsampling.
+        /// Sampling ratio of chrominance components in relation to the luminance component for 
+        /// the thumbnail image. See also <see cref="ExifPropertyTag.YCbCrSubsampling"/>.
         /// </summary>
         ThumbnailYCbCrSubsampling = 0x5038,
 
         /// <summary>
-        /// The tile byte counts.
+        /// For each tile, the number of bytes in that tile.
         /// </summary>
         TileByteCounts = 0x0145,
 
         /// <summary>
-        /// The tile length.
+        /// Number of pixel rows in each tile.
         /// </summary>
         TileLength = 0x0143,
 
         /// <summary>
-        /// The tile offset.
+        /// For each tile, the byte offset of that tile.
         /// </summary>
         TileOffset = 0x0144,
 
         /// <summary>
-        /// The tile width.
+        /// Number of pixel columns in each tile.
         /// </summary>
         TileWidth = 0x0142,
 
         /// <summary>
-        /// The transfer function.
+        /// Tables that specify transfer functions for the image.
         /// </summary>
         TransferFunction = 0x012D,
 
         /// <summary>
-        /// The transfer range.
+        /// Table of values that extends the range of the transfer function.
         /// </summary>
         TransferRange = 0x0156,
 
         /// <summary>
-        /// The white point.
+        /// Chromaticity of the white point of the image.
         /// </summary>
         WhitePoint = 0x013E,
 
         /// <summary>
-        /// The x position.
+        /// Offset from the left side of the page to the left side of the image. 
+        /// The unit of measure is specified by <see cref="ExifPropertyTag.ResolutionUnit"/>.
         /// </summary>
         XPosition = 0x011E,
 
         /// <summary>
-        /// The x resolution.
+        /// Number of pixels per unit in the image width (x) direction. 
+        /// The unit is specified by <see cref="ExifPropertyTag.ResolutionUnit"/>.
         /// </summary>
         XResolution = 0x011A,
 
         /// <summary>
-        /// The y cb cr coefficients.
+        /// Coefficients for transformation from RGB to YCbCr image data.
         /// </summary>
         YCbCrCoefficients = 0x0211,
 
         /// <summary>
-        /// The y cb cr positioning.
+        /// Position of chrominance components in relation to the luminance component.
         /// </summary>
         YCbCrPositioning = 0x0213,
 
         /// <summary>
-        /// The y cb cr subsampling.
+        /// Sampling ratio of chrominance components in relation to the luminance component.
         /// </summary>
         YCbCrSubsampling = 0x0212,
 
         /// <summary>
-        /// The y position.
+        /// Offset from the top of the page to the top of the image. The unit of measure 
+        /// is specified by <see cref="ExifPropertyTag.ResolutionUnit"/>.
         /// </summary>
         YPosition = 0x011F,
 
         /// <summary>
-        /// The y resolution.
+        /// Number of pixels per unit in the image height (y) direction. The unit is specified 
+        /// by <see cref="ExifPropertyTag.ResolutionUnit"/>.
         /// </summary>
         YResolution = 0x011B
     }

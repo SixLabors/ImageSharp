@@ -2,53 +2,53 @@
   <PropertyGroup>
     <MSBuildCommunityTasksPath>.\</MSBuildCommunityTasksPath>
   </PropertyGroup>
-  
-  <Import Project=".\MSBuildCommunityTasks\MSBuild.Community.Tasks.Targets" />	
-  
-  <!-- 
+
+  <Import Project=".\MSBuildCommunityTasks\MSBuild.Community.Tasks.Targets" />
+
+  <!--
  ****************************************************
- VARIABLES 
+ VARIABLES
  *****************************************************
  -->
- 
+
   <PropertyGroup>
     <BuildConfiguration>Release</BuildConfiguration>
     <BuildFolder>_BuildOutput\</BuildFolder>
     <IncludeSymbols>False</IncludeSymbols>
     <BuildFolderAbsolutePath>$(MSBuildProjectDirectory)\$(BuildFolder)</BuildFolderAbsolutePath>
-    <SolutionBinFolderAbsolutePath>$(BuildFolderAbsolutePath)ImageProcessor\lib\</SolutionBinFolderAbsolutePath>
+    <SolutionBinFolderAbsolutePath>$(BuildFolderAbsolutePath)ImageProcessor\lib\net45</SolutionBinFolderAbsolutePath>
     <BuildInputDir>..\src\ImageProcessor\</BuildInputDir>
   </PropertyGroup>
 
-  <!-- 
+  <!--
  ****************************************************
- TARGETS 
+ TARGETS
  *****************************************************
  -->
 
  <Target Name="Build" DependsOnTargets="BuildImageProcessor">
     <Message Text="Build finished" />
  </Target>
- 
+
   <Target Name="BuildImageProcessor" DependsOnTargets="SetVersionNumber">
     <Message Text="Compiling ImageProcessor project to build\$(BuildFolder)" Importance="High" />
-    
+
 	<MSBuild Projects="$(BuildInputDir)\ImageProcessor.csproj" Properties="WarningLevel=0;Configuration=$(BuildConfiguration);PipelineDependsOnBuild=False;OutDir=$(SolutionBinFolderAbsolutePath);" Targets="Clean;Rebuild;" BuildInParallel="False" ToolsVersion="4.0" UnloadProjectsOnCompletion="False" />
-	
+
     <Message Text="Finished compiling project" Importance="High" />
   </Target>
- 
+
   <Target Name="SetVersionNumber" Condition="'$(BUILD_RELEASE)'!=''">
     <Message Text="Creating Version File: $(BUILD_RELEASE)"/>
     <ItemGroup>
       <AssemblyFiles Include="$(BuildInputDir)Properties\AssemblyInfo.cs;" />
-	</ItemGroup>
-	
+	  </ItemGroup>
+
     <FileUpdate Files="@(AssemblyFiles)"
         Multiline="true"
         Singleline="false"
         Regex="(AssemblyVersion|AssemblyFileVersionAttribute|AssemblyFileVersion)\(&quot;([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)?&quot;\)"
         ReplacementText="$1(&quot;$(BUILD_RELEASE)&quot;)" />
-		
+
   </Target>
 </Project>

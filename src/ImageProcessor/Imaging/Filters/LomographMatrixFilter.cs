@@ -19,12 +19,12 @@ namespace ImageProcessor.Imaging.Filters
     /// <summary>
     /// Encapsulates methods with which to add a lomograph filter to an image.
     /// </summary>
-    internal class LomographMatrixFilter : IMatrixFilter
+    internal class LomographMatrixFilter : MatrixFilterBase
     {
         /// <summary>
         /// Gets the <see cref="T:System.Drawing.Imaging.ColorMatrix"/> for this filter instance.
         /// </summary>
-        public ColorMatrix Matrix
+        public override ColorMatrix Matrix
         {
             get { return ColorMatrixes.Lomograph; }
         }
@@ -33,7 +33,7 @@ namespace ImageProcessor.Imaging.Filters
         /// Processes the image.
         /// </summary>
         /// <param name="factory">
-        /// The the current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class containing
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class containing
         /// the image to process.
         /// </param>
         /// <param name="image">The current image to process</param>
@@ -41,7 +41,7 @@ namespace ImageProcessor.Imaging.Filters
         /// <returns>
         /// The processed image from the current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
         /// </returns>
-        public Image TransformImage(ImageFactory factory, Image image, Image newImage)
+        public override Image TransformImage(ImageFactory factory, Image image, Image newImage)
         {
             using (Graphics graphics = Graphics.FromImage(newImage))
             {
@@ -50,15 +50,14 @@ namespace ImageProcessor.Imaging.Filters
                     attributes.SetColorMatrix(this.Matrix);
 
                     Rectangle rectangle = new Rectangle(0, 0, image.Width, image.Height);
-
                     graphics.DrawImage(image, rectangle, 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, attributes);
                 }
             }
 
             // Add a vignette to finish the effect.
-            factory.Update(newImage);
+            factory.Image = newImage;
             Vignette vignette = new Vignette();
-            newImage = (Bitmap)vignette.ProcessImage(factory);
+            newImage = vignette.ProcessImage(factory);
 
             // Reassign the image.
             image.Dispose();

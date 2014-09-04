@@ -26,10 +26,6 @@ namespace ImageProcessor.Imaging
         /// <param name="size">
         /// The <see cref="T:System.Drawing.Size"/> containing the width and height to set the image to.
         /// </param>
-        /// <param name="backgroundColor">
-        /// The <see cref="T:System.Drawing.Color"/> to set as the background color.
-        /// <remarks>Used for image formats that do not support transparency (Default transparent)</remarks>
-        /// </param>
         /// <param name="resizeMode">
         /// The resize mode to apply to resized image. (Default ResizeMode.Pad)
         /// </param>
@@ -41,14 +37,12 @@ namespace ImageProcessor.Imaging
         /// </param>
         public ResizeLayer(
             Size size,
-            Color? backgroundColor = null,
             ResizeMode resizeMode = ResizeMode.Pad,
             AnchorPosition anchorPosition = AnchorPosition.Center,
             bool upscale = true)
         {
             this.Size = size;
             this.Upscale = upscale;
-            this.BackgroundColor = backgroundColor ?? Color.Transparent;
             this.ResizeMode = resizeMode;
             this.AnchorPosition = anchorPosition;
         }
@@ -59,11 +53,6 @@ namespace ImageProcessor.Imaging
         /// Gets or sets the size.
         /// </summary>
         public Size Size { get; set; }
-
-        /// <summary>
-        /// Gets or sets the background color.
-        /// </summary>
-        public Color BackgroundColor { get; set; }
 
         /// <summary>
         /// Gets or sets the resize mode.
@@ -111,7 +100,6 @@ namespace ImageProcessor.Imaging
             return this.Size == resizeLayer.Size
                 && this.ResizeMode == resizeLayer.ResizeMode
                 && this.AnchorPosition == resizeLayer.AnchorPosition
-                && this.BackgroundColor == resizeLayer.BackgroundColor
                 && this.Upscale == resizeLayer.Upscale;
         }
 
@@ -126,7 +114,6 @@ namespace ImageProcessor.Imaging
             return this.Size.GetHashCode() +
                 this.ResizeMode.GetHashCode() +
                 this.AnchorPosition.GetHashCode() +
-                this.BackgroundColor.GetHashCode() +
                 this.Upscale.GetHashCode();
         }
     }

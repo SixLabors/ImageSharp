@@ -32,12 +32,12 @@ namespace ImageProcessor.Plugins.Cair
         /// <summary>
         /// Gets the cair path.
         /// </summary>
-        public static string CairPath { get; private set; }
+        public static string CairExecutablePath { get; private set; }
 
         /// <summary>
-        /// Gets the cair image path.
+        /// Gets the cair base path.
         /// </summary>
-        public static string CairImagePath { get; private set; }
+        public static string CairPath { get; private set; }
 
         /// <summary>
         /// Registers the embedded CAIR executable.
@@ -47,12 +47,17 @@ namespace ImageProcessor.Plugins.Cair
             // None of the tools used here are called using dllimport so we don't go through the normal registration channel. 
             string folder = ImageProcessorBootstrapper.Instance.NativeBinaryFactory.Is64BitEnvironment ? "x64" : "x86";
             Assembly assembly = Assembly.GetExecutingAssembly();
-            string targetBasePath = new Uri(assembly.Location).LocalPath;
-            string multithreaderTargetPath = Path.GetFullPath(Path.Combine(targetBasePath, "..\\" + folder + "\\" + "pthreadVSE2.dll"));
+            CairPath = Path.GetFullPath(Path.Combine(new Uri(assembly.Location).LocalPath, "..\\" + folder + "\\imageprocessor.cair\\"));
+            CairExecutablePath = Path.Combine(CairPath, "CAIR.exe");
+            string multithreaderTargetPath = Path.Combine(CairPath, "pthreadVSE2.dll");
 
-            // Set the global variable.
-            CairPath = Path.GetFullPath(Path.Combine(targetBasePath, "..\\" + folder + "\\" + "CAIR.exe"));
-            CairImagePath = Path.GetFullPath(Path.Combine(targetBasePath, "..\\" + folder + "\\" + "cairimages\\"));
+            // Create the folder for storing temporary images.
+            // ReSharper disable once AssignNullToNotNullAttribute
+            DirectoryInfo directoryInfo = new DirectoryInfo(Path.GetDirectoryName(CairPath));
+            if (!directoryInfo.Exists)
+            {
+                directoryInfo.Create();
+            }
 
             // Get the resources and copy them across.
             const string CairResourcePath = "ImageProcessor.Plugins.Cair.Resources.Unmanaged.x86.CAIR.exe";
@@ -64,13 +69,6 @@ namespace ImageProcessor.Plugins.Cair
             {
                 if (resourceStream != null)
                 {
-                    // ReSharper disable once AssignNullToNotNullAttribute
-                    DirectoryInfo threaderDirectoryInfo = new DirectoryInfo(Path.GetDirectoryName(multithreaderTargetPath));
-                    if (!threaderDirectoryInfo.Exists)
-                    {
-                        threaderDirectoryInfo.Create();
-                    }
-
                     using (FileStream fileStream = File.OpenWrite(multithreaderTargetPath))
                     {
                         resourceStream.CopyTo(fileStream);
@@ -83,26 +81,11 @@ namespace ImageProcessor.Plugins.Cair
             {
                 if (resourceStream != null)
                 {
-                    // ReSharper disable once AssignNullToNotNullAttribute
-                    DirectoryInfo cairDirectoryInfo = new DirectoryInfo(Path.GetDirectoryName(CairPath));
-                    if (!cairDirectoryInfo.Exists)
-                    {
-                        cairDirectoryInfo.Create();
-                    }
-
-                    using (FileStream fileStream = File.OpenWrite(CairPath))
+                    using (FileStream fileStream = File.OpenWrite(CairExecutablePath))
                     {
                         resourceStream.CopyTo(fileStream);
                     }
                 }
-            }
-
-            // Lastly create the image folder for storing temporary images.
-            // ReSharper disable once AssignNullToNotNullAttribute
-            DirectoryInfo directoryInfo = new DirectoryInfo(Path.GetDirectoryName(CairImagePath));
-            if (!directoryInfo.Exists)
-            {
-                directoryInfo.Create();
             }
         }
     }

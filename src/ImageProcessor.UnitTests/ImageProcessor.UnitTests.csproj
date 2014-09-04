@@ -3,13 +3,18 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{03CA9055-F997-428C-BF28-F50F991777C6}</ProjectGuid>
+    <ProjectGuid>{633B1C4C-4823-47BE-9A01-A665F3118C8C}</ProjectGuid>
     <OutputType>Library</OutputType>
     <RootNamespace>ImageProcessor.UnitTests</RootNamespace>
     <AssemblyName>ImageProcessor.UnitTests</AssemblyName>
     <TargetFrameworkProfile>Client</TargetFrameworkProfile>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
+    <TargetFrameworkProfile>
+    </TargetFrameworkProfile>
+    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
+    <RestorePackages>true</RestorePackages>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -20,6 +25,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>full</DebugType>
@@ -28,6 +34,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -39,8 +46,11 @@
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="RegularExpressionUnitTests.cs" />
-    <Compile Include="ImageFactoryUnitTests.cs" />
+    <Compile Include="ImageFactoryUnitTests.cs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Compile>
+    <Compile Include="Extensions\DoubleExtensionsUnitTests.cs" />
+    <Compile Include="Extensions\IntegerExtensionsUnitTests.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -51,92 +61,65 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="..\Images\Chrysanthemum.jpg">
-      <Link>Images\Chrysanthemum.jpg</Link>
+    <None Include="Images\autorotate.jpg" />
+    <None Include="Images\cmyk-profile-euroscale.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="..\Images\Desert.jpg">
-      <Link>Images\Desert.jpg</Link>
+    <None Include="Images\cmyk.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="..\Images\Hydrangeas.jpg">
-      <Link>Images\Hydrangeas.jpg</Link>
+    <None Include="Images\color-vision-test.gif">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="..\Images\Jellyfish.jpg">
-      <Link>Images\Jellyfish.jpg</Link>
+    <None Include="Images\exif-Tulips.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="..\Images\Koala.jpg">
-      <Link>Images\Koala.jpg</Link>
+    <None Include="Images\exif-rocks.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="..\Images\Lighthouse.jpg">
-      <Link>Images\Lighthouse.jpg</Link>
+    <None Include="Images\format-Penguins-8bit.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="..\Images\Penguins-200.jpg">
-      <Link>Images\Penguins-200.jpg</Link>
+    <None Include="Images\format-Penguins.bmp">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="..\Images\Penguins-8.png">
-      <Link>Images\Penguins-8.png</Link>
+    <None Include="Images\format-Penguins.gif">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="..\Images\Penguins.bmp">
-      <Link>Images\Penguins.bmp</Link>
+    <None Include="Images\format-Penguins.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="..\Images\Penguins.gif">
-      <Link>Images\Penguins.gif</Link>
+    <None Include="Images\format-Penguins.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="..\Images\Penguins.jpg">
-      <Link>Images\Penguins.jpg</Link>
+    <None Include="Images\format-Penguins.tif">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="..\Images\Penguins.png">
-      <Link>Images\Penguins.png</Link>
+    <None Include="Images\format-animated.gif">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="..\Images\Penguins.tif">
-      <Link>Images\Penguins.tif</Link>
+    <None Include="Images\hi-color.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="..\Images\Tulips.jpg">
-      <Link>Images\Tulips.jpg</Link>
+    <None Include="Images\hi-contrast.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="..\Images\bus.jpg">
-      <Link>Images\bus.jpg</Link>
+    <None Include="Images\hi-saturation.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="..\Images\cmyk.jpg">
-      <Link>Images\cmyk.jpg</Link>
+    <None Include="Images\profile-adobe-rgb.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="..\Images\cmyk.png">
-      <Link>Images\cmyk.png</Link>
+    <None Include="Images\profile-srgb.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="..\Images\jrt.jpg">
-      <Link>Images\jrt.jpg</Link>
+    <None Include="Images\size-Penguins-200.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="..\Images\meter.gif">
-      <Link>Images\meter.gif</Link>
+    <None Include="Images\text-over-transparent.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="..\Images\rocks.jpg">
-      <Link>Images\rocks.jpg</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Images\rotate.jpg">
-      <Link>Images\rotate.jpg</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Images\sample1.jpg">
-      <Link>Images\sample1.jpg</Link>
+    <None Include="Images\udendørs.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="..\Images\srgb.jpg">
@@ -172,4 +155,7 @@
     </PropertyGroup>
     <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
   </Target>
+  <ItemGroup />
+  <ItemGroup />
+  <ItemGroup />
 </Project>

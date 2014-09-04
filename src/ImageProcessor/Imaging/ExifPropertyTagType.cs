@@ -5,7 +5,7 @@
 // </copyright>
 // <summary>
 //   Specifies the data type of the values stored in the value data member of that same PropertyItem object.
-//   <see cref="http://msdn.microsoft.com/en-us/library/system.drawing.imaging.propertyitem.type.aspx" />
+//   <see href="http://msdn.microsoft.com/en-us/library/system.drawing.imaging.propertyitem.type.aspx" />
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 

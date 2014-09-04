@@ -29,7 +29,7 @@ namespace ImageProcessor.Web.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"(width|height)=|(width|height)ratio=|mode=|anchor=|center=|upscale=", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"(width|height)=|(width|height)ratio=|mode=(carve)?|anchor=|center=|upscale=", RegexOptions.Compiled);
 
         /// <summary>
         /// The regular expression to search strings for the size attribute.
@@ -111,6 +111,12 @@ namespace ImageProcessor.Web.Processors
             {
                 if (match.Success)
                 {
+                    // We don't want any resize carve requests to interfere.
+                    if (match.Value.ToUpperInvariant().Contains("CARVE"))
+                    {
+                        break;
+                    }
+
                     if (index == 0)
                     {
                         // Set the index on the first instance only.

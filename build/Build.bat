@@ -1,9 +1,9 @@
 @ECHO OFF
 
-SET version=2.0.0.0
+SET version=2.0.1.0
 SET webversion=4.0.0.0
 SET webconfigversion=2.0.0.0
-SET webppluginversion=1.0.0.0
+SET webppluginversion=1.0.1.0
 
 ECHO Building ImageProcessor %version%, ImageProcessor.Web %webversion%, ImageProcessor.Web.Config %webconfigversion%, and ImageProcessor.Plugins.WebP %webppluginversion%
 

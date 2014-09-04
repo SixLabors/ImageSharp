@@ -10,15 +10,12 @@
 
 namespace ImageProcessor.Processors
 {
-    #region Using
     using System;
     using System.Collections.Generic;
     using System.Drawing;
     using System.Drawing.Drawing2D;
-    using System.Globalization;
-    using System.Text.RegularExpressions;
-    using ImageProcessor.Imaging;
-    #endregion
+
+    using ImageProcessor.Common.Exceptions;
 
     /// <summary>
     /// Encapsulates methods to rotate an image.
@@ -26,30 +23,11 @@ namespace ImageProcessor.Processors
     public class Rotate : IGraphicsProcessor
     {
         /// <summary>
-        /// The regular expression to search strings for.
+        /// Initializes a new instance of the <see cref="Rotate"/> class.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"rotate=((?:3[0-5][0-9]|[12][0-9]{2}|[1-9][0-9]?)|angle-(?:3[0-5][0-9]|[12][0-9]{2}|[1-9][0-9]?)[\|,]bgcolor-([0-9a-fA-F]{3}){1,2})", RegexOptions.Compiled);
-
-        /// <summary>
-        /// The regular expression to search strings for the angle attribute.
-        /// </summary>
-        private static readonly Regex AngleRegex = new Regex(@"angle-(?:3[0-5][0-9]|[12][0-9]{2}|[1-9][0-9]?)", RegexOptions.Compiled);
-
-        /// <summary>
-        /// The regular expression to search strings for the color attribute.
-        /// </summary>
-        private static readonly Regex ColorRegex = new Regex(@"bgcolor-([0-9a-fA-F]{3}){1,2}", RegexOptions.Compiled);
-
-        #region IGraphicsProcessor Members
-        /// <summary>
-        /// Gets the regular expression to search strings for.
-        /// </summary>
-        public Regex RegexPattern
+        public Rotate()
         {
-            get
-            {
-                return QueryRegex;
-            }
+            this.Settings = new Dictionary<string, string>();
         }
 
         /// <summary>
@@ -62,15 +40,6 @@ namespace ImageProcessor.Processors
         }
 
         /// <summary>
-        /// Gets the order in which this processor is to be used in a chain.
-        /// </summary>
-        public int SortOrder
-        {
-            get;
-            private set;
-        }
-
-        /// <summary>
         /// Gets or sets any additional settings required by the processor.
         /// </summary>
         public Dictionary<string, string> Settings
@@ -80,61 +49,10 @@ namespace ImageProcessor.Processors
         }
 
         /// <summary>
-        /// The position in the original string where the first character of the captured substring was found.
-        /// </summary>
-        /// <param name="queryString">
-        /// The query string to search.
-        /// </param>
-        /// <returns>
-        /// The zero-based starting position in the original string where the captured substring was found.
-        /// </returns>
-        public int MatchRegexIndex(string queryString)
-        {
-            int index = 0;
-
-            // Set the sort order to max to allow filtering.
-            this.SortOrder = int.MaxValue;
-
-            foreach (Match match in this.RegexPattern.Matches(queryString))
-            {
-                if (match.Success)
-                {
-                    if (index == 0)
-                    {
-                        // Set the index on the first instance only.
-                        this.SortOrder = match.Index;
-
-                        RotateLayer rotateLayer;
-
-                        string toParse = match.Value;
-
-                        if (toParse.Contains("bgcolor"))
-                        {
-                            rotateLayer = new RotateLayer(this.ParseAngle(toParse), this.ParseColor(toParse));
-                        }
-                        else
-                        {
-                            int degrees;
-                            int.TryParse(match.Value.Split('=')[1], NumberStyles.Any, CultureInfo.InvariantCulture, out degrees);
-
-                            rotateLayer = new RotateLayer(degrees);
-                        }
-
-                        this.DynamicParameter = rotateLayer;
-                    }
-
-                    index += 1;
-                }
-            }
-
-            return this.SortOrder;
-        }
-
-        /// <summary>
         /// Processes the image.
         /// </summary>
         /// <param name="factory">
-        /// The the current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class containing
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class containing
         /// the image to process.
         /// </param>
         /// <returns>
@@ -147,31 +65,30 @@ namespace ImageProcessor.Processors
 
             try
             {
-                RotateLayer rotateLayer = this.DynamicParameter;
-                int angle = rotateLayer.Angle;
-                Color backgroundColor = rotateLayer.BackgroundColor;
+                int angle = this.DynamicParameter;
 
                 // Center of the image
                 float rotateAtX = Math.Abs(image.Width / 2);
                 float rotateAtY = Math.Abs(image.Height / 2);
 
                 // Create a rotated image.
-                newImage = this.RotateImage(image, rotateAtX, rotateAtY, angle, backgroundColor);
+                newImage = this.RotateImage(image, rotateAtX, rotateAtY, angle);
 
                 image.Dispose();
                 image = newImage;
             }
-            catch
+            catch (Exception ex)
             {
                 if (newImage != null)
                 {
                     newImage.Dispose();
                 }
+
+                throw new ImageProcessingException("Error processing image with " + this.GetType().Name, ex);
             }
 
             return image;
         }
-        #endregion
 
         #region Private Methods
         /// <summary>
@@ -181,12 +98,11 @@ namespace ImageProcessor.Processors
         /// <param name="rotateAtX">The horizontal pixel coordinate at which to rotate the image.</param>
         /// <param name="rotateAtY">The vertical pixel coordinate at which to rotate the image.</param>
         /// <param name="angle">The angle in degrees at which to rotate the image.</param>
-        /// <param name="backgroundColor">The background color to fill an image with.</param>
         /// <returns>The image rotated to the given angle at the given position.</returns>
         /// <remarks> 
         /// Based on <see href="http://www.codeproject.com/Articles/58815/C-Image-PictureBox-Rotations?msg=4155374#xx4155374xx"/> 
         /// </remarks>
-        private Bitmap RotateImage(Image image, float rotateAtX, float rotateAtY, float angle, Color backgroundColor)
+        private Bitmap RotateImage(Image image, float rotateAtX, float rotateAtY, float angle)
         {
             int width, height, x, y;
 
@@ -242,14 +158,9 @@ namespace ImageProcessor.Processors
             {
                 // Reduce the jagged edge.
                 graphics.SmoothingMode = SmoothingMode.HighQuality;
-
-                // Contrary to everything I have read bicubic is producing the best results.
                 graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
                 graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-                graphics.CompositingQuality = CompositingQuality.HighSpeed;
-
-                // Fill the background.
-                graphics.Clear(backgroundColor);
+                graphics.CompositingQuality = CompositingQuality.HighQuality;
 
                 // Put the rotation point in the "center" of the image
                 graphics.TranslateTransform(rotateAtX + x, rotateAtY + y);
@@ -265,49 +176,6 @@ namespace ImageProcessor.Processors
             }
 
             return newImage;
-        }
-
-        /// <summary>
-        /// Returns the correct <see cref="T:System.Int32"/> containing the angle for the given string.
-        /// </summary>
-        /// <param name="input">
-        /// The input string containing the value to parse.
-        /// </param>
-        /// <returns>
-        /// The correct <see cref="T:System.Int32"/> containing the angle for the given string.
-        /// </returns>
-        private int ParseAngle(string input)
-        {
-            foreach (Match match in AngleRegex.Matches(input))
-            {
-                // Split on angle-
-                int angle;
-                int.TryParse(match.Value.Split('-')[1], NumberStyles.Any, CultureInfo.InvariantCulture, out angle);
-                return angle;
-            }
-
-            // No rotate - matches the RotateLayer default.
-            return 0;
-        }
-
-        /// <summary>
-        /// Returns the correct <see cref="T:System.Drawing.Color"/> for the given string.
-        /// </summary>
-        /// <param name="input">
-        /// The input string containing the value to parse.
-        /// </param>
-        /// <returns>
-        /// The correct <see cref="T:System.Drawing.Color"/>
-        /// </returns>
-        private Color ParseColor(string input)
-        {
-            foreach (Match match in ColorRegex.Matches(input))
-            {
-                // split on color-hex
-                return ColorTranslator.FromHtml("#" + match.Value.Split('-')[1]);
-            }
-
-            return Color.Transparent;
         }
         #endregion
     }

@@ -11,9 +11,11 @@
 
 namespace ImageProcessor.Processors
 {
+    using System;
     using System.Collections.Generic;
     using System.Drawing;
-    using System.Text.RegularExpressions;
+
+    using ImageProcessor.Common.Exceptions;
     using ImageProcessor.Imaging;
 
     /// <summary>
@@ -23,19 +25,11 @@ namespace ImageProcessor.Processors
     public class AutoRotate : IGraphicsProcessor
     {
         /// <summary>
-        /// The regular expression to search strings for.
+        /// Initializes a new instance of the <see cref="AutoRotate"/> class.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"autorotate=true", RegexOptions.Compiled);
-
-        /// <summary>
-        /// Gets the regular expression to search strings for.
-        /// </summary>
-        public Regex RegexPattern
+        public AutoRotate()
         {
-            get
-            {
-                return QueryRegex;
-            }
+            this.Settings = new Dictionary<string, string>();
         }
 
         /// <summary>
@@ -48,15 +42,6 @@ namespace ImageProcessor.Processors
         }
 
         /// <summary>
-        /// Gets the order in which this processor is to be used in a chain.
-        /// </summary>
-        public int SortOrder
-        {
-            get;
-            private set;
-        }
-
-        /// <summary>
         /// Gets or sets any additional settings required by the processor.
         /// </summary>
         public Dictionary<string, string> Settings
@@ -66,42 +51,9 @@ namespace ImageProcessor.Processors
         }
 
         /// <summary>
-        /// The position in the original string where the first character of the captured substring was found.
-        /// </summary>
-        /// <param name="queryString">
-        /// The query string to search.
-        /// </param>
-        /// <returns>
-        /// The zero-based starting position in the original string where the captured substring was found.
-        /// </returns>
-        public int MatchRegexIndex(string queryString)
-        {
-            int index = 0;
-
-            // Set the sort order to max to allow filtering.
-            this.SortOrder = int.MaxValue;
-
-            foreach (Match match in this.RegexPattern.Matches(queryString))
-            {
-                if (match.Success)
-                {
-                    if (index == 0)
-                    {
-                        // Set the index on the first instance only.
-                        this.SortOrder = match.Index;
-                    }
-
-                    index += 1;
-                }
-            }
-
-            return this.SortOrder;
-        }
-
-        /// <summary>
         /// Processes the image.
         /// </summary>
-        /// <param name="factory">The the current instance of the 
+        /// <param name="factory">The current instance of the 
         /// <see cref="T:ImageProcessor.ImageFactory" /> class containing
         /// the image to process.</param>
         /// <returns>
@@ -144,12 +96,14 @@ namespace ImageProcessor.Processors
                     image = newImage;
                 }
             }
-            catch
+            catch (Exception ex)
             {
                 if (newImage != null)
                 {
                     newImage.Dispose();
                 }
+
+                throw new ImageProcessingException("Error processing image with " + this.GetType().Name, ex);
             }
 
             return image;

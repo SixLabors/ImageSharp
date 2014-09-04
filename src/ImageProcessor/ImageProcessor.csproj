@@ -1,20 +1,20 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>8.0.30703</ProductVersion>
-    <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{3B5DD734-FB7A-487D-8CE6-55E7AF9AEA7E}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>ImageProcessor</RootNamespace>
     <AssemblyName>ImageProcessor</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
-    <TargetFrameworkProfile>Client</TargetFrameworkProfile>
+    <TargetFrameworkProfile>
+    </TargetFrameworkProfile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -25,7 +25,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <DocumentationFile>bin\Debug\ImageProcessor.XML</DocumentationFile>
-    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -35,6 +35,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <DocumentationFile>bin\Release\ImageProcessor.XML</DocumentationFile>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'All|AnyCPU'">
     <DebugSymbols>true</DebugSymbols>
@@ -46,6 +47,9 @@
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisIgnoreBuiltInRuleSets>false</CodeAnalysisIgnoreBuiltInRuleSets>
     <CodeAnalysisIgnoreBuiltInRules>true</CodeAnalysisIgnoreBuiltInRules>
+    <WarningLevel>4</WarningLevel>
+    <Optimize>false</Optimize>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -57,14 +61,18 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
+    <Reference Include="System.Security" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Extensions\DoubleExtensions.cs" />
-    <Compile Include="Extensions\ImageExtensions.cs" />
-    <Compile Include="Extensions\ImageFormatExtensions.cs" />
-    <Compile Include="Extensions\ImageInfo.cs" />
-    <Compile Include="Extensions\IntegerExtensions.cs" />
-    <Compile Include="Extensions\StringExtensions.cs" />
+    <Compile Include="Common\Extensions\AssemblyExtensions.cs" />
+    <Compile Include="Configuration\ImageProcessorBootstrapper.cs" />
+    <Compile Include="Common\Exceptions\ImageProcessingException.cs" />
+    <Compile Include="Common\Extensions\DoubleExtensions.cs" />
+    <Compile Include="Configuration\NativeBinaryFactory.cs" />
+    <Compile Include="Configuration\NativeMethods.cs" />
+    <Compile Include="Imaging\Formats\GifInfo.cs" />
+    <Compile Include="Common\Extensions\IntegerExtensions.cs" />
+    <Compile Include="Common\Exceptions\ImageFormatException.cs" />
     <Compile Include="ImageFactory.cs" />
     <Compile Include="Imaging\AnchorPosition.cs" />
     <Compile Include="Imaging\ExifPropertyTagType.cs" />
@@ -72,11 +80,19 @@
     <Compile Include="Imaging\CropLayer.cs" />
     <Compile Include="Imaging\CropMode.cs" />
     <Compile Include="Imaging\ExifPropertyTag.cs" />
-    <Compile Include="Imaging\Filters\MatrixFilterRegexAttribute.cs" />
+    <Compile Include="Imaging\Filters\MatrixFilterBase.cs" />
     <Compile Include="Imaging\Filters\MatrixFilters.cs" />
+    <Compile Include="Imaging\Formats\BitmapFormat.cs" />
+    <Compile Include="Imaging\Formats\TiffFormat.cs" />
+    <Compile Include="Imaging\Formats\PngFormat.cs" />
+    <Compile Include="Imaging\Formats\GifFormat.cs" />
+    <Compile Include="Imaging\Formats\JpegFormat.cs" />
+    <Compile Include="Imaging\Formats\FormatUtilities.cs" />
+    <Compile Include="Imaging\Formats\FormatBase.cs" />
+    <Compile Include="Imaging\Formats\ISupportedImageFormat.cs" />
     <Compile Include="Imaging\GaussianLayer.cs" />
-    <Compile Include="Imaging\GifEncoder.cs" />
-    <Compile Include="Imaging\GifFrame.cs" />
+    <Compile Include="Imaging\Formats\GifEncoder.cs" />
+    <Compile Include="Imaging\Formats\GifFrame.cs" />
     <Compile Include="Imaging\Quantizer.cs" />
     <Compile Include="Imaging\ResizeLayer.cs" />
     <Compile Include="Imaging\Filters\BlackWhiteMatrixFilter.cs" />
@@ -91,19 +107,18 @@
     <Compile Include="Imaging\Filters\PolaroidMatrixFilter.cs" />
     <Compile Include="Imaging\Filters\SepiaMatrixFilter.cs" />
     <Compile Include="Imaging\Filters\IMatrixFilter.cs" />
-    <Compile Include="Imaging\ImageUtils.cs" />
     <Compile Include="Imaging\ResizeMode.cs" />
-    <Compile Include="Imaging\ResponseType.cs" />
-    <Compile Include="Imaging\RotateLayer.cs" />
     <Compile Include="Imaging\RoundedCornerLayer.cs" />
     <Compile Include="Imaging\TextLayer.cs" />
     <Compile Include="Imaging\OctreeQuantizer.cs" />
     <Compile Include="Processors\Alpha.cs" />
+    <Compile Include="Processors\BackgroundColor.cs" />
     <Compile Include="Processors\AutoRotate.cs" />
     <Compile Include="Processors\GaussianBlur.cs" />
     <Compile Include="Processors\Brightness.cs" />
     <Compile Include="Processors\Contrast.cs" />
     <Compile Include="Processors\GaussianSharpen.cs" />
+    <Compile Include="Processors\Meta.cs" />
     <Compile Include="Processors\RoundedCorners.cs" />
     <Compile Include="Processors\Saturation.cs" />
     <Compile Include="Processors\Flip.cs" />

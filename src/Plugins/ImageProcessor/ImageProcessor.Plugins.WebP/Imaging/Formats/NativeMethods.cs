@@ -29,14 +29,15 @@ namespace ImageProcessor.Plugins.WebP.Imaging.Formats
         {
             string folder = ImageProcessorBootstrapper.Instance.NativeBinaryFactory.Is64BitEnvironment ? "x64" : "x86";
             string name = string.Format("ImageProcessor.Plugins.WebP.Resources.Unmanaged.{0}.libwebp.dll", folder);
-            Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(name);
-
-            using (MemoryStream memoryStream = new MemoryStream())
+            using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(name))
             {
-                if (stream != null)
+                using (MemoryStream memoryStream = new MemoryStream())
                 {
-                    stream.CopyTo(memoryStream);
-                    ImageProcessorBootstrapper.Instance.NativeBinaryFactory.RegisterNativeBinary("libwebp.dll", memoryStream.ToArray());
+                    if (stream != null)
+                    {
+                        stream.CopyTo(memoryStream);
+                        ImageProcessorBootstrapper.Instance.NativeBinaryFactory.RegisterNativeBinary("libwebp.dll", memoryStream.ToArray());
+                    }
                 }
             }
         }

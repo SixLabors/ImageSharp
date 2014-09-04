@@ -29,8 +29,8 @@ namespace ImageProcessor.Imaging.Formats
             {
                 return new[]
                 { 
-                    new byte[] { 73, 73, 42 }, 
-                    new byte[] { 77, 77, 42 } 
+                    new byte[] { 73, 73, 42, 0 }, 
+                    new byte[] { 77, 77, 0, 42 }
                 };
             }
         }

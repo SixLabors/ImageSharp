@@ -14,15 +14,14 @@ namespace ImageProcessor
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
-    using System.Diagnostics.CodeAnalysis;
     using System.Drawing;
     using System.Drawing.Imaging;
     using System.IO;
-    using System.Linq;
-    using System.Threading;
-    using ImageProcessor.Extensions;
+
+    using ImageProcessor.Common.Exceptions;
     using ImageProcessor.Imaging;
     using ImageProcessor.Imaging.Filters;
+    using ImageProcessor.Imaging.Formats;
     using ImageProcessor.Processors;
     #endregion
 
@@ -33,24 +32,14 @@ namespace ImageProcessor
     {
         #region Fields
         /// <summary>
-        /// The default quality for jpeg files.
+        /// The default quality for image files.
         /// </summary>
-        private const int DefaultJpegQuality = 90;
+        private const int DefaultQuality = 90;
 
         /// <summary>
-        /// The backup image format.
+        /// The backup supported image format.
         /// </summary>
-        private ImageFormat backupImageFormat;
-
-        /// <summary>
-        /// The memory stream for storing any input stream to prevent disposal.
-        /// </summary>
-        private MemoryStream inputStream;
-
-        /// <summary>
-        /// Whether the image is indexed.
-        /// </summary>
-        private bool isIndexed;
+        private ISupportedImageFormat backupFormat;
 
         /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.
@@ -102,19 +91,9 @@ namespace ImageProcessor
 
         #region Properties
         /// <summary>
-        /// Gets the local image for manipulation.
-        /// </summary>
-        public Image Image { get; private set; }
-
-        /// <summary>
         /// Gets the path to the local image for manipulation.
         /// </summary>
         public string ImagePath { get; private set; }
-
-        /// <summary>
-        /// Gets the query-string parameters for web image manipulation.
-        /// </summary>
-        public string QueryString { get; private set; }
 
         /// <summary>
         /// Gets a value indicating whether the image factory should process the file.
@@ -122,20 +101,9 @@ namespace ImageProcessor
         public bool ShouldProcess { get; private set; }
 
         /// <summary>
-        /// Gets the file format of the image. 
+        /// Gets the supported image format.
         /// </summary>
-        public ImageFormat ImageFormat { get; private set; }
-
-        /// <summary>
-        /// Gets the mime type.
-        /// </summary>
-        public string MimeType
-        {
-            get
-            {
-                return this.ImageFormat.GetMimeType();
-            }
-        }
+        public ISupportedImageFormat CurrentImageFormat { get; private set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether to preserve exif metadata.
@@ -148,44 +116,52 @@ namespace ImageProcessor
         public ConcurrentDictionary<int, PropertyItem> ExifPropertyItems { get; set; }
 
         /// <summary>
-        /// Gets or sets the original extension.
+        /// Gets or the local image for manipulation.
         /// </summary>
-        internal string OriginalExtension { get; set; }
+        public Image Image { get; internal set; }
 
         /// <summary>
-        /// Gets or sets the quality of output for jpeg images as a percentile.
+        /// Gets or sets the stream for storing any input stream to prevent disposal.
         /// </summary>
-        internal int JpegQuality { get; set; }
+        internal Stream InputStream { get; set; }
         #endregion
 
         #region Methods
         /// <summary>
         /// Loads the image to process. Always call this method first.
         /// </summary>
-        /// <param name="memoryStream">
-        /// The <see cref="T:System.IO.MemoryStream"/> containing the image information.
+        /// <param name="stream">
+        /// The <see cref="T:System.IO.Stream"/> containing the image information.
         /// </param>
         /// <returns>
         /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
         /// </returns>
-        public ImageFactory Load(MemoryStream memoryStream)
+        public ImageFactory Load(Stream stream)
         {
+            ISupportedImageFormat format = FormatUtilities.GetFormat(stream);
+
+            if (format == null)
+            {
+                throw new ImageFormatException("Input stream is not a supported format.");
+            }
+
             // Set our image as the memory stream value.
-            this.Image = Image.FromStream(memoryStream, true);
+            this.Image = format.Load(stream);
 
             // Store the stream so we can dispose of it later.
-            this.inputStream = memoryStream;
+            this.InputStream = stream;
 
             // Set the other properties.
-            this.JpegQuality = DefaultJpegQuality;
-            this.ImageFormat = this.Image.RawFormat;
-            this.backupImageFormat = this.ImageFormat;
-            this.isIndexed = ImageUtils.IsIndexed(this.Image);
+            format.Quality = DefaultQuality;
+            format.IsIndexed = FormatUtilities.IsIndexed(this.Image);
+            this.backupFormat = format;
+            this.CurrentImageFormat = format;
 
             // Always load the data.
-            foreach (PropertyItem propertyItem in this.Image.PropertyItems)
+            // TODO. Some custom data doesn't seem to get copied by default methods.
+            foreach (int id in this.Image.PropertyIdList)
             {
-                this.ExifPropertyItems[propertyItem.Id] = propertyItem;
+                this.ExifPropertyItems[id] = this.Image.GetPropertyItem(id);
             }
 
             this.ShouldProcess = true;
@@ -202,24 +178,21 @@ namespace ImageProcessor
         /// </returns>
         public ImageFactory Load(string imagePath)
         {
-            // Remove any querystring parameters passed by web requests.
-            string[] paths = imagePath.Split('?');
-            string path = paths[0];
-            string query = string.Empty;
-
-            if (paths.Length > 1)
+            FileInfo fileInfo = new FileInfo(imagePath);
+            if (fileInfo.Exists)
             {
-                query = paths[1];
-            }
-
-            if (File.Exists(path))
-            {
-                this.ImagePath = path;
-                this.QueryString = query;
+                this.ImagePath = imagePath;
 
                 // Open a file stream to prevent the need for lock.
-                using (FileStream fileStream = new FileStream(path, FileMode.Open, FileAccess.Read))
+                using (FileStream fileStream = new FileStream(imagePath, FileMode.Open, FileAccess.Read))
                 {
+                    ISupportedImageFormat format = FormatUtilities.GetFormat(fileStream);
+
+                    if (format == null)
+                    {
+                        throw new ImageFormatException("Input stream is not a supported format.");
+                    }
+
                     MemoryStream memoryStream = new MemoryStream();
 
                     // Copy the stream.
@@ -229,18 +202,16 @@ namespace ImageProcessor
                     fileStream.Position = memoryStream.Position = 0;
 
                     // Set our image as the memory stream value.
-                    this.Image = Image.FromStream(memoryStream, true);
+                    this.Image = format.Load(memoryStream);
 
                     // Store the stream so we can dispose of it later.
-                    this.inputStream = memoryStream;
+                    this.InputStream = memoryStream;
 
                     // Set the other properties.
-                    this.JpegQuality = DefaultJpegQuality;
-                    ImageFormat imageFormat = this.Image.RawFormat;
-                    this.backupImageFormat = imageFormat;
-                    this.OriginalExtension = Path.GetExtension(this.ImagePath);
-                    this.ImageFormat = imageFormat;
-                    this.isIndexed = ImageUtils.IsIndexed(this.Image);
+                    format.Quality = DefaultQuality;
+                    format.IsIndexed = FormatUtilities.IsIndexed(this.Image);
+                    this.backupFormat = format;
+                    this.CurrentImageFormat = format;
 
                     // Always load the data.
                     foreach (PropertyItem propertyItem in this.Image.PropertyItems)
@@ -251,22 +222,9 @@ namespace ImageProcessor
                     this.ShouldProcess = true;
                 }
             }
-
-            return this;
-        }
-
-        /// <summary>
-        /// Updates the specified image. Used by the various IProcessors.
-        /// </summary>
-        /// <param name="image">The image.</param>
-        /// <returns>
-        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
-        /// </returns>
-        public ImageFactory Update(Image image)
-        {
-            if (this.ShouldProcess)
+            else
             {
-                this.Image = image;
+                throw new FileNotFoundException(imagePath);
             }
 
             return this;
@@ -283,39 +241,25 @@ namespace ImageProcessor
             if (this.ShouldProcess)
             {
                 // Set our new image as the memory stream value.
-                Image newImage = Image.FromStream(this.inputStream, true);
+#if !__MonoCS__
+                Image newImage = Image.FromStream(this.InputStream, true);
+#else
+                Image newImage = Image.FromStream(this.InputStream);
+#endif
 
                 // Dispose and reassign the image.
                 this.Image.Dispose();
                 this.Image = newImage;
 
                 // Set the other properties.
-                this.JpegQuality = DefaultJpegQuality;
-                this.ImageFormat = this.backupImageFormat;
-                this.isIndexed = ImageUtils.IsIndexed(this.Image);
+                this.CurrentImageFormat = this.backupFormat;
+                this.CurrentImageFormat.Quality = DefaultQuality;
             }
 
             return this;
         }
 
         #region Manipulation
-        /// <summary>
-        /// Adds a query-string to the image factory to allow auto-processing of remote files.
-        /// </summary>
-        /// <param name="query">The query-string parameter to process.</param>
-        /// <returns>
-        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
-        /// </returns>
-        public ImageFactory AddQueryString(string query)
-        {
-            if (this.ShouldProcess)
-            {
-                this.QueryString = query;
-            }
-
-            return this;
-        }
-
         /// <summary>
         /// Changes the opacity of the current image.
         /// </summary>
@@ -337,7 +281,7 @@ namespace ImageProcessor
                 }
 
                 Alpha alpha = new Alpha { DynamicParameter = percentage };
-                this.ApplyProcessor(alpha.ProcessImage);
+                this.CurrentImageFormat.ApplyProcessor(alpha.ProcessImage, this);
             }
 
             return this;
@@ -355,7 +299,7 @@ namespace ImageProcessor
             if (this.ShouldProcess)
             {
                 AutoRotate autoRotate = new AutoRotate();
-                this.ApplyProcessor(autoRotate.ProcessImage);
+                this.CurrentImageFormat.ApplyProcessor(autoRotate.ProcessImage, this);
             }
 
             return this;
@@ -382,7 +326,27 @@ namespace ImageProcessor
                 }
 
                 Brightness brightness = new Brightness { DynamicParameter = percentage };
-                this.ApplyProcessor(brightness.ProcessImage);
+                this.CurrentImageFormat.ApplyProcessor(brightness.ProcessImage, this);
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Changes the background color of the current image.
+        /// </summary>
+        /// <param name="color">
+        /// The <see cref="T:System.Drawing.Color"/> to paint the image with.
+        /// </param>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory BackgroundColor(Color color)
+        {
+            if (this.ShouldProcess)
+            {
+                BackgroundColor backgroundColor = new BackgroundColor { DynamicParameter = color };
+                this.CurrentImageFormat.ApplyProcessor(backgroundColor.ProcessImage, this);
             }
 
             return this;
@@ -401,7 +365,7 @@ namespace ImageProcessor
         {
             if (this.ShouldProcess)
             {
-                ResizeLayer layer = new ResizeLayer(size, Color.Transparent, ResizeMode.Max);
+                ResizeLayer layer = new ResizeLayer(size, ResizeMode.Max);
 
                 return this.Resize(layer);
             }
@@ -430,7 +394,7 @@ namespace ImageProcessor
                 }
 
                 Contrast contrast = new Contrast { DynamicParameter = percentage };
-                this.ApplyProcessor(contrast.ProcessImage);
+                this.CurrentImageFormat.ApplyProcessor(contrast.ProcessImage, this);
             }
 
             return this;
@@ -460,7 +424,7 @@ namespace ImageProcessor
         /// Crops the current image to the given location and size.
         /// </summary>
         /// <param name="cropLayer">
-        /// The <see cref="T:CropLayer"/> containing the coordinates and mode to crop the image with.
+        /// The <see cref="Imaging.CropLayer"/> containing the coordinates and mode to crop the image with.
         /// </param>
         /// <returns>
         /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
@@ -470,28 +434,7 @@ namespace ImageProcessor
             if (this.ShouldProcess)
             {
                 Crop crop = new Crop { DynamicParameter = cropLayer };
-                this.ApplyProcessor(crop.ProcessImage);
-            }
-
-            return this;
-        }
-
-        /// <summary>
-        /// Applies a filter to the current image.
-        /// </summary>
-        /// <param name="filterName">
-        /// The name of the filter to add to the image.
-        /// </param>
-        /// <returns>
-        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
-        /// </returns>
-        [Obsolete("Will be removed in next major version. Filter(IMatrixFilter matrixFilter) instead.")]
-        public ImageFactory Filter(string filterName)
-        {
-            if (this.ShouldProcess)
-            {
-                Filter filter = new Filter { DynamicParameter = filterName };
-                this.ApplyProcessor(filter.ProcessImage);
+                this.CurrentImageFormat.ApplyProcessor(crop.ProcessImage, this);
             }
 
             return this;
@@ -512,7 +455,7 @@ namespace ImageProcessor
             if (this.ShouldProcess)
             {
                 Filter filter = new Filter { DynamicParameter = matrixFilter };
-                this.ApplyProcessor(filter.ProcessImage);
+                this.CurrentImageFormat.ApplyProcessor(filter.ProcessImage, this);
             }
 
             return this;
@@ -527,16 +470,16 @@ namespace ImageProcessor
         /// <returns>
         /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
         /// </returns>
-        public ImageFactory Flip(bool flipVertically)
+        public ImageFactory Flip(bool flipVertically = false)
         {
             if (this.ShouldProcess)
             {
-                RotateFlipType rotateFlipType = flipVertically == false
-                    ? RotateFlipType.RotateNoneFlipX
-                    : RotateFlipType.RotateNoneFlipY;
+                RotateFlipType rotateFlipType = flipVertically
+                    ? RotateFlipType.RotateNoneFlipY
+                    : RotateFlipType.RotateNoneFlipX;
 
                 Flip flip = new Flip { DynamicParameter = rotateFlipType };
-                this.ApplyProcessor(flip.ProcessImage);
+                this.CurrentImageFormat.ApplyProcessor(flip.ProcessImage, this);
             }
 
             return this;
@@ -545,18 +488,15 @@ namespace ImageProcessor
         /// <summary>
         /// Sets the output format of the current image to the matching <see cref="T:System.Drawing.Imaging.ImageFormat"/>.
         /// </summary>
-        /// <param name="imageFormat">The <see cref="T:System.Drawing.Imaging.ImageFormat"/>. to set the image to.</param>
-        /// <param name="indexedFormat">Whether the pixel format of the image should be indexed. Used for generating Png8 images.</param>
+        /// <param name="format">The <see cref="ISupportedImageFormat"/>. to set the image to.</param>
         /// <returns>
         /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
         /// </returns>
-        [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1650:ElementDocumentationMustBeSpelledCorrectly", Justification = "Reviewed. Suppression is OK here.")]
-        public ImageFactory Format(ImageFormat imageFormat, bool indexedFormat = false)
+        public ImageFactory Format(ISupportedImageFormat format)
         {
             if (this.ShouldProcess)
             {
-                this.isIndexed = indexedFormat;
-                this.ImageFormat = imageFormat;
+                this.CurrentImageFormat = format;
             }
 
             return this;
@@ -603,7 +543,7 @@ namespace ImageProcessor
             if (this.ShouldProcess)
             {
                 GaussianBlur gaussianBlur = new GaussianBlur { DynamicParameter = gaussianLayer };
-                this.ApplyProcessor(gaussianBlur.ProcessImage);
+                this.CurrentImageFormat.ApplyProcessor(gaussianBlur.ProcessImage, this);
             }
 
             return this;
@@ -650,7 +590,7 @@ namespace ImageProcessor
             if (this.ShouldProcess)
             {
                 GaussianSharpen gaussianSharpen = new GaussianSharpen { DynamicParameter = gaussianLayer };
-                this.ApplyProcessor(gaussianSharpen.ProcessImage);
+                this.CurrentImageFormat.ApplyProcessor(gaussianSharpen.ProcessImage, this);
             }
 
             return this;
@@ -670,7 +610,7 @@ namespace ImageProcessor
         {
             if (this.ShouldProcess)
             {
-                this.JpegQuality = percentage;
+                this.CurrentImageFormat.Quality = percentage;
             }
 
             return this;
@@ -712,10 +652,10 @@ namespace ImageProcessor
         {
             if (this.ShouldProcess)
             {
-                var resizeSettings = new Dictionary<string, string> { { "MaxWidth", resizeLayer.Size.Width.ToString("G") }, { "MaxHeight", resizeLayer.Size.Height.ToString("G") } };
+                Dictionary<string, string> resizeSettings = new Dictionary<string, string> { { "MaxWidth", resizeLayer.Size.Width.ToString("G") }, { "MaxHeight", resizeLayer.Size.Height.ToString("G") } };
 
                 Resize resize = new Resize { DynamicParameter = resizeLayer, Settings = resizeSettings };
-                this.ApplyProcessor(resize.ProcessImage);
+                this.CurrentImageFormat.ApplyProcessor(resize.ProcessImage, this);
             }
 
             return this;
@@ -724,24 +664,51 @@ namespace ImageProcessor
         /// <summary>
         /// Rotates the current image by the given angle.
         /// </summary>
-        /// <param name="rotateLayer">
-        /// The <see cref="T:ImageProcessor.Imaging.RotateLayer"/> containing the properties to rotate the image.
+        /// <param name="degrees">
+        /// The angle at which to rotate the image in degrees.
         /// </param>
         /// <returns>
         /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
         /// </returns>
-        public ImageFactory Rotate(RotateLayer rotateLayer)
+        public ImageFactory Rotate(int degrees)
         {
             if (this.ShouldProcess)
             {
                 // Sanitize the input.
-                if (rotateLayer.Angle > 360 || rotateLayer.Angle < 0)
+                if (degrees > 360 || degrees < 0)
                 {
-                    rotateLayer.Angle = 0;
+                    degrees = 0;
                 }
 
-                Rotate rotate = new Rotate { DynamicParameter = rotateLayer };
-                this.ApplyProcessor(rotate.ProcessImage);
+                Rotate rotate = new Rotate { DynamicParameter = degrees };
+                this.CurrentImageFormat.ApplyProcessor(rotate.ProcessImage, this);
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Adds rounded corners to the current image.
+        /// </summary>
+        /// <param name="radius">
+        /// The radius at which the corner will be rounded.
+        /// </param>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory RoundedCorners(int radius)
+        {
+            if (this.ShouldProcess)
+            {
+                if (radius < 0)
+                {
+                    radius = 0;
+                }
+
+                RoundedCornerLayer roundedCornerLayer = new RoundedCornerLayer(radius);
+
+                RoundedCorners roundedCorners = new RoundedCorners { DynamicParameter = roundedCornerLayer };
+                this.CurrentImageFormat.ApplyProcessor(roundedCorners.ProcessImage, this);
             }
 
             return this;
@@ -766,7 +733,7 @@ namespace ImageProcessor
                 }
 
                 RoundedCorners roundedCorners = new RoundedCorners { DynamicParameter = roundedCornerLayer };
-                this.ApplyProcessor(roundedCorners.ProcessImage);
+                this.CurrentImageFormat.ApplyProcessor(roundedCorners.ProcessImage, this);
             }
 
             return this;
@@ -793,7 +760,7 @@ namespace ImageProcessor
                 }
 
                 Saturation saturate = new Saturation { DynamicParameter = percentage };
-                this.ApplyProcessor(saturate.ProcessImage);
+                this.CurrentImageFormat.ApplyProcessor(saturate.ProcessImage, this);
             }
 
             return this;
@@ -813,7 +780,7 @@ namespace ImageProcessor
             if (this.ShouldProcess)
             {
                 Tint tint = new Tint { DynamicParameter = color };
-                this.ApplyProcessor(tint.ProcessImage);
+                this.CurrentImageFormat.ApplyProcessor(tint.ProcessImage, this);
             }
 
             return this;
@@ -822,15 +789,24 @@ namespace ImageProcessor
         /// <summary>
         /// Adds a vignette image effect to the current image.
         /// </summary>
+        /// <param name="color">
+        /// The <see cref="T:System.Drawing.Color"/> to tint the image with. Defaults to black.
+        /// </param>
         /// <returns>
         /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
         /// </returns>
-        public ImageFactory Vignette()
+        public ImageFactory Vignette(Color? color = null)
         {
             if (this.ShouldProcess)
             {
-                Vignette vignette = new Vignette();
-                this.ApplyProcessor(vignette.ProcessImage);
+                Vignette vignette = new Vignette
+                {
+                    DynamicParameter = color.HasValue && !color.Equals(Color.Transparent)
+                                        ? color.Value
+                                        : Color.Black
+                };
+
+                this.CurrentImageFormat.ApplyProcessor(vignette.ProcessImage, this);
             }
 
             return this;
@@ -851,7 +827,7 @@ namespace ImageProcessor
             if (this.ShouldProcess)
             {
                 Watermark watermark = new Watermark { DynamicParameter = textLayer };
-                this.ApplyProcessor(watermark.ProcessImage);
+                this.CurrentImageFormat.ApplyProcessor(watermark.ProcessImage, this);
             }
 
             return this;
@@ -859,7 +835,9 @@ namespace ImageProcessor
         #endregion
 
         /// <summary>
-        /// Saves the current image to the specified file path.
+        /// Saves the current image to the specified file path. If the extension does not 
+        /// match the correct extension for the current format it will be replaced by the 
+        /// correct default value.
         /// </summary>
         /// <param name="filePath">The path to save the image to.</param>
         /// <returns>
@@ -869,93 +847,14 @@ namespace ImageProcessor
         {
             if (this.ShouldProcess)
             {
-                // We need to check here if the path has an extension and remove it if so.
-                // This is so we can add the correct image format.
-                int length = filePath.LastIndexOf(".", StringComparison.Ordinal);
-                string extension = this.ImageFormat.GetFileExtension(this.OriginalExtension);
-
-                if (length == -1)
-                {
-                    filePath = filePath + extension;
-                }
-
-                // Fix the colour palette of indexed images.
-                this.FixIndexedPallete();
-
-                // Set the property item information from any Exif metadata.
-                // We do this here so that they can be changed between processor methods.
-                if (this.PreserveExifData)
-                {
-                    foreach (KeyValuePair<int, PropertyItem> propertItem in this.ExifPropertyItems)
-                    {
-                        try
-                        {
-                            this.Image.SetPropertyItem(propertItem.Value);
-                        }
-                        // ReSharper disable once EmptyGeneralCatchClause
-                        catch
-                        {
-                            // Do nothing. The image format does not handle EXIF data.
-                            // TODO: empty catch is fierce code smell.
-                        }
-                    }
-                }
-
                 // ReSharper disable once AssignNullToNotNullAttribute
                 DirectoryInfo directoryInfo = new DirectoryInfo(Path.GetDirectoryName(filePath));
-
-                if (this.ImageFormat.Equals(ImageFormat.Jpeg))
+                if (!directoryInfo.Exists)
                 {
-                    // Jpegs can be saved with different settings to include a quality setting for the JPEG compression.
-                    // This improves output compression and quality. 
-                    using (EncoderParameters encoderParameters = ImageUtils.GetEncodingParameters(this.JpegQuality))
-                    {
-                        ImageCodecInfo imageCodecInfo =
-                            ImageCodecInfo.GetImageEncoders()
-                                .FirstOrDefault(ici => ici.MimeType.Equals(this.MimeType, StringComparison.OrdinalIgnoreCase));
-
-                        if (imageCodecInfo != null)
-                        {
-                            for (int i = 0; i < 3; i++)
-                            {
-                                try
-                                {
-                                    if (!directoryInfo.Exists)
-                                    {
-                                        directoryInfo.Create();
-                                    }
-
-                                    this.Image.Save(filePath, imageCodecInfo, encoderParameters);
-                                    break;
-                                }
-                                catch (Exception)
-                                {
-                                    Thread.Sleep(200);
-                                }
-                            }
-                        }
-                    }
+                    directoryInfo.Create();
                 }
-                else
-                {
-                    for (int i = 0; i < 3; i++)
-                    {
-                        try
-                        {
-                            if (!directoryInfo.Exists)
-                            {
-                                directoryInfo.Create();
-                            }
 
-                            this.Image.Save(filePath, this.ImageFormat);
-                            break;
-                        }
-                        catch (Exception)
-                        {
-                            Thread.Sleep(200);
-                        }
-                    }
-                }
+                this.Image = this.CurrentImageFormat.Save(filePath, this.Image);
             }
 
             return this;
@@ -964,58 +863,17 @@ namespace ImageProcessor
         /// <summary>
         /// Saves the current image to the specified output stream.
         /// </summary>
-        /// <param name="memoryStream">
+        /// <param name="stream">
         /// The <see cref="T:System.IO.MemoryStream"/> to save the image information to.
         /// </param>
         /// <returns>
         /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
         /// </returns>
-        public ImageFactory Save(MemoryStream memoryStream)
+        public ImageFactory Save(Stream stream)
         {
             if (this.ShouldProcess)
             {
-                // Fix the colour palette of gif and png8 images.
-                this.FixIndexedPallete();
-
-                // Set the property item information from any Exif metadata.
-                // We do this here so that they can be changed between processor methods.
-                if (this.PreserveExifData)
-                {
-                    foreach (KeyValuePair<int, PropertyItem> propertItem in this.ExifPropertyItems)
-                    {
-                        try
-                        {
-                            this.Image.SetPropertyItem(propertItem.Value);
-                        }
-                        // ReSharper disable once EmptyGeneralCatchClause
-                        catch
-                        {
-                            // Do nothing. The image format does not handle EXIF data.
-                            // TODO: empty catch is fierce code smell.
-                        }
-                    }
-                }
-
-                if (this.ImageFormat.Equals(ImageFormat.Jpeg))
-                {
-                    // Jpegs can be saved with different settings to include a quality setting for the JPEG compression.
-                    // This improves output compression and quality. 
-                    using (EncoderParameters encoderParameters = ImageUtils.GetEncodingParameters(this.JpegQuality))
-                    {
-                        ImageCodecInfo imageCodecInfo =
-                            ImageCodecInfo.GetImageEncoders().FirstOrDefault(
-                                ici => ici.MimeType.Equals(this.MimeType, StringComparison.OrdinalIgnoreCase));
-
-                        if (imageCodecInfo != null)
-                        {
-                            this.Image.Save(memoryStream, imageCodecInfo, encoderParameters);
-                        }
-                    }
-                }
-                else
-                {
-                    this.Image.Save(memoryStream, this.ImageFormat);
-                }
+                this.Image = this.CurrentImageFormat.Save(stream, this.Image);
             }
 
             return this;
@@ -1054,10 +912,10 @@ namespace ImageProcessor
                 if (this.Image != null)
                 {
                     // Dispose of the memory stream from Load and the image.
-                    if (this.inputStream != null)
+                    if (this.InputStream != null)
                     {
-                        this.inputStream.Dispose();
-                        this.inputStream = null;
+                        this.InputStream.Dispose();
+                        this.InputStream = null;
                     }
 
                     this.Image.Dispose();
@@ -1071,62 +929,6 @@ namespace ImageProcessor
             this.isDisposed = true;
         }
         #endregion
-
-        /// <summary>
-        /// Uses the <see cref="T:ImageProcessor.Imaging.ColorQuantizer"/>
-        /// to fix the color palette of gif images.
-        /// </summary>
-        private void FixIndexedPallete()
-        {
-            ImageFormat format = this.ImageFormat;
-
-            // Fix the colour palette of indexed images.
-            if (this.isIndexed || format.Equals(ImageFormat.Gif))
-            {
-                ImageInfo imageInfo = this.Image.GetImageInfo(format, false);
-
-                if (!imageInfo.IsAnimated)
-                {
-                    this.Image = new OctreeQuantizer(255, 8).Quantize(this.Image);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Applies the given processor the current image.
-        /// </summary>
-        /// <param name="processor">
-        /// The processor delegate.
-        /// </param>
-        private void ApplyProcessor(Func<ImageFactory, Image> processor)
-        {
-            ImageInfo imageInfo = this.Image.GetImageInfo(this.ImageFormat);
-
-            if (imageInfo.IsAnimated)
-            {
-                OctreeQuantizer quantizer = new OctreeQuantizer(255, 8);
-
-                // We don't dispose of the memory stream as that is disposed when a new image is created and doing so 
-                // beforehand will cause an exception.
-                MemoryStream stream = new MemoryStream();
-                using (GifEncoder encoder = new GifEncoder(stream, null, null, imageInfo.LoopCount))
-                {
-                    foreach (GifFrame frame in imageInfo.GifFrames)
-                    {
-                        this.Image = frame.Image;
-                        frame.Image = quantizer.Quantize(processor.Invoke(this));
-                        encoder.AddFrame(frame);
-                    }
-                }
-
-                stream.Position = 0;
-                this.Image = Image.FromStream(stream);
-            }
-            else
-            {
-                this.Image = processor.Invoke(this);
-            }
-        }
         #endregion
     }
 }

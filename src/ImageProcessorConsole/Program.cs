@@ -16,6 +16,7 @@ namespace ImageProcessorConsole
     using System.IO;
     using System.Linq;
     using ImageProcessor;
+    using ImageProcessor.Plugins.Cair;
 
     /// <summary>
     /// The program.
@@ -40,8 +41,8 @@ namespace ImageProcessorConsole
                 di.Create();
             }
 
-            //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".jpg");
-            IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif", ".webp", ".bmp", ".jpg", ".png");
+            IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".jpg");
+            //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif", ".webp", ".bmp", ".jpg", ".png");
 
             foreach (FileInfo fileInfo in files)
             {
@@ -52,11 +53,14 @@ namespace ImageProcessorConsole
                 {
                     using (ImageFactory imageFactory = new ImageFactory(true))
                     {
-                        Size size = new Size(200, 200);
+                        Size size = new Size(800, 0);
 
                         // Load, resize, set the format and quality and save an image.
                         imageFactory.Load(inStream)
-                            .Constrain(size)
+                            //.BackgroundColor(Color.White)
+                            //.Resize(new Size((int)(size.Width * 1.1), 0))
+                            .ContentAwareResize(size)
+                            //.Constrain(size)
                             .Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", fileInfo.Name)));
                     }
                 }

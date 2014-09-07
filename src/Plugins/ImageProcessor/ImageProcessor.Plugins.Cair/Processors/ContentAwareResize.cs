@@ -19,7 +19,6 @@ namespace ImageProcessor.Plugins.Cair.Processors
     using System.IO;
 
     using ImageProcessor.Common.Exceptions;
-    using ImageProcessor.Imaging;
     using ImageProcessor.Plugins.Cair.Imaging;
     using ImageProcessor.Processors;
 
@@ -76,9 +75,6 @@ namespace ImageProcessor.Plugins.Cair.Processors
             ContentAwareResizeLayer layer = (ContentAwareResizeLayer)this.DynamicParameter;
             int width = layer.Size.Width;
             int height = layer.Size.Height;
-            ConvolutionType convolutionType = layer.ConvolutionType;
-            EnergyFunction energyFunction = layer.EnergyFunction;
-            bool parallelize = layer.Parallelize;
             int timeout = layer.Timeout > 0 ? layer.Timeout : 60000;
 
             int defaultMaxWidth;
@@ -120,14 +116,20 @@ namespace ImageProcessor.Plugins.Cair.Processors
 
                     // Process the image using the CAIR executable.
                     string arguments = string.Format(
-                        " -I \"{0}\" -O \"{1}\" -C {2} -X {3} -Y {4} -E {5} -T {6}",
+                        " -I \"{0}\" -O \"{1}\" -C {2} -X {3} -Y {4} -E {5} -T {6} -R {7}",
                         sourcePath,
                         resizedPath,
-                        (int)convolutionType,
+                        (int)layer.ConvolutionType,
                         width,
                         height,
-                        (int)energyFunction,
-                        parallelize ? Math.Min(4, Environment.ProcessorCount) : 1);
+                        (int)layer.EnergyFunction,
+                        layer.Parallelize ? Math.Min(4, Environment.ProcessorCount) : 1,
+                        (int)layer.OutputType);
+
+                    if (!string.IsNullOrWhiteSpace(layer.WeightPath))
+                    {
+                        arguments = string.Format("{0} -W {1}", arguments, layer.WeightPath);
+                    }
 
                     bool success = this.ProcessCairImage(arguments, timeout);
 

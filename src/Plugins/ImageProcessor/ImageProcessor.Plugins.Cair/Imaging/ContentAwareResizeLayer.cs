@@ -20,7 +20,7 @@ namespace ImageProcessor.Plugins.Cair.Imaging
         /// <summary>
         /// The convolution type to apply to the layer.
         /// </summary>
-        private ContentAwareResizeConvolutionType convolutionType = ContentAwareResizeConvolutionType.Prewitt;
+        private ConvolutionType convolutionType = ConvolutionType.Prewitt;
 
         /// <summary>
         /// The energy function to apply to the layer.
@@ -28,14 +28,14 @@ namespace ImageProcessor.Plugins.Cair.Imaging
         private EnergyFunction energyFunction = EnergyFunction.Forward;
 
         /// <summary>
+        /// The expected output type.
+        /// </summary>
+        private OutputType outputType = OutputType.Cair;
+
+        /// <summary>
         /// Whether to assign multiple threads to the resizing method.
         /// </summary>
         private bool parallelize = true;
-
-        /// <summary>
-        /// Whether to pre-scale the image to reduce errors in the output.
-        /// </summary>
-        private bool prescale = true;
 
         /// <summary>
         /// The timeout in milliseconds to attempt to resize for.
@@ -54,14 +54,9 @@ namespace ImageProcessor.Plugins.Cair.Imaging
         }
 
         /// <summary>
-        /// Gets or sets the size.
-        /// </summary>
-        public Size Size { get; set; }
-
-        /// <summary>
         /// Gets or sets the content aware resize convolution type (Default ContentAwareResizeConvolutionType.Prewitt).
         /// </summary>
-        public ContentAwareResizeConvolutionType ConvolutionType
+        public ConvolutionType ConvolutionType
         {
             get
             {
@@ -91,6 +86,39 @@ namespace ImageProcessor.Plugins.Cair.Imaging
         }
 
         /// <summary>
+        /// Gets or sets the expected output type.
+        /// </summary>
+        public OutputType OutputType
+        {
+            get
+            {
+                return this.outputType;
+            }
+
+            set
+            {
+                this.outputType = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the size.
+        /// </summary>
+        public Size Size { get; set; }
+
+        /// <summary>
+        /// Gets or sets the the file path to a bitmap file that provides weight indicators specified using
+        /// color to guide preservation of image portions during carving. 
+        /// <remarks>
+        /// The following colors define weight guidance.
+        /// &#10; <see cref="Color.Green"/> - Protect the weight.
+        ///  &#10; <see cref="Color.Red"/> - Remove the weight.
+        ///  &#10; <see cref="Color.Black"/> - No weight.
+        /// </remarks>
+        /// </summary>
+        public string WeightPath { get; set; }
+
+        /// <summary>
         /// Gets or sets a value indicating whether to assign multiple threads to the resizing method.
         /// (Default true)
         /// </summary>
@@ -104,23 +132,6 @@ namespace ImageProcessor.Plugins.Cair.Imaging
             set
             {
                 this.parallelize = value;
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether to pre-scale the image to reduce errors in the output.
-        /// (Default true)
-        /// </summary>
-        public bool PreScale
-        {
-            get
-            {
-                return this.prescale;
-            }
-
-            set
-            {
-                this.prescale = value;
             }
         }
 
@@ -162,7 +173,12 @@ namespace ImageProcessor.Plugins.Cair.Imaging
             }
 
             return this.Size == resizeLayer.Size
-                && this.ConvolutionType == resizeLayer.ConvolutionType;
+                && this.ConvolutionType == resizeLayer.ConvolutionType
+                && this.EnergyFunction == resizeLayer.EnergyFunction
+                && this.OutputType == resizeLayer.OutputType
+                && this.Parallelize == resizeLayer.Parallelize
+                && this.Timeout == resizeLayer.Timeout
+                && this.WeightPath == resizeLayer.WeightPath;
         }
 
         /// <summary>
@@ -173,7 +189,13 @@ namespace ImageProcessor.Plugins.Cair.Imaging
         /// </returns>
         public override int GetHashCode()
         {
-            return this.Size.GetHashCode() + this.ConvolutionType.GetHashCode();
+            return this.Size.GetHashCode() +
+                   this.ConvolutionType.GetHashCode() +
+                   this.EnergyFunction.GetHashCode() +
+                   this.OutputType.GetHashCode() +
+                   this.Parallelize.GetHashCode() +
+                   this.Timeout.GetHashCode() +
+                   this.WeightPath.GetHashCode();
         }
     }
 }

@@ -45,9 +45,10 @@
   <ItemGroup>
     <Compile Include="CairBootstrapper.cs" />
     <Compile Include="ImageFactoryExtensions.cs" />
-    <Compile Include="Imaging\ContentAwareResizeConvolutionType.cs" />
     <Compile Include="Imaging\ContentAwareResizeLayer.cs" />
+    <Compile Include="Imaging\ConvolutionType.cs" />
     <Compile Include="Imaging\EnergyFunction.cs" />
+    <Compile Include="Imaging\OutputType.cs" />
     <Compile Include="Processors\ContentAwareResize.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

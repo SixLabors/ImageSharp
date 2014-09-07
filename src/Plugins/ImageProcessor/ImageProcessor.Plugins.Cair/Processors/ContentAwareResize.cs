@@ -19,7 +19,6 @@ namespace ImageProcessor.Plugins.Cair.Processors
     using System.IO;
 
     using ImageProcessor.Common.Exceptions;
-    using ImageProcessor.Imaging;
     using ImageProcessor.Plugins.Cair.Imaging;
     using ImageProcessor.Processors;
 
@@ -69,17 +68,14 @@ namespace ImageProcessor.Plugins.Cair.Processors
             string fileName = Guid.NewGuid().ToString();
 
             // Use bmp's as the temporary files since they are lossless and support transparency.
-            string sourcePath = Path.Combine(CairBootstrapper.CairImagePath, fileName + ".bmp");
-            string resizedPath = Path.Combine(CairBootstrapper.CairImagePath, fileName + "-r.bmp");
+            string sourcePath = Path.Combine(CairBootstrapper.CairPath, fileName + ".bmp");
+            string resizedPath = Path.Combine(CairBootstrapper.CairPath, fileName + "-r.bmp");
 
             // Gather the parameters.
-            int width = this.DynamicParameter.Size.Width ?? 0;
-            int height = this.DynamicParameter.Size.Height ?? 0;
-            ContentAwareResizeConvolutionType convolutionType = this.DynamicParameter.ConvolutionType;
-            EnergyFunction energyFunction = this.DynamicParameter.EnergyFunction;
-            bool prescale = this.DynamicParameter.PreScale;
-            bool parallelize = this.DynamicParameter.Parallelize;
-            int timeout = this.DynamicParameter.Timeout ?? 60000;
+            ContentAwareResizeLayer layer = (ContentAwareResizeLayer)this.DynamicParameter;
+            int width = layer.Size.Width;
+            int height = layer.Size.Height;
+            int timeout = layer.Timeout > 0 ? layer.Timeout : 60000;
 
             int defaultMaxWidth;
             int defaultMaxHeight;
@@ -115,47 +111,27 @@ namespace ImageProcessor.Plugins.Cair.Processors
 
                 if (width > 0 && height > 0 && width <= maxWidth && height <= maxHeight)
                 {
-                    if (prescale)
-                    {
-                        if (width < image.Width || height < image.Height)
-                        {
-                            int preWidth = Math.Min(image.Width, width + 50); //(int)Math.Ceiling(width * 1.25));
-                            ResizeLayer layer = new ResizeLayer(new Size(preWidth, 0));
-                            Dictionary<string, string> resizeSettings = new Dictionary<string, string>
-                            {
-                                {
-                                    "MaxWidth", image.Width.ToString("G")
-                                },
-                                {
-                                    "MaxHeight", image.Height.ToString("G")
-                                }
-                            };
-                            Resize resize = new Resize { DynamicParameter = layer, Settings = resizeSettings };
-                            image = resize.ProcessImage(factory);
-                        }
-                    }
-
                     // Save the temporary bitmap.
                     image.Save(sourcePath, ImageFormat.Bmp);
 
                     // Process the image using the CAIR executable.
                     string arguments = string.Format(
-                        " -I \"{0}\" -O \"{1}\" -C {2} -X {3} -Y {4} -E {5} -T {6}",
+                        " -I \"{0}\" -O \"{1}\" -C {2} -X {3} -Y {4} -E {5} -T {6} -R {7}",
                         sourcePath,
                         resizedPath,
-                        (int)convolutionType,
+                        (int)layer.ConvolutionType,
                         width,
                         height,
-                        (int)energyFunction,
-                        parallelize ? Math.Min(4, Environment.ProcessorCount) : 1);
+                        (int)layer.EnergyFunction,
+                        layer.Parallelize ? Math.Min(4, Environment.ProcessorCount) : 1,
+                        (int)layer.OutputType);
 
-                    bool success = this.ProcessCairImage(arguments, timeout);
-
-                    if (!success)
+                    if (!string.IsNullOrWhiteSpace(layer.WeightPath))
                     {
-                        throw new ImageProcessingException(
-                            "Error processing image with " + this.GetType().Name + " due to timeout.");
+                        arguments = string.Format("{0} -W {1}", arguments, layer.WeightPath);
                     }
+
+                    this.ProcessCairImage(arguments, timeout);
 
                     // Assign the new image.
                     newImage = new Bitmap(resizedPath);
@@ -202,13 +178,10 @@ namespace ImageProcessor.Plugins.Cair.Processors
         /// <param name="timeout">
         /// The time in milliseconds to attempt to resize the image for.
         /// </param>
-        /// <returns>
-        /// The <see cref="bool"/>.
-        /// </returns>
-        private bool ProcessCairImage(string arguments, int timeout)
+        private void ProcessCairImage(string arguments, int timeout)
         {
             // Set up and start a new process to resize the image.
-            ProcessStartInfo start = new ProcessStartInfo(CairBootstrapper.CairPath, arguments)
+            ProcessStartInfo start = new ProcessStartInfo(CairBootstrapper.CairExecutablePath, arguments)
             {
                 WindowStyle = ProcessWindowStyle.Hidden,
                 UseShellExecute = false,
@@ -222,18 +195,21 @@ namespace ImageProcessor.Plugins.Cair.Processors
             {
                 if (process != null)
                 {
-                    bool result = process.WaitForExit(timeout);
-
-                    if (!result)
+                    if (!process.WaitForExit(timeout))
                     {
                         process.Kill();
+
+                        throw new ImageProcessingException("Error processing image with " + this.GetType().Name + " due to timeout.");
                     }
 
-                    return result;
+                    string output = string.Format(" {0} {1}", process.StandardError.ReadToEnd(), process.StandardOutput.ReadToEnd());
+
+                    if (process.ExitCode != 0)
+                    {
+                        throw new ImageProcessingException("Error processing image with " + this.GetType().Name + output);
+                    }
                 }
             }
-
-            return false;
         }
     }
 }

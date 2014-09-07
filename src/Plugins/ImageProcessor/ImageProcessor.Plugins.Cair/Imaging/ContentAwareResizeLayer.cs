@@ -54,11 +54,6 @@ namespace ImageProcessor.Plugins.Cair.Imaging
         }
 
         /// <summary>
-        /// Gets or sets the size.
-        /// </summary>
-        public Size Size { get; set; }
-
-        /// <summary>
         /// Gets or sets the content aware resize convolution type (Default ContentAwareResizeConvolutionType.Prewitt).
         /// </summary>
         public ConvolutionType ConvolutionType
@@ -105,6 +100,23 @@ namespace ImageProcessor.Plugins.Cair.Imaging
                 this.outputType = value;
             }
         }
+
+        /// <summary>
+        /// Gets or sets the size.
+        /// </summary>
+        public Size Size { get; set; }
+
+        /// <summary>
+        /// Gets or sets the the file path to a bitmap file that provides weight indicators specified using
+        /// color to guide preservation of image portions during carving. 
+        /// <remarks>
+        /// The following colors define weight guidance.
+        /// &#10; <see cref="Color.Green"/> - Protect the weight.
+        ///  &#10; <see cref="Color.Red"/> - Remove the weight.
+        ///  &#10; <see cref="Color.Black"/> - No weight.
+        /// </remarks>
+        /// </summary>
+        public string WeightPath { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether to assign multiple threads to the resizing method.
@@ -165,7 +177,8 @@ namespace ImageProcessor.Plugins.Cair.Imaging
                 && this.EnergyFunction == resizeLayer.EnergyFunction
                 && this.OutputType == resizeLayer.OutputType
                 && this.Parallelize == resizeLayer.Parallelize
-                && this.Timeout == resizeLayer.Timeout;
+                && this.Timeout == resizeLayer.Timeout
+                && this.WeightPath == resizeLayer.WeightPath;
         }
 
         /// <summary>
@@ -181,7 +194,8 @@ namespace ImageProcessor.Plugins.Cair.Imaging
                    this.EnergyFunction.GetHashCode() +
                    this.OutputType.GetHashCode() +
                    this.Parallelize.GetHashCode() +
-                   this.Timeout.GetHashCode();
+                   this.Timeout.GetHashCode() +
+                   this.WeightPath.GetHashCode();
         }
     }
 }

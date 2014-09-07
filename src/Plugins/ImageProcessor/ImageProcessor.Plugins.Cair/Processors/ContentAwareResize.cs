@@ -131,13 +131,7 @@ namespace ImageProcessor.Plugins.Cair.Processors
                         arguments = string.Format("{0} -W {1}", arguments, layer.WeightPath);
                     }
 
-                    bool success = this.ProcessCairImage(arguments, timeout);
-
-                    if (!success)
-                    {
-                        throw new ImageProcessingException(
-                            "Error processing image with " + this.GetType().Name + " due to timeout.");
-                    }
+                    this.ProcessCairImage(arguments, timeout);
 
                     // Assign the new image.
                     newImage = new Bitmap(resizedPath);
@@ -184,10 +178,7 @@ namespace ImageProcessor.Plugins.Cair.Processors
         /// <param name="timeout">
         /// The time in milliseconds to attempt to resize the image for.
         /// </param>
-        /// <returns>
-        /// The <see cref="bool"/>.
-        /// </returns>
-        private bool ProcessCairImage(string arguments, int timeout)
+        private void ProcessCairImage(string arguments, int timeout)
         {
             // Set up and start a new process to resize the image.
             ProcessStartInfo start = new ProcessStartInfo(CairBootstrapper.CairExecutablePath, arguments)
@@ -204,18 +195,21 @@ namespace ImageProcessor.Plugins.Cair.Processors
             {
                 if (process != null)
                 {
-                    bool result = process.WaitForExit(timeout);
-
-                    if (!result)
+                    if (!process.WaitForExit(timeout))
                     {
                         process.Kill();
+
+                        throw new ImageProcessingException("Error processing image with " + this.GetType().Name + " due to timeout.");
                     }
 
-                    return result;
+                    string output = string.Format(" {0} {1}", process.StandardError.ReadToEnd(), process.StandardOutput.ReadToEnd());
+
+                    if (process.ExitCode != 0)
+                    {
+                        throw new ImageProcessingException("Error processing image with " + this.GetType().Name + output);
+                    }
                 }
             }
-
-            return false;
         }
     }
 }

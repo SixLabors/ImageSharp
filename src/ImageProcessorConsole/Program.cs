@@ -12,11 +12,13 @@ namespace ImageProcessorConsole
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Drawing;
     using System.IO;
     using System.Linq;
     using ImageProcessor;
     using ImageProcessor.Plugins.Cair;
+    using ImageProcessor.Plugins.Cair.Imaging;
 
     /// <summary>
     /// The program.
@@ -48,6 +50,11 @@ namespace ImageProcessorConsole
             {
                 byte[] photoBytes = File.ReadAllBytes(fileInfo.FullName);
 
+                Console.WriteLine("Processing: " + fileInfo.Name);
+
+                Stopwatch stopwatch = new Stopwatch();
+                stopwatch.Start();
+
                 // ImageProcessor
                 using (MemoryStream inStream = new MemoryStream(photoBytes))
                 {
@@ -55,15 +62,24 @@ namespace ImageProcessorConsole
                     {
                         Size size = new Size(800, 0);
 
+                        ContentAwareResizeLayer layer = new ContentAwareResizeLayer(size)
+                        {
+                            ConvolutionType = ConvolutionType.Sobel
+                        };
+
                         // Load, resize, set the format and quality and save an image.
                         imageFactory.Load(inStream)
                             //.BackgroundColor(Color.White)
                             //.Resize(new Size((int)(size.Width * 1.1), 0))
-                            .ContentAwareResize(size)
+                            .ContentAwareResize(layer)
                             //.Constrain(size)
                             .Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", fileInfo.Name)));
+
+                        stopwatch.Stop();
                     }
                 }
+
+                Console.WriteLine("Processed: " + fileInfo.Name + " in " + stopwatch.ElapsedMilliseconds + "ms");
             }
         }
 

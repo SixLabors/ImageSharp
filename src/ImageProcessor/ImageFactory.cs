@@ -597,6 +597,33 @@ namespace ImageProcessor
         }
 
         /// <summary>
+        /// Changes the hue of the current image.
+        /// </summary>
+        /// <param name="degrees">
+        /// The angle by which to alter the images hue.
+        /// Any integer between 0 and 359.
+        /// </param>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory Hue(int degrees)
+        {
+            // Sanitize the input.
+            if (degrees > 360 || degrees < 0)
+            {
+                degrees = 0;
+            }
+
+            if (this.ShouldProcess)
+            {
+                Hue hue = new Hue { DynamicParameter = degrees };
+                this.CurrentImageFormat.ApplyProcessor(hue.ProcessImage, this);
+            }
+
+            return this;
+        }
+
+        /// <summary>
         /// Alters the output quality of the current image.
         /// <remarks>
         /// This method will only effect the output quality of jpeg images

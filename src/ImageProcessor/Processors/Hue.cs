@@ -1,10 +1,10 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="Alpha.cs" company="James South">
+// <copyright file="Hue.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   Encapsulates methods to change the alpha component of the image to effect its transparency.
+//   Encapsulates methods to rotate the hue component of an image.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -13,19 +13,19 @@ namespace ImageProcessor.Processors
     using System;
     using System.Collections.Generic;
     using System.Drawing;
-    using System.Drawing.Imaging;
-
     using ImageProcessor.Common.Exceptions;
+    using ImageProcessor.Imaging;
+    using ImageProcessor.Imaging.Colors;
 
     /// <summary>
-    /// Encapsulates methods to change the alpha component of the image to effect its transparency.
+    /// Encapsulates methods to rotate the hue component of an image.
     /// </summary>
-    public class Alpha : IGraphicsProcessor
+    public class Hue : IGraphicsProcessor
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="Alpha"/> class.
+        /// Initializes a new instance of the <see cref="Hue"/> class.
         /// </summary>
-        public Alpha()
+        public Hue()
         {
             this.Settings = new Dictionary<string, string>();
         }
@@ -33,20 +33,12 @@ namespace ImageProcessor.Processors
         /// <summary>
         /// Gets or sets the dynamic parameter.
         /// </summary>
-        public dynamic DynamicParameter
-        {
-            get;
-            set;
-        }
+        public dynamic DynamicParameter { get; set; }
 
         /// <summary>
         /// Gets or sets any additional settings required by the processor.
         /// </summary>
-        public Dictionary<string, string> Settings
-        {
-            get;
-            set;
-        }
+        public Dictionary<string, string> Settings { get; set; }
 
         /// <summary>
         /// Processes the image.
@@ -65,34 +57,28 @@ namespace ImageProcessor.Processors
 
             try
             {
-                int alphaPercent = this.DynamicParameter;
+                int degrees = this.DynamicParameter;
+                int width = image.Width;
+                int height = image.Height;
 
-                newImage = new Bitmap(image.Width, image.Height, PixelFormat.Format32bppPArgb);
+                newImage = new Bitmap(image);
 
-                ColorMatrix colorMatrix = new ColorMatrix();
-                colorMatrix.Matrix00 = colorMatrix.Matrix11 = colorMatrix.Matrix22 = colorMatrix.Matrix44 = 1;
-                colorMatrix.Matrix33 = (float)alphaPercent / 100;
-
-                using (Graphics graphics = Graphics.FromImage(newImage))
+                using (FastBitmap fastBitmap = new FastBitmap(newImage))
                 {
-                    using (ImageAttributes imageAttributes = new ImageAttributes())
+                    for (int i = 0; i < width; i++)
                     {
-                        imageAttributes.SetColorMatrix(colorMatrix);
-
-                        graphics.DrawImage(
-                            image,
-                            new Rectangle(0, 0, image.Width, image.Height),
-                            0,
-                            0,
-                            image.Width,
-                            image.Height,
-                            GraphicsUnit.Pixel,
-                            imageAttributes);
-
-                        image.Dispose();
-                        image = newImage;
+                        for (int j = 0; j < height; j++)
+                        {
+                            HSLAColor hsl = new HSLAColor(fastBitmap.GetPixel(i, j));
+                            hsl.Hue = (hsl.Hue + (degrees / 360f)) % 1;
+                            //hsl.Hue = (degrees / 360f);
+                            fastBitmap.SetPixel(i, j, hsl);
+                        }
                     }
                 }
+
+                image.Dispose();
+                image = newImage;
             }
             catch (Exception ex)
             {

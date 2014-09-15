@@ -17,6 +17,7 @@ namespace ImageProcessorConsole
     using System.IO;
     using System.Linq;
     using ImageProcessor;
+    using ImageProcessor.Imaging;
     using ImageProcessor.Plugins.Cair;
     using ImageProcessor.Plugins.Cair.Imaging;
 
@@ -50,7 +51,15 @@ namespace ImageProcessorConsole
             {
                 byte[] photoBytes = File.ReadAllBytes(fileInfo.FullName);
 
-                Console.WriteLine("Processing: " + fileInfo.Name);
+                //Color color = Color.Green;
+                //HSLAColor hslaColor = HSLAColor.FromRGBA(color);
+                //Console.WriteLine("H:" + hslaColor.H + " S:" + hslaColor.S + " L:" + hslaColor.L);
+               
+                //Color color2 = HSLAColor.ToRGBA(hslaColor);
+
+                //Console.WriteLine("Color Out: " + "R:" + color2.R + " G:" + color2.G + " B:" + color2.B + " A:" + color2.A);
+                //Console.WriteLine(color2 == Color.Green);
+                //Console.WriteLine("Processing: " + fileInfo.Name);
 
                 Stopwatch stopwatch = new Stopwatch();
                 stopwatch.Start();
@@ -60,19 +69,20 @@ namespace ImageProcessorConsole
                 {
                     using (ImageFactory imageFactory = new ImageFactory(true))
                     {
-                        Size size = new Size(800, 0);
+                        Size size = new Size(448, 0);
 
-                        ContentAwareResizeLayer layer = new ContentAwareResizeLayer(size)
-                        {
-                            ConvolutionType = ConvolutionType.Sobel
-                        };
+                        //ContentAwareResizeLayer layer = new ContentAwareResizeLayer(size)
+                        //{
+                        //    ConvolutionType = ConvolutionType.Sobel
+                        //};
 
                         // Load, resize, set the format and quality and save an image.
                         imageFactory.Load(inStream)
                             //.BackgroundColor(Color.White)
                             //.Resize(new Size((int)(size.Width * 1.1), 0))
-                            .ContentAwareResize(layer)
-                            //.Constrain(size)
+                            //.ContentAwareResize(layer)
+                            .Constrain(size)
+                            .Hue(180)
                             .Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", fileInfo.Name)));
 
                         stopwatch.Stop();
@@ -81,6 +91,8 @@ namespace ImageProcessorConsole
 
                 Console.WriteLine("Processed: " + fileInfo.Name + " in " + stopwatch.ElapsedMilliseconds + "ms");
             }
+
+            Console.ReadLine();
         }
 
         public static IEnumerable<FileInfo> GetFilesByExtensions(DirectoryInfo dir, params string[] extensions)

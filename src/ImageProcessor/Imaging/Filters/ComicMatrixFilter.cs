@@ -12,7 +12,6 @@ namespace ImageProcessor.Imaging.Filters
 {
     #region Using
     using System;
-    using System.Diagnostics.CodeAnalysis;
     using System.Drawing;
     using System.Drawing.Drawing2D;
     using System.Drawing.Imaging;
@@ -27,23 +26,6 @@ namespace ImageProcessor.Imaging.Filters
     /// </summary>
     internal class ComicMatrixFilter : MatrixFilterBase
     {
-        /// <summary>
-        /// Enumerates Argb color channels.
-        /// </summary>
-        [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1650:ElementDocumentationMustBeSpelledCorrectly", Justification = "Reviewed. Suppression is OK here.")]
-        private enum ChannelArgb
-        {
-            /// <summary>
-            /// The blue channel
-            /// </summary>
-            Blue = 0,
-
-            /// <summary>
-            /// The alpha channel
-            /// </summary>
-            Alpha = 3
-        }
-
         /// <summary>
         /// Gets the <see cref="T:System.Drawing.Imaging.ColorMatrix"/> for this filter instance.
         /// </summary>
@@ -127,7 +109,7 @@ namespace ImageProcessor.Imaging.Filters
                     }
 
                     // Transfer the alpha channel from the mask to the high saturation image.
-                    TransferOneArgbChannelFromOneBitmapToAnother(patternBitmap, lowBitmap, ChannelArgb.Blue, ChannelArgb.Alpha);
+                    ApplyMask(patternBitmap, lowBitmap);
 
                     using (Graphics graphics = Graphics.FromImage(newImage))
                     {
@@ -511,7 +493,7 @@ namespace ImageProcessor.Imaging.Filters
         }
 
         /// <summary>
-        /// Transfers a single ARGB channel from one image to another.
+        /// Applies a mask .
         /// </summary>
         /// <param name="source">
         /// The source.
@@ -519,65 +501,38 @@ namespace ImageProcessor.Imaging.Filters
         /// <param name="destination">
         /// The destination.
         /// </param>
-        /// <param name="sourceChannel">
-        /// The source channel.
-        /// </param>
-        /// <param name="destinationChannel">
-        /// The destination channel.
-        /// </param>
-        private static void TransferOneArgbChannelFromOneBitmapToAnother(Bitmap source, Bitmap destination, ChannelArgb sourceChannel, ChannelArgb destinationChannel)
+        /// <exception cref="ArgumentException">
+        /// Thrown if the two images are of different size.
+        /// </exception>
+        private static void ApplyMask(Bitmap source, Bitmap destination)
         {
             if (source.Size != destination.Size)
             {
                 throw new ArgumentException();
             }
 
-            Rectangle rectangle = new Rectangle(Point.Empty, source.Size);
-
-            // Lock the source.
-            BitmapData bitmapDataSource = source.LockBits(rectangle, ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
-
-            // Declare an array to hold the bytes of the bitmap.
-            int bytes = bitmapDataSource.Stride * bitmapDataSource.Height;
-
-            // Allocate a buffer for the source image
-            byte[] sourceRgbValues = new byte[bytes];
-
-            // Copy the RGB values into the array.
-            Marshal.Copy(bitmapDataSource.Scan0, sourceRgbValues, 0, bytes);
-
-            // Unlock the source.
-            source.UnlockBits(bitmapDataSource);
-
-            // Lock the destination.
-            BitmapData bitmapDataDestination = destination.LockBits(rectangle, ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
-
-            // Allocate a buffer for image
-            byte[] destinationRgbValues = new byte[bytes];
-
-            // Copy the RGB values into the array.
-            Marshal.Copy(bitmapDataDestination.Scan0, destinationRgbValues, 0, bytes);
-
-            int s = (int)sourceChannel;
-            int d = (int)destinationChannel;
-
-            for (int i = rectangle.Height * rectangle.Width; i > 0; i--)
+            using (FastBitmap sourceBitmap = new FastBitmap(source))
             {
-                // Copy the alpha values across.
-                if (destinationRgbValues[d] != 0)
+                using (FastBitmap destinationBitmap = new FastBitmap(destination))
                 {
-                    destinationRgbValues[d] = sourceRgbValues[s];
+                    int width = source.Width;
+                    int height = source.Height;
+
+                    for (int i = 0; i < width; i++)
+                    {
+                        for (int j = 0; j < height; j++)
+                        {
+                            Color sourceColor = sourceBitmap.GetPixel(i, j);
+                            Color destinationColor = destinationBitmap.GetPixel(i, j);
+
+                            if (destinationColor.A != 0)
+                            {
+                                destinationBitmap.SetPixel(i, j, Color.FromArgb(sourceColor.B, destinationColor.R, destinationColor.G, destinationColor.B));
+                            }
+                        }
+                    }
                 }
-
-                d += 4;
-                s += 4;
             }
-
-            // Copy the RGB values back to the bitmap
-            Marshal.Copy(destinationRgbValues, 0, bitmapDataDestination.Scan0, bytes);
-
-            // Unlock bits the destination.
-            destination.UnlockBits(bitmapDataDestination);
         }
     }
 }

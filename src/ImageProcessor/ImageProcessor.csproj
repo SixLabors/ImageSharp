@@ -70,6 +70,9 @@
     <Compile Include="Common\Extensions\DoubleExtensions.cs" />
     <Compile Include="Configuration\NativeBinaryFactory.cs" />
     <Compile Include="Configuration\NativeMethods.cs" />
+    <Compile Include="Imaging\Colors\HSLColor.cs" />
+    <Compile Include="Imaging\Colors\RGBAColor.cs" />
+    <Compile Include="Imaging\FastBitmap.cs" />
     <Compile Include="Imaging\Formats\GifInfo.cs" />
     <Compile Include="Common\Extensions\IntegerExtensions.cs" />
     <Compile Include="Common\Exceptions\ImageFormatException.cs" />
@@ -118,6 +121,7 @@
     <Compile Include="Processors\Brightness.cs" />
     <Compile Include="Processors\Contrast.cs" />
     <Compile Include="Processors\GaussianSharpen.cs" />
+    <Compile Include="Processors\Hue.cs" />
     <Compile Include="Processors\Meta.cs" />
     <Compile Include="Processors\RoundedCorners.cs" />
     <Compile Include="Processors\Saturation.cs" />

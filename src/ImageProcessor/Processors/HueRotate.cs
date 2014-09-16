@@ -69,9 +69,9 @@ namespace ImageProcessor.Processors
                     {
                         for (int j = 0; j < height; j++)
                         {
-                            HSLAColor hsla = new HSLAColor(fastBitmap.GetPixel(i, j));
-                            hsla.H = (hsla.H + (degrees / 360f)) % 1;
-                            fastBitmap.SetPixel(i, j, hsla);
+                            HslaColor original = HslaColor.FromColor(fastBitmap.GetPixel(i, j));
+                            HslaColor altered = HslaColor.FromHslaColor((original.H + (degrees / 360f)) % 1, original.S, original.L, original.A);
+                            fastBitmap.SetPixel(i, j, altered);
                         }
                     }
                 }

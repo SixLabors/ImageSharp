@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="RGBAColor.cs" company="James South">
+// <copyright file="RgbaColor.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -8,55 +8,39 @@
 namespace ImageProcessor.Imaging.Colors
 {
     using System.Drawing;
-    using System.Text;
 
     /// <summary>
     /// Represents an RGBA (red, green, blue, alpha) color.
     /// </summary>
-    public struct RGBAColor
+    public struct RgbaColor
     {
+        /// <summary>
+        /// Represents a <see cref="RgbaColor"/> that is null.
+        /// </summary>
+        public static readonly RgbaColor Empty = new RgbaColor();
+
+        /// <summary>
+        /// The red component.
+        /// </summary>
+        private readonly byte r;
+
+        /// <summary>
+        /// The green component.
+        /// </summary>
+        private readonly byte g;
+
+        /// <summary>
+        /// The blue component.
+        /// </summary>
+        private readonly byte b;
+
         /// <summary>
         /// The alpha component.
         /// </summary>
-        public byte A;
+        private readonly byte a;
 
         /// <summary>
-        /// The blue component.
-        /// </summary>
-        public byte B;
-
-        /// <summary>
-        /// The green component.
-        /// </summary>
-        public byte G;
-
-        /// <summary>
-        /// The red component.
-        /// </summary>
-        public byte R;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="RGBAColor"/> struct.
-        /// </summary>
-        /// <param name="red">
-        /// The red component.
-        /// </param>
-        /// <param name="green">
-        /// The green component.
-        /// </param>
-        /// <param name="blue">
-        /// The blue component.
-        /// </param>
-        public RGBAColor(byte red, byte green, byte blue)
-        {
-            this.R = red;
-            this.G = green;
-            this.B = blue;
-            this.A = 255;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="RGBAColor"/> struct. 
+        /// Initializes a new instance of the <see cref="RgbaColor"/> struct. 
         /// </summary>
         /// <param name="red">
         /// The red component.
@@ -70,86 +54,189 @@ namespace ImageProcessor.Imaging.Colors
         /// <param name="alpha">
         /// The alpha component.
         /// </param>
-        public RGBAColor(byte red, byte green, byte blue, byte alpha)
+        private RgbaColor(byte red, byte green, byte blue, byte alpha)
         {
-            this.R = red;
-            this.G = green;
-            this.B = blue;
-            this.A = alpha;
+            this.r = red;
+            this.g = green;
+            this.b = blue;
+            this.a = alpha;
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="RGBAColor"/> struct. 
+        /// Initializes a new instance of the <see cref="RgbaColor"/> struct. 
         /// </summary>
         /// <param name="color">
         /// The <see cref="System.Drawing.Color">color.</see>
         /// </param>
-        public RGBAColor(Color color)
+        private RgbaColor(Color color)
         {
-            this.R = color.R;
-            this.G = color.G;
-            this.B = color.B;
-            this.A = color.A;
+            this.r = color.R;
+            this.g = color.G;
+            this.b = color.B;
+            this.a = color.A;
+        }
+
+        /// <summary>
+        /// Gets the red component.
+        /// </summary>
+        public byte R
+        {
+            get
+            {
+                return this.r;
+            }
+        }
+
+        /// <summary>
+        /// Gets the green component.
+        /// </summary>
+        public byte G
+        {
+            get
+            {
+                return this.g;
+            }
+        }
+
+        /// <summary>
+        /// Gets the blue component.
+        /// </summary>
+        public byte B
+        {
+            get
+            {
+                return this.b;
+            }
+        }
+
+        /// <summary>
+        /// Gets the alpha component.
+        /// </summary>
+        public byte A
+        {
+            get
+            {
+                return this.a;
+            }
+        }
+
+        /// <summary>
+        /// Creates a <see cref="RgbaColor"/> structure from the three 8-bit RGBA 
+        /// components (red, green, and blue) values.
+        /// </summary>
+        /// <param name="red">
+        /// The red component.
+        /// </param>
+        /// <param name="green">
+        /// The green component.
+        /// </param>
+        /// <param name="blue">
+        /// The blue component.
+        /// </param>
+        /// <returns>
+        /// The <see cref="RgbaColor"/>.
+        /// </returns>
+        public static RgbaColor FromRgba(byte red, byte green, byte blue)
+        {
+            return new RgbaColor(red, green, blue, 255);
+        }
+
+        /// <summary>
+        /// Creates a <see cref="RgbaColor"/> structure from the four 8-bit RGBA 
+        /// components (red, green, blue, and alpha) values.
+        /// </summary>
+        /// <param name="red">
+        /// The red component.
+        /// </param>
+        /// <param name="green">
+        /// The green component.
+        /// </param>
+        /// <param name="blue">
+        /// The blue component.
+        /// </param>
+        /// <param name="alpha">
+        /// The alpha component.
+        /// </param>
+        /// <returns>
+        /// The <see cref="RgbaColor"/>.
+        /// </returns>
+        public static RgbaColor FromRgba(byte red, byte green, byte blue, byte alpha)
+        {
+            return new RgbaColor(red, green, blue, alpha);
+        }
+
+        /// <summary>
+        /// Creates a <see cref="RgbaColor"/> structure from the specified <see cref="System.Drawing.Color"/> structure
+        /// </summary>
+        /// <param name="color">
+        /// The <see cref="System.Drawing.Color"/> from which to create the new <see cref="RgbaColor"/>.
+        /// </param>
+        /// <returns>
+        /// The <see cref="RgbaColor"/>.
+        /// </returns>
+        public static RgbaColor FromColor(Color color)
+        {
+            return new RgbaColor(color);
         }
 
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="System.Drawing.Color"/> to a 
-        /// <see cref="RGBAColor"/>.
+        /// <see cref="RgbaColor"/>.
         /// </summary>
         /// <param name="color">
         /// The instance of <see cref="System.Drawing.Color"/> to convert.
         /// </param>
         /// <returns>
-        /// An instance of <see cref="RGBAColor"/>.
+        /// An instance of <see cref="RgbaColor"/>.
         /// </returns>
-        public static implicit operator RGBAColor(Color color)
+        public static implicit operator RgbaColor(Color color)
         {
-            return new RGBAColor(color);
+            return new RgbaColor(color);
         }
 
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="System.Drawing.Color"/> to a 
-        /// <see cref="RGBAColor"/>.
+        /// <see cref="RgbaColor"/>.
         /// </summary>
         /// <param name="color">
         /// The instance of <see cref="System.Drawing.Color"/> to convert.
         /// </param>
         /// <returns>
-        /// An instance of <see cref="RGBAColor"/>.
+        /// An instance of <see cref="RgbaColor"/>.
         /// </returns>
-        public static implicit operator RGBAColor(HSLAColor color)
+        public static implicit operator RgbaColor(HslaColor color)
         {
-            return new RGBAColor(color);
+            return new RgbaColor(color);
         }
 
         /// <summary>
-        /// Allows the implicit conversion of an instance of <see cref="RGBAColor"/> to a 
+        /// Allows the implicit conversion of an instance of <see cref="RgbaColor"/> to a 
         /// <see cref="System.Drawing.Color"/>.
         /// </summary>
         /// <param name="rgba">
-        /// The instance of <see cref="RGBAColor"/> to convert.
+        /// The instance of <see cref="RgbaColor"/> to convert.
         /// </param>
         /// <returns>
         /// An instance of <see cref="System.Drawing.Color"/>.
         /// </returns>
-        public static implicit operator Color(RGBAColor rgba)
+        public static implicit operator Color(RgbaColor rgba)
         {
             return Color.FromArgb(rgba.A, rgba.R, rgba.G, rgba.B);
         }
 
         /// <summary>
-        /// Allows the implicit conversion of an instance of <see cref="RGBAColor"/> to a 
-        /// <see cref="HSLAColor"/>.
+        /// Allows the implicit conversion of an instance of <see cref="RgbaColor"/> to a 
+        /// <see cref="HslaColor"/>.
         /// </summary>
         /// <param name="rgba">
-        /// The instance of <see cref="RGBAColor"/> to convert.
+        /// The instance of <see cref="RgbaColor"/> to convert.
         /// </param>
         /// <returns>
-        /// An instance of <see cref="HSLAColor"/>.
+        /// An instance of <see cref="HslaColor"/>.
         /// </returns>
-        public static implicit operator HSLAColor(RGBAColor rgba)
+        public static implicit operator HslaColor(RgbaColor rgba)
         {
-            return new HSLAColor(rgba);
+            return HslaColor.FromColor(rgba);
         }
 
         /// <summary>
@@ -160,7 +247,12 @@ namespace ImageProcessor.Imaging.Colors
         /// </returns>
         public override string ToString()
         {
-            return string.Format("R={0}, G={1}, B={2}, A={3}", this.R, this.G, this.B, this.A);
+            if (this.R == 0 && this.G == 0 && this.B == 0 && this.A == 0)
+            {
+                return "RGBA [Empty]";
+            }
+
+            return string.Format("RGBA [R={0}, G={1}, B={2}, A={3}]", this.R, this.G, this.B, this.A);
         }
 
         /// <summary>
@@ -172,10 +264,10 @@ namespace ImageProcessor.Imaging.Colors
         /// <param name="obj">Another object to compare to. </param>
         public override bool Equals(object obj)
         {
-            if (obj is RGBAColor)
+            if (obj is RgbaColor)
             {
                 Color thisColor = this;
-                Color otherColor = (RGBAColor)obj;
+                Color otherColor = (RgbaColor)obj;
 
                 return thisColor.Equals(otherColor);
             }

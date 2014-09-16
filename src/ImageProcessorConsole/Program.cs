@@ -50,16 +50,7 @@ namespace ImageProcessorConsole
             foreach (FileInfo fileInfo in files)
             {
                 byte[] photoBytes = File.ReadAllBytes(fileInfo.FullName);
-
-                //Color color = Color.Green;
-                //HSLAColor hslaColor = HSLAColor.FromRGBA(color);
-                //Console.WriteLine("H:" + hslaColor.H + " S:" + hslaColor.S + " L:" + hslaColor.L);
-               
-                //Color color2 = HSLAColor.ToRGBA(hslaColor);
-
-                //Console.WriteLine("Color Out: " + "R:" + color2.R + " G:" + color2.G + " B:" + color2.B + " A:" + color2.A);
-                //Console.WriteLine(color2 == Color.Green);
-                //Console.WriteLine("Processing: " + fileInfo.Name);
+                Console.WriteLine("Processing: " + fileInfo.Name);
 
                 Stopwatch stopwatch = new Stopwatch();
                 stopwatch.Start();
@@ -82,7 +73,7 @@ namespace ImageProcessorConsole
                             //.Resize(new Size((int)(size.Width * 1.1), 0))
                             //.ContentAwareResize(layer)
                             .Constrain(size)
-                            .HueRotate(270)
+                            .Hue(180)
                             .Quality(100)
                             .Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", fileInfo.Name)));
 

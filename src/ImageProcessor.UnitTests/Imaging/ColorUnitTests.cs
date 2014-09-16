@@ -21,25 +21,25 @@ namespace ImageProcessor.UnitTests.Imaging
     public class ColorUnitTests
     {
         /// <summary>
-        /// Tests the <see cref="RGBAColor"/> struct equality operators.
+        /// Tests the <see cref="RgbaColor"/> struct equality operators.
         /// </summary>
         [Test]
         public void TestRGBAEquality()
         {
-            RGBAColor first = new RGBAColor(Color.White);
-            RGBAColor second = new RGBAColor(Color.White);
+            RgbaColor first = RgbaColor.FromColor(Color.White);
+            RgbaColor second = RgbaColor.FromColor(Color.White);
 
             Assert.AreEqual(first, second);
         }
 
         /// <summary>
-        /// Tests the <see cref="RGBAColor"/> struct equality operators.
+        /// Tests the <see cref="RgbaColor"/> struct equality operators.
         /// </summary>
         [Test]
         public void TestHSLAEquality()
         {
-            HSLAColor first = new HSLAColor(Color.White);
-            HSLAColor second = new HSLAColor(Color.White);
+            HslaColor first = HslaColor.FromColor(Color.White);
+            HslaColor second = HslaColor.FromColor(Color.White);
 
             Assert.AreEqual(first, second);
         }
@@ -53,7 +53,7 @@ namespace ImageProcessor.UnitTests.Imaging
             const string Hex = "#FEFFFE";
 
             Color color = ColorTranslator.FromHtml(Hex);
-            HSLAColor hslaColor = new HSLAColor(color);
+            HslaColor hslaColor = HslaColor.FromColor(color);
             string outPut = ColorTranslator.ToHtml(hslaColor);
             Assert.AreEqual(Hex, outPut);
         }

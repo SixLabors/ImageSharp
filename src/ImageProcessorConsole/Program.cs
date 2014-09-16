@@ -82,7 +82,8 @@ namespace ImageProcessorConsole
                             //.Resize(new Size((int)(size.Width * 1.1), 0))
                             //.ContentAwareResize(layer)
                             .Constrain(size)
-                            .Hue(180)
+                            .HueRotate(270)
+                            .Quality(100)
                             .Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", fileInfo.Name)));
 
                         stopwatch.Stop();

@@ -121,6 +121,7 @@
     <Compile Include="Processors\Brightness.cs" />
     <Compile Include="Processors\Contrast.cs" />
     <Compile Include="Processors\GaussianSharpen.cs" />
+    <Compile Include="Processors\HueRotate.cs" />
     <Compile Include="Processors\Hue.cs" />
     <Compile Include="Processors\Meta.cs" />
     <Compile Include="Processors\RoundedCorners.cs" />

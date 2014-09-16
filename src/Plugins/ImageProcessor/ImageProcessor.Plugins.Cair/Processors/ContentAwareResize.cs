@@ -63,7 +63,7 @@ namespace ImageProcessor.Plugins.Cair.Processors
         /// <returns>
         /// The processed image from the current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
         /// </returns>
-        public System.Drawing.Image ProcessImage(ImageFactory factory)
+        public Image ProcessImage(ImageFactory factory)
         {
             string fileName = Guid.NewGuid().ToString();
 

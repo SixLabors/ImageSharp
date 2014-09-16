@@ -70,7 +70,7 @@
     <Compile Include="Common\Extensions\DoubleExtensions.cs" />
     <Compile Include="Configuration\NativeBinaryFactory.cs" />
     <Compile Include="Configuration\NativeMethods.cs" />
-    <Compile Include="Imaging\Colors\HSLColor.cs" />
+    <Compile Include="Imaging\Colors\HSLAColor.cs" />
     <Compile Include="Imaging\Colors\RGBAColor.cs" />
     <Compile Include="Imaging\FastBitmap.cs" />
     <Compile Include="Imaging\Formats\GifInfo.cs" />

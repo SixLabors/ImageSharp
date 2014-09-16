@@ -14,61 +14,68 @@ namespace ImageProcessor.Imaging.Colors
     /// Represents an HSLA (hue, saturation, luminosity, alpha) color.
     /// Adapted from <see href="http://richnewman.wordpress.com/about/code-listings-and-diagrams/hslcolor-class/"/>
     /// </summary>
-    public struct HSLAColor
+    public struct HslaColor
     {
+        /// <summary>
+        /// Represents a <see cref="HslaColor"/> that is null.
+        /// </summary>
+        public static readonly HslaColor Empty = new HslaColor();
+
         // Private data members below are on scale 0-1
         // They are scaled for use externally based on scale
 
         /// <summary>
         /// The hue component.
         /// </summary>
-        private double h;
+        private readonly double h;
 
         /// <summary>
         /// The luminosity component.
         /// </summary>
-        private double l;
+        private readonly double l;
 
         /// <summary>
         /// The saturation component.
         /// </summary>
-        private double s;
+        private readonly double s;
 
         /// <summary>
         /// The alpha component.
         /// </summary>
-        private double a;
+        private readonly double a;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="HSLAColor"/> struct.
+        /// Initializes a new instance of the <see cref="HslaColor"/> struct.
         /// </summary>
         /// <param name="hue">
-        /// The hue.
+        /// The hue component.
         /// </param>
         /// <param name="saturation">
-        /// The saturation.
+        /// The saturation component.
         /// </param>
         /// <param name="luminosity">
-        /// The luminosity.
+        /// The luminosity component.
         /// </param>
-        public HSLAColor(double hue, double saturation, double luminosity)
-            : this()
+        /// <param name="alpha">
+        /// The alpha component.
+        /// </param>
+        private HslaColor(double hue, double saturation, double luminosity, double alpha)
         {
-            this.H = hue;
-            this.S = saturation;
-            this.L = luminosity;
+            this.h = Clamp(hue);
+            this.s = Clamp(saturation);
+            this.l = Clamp(luminosity);
+            this.a = Clamp(alpha);
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="HSLAColor"/> struct.
+        /// Initializes a new instance of the <see cref="HslaColor"/> struct.
         /// </summary>
         /// <param name="color">
         /// The <see cref="System.Drawing.Color"/> to initialize from.
         /// </param>
-        public HSLAColor(Color color)
-            : this()
+        private HslaColor(Color color)
         {
-            HSLAColor hslColor = color;
+            HslaColor hslColor = color;
             this.h = hslColor.h;
             this.s = hslColor.s;
             this.l = hslColor.l;
@@ -76,7 +83,7 @@ namespace ImageProcessor.Imaging.Colors
         }
 
         /// <summary>
-        /// Gets or sets the hue component.
+        /// Gets the hue component.
         /// </summary>
         public double H
         {
@@ -84,15 +91,10 @@ namespace ImageProcessor.Imaging.Colors
             {
                 return this.h;
             }
-
-            set
-            {
-                this.h = this.CheckRange(value);
-            }
         }
 
         /// <summary>
-        /// Gets or sets the luminosity component.
+        /// Gets the luminosity component.
         /// </summary>
         public double L
         {
@@ -100,15 +102,10 @@ namespace ImageProcessor.Imaging.Colors
             {
                 return this.l;
             }
-
-            set
-            {
-                this.l = this.CheckRange(value);
-            }
         }
 
         /// <summary>
-        /// Gets or sets the saturation component.
+        /// Gets the saturation component.
         /// </summary>
         public double S
         {
@@ -116,15 +113,10 @@ namespace ImageProcessor.Imaging.Colors
             {
                 return this.s;
             }
-
-            set
-            {
-                this.s = this.CheckRange(value);
-            }
         }
 
         /// <summary>
-        /// Gets or sets the alpha component.
+        /// Gets the alpha component.
         /// </summary>
         public double A
         {
@@ -132,71 +124,121 @@ namespace ImageProcessor.Imaging.Colors
             {
                 return this.a;
             }
+        }
 
-            set
-            {
-                this.a = this.CheckRange(value);
-            }
+        /// <summary>
+        /// Creates a <see cref="HslaColor"/> structure from the three 64-bit HSLA 
+        /// components (hue, saturation, and luminosity) values.
+        /// </summary>
+        /// <param name="hue">
+        /// The hue component.
+        /// </param>
+        /// <param name="saturation">
+        /// The saturation component.
+        /// </param>
+        /// <param name="luminosity">
+        /// The luminosity component.
+        /// </param>
+        /// <returns>
+        /// The <see cref="HslaColor"/>.
+        /// </returns>
+        public static HslaColor FromHslaColor(double hue, double saturation, double luminosity)
+        {
+            return new HslaColor(hue, saturation, luminosity, 1.0);
+        }
+
+        /// <summary>
+        /// Creates a <see cref="HslaColor"/> structure from the four 64-bit HSLA 
+        /// components (hue, saturation, luminosity, and alpha) values.
+        /// </summary>
+        /// <param name="hue">
+        /// The hue component.
+        /// </param>
+        /// <param name="saturation">
+        /// The saturation component.
+        /// </param>
+        /// <param name="luminosity">
+        /// The luminosity component.
+        /// </param>
+        /// <param name="alpha">
+        /// The alpha component.
+        /// </param>
+        /// <returns>
+        /// The <see cref="HslaColor"/>.
+        /// </returns>
+        public static HslaColor FromHslaColor(double hue, double saturation, double luminosity, double alpha)
+        {
+            return new HslaColor(hue, saturation, luminosity, alpha);
+        }
+
+        /// <summary>
+        /// Creates a <see cref="HslaColor"/> structure from the specified <see cref="System.Drawing.Color"/> structure
+        /// </summary>
+        /// <param name="color">
+        /// The <see cref="System.Drawing.Color"/> from which to create the new <see cref="HslaColor"/>.
+        /// </param>
+        /// <returns>
+        /// The <see cref="HslaColor"/>.
+        /// </returns>
+        public static HslaColor FromColor(Color color)
+        {
+            return new HslaColor(color);
         }
 
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="System.Drawing.Color"/> to a 
-        /// <see cref="HSLAColor"/>.
+        /// <see cref="HslaColor"/>.
         /// </summary>
         /// <param name="color">
         /// The instance of <see cref="System.Drawing.Color"/> to convert.
         /// </param>
         /// <returns>
-        /// An instance of <see cref="HSLAColor"/>.
+        /// An instance of <see cref="HslaColor"/>.
         /// </returns>
-        public static implicit operator HSLAColor(Color color)
+        public static implicit operator HslaColor(Color color)
         {
-            HSLAColor hslColor = new HSLAColor
-            {
-                h = color.GetHue() / 360.0,
-                l = color.GetBrightness(),
-                s = color.GetSaturation(),
-                a = color.A / 255f
-            };
+            HslaColor hslColor = new HslaColor(
+                  color.GetHue() / 360.0,
+                  color.GetSaturation(),
+                  color.GetBrightness(),
+                  color.A / 255f);
 
             return hslColor;
         }
 
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="System.Drawing.Color"/> to a 
-        /// <see cref="HSLAColor"/>.
+        /// <see cref="HslaColor"/>.
         /// </summary>
         /// <param name="rgbaColor">
-        /// The instance of <see cref="RGBAColor"/> to convert.
+        /// The instance of <see cref="RgbaColor"/> to convert.
         /// </param>
         /// <returns>
-        /// An instance of <see cref="HSLAColor"/>.
+        /// An instance of <see cref="HslaColor"/>.
         /// </returns>
-        public static implicit operator HSLAColor(RGBAColor rgbaColor)
+        public static implicit operator HslaColor(RgbaColor rgbaColor)
         {
             Color color = rgbaColor;
-            HSLAColor hslColor = new HSLAColor
-            {
-                h = color.GetHue() / 360.0,
-                l = color.GetBrightness(),
-                s = color.GetSaturation(),
-                a = color.A / 255f
-            };
+            HslaColor hslColor = new HslaColor(
+                color.GetHue() / 360.0,
+                color.GetSaturation(),
+                color.GetBrightness(),
+                color.A / 255f);
 
             return hslColor;
         }
 
         /// <summary>
-        /// Allows the implicit conversion of an instance of <see cref="HSLAColor"/> to a 
+        /// Allows the implicit conversion of an instance of <see cref="HslaColor"/> to a 
         /// <see cref="System.Drawing.Color"/>.
         /// </summary>
         /// <param name="hslaColor">
-        /// The instance of <see cref="HSLAColor"/> to convert.
+        /// The instance of <see cref="HslaColor"/> to convert.
         /// </param>
         /// <returns>
         /// An instance of <see cref="System.Drawing.Color"/>.
         /// </returns>
-        public static implicit operator Color(HSLAColor hslaColor)
+        public static implicit operator Color(HslaColor hslaColor)
         {
             double r = 0, g = 0, b = 0;
             if (Math.Abs(hslaColor.l - 0) > .0001)
@@ -216,20 +258,24 @@ namespace ImageProcessor.Imaging.Colors
                 }
             }
 
-            return Color.FromArgb(Convert.ToInt32(255 * hslaColor.a), Convert.ToInt32(255 * r), Convert.ToInt32(255 * g), Convert.ToInt32(255 * b));
+            return Color.FromArgb(
+                Convert.ToInt32(255 * hslaColor.a),
+                Convert.ToInt32(255 * r),
+                Convert.ToInt32(255 * g),
+                Convert.ToInt32(255 * b));
         }
 
         /// <summary>
-        /// Allows the implicit conversion of an instance of <see cref="HSLAColor"/> to a 
-        /// <see cref="RGBAColor"/>.
+        /// Allows the implicit conversion of an instance of <see cref="HslaColor"/> to a 
+        /// <see cref="RgbaColor"/>.
         /// </summary>
         /// <param name="hslaColor">
-        /// The instance of <see cref="HSLAColor"/> to convert.
+        /// The instance of <see cref="HslaColor"/> to convert.
         /// </param>
         /// <returns>
-        /// An instance of <see cref="RGBAColor"/>.
+        /// An instance of <see cref="RgbaColor"/>.
         /// </returns>
-        public static implicit operator RGBAColor(HSLAColor hslaColor)
+        public static implicit operator RgbaColor(HslaColor hslaColor)
         {
             double r = 0, g = 0, b = 0;
             if (Math.Abs(hslaColor.l - 0) > .0001)
@@ -249,19 +295,11 @@ namespace ImageProcessor.Imaging.Colors
                 }
             }
 
-            return new RGBAColor(Convert.ToByte(255 * r), Convert.ToByte(255 * g), Convert.ToByte(255 * b), Convert.ToByte(255 * hslaColor.a));
-        }
-
-        /// <summary>
-        /// Returns a <see cref="System.String" /> that represents this instance.
-        /// </summary>
-        /// <returns>
-        /// A <see cref="System.String" /> that represents this instance.
-        /// </returns>
-        public string ToRGBAString()
-        {
-            Color color = this;
-            return string.Format("R={0}, G={1}, B={2}, A={3}", color.R, color.G, color.B, color.A);
+            return RgbaColor.FromRgba(
+                Convert.ToByte(255 * r),
+                Convert.ToByte(255 * g),
+                Convert.ToByte(255 * b),
+                Convert.ToByte(255 * hslaColor.a));
         }
 
         /// <summary>
@@ -272,7 +310,12 @@ namespace ImageProcessor.Imaging.Colors
         /// </returns>
         public override string ToString()
         {
-            return string.Format("H={0:#0.##}, S={1:#0.##}, L={2:#0.##}, A={3:#0.##}", this.H, this.S, this.L, this.A);
+            if (this.IsEmpty())
+            {
+                return "HSLAColor [Empty]";
+            }
+
+            return string.Format("HSLAColor [ H={0:#0.##}, S={1:#0.##}, L={2:#0.##}, A={3:#0.##}]", this.H, this.S, this.L, this.A);
         }
 
         /// <summary>
@@ -284,10 +327,10 @@ namespace ImageProcessor.Imaging.Colors
         /// <param name="obj">Another object to compare to. </param>
         public override bool Equals(object obj)
         {
-            if (obj is HSLAColor)
+            if (obj is HslaColor)
             {
                 Color thisColor = this;
-                Color otherColor = (HSLAColor)obj;
+                Color otherColor = (HslaColor)obj;
 
                 return thisColor.Equals(otherColor);
             }
@@ -347,12 +390,12 @@ namespace ImageProcessor.Imaging.Colors
         /// The get temp 2.
         /// </summary>
         /// <param name="hslColor">
-        /// The <see cref="HSLAColor"/> color.
+        /// The <see cref="HslaColor"/> color.
         /// </param>
         /// <returns>
         /// The <see cref="double"/>.
         /// </returns>
-        private static double GetTemp2(HSLAColor hslColor)
+        private static double GetTemp2(HslaColor hslColor)
         {
             double temp2;
             if (hslColor.l <= 0.5)
@@ -399,7 +442,7 @@ namespace ImageProcessor.Imaging.Colors
         /// <returns>
         /// The sanitized <see cref="double"/>.
         /// </returns>
-        private double CheckRange(double value)
+        private static double Clamp(double value)
         {
             if (value < 0.0)
             {
@@ -411,6 +454,19 @@ namespace ImageProcessor.Imaging.Colors
             }
 
             return value;
+        }
+
+        /// <summary>
+        /// Returns a value indicating whether the current instance is empty.
+        /// </summary>
+        /// <returns>
+        /// The true if this instance is empty; otherwise, false.
+        /// </returns>
+        private bool IsEmpty()
+        {
+            const double Epsilon = .0001;
+            return Math.Abs(this.h - 0) <= Epsilon && Math.Abs(this.s - 0) <= Epsilon &&
+                   Math.Abs(this.l - 0) <= Epsilon && Math.Abs(this.a - 0) <= Epsilon;
         }
     }
 }

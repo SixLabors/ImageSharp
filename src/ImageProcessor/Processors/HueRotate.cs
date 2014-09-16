@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="Hue.cs" company="James South">
+// <copyright file="HueRotate.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -18,14 +18,14 @@ namespace ImageProcessor.Processors
     using ImageProcessor.Imaging.Colors;
 
     /// <summary>
-    /// Encapsulates methods to adjust the hue component of an image.
+    /// Encapsulates methods to rotate the hue component of an image.
     /// </summary>
-    public class Hue : IGraphicsProcessor
+    public class HueRotate : IGraphicsProcessor
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="Hue"/> class.
+        /// Initializes a new instance of the <see cref="HueRotate"/> class.
         /// </summary>
-        public Hue()
+        public HueRotate()
         {
             this.Settings = new Dictionary<string, string>();
         }
@@ -69,7 +69,8 @@ namespace ImageProcessor.Processors
                     {
                         for (int j = 0; j < height; j++)
                         {
-                            HSLAColor hsla = new HSLAColor(fastBitmap.GetPixel(i, j)) { H = degrees / 360f };
+                            HSLAColor hsla = new HSLAColor(fastBitmap.GetPixel(i, j));
+                            hsla.H = (hsla.H + (degrees / 360f)) % 1;
                             fastBitmap.SetPixel(i, j, hsla);
                         }
                     }

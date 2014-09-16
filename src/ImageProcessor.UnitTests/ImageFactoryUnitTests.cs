@@ -15,6 +15,9 @@ namespace ImageProcessor.UnitTests
     using System.Drawing;
     using System.IO;
     using System.Linq;
+
+    using ImageProcessor.Imaging;
+
     using NUnit.Framework;
 
     /// <summary>
@@ -244,7 +247,7 @@ namespace ImageProcessor.UnitTests
                 {
                     imageFactory.Load(file.FullName);
                     Image original = (Image)imageFactory.Image.Clone();
-                    imageFactory.Watermark(new Imaging.TextLayer
+                    imageFactory.Watermark(new TextLayer
                     {
                         FontFamily = new FontFamily("Arial"),
                         FontSize = 10,
@@ -286,7 +289,7 @@ namespace ImageProcessor.UnitTests
                 {
                     imageFactory.Load(file.FullName);
                     Image original = (Image)imageFactory.Image.Clone();
-                    imageFactory.GaussianBlur(new Imaging.GaussianLayer { Sigma = 10, Size = 5, Threshold = 2 });
+                    imageFactory.GaussianBlur(new GaussianLayer { Sigma = 10, Size = 5, Threshold = 2 });
                     Assert.AreNotEqual(original, imageFactory.Image);
                 }
             }
@@ -322,7 +325,7 @@ namespace ImageProcessor.UnitTests
                 {
                     imageFactory.Load(file.FullName);
                     Image original = (Image)imageFactory.Image.Clone();
-                    imageFactory.GaussianSharpen(new Imaging.GaussianLayer { Sigma = 10, Size = 5, Threshold = 2 });
+                    imageFactory.GaussianSharpen(new GaussianLayer { Sigma = 10, Size = 5, Threshold = 2 });
                     Assert.AreNotEqual(original, imageFactory.Image);
                 }
             }
@@ -341,43 +344,43 @@ namespace ImageProcessor.UnitTests
                     imageFactory.Load(file.FullName);
                     Image original = (Image)imageFactory.Image.Clone();
 
-                    imageFactory.Filter(Imaging.Filters.MatrixFilters.BlackWhite);
+                    imageFactory.Filter(ImageProcessor.Imaging.Filters.MatrixFilters.BlackWhite);
                     Assert.AreNotEqual(original, imageFactory.Image);
                     imageFactory.Reset();
 
-                    imageFactory.Filter(Imaging.Filters.MatrixFilters.Comic);
+                    imageFactory.Filter(ImageProcessor.Imaging.Filters.MatrixFilters.Comic);
                     Assert.AreNotEqual(original, imageFactory.Image);
                     imageFactory.Reset();
 
-                    imageFactory.Filter(Imaging.Filters.MatrixFilters.Gotham);
+                    imageFactory.Filter(ImageProcessor.Imaging.Filters.MatrixFilters.Gotham);
                     Assert.AreNotEqual(original, imageFactory.Image);
                     imageFactory.Reset();
 
-                    imageFactory.Filter(Imaging.Filters.MatrixFilters.GreyScale);
+                    imageFactory.Filter(ImageProcessor.Imaging.Filters.MatrixFilters.GreyScale);
                     Assert.AreNotEqual(original, imageFactory.Image);
                     imageFactory.Reset();
 
-                    imageFactory.Filter(Imaging.Filters.MatrixFilters.HiSatch);
+                    imageFactory.Filter(ImageProcessor.Imaging.Filters.MatrixFilters.HiSatch);
                     Assert.AreNotEqual(original, imageFactory.Image);
                     imageFactory.Reset();
 
-                    imageFactory.Filter(Imaging.Filters.MatrixFilters.Invert);
+                    imageFactory.Filter(ImageProcessor.Imaging.Filters.MatrixFilters.Invert);
                     Assert.AreNotEqual(original, imageFactory.Image);
                     imageFactory.Reset();
 
-                    imageFactory.Filter(Imaging.Filters.MatrixFilters.Lomograph);
+                    imageFactory.Filter(ImageProcessor.Imaging.Filters.MatrixFilters.Lomograph);
                     Assert.AreNotEqual(original, imageFactory.Image);
                     imageFactory.Reset();
 
-                    imageFactory.Filter(Imaging.Filters.MatrixFilters.LoSatch);
+                    imageFactory.Filter(ImageProcessor.Imaging.Filters.MatrixFilters.LoSatch);
                     Assert.AreNotEqual(original, imageFactory.Image);
                     imageFactory.Reset();
 
-                    imageFactory.Filter(Imaging.Filters.MatrixFilters.Polaroid);
+                    imageFactory.Filter(ImageProcessor.Imaging.Filters.MatrixFilters.Polaroid);
                     Assert.AreNotEqual(original, imageFactory.Image);
                     imageFactory.Reset();
 
-                    imageFactory.Filter(Imaging.Filters.MatrixFilters.Sepia);
+                    imageFactory.Filter(ImageProcessor.Imaging.Filters.MatrixFilters.Sepia);
                     Assert.AreNotEqual(original, imageFactory.Image);
                     imageFactory.Reset();
                 }
@@ -396,7 +399,7 @@ namespace ImageProcessor.UnitTests
                 {
                     imageFactory.Load(file.FullName);
                     Image original = (Image)imageFactory.Image.Clone();
-                    imageFactory.RoundedCorners(new Imaging.RoundedCornerLayer(5));
+                    imageFactory.RoundedCorners(new RoundedCornerLayer(5));
                     Assert.AreNotEqual(original, imageFactory.Image);
                 }
             }
@@ -455,7 +458,7 @@ namespace ImageProcessor.UnitTests
                 {
                     imageFactory.Load(file.FullName);
                     Image original = (Image)imageFactory.Image.Clone();
-                    imageFactory.Crop(new Imaging.CropLayer(0, 0, MaxSize, MaxSize, Imaging.CropMode.Pixels));
+                    imageFactory.Crop(new CropLayer(0, 0, MaxSize, MaxSize, CropMode.Pixels));
                     Assert.AreNotEqual(original, imageFactory.Image);
                     Assert.AreEqual(MaxSize, imageFactory.Image.Width);
                     Assert.LessOrEqual(MaxSize, imageFactory.Image.Height);
@@ -481,7 +484,7 @@ namespace ImageProcessor.UnitTests
                     Assert.AreEqual(original.Height, imageFactory.Image.Height);
                     imageFactory.Reset();
 
-                    imageFactory.Flip(false);
+                    imageFactory.Flip();
                     Assert.AreNotEqual(original, imageFactory.Image);
                     Assert.AreEqual(original.Width, imageFactory.Image.Width);
                     Assert.AreEqual(original.Height, imageFactory.Image.Height);
@@ -520,7 +523,7 @@ namespace ImageProcessor.UnitTests
                 using (ImageFactory imageFactory = new ImageFactory())
                 {
                     imageFactory.Load(file.FullName);
-                    imageFactory.Resize(new Imaging.ResizeLayer(new Size(NewSize, NewSize), Imaging.ResizeMode.Stretch, Imaging.AnchorPosition.Left));
+                    imageFactory.Resize(new ResizeLayer(new Size(NewSize, NewSize), ResizeMode.Stretch, AnchorPosition.Left));
                     Assert.AreEqual(NewSize, imageFactory.Image.Width);
                     Assert.AreEqual(NewSize, imageFactory.Image.Height);
                 }

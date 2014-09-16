@@ -597,11 +597,11 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Changes the hue of the current image.
+        /// Alters the hue of the current image changing the overall color.
         /// </summary>
         /// <param name="degrees">
         /// The angle by which to alter the images hue.
-        /// Any integer between 0 and 359.
+        /// Any integer between 0 and 360.
         /// </param>
         /// <returns>
         /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
@@ -617,6 +617,33 @@ namespace ImageProcessor
             if (this.ShouldProcess)
             {
                 Hue hue = new Hue { DynamicParameter = degrees };
+                this.CurrentImageFormat.ApplyProcessor(hue.ProcessImage, this);
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Rotates the hue of the current image altering each color.
+        /// </summary>
+        /// <param name="degrees">
+        /// The angle by which to rotate the images hue.
+        /// Any integer between 0 and 360.
+        /// </param>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory HueRotate(int degrees)
+        {
+            // Sanitize the input.
+            if (degrees > 360 || degrees < 0)
+            {
+                degrees = 0;
+            }
+
+            if (this.ShouldProcess)
+            {
+                HueRotate hue = new HueRotate { DynamicParameter = degrees };
                 this.CurrentImageFormat.ApplyProcessor(hue.ProcessImage, this);
             }
 

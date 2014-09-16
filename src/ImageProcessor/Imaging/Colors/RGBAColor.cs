@@ -8,6 +8,7 @@
 namespace ImageProcessor.Imaging.Colors
 {
     using System.Drawing;
+    using System.Text;
 
     /// <summary>
     /// Represents an RGBA (red, green, blue, alpha) color.
@@ -92,6 +93,36 @@ namespace ImageProcessor.Imaging.Colors
         }
 
         /// <summary>
+        /// Allows the implicit conversion of an instance of <see cref="System.Drawing.Color"/> to a 
+        /// <see cref="RGBAColor"/>.
+        /// </summary>
+        /// <param name="color">
+        /// The instance of <see cref="System.Drawing.Color"/> to convert.
+        /// </param>
+        /// <returns>
+        /// An instance of <see cref="RGBAColor"/>.
+        /// </returns>
+        public static implicit operator RGBAColor(Color color)
+        {
+            return new RGBAColor(color);
+        }
+
+        /// <summary>
+        /// Allows the implicit conversion of an instance of <see cref="System.Drawing.Color"/> to a 
+        /// <see cref="RGBAColor"/>.
+        /// </summary>
+        /// <param name="color">
+        /// The instance of <see cref="System.Drawing.Color"/> to convert.
+        /// </param>
+        /// <returns>
+        /// An instance of <see cref="RGBAColor"/>.
+        /// </returns>
+        public static implicit operator RGBAColor(HSLAColor color)
+        {
+            return new RGBAColor(color);
+        }
+
+        /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="RGBAColor"/> to a 
         /// <see cref="System.Drawing.Color"/>.
         /// </summary>
@@ -103,7 +134,65 @@ namespace ImageProcessor.Imaging.Colors
         /// </returns>
         public static implicit operator Color(RGBAColor rgba)
         {
-            return System.Drawing.Color.FromArgb(rgba.A, rgba.R, rgba.G, rgba.B);
+            return Color.FromArgb(rgba.A, rgba.R, rgba.G, rgba.B);
+        }
+
+        /// <summary>
+        /// Allows the implicit conversion of an instance of <see cref="RGBAColor"/> to a 
+        /// <see cref="HSLAColor"/>.
+        /// </summary>
+        /// <param name="rgba">
+        /// The instance of <see cref="RGBAColor"/> to convert.
+        /// </param>
+        /// <returns>
+        /// An instance of <see cref="HSLAColor"/>.
+        /// </returns>
+        public static implicit operator HSLAColor(RGBAColor rgba)
+        {
+            return new HSLAColor(rgba);
+        }
+
+        /// <summary>
+        /// Returns a <see cref="System.String" /> that represents this instance.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="System.String" /> that represents this instance.
+        /// </returns>
+        public override string ToString()
+        {
+            return string.Format("R={0}, G={1}, B={2}, A={3}", this.R, this.G, this.B, this.A);
+        }
+
+        /// <summary>
+        /// Indicates whether this instance and a specified object are equal.
+        /// </summary>
+        /// <returns>
+        /// true if <paramref name="obj"/> and this instance are the same type and represent the same value; otherwise, false.
+        /// </returns>
+        /// <param name="obj">Another object to compare to. </param>
+        public override bool Equals(object obj)
+        {
+            if (obj is RGBAColor)
+            {
+                Color thisColor = this;
+                Color otherColor = (RGBAColor)obj;
+
+                return thisColor.Equals(otherColor);
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Returns the hash code for this instance.
+        /// </summary>
+        /// <returns>
+        /// A 32-bit signed integer that is the hash code for this instance.
+        /// </returns>
+        public override int GetHashCode()
+        {
+            Color thisColor = this;
+            return thisColor.GetHashCode();
         }
     }
 }

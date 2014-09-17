@@ -27,22 +27,22 @@ namespace ImageProcessor.Imaging.Colors
         /// <summary>
         /// The hue component.
         /// </summary>
-        private readonly double h;
+        private readonly float h;
 
         /// <summary>
         /// The luminosity component.
         /// </summary>
-        private readonly double l;
+        private readonly float l;
 
         /// <summary>
         /// The saturation component.
         /// </summary>
-        private readonly double s;
+        private readonly float s;
 
         /// <summary>
         /// The alpha component.
         /// </summary>
-        private readonly double a;
+        private readonly float a;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HslaColor"/> struct.
@@ -59,7 +59,7 @@ namespace ImageProcessor.Imaging.Colors
         /// <param name="alpha">
         /// The alpha component.
         /// </param>
-        private HslaColor(double hue, double saturation, double luminosity, double alpha)
+        private HslaColor(float hue, float saturation, float luminosity, float alpha)
         {
             this.h = Clamp(hue);
             this.s = Clamp(saturation);
@@ -85,7 +85,7 @@ namespace ImageProcessor.Imaging.Colors
         /// <summary>
         /// Gets the hue component.
         /// </summary>
-        public double H
+        public float H
         {
             get
             {
@@ -96,7 +96,7 @@ namespace ImageProcessor.Imaging.Colors
         /// <summary>
         /// Gets the luminosity component.
         /// </summary>
-        public double L
+        public float L
         {
             get
             {
@@ -107,7 +107,7 @@ namespace ImageProcessor.Imaging.Colors
         /// <summary>
         /// Gets the saturation component.
         /// </summary>
-        public double S
+        public float S
         {
             get
             {
@@ -118,7 +118,7 @@ namespace ImageProcessor.Imaging.Colors
         /// <summary>
         /// Gets the alpha component.
         /// </summary>
-        public double A
+        public float A
         {
             get
             {
@@ -127,7 +127,7 @@ namespace ImageProcessor.Imaging.Colors
         }
 
         /// <summary>
-        /// Creates a <see cref="HslaColor"/> structure from the three 64-bit HSLA 
+        /// Creates a <see cref="HslaColor"/> structure from the three 32-bit HSLA 
         /// components (hue, saturation, and luminosity) values.
         /// </summary>
         /// <param name="hue">
@@ -142,13 +142,13 @@ namespace ImageProcessor.Imaging.Colors
         /// <returns>
         /// The <see cref="HslaColor"/>.
         /// </returns>
-        public static HslaColor FromHslaColor(double hue, double saturation, double luminosity)
+        public static HslaColor FromHslaColor(float hue, float saturation, float luminosity)
         {
-            return new HslaColor(hue, saturation, luminosity, 1.0);
+            return new HslaColor(hue, saturation, luminosity, 1.0f);
         }
 
         /// <summary>
-        /// Creates a <see cref="HslaColor"/> structure from the four 64-bit HSLA 
+        /// Creates a <see cref="HslaColor"/> structure from the four 32-bit HSLA 
         /// components (hue, saturation, luminosity, and alpha) values.
         /// </summary>
         /// <param name="hue">
@@ -166,7 +166,7 @@ namespace ImageProcessor.Imaging.Colors
         /// <returns>
         /// The <see cref="HslaColor"/>.
         /// </returns>
-        public static HslaColor FromHslaColor(double hue, double saturation, double luminosity, double alpha)
+        public static HslaColor FromHslaColor(float hue, float saturation, float luminosity, float alpha)
         {
             return new HslaColor(hue, saturation, luminosity, alpha);
         }
@@ -198,7 +198,7 @@ namespace ImageProcessor.Imaging.Colors
         public static implicit operator HslaColor(Color color)
         {
             HslaColor hslColor = new HslaColor(
-                  color.GetHue() / 360.0,
+                  color.GetHue() / 360.0f,
                   color.GetSaturation(),
                   color.GetBrightness(),
                   color.A / 255f);
@@ -220,7 +220,7 @@ namespace ImageProcessor.Imaging.Colors
         {
             Color color = rgbaColor;
             HslaColor hslColor = new HslaColor(
-                color.GetHue() / 360.0,
+                color.GetHue() / 360.0f,
                 color.GetSaturation(),
                 color.GetBrightness(),
                 color.A / 255f);
@@ -240,7 +240,7 @@ namespace ImageProcessor.Imaging.Colors
         /// </returns>
         public static implicit operator Color(HslaColor hslaColor)
         {
-            double r = 0, g = 0, b = 0;
+            float r = 0, g = 0, b = 0;
             if (Math.Abs(hslaColor.l - 0) > .0001)
             {
                 if (Math.Abs(hslaColor.s - 0) <= .0001)
@@ -249,12 +249,12 @@ namespace ImageProcessor.Imaging.Colors
                 }
                 else
                 {
-                    double temp2 = GetTemp2(hslaColor);
-                    double temp1 = (2.0 * hslaColor.l) - temp2;
+                    float temp2 = GetTemp2(hslaColor);
+                    float temp1 = (2.0f * hslaColor.l) - temp2;
 
-                    r = GetColorComponent(temp1, temp2, hslaColor.h + (1.0 / 3.0));
+                    r = GetColorComponent(temp1, temp2, hslaColor.h + (1.0f / 3.0f));
                     g = GetColorComponent(temp1, temp2, hslaColor.h);
-                    b = GetColorComponent(temp1, temp2, hslaColor.h - (1.0 / 3.0));
+                    b = GetColorComponent(temp1, temp2, hslaColor.h - (1.0f / 3.0f));
                 }
             }
 
@@ -277,7 +277,7 @@ namespace ImageProcessor.Imaging.Colors
         /// </returns>
         public static implicit operator RgbaColor(HslaColor hslaColor)
         {
-            double r = 0, g = 0, b = 0;
+            float r = 0, g = 0, b = 0;
             if (Math.Abs(hslaColor.l - 0) > .0001)
             {
                 if (Math.Abs(hslaColor.s - 0) <= .0001)
@@ -286,12 +286,12 @@ namespace ImageProcessor.Imaging.Colors
                 }
                 else
                 {
-                    double temp2 = GetTemp2(hslaColor);
-                    double temp1 = (2.0 * hslaColor.l) - temp2;
+                    float temp2 = GetTemp2(hslaColor);
+                    float temp1 = (2.0f * hslaColor.l) - temp2;
 
-                    r = GetColorComponent(temp1, temp2, hslaColor.h + (1.0 / 3.0));
+                    r = GetColorComponent(temp1, temp2, hslaColor.h + (1.0f / 3.0f));
                     g = GetColorComponent(temp1, temp2, hslaColor.h);
-                    b = GetColorComponent(temp1, temp2, hslaColor.h - (1.0 / 3.0));
+                    b = GetColorComponent(temp1, temp2, hslaColor.h - (1.0f / 3.0f));
                 }
             }
 
@@ -363,14 +363,14 @@ namespace ImageProcessor.Imaging.Colors
         /// The temp 3.
         /// </param>
         /// <returns>
-        /// The <see cref="double"/>.
+        /// The <see cref="float"/>.
         /// </returns>
-        private static double GetColorComponent(double temp1, double temp2, double temp3)
+        private static float GetColorComponent(float temp1, float temp2, float temp3)
         {
             temp3 = MoveIntoRange(temp3);
             if (temp3 < 1.0 / 6.0)
             {
-                return temp1 + ((temp2 - temp1) * 6.0 * temp3);
+                return temp1 + ((temp2 - temp1) * 6.0f * temp3);
             }
 
             if (temp3 < 0.5)
@@ -380,7 +380,7 @@ namespace ImageProcessor.Imaging.Colors
 
             if (temp3 < 2.0 / 3.0)
             {
-                return temp1 + ((temp2 - temp1) * ((2.0 / 3.0) - temp3) * 6.0);
+                return temp1 + ((temp2 - temp1) * ((2.0f / 3.0f) - temp3) * 6.0f);
             }
 
             return temp1;
@@ -393,14 +393,14 @@ namespace ImageProcessor.Imaging.Colors
         /// The <see cref="HslaColor"/> color.
         /// </param>
         /// <returns>
-        /// The <see cref="double"/>.
+        /// The <see cref="float"/>.
         /// </returns>
-        private static double GetTemp2(HslaColor hslColor)
+        private static float GetTemp2(HslaColor hslColor)
         {
-            double temp2;
+            float temp2;
             if (hslColor.l <= 0.5)
             {
-                temp2 = hslColor.l * (1.0 + hslColor.s);
+                temp2 = hslColor.l * (1.0f + hslColor.s);
             }
             else
             {
@@ -417,17 +417,17 @@ namespace ImageProcessor.Imaging.Colors
         /// The temp 3.
         /// </param>
         /// <returns>
-        /// The <see cref="double"/>.
+        /// The <see cref="float"/>.
         /// </returns>
-        private static double MoveIntoRange(double temp3)
+        private static float MoveIntoRange(float temp3)
         {
             if (temp3 < 0.0)
             {
-                temp3 += 1.0;
+                temp3 += 1.0f;
             }
             else if (temp3 > 1.0)
             {
-                temp3 -= 1.0;
+                temp3 -= 1.0f;
             }
 
             return temp3;
@@ -440,17 +440,17 @@ namespace ImageProcessor.Imaging.Colors
         /// The value to check.
         /// </param>
         /// <returns>
-        /// The sanitized <see cref="double"/>.
+        /// The sanitized <see cref="float"/>.
         /// </returns>
-        private static double Clamp(double value)
+        private static float Clamp(float value)
         {
             if (value < 0.0)
             {
-                value = 0.0;
+                value = 0.0f;
             }
             else if (value > 1.0)
             {
-                value = 1.0;
+                value = 1.0f;
             }
 
             return value;
@@ -464,7 +464,7 @@ namespace ImageProcessor.Imaging.Colors
         /// </returns>
         private bool IsEmpty()
         {
-            const double Epsilon = .0001;
+            const float Epsilon = .0001f;
             return Math.Abs(this.h - 0) <= Epsilon && Math.Abs(this.s - 0) <= Epsilon &&
                    Math.Abs(this.l - 0) <= Epsilon && Math.Abs(this.a - 0) <= Epsilon;
         }

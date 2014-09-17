@@ -72,6 +72,7 @@
     <Compile Include="Configuration\NativeMethods.cs" />
     <Compile Include="Imaging\Colors\HslaColor.cs" />
     <Compile Include="Imaging\Colors\RgbaColor.cs" />
+    <Compile Include="Imaging\Colors\YCbCrColor.cs" />
     <Compile Include="Imaging\FastBitmap.cs" />
     <Compile Include="Imaging\Formats\GifInfo.cs" />
     <Compile Include="Common\Extensions\IntegerExtensions.cs" />

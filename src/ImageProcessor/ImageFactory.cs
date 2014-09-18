@@ -651,6 +651,28 @@ namespace ImageProcessor
         }
 
         /// <summary>
+        /// Pixelates an image with the given size.
+        /// </summary>
+        /// <param name="pixelSize">
+        /// The size of the pixels to create.</param>
+        /// <param name="rectangle">
+        /// The area in which to pixelate the image. If not set, the whole image is pixelated.
+        /// </param>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory Pixelate(int pixelSize, Rectangle? rectangle = null)
+        {
+            if (this.ShouldProcess && pixelSize > 0)
+            {
+                Pixelate pixelate = new Pixelate { DynamicParameter = new Tuple<int, Rectangle?>(pixelSize, rectangle) };
+                this.CurrentImageFormat.ApplyProcessor(pixelate.ProcessImage, this);
+            }
+
+            return this;
+        }
+
+        /// <summary>
         /// Alters the output quality of the current image.
         /// <remarks>
         /// This method will only effect the output quality of jpeg images

@@ -32,7 +32,7 @@ namespace ImageProcessor.Common.Extensions
         /// </returns>
         public static byte ToByte(this double d)
         {
-            return Convert.ToByte(Math.Max(0.0d, Math.Min(255d, d))); // ((d > byte.MaxValue) ? byte.MaxValue : ((d < byte.MinValue) ? byte.MinValue : d));
+            return Convert.ToByte(Math.Max(0.0d, Math.Min(255d, d))); 
         }
     }
 }

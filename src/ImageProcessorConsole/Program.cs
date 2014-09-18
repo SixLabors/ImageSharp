@@ -18,6 +18,7 @@ namespace ImageProcessorConsole
     using System.Linq;
     using ImageProcessor;
     using ImageProcessor.Imaging;
+    using ImageProcessor.Imaging.Filters;
     using ImageProcessor.Plugins.Cair;
     using ImageProcessor.Plugins.Cair.Imaging;
 
@@ -60,7 +61,7 @@ namespace ImageProcessorConsole
                 {
                     using (ImageFactory imageFactory = new ImageFactory(true))
                     {
-                        Size size = new Size(448, 0);
+                        Size size = new Size(800, 0);
 
                         //ContentAwareResizeLayer layer = new ContentAwareResizeLayer(size)
                         //{
@@ -72,9 +73,9 @@ namespace ImageProcessorConsole
                             //.BackgroundColor(Color.White)
                             //.Resize(new Size((int)(size.Width * 1.1), 0))
                             //.ContentAwareResize(layer)
-                            .Constrain(size)
-                            .Hue(180)
-                            .Quality(100)
+                            //.Constrain(size)
+                            //.Filter(MatrixFilters.HiSatch)
+                            .Pixelate(8)
                             .Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", fileInfo.Name)));
 
                         stopwatch.Stop();

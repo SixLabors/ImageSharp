@@ -125,6 +125,7 @@
     <Compile Include="Processors\HueRotate.cs" />
     <Compile Include="Processors\Hue.cs" />
     <Compile Include="Processors\Meta.cs" />
+    <Compile Include="Processors\Pixelate.cs" />
     <Compile Include="Processors\RoundedCorners.cs" />
     <Compile Include="Processors\Saturation.cs" />
     <Compile Include="Processors\Flip.cs" />

@@ -84,6 +84,7 @@ namespace ImageProcessor.Imaging.Colors
 
         /// <summary>
         /// Gets the hue component.
+        /// <remarks>A value ranging between 0 and 1.</remarks>
         /// </summary>
         public float H
         {
@@ -95,6 +96,7 @@ namespace ImageProcessor.Imaging.Colors
 
         /// <summary>
         /// Gets the luminosity component.
+        /// <remarks>A value ranging between 0 and 1.</remarks>
         /// </summary>
         public float L
         {
@@ -106,6 +108,7 @@ namespace ImageProcessor.Imaging.Colors
 
         /// <summary>
         /// Gets the saturation component.
+        /// <remarks>A value ranging between 0 and 1.</remarks>
         /// </summary>
         public float S
         {
@@ -117,6 +120,7 @@ namespace ImageProcessor.Imaging.Colors
 
         /// <summary>
         /// Gets the alpha component.
+        /// <remarks>A value ranging between 0 and 1.</remarks>
         /// </summary>
         public float A
         {
@@ -197,17 +201,11 @@ namespace ImageProcessor.Imaging.Colors
         /// </returns>
         public static implicit operator HslaColor(Color color)
         {
-            HslaColor hslColor = new HslaColor(
-                  color.GetHue() / 360.0f,
-                  color.GetSaturation(),
-                  color.GetBrightness(),
-                  color.A / 255f);
-
-            return hslColor;
+            return FromColor(color);
         }
 
         /// <summary>
-        /// Allows the implicit conversion of an instance of <see cref="System.Drawing.Color"/> to a 
+        /// Allows the implicit conversion of an instance of <see cref="RgbaColor"/> to a 
         /// <see cref="HslaColor"/>.
         /// </summary>
         /// <param name="rgbaColor">
@@ -218,14 +216,22 @@ namespace ImageProcessor.Imaging.Colors
         /// </returns>
         public static implicit operator HslaColor(RgbaColor rgbaColor)
         {
-            Color color = rgbaColor;
-            HslaColor hslColor = new HslaColor(
-                color.GetHue() / 360.0f,
-                color.GetSaturation(),
-                color.GetBrightness(),
-                color.A / 255f);
+            return FromColor(rgbaColor);
+        }
 
-            return hslColor;
+        /// <summary>
+        /// Allows the implicit conversion of an instance of <see cref="YCbCrColor"/> to a 
+        /// <see cref="HslaColor"/>.
+        /// </summary>
+        /// <param name="ycbcrColor">
+        /// The instance of <see cref="YCbCrColor"/> to convert.
+        /// </param>
+        /// <returns>
+        /// An instance of <see cref="YCbCrColor"/>.
+        /// </returns>
+        public static implicit operator HslaColor(YCbCrColor ycbcrColor)
+        {
+            return FromColor(ycbcrColor);
         }
 
         /// <summary>
@@ -277,29 +283,22 @@ namespace ImageProcessor.Imaging.Colors
         /// </returns>
         public static implicit operator RgbaColor(HslaColor hslaColor)
         {
-            float r = 0, g = 0, b = 0;
-            if (Math.Abs(hslaColor.l - 0) > .0001)
-            {
-                if (Math.Abs(hslaColor.s - 0) <= .0001)
-                {
-                    r = g = b = hslaColor.l;
-                }
-                else
-                {
-                    float temp2 = GetTemp2(hslaColor);
-                    float temp1 = (2.0f * hslaColor.l) - temp2;
+            return RgbaColor.FromColor(hslaColor);
+        }
 
-                    r = GetColorComponent(temp1, temp2, hslaColor.h + (1.0f / 3.0f));
-                    g = GetColorComponent(temp1, temp2, hslaColor.h);
-                    b = GetColorComponent(temp1, temp2, hslaColor.h - (1.0f / 3.0f));
-                }
-            }
-
-            return RgbaColor.FromRgba(
-                Convert.ToByte(255 * r),
-                Convert.ToByte(255 * g),
-                Convert.ToByte(255 * b),
-                Convert.ToByte(255 * hslaColor.a));
+        /// <summary>
+        /// Allows the implicit conversion of an instance of <see cref="HslaColor"/> to a 
+        /// <see cref="YCbCrColor"/>.
+        /// </summary>
+        /// <param name="hslaColor">
+        /// The instance of <see cref="HslaColor"/> to convert.
+        /// </param>
+        /// <returns>
+        /// An instance of <see cref="YCbCrColor"/>.
+        /// </returns>
+        public static implicit operator YCbCrColor(HslaColor hslaColor)
+        {
+            return YCbCrColor.FromColor(hslaColor);
         }
 
         /// <summary>

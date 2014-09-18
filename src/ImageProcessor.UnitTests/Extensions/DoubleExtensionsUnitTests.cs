@@ -25,10 +25,10 @@ namespace ImageProcessor.UnitTests.Extensions
         /// <param name="input">Double input</param>
         /// <param name="expected">Expected result</param>
         [Test]
-        [TestCase(-10, 0x0)]
-        [TestCase(1.5, 0x1)]
-        [TestCase(25.7, 0x19)]
-        [TestCase(1289047, 0xFF)]
+        [TestCase(-10, 0)]
+        [TestCase(1.5, 2)]
+        [TestCase(25.7, 26)]
+        [TestCase(1289047, 255)]
         public void TestDoubleToByte(double input, byte expected)
         {
             byte result = input.ToByte();

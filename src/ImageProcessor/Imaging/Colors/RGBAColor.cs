@@ -191,22 +191,37 @@ namespace ImageProcessor.Imaging.Colors
         /// </returns>
         public static implicit operator RgbaColor(Color color)
         {
-            return new RgbaColor(color);
+            return FromColor(color);
         }
 
         /// <summary>
-        /// Allows the implicit conversion of an instance of <see cref="System.Drawing.Color"/> to a 
+        /// Allows the implicit conversion of an instance of <see cref="HslaColor"/> to a 
         /// <see cref="RgbaColor"/>.
         /// </summary>
-        /// <param name="color">
-        /// The instance of <see cref="System.Drawing.Color"/> to convert.
+        /// <param name="hslaColor">
+        /// The instance of <see cref="HslaColor"/> to convert.
         /// </param>
         /// <returns>
         /// An instance of <see cref="RgbaColor"/>.
         /// </returns>
-        public static implicit operator RgbaColor(HslaColor color)
+        public static implicit operator RgbaColor(HslaColor hslaColor)
         {
-            return new RgbaColor(color);
+            return FromColor(hslaColor);
+        }
+
+        /// <summary>
+        /// Allows the implicit conversion of an instance of <see cref="YCbCrColor"/> to a 
+        /// <see cref="RgbaColor"/>.
+        /// </summary>
+        /// <param name="ycbcrColor">
+        /// The instance of <see cref="YCbCrColor"/> to convert.
+        /// </param>
+        /// <returns>
+        /// An instance of <see cref="RgbaColor"/>.
+        /// </returns>
+        public static implicit operator RgbaColor(YCbCrColor ycbcrColor)
+        {
+            return FromColor(ycbcrColor);
         }
 
         /// <summary>
@@ -237,6 +252,21 @@ namespace ImageProcessor.Imaging.Colors
         public static implicit operator HslaColor(RgbaColor rgba)
         {
             return HslaColor.FromColor(rgba);
+        }
+
+        /// <summary>
+        /// Allows the implicit conversion of an instance of <see cref="RgbaColor"/> to a 
+        /// <see cref="YCbCrColor"/>.
+        /// </summary>
+        /// <param name="rgba">
+        /// The instance of <see cref="RgbaColor"/> to convert.
+        /// </param>
+        /// <returns>
+        /// An instance of <see cref="YCbCrColor"/>.
+        /// </returns>
+        public static implicit operator YCbCrColor(RgbaColor rgba)
+        {
+            return YCbCrColor.FromColor(rgba);
         }
 
         /// <summary>

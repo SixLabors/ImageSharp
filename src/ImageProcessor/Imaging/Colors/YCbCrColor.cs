@@ -4,7 +4,7 @@
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   Represents an YCbCr (luminance, chroma, chroma) color used in digital imaging systems.
+//   Represents an YCbCr (luminance, chroma, chroma) color conforming to the ITU-R BT.601 standard used in digital imaging systems.
 //   <see href="http://en.wikipedia.org/wiki/YCbCr" />
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
@@ -14,10 +14,8 @@ namespace ImageProcessor.Imaging.Colors
     using System;
     using System.Drawing;
 
-    using ImageProcessor.Common.Extensions;
-
     /// <summary>
-    /// Represents an YCbCr (luminance, chroma, chroma) color used in digital imaging systems.
+    /// Represents an YCbCr (luminance, chroma, chroma) color conforming to the ITU-R BT.601 standard used in digital imaging systems.
     /// <see href="http://en.wikipedia.org/wiki/YCbCr"/>
     /// </summary>
     public struct YCbCrColor
@@ -50,13 +48,14 @@ namespace ImageProcessor.Imaging.Colors
         /// <param name="cr">The v chroma component.</param> 
         private YCbCrColor(float y, float cb, float cr)
         {
-            this.y = y; //Math.Max(0.0f, Math.Min(1.0f, y));
-            this.cb = cb; //Math.Max(-0.5f, Math.Min(0.5f, cb));
-            this.cr = cr; //Math.Max(-0.5f, Math.Min(0.5f, cr));
+            this.y = Math.Max(0f, Math.Min(255f, y));
+            this.cb = Math.Max(-255f, Math.Min(255f, cb));
+            this.cr = Math.Max(-255f, Math.Min(255f, cr));
         }
 
         /// <summary>
         /// Gets the Y luminance component.
+        /// <remarks>A value ranging between 0 and 255.</remarks>
         /// </summary>
         public float Y
         {
@@ -68,23 +67,25 @@ namespace ImageProcessor.Imaging.Colors
 
         /// <summary>
         /// Gets the U chroma component.
+        /// <remarks>A value ranging between -255 and 255.</remarks>
         /// </summary>
         public float Cb
         {
             get
             {
-                return this.y;
+                return this.cb;
             }
         }
 
         /// <summary>
         /// Gets the V chroma component.
+        /// <remarks>A value ranging between -255 and 255.</remarks>
         /// </summary>
         public float Cr
         {
             get
             {
-                return this.y;
+                return this.cr;
             }
         }
 
@@ -114,12 +115,12 @@ namespace ImageProcessor.Imaging.Colors
         /// </returns>
         public static YCbCrColor FromColor(Color color)
         {
-            float r = color.R;
-            float g = color.G;
-            float b = color.B;
+            byte r = color.R;
+            byte g = color.G;
+            byte b = color.B;
 
             float y = (float)((0.299 * r) + (0.587 * g) + (0.114 * b));
-            float cb = 128 - (float)((-0.168736 * r) - (0.331264 * g) + (0.5 * b));
+            float cb = 128 + (float)((-0.168736 * r) - (0.331264 * g) + (0.5 * b));
             float cr = 128 + (float)((0.5 * r) - (0.418688 * g) - (0.081312 * b));
 
             return new YCbCrColor(y, cb, cr);
@@ -141,23 +142,147 @@ namespace ImageProcessor.Imaging.Colors
         }
 
         /// <summary>
+        /// Allows the implicit conversion of an instance of <see cref="RgbaColor"/> to a 
+        /// <see cref="YCbCrColor"/>.
+        /// </summary>
+        /// <param name="rgbaColor">
+        /// The instance of <see cref="RgbaColor"/> to convert.
+        /// </param>
+        /// <returns>
+        /// An instance of <see cref="YCbCrColor"/>.
+        /// </returns>
+        public static implicit operator YCbCrColor(RgbaColor rgbaColor)
+        {
+            return FromColor(rgbaColor);
+        }
+
+        /// <summary>
+        /// Allows the implicit conversion of an instance of <see cref="HslaColor"/> to a 
+        /// <see cref="YCbCrColor"/>.
+        /// </summary>
+        /// <param name="hslaColor">
+        /// The instance of <see cref="HslaColor"/> to convert.
+        /// </param>
+        /// <returns>
+        /// An instance of <see cref="YCbCrColor"/>.
+        /// </returns>
+        public static implicit operator YCbCrColor(HslaColor hslaColor)
+        {
+            return FromColor(hslaColor);
+        }
+
+        /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="YCbCrColor"/> to a 
         /// <see cref="System.Drawing.Color"/>.
         /// </summary>
-        /// <param name="ycbcr">
+        /// <param name="ycbcrColor">
         /// The instance of <see cref="YCbCrColor"/> to convert.
         /// </param>
         /// <returns>
         /// An instance of <see cref="System.Drawing.Color"/>.
         /// </returns>
-        public static implicit operator Color(YCbCrColor ycbcr)
+        public static implicit operator Color(YCbCrColor ycbcrColor)
         {
-            byte r = Convert.ToInt32(ycbcr.Y + (1.402 * (ycbcr.Cr - 128))).ToByte();
-            byte g = Convert.ToInt32(ycbcr.Y - (0.34414 * (ycbcr.Cb - 128)) - (0.71414 * (ycbcr.Cr - 128))).ToByte();
-            byte b = Convert.ToInt32(ycbcr.Y + (1.772 * (ycbcr.Cb - 128))).ToByte();
-            
+            float y = ycbcrColor.Y;
+            float cb = ycbcrColor.Cb - 128;
+            float cr = ycbcrColor.Cr - 128;
+
+            byte r = Convert.ToByte(Math.Max(0.0f, Math.Min(255f, y + (1.402 * cr))));
+            byte g = Convert.ToByte(Math.Max(0.0f, Math.Min(255f, y - (0.34414 * cb) - (0.71414 * cr))));
+            byte b = Convert.ToByte(Math.Max(0.0f, Math.Min(255f, y + (1.772 * cb))));
 
             return Color.FromArgb(255, r, g, b);
+        }
+
+        /// <summary>
+        /// Allows the implicit conversion of an instance of <see cref="YCbCrColor"/> to a 
+        /// <see cref="RgbaColor"/>.
+        /// </summary>
+        /// <param name="ycbcrColor">
+        /// The instance of <see cref="YCbCrColor"/> to convert.
+        /// </param>
+        /// <returns>
+        /// An instance of <see cref="RgbaColor"/>.
+        /// </returns>
+        public static implicit operator RgbaColor(YCbCrColor ycbcrColor)
+        {
+            return RgbaColor.FromColor(ycbcrColor);
+        }
+
+        /// <summary>
+        /// Allows the implicit conversion of an instance of <see cref="YCbCrColor"/> to a 
+        /// <see cref="HslaColor"/>.
+        /// </summary>
+        /// <param name="ycbcrColor">
+        /// The instance of <see cref="YCbCrColor"/> to convert.
+        /// </param>
+        /// <returns>
+        /// An instance of <see cref="HslaColor"/>.
+        /// </returns>
+        public static implicit operator HslaColor(YCbCrColor ycbcrColor)
+        {
+            return HslaColor.FromColor(ycbcrColor);
+        }
+
+        /// <summary>
+        /// Returns a <see cref="System.String" /> that represents this instance.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="System.String" /> that represents this instance.
+        /// </returns>
+        public override string ToString()
+        {
+            if (this.IsEmpty())
+            {
+                return "YCbCrColor [Empty]";
+            }
+
+            return string.Format("YCbCrColor [ Y={0:#0.##}, Cb={1:#0.##}, Cr={2:#0.##}]", this.Y, this.Cb, this.Cr);
+        }
+
+        /// <summary>
+        /// Indicates whether this instance and a specified object are equal.
+        /// </summary>
+        /// <returns>
+        /// true if <paramref name="obj"/> and this instance are the same type and represent the same value; otherwise, false.
+        /// </returns>
+        /// <param name="obj">Another object to compare to. </param>
+        public override bool Equals(object obj)
+        {
+            if (obj is YCbCrColor)
+            {
+                Color thisColor = this;
+                Color otherColor = (YCbCrColor)obj;
+
+                return thisColor.Equals(otherColor);
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Returns the hash code for this instance.
+        /// </summary>
+        /// <returns>
+        /// A 32-bit signed integer that is the hash code for this instance.
+        /// </returns>
+        public override int GetHashCode()
+        {
+            Color thisColor = this;
+            return thisColor.GetHashCode();
+        }
+
+        /// <summary>
+        /// Returns a value indicating whether the current instance is empty.
+        /// </summary>
+        /// <returns>
+        /// The true if this instance is empty; otherwise, false.
+        /// </returns>
+        private bool IsEmpty()
+        {
+            const float Epsilon = .0001f;
+            return Math.Abs(this.y - 0) <= Epsilon && Math.Abs(this.cb - 0) <= Epsilon &&
+                   Math.Abs(this.cr - 0) <= Epsilon;
         }
     }
 }

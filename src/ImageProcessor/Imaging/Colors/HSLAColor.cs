@@ -201,7 +201,13 @@ namespace ImageProcessor.Imaging.Colors
         /// </returns>
         public static implicit operator HslaColor(Color color)
         {
-            return FromColor(color);
+            HslaColor hslColor = new HslaColor(
+                  color.GetHue() / 360.0f,
+                  color.GetSaturation(),
+                  color.GetBrightness(),
+                  color.A / 255f);
+
+            return hslColor;
         }
 
         /// <summary>
@@ -231,7 +237,14 @@ namespace ImageProcessor.Imaging.Colors
         /// </returns>
         public static implicit operator HslaColor(YCbCrColor ycbcrColor)
         {
-            return FromColor(ycbcrColor);
+            Color color = ycbcrColor;
+            HslaColor hslColor = new HslaColor(
+                color.GetHue() / 360.0f,
+                color.GetSaturation(),
+                color.GetBrightness(),
+                color.A / 255f);
+
+            return hslColor;
         }
 
         /// <summary>
@@ -283,7 +296,29 @@ namespace ImageProcessor.Imaging.Colors
         /// </returns>
         public static implicit operator RgbaColor(HslaColor hslaColor)
         {
-            return RgbaColor.FromColor(hslaColor);
+            float r = 0, g = 0, b = 0;
+            if (Math.Abs(hslaColor.l - 0) > .0001)
+            {
+                if (Math.Abs(hslaColor.s - 0) <= .0001)
+                {
+                    r = g = b = hslaColor.l;
+                }
+                else
+                {
+                    float temp2 = GetTemp2(hslaColor);
+                    float temp1 = (2.0f * hslaColor.l) - temp2;
+
+                    r = GetColorComponent(temp1, temp2, hslaColor.h + (1.0f / 3.0f));
+                    g = GetColorComponent(temp1, temp2, hslaColor.h);
+                    b = GetColorComponent(temp1, temp2, hslaColor.h - (1.0f / 3.0f));
+                }
+            }
+
+            return RgbaColor.FromRgba(
+                Convert.ToByte(255 * r),
+                Convert.ToByte(255 * g),
+                Convert.ToByte(255 * b),
+                Convert.ToByte(255 * hslaColor.a));
         }
 
         /// <summary>

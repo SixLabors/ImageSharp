@@ -167,6 +167,7 @@ pip-log.txt
 
 build/_BuildOutput/
 build/*.nupkg
+build/TestResult.xml
 *.db
 
 _site/

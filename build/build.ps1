@@ -6,18 +6,21 @@ Properties {
 	$cairpluginversion = "1.0.0.0"
 	
 	# build paths to various files
-	$PROJ_PATH = (Resolve-Path ".")
-	$BIN_PATH = (Join-Path $PROJ_PATH "_BuildOutput")
-	$NUGET_EXE = (Resolve-Path "..\src\.nuget\NuGet.exe")
-	$NUSPECS_PATH = (Join-Path $PROJ_PATH "NuSpecs")
-	$NUGET_OUTPUT = (Join-Path $BIN_PATH "NuGets")
-	# TODO: add opencover and nunit runner binaries
+	$PROJ_PATH = Resolve-Path "."
+	$SRC_PATH = Resolve-Path "..\src"
+	$BIN_PATH = Join-Path $PROJ_PATH "_BuildOutput"
+	$NUGET_EXE = Join-Path $SRC_PATH ".nuget\NuGet.exe"
+	$NUSPECS_PATH = Join-Path $PROJ_PATH "NuSpecs"
+	$NUGET_OUTPUT = Join-Path $BIN_PATH "NuGets"
+	
+	# nunit runner binaries
+	$NUNIT_EXE = Join-Path $SRC_PATH "packages\NUnit.Runners.2.6.3\tools\nunit-console.exe"
 }
 
 Framework "4.0x86"
 FormatTaskName "-------- {0} --------"
 
-task default -depends Cleanup-Binaries, Build-Solution, Generate-Package
+task default -depends Cleanup-Binaries, Build-Solution, Run-Tests, Generate-Package
 
 # cleans up the binaries output folder
 task Cleanup-Binaries {
@@ -30,11 +33,41 @@ task Cleanup-Binaries {
 # builds the solutions
 task Build-Solution -depends Cleanup-Binaries {
 	Write-Host "Building projects"
-	$projects = @("Build.ImageProcessor.proj", "Build.ImageProcessor.Web.proj", "Build.ImageProcessor.Plugins.WebP.proj", "Build.ImageProcessor.Plugins.Cair.proj")
+	$projects = @(
+		"Build.ImageProcessor.proj",
+		"Build.ImageProcessor.Web.proj",
+		"Build.ImageProcessor.Plugins.WebP.proj",
+		"Build.ImageProcessor.Plugins.Cair.proj"
+	)
+	
 	$projects | % {
+		Write-Host "Building project $_"
 		Exec {
 			msbuild (Join-Path $PROJ_PATH $_) /p:BUILD_RELEASE="$version"
 		}
+	}
+}
+
+# runs the unit tests
+task Run-Tests {
+	Write-Host "Building the unit test projects"
+	
+	$projects = @(
+		"ImageProcessor.UnitTests",
+		"ImageProcessor.Web.UnitTests"
+	)
+	
+	$projects | % {
+		Write-Host "Building project $_"
+		Exec {
+			msbuild (Join-Path $SRC_PATH "$_\$_.csproj") /t:Build /p:Configuration=Release /p:Platform="AnyCPU" /p:Warnings=true /v:Normal /nologo /clp:WarningsOnly`;ErrorsOnly`;Summary`;PerformanceSummary
+		}
+	}
+	
+	Write-Host "Running unit tests"
+	$projects | % {
+		Write-Host "Running tests on project $_"
+		& $NUNIT_EXE (Join-Path $SRC_PATH "$_\bin\Release\$_.dll")
 	}
 }
 
@@ -58,7 +91,7 @@ task Generate-Package -depends Build-Solution {
 	
 	$nuspecs.GetEnumerator() | % {
 		$nuspec_local_path = (Join-Path $NUSPECS_PATH $_.Key)
-		Write-Host "Building package from $nuspec_local_path"
+		Write-Host "Building Nuget package from $nuspec_local_path"
 		
 		# change the version values
 		[xml]$nuspec_contents = Get-Content $nuspec_local_path

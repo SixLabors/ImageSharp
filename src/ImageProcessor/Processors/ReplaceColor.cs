@@ -1,31 +1,21 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="HueRotate.cs" company="James South">
-//   Copyright (c) James South.
-//   Licensed under the Apache License, Version 2.0.
-// </copyright>
-// <summary>
-//   Encapsulates methods to rotate the hue component of an image.
-// </summary>
-// --------------------------------------------------------------------------------------------------------------------
-
-namespace ImageProcessor.Processors
+﻿namespace ImageProcessor.Processors
 {
     using System;
     using System.Collections.Generic;
     using System.Drawing;
     using ImageProcessor.Common.Exceptions;
     using ImageProcessor.Imaging;
-    using ImageProcessor.Imaging.Colors;
 
     /// <summary>
-    /// Encapsulates methods to rotate the hue component of an image.
+    /// Encapsulates methods allowing the replacement of a color within an image.
+    /// <see href="http://softwarebydefault.com/2013/03/16/bitmap-color-substitution/"/>
     /// </summary>
-    public class HueRotate : IGraphicsProcessor
+    public class ReplaceColor : IGraphicsProcessor
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="HueRotate"/> class.
+        /// Initializes a new instance of the <see cref="ReplaceColor"/> class.
         /// </summary>
-        public HueRotate()
+        public ReplaceColor()
         {
             this.Settings = new Dictionary<string, string>();
         }
@@ -33,12 +23,20 @@ namespace ImageProcessor.Processors
         /// <summary>
         /// Gets or sets the dynamic parameter.
         /// </summary>
-        public dynamic DynamicParameter { get; set; }
+        public dynamic DynamicParameter
+        {
+            get;
+            set;
+        }
 
         /// <summary>
         /// Gets or sets any additional settings required by the processor.
         /// </summary>
-        public Dictionary<string, string> Settings { get; set; }
+        public Dictionary<string, string> Settings
+        {
+            get;
+            set;
+        }
 
         /// <summary>
         /// Processes the image.
@@ -57,27 +55,22 @@ namespace ImageProcessor.Processors
 
             try
             {
-                int degrees = this.DynamicParameter;
-                int width = image.Width;
-                int height = image.Height;
+                Tuple<Color, Color, int> parameters = this.DynamicParameter;
+                Color original = parameters.Item1;
+                Color replacement = parameters.Item2;
+                int threshold = parameters.Item3;
 
                 newImage = new Bitmap(image);
 
                 using (FastBitmap fastBitmap = new FastBitmap(newImage))
                 {
-                    for (int i = 0; i < width; i++)
-                    {
-                        for (int j = 0; j < height; j++)
-                        {
-                            HslaColor original = HslaColor.FromColor(fastBitmap.GetPixel(i, j));
-                            HslaColor altered = HslaColor.FromHslaColor((original.H + (degrees / 360f)) % 1, original.S, original.L, original.A);
-                            fastBitmap.SetPixel(i, j, altered);
-                        }
-                    }
+                    
+
                 }
 
                 image.Dispose();
                 image = newImage;
+
             }
             catch (Exception ex)
             {

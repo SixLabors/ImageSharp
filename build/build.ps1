@@ -5,9 +5,10 @@ Properties {
 	$webppluginversion = "1.0.1.0"
 	$cairpluginversion = "1.0.0.0"
 	
-	$PROJ_PATH = "."
+	# build paths to various files
+	$PROJ_PATH = (Resolve-Path ".")
 	$BIN_PATH = (Join-Path $PROJ_PATH "_BuildOutput")
-	$NUGET_EXE = "..\src\.nuget\NuGet.exe"
+	$NUGET_EXE = (Resolve-Path "..\src\.nuget\NuGet.exe")
 	$NUSPECS_PATH = (Join-Path $PROJ_PATH "NuSpecs")
 	$NUGET_OUTPUT = (Join-Path $BIN_PATH "NuGets")
 	# TODO: add opencover and nunit runner binaries
@@ -29,11 +30,11 @@ task Cleanup-Binaries {
 # builds the solutions
 task Build-Solution -depends Cleanup-Binaries {
 	Write-Host "Building projects"
-	Exec {
-		msbuild (Join-Path $PROJ_PATH "Build.ImageProcessor.proj") /p:BUILD_RELEASE="$version"
-		msbuild (Join-Path $PROJ_PATH "Build.ImageProcessor.Web.proj") /p:BUILD_RELEASE="$version"
-		msbuild (Join-Path $PROJ_PATH "Build.ImageProcessor.Plugins.WebP.proj") /p:BUILD_RELEASE="$version"
-		msbuild (Join-Path $PROJ_PATH "Build.ImageProcessor.Plugins.Cair.proj") /p:BUILD_RELEASE="$version"
+	$projects = @("Build.ImageProcessor.proj", "Build.ImageProcessor.Web.proj", "Build.ImageProcessor.Plugins.WebP.proj", "Build.ImageProcessor.Plugins.Cair.proj")
+	$projects | % {
+		Exec {
+			msbuild (Join-Path $PROJ_PATH $_) /p:BUILD_RELEASE="$version"
+		}
 	}
 }
 
@@ -47,9 +48,24 @@ task Generate-Package -depends Build-Solution {
 	}
 	
 	# Package the nuget
-	& $NUGET_EXE Pack (Join-Path $NUSPECS_PATH "ImageProcessor.nuspec") -OutputDirectory $NUGET_OUTPUT
-	& $NUGET_EXE Pack (Join-Path $NUSPECS_PATH "ImageProcessor.Web.nuspec") -OutputDirectory $NUGET_OUTPUT
-	& $NUGET_EXE Pack (Join-Path $NUSPECS_PATH "ImageProcessor.Web.Config.nuspec") -OutputDirectory $NUGET_OUTPUT
-	& $NUGET_EXE Pack (Join-Path $NUSPECS_PATH "ImageProcessor.Plugins.WebP.nuspec") -OutputDirectory $NUGET_OUTPUT
-	& $NUGET_EXE Pack (Join-Path $NUSPECS_PATH "ImageProcessor.Plugins.Cair.nuspec") -OutputDirectory $NUGET_OUTPUT
+	$nuspecs = @{
+		"ImageProcessor.nuspec" = $version ;
+		"ImageProcessor.Web.nuspec" = $webversion ;
+		"ImageProcessor.Web.Config.nuspec" = $webconfigversion ;
+		"ImageProcessor.Plugins.WebP.nuspec" = $webppluginversion ;
+		"ImageProcessor.Plugins.Cair.nuspec" = $cairpluginversion
+	}
+	
+	$nuspecs.GetEnumerator() | % {
+		$nuspec_local_path = (Join-Path $NUSPECS_PATH $_.Key)
+		Write-Host "Building package from $nuspec_local_path"
+		
+		# change the version values
+		[xml]$nuspec_contents = Get-Content $nuspec_local_path
+		$nuspec_contents.package.metadata.version = $_.Value
+		$nuspec_contents.Save($nuspec_local_path)
+		
+		# pack the nuget
+		& $NUGET_EXE Pack $nuspec_local_path -OutputDirectory $NUGET_OUTPUT
+	}
 }

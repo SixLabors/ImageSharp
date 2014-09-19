@@ -57,7 +57,10 @@ namespace ImageProcessor.Processors
 
             try
             {
-                int degrees = this.DynamicParameter;
+
+                Tuple<int, bool> parameters = this.DynamicParameter;
+                int degrees = parameters.Item1;
+                bool rotate = parameters.Item2;
                 int width = image.Width;
                 int height = image.Height;
 
@@ -65,13 +68,28 @@ namespace ImageProcessor.Processors
 
                 using (FastBitmap fastBitmap = new FastBitmap(newImage))
                 {
-                    for (int i = 0; i < width; i++)
+                    if (!rotate)
                     {
-                        for (int j = 0; j < height; j++)
+                        for (int i = 0; i < width; i++)
                         {
-                            HslaColor original = HslaColor.FromColor(fastBitmap.GetPixel(i, j));
-                            HslaColor altered = HslaColor.FromHslaColor(degrees / 360f, original.S, original.L, original.A);
-                            fastBitmap.SetPixel(i, j, altered);
+                            for (int j = 0; j < height; j++)
+                            {
+                                HslaColor original = HslaColor.FromColor(fastBitmap.GetPixel(i, j));
+                                HslaColor altered = HslaColor.FromHslaColor(degrees / 360f, original.S, original.L, original.A);
+                                fastBitmap.SetPixel(i, j, altered);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        for (int i = 0; i < width; i++)
+                        {
+                            for (int j = 0; j < height; j++)
+                            {
+                                HslaColor original = HslaColor.FromColor(fastBitmap.GetPixel(i, j));
+                                HslaColor altered = HslaColor.FromHslaColor((original.H + (degrees / 360f)) % 1, original.S, original.L, original.A);
+                                fastBitmap.SetPixel(i, j, altered);
+                            }
                         }
                     }
                 }

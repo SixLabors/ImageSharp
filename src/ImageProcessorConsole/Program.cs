@@ -73,9 +73,10 @@ namespace ImageProcessorConsole
                             //.BackgroundColor(Color.White)
                             //.Resize(new Size((int)(size.Width * 1.1), 0))
                             //.ContentAwareResize(layer)
-                            //.Constrain(size)
+                            .Constrain(size)
                             //.Filter(MatrixFilters.HiSatch)
-                            .Pixelate(8)
+                            //.Pixelate(8)
+                            .GaussianSharpen(10)
                             .Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", fileInfo.Name)));
 
                         stopwatch.Stop();

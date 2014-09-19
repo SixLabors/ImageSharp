@@ -264,145 +264,117 @@ namespace ImageProcessor.Imaging
         {
             int width = sourceBitmap.Width;
             int height = sourceBitmap.Height;
+            Bitmap destinationBitmap = new Bitmap(width, height);
 
-            BitmapData sourceData = sourceBitmap.LockBits(
-                new Rectangle(0, 0, width, height),
-                ImageLockMode.ReadOnly,
-                PixelFormat.Format32bppArgb);
-
-            int strideWidth = sourceData.Stride;
-            int scanHeight = sourceData.Height;
-
-            int bufferSize = strideWidth * scanHeight;
-            byte[] pixelBuffer = new byte[bufferSize];
-            byte[] resultBuffer = new byte[bufferSize];
-
-            Marshal.Copy(sourceData.Scan0, pixelBuffer, 0, pixelBuffer.Length);
-            sourceBitmap.UnlockBits(sourceData);
-
-            int kernelLength = kernel.GetLength(0);
-            int radius = kernelLength >> 1;
-            int kernelSize = kernelLength * kernelLength;
-
-            // For each line
-            for (int y = 0; y < height; y++)
+            using (FastBitmap sourceFastBitmap = new FastBitmap(sourceBitmap))
             {
-                // For each pixel
-                for (int x = 0; x < width; x++)
+                using (FastBitmap destinationFastBitmap = new FastBitmap(destinationBitmap))
                 {
-                    // The number of kernel elements taken into account
-                    int processedKernelSize;
+                    int kernelLength = kernel.GetLength(0);
+                    int radius = kernelLength >> 1;
+                    int kernelSize = kernelLength * kernelLength;
+                    int threshold = this.Threshold;
 
-                    // Colour sums
-                    double blue;
-                    double alpha;
-                    double divider;
-                    double green;
-                    double red = green = blue = alpha = divider = processedKernelSize = 0;
-
-                    // The location of the pixel bytes.
-                    int byteOffset = (y * strideWidth) + (x * 4);
-
-                    // For each kernel row
-                    for (int i = 0; i < kernelLength; i++)
+                    // For each line
+                    for (int y = 0; y < height; y++)
                     {
-                        int ir = i - radius;
-                        int offsetY = y + ir;
-
-                        // Skip the current row
-                        if (offsetY < 0)
+                        // For each pixel
+                        for (int x = 0; x < width; x++)
                         {
-                            continue;
-                        }
+                            // The number of kernel elements taken into account
+                            int processedKernelSize;
 
-                        // Outwith the current bounds so break.
-                        if (offsetY >= height)
-                        {
-                            break;
-                        }
+                            // Colour sums
+                            double blue;
+                            double alpha;
+                            double divider;
+                            double green;
+                            double red = green = blue = alpha = divider = processedKernelSize = 0;
 
-                        // For each kernel column
-                        for (int j = 0; j < kernelLength; j++)
-                        {
-                            int jr = j - radius;
-                            int offsetX = x + jr;
-
-                            // Skip the column
-                            if (offsetX < 0)
+                            // For each kernel row
+                            for (int i = 0; i < kernelLength; i++)
                             {
-                                continue;
+                                int ir = i - radius;
+                                int offsetY = y + ir;
+
+                                // Skip the current row
+                                if (offsetY < 0)
+                                {
+                                    continue;
+                                }
+
+                                // Outwith the current bounds so break.
+                                if (offsetY >= height)
+                                {
+                                    break;
+                                }
+
+                                // For each kernel column
+                                for (int j = 0; j < kernelLength; j++)
+                                {
+                                    int jr = j - radius;
+                                    int offsetX = x + jr;
+
+                                    // Skip the column
+                                    if (offsetX < 0)
+                                    {
+                                        continue;
+                                    }
+
+                                    if (offsetX < width)
+                                    {
+                                        Color color = sourceFastBitmap.GetPixel(offsetX, offsetY);
+                                        double k = kernel[i, j];
+                                        divider += k;
+
+                                        red += k * color.R;
+                                        green += k * color.G;
+                                        blue += k * color.B;
+                                        alpha += k * color.A;
+
+                                        processedKernelSize++;
+                                    }
+                                }
                             }
 
-                            if (offsetX < width)
+                            // Check to see if all kernel elements were processed
+                            if (processedKernelSize == kernelSize)
                             {
-                                int calcOffset = (offsetX * 4) + (offsetY * sourceData.Stride);
-                                byte sourceBlue = pixelBuffer[calcOffset];
-                                byte sourceGreen = pixelBuffer[calcOffset + 1];
-                                byte sourceRed = pixelBuffer[calcOffset + 2];
-                                byte sourceAlpha = pixelBuffer[calcOffset + 3];
-
-                                double k = kernel[i, j];
-                                divider += k;
-
-                                red += k * sourceRed;
-                                green += k * sourceGreen;
-                                blue += k * sourceBlue;
-                                alpha += k * sourceAlpha;
-
-                                processedKernelSize++;
+                                // All kernel elements are processed; we are not on the edge.
+                                divider = this.Divider;
                             }
+                            else
+                            {
+                                // We are on an edge; do we need to use dynamic divider or not?
+                                if (!this.UseDynamicDividerForEdges)
+                                {
+                                    // Apply the set divider.
+                                    divider = this.Divider;
+                                }
+                            }
+
+                            // Check and apply the divider
+                            if ((long)divider != 0)
+                            {
+                                red /= divider;
+                                green /= divider;
+                                blue /= divider;
+                                alpha /= divider;
+                            }
+
+                            // Add any applicable threshold.
+                            red += threshold;
+                            green += threshold;
+                            blue += threshold;
+                            alpha += threshold;
+
+                            destinationFastBitmap.SetPixel(x, y, Color.FromArgb(alpha.ToByte(), red.ToByte(), green.ToByte(), blue.ToByte()));
                         }
                     }
-
-                    // Check to see if all kernel elements were processed
-                    if (processedKernelSize == kernelSize)
-                    {
-                        // All kernel elements are processed; we are not on the edge.
-                        divider = this.Divider;
-                    }
-                    else
-                    {
-                        // We are on an edge; do we need to use dynamic divider or not?
-                        if (!this.UseDynamicDividerForEdges)
-                        {
-                            // Apply the set divider.
-                            divider = this.Divider;
-                        }
-                    }
-
-                    // Check and apply the divider
-                    if ((long)divider != 0)
-                    {
-                        red /= divider;
-                        green /= divider;
-                        blue /= divider;
-                        alpha /= divider;
-                    }
-
-                    // Add any applicable threshold.
-                    red += this.Threshold;
-                    green += this.Threshold;
-                    blue += this.Threshold;
-                    alpha += this.Threshold;
-
-                    resultBuffer[byteOffset] = blue.ToByte(); 
-                    resultBuffer[byteOffset + 1] = green.ToByte(); 
-                    resultBuffer[byteOffset + 2] = red.ToByte(); 
-                    resultBuffer[byteOffset + 3] = alpha.ToByte(); 
                 }
             }
 
-            Bitmap resultBitmap = new Bitmap(width, height);
-
-            BitmapData resultData = resultBitmap.LockBits(
-                                                new Rectangle(0, 0, width, height),
-                                                ImageLockMode.WriteOnly,
-                                                PixelFormat.Format32bppArgb);
-
-            Marshal.Copy(resultBuffer, 0, resultData.Scan0, resultBuffer.Length);
-            resultBitmap.UnlockBits(resultData);
-
-            return resultBitmap;
+            return destinationBitmap;
         }
 
         #region Private

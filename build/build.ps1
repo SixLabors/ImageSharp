@@ -18,12 +18,34 @@ Properties {
 	$NUNIT_EXE = Join-Path $SRC_PATH "packages\NUnit.Runners.2.6.3\tools\nunit-console.exe"
 	$OPENCOVER_EXE = Join-Path $SRC_PATH "packages\OpenCover.4.5.3207\OpenCover.Console.exe"
 	$REPORTGEN_EXE = Join-Path $SRC_PATH "packages\ReportGenerator.1.9.1.0\ReportGenerator.exe"
+	$NUNITREPORT_EXE = Join-Path $PROJ_PATH "NUnitHTMLReportGenerator.exe"
+	
+	# list of projects
+	$BuildProjects = @(
+		"Build.ImageProcessor.proj",
+		"Build.ImageProcessor.Web.proj",
+		"Build.ImageProcessor.Plugins.WebP.proj",
+		"Build.ImageProcessor.Plugins.Cair.proj"
+	)
+	
+	$TestProjects = @(
+		"ImageProcessor.UnitTests",
+		"ImageProcessor.Web.UnitTests"
+	)
+	
+	$Nuspecs = @{
+		"ImageProcessor.nuspec" = $version ;
+		"ImageProcessor.Web.nuspec" = $webversion ;
+		"ImageProcessor.Web.Config.nuspec" = $webconfigversion ;
+		"ImageProcessor.Plugins.WebP.nuspec" = $webppluginversion ;
+		"ImageProcessor.Plugins.Cair.nuspec" = $cairpluginversion
+	}
 }
 
 Framework "4.0x86"
 FormatTaskName "-------- {0} --------"
 
-task default -depends Cleanup-Binaries, Build-Solution, Generate-Package
+task default -depends Cleanup-Binaries, Build-Solution, Run-Tests, Generate-Package
 
 # cleans up the binaries output folder
 task Cleanup-Binaries {
@@ -44,14 +66,8 @@ task Cleanup-Binaries {
 # builds the solutions
 task Build-Solution -depends Cleanup-Binaries {
 	Write-Host "Building projects"
-	$projects = @(
-		"Build.ImageProcessor.proj",
-		"Build.ImageProcessor.Web.proj",
-		"Build.ImageProcessor.Plugins.WebP.proj",
-		"Build.ImageProcessor.Plugins.Cair.proj"
-	)
-	
-	$projects | % {
+
+	$BuildProjects | % {
 		Write-Host "Building project $_"
 		Exec {
 			msbuild (Join-Path $PROJ_PATH $_) /p:BUILD_RELEASE="$version"
@@ -59,8 +75,8 @@ task Build-Solution -depends Cleanup-Binaries {
 	}
 }
 
-# runs the unit tests
-task Run-Tests -depends Cleanup-Binaries {
+# builds the test projects
+task Build-Tests -depends Cleanup-Binaries {
 	Write-Host "Building the unit test projects"
 	
 	if (-not (Test-Path $TEST_RESULTS)) {
@@ -70,32 +86,49 @@ task Run-Tests -depends Cleanup-Binaries {
 	# make sure the runner exes are restored
 	& $NUGET_EXE restore (Join-Path $SRC_PATH "ImageProcessor.sln")
 	
-	$projects = @(
-		"ImageProcessor.UnitTests",
-		"ImageProcessor.Web.UnitTests"
-	)
-	
 	# build the test projects (they don't have specific build files like the main projects)
-	$projects | % {
+	$TestProjects | % {
 		Write-Host "Building project $_"
 		Exec {
 			msbuild (Join-Path $SRC_PATH "$_\$_.csproj") /t:Build /p:Configuration=Release /p:Platform="AnyCPU" /p:Warnings=true /v:Normal /nologo
 		}
 	}
 	
-	# run the Nunit test runner on the test DLLs
-	Write-Host "Running code coverage over unit tests"
-	$projects | % {
+}
+
+# runs the unit tests
+task Run-Tests -depends Build-Tests {
+	Write-Host "Running unit tests"
+	$TestProjects | % {
 		$TestDllFolder = Join-Path $SRC_PATH "$_\bin\Release"
 		$TestDdlPath = Join-Path $TestDllFolder "$_.dll"
 		$TestOutputPath = Join-Path $TEST_RESULTS "$($_)_Unit.xml"
+		
+		Write-Host "Running unit tests on project $_"
+		& $NUNIT_EXE $TestDdlPath /result:$TestOutputPath /noshadow /nologo
+		
+		$ReportPath = (Join-Path $TEST_RESULTS "Tests")
+		if (-not (Test-Path $ReportPath)) {
+			mkdir $ReportPath | Out-Null
+		}
+		
+		Write-Host "Transforming tests results file to HTML"
+		& $NUNITREPORT_EXE $TestOutputPath (Join-Path $ReportPath "$_.html")
+	}
+}
+
+# runs the code coverage (separate from the unit test because it takes so much longer)
+task Run-Coverage -depends Build-Tests {
+	Write-Host "Running code coverage over unit tests"
+	$TestProjects | % {
+		$TestDllFolder = Join-Path $SRC_PATH "$_\bin\Release"
+		$TestDdlPath = Join-Path $TestDllFolder "$_.dll"
 		$CoverageOutputPath = Join-Path $TEST_RESULTS "$($_)_Coverage.xml"
 		
 		Write-Host "Running code coverage on project $_"
-		& $OPENCOVER_EXE -register:user -target:$NUNIT_EXE -targetargs:"$TestDdlPath /result:$TestOutputPath /noshadow /nologo" -targetdir:$TestDllFolder -output:$CoverageOutputPath
+		& $OPENCOVER_EXE -register:user -target:$NUNIT_EXE -targetargs:"$TestDdlPath /noshadow /nologo" -targetdir:$TestDllFolder -output:$CoverageOutputPath
 		
-		Write-Host "Transforming coverage result file to HTML"
-		& $REPORTGEN_EXE -reports:$TestOutputPath -targetdir:(Join-Path $TEST_RESULTS "Tests\$_")
+		Write-Host "Transforming coverage results file to HTML"
 		& $REPORTGEN_EXE -reports:$CoverageOutputPath -targetdir:(Join-Path $TEST_RESULTS "Coverage\$_")
 	}
 }
@@ -110,15 +143,7 @@ task Generate-Package -depends Build-Solution {
 	}
 	
 	# Package the nuget
-	$nuspecs = @{
-		"ImageProcessor.nuspec" = $version ;
-		"ImageProcessor.Web.nuspec" = $webversion ;
-		"ImageProcessor.Web.Config.nuspec" = $webconfigversion ;
-		"ImageProcessor.Plugins.WebP.nuspec" = $webppluginversion ;
-		"ImageProcessor.Plugins.Cair.nuspec" = $cairpluginversion
-	}
-	
-	$nuspecs.GetEnumerator() | % {
+	$Nuspecs.GetEnumerator() | % {
 		$nuspec_local_path = (Join-Path $NUSPECS_PATH $_.Key)
 		Write-Host "Building Nuget package from $nuspec_local_path"
 		

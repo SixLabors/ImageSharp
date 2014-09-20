@@ -13,12 +13,11 @@ namespace ImageProcessor.Imaging
     using System;
     using System.Drawing;
     using System.Drawing.Imaging;
-    using System.Runtime.InteropServices;
 
     /// <summary>
     /// Allows fast access to <see cref="System.Drawing.Bitmap"/>'s pixel data.
     /// </summary>
-    public class FastBitmap : IDisposable
+    public unsafe class FastBitmap : IDisposable
     {
         /// <summary>
         /// The bitmap.
@@ -36,9 +35,14 @@ namespace ImageProcessor.Imaging
         private readonly int height;
 
         /// <summary>
-        /// The stride width of the bitmap.
+        /// The number of bytes in a row.
         /// </summary>
-        private int stride;
+        private int bytesInARow;
+
+        /// <summary>
+        /// The size of the pixel data.
+        /// </summary>
+        private int pixelDataSize;
 
         /// <summary>
         /// The bitmap data.
@@ -48,12 +52,7 @@ namespace ImageProcessor.Imaging
         /// <summary>
         /// The pixel buffer for holding pixel data.
         /// </summary>
-        private byte[] pixelBuffer;
-
-        /// <summary>
-        /// The buffer length.
-        /// </summary>
-        private int bufferLength;
+        private byte* pixelBuffer;
 
         /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.
@@ -100,6 +99,23 @@ namespace ImageProcessor.Imaging
             {
                 return this.height;
             }
+        }
+
+        /// <summary>
+        /// Gets the pixel data for the given position.
+        /// </summary>
+        /// <param name="x">
+        /// The x position of the pixel.
+        /// </param>
+        /// <param name="y">
+        /// The y position of the pixel.
+        /// </param>
+        /// <returns>
+        /// The <see cref="PixelData"/>.
+        /// </returns>
+        private PixelData* this[int x, int y]
+        {
+            get { return (PixelData*)(this.pixelBuffer + (y * this.bytesInARow) + (x * this.pixelDataSize)); }
         }
 
         /// <summary>
@@ -150,12 +166,8 @@ namespace ImageProcessor.Imaging
                 throw new ArgumentOutOfRangeException("y", "Value cannot be less than zero or greater than the bitmap height.");
             }
 
-            int position = (x * 4) + (y * this.stride);
-            byte blue = this.pixelBuffer[position];
-            byte green = this.pixelBuffer[position + 1];
-            byte red = this.pixelBuffer[position + 2];
-            byte alpha = this.pixelBuffer[position + 3];
-            return Color.FromArgb(alpha, red, green, blue);
+            PixelData* data = this[x, y];
+            return Color.FromArgb(data->A, data->R, data->G, data->B);
         }
 
         /// <summary>
@@ -179,11 +191,11 @@ namespace ImageProcessor.Imaging
                 throw new ArgumentOutOfRangeException("y", "Value cannot be less than zero or greater than the bitmap height.");
             }
 
-            int position = (x * 4) + (y * this.stride);
-            this.pixelBuffer[position] = color.B;
-            this.pixelBuffer[position + 1] = color.G;
-            this.pixelBuffer[position + 2] = color.R;
-            this.pixelBuffer[position + 3] = color.A;
+            PixelData* data = this[x, y];
+            data->R = color.R;
+            data->G = color.G;
+            data->B = color.B;
+            data->A = color.A;
         }
 
         /// <summary>
@@ -231,14 +243,21 @@ namespace ImageProcessor.Imaging
         {
             Rectangle bounds = new Rectangle(Point.Empty, this.bitmap.Size);
 
+            // Figure out the number of bytes in a row. This is rounded up to be a multiple
+            // of 4 bytes, since a scan line in an image must always be a multiple of 4 bytes
+            // in length.
+            this.pixelDataSize = sizeof(PixelData);
+            this.bytesInARow = bounds.Width * this.pixelDataSize;
+            if (this.bytesInARow % 4 != 0)
+            {
+                this.bytesInARow = 4 * ((this.bytesInARow / 4) + 1);
+            }
+
             // Lock the bitmap
             this.bitmapData = this.bitmap.LockBits(bounds, ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
 
             // Copy the bitmap data across to the array for manipulation.
-            this.stride = this.bitmapData.Stride;
-            this.bufferLength = this.stride * this.bitmapData.Height;
-            this.pixelBuffer = new byte[this.bufferLength];
-            Marshal.Copy(this.bitmapData.Scan0, this.pixelBuffer, 0, this.pixelBuffer.Length);
+            this.pixelBuffer = (byte*)this.bitmapData.Scan0.ToPointer();
         }
 
         /// <summary>
@@ -247,10 +266,35 @@ namespace ImageProcessor.Imaging
         private void UnlockBitmap()
         {
             // Copy the RGB values back to the bitmap and unlock the bitmap.
-            Marshal.Copy(this.pixelBuffer, 0, this.bitmapData.Scan0, this.bufferLength);
             this.bitmap.UnlockBits(this.bitmapData);
             this.bitmapData = null;
             this.pixelBuffer = null;
+        }
+
+        /// <summary>
+        /// The pixel data.
+        /// </summary>
+        private struct PixelData
+        {
+            /// <summary>
+            /// The blue component.
+            /// </summary>
+            public byte B;
+
+            /// <summary>
+            /// The green component.
+            /// </summary>
+            public byte G;
+
+            /// <summary>
+            /// The red component.
+            /// </summary>
+            public byte R;
+
+            /// <summary>
+            /// The alpha component.
+            /// </summary>
+            public byte A;
         }
     }
 }

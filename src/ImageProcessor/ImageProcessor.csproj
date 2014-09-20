@@ -26,6 +26,7 @@
     <WarningLevel>4</WarningLevel>
     <DocumentationFile>bin\Debug\ImageProcessor.XML</DocumentationFile>
     <Prefer32Bit>false</Prefer32Bit>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -73,7 +74,9 @@
     <Compile Include="Imaging\Colors\HslaColor.cs" />
     <Compile Include="Imaging\Colors\RgbaColor.cs" />
     <Compile Include="Imaging\Colors\YCbCrColor.cs" />
-    <Compile Include="Imaging\FastBitmap.cs" />
+    <Compile Include="Imaging\FastBitmap.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Imaging\Formats\GifInfo.cs" />
     <Compile Include="Common\Extensions\IntegerExtensions.cs" />
     <Compile Include="Common\Exceptions\ImageFormatException.cs" />

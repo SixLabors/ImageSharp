@@ -1,14 +1,24 @@
-﻿namespace ImageProcessor.Processors
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="ReplaceColor.cs" company="James South">
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
+// </copyright>
+// <summary>
+//   Encapsulates methods allowing the replacement of a color within an image.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
+
+namespace ImageProcessor.Processors
 {
     using System;
     using System.Collections.Generic;
     using System.Drawing;
     using ImageProcessor.Common.Exceptions;
+    using ImageProcessor.Common.Extensions;
     using ImageProcessor.Imaging;
 
     /// <summary>
     /// Encapsulates methods allowing the replacement of a color within an image.
-    /// <see href="http://softwarebydefault.com/2013/03/16/bitmap-color-substitution/"/>
     /// </summary>
     public class ReplaceColor : IGraphicsProcessor
     {
@@ -57,20 +67,55 @@
             {
                 Tuple<Color, Color, int> parameters = this.DynamicParameter;
                 Color original = parameters.Item1;
+                byte originalR = original.R;
+                byte originalG = original.G;
+                byte originalB = original.B;
+
                 Color replacement = parameters.Item2;
-                int threshold = parameters.Item3;
+                byte replacementR = original.R;
+                byte replacementG = replacement.G;
+                byte replacementB = replacement.B;
+
+                int fuzziness = parameters.Item3;
 
                 newImage = new Bitmap(image);
+                int width = image.Width;
+                int height = image.Height;
 
                 using (FastBitmap fastBitmap = new FastBitmap(newImage))
                 {
-                    
+                    for (int x = 0; x < width; x++)
+                    {
+                        for (int y = 0; y < height; y++)
+                        {
+                            // Get the pixel color.
+                            Color currentColor = fastBitmap.GetPixel(x, y);
+                            byte currentR = currentColor.R;
+                            byte currentG = currentColor.B;
+                            byte currentB = currentColor.B;
 
+                            // Test whether it is in the expected range.
+                            if (currentR <= originalR + fuzziness && currentR >= originalR - fuzziness)
+                            {
+                                if (currentG <= originalG + fuzziness && currentG >= originalG - fuzziness)
+                                {
+                                    if (currentB <= originalB + fuzziness && currentB >= originalB - fuzziness)
+                                    {
+                                        // Ensure the values are withing an acceptable byte range
+                                        // and set the new value.
+                                        byte r = (originalR - currentR + replacementR).ToByte();
+                                        byte g = (originalG - currentG + replacementG).ToByte();
+                                        byte b = (originalB - currentB + replacementB).ToByte();
+                                        fastBitmap.SetPixel(x, y, Color.FromArgb(currentColor.A, r, g, b));
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
 
                 image.Dispose();
                 image = newImage;
-
             }
             catch (Exception ex)
             {

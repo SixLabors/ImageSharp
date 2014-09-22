@@ -14,6 +14,7 @@ namespace ImageProcessor.Web.Services
     using System.Collections.Generic;
     using System.IO;
     using System.Net;
+    using System.Security;
     using System.Threading.Tasks;
 
     using ImageProcessor.Web.Helpers;
@@ -28,7 +29,13 @@ namespace ImageProcessor.Web.Services
         /// </summary>
         public RemoteImageService()
         {
-            this.Settings = new Dictionary<string, string>();
+            this.Settings = new Dictionary<string, string>
+            {
+                { "MaxBytes", "4194304" }, 
+                { "Timeout", "30000" }
+            };
+
+            this.WhiteList = new Uri[] { };
         }
 
         /// <summary>
@@ -63,6 +70,11 @@ namespace ImageProcessor.Web.Services
         public Dictionary<string, string> Settings { get; set; }
 
         /// <summary>
+        /// Gets or sets the white list of <see cref="System.Uri"/>. 
+        /// </summary>
+        public Uri[] WhiteList { get; set; }
+
+        /// <summary>
         /// Gets the image using the given identifier.
         /// </summary>
         /// <param name="id">
@@ -74,7 +86,16 @@ namespace ImageProcessor.Web.Services
         public async Task<byte[]> GetImage(object id)
         {
             Uri uri = new Uri(id.ToString());
-            RemoteFile remoteFile = new RemoteFile(uri, false);
+
+            // Check the url is from a whitelisted location.
+            this.CheckSafeUrlLocation(uri);
+
+            RemoteFile remoteFile = new RemoteFile(uri)
+            {
+                MaxDownloadSize = int.Parse(this.Settings["MaxBytes"]),
+                TimeoutLength = int.Parse(this.Settings["Timeout"])
+            };
+
             byte[] buffer = { };
 
             // Prevent response blocking.
@@ -100,6 +121,42 @@ namespace ImageProcessor.Web.Services
             }
 
             return buffer;
+        }
+
+        /// <summary>
+        /// Returns a value indicating whether the current url is in a list of safe download locations.
+        /// </summary>
+        /// <param name="url">
+        /// The <see cref="System.Uri"/> to check against.
+        /// </param>
+        private void CheckSafeUrlLocation(Uri url)
+        {
+            string upper = url.Host.ToUpperInvariant();
+
+            // Check for root or sub domain.
+            bool validUrl = false;
+            foreach (Uri uri in this.WhiteList)
+            {
+                if (!uri.IsAbsoluteUri)
+                {
+                    Uri rebaseUri = new Uri("http://" + uri.ToString().TrimStart(new[] { '.', '/' }));
+                    validUrl = upper.StartsWith(rebaseUri.Host.ToUpperInvariant()) || upper.EndsWith(rebaseUri.Host.ToUpperInvariant());
+                }
+                else
+                {
+                    validUrl = upper.StartsWith(uri.Host.ToUpperInvariant()) || upper.EndsWith(uri.Host.ToUpperInvariant());
+                }
+
+                if (validUrl)
+                {
+                    break;
+                }
+            }
+
+            if (!validUrl)
+            {
+                throw new SecurityException("Application is not configured to allow remote file downloads from this domain.");
+            }
         }
     }
 }

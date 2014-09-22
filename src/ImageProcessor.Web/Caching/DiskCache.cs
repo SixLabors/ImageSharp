@@ -191,11 +191,11 @@ namespace ImageProcessor.Web.Caching
         {
             string key = Path.GetFileNameWithoutExtension(cachedPath);
             CachedImage cachedImage = new CachedImage
-                                          {
-                                              Key = key,
-                                              Path = cachedPath,
-                                              CreationTimeUtc = DateTime.UtcNow
-                                          };
+            {
+                Key = key,
+                Path = cachedPath,
+                CreationTimeUtc = DateTime.UtcNow
+            };
 
             CacheIndexer.Add(cachedImage);
         }
@@ -289,7 +289,7 @@ namespace ImageProcessor.Web.Caching
                 // That name can also be used as a key for the cached image and we should be able to use
                 // The characters of that hash as sub-folders.
                 string parsedExtension = ImageHelpers.GetExtension(this.fullPath);
-                string fallbackExtension = this.imageName.Substring(this.imageName.LastIndexOf(".", StringComparison.Ordinal) + 1);
+                //string fallbackExtension = this.imageName.Substring(this.imageName.LastIndexOf(".", StringComparison.Ordinal) + 1);
                 string encryptedName = (streamHash + this.fullPath).ToSHA1Fingerprint();
 
                 // Collision rate of about 1 in 10000 for the folder structure.
@@ -297,9 +297,9 @@ namespace ImageProcessor.Web.Caching
                 string virtualPathFromKey = pathFromKey.Replace(@"\", "/");
 
                 string cachedFileName = string.Format(
-                    "{0}.{1}",
+                    "{0}{1}",
                     encryptedName,
-                    !string.IsNullOrWhiteSpace(parsedExtension) ? parsedExtension.Replace(".", string.Empty) : fallbackExtension);
+                    !string.IsNullOrWhiteSpace(parsedExtension) ? "." + parsedExtension.Replace(".", string.Empty) : string.Empty);
 
                 this.physicalCachedPath = Path.Combine(AbsoluteCachePath, pathFromKey, cachedFileName);
                 this.virtualCachedPath = Path.Combine(VirtualCachePath, virtualPathFromKey, cachedFileName).Replace(@"\", "/");

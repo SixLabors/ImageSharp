@@ -739,7 +739,11 @@ namespace ImageProcessor
         {
             if (this.ShouldProcess)
             {
-                Dictionary<string, string> resizeSettings = new Dictionary<string, string> { { "MaxWidth", resizeLayer.Size.Width.ToString("G") }, { "MaxHeight", resizeLayer.Size.Height.ToString("G") } };
+                Dictionary<string, string> resizeSettings = new Dictionary<string, string>
+                {
+                    { "MaxWidth", resizeLayer.Size.Width.ToString("G") },
+                    { "MaxHeight", resizeLayer.Size.Height.ToString("G") }
+                };
 
                 Resize resize = new Resize { DynamicParameter = resizeLayer, Settings = resizeSettings };
                 this.CurrentImageFormat.ApplyProcessor(resize.ProcessImage, this);

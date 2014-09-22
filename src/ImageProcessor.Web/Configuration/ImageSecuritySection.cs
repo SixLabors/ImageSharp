@@ -25,70 +25,9 @@ namespace ImageProcessor.Web.Configuration
     {
         #region Properties
         /// <summary>
-        /// Gets or sets a value indicating whether the current application is allowed download remote files.
+        /// Gets the <see cref="T:ImageProcessor.Web.Config.ImageSecuritySection.ServiceElementCollection"/>
         /// </summary>
-        /// <value><see langword="true"/> if the current application is allowed download remote files; otherwise, <see langword="false"/>.</value>
-        [ConfigurationProperty("allowRemoteDownloads", DefaultValue = false, IsRequired = true)]
-        public bool AllowRemoteDownloads
-        {
-            get { return (bool)this["allowRemoteDownloads"]; }
-            set { this["allowRemoteDownloads"] = value; }
-        }
-
-        /// <summary>
-        /// Gets or sets the maximum allowed remote file timeout in milliseconds for the application.
-        /// </summary>
-        /// <value>The maximum number of days to store an image in the cache.</value>
-        /// <remarks>Defaults to 30000 (30 seconds) if not set.</remarks>
-        [ConfigurationProperty("timeout", DefaultValue = "300000", IsRequired = true)]
-        public int Timeout
-        {
-            get
-            {
-                return (int)this["timeout"];
-            }
-
-            set
-            {
-                this["timeout"] = value;
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the maximum allowed remote file size in bytes for the application.
-        /// </summary>
-        /// <value>The maximum number of days to store an image in the cache.</value>
-        /// <remarks>Defaults to 4194304 (4Mb) if not set.</remarks>
-        [ConfigurationProperty("maxBytes", DefaultValue = "4194304", IsRequired = true)]
-        public int MaxBytes
-        {
-            get
-            {
-                return (int)this["maxBytes"];
-            }
-
-            set
-            {
-                this["maxBytes"] = value;
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the prefix for remote files for the application.
-        /// </summary>
-        /// <value>The prefix for remote files for the application.</value>
-        [ConfigurationProperty("remotePrefix", DefaultValue = "", IsRequired = true)]
-        public string RemotePrefix
-        {
-            get { return (string)this["remotePrefix"]; }
-
-            set { this["remotePrefix"] = value; }
-        }
-
-        /// <summary>
-        /// Gets the <see cref="T:ImageProcessor.Web.Config.ImageSecuritySection.WhiteListElementCollection"/>
-        /// </summary>
-        /// <value>The <see cref="T:ImageProcessor.Web.Config.ImageSecuritySection.WhiteListElementCollection"/></value>
+        /// <value>The <see cref="T:ImageProcessor.Web.Config.ImageSecuritySection.ServiceElementCollection"/></value>
         [ConfigurationProperty("services", IsRequired = true)]
         public ServiceElementCollection ImageServices
         {
@@ -344,19 +283,19 @@ namespace ImageProcessor.Web.Configuration
             }
 
             /// <summary>
-            /// Gets or sets the <see cref="T:ImageProcessor.Web.Config.ImageProcessingSection.SettingElement"/>
+            /// Gets or sets the <see cref="T:ImageProcessor.Web.Config.ImageSecuritySection.SettingElement"/>
             /// at the specified index within the collection.
             /// </summary>
             /// <param name="index">The index at which to get the specified object.</param>
             /// <returns>
-            /// The the <see cref="T:ImageProcessor.Web.Config.ImageProcessingSection.SettingElement"/>
+            /// The the <see cref="T:ImageProcessor.Web.Config.ImageSecuritySection.SettingElement"/>
             /// at the specified index within the collection.
             /// </returns>
-            public ImageProcessingSection.SettingElement this[int index]
+            public ImageSecuritySection.SettingElement this[int index]
             {
                 get
                 {
-                    return (ImageProcessingSection.SettingElement)BaseGet(index);
+                    return (ImageSecuritySection.SettingElement)BaseGet(index);
                 }
 
                 set
@@ -375,9 +314,9 @@ namespace ImageProcessor.Web.Configuration
             /// </summary>
             /// <param name="key">the key representing the element</param>
             /// <returns>the setting element</returns>
-            public new ImageProcessingSection.SettingElement this[string key]
+            public new ImageSecuritySection.SettingElement this[string key]
             {
-                get { return (ImageProcessingSection.SettingElement)BaseGet(key); }
+                get { return (ImageSecuritySection.SettingElement)BaseGet(key); }
             }
 
             /// <summary>
@@ -403,7 +342,7 @@ namespace ImageProcessor.Web.Configuration
             /// <returns>The element key for a specified PluginElement configuration element.</returns>
             protected override object GetElementKey(ConfigurationElement element)
             {
-                return ((ImageProcessingSection.SettingElement)element).Key;
+                return ((ImageSecuritySection.SettingElement)element).Key;
             }
 
             /// <summary>
@@ -414,7 +353,7 @@ namespace ImageProcessor.Web.Configuration
             /// </returns>
             protected override ConfigurationElement CreateNewElement()
             {
-                return new ImageProcessingSection.SettingElement();
+                return new ImageSecuritySection.SettingElement();
             }
         }
 
@@ -483,28 +422,6 @@ namespace ImageProcessor.Web.Configuration
                 get { return (Uri)this["url"]; }
 
                 set { this["url"] = value; }
-            }
-
-            /// <summary>
-            /// Gets or sets a value indicating whether the white listed url is extension-less.
-            /// </summary>
-            [ConfigurationProperty("extensionLess", DefaultValue = false, IsRequired = false)]
-            public bool ExtensionLess
-            {
-                get { return (bool)this["extensionLess"]; }
-
-                set { this["extensionLess"] = value; }
-            }
-
-            /// <summary>
-            /// Gets or sets the image format for the extension-less url.
-            /// </summary>
-            [ConfigurationProperty("imageFormat", DefaultValue = "", IsRequired = false)]
-            public string ImageFormat
-            {
-                get { return (string)this["imageFormat"]; }
-
-                set { this["imageFormat"] = value; }
             }
         }
     }

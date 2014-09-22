@@ -29,8 +29,9 @@ namespace ImageProcessor.Web.HttpModules
 
     using ImageProcessor.Web.Caching;
     using ImageProcessor.Web.Configuration;
-    using ImageProcessor.Web.Extensions;
     using ImageProcessor.Web.Helpers;
+    using ImageProcessor.Web.Services;
+
     #endregion
 
     /// <summary>
@@ -68,11 +69,6 @@ namespace ImageProcessor.Web.HttpModules
         /// The locker for preventing duplicate requests.
         /// </summary>
         private static readonly AsyncDuplicateLock Locker = new AsyncDuplicateLock();
-
-        /// <summary>
-        /// The value to prefix any remote image requests with to ensure they get captured.
-        /// </summary>
-        private static string remotePrefix;
 
         /// <summary>
         /// Whether to preserve exif meta data.
@@ -129,11 +125,6 @@ namespace ImageProcessor.Web.HttpModules
         /// </param>
         public void Init(HttpApplication context)
         {
-            if (remotePrefix == null)
-            {
-                remotePrefix = ImageProcessorConfiguration.Instance.RemotePrefix;
-            }
-
             if (preserveExifMetaData == null)
             {
                 preserveExifMetaData = ImageProcessorConfiguration.Instance.PreserveExifMetaData;
@@ -280,14 +271,17 @@ namespace ImageProcessor.Web.HttpModules
         private async Task ProcessImageAsync(HttpContext context)
         {
             HttpRequest request = context.Request;
+            IImageService currentService = this.GetImageServiceForRequest(request);
 
-            // Fixes issue 10.
-            bool isRemote = request.Path.EndsWith(remotePrefix, StringComparison.OrdinalIgnoreCase);
+            if (currentService == null)
+            {
+                throw new HttpException(500, "No ImageService found for current request.");
+            }
+
+            bool isRemote = !currentService.IsFileLocalService;
             string requestPath = string.Empty;
             string queryString = string.Empty;
-            bool validExtensionLessUrl = false;
             string urlParameters = "";
-            string extensionLessExtension = "";
 
             if (isRemote)
             {
@@ -307,7 +301,7 @@ namespace ImageProcessor.Web.HttpModules
                     requestPath = paths[0];
 
                     // Handle extension-less urls.
-                    if (paths.Count() > 2)
+                    if (paths.Length > 2)
                     {
                         queryString = paths[2];
                         urlParameters = paths[1];
@@ -315,15 +309,6 @@ namespace ImageProcessor.Web.HttpModules
                     else if (paths.Length > 1)
                     {
                         queryString = paths[1];
-                    }
-
-                    validExtensionLessUrl = RemoteFile.RemoteFileWhiteListExtensions.Any(
-                        x => x.ExtensionLess && requestPath.StartsWith(x.Url.AbsoluteUri));
-
-                    if (validExtensionLessUrl)
-                    {
-                        extensionLessExtension = RemoteFile.RemoteFileWhiteListExtensions.First(
-                        x => x.ExtensionLess && requestPath.StartsWith(x.Url.AbsoluteUri)).ImageFormat;
                     }
                 }
             }
@@ -334,30 +319,13 @@ namespace ImageProcessor.Web.HttpModules
             }
 
             // Only process requests that pass our sanitizing filter.
-            if ((ImageHelpers.IsValidImageExtension(requestPath) || validExtensionLessUrl) && !string.IsNullOrWhiteSpace(queryString))
+            if (ImageHelpers.IsValidImageExtension(requestPath) && !string.IsNullOrWhiteSpace(queryString))
             {
                 // Replace any presets in the querystring with the actual value.
                 queryString = this.ReplacePresetsInQueryString(queryString);
 
                 string fullPath = string.Format("{0}?{1}", requestPath, queryString);
                 string imageName = Path.GetFileName(requestPath);
-
-                if (validExtensionLessUrl && !string.IsNullOrWhiteSpace(extensionLessExtension))
-                {
-                    fullPath = requestPath;
-
-                    if (!string.IsNullOrWhiteSpace(urlParameters))
-                    {
-                        string hashedUrlParameters = urlParameters.ToMD5Fingerprint();
-
-                        // TODO: Add hash for querystring parameters?
-                        imageName += hashedUrlParameters;
-                        fullPath += hashedUrlParameters;
-                    }
-
-                    imageName += "." + extensionLessExtension;
-                    fullPath += extensionLessExtension + "?" + queryString;
-                }
 
                 // Create a new cache to help process and cache the request.
                 DiskCache cache = new DiskCache(requestPath, fullPath, imageName);
@@ -397,72 +365,37 @@ namespace ImageProcessor.Web.HttpModules
                         // Process the image.
                         using (ImageFactory imageFactory = new ImageFactory(preserveExifMetaData != null && preserveExifMetaData.Value))
                         {
-                            if (isRemote)
+                            using (await Locker.LockAsync(cachedPath))
                             {
-                                using (await Locker.LockAsync(cachedPath))
+                                byte[] imageBuffer;
+
+                                if (isRemote)
                                 {
                                     Uri uri = new Uri(requestPath + "?" + urlParameters);
-                                    RemoteFile remoteFile = new RemoteFile(uri, false);
-
-                                    // Prevent response blocking.
-                                    WebResponse webResponse = await remoteFile.GetWebResponseAsync().ConfigureAwait(false);
-
-                                    using (MemoryStream memoryStream = new MemoryStream())
-                                    {
-                                        using (WebResponse response = webResponse)
-                                        {
-                                            using (Stream responseStream = response.GetResponseStream())
-                                            {
-                                                if (responseStream != null)
-                                                {
-                                                    responseStream.CopyTo(memoryStream);
-
-                                                    // Reset the position of the stream to ensure we're reading the correct part.
-                                                    memoryStream.Position = 0;
-
-                                                    // Process the Image
-                                                    imageFactory.Load(memoryStream)
-                                                                .AutoProcess(queryString)
-                                                                .Save(cachedPath);
-
-                                                    // Add to the cache.
-                                                    cache.AddImageToCache(cachedPath);
-
-                                                    // Store the cached path, response type, and cache dependency in the context for later retrieval.
-                                                    context.Items[CachedPathKey] = cachedPath;
-                                                    context.Items[CachedResponseTypeKey] = imageFactory.CurrentImageFormat.MimeType;
-                                                    context.Items[CachedResponseFileDependency] = new List<string> { cachedPath };
-                                                }
-                                            }
-                                        }
-                                    }
+                                    imageBuffer = await currentService.GetImage(uri);
                                 }
-                            }
-                            else
-                            {
-                                using (Locker.Lock(cachedPath))
+                                else
                                 {
-                                    // Check to see if the file exists.
-                                    // ReSharper disable once AssignNullToNotNullAttribute
-                                    FileInfo fileInfo = new FileInfo(requestPath);
+                                    imageBuffer = await currentService.GetImage(requestPath);
+                                }
 
-                                    if (!fileInfo.Exists)
-                                    {
-                                        throw new HttpException(404, "No image exists at " + fullPath);
-                                    }
+                                using (MemoryStream memoryStream = new MemoryStream(imageBuffer))
+                                {
+                                    // Reset the position of the stream to ensure we're reading the correct part.
+                                    memoryStream.Position = 0;
 
                                     // Process the Image
-                                    imageFactory.Load(requestPath)
+                                    imageFactory.Load(memoryStream)
                                                 .AutoProcess(queryString)
                                                 .Save(cachedPath);
 
                                     // Add to the cache.
                                     cache.AddImageToCache(cachedPath);
 
-                                    // Store the cached path, response type, and cache dependencies in the context for later retrieval.
+                                    // Store the cached path, response type, and cache dependency in the context for later retrieval.
                                     context.Items[CachedPathKey] = cachedPath;
                                     context.Items[CachedResponseTypeKey] = imageFactory.CurrentImageFormat.MimeType;
-                                    context.Items[CachedResponseFileDependency] = new List<string> { requestPath, cachedPath };
+                                    context.Items[CachedResponseFileDependency] = new List<string> { cachedPath };
                                 }
                             }
                         }
@@ -578,6 +511,33 @@ namespace ImageProcessor.Web.HttpModules
             }
 
             return queryString;
+        }
+
+        /// <summary>
+        /// Gets the correct <see cref="IImageService"/> for the given request.
+        /// </summary>
+        /// <param name="request">
+        /// The current image request.
+        /// </param>
+        /// <returns>
+        /// The <see cref="IImageService"/>.
+        /// </returns>
+        private IImageService GetImageServiceForRequest(HttpRequest request)
+        {
+            IImageService imageService = null;
+            IList<IImageService> services = ImageProcessorConfiguration.Instance.ImageServices;
+
+            string path = request.Path;
+            foreach (IImageService service in services)
+            {
+                string key = service.Key;
+                if (!string.IsNullOrWhiteSpace(key) && path.EndsWith(key, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    imageService = service;
+                }
+            }
+
+            return imageService ?? services.FirstOrDefault(s => string.IsNullOrWhiteSpace(s.Key));
         }
         #endregion
     }

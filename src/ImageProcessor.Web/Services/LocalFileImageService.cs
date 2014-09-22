@@ -10,6 +10,7 @@
 
 namespace ImageProcessor.Web.Services
 {
+    using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Threading.Tasks;
@@ -52,6 +53,11 @@ namespace ImageProcessor.Web.Services
         public Dictionary<string, string> Settings { get; set; }
 
         /// <summary>
+        /// Gets or sets the white list of <see cref="System.Uri"/>. 
+        /// </summary>
+        public Uri[] WhiteList { get; set; }
+
+        /// <summary>
         /// Gets the image using the given identifier.
         /// </summary>
         /// <param name="id">
@@ -76,7 +82,7 @@ namespace ImageProcessor.Web.Services
 
             using (FileStream file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true))
             {
-                 buffer = new byte[file.Length];
+                buffer = new byte[file.Length];
                 await file.ReadAsync(buffer, 0, (int)file.Length);
             }
 

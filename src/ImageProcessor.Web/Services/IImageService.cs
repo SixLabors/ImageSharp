@@ -10,6 +10,7 @@
 
 namespace ImageProcessor.Web.Services
 {
+    using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
 
@@ -36,6 +37,11 @@ namespace ImageProcessor.Web.Services
         /// Gets or sets any additional settings required by the service.
         /// </summary>
         Dictionary<string, string> Settings { get; set; }
+
+        /// <summary>
+        /// Gets or sets the white list of <see cref="System.Uri"/>. 
+        /// </summary>
+        Uri[] WhiteList { get; set; }
 
         /// <summary>
         /// Gets the image using the given identifier.

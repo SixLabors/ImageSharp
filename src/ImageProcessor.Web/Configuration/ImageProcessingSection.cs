@@ -155,7 +155,7 @@ namespace ImageProcessor.Web.Configuration
             /// </summary>
             /// <param name="index">The index at which to get the specified object.</param>
             /// <returns>
-            /// The the <see cref="T:ImageProcessor.Web.Config.ImageProcessingSection.PresetElement"/>
+            /// The <see cref="T:ImageProcessor.Web.Config.ImageProcessingSection.PresetElement"/>
             /// at the specified index within the collection.
             /// </returns>
             public PresetElement this[int index]

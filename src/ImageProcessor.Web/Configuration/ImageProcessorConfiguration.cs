@@ -20,6 +20,7 @@ namespace ImageProcessor.Web.Configuration
     using ImageProcessor.Common.Extensions;
     using ImageProcessor.Processors;
     using ImageProcessor.Web.Processors;
+    using ImageProcessor.Web.Services;
 
     /// <summary>
     /// Encapsulates methods to allow the retrieval of ImageProcessor settings.
@@ -72,6 +73,7 @@ namespace ImageProcessor.Web.Configuration
         private ImageProcessorConfiguration()
         {
             this.LoadGraphicsProcessors();
+            this.LoadImageServices();
         }
         #endregion
 
@@ -91,6 +93,11 @@ namespace ImageProcessor.Web.Configuration
         /// Gets the list of available GraphicsProcessors.
         /// </summary>
         public IList<IWebGraphicsProcessor> GraphicsProcessors { get; private set; }
+
+        /// <summary>
+        /// Gets the list of available ImageServices.
+        /// </summary>
+        public IList<IImageService> ImageServices { get; private set; }
 
         /// <summary>
         /// Gets a value indicating whether to preserve exif meta data.
@@ -136,7 +143,7 @@ namespace ImageProcessor.Web.Configuration
         {
             get
             {
-                return GetImageSecuritySection().WhiteList.Cast<ImageSecuritySection.SafeUrl>().Select(x => x.Url).ToArray();
+                return GetImageSecuritySection().ImageServices.Cast<ImageSecuritySection.SafeUrl>().Select(x => x.Url).ToArray();
             }
         }
 
@@ -147,7 +154,7 @@ namespace ImageProcessor.Web.Configuration
         {
             get
             {
-                return GetImageSecuritySection().WhiteList.Cast<ImageSecuritySection.SafeUrl>().ToArray();
+                return GetImageSecuritySection().ImageServices.Cast<ImageSecuritySection.SafeUrl>().ToArray();
             }
         }
 
@@ -259,6 +266,43 @@ namespace ImageProcessor.Web.Configuration
         }
 
         /// <summary>
+        /// Returns the <see cref="T:ImageProcessor.Web.Config.ImageProcessingSection.SettingElementCollection"/> for the given plugin.
+        /// </summary>
+        /// <param name="name">
+        /// The name of the plugin to get the settings for.
+        /// </param>
+        /// <returns>
+        /// The <see cref="T:ImageProcessor.Web.Config.ImageProcessingSection.SettingElementCollection"/> for the given plugin.
+        /// </returns>
+        public Dictionary<string, string> GetServiceSettings(string name)
+        {
+            return PluginSettings.GetOrAdd(
+                name,
+                n =>
+                {
+                    ImageSecuritySection.ServiceElement pluginElement = GetImageSecuritySection()
+                        .ImageServices
+                        .Cast<ImageSecuritySection.ServiceElement>()
+                        .FirstOrDefault(x => x.Name == n);
+
+                    Dictionary<string, string> settings;
+
+                    if (pluginElement != null)
+                    {
+                        settings = pluginElement.Settings
+                            .Cast<ImageProcessingSection.SettingElement>()
+                            .ToDictionary(setting => setting.Key, setting => setting.Value);
+                    }
+                    else
+                    {
+                        settings = new Dictionary<string, string>();
+                    }
+
+                    return settings;
+                });
+        }
+
+        /// <summary>
         /// Retrieves the processing configuration section from the current application configuration. 
         /// </summary>
         /// <returns>The processing configuration section from the current application configuration. </returns>
@@ -326,10 +370,50 @@ namespace ImageProcessor.Web.Configuration
         }
 
         /// <summary>
+        /// Gets the list of available ImageServices.
+        /// </summary>
+        private void LoadImageServices()
+        {
+            if (this.ImageServices == null)
+            {
+                if (GetImageSecuritySection().ImageServices.AutoLoadPlugins)
+                {
+                    Type type = typeof(IImageService);
+                    try
+                    {
+                        // Build a list of native IGraphicsProcessor instances.
+                        List<Type> availableTypes = BuildManager.GetReferencedAssemblies()
+                                                                .Cast<Assembly>()
+                                                                .SelectMany(s => s.GetLoadableTypes())
+                                                                .Where(t => type.IsAssignableFrom(t) && t.IsClass && !t.IsAbstract)
+                                                                .ToList();
+
+                        // Create them and add.
+                        this.ImageServices = availableTypes.Select(x => (Activator.CreateInstance(x) as IImageService)).ToList();
+
+                        // Add the available settings.
+                        foreach (IImageService imageService in this.ImageServices)
+                        {
+                            imageService.Settings = this.GetServiceSettings(imageService.GetType().Name);
+                        }
+                    }
+                    catch (ReflectionTypeLoadException)
+                    {
+                        this.LoadImageServicesFromConfiguration();
+                    }
+                }
+                else
+                {
+                    this.LoadImageServicesFromConfiguration();
+                }
+            }
+        }
+
+        /// <summary>
         /// Loads graphics processors from configuration.
         /// </summary>
         /// <exception cref="TypeLoadException">
-        /// Thrown when an <see cref="IGraphicsProcessor"/> cannot be loaded.
+        /// Thrown when an <see cref="IWebGraphicsProcessor"/> cannot be loaded.
         /// </exception>
         private void LoadGraphicsProcessorsFromConfiguration()
         {
@@ -351,6 +435,35 @@ namespace ImageProcessor.Web.Configuration
             foreach (IWebGraphicsProcessor webProcessor in this.GraphicsProcessors)
             {
                 webProcessor.Processor.Settings = this.GetPluginSettings(webProcessor.GetType().Name);
+            }
+        }
+
+        /// <summary>
+        /// Loads image services from configuration.
+        /// </summary>
+        /// <exception cref="TypeLoadException">
+        /// Thrown when an <see cref="IGraphicsProcessor"/> cannot be loaded.
+        /// </exception>
+        private void LoadImageServicesFromConfiguration()
+        {
+            ImageSecuritySection.ServiceElementCollection services = imageSecuritySection.ImageServices;
+            this.ImageServices = new List<IImageService>();
+            foreach (ImageSecuritySection.ServiceElement config in services)
+            {
+                Type type = Type.GetType(config.Type);
+
+                if (type == null)
+                {
+                    throw new TypeLoadException("Couldn't load IImageService: " + config.Type);
+                }
+
+                this.GraphicsProcessors.Add(Activator.CreateInstance(type) as IWebGraphicsProcessor);
+            }
+
+            // Add the available settings.
+            foreach (IImageService service in this.ImageServices)
+            {
+                service.Settings = this.GetServiceSettings(service.GetType().Name);
             }
         }
         #endregion

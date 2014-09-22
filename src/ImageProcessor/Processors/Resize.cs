@@ -164,14 +164,14 @@ namespace ImageProcessor.Processors
                     if (percentHeight < percentWidth)
                     {
                         ratio = percentHeight;
-                        destinationX = (int)((width - (sourceWidth * ratio)) / 2);
-                        destinationWidth = (int)Math.Ceiling(sourceWidth * percentHeight);
+                        destinationX = Convert.ToInt32((width - (sourceWidth * ratio)) / 2);
+                        destinationWidth = Convert.ToInt32(sourceWidth * percentHeight);
                     }
                     else
                     {
                         ratio = percentWidth;
-                        destinationY = (int)((height - (sourceHeight * ratio)) / 2);
-                        destinationHeight = (int)Math.Ceiling(sourceHeight * percentWidth);
+                        destinationY = Convert.ToInt32((height - (sourceHeight * ratio)) / 2);
+                        destinationHeight = Convert.ToInt32(sourceHeight * percentWidth);
                     }
                 }
 
@@ -281,13 +281,13 @@ namespace ImageProcessor.Processors
                 // If height or width is not passed we assume that the standard ratio is to be kept.
                 if (height == 0)
                 {
-                    destinationHeight = (int)Math.Ceiling(sourceHeight * percentWidth);
+                    destinationHeight = Convert.ToInt32(sourceHeight * percentWidth);
                     height = destinationHeight;
                 }
 
                 if (width == 0)
                 {
-                    destinationWidth = (int)Math.Ceiling(sourceWidth * percentHeight);
+                    destinationHeight = Convert.ToInt32(sourceHeight * percentWidth);
                     width = destinationWidth;
                 }
 

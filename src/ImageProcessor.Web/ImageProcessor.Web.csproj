@@ -46,6 +46,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Caching\CachedImage.cs" />
+    <Compile Include="Services\IImageService.cs" />
     <Compile Include="Caching\MemCache.cs" />
     <Compile Include="Caching\DiskCache.cs" />
     <Compile Include="Caching\CacheIndexer.cs" />
@@ -86,6 +87,8 @@
     <Compile Include="Processors\Vignette.cs" />
     <Compile Include="Processors\Watermark.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Services\LocalFileImageService.cs" />
+    <Compile Include="Services\RemoteImageService.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ImageProcessor\ImageProcessor.csproj">

@@ -34,7 +34,7 @@ namespace ImageProcessor.Web.Processors
         /// <summary>
         /// The regular expression to search strings for the size attribute.
         /// </summary>
-        private static readonly Regex SizeRegex = new Regex(@"(width|height)=\d+", RegexOptions.Compiled);
+        private static readonly Regex SizeRegex = new Regex(@"(width|height)=\d+(.\d+)?", RegexOptions.Compiled);
 
         /// <summary>
         /// The regular expression to search strings for the ratio attribute.
@@ -178,23 +178,23 @@ namespace ImageProcessor.Web.Processors
 
             if (input.Contains(Width) && !input.Contains(Height))
             {
-                size = new Size(value.ToPositiveIntegerArray()[0], 0);
+                size = new Size(Convert.ToInt32(value.ToPositiveFloatArray()[0]), 0);
             }
 
             if (input.Contains(Height) && !input.Contains(Width))
             {
-                size = new Size(0, value.ToPositiveIntegerArray()[0]);
+                size = new Size(0, Convert.ToInt32(value.ToPositiveFloatArray()[0]));
             }
 
             // Both dimensions supplied.
             if (input.Contains(Height) && input.Contains(Width))
             {
-                int[] dimensions = value.ToPositiveIntegerArray();
+                float[] dimensions = value.ToPositiveFloatArray();
 
                 // Check the order in which they have been supplied.
                 size = input.IndexOf(Width, StringComparison.Ordinal) < input.IndexOf(Height, StringComparison.Ordinal)
-                    ? new Size(dimensions[0], dimensions[1])
-                    : new Size(dimensions[1], dimensions[0]);
+                    ? new Size(Convert.ToInt32(dimensions[0]), Convert.ToInt32(dimensions[1]))
+                    : new Size(Convert.ToInt32(dimensions[1]), Convert.ToInt32(dimensions[0]));
             }
 
             // Calculate any ratio driven sizes.
@@ -211,13 +211,13 @@ namespace ImageProcessor.Web.Processors
                 // Replace 0 width
                 if (size.Width == 0 && size.Height > 0 && input.Contains(WidthRatio) && !input.Contains(HeightRatio))
                 {
-                    size.Width = (int)Math.Ceiling(value.ToPositiveFloatArray()[0] * size.Height);
+                    size.Width = Convert.ToInt32(value.ToPositiveFloatArray()[0] * size.Height);
                 }
 
                 // Replace 0 height
                 if (size.Height == 0 && size.Width > 0 && input.Contains(HeightRatio) && !input.Contains(WidthRatio))
                 {
-                    size.Height = (int)Math.Ceiling(value.ToPositiveFloatArray()[0] * size.Width);
+                    size.Height = Convert.ToInt32(value.ToPositiveFloatArray()[0] * size.Width);
                 }
             }
 

@@ -660,9 +660,44 @@ namespace ImageProcessor
         /// </returns>
         public ImageFactory Quality(int percentage)
         {
-            if (this.ShouldProcess)
+            if (percentage <= 100 && percentage >= 0 && this.ShouldProcess)
             {
                 this.CurrentImageFormat.Quality = percentage;
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Replaces a color within the current image.
+        /// </summary>
+        /// <param name="target">
+        /// The target <see cref="System.Drawing.Color"/>.
+        /// </param>
+        /// <param name="replacement">
+        /// The replacement <see cref="System.Drawing.Color"/>.
+        /// </param>
+        /// <param name="fuzziness">
+        /// A value between 0 and 100 with which to alter the target detection accuracy.
+        /// </param>
+        /// <returns>
+        /// The <see cref="ImageFactory"/>.
+        /// </returns>
+        public ImageFactory ReplaceColor(Color target, Color replacement, int fuzziness = 0)
+        {
+            // Sanitize the input.
+            if (fuzziness < 0 || fuzziness > 100)
+            {
+                fuzziness = 0;
+            }
+
+            if (this.ShouldProcess && target != Color.Empty && replacement != Color.Empty)
+            {
+                ReplaceColor replaceColor = new ReplaceColor
+                {
+                    DynamicParameter = new Tuple<Color, Color, int>(target, replacement, fuzziness)
+                };
+                this.CurrentImageFormat.ApplyProcessor(replaceColor.ProcessImage, this);
             }
 
             return this;

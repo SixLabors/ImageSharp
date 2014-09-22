@@ -12,6 +12,7 @@ namespace ImageProcessor.Web.Helpers
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
     using System.Text;
     using System.Text.RegularExpressions;
@@ -45,7 +46,7 @@ namespace ImageProcessor.Web.Helpers
         /// <returns>True the value contains a valid image extension, otherwise false.</returns>
         public static bool IsValidImageExtension(string fileName)
         {
-            return EndFormatRegex.IsMatch(fileName);
+            return EndFormatRegex.IsMatch(fileName) || string.IsNullOrWhiteSpace(Path.GetExtension(fileName));
         }
 
         /// <summary>

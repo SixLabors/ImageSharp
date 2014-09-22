@@ -1,45 +1,27 @@
 Properties {
-	$version = "2.0.1.0"
-	$webversion = "4.0.0.0"
-	$webconfigversion = "2.0.0.0"
-	$webppluginversion = "1.0.1.0"
-	$cairpluginversion = "1.0.0.0"
-	
 	# Input and output paths
-	$PROJ_PATH = Resolve-Path "."
+	$BUILD_PATH = Resolve-Path "."
 	$SRC_PATH = Resolve-Path "..\src"
-	$NUSPECS_PATH = Join-Path $PROJ_PATH "NuSpecs"
-	$BIN_PATH = Join-Path $PROJ_PATH "_BuildOutput"
+	$PLUGINS_PATH = Join-Path $SRC_PATH "Plugins\ImageProcessor"
+	$NUSPECS_PATH = Join-Path $BUILD_PATH "NuSpecs"
+	$BIN_PATH = Join-Path $BUILD_PATH "_BuildOutput"
 	$NUGET_OUTPUT = Join-Path $BIN_PATH "NuGets"
-	$TEST_RESULTS = Join-Path $PROJ_PATH "TestResults"
+	$TEST_RESULTS = Join-Path $BUILD_PATH "TestResults"
 	
 	# External binaries paths
 	$NUGET_EXE = Join-Path $SRC_PATH ".nuget\NuGet.exe"
 	$NUNIT_EXE = Join-Path $SRC_PATH "packages\NUnit.Runners.2.6.3\tools\nunit-console.exe"
 	$OPENCOVER_EXE = Join-Path $SRC_PATH "packages\OpenCover.4.5.3207\OpenCover.Console.exe"
 	$REPORTGEN_EXE = Join-Path $SRC_PATH "packages\ReportGenerator.1.9.1.0\ReportGenerator.exe"
-	$NUNITREPORT_EXE = Join-Path $PROJ_PATH "NUnitHTMLReportGenerator.exe"
+	$NUNITREPORT_EXE = Join-Path $BUILD_PATH "tools\NUnitHTMLReportGenerator.exe"
 	
 	# list of projects
-	$BuildProjects = @(
-		"Build.ImageProcessor.proj",
-		"Build.ImageProcessor.Web.proj",
-		"Build.ImageProcessor.Plugins.WebP.proj",
-		"Build.ImageProcessor.Plugins.Cair.proj"
-	)
+	[xml]$PROJECTS = Get-Content ".\build.xml"
 	
 	$TestProjects = @(
 		"ImageProcessor.UnitTests",
 		"ImageProcessor.Web.UnitTests"
 	)
-	
-	$Nuspecs = @{
-		"ImageProcessor.nuspec" = $version ;
-		"ImageProcessor.Web.nuspec" = $webversion ;
-		"ImageProcessor.Web.Config.nuspec" = $webconfigversion ;
-		"ImageProcessor.Plugins.WebP.nuspec" = $webppluginversion ;
-		"ImageProcessor.Plugins.Cair.nuspec" = $cairpluginversion
-	}
 }
 
 Framework "4.0x86"
@@ -67,10 +49,22 @@ task Cleanup-Binaries {
 task Build-Solution -depends Cleanup-Binaries {
 	Write-Host "Building projects"
 
-	$BuildProjects | % {
-		Write-Host "Building project $_"
+	# build the projects
+	$PROJECTS.projects.project | % {
+		if ($_.projfile -eq $null -or $_.projfile -eq "") {
+			return # breaks out of ForEach-Object loop
+		}
+		
+		$projectPath = Resolve-Path $_.folder
+		Write-Host "Building project $($_.name) at version $($_.version)"
+
+		# it would be possible to update more infos from the xml (description etc), so as to have all infos in one place
+		Update-AssemblyInfo -file (Join-Path $projectPath "Properties\AssemblyInfo.cs") -version $_.version
+
+		# using the invoke-expression on a string solves a few character escape issues
+		$buildCommand = "msbuild $(Join-Path $projectPath $_.projfile) /t:Build /p:Warnings=true /p:Configuration=Release /p:PipelineDependsOnBuild=False /p:OutDir=$(Join-Path $BIN_PATH $($_.output)) /clp:WarningsOnly /clp:ErrorsOnly /clp:Summary /clp:PerformanceSummary /v:Normal /nologo"
 		Exec {
-			msbuild (Join-Path $PROJ_PATH $_) /p:BUILD_RELEASE="$version"
+			Invoke-Expression $buildCommand
 		}
 	}
 }
@@ -86,11 +80,11 @@ task Build-Tests -depends Cleanup-Binaries {
 	# make sure the runner exes are restored
 	& $NUGET_EXE restore (Join-Path $SRC_PATH "ImageProcessor.sln")
 	
-	# build the test projects (they don't have specific build files like the main projects)
+	# build the test projects
 	$TestProjects | % {
 		Write-Host "Building project $_"
 		Exec {
-			msbuild (Join-Path $SRC_PATH "$_\$_.csproj") /t:Build /p:Configuration=Release /p:Platform="AnyCPU" /p:Warnings=true /v:Normal /nologo
+			msbuild (Join-Path $SRC_PATH "$_\$_.csproj") /t:Build /p:Configuration=Release /p:Platform="AnyCPU" /p:Warnings=true /clp:WarningsOnly /clp:ErrorsOnly /v:Normal /nologo
 		}
 	}
 	
@@ -143,16 +137,30 @@ task Generate-Package -depends Build-Solution {
 	}
 	
 	# Package the nuget
-	$Nuspecs.GetEnumerator() | % {
-		$nuspec_local_path = (Join-Path $NUSPECS_PATH $_.Key)
+	$PROJECTS.projects.project | % {
+		$nuspec_local_path = (Join-Path $NUSPECS_PATH $_.nuspec)
 		Write-Host "Building Nuget package from $nuspec_local_path"
 		
 		# change the version values
 		[xml]$nuspec_contents = Get-Content $nuspec_local_path
-		$nuspec_contents.package.metadata.version = $_.Value
+		$nuspec_contents.package.metadata.version = $_.version
 		$nuspec_contents.Save($nuspec_local_path)
 		
 		# pack the nuget
 		& $NUGET_EXE Pack $nuspec_local_path -OutputDirectory $NUGET_OUTPUT
 	}
+}
+
+# updates the AssemblyInfo file with the specified version
+# http://www.luisrocha.net/2009/11/setting-assembly-version-with-windows.html
+function Update-AssemblyInfo ([string]$file, [string] $version) {
+    $assemblyVersionPattern = 'AssemblyVersion\("[0-9]+(\.([0-9]+|\*)){1,3}"\)'
+    $fileVersionPattern = 'AssemblyFileVersion\("[0-9]+(\.([0-9]+|\*)){1,3}"\)'
+    $assemblyVersion = 'AssemblyVersion("' + $version + '")';
+    $fileVersion = 'AssemblyFileVersion("' + $version + '")';
+
+    (Get-Content $file) | ForEach-Object {
+        % {$_ -replace $assemblyVersionPattern, $assemblyVersion } |
+        % {$_ -replace $fileVersionPattern, $fileVersion }
+    } | Set-Content $file
 }

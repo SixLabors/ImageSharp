@@ -1,0 +1,43 @@
+<projects>
+  <project>
+    <name>ImageProcessor</name>
+    <version>2.0.1.0</version>
+    <folder>..\src\ImageProcessor</folder>
+    <projfile>ImageProcessor.csproj</projfile>
+    <output>ImageProcessor\lib\net45</output>
+    <nuspec>ImageProcessor.nuspec</nuspec>
+  </project>
+
+  <project>
+    <name>ImageProcessor Web</name>
+    <version>4.0.0.0</version>
+    <folder>..\src\ImageProcessor.Web</folder>
+    <projfile>ImageProcessor.Web.csproj</projfile>
+    <output>ImageProcessor.Web\lib\net45</output>
+    <nuspec>ImageProcessor.Web.nuspec</nuspec>
+  </project>
+
+  <project>
+    <name>ImageProcessor Web.config sample</name>
+    <version>2.0.0.0</version>
+    <nuspec>ImageProcessor.Web.nuspec</nuspec>
+  </project>
+
+  <project>
+    <name>ImageProcessor Cair plugin</name>
+    <version>1.0.0.0</version>
+    <folder>..\src\Plugins\ImageProcessor\ImageProcessor.Plugins.Cair</folder>
+    <projfile>ImageProcessor.Plugins.Cair.csproj</projfile>
+    <output>ImageProcessor.Plugins.Cair\lib\net45</output>
+    <nuspec>ImageProcessor.Plugins.Cair.nuspec</nuspec>
+  </project>
+
+  <project>
+    <name>ImageProcessor WebP plugin</name>
+    <version>1.0.1.0</version>
+    <folder>..\src\Plugins\ImageProcessor\ImageProcessor.Plugins.WebP</folder>
+    <projfile>ImageProcessor.Plugins.WebP.csproj</projfile>
+    <output>ImageProcessor.Plugins.WebP\lib\net45</output>
+    <nuspec>ImageProcessor.Plugins.WebP.nuspec</nuspec>
+  </project>
+</projects>

@@ -37,13 +37,6 @@ namespace ImageProcessor.Web.Configuration
                         new Lazy<ImageProcessorConfiguration>(() => new ImageProcessorConfiguration());
 
         /// <summary>
-        /// A collection of the <see cref="T:ImageProcessor.Web.Config.ImageProcessingSection.SettingElementCollection"/> elements 
-        /// for available plugins.
-        /// </summary>
-        private static readonly ConcurrentDictionary<string, Dictionary<string, string>> PluginSettings =
-            new ConcurrentDictionary<string, Dictionary<string, string>>();
-
-        /// <summary>
         /// A collection of the processing presets defined in the configuration. 
         /// for available plugins.
         /// </summary>
@@ -134,74 +127,6 @@ namespace ImageProcessor.Web.Configuration
             }
         }
         #endregion
-
-        #region Security
-        /// <summary>
-        /// Gets a list of white listed url[s] that images can be downloaded from.
-        /// </summary>
-        public Uri[] RemoteFileWhiteList
-        {
-            get
-            {
-                return GetImageSecuritySection().ImageServices.Cast<ImageSecuritySection.SafeUrl>().Select(x => x.Url).ToArray();
-            }
-        }
-
-        /// <summary>
-        /// Gets a list of image extensions for url[s] with no extension.
-        /// </summary>
-        public ImageSecuritySection.SafeUrl[] RemoteFileWhiteListExtensions
-        {
-            get
-            {
-                return GetImageSecuritySection().ImageServices.Cast<ImageSecuritySection.SafeUrl>().ToArray();
-            }
-        }
-
-        /// <summary>
-        /// Gets a value indicating whether the current application is allowed to download remote files.
-        /// </summary>
-        public bool AllowRemoteDownloads
-        {
-            get
-            {
-                return GetImageSecuritySection().AllowRemoteDownloads;
-            }
-        }
-
-        /// <summary>
-        /// Gets the maximum length to wait in milliseconds before throwing an error requesting a remote file.
-        /// </summary>
-        public int Timeout
-        {
-            get
-            {
-                return GetImageSecuritySection().Timeout;
-            }
-        }
-
-        /// <summary>
-        /// Gets the maximum allowable size in bytes of e remote file to process.
-        /// </summary>
-        public int MaxBytes
-        {
-            get
-            {
-                return GetImageSecuritySection().MaxBytes;
-            }
-        }
-
-        /// <summary>
-        /// Gets the remote prefix for external files for the application.
-        /// </summary>
-        public string RemotePrefix
-        {
-            get
-            {
-                return GetImageSecuritySection().RemotePrefix;
-            }
-        }
-        #endregion
         #endregion
 
         #region Methods
@@ -226,80 +151,6 @@ namespace ImageProcessor.Web.Configuration
                        .FirstOrDefault(x => x.Name == n);
                        return presetElement != null ? presetElement.Value : null;
                    });
-        }
-
-        /// <summary>
-        /// Returns the <see cref="T:ImageProcessor.Web.Config.ImageProcessingSection.SettingElementCollection"/> for the given plugin.
-        /// </summary>
-        /// <param name="name">
-        /// The name of the plugin to get the settings for.
-        /// </param>
-        /// <returns>
-        /// The <see cref="T:ImageProcessor.Web.Config.ImageProcessingSection.SettingElementCollection"/> for the given plugin.
-        /// </returns>
-        public Dictionary<string, string> GetPluginSettings(string name)
-        {
-            return PluginSettings.GetOrAdd(
-                name,
-                n =>
-                {
-                    ImageProcessingSection.PluginElement pluginElement = GetImageProcessingSection()
-                        .Plugins
-                        .Cast<ImageProcessingSection.PluginElement>()
-                        .FirstOrDefault(x => x.Name == n);
-
-                    Dictionary<string, string> settings;
-
-                    if (pluginElement != null)
-                    {
-                        settings = pluginElement.Settings
-                            .Cast<ImageProcessingSection.SettingElement>()
-                            .ToDictionary(setting => setting.Key, setting => setting.Value);
-                    }
-                    else
-                    {
-                        settings = new Dictionary<string, string>();
-                    }
-
-                    return settings;
-                });
-        }
-
-        /// <summary>
-        /// Returns the <see cref="T:ImageProcessor.Web.Config.ImageProcessingSection.SettingElementCollection"/> for the given plugin.
-        /// </summary>
-        /// <param name="name">
-        /// The name of the plugin to get the settings for.
-        /// </param>
-        /// <returns>
-        /// The <see cref="T:ImageProcessor.Web.Config.ImageProcessingSection.SettingElementCollection"/> for the given plugin.
-        /// </returns>
-        public Dictionary<string, string> GetServiceSettings(string name)
-        {
-            return PluginSettings.GetOrAdd(
-                name,
-                n =>
-                {
-                    ImageSecuritySection.ServiceElement pluginElement = GetImageSecuritySection()
-                        .ImageServices
-                        .Cast<ImageSecuritySection.ServiceElement>()
-                        .FirstOrDefault(x => x.Name == n);
-
-                    Dictionary<string, string> settings;
-
-                    if (pluginElement != null)
-                    {
-                        settings = pluginElement.Settings
-                            .Cast<ImageProcessingSection.SettingElement>()
-                            .ToDictionary(setting => setting.Key, setting => setting.Value);
-                    }
-                    else
-                    {
-                        settings = new Dictionary<string, string>();
-                    }
-
-                    return settings;
-                });
         }
 
         /// <summary>
@@ -329,6 +180,7 @@ namespace ImageProcessor.Web.Configuration
             return imageSecuritySection ?? (imageSecuritySection = ImageSecuritySection.GetConfiguration());
         }
 
+        #region GraphicesProcessors
         /// <summary>
         /// Gets the list of available GraphicsProcessors.
         /// </summary>
@@ -370,46 +222,6 @@ namespace ImageProcessor.Web.Configuration
         }
 
         /// <summary>
-        /// Gets the list of available ImageServices.
-        /// </summary>
-        private void LoadImageServices()
-        {
-            if (this.ImageServices == null)
-            {
-                if (GetImageSecuritySection().ImageServices.AutoLoadPlugins)
-                {
-                    Type type = typeof(IImageService);
-                    try
-                    {
-                        // Build a list of native IGraphicsProcessor instances.
-                        List<Type> availableTypes = BuildManager.GetReferencedAssemblies()
-                                                                .Cast<Assembly>()
-                                                                .SelectMany(s => s.GetLoadableTypes())
-                                                                .Where(t => type.IsAssignableFrom(t) && t.IsClass && !t.IsAbstract)
-                                                                .ToList();
-
-                        // Create them and add.
-                        this.ImageServices = availableTypes.Select(x => (Activator.CreateInstance(x) as IImageService)).ToList();
-
-                        // Add the available settings.
-                        foreach (IImageService imageService in this.ImageServices)
-                        {
-                            imageService.Settings = this.GetServiceSettings(imageService.GetType().Name);
-                        }
-                    }
-                    catch (ReflectionTypeLoadException)
-                    {
-                        this.LoadImageServicesFromConfiguration();
-                    }
-                }
-                else
-                {
-                    this.LoadImageServicesFromConfiguration();
-                }
-            }
-        }
-
-        /// <summary>
         /// Loads graphics processors from configuration.
         /// </summary>
         /// <exception cref="TypeLoadException">
@@ -439,6 +251,82 @@ namespace ImageProcessor.Web.Configuration
         }
 
         /// <summary>
+        /// Returns the <see cref="T:ImageProcessor.Web.Config.ImageProcessingSection.SettingElementCollection"/> for the given plugin.
+        /// </summary>
+        /// <param name="name">
+        /// The name of the plugin to get the settings for.
+        /// </param>
+        /// <returns>
+        /// The <see cref="T:ImageProcessor.Web.Config.ImageProcessingSection.SettingElementCollection"/> for the given plugin.
+        /// </returns>
+        private Dictionary<string, string> GetPluginSettings(string name)
+        {
+            ImageProcessingSection.PluginElement pluginElement = GetImageProcessingSection()
+                .Plugins
+                .Cast<ImageProcessingSection.PluginElement>()
+                .FirstOrDefault(x => x.Name == name);
+
+            Dictionary<string, string> settings;
+
+            if (pluginElement != null)
+            {
+                settings = pluginElement.Settings
+                    .Cast<ImageProcessingSection.SettingElement>()
+                    .ToDictionary(setting => setting.Key, setting => setting.Value);
+            }
+            else
+            {
+                settings = new Dictionary<string, string>();
+            }
+
+            return settings;
+        }
+#endregion
+
+        #region ImageServices
+        /// <summary>
+        /// Gets the list of available ImageServices.
+        /// </summary>
+        private void LoadImageServices()
+        {
+            if (this.ImageServices == null)
+            {
+                if (GetImageSecuritySection().ImageServices.AutoLoadPlugins)
+                {
+                    Type type = typeof(IImageService);
+                    try
+                    {
+                        // Build a list of native IGraphicsProcessor instances.
+                        List<Type> availableTypes = BuildManager.GetReferencedAssemblies()
+                                                                .Cast<Assembly>()
+                                                                .SelectMany(s => s.GetLoadableTypes())
+                                                                .Where(t => type.IsAssignableFrom(t) && t.IsClass && !t.IsAbstract)
+                                                                .ToList();
+
+                        // Create them and add.
+                        this.ImageServices = availableTypes.Select(x => (Activator.CreateInstance(x) as IImageService)).ToList();
+
+                        // Add the available settings.
+                        foreach (IImageService service in this.ImageServices)
+                        {
+                            string name = service.GetType().Name;
+                            service.Settings = this.GetServiceSettings(name);
+                            service.WhiteList = this.GetServiceWhitelist(name);
+                        }
+                    }
+                    catch (ReflectionTypeLoadException)
+                    {
+                        this.LoadImageServicesFromConfiguration();
+                    }
+                }
+                else
+                {
+                    this.LoadImageServicesFromConfiguration();
+                }
+            }
+        }
+
+        /// <summary>
         /// Loads image services from configuration.
         /// </summary>
         /// <exception cref="TypeLoadException">
@@ -463,9 +351,70 @@ namespace ImageProcessor.Web.Configuration
             // Add the available settings.
             foreach (IImageService service in this.ImageServices)
             {
-                service.Settings = this.GetServiceSettings(service.GetType().Name);
+                string name = service.GetType().Name;
+                service.Settings = this.GetServiceSettings(name);
+                service.WhiteList = this.GetServiceWhitelist(name);
             }
         }
+
+        /// <summary>
+        /// Returns the <see cref="T:ImageProcessor.Web.Config.ImageSecuritySection.SettingElementCollection"/> for the given plugin.
+        /// </summary>
+        /// <param name="name">
+        /// The name of the plugin to get the settings for.
+        /// </param>
+        /// <returns>
+        /// The <see cref="T:ImageProcessor.Web.Config.ImageSecuritySection.SettingElementCollection"/> for the given plugin.
+        /// </returns>
+        private Dictionary<string, string> GetServiceSettings(string name)
+        {
+            ImageSecuritySection.ServiceElement serviceElement = GetImageSecuritySection()
+                .ImageServices
+                .Cast<ImageSecuritySection.ServiceElement>()
+                .FirstOrDefault(x => x.Name == name);
+
+            Dictionary<string, string> settings;
+
+            if (serviceElement != null)
+            {
+                settings = serviceElement.Settings
+                    .Cast<ImageSecuritySection.SettingElement>()
+                    .ToDictionary(setting => setting.Key, setting => setting.Value);
+            }
+            else
+            {
+                settings = new Dictionary<string, string>();
+            }
+
+            return settings;
+        }
+
+        /// <summary>
+        /// Gets the whitelist of <see cref="System.Uri"/> for the given service.
+        /// </summary>
+        /// <param name="name">
+        /// The name of the service to return the whitelist for.
+        /// </param>
+        /// <returns>
+        /// The <see cref="System.Uri"/> array containing the whitelist.
+        /// </returns>
+        private Uri[] GetServiceWhitelist(string name)
+        {
+            ImageSecuritySection.ServiceElement serviceElement = GetImageSecuritySection()
+               .ImageServices
+               .Cast<ImageSecuritySection.ServiceElement>()
+               .FirstOrDefault(x => x.Name == name);
+
+            Uri[] whitelist = { };
+            if (serviceElement != null)
+            {
+                whitelist = serviceElement.WhiteList.Cast<ImageSecuritySection.SafeUrl>()
+                                          .Select(s => s.Url).ToArray();
+            }
+
+            return whitelist;
+        }
+        #endregion
         #endregion
     }
 }

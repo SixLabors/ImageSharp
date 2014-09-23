@@ -75,6 +75,7 @@ namespace ImageProcessor.Processors
                 byte replacementR = original.R;
                 byte replacementG = replacement.G;
                 byte replacementB = replacement.B;
+                byte replacementA = replacement.A;
 
                 int fuzziness = parameters.Item3;
 
@@ -93,6 +94,7 @@ namespace ImageProcessor.Processors
                             byte currentR = currentColor.R;
                             byte currentG = currentColor.B;
                             byte currentB = currentColor.B;
+                            byte currentA = currentColor.A;
 
                             // Test whether it is in the expected range.
                             if (currentR <= originalR + fuzziness && currentR >= originalR - fuzziness)
@@ -106,7 +108,11 @@ namespace ImageProcessor.Processors
                                         byte r = (originalR - currentR + replacementR).ToByte();
                                         byte g = (originalG - currentG + replacementG).ToByte();
                                         byte b = (originalB - currentB + replacementB).ToByte();
-                                        fastBitmap.SetPixel(x, y, Color.FromArgb(currentColor.A, r, g, b));
+
+                                        // Allow replacement with transparent color.
+                                        byte a = currentA != replacementA ? replacementA : currentA;
+
+                                        fastBitmap.SetPixel(x, y, Color.FromArgb(a, r, g, b));
                                     }
                                 }
                             }

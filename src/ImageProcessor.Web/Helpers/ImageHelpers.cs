@@ -10,10 +10,7 @@
 
 namespace ImageProcessor.Web.Helpers
 {
-    using System;
-    using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
     using System.Text;
     using System.Text.RegularExpressions;
     using ImageProcessor.Configuration;
@@ -79,21 +76,22 @@ namespace ImageProcessor.Web.Helpers
         /// <summary>
         /// Get the correct mime-type for the given string input.
         /// </summary>
-        /// <param name="identifier">
-        /// The identifier.
+        /// <param name="path">
+        /// The path to the cached image.
         /// </param>
         /// <returns>
         /// The <see cref="string"/> matching the correct mime-type.
         /// </returns>
-        public static string GetMimeType(string identifier)
+        public static string GetMimeType(string path)
         {
-            identifier = GetExtension(identifier).Replace(".", string.Empty);
-            List<ISupportedImageFormat> formats = ImageProcessorBootstrapper.Instance.SupportedImageFormats.ToList();
-            ISupportedImageFormat format = formats.FirstOrDefault(f => f.FileExtensions.Any(e => e.Equals(identifier, StringComparison.InvariantCultureIgnoreCase)));
-
-            if (format != null)
+            using (FileStream file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, false))
             {
-                return format.MimeType;
+                ISupportedImageFormat format = FormatUtilities.GetFormat(file);
+
+                if (format != null)
+                {
+                    return format.MimeType;
+                }
             }
 
             return string.Empty;

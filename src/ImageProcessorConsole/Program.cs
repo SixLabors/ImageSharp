@@ -18,6 +18,7 @@ namespace ImageProcessorConsole
     using System.Linq;
     using ImageProcessor;
     using ImageProcessor.Imaging;
+    using ImageProcessor.Imaging.EdgeDetection;
     using ImageProcessor.Imaging.Filters;
     using ImageProcessor.Plugins.Cair;
     using ImageProcessor.Plugins.Cair.Imaging;
@@ -45,8 +46,8 @@ namespace ImageProcessorConsole
                 di.Create();
             }
 
-            //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".jpg");
-            IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif", ".webp", ".bmp", ".jpg", ".png", ".tif");
+            IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".jpg");
+            //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif", ".webp", ".bmp", ".jpg", ".png", ".tif");
 
             foreach (FileInfo fileInfo in files)
             {
@@ -76,6 +77,7 @@ namespace ImageProcessorConsole
                             //.Constrain(size)
                             //.ReplaceColor(Color.FromArgb(255, 1, 107, 165), Color.FromArgb(255, 1, 165, 13), 80)
                             .Resize(layer)
+                            .DetectEdges(new SobelEdgeFilter())
                             //.Filter(MatrixFilters.Comic)
                             //.Filter(MatrixFilters.HiSatch)
                             //.Pixelate(8)

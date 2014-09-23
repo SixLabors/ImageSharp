@@ -56,11 +56,6 @@ namespace ImageProcessorConsole
                 Stopwatch stopwatch = new Stopwatch();
                 stopwatch.Start();
 
-                Console.WriteLine("Processing: " + fileInfo.Name);
-
-                Stopwatch stopwatch = new Stopwatch();
-                stopwatch.Start();
-
                 // ImageProcessor
                 using (MemoryStream inStream = new MemoryStream(photoBytes))
                 {

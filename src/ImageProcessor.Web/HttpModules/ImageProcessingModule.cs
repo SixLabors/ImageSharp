@@ -13,7 +13,6 @@ namespace ImageProcessor.Web.HttpModules
     #region Using
     using System;
     using System.Collections.Generic;
-    using System.Diagnostics.CodeAnalysis;
     using System.IO;
     using System.Linq;
     using System.Net;
@@ -31,7 +30,6 @@ namespace ImageProcessor.Web.HttpModules
     using ImageProcessor.Web.Configuration;
     using ImageProcessor.Web.Helpers;
     using ImageProcessor.Web.Services;
-
     #endregion
 
     /// <summary>
@@ -267,7 +265,6 @@ namespace ImageProcessor.Web.HttpModules
         /// <returns>
         /// The <see cref="T:System.Threading.Tasks.Task"/>.
         /// </returns>
-        [SuppressMessage("StyleCop.CSharp.ReadabilityRules", "SA1122:UseStringEmptyForEmptyStrings", Justification = "Reviewed. Suppression is OK here.")]
         private async Task ProcessImageAsync(HttpContext context)
         {
             HttpRequest request = context.Request;
@@ -278,12 +275,12 @@ namespace ImageProcessor.Web.HttpModules
                 throw new HttpException(500, "No ImageService found for current request.");
             }
 
-            bool isRemote = !currentService.IsFileLocalService;
+            bool isFileLocal = currentService.IsFileLocalService;
             string requestPath = string.Empty;
             string queryString = string.Empty;
-            string urlParameters = "";
+            string urlParameters = string.Empty;
 
-            if (isRemote)
+            if (!isFileLocal)
             {
                 // We need to split the querystring to get the actual values we want.
                 string urlDecode = HttpUtility.UrlDecode(request.QueryString.ToString());
@@ -324,11 +321,11 @@ namespace ImageProcessor.Web.HttpModules
                 // Replace any presets in the querystring with the actual value.
                 queryString = this.ReplacePresetsInQueryString(queryString);
 
-                string fullPath = string.Format("{0}?{1}", requestPath, queryString);
-                string imageName = Path.GetFileName(requestPath);
+                string parts = !string.IsNullOrWhiteSpace(urlParameters) ? "?" + urlParameters : string.Empty;
+                string fullPath = string.Format("{0}{1}?{2}", requestPath, parts, queryString);
 
                 // Create a new cache to help process and cache the request.
-                DiskCache cache = new DiskCache(requestPath, fullPath, imageName);
+                DiskCache cache = new DiskCache(requestPath, fullPath);
                 string cachedPath = cache.CachedPath;
 
                 // Since we are now rewriting the path we need to check again that the current user has access
@@ -369,7 +366,7 @@ namespace ImageProcessor.Web.HttpModules
                             {
                                 byte[] imageBuffer;
 
-                                if (isRemote)
+                                if (!isFileLocal)
                                 {
                                     Uri uri = new Uri(requestPath + "?" + urlParameters);
                                     imageBuffer = await currentService.GetImage(uri);
@@ -412,6 +409,11 @@ namespace ImageProcessor.Web.HttpModules
                         }
                     }
 
+                    if (context.Items[CachedResponseFileDependency] == null)
+                    {
+                        context.Items[CachedResponseFileDependency] = new List<string> { cachedPath };
+                    }
+
                     string incomingEtag = context.Request.Headers["If" + "-None-Match"];
 
                     if (incomingEtag != null && !isNewOrUpdated)
@@ -422,7 +424,7 @@ namespace ImageProcessor.Web.HttpModules
                         context.Response.StatusCode = (int)HttpStatusCode.NotModified;
                         context.Response.SuppressContent = true;
 
-                        if (!isRemote)
+                        if (!isFileLocal)
                         {
                             // Set the headers and quit.
                             this.SetHeaders(context, (string)context.Items[CachedResponseTypeKey], new List<string> { requestPath, cachedPath });
@@ -440,7 +442,7 @@ namespace ImageProcessor.Web.HttpModules
                     throw new HttpException(403, "Access denied");
                 }
             }
-            else if (isRemote)
+            else if (!isFileLocal)
             {
                 // Just re-point to the external url.
                 HttpContext.Current.Response.Redirect(requestPath);
@@ -450,14 +452,14 @@ namespace ImageProcessor.Web.HttpModules
         /// <summary>
         /// This will make the browser and server keep the output
         /// in its cache and thereby improve performance.
-        /// See http://en.wikipedia.org/wiki/HTTP_ETag
+        /// <see href="http://en.wikipedia.org/wiki/HTTP_ETag"/>
         /// </summary>
         /// <param name="context">
         /// the <see cref="T:System.Web.HttpContext">HttpContext</see> object that provides
         /// references to the intrinsic server objects
         /// </param>
         /// <param name="responseType">
-        /// The HTTP MIME type to to send.
+        /// The HTTP MIME type to send.
         /// </param>
         /// <param name="dependencyPaths">
         /// The dependency path for the cache dependency.

@@ -291,7 +291,7 @@ namespace ImageProcessor.Web.Configuration
         {
             if (this.ImageServices == null)
             {
-                if (GetImageSecuritySection().ImageServices.AutoLoadPlugins)
+                if (GetImageSecuritySection().ImageServices.AutoLoadServices)
                 {
                     Type type = typeof(IImageService);
                     try

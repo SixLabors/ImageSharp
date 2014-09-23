@@ -20,6 +20,7 @@ namespace ImageProcessor
 
     using ImageProcessor.Common.Exceptions;
     using ImageProcessor.Imaging;
+    using ImageProcessor.Imaging.EdgeDetection;
     using ImageProcessor.Imaging.Filters;
     using ImageProcessor.Imaging.Formats;
     using ImageProcessor.Processors;
@@ -435,6 +436,17 @@ namespace ImageProcessor
             {
                 Crop crop = new Crop { DynamicParameter = cropLayer };
                 this.CurrentImageFormat.ApplyProcessor(crop.ProcessImage, this);
+            }
+
+            return this;
+        }
+
+        public ImageFactory DetectEdges(IEdgeFilter filter)
+        {
+            if (this.ShouldProcess)
+            {
+                DetectEdges detectEdges = new DetectEdges { DynamicParameter = filter };
+                this.CurrentImageFormat.ApplyProcessor(detectEdges.ProcessImage, this);
             }
 
             return this;

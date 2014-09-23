@@ -37,6 +37,7 @@
     <WarningLevel>4</WarningLevel>
     <DocumentationFile>bin\Release\ImageProcessor.XML</DocumentationFile>
     <Prefer32Bit>false</Prefer32Bit>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'All|AnyCPU'">
     <DebugSymbols>true</DebugSymbols>
@@ -51,6 +52,7 @@
     <WarningLevel>4</WarningLevel>
     <Optimize>false</Optimize>
     <Prefer32Bit>false</Prefer32Bit>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -74,6 +76,9 @@
     <Compile Include="Imaging\Colors\HslaColor.cs" />
     <Compile Include="Imaging\Colors\RgbaColor.cs" />
     <Compile Include="Imaging\Colors\YCbCrColor.cs" />
+    <Compile Include="Imaging\EdgeDetection\ConvolutionFilter.cs" />
+    <Compile Include="Imaging\EdgeDetection\IEdgeFilter.cs" />
+    <Compile Include="Imaging\EdgeDetection\SobelEdgeFilter.cs" />
     <Compile Include="Imaging\FastBitmap.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -121,6 +126,7 @@
     <Compile Include="Processors\Alpha.cs" />
     <Compile Include="Processors\BackgroundColor.cs" />
     <Compile Include="Processors\AutoRotate.cs" />
+    <Compile Include="Processors\DetectEdges.cs" />
     <Compile Include="Processors\GaussianBlur.cs" />
     <Compile Include="Processors\Brightness.cs" />
     <Compile Include="Processors\Contrast.cs" />

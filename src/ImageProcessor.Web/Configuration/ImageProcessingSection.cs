@@ -292,7 +292,7 @@ namespace ImageProcessor.Web.Configuration
             /// </summary>
             /// <param name="index">The index at which to get the specified object.</param>
             /// <returns>
-            /// The the <see cref="T:ImageProcessor.Web.Config.ImageProcessingSection.PluginElement"/>
+            /// The <see cref="T:ImageProcessor.Web.Config.ImageProcessingSection.PluginElement"/>
             /// at the specified index within the collection.
             /// </returns>
             public PluginElement this[int index]
@@ -413,7 +413,7 @@ namespace ImageProcessor.Web.Configuration
             /// </summary>
             /// <param name="index">The index at which to get the specified object.</param>
             /// <returns>
-            /// The the <see cref="T:ImageProcessor.Web.Config.ImageProcessingSection.SettingElement"/>
+            /// The <see cref="T:ImageProcessor.Web.Config.ImageProcessingSection.SettingElement"/>
             /// at the specified index within the collection.
             /// </returns>
             public SettingElement this[int index]

@@ -56,6 +56,11 @@ namespace ImageProcessorConsole
                 Stopwatch stopwatch = new Stopwatch();
                 stopwatch.Start();
 
+                Console.WriteLine("Processing: " + fileInfo.Name);
+
+                Stopwatch stopwatch = new Stopwatch();
+                stopwatch.Start();
+
                 // ImageProcessor
                 using (MemoryStream inStream = new MemoryStream(photoBytes))
                 {
@@ -67,7 +72,6 @@ namespace ImageProcessorConsole
                         //{
                         //    ConvolutionType = ConvolutionType.Sobel
                         //};
-
                         // Load, resize, set the format and quality and save an image.
                         imageFactory.Load(inStream)
                             //.BackgroundColor(Color.White)

@@ -45,8 +45,8 @@ namespace ImageProcessorConsole
                 di.Create();
             }
 
-            IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".jpg");
-            //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif", ".webp", ".bmp", ".jpg", ".png");
+            //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".jpg");
+            IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif", ".webp", ".bmp", ".jpg", ".png", ".tif");
 
             foreach (FileInfo fileInfo in files)
             {
@@ -62,6 +62,7 @@ namespace ImageProcessorConsole
                     using (ImageFactory imageFactory = new ImageFactory(true))
                     {
                         Size size = new Size(800, 0);
+                        ResizeLayer layer = new ResizeLayer(size, ResizeMode.Max, AnchorPosition.Center, false);
 
                         //ContentAwareResizeLayer layer = new ContentAwareResizeLayer(size)
                         //{
@@ -72,8 +73,9 @@ namespace ImageProcessorConsole
                             //.BackgroundColor(Color.White)
                             //.Resize(new Size((int)(size.Width * 1.1), 0))
                             //.ContentAwareResize(layer)
-                            .Constrain(size)
-                            .ReplaceColor(Color.FromArgb(255, 1, 107, 165), Color.FromArgb(255, 1, 165, 13), 80)
+                            //.Constrain(size)
+                            //.ReplaceColor(Color.FromArgb(255, 1, 107, 165), Color.FromArgb(255, 1, 165, 13), 80)
+                            .Resize(layer)
                             //.Filter(MatrixFilters.Comic)
                             //.Filter(MatrixFilters.HiSatch)
                             //.Pixelate(8)

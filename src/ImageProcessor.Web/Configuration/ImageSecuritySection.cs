@@ -132,12 +132,12 @@ namespace ImageProcessor.Web.Configuration
             /// <remarks>Defaults to <value>True</value>.</remarks>
             /// </summary>
             /// <value>If True plugins are auto discovered and loaded from all assemblies otherwise they must be defined in the configuration file</value>
-            [ConfigurationProperty("autoLoadPlugins", DefaultValue = true, IsRequired = false)]
-            public bool AutoLoadPlugins
+            [ConfigurationProperty("autoLoadServices", DefaultValue = true, IsRequired = false)]
+            public bool AutoLoadServices
             {
-                get { return (bool)this["autoLoadPlugins"]; }
+                get { return (bool)this["autoLoadServices"]; }
 
-                set { this["autoLoadPlugins"] = value; }
+                set { this["autoLoadServices"] = value; }
             }
 
             /// <summary>
@@ -288,14 +288,14 @@ namespace ImageProcessor.Web.Configuration
             /// </summary>
             /// <param name="index">The index at which to get the specified object.</param>
             /// <returns>
-            /// The the <see cref="T:ImageProcessor.Web.Config.ImageSecuritySection.SettingElement"/>
+            /// The <see cref="T:ImageProcessor.Web.Config.ImageSecuritySection.SettingElement"/>
             /// at the specified index within the collection.
             /// </returns>
-            public ImageSecuritySection.SettingElement this[int index]
+            public SettingElement this[int index]
             {
                 get
                 {
-                    return (ImageSecuritySection.SettingElement)BaseGet(index);
+                    return (SettingElement)BaseGet(index);
                 }
 
                 set
@@ -314,9 +314,9 @@ namespace ImageProcessor.Web.Configuration
             /// </summary>
             /// <param name="key">the key representing the element</param>
             /// <returns>the setting element</returns>
-            public new ImageSecuritySection.SettingElement this[string key]
+            public new SettingElement this[string key]
             {
-                get { return (ImageSecuritySection.SettingElement)BaseGet(key); }
+                get { return (SettingElement)BaseGet(key); }
             }
 
             /// <summary>
@@ -342,7 +342,7 @@ namespace ImageProcessor.Web.Configuration
             /// <returns>The element key for a specified PluginElement configuration element.</returns>
             protected override object GetElementKey(ConfigurationElement element)
             {
-                return ((ImageSecuritySection.SettingElement)element).Key;
+                return ((SettingElement)element).Key;
             }
 
             /// <summary>
@@ -353,7 +353,7 @@ namespace ImageProcessor.Web.Configuration
             /// </returns>
             protected override ConfigurationElement CreateNewElement()
             {
-                return new ImageSecuritySection.SettingElement();
+                return new SettingElement();
             }
         }
 

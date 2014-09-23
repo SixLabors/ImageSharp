@@ -57,7 +57,6 @@ namespace ImageProcessor.Processors
 
             try
             {
-
                 Tuple<int, bool> parameters = this.DynamicParameter;
                 int degrees = parameters.Item1;
                 bool rotate = parameters.Item2;

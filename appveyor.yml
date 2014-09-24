@@ -1,0 +1,57 @@
+# http://www.appveyor.com/docs/appveyor-yml
+
+#---------------------------------#
+#      general configuration      #
+#---------------------------------#
+
+# branches to build
+branches:
+
+  # blacklist
+  except:
+    - gh-pages
+
+#---------------------------------#
+#    environment configuration    #
+#---------------------------------#
+
+# Operating system (build VM template)
+os: Windows Server 2012
+
+# this is how to allow failing jobs in the matrix
+matrix:
+  fast_finish: true     # set this flag to immediately finish build once one of the jobs fails.
+
+#---------------------------------#
+#       build configuration       #
+#---------------------------------#
+
+# to run your custom scripts instead of automatic MSBuild
+build_script:
+  - ps: cd build
+  - ps: Import-Module .\psake.psm1
+  - ps: Invoke-Psake .\build.ps1 -properties @{"BuildNumber"="{build}"}
+
+#---------------------------------#
+#       tests configuration       #
+#---------------------------------#
+
+# to disable automatic tests (they're included in the build process)
+test: off
+
+#---------------------------------#
+#      artifacts configuration    #
+#---------------------------------#
+
+artifacts:
+  - path: build\_BuildOutput\NuGets\*.nupkg
+
+#---------------------------------#
+#        global handlers          #
+#---------------------------------#
+
+# on successful build
+on_success:
+  - ps: cd build
+  - ps: Import-Module .\psake.psm1
+  - ps: Invoke-Psake .\build.ps1 Publish-Nuget -properties @{"NugetApiKey"="$(APIKEY)";"NugetSource"="$(SOURCE)""}

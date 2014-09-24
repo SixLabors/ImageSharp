@@ -1,16 +1,25 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="DetectEdges.cs" company="James South">
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
+// </copyright>
+// <summary>
+//   Produces an image with the detected edges highlighted.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Processors
 {
+    using System;
+    using System.Collections.Generic;
     using System.Drawing;
 
     using ImageProcessor.Common.Exceptions;
     using ImageProcessor.Imaging.EdgeDetection;
 
+    /// <summary>
+    /// Produces an image with the detected edges highlighted.
+    /// </summary>
     public class DetectEdges : IGraphicsProcessor
     {
         /// <summary>
@@ -53,24 +62,27 @@ namespace ImageProcessor.Processors
         {
             Bitmap newImage = null;
             Image image = factory.Image;
-            IEdgeFilter filter = this.DynamicParameter;
-            try
-            {
-                ConvolutionFilter convolutionFilter = new ConvolutionFilter(filter);
+            Tuple<IEdgeFilter, bool> parameters = this.DynamicParameter;
+            IEdgeFilter filter = parameters.Item1;
+            bool greyscale = parameters.Item2;
+
+            //try
+            //{
+                ConvolutionFilter convolutionFilter = new ConvolutionFilter(filter, greyscale);
                 newImage = convolutionFilter.ProcessFilter((Bitmap)image);
 
                 image.Dispose();
                 image = newImage;
-            }
-            catch (Exception ex)
-            {
-                if (newImage != null)
-                {
-                    newImage.Dispose();
-                }
+            //}
+            //catch (Exception ex)
+            //{
+            //    if (newImage != null)
+            //    {
+            //        newImage.Dispose();
+            //    }
 
-                throw new ImageProcessingException("Error processing image with " + this.GetType().Name, ex);
-            }
+            //    throw new ImageProcessingException("Error processing image with " + this.GetType().Name, ex);
+            //}
 
             return image;
         }

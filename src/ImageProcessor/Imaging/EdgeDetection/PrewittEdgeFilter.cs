@@ -1,21 +1,21 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="SobelEdgeFilter.cs" company="James South">
+// <copyright file="PrewittEdgeFilter.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   The Sobel operator filter.
-//   <see href="http://en.wikipedia.org/wiki/Sobel_operator" />
+//   The Prewitt operator filter.
+//   <see href="http://en.wikipedia.org/wiki/Prewitt_operator" />
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Imaging.EdgeDetection
 {
     /// <summary>
-    /// The Sobel operator filter.
-    /// <see href="http://en.wikipedia.org/wiki/Sobel_operator"/>
+    /// The Prewitt operator filter.
+    /// <see href="http://en.wikipedia.org/wiki/Prewitt_operator"/>
     /// </summary>
-    public class SobelEdgeFilter : IEdgeFilter
+    public class PrewittEdgeFilter : IEdgeFilter
     {
         /// <summary>
         /// Gets the horizontal gradient operator.
@@ -27,7 +27,7 @@ namespace ImageProcessor.Imaging.EdgeDetection
                 return new double[,]
                 {
                     { -1, 0, 1 }, 
-                    { -2, 0, 2 }, 
+                    { -1, 0, 1 }, 
                     { -1, 0, 1 }
                 };
             }
@@ -42,9 +42,9 @@ namespace ImageProcessor.Imaging.EdgeDetection
             {
                 return new double[,]
                 {
-                    { 1, 2, 1 }, 
+                    { 1, 1, 1 }, 
                     { 0, 0, 0 }, 
-                    { -1, -2, -1 }
+                    { -1, -1, -1 }
                 };
             }
         }

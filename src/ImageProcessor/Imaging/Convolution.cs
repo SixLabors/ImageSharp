@@ -26,7 +26,7 @@ namespace ImageProcessor.Imaging
         private readonly double standardDeviation = 1.4;
 
         /// <summary>
-        /// Whether to use use dynamic divider for edges.
+        /// Whether to use dynamic divider for edges.
         /// </summary>
         private bool useDynamicDividerForEdges = true;
 

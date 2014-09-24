@@ -83,21 +83,19 @@ namespace ImageProcessor.Imaging.EdgeDetection
             try
             {
                 double[,] horizontalFilter = this.edgeFilter.HorizontalGradientOperator;
-                double[,] verticallFilter = this.edgeFilter.VerticalGradientOperator;
+                double[,] verticalFilter = this.edgeFilter.VerticalGradientOperator;
 
-                int filterXOffset = (horizontalFilter.GetLength(1) - 1) / 2;
-                int filterYOffset = (horizontalFilter.GetLength(0) - 1) / 2;
-                int maxWidth = width - filterXOffset;
-                int maxHeight = height - filterYOffset;
+                int kernelLength = horizontalFilter.GetLength(0);
+                int radius = kernelLength >> 1;
 
                 using (FastBitmap sourceBitmap = new FastBitmap(input))
                 {
                     using (FastBitmap destinationBitmap = new FastBitmap(destination))
                     {
                         // Loop through the pixels.
-                        for (int y = filterYOffset; y < maxHeight; y++)
+                        for (int y = 0; y < height; y++)
                         {
-                            for (int x = filterXOffset; x < maxWidth; x++)
+                            for (int x = 0; x < width; x++)
                             {
                                 double rX = 0;
                                 double rY = 0;
@@ -107,23 +105,50 @@ namespace ImageProcessor.Imaging.EdgeDetection
                                 double bY = 0;
 
                                 // Apply each matrix multiplier to the color components for each pixel.
-                                for (int fy = -1; fy < filterYOffset; fy++)
+                                for (int fy = 0; fy < kernelLength; fy++)
                                 {
-                                    for (int fx = -1; fx < filterXOffset; fx++)
+                                    int fyr = fy - radius;
+                                    int offsetY = y + fyr;
+
+                                    // Skip the current row
+                                    if (offsetY < 0)
                                     {
-                                        Color currentColor = sourceBitmap.GetPixel(x + fx, y + fy);
-                                        double r = currentColor.R;
-                                        double g = currentColor.G;
-                                        double b = currentColor.B;
+                                        continue;
+                                    }
 
-                                        rX += horizontalFilter[fy + 1, fx + 1] * r;
-                                        rY += verticallFilter[fy + 1, fx + 1] * r;
+                                    // Outwith the current bounds so break.
+                                    if (offsetY >= height)
+                                    {
+                                        break;
+                                    }
 
-                                        gX += horizontalFilter[fy + 1, fx + 1] * g;
-                                        gY += verticallFilter[fy + 1, fx + 1] * g;
+                                    for (int fx = 0; fx < kernelLength; fx++)
+                                    {
+                                        int fxr = fx - radius;
+                                        int offsetX = x + fxr;
 
-                                        bX += horizontalFilter[fy + 1, fx + 1] * b;
-                                        bY += verticallFilter[fy + 1, fx + 1] * b;
+                                        // Skip the column
+                                        if (offsetX < 0)
+                                        {
+                                            continue;
+                                        }
+
+                                        if (offsetX < width)
+                                        {
+                                            Color currentColor = sourceBitmap.GetPixel(offsetX, offsetY);
+                                            double r = currentColor.R;
+                                            double g = currentColor.G;
+                                            double b = currentColor.B;
+
+                                            rX += horizontalFilter[fy, fx] * r;
+                                            rY += verticalFilter[fy, fx] * r;
+
+                                            gX += horizontalFilter[fy, fx] * g;
+                                            gY += verticalFilter[fy, fx] * g;
+
+                                            bX += horizontalFilter[fy, fx] * b;
+                                            bY += verticalFilter[fy, fx] * b;
+                                        }
                                     }
                                 }
 

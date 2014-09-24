@@ -28,9 +28,8 @@ matrix:
 
 # to run your custom scripts instead of automatic MSBuild
 build_script:
-  - ps: cd build
-  - ps: Import-Module .\psake.psm1
-  - ps: Invoke-Psake .\build.ps1 -properties @{"BuildNumber"="{build}"}
+  - ps: Import-Module .\build\psake.psm1
+  - ps: Invoke-Psake .\build\build.ps1 -properties @{"BuildNumber"=$env:APPVEYOR_BUILD_NUMBER}
 
 #---------------------------------#
 #       tests configuration       #
@@ -52,6 +51,5 @@ artifacts:
 
 # on successful build
 on_success:
-  - ps: cd build
-  - ps: Import-Module .\psake.psm1
-  - ps: Invoke-Psake .\build.ps1 Publish-Nuget -properties @{"NugetApiKey"="$(APIKEY)";"NugetSource"="$(SOURCE)""}
+  - ps: Import-Module .\build\psake.psm1
+  - ps: Invoke-Psake .\build\build.ps1 Publish-Nuget -properties @{"NugetApiKey"=$env:APIKEY;"NugetSource"=$env:SOURCE}

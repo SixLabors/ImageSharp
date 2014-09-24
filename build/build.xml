@@ -20,7 +20,7 @@
   <project>
     <name>ImageProcessor Web.config sample</name>
     <version>2.0.0.0</version>
-    <nuspec>ImageProcessor.Web.nuspec</nuspec>
+    <nuspec>ImageProcessor.Web.Config.nuspec</nuspec>
   </project>
 
   <project>

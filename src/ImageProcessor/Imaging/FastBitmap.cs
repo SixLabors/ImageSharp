@@ -156,12 +156,12 @@ namespace ImageProcessor.Imaging
         /// <returns>The <see cref="System.Drawing.Color"/> at the given pixel.</returns>
         public Color GetPixel(int x, int y)
         {
-            if ((x < 0) || (x >= this.width))
+            if ((x < 0) || (x > this.width))
             {
                 throw new ArgumentOutOfRangeException("x", "Value cannot be less than zero or greater than the bitmap width.");
             }
 
-            if ((y < 0) || (y >= this.height))
+            if ((y < 0) || (y > this.height))
             {
                 throw new ArgumentOutOfRangeException("y", "Value cannot be less than zero or greater than the bitmap height.");
             }

@@ -441,11 +441,23 @@ namespace ImageProcessor
             return this;
         }
 
-        public ImageFactory DetectEdges(IEdgeFilter filter)
+        /// <summary>
+        /// Detects the edges in the current image.
+        /// </summary>
+        /// <param name="filter">
+        /// The <see cref="IEdgeFilter"/> to detect edges with.
+        /// </param>
+        /// <param name="greyscale">
+        /// Whether to convert the image to greyscale first - Defaults to true.
+        /// </param>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory DetectEdges(IEdgeFilter filter, bool greyscale = true)
         {
             if (this.ShouldProcess)
             {
-                DetectEdges detectEdges = new DetectEdges { DynamicParameter = filter };
+                DetectEdges detectEdges = new DetectEdges { DynamicParameter = new Tuple<IEdgeFilter, bool>(filter, greyscale) };
                 this.CurrentImageFormat.ApplyProcessor(detectEdges.ProcessImage, this);
             }
 

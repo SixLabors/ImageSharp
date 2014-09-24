@@ -8,6 +8,8 @@
       <Value>gps</Value>
       <Value>mmmm</Value>
       <Value>orig</Value>
+      <Value>Scharr</Value>
+      <Value>Sobel</Value>
       <Value>specifier</Value>
       <Value>ss</Value>
       <Value>subfile</Value>

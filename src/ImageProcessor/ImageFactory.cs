@@ -288,6 +288,17 @@ namespace ImageProcessor
             return this;
         }
 
+        public ImageFactory AutoCrop(byte threshold = 128)
+        {
+            if (this.ShouldProcess)
+            {
+                AutoCrop autoCrop = new AutoCrop() { DynamicParameter = threshold };
+                this.CurrentImageFormat.ApplyProcessor(autoCrop.ProcessImage, this);
+            }
+
+            return this;
+        }
+
         /// <summary>
         /// Performs auto-rotation to ensure that EXIF defined rotation is reflected in 
         /// the final image.

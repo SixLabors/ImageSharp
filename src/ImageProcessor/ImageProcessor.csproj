@@ -78,10 +78,11 @@
     <Compile Include="Imaging\Colors\YCbCrColor.cs" />
     <Compile Include="Imaging\EdgeDetection\ConvolutionFilter.cs" />
     <Compile Include="Imaging\EdgeDetection\IEdgeFilter.cs" />
+    <Compile Include="Imaging\EdgeDetection\KirschEdgeFilter.cs" />
     <Compile Include="Imaging\EdgeDetection\ScharrEdgeFilter.cs" />
     <Compile Include="Imaging\EdgeDetection\RobertsCrossEdgeFilter.cs" />
     <Compile Include="Imaging\EdgeDetection\PrewittEdgeFilter.cs" />
-    <Compile Include="Imaging\EdgeDetection\CostellaEdgeFilter.cs" />
+    <Compile Include="Imaging\EdgeDetection\KayyaliEdgeFilter.cs" />
     <Compile Include="Imaging\EdgeDetection\SobelEdgeFilter.cs" />
     <Compile Include="Imaging\FastBitmap.cs">
       <SubType>Code</SubType>

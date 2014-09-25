@@ -110,6 +110,7 @@
     <Compile Include="Imaging\GaussianLayer.cs" />
     <Compile Include="Imaging\Formats\GifEncoder.cs" />
     <Compile Include="Imaging\Formats\GifFrame.cs" />
+    <Compile Include="Imaging\PixelData.cs" />
     <Compile Include="Imaging\Quantizer.cs" />
     <Compile Include="Imaging\ResizeLayer.cs" />
     <Compile Include="Imaging\Filters\BlackWhiteMatrixFilter.cs" />
@@ -129,8 +130,10 @@
     <Compile Include="Imaging\TextLayer.cs" />
     <Compile Include="Imaging\OctreeQuantizer.cs" />
     <Compile Include="Processors\Alpha.cs" />
+    <Compile Include="Processors\AutoCrop.cs" />
     <Compile Include="Processors\BackgroundColor.cs" />
     <Compile Include="Processors\AutoRotate.cs" />
+    <Compile Include="Imaging\Binarization\BinaryThreshold.cs" />
     <Compile Include="Processors\DetectEdges.cs" />
     <Compile Include="Processors\GaussianBlur.cs" />
     <Compile Include="Processors\Brightness.cs" />

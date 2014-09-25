@@ -270,31 +270,5 @@ namespace ImageProcessor.Imaging
             this.bitmapData = null;
             this.pixelBuffer = null;
         }
-
-        /// <summary>
-        /// The pixel data.
-        /// </summary>
-        private struct PixelData
-        {
-            /// <summary>
-            /// The blue component.
-            /// </summary>
-            public byte B;
-
-            /// <summary>
-            /// The green component.
-            /// </summary>
-            public byte G;
-
-            /// <summary>
-            /// The red component.
-            /// </summary>
-            public byte R;
-
-            /// <summary>
-            /// The alpha component.
-            /// </summary>
-            public byte A;
-        }
     }
 }

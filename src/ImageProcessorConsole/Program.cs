@@ -46,7 +46,7 @@ namespace ImageProcessorConsole
                 di.Create();
             }
 
-            IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".png");
+            IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".png2");
             //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif", ".webp", ".bmp", ".jpg", ".png", ".tif");
 
             foreach (FileInfo fileInfo in files)
@@ -76,8 +76,9 @@ namespace ImageProcessorConsole
                             //.ContentAwareResize(layer)
                             //.Constrain(size)
                             //.ReplaceColor(Color.FromArgb(255, 1, 107, 165), Color.FromArgb(255, 1, 165, 13), 80)
-                            .Resize(layer)
-                            .DetectEdges(new KirschEdgeFilter())
+                            //.Resize(layer)
+                            //.DetectEdges(new KirschEdgeFilter())
+                            .AutoCrop()
                             //.Filter(MatrixFilters.Comic)
                             //.Filter(MatrixFilters.HiSatch)
                             //.Pixelate(8)

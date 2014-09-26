@@ -20,12 +20,12 @@ namespace ImageProcessor.Processors
     /// <summary>
     /// The auto crop.
     /// </summary>
-    public class AutoCrop : IGraphicsProcessor
+    public class EntropyCrop : IGraphicsProcessor
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="AutoCrop"/> class.
+        /// Initializes a new instance of the <see cref="EntropyCrop"/> class.
         /// </summary>
-        public AutoCrop()
+        public EntropyCrop()
         {
             this.Settings = new Dictionary<string, string>();
         }
@@ -60,38 +60,25 @@ namespace ImageProcessor.Processors
             try
             {
                 grey = new ConvolutionFilter(new SobelEdgeFilter(), true).ProcessFilter((Bitmap)image);
-                grey = new BinaryThreshold(threshold).ProcessFilter(grey);//.Clone(new Rectangle(0, 0, grey.Width, grey.Height), PixelFormat.Format8bppIndexed);
+                grey = new BinaryThreshold(threshold).ProcessFilter(grey);
 
-                // lock source bitmap data
-                //BitmapData data = grey.LockBits(new Rectangle(0, 0, grey.Width, grey.Height), ImageLockMode.ReadOnly, grey.PixelFormat);
-                //Rectangle rectangle = this.FindBoxExactgreyscale(data, 0);
-                //grey.UnlockBits(data);
-
-                Rectangle rectangle = FindBox(grey, 0);
+                Rectangle rectangle = this.FindBox(grey, 0);
 
                 newImage = new Bitmap(rectangle.Width, rectangle.Height, PixelFormat.Format32bppPArgb);
                 using (Graphics graphics = Graphics.FromImage(newImage))
                 {
-                    // An unwanted border appears when using InterpolationMode.HighQualityBicubic to resize the image
-                    // as the algorithm appears to be pulling averaging detail from surrounding pixels beyond the edge 
-                    // of the image. Using the ImageAttributes class to specify that the pixels beyond are simply mirror 
-                    // images of the pixels within solves this problem.
-                    using (ImageAttributes wrapMode = new ImageAttributes())
-                    {
-                        graphics.DrawImage(
-                                         image,
-                                         new Rectangle(0, 0, rectangle.Width, rectangle.Height),
-                                         rectangle.X,
-                                         rectangle.Y,
-                                         rectangle.Width,
-                                         rectangle.Height,
-                                         GraphicsUnit.Pixel,
-                                         wrapMode);
-                    }
+                    graphics.DrawImage(
+                                     image,
+                                     new Rectangle(0, 0, rectangle.Width, rectangle.Height),
+                                     rectangle.X,
+                                     rectangle.Y,
+                                     rectangle.Width,
+                                     rectangle.Height,
+                                     GraphicsUnit.Pixel);
                 }
 
                 // Reassign the image.
-                //grey.Dispose();
+                grey.Dispose();
                 image.Dispose();
                 image = newImage;
             }
@@ -113,107 +100,87 @@ namespace ImageProcessor.Processors
             return image;
         }
 
-        /// <summary>
-        /// Returns a bounding box that only excludes the specified color. 
-        /// Only works on 8-bit images.
-        /// </summary>
-        /// <param name="sourceData"></param>
-        /// <param name="colorToRemove">The palette index to remove.</param>
-        /// <returns></returns>
-        private Rectangle FindBoxExactgreyscale(BitmapData sourceData, byte indexToRemove)
-        {
-            if (sourceData.PixelFormat != PixelFormat.Format8bppIndexed) throw new ArgumentOutOfRangeException("FindBoxExact only operates on 8-bit greyscale images");
-            // get source image size
-            int width = sourceData.Width;
-            int height = sourceData.Height;
-            int offset = sourceData.Stride - width;
-
-            int minX = width;
-            int minY = height;
-            int maxX = 0;
-            int maxY = 0;
-
-            // find rectangle which contains something except color to remove
-            unsafe
-            {
-                byte* src = (byte*)sourceData.Scan0;
-
-                for (int y = 0; y < height; y++)
-                {
-                    if (y > 0) src += offset; //Don't adjust for offset until after first row
-                    for (int x = 0; x < width; x++)
-                    {
-                        if (x > 0 || y > 0) src++; //Don't increment until after the first pixel.
-                        if (*src != indexToRemove)
-                        {
-                            if (x < minX)
-                                minX = x;
-                            if (x > maxX)
-                                maxX = x;
-                            if (y < minY)
-                                minY = y;
-                            if (y > maxY)
-                                maxY = y;
-                        }
-                    }
-                }
-            }
-
-            // check
-            if ((minX == width) && (minY == height) && (maxX == 0) && (maxY == 0))
-            {
-                minX = minY = 0;
-            }
-
-            return new Rectangle(minX, minY, maxX - minX + 1, maxY - minY + 1);
-        }
-
-
-        private Rectangle FindBox(Bitmap bitmap, byte indexToRemove)
+        private Rectangle FindBox(Bitmap bitmap, byte componentToRemove)
         {
             int width = bitmap.Width;
             int height = bitmap.Height;
-            int startX = width;
-            int startY = height;
-            int stopX = 0;
-            int stopY = 0;
+            int startX;
+            int startY;
+            int stopX;
+            int stopY;
 
-            using (FastBitmap fastBitmap = new FastBitmap(bitmap))
+            Func<FastBitmap, int> getMinY = fastBitmap =>
             {
                 for (int y = 0; y < height; y++)
                 {
                     for (int x = 0; x < width; x++)
                     {
-                        if (fastBitmap.GetPixel(x, y).B != indexToRemove)
+                        Color c = fastBitmap.GetPixel(x, y);
+
+                        if (fastBitmap.GetPixel(x, y).B != componentToRemove)
                         {
-                            if (x < startX)
-                            {
-                                startX = x;
-                            }
-
-                            if (x > stopX)
-                            {
-                                stopX = x;
-                            }
-
-                            if (y < startY)
-                            {
-                                startY = y;
-                            }
-
-                            if (y > stopY)
-                            {
-                                stopY = y;
-                            }
+                            return y;
                         }
                     }
                 }
-            }
 
-            // check
-            if ((startX == width) && (startY == height) && (stopX == 0) && (stopY == 0))
+                return 0;
+            };
+
+            Func<FastBitmap, int> getMaxY = fastBitmap =>
             {
-                startX = startY = 0;
+                for (int y = height - 1; y > -1; y--)
+                {
+                    for (int x = 0; x < width; x++)
+                    {
+                        if (fastBitmap.GetPixel(x, y).B != componentToRemove)
+                        {
+                            return y;
+                        }
+                    }
+                }
+
+                return height;
+            };
+
+            Func<FastBitmap, int> getMinX = fastBitmap =>
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    for (int y = 0; y < height; y++)
+                    {
+                        if (fastBitmap.GetPixel(x, y).B != componentToRemove)
+                        {
+                            return x;
+                        }
+                    }
+                }
+
+                return 0;
+            };
+
+            Func<FastBitmap, int> getMaxX = fastBitmap =>
+            {
+                for (int x = width - 1; x > -1; x--)
+                {
+                    for (int y = 0; y < height; y++)
+                    {
+                        if (fastBitmap.GetPixel(x, y).B != componentToRemove)
+                        {
+                            return x;
+                        }
+                    }
+                }
+
+                return height;
+            };
+
+            using (FastBitmap fastBitmap = new FastBitmap(bitmap))
+            {
+                startY = getMinY(fastBitmap);
+                stopY = getMaxY(fastBitmap);
+                startX = getMinX(fastBitmap);
+                stopX = getMaxX(fastBitmap);
             }
 
             return new Rectangle(startX, startY, stopX - startX + 1, stopY - startY + 1);

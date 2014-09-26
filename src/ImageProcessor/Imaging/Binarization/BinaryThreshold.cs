@@ -11,6 +11,7 @@
 namespace ImageProcessor.Imaging.Binarization
 {
     using System.Drawing;
+    using System.Drawing.Imaging;
 
     /// <summary>
     /// Performs binary threshold filtering against a given greyscale image.
@@ -59,15 +60,15 @@ namespace ImageProcessor.Imaging.Binarization
             int width = source.Width;
             int height = source.Height;
 
-            using (FastBitmap fastBitmap = new FastBitmap(source))
+            using (FastBitmap sourceBitmap = new FastBitmap(source))
             {
+
                 for (int x = 0; x < width; x++)
                 {
                     for (int y = 0; y < height; y++)
                     {
-                        Color color = fastBitmap.GetPixel(x, y);
-
-                        fastBitmap.SetPixel(x, y, color.B >= this.threshold ? Color.White : Color.Black);
+                        Color color = sourceBitmap.GetPixel(x, y);
+                        sourceBitmap.SetPixel(x, y, color.B >= this.threshold ? Color.White : Color.Black);
                     }
                 }
             }

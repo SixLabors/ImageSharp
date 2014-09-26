@@ -288,11 +288,11 @@ namespace ImageProcessor
             return this;
         }
 
-        public ImageFactory AutoCrop(byte threshold = 128)
+        public ImageFactory EntropyCrop(byte threshold = 128)
         {
             if (this.ShouldProcess)
             {
-                AutoCrop autoCrop = new AutoCrop() { DynamicParameter = threshold };
+                EntropyCrop autoCrop = new EntropyCrop() { DynamicParameter = threshold };
                 this.CurrentImageFormat.ApplyProcessor(autoCrop.ProcessImage, this);
             }
 

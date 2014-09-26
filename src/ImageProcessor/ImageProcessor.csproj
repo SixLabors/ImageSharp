@@ -130,7 +130,7 @@
     <Compile Include="Imaging\TextLayer.cs" />
     <Compile Include="Imaging\OctreeQuantizer.cs" />
     <Compile Include="Processors\Alpha.cs" />
-    <Compile Include="Processors\AutoCrop.cs" />
+    <Compile Include="Processors\EntropyCrop.cs" />
     <Compile Include="Processors\BackgroundColor.cs" />
     <Compile Include="Processors\AutoRotate.cs" />
     <Compile Include="Imaging\Binarization\BinaryThreshold.cs" />

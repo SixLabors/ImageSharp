@@ -170,6 +170,16 @@ namespace ImageProcessor.Imaging.EdgeDetection
                 input.Dispose();
             }
 
+            using (Graphics graphics = Graphics.FromImage(destination))
+            {
+                // Draw an edge around the image.
+                using (Pen blackPen = new Pen(Color.Black))
+                {
+                    blackPen.Width = 4;
+                    graphics.DrawRectangle(blackPen, new Rectangle(0, 0, destination.Width, destination.Height));
+                }
+            }
+
             return destination;
         }
     }

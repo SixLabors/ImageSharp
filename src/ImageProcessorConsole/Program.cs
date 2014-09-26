@@ -78,7 +78,7 @@ namespace ImageProcessorConsole
                             //.ReplaceColor(Color.FromArgb(255, 1, 107, 165), Color.FromArgb(255, 1, 165, 13), 80)
                             //.Resize(layer)
                             //.DetectEdges(new KirschEdgeFilter())
-                            .AutoCrop()
+                            .EntropyCrop()
                             //.Filter(MatrixFilters.Comic)
                             //.Filter(MatrixFilters.HiSatch)
                             //.Pixelate(8)

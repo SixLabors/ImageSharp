@@ -8,10 +8,9 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Imaging.Binarization
+namespace ImageProcessor.Imaging.Filters.Binarization
 {
     using System.Drawing;
-    using System.Drawing.Imaging;
 
     /// <summary>
     /// Performs binary threshold filtering against a given greyscale image.

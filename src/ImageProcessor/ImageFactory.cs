@@ -20,8 +20,8 @@ namespace ImageProcessor
 
     using ImageProcessor.Common.Exceptions;
     using ImageProcessor.Imaging;
-    using ImageProcessor.Imaging.EdgeDetection;
-    using ImageProcessor.Imaging.Filters;
+    using ImageProcessor.Imaging.Filters.EdgeDetection;
+    using ImageProcessor.Imaging.Filters.Photo;
     using ImageProcessor.Imaging.Formats;
     using ImageProcessor.Processors;
     #endregion

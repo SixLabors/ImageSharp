@@ -13,9 +13,9 @@ namespace ImageProcessor.Processors
     using System;
     using System.Collections.Generic;
     using System.Drawing;
-    using System.Drawing.Imaging;
 
     using ImageProcessor.Common.Exceptions;
+    using ImageProcessor.Imaging.Helpers;
 
     /// <summary>
     /// Encapsulates methods to change the contrast component of the image.
@@ -65,36 +65,12 @@ namespace ImageProcessor.Processors
 
             try
             {
-                float contrastFactor = (float)this.DynamicParameter / 100;
+                int threshold = (int)this.DynamicParameter;
+                newImage = new Bitmap(image);
+                newImage = Adjustments.Contrast(newImage, threshold);
 
-                // Stop at -1 to prevent inversion.
-                contrastFactor++;
-                float factorTransform = 0.5f * (1.0f - contrastFactor);
-
-                newImage = new Bitmap(image.Width, image.Height, PixelFormat.Format32bppPArgb);
-
-                ColorMatrix colorMatrix = new ColorMatrix(
-                                                new[]
-                                                        {
-                                                            new[] { contrastFactor, 0, 0, 0, 0 }, 
-                                                            new[] { 0, contrastFactor, 0, 0, 0 },
-                                                            new[] { 0, 0, contrastFactor, 0, 0 },
-                                                            new float[] { 0, 0, 0, 1, 0 },
-                                                            new[] { factorTransform, factorTransform, factorTransform, 0, 1 }
-                                                      });
-
-                using (Graphics graphics = Graphics.FromImage(newImage))
-                {
-                    using (ImageAttributes imageAttributes = new ImageAttributes())
-                    {
-                        imageAttributes.SetColorMatrix(colorMatrix);
-
-                        graphics.DrawImage(image, new Rectangle(0, 0, image.Width, image.Height), 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, imageAttributes);
-
-                        image.Dispose();
-                        image = newImage;
-                    }
-                }
+                image.Dispose();
+                image = newImage;
             }
             catch (Exception ex)
             {

@@ -1,21 +1,21 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="SobelEdgeFilter.cs" company="James South">
+// <copyright file="KirschEdgeFilter.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   The Sobel operator filter.
-//   <see href="http://en.wikipedia.org/wiki/Sobel_operator" />
+//   The Kirsch operator filter.
+//   <see href="http://en.wikipedia.org/wiki/Kirsch_operator" />
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Imaging.EdgeDetection
+namespace ImageProcessor.Imaging.Filters.EdgeDetection
 {
     /// <summary>
-    /// The Sobel operator filter.
-    /// <see href="http://en.wikipedia.org/wiki/Sobel_operator"/>
+    /// The Kirsch operator filter.
+    /// <see href="http://en.wikipedia.org/wiki/Kirsch_operator"/>
     /// </summary>
-    public class SobelEdgeFilter : IEdgeFilter
+    public class KirschEdgeFilter : IEdgeFilter
     {
         /// <summary>
         /// Gets the horizontal gradient operator.
@@ -24,11 +24,11 @@ namespace ImageProcessor.Imaging.EdgeDetection
         {
             get
             {
-                return new double[,]
+                return new double[,] 
                 {
-                    { -1, 0, 1 }, 
-                    { -2, 0, 2 }, 
-                    { -1, 0, 1 }
+                    { 5, 5, 5 }, 
+                    { -3, 0, -3 }, 
+                    { -3, -3, -3 }
                 };
             }
         }
@@ -40,11 +40,11 @@ namespace ImageProcessor.Imaging.EdgeDetection
         {
             get
             {
-                return new double[,]
-                {
-                    { 1, 2, 1 }, 
-                    { 0, 0, 0 }, 
-                    { -1, -2, -1 }
+                return new double[,] 
+                { 
+                    { 5, -3, -3 }, 
+                    { 5,  0, -3 }, 
+                    { 5, -3, -3 } 
                 };
             }
         }

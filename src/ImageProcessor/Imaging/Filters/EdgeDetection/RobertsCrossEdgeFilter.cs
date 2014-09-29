@@ -1,21 +1,21 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="KayyaliEdgeFilter.cs" company="James South">
+// <copyright file="RobertsCrossEdgeFilter.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   The Kayyali operator filter.
-//   <see href="http://edgedetection.webs.com/" />
+//   The Roberts Cross operator filter.
+//   <see href="http://en.wikipedia.org/wiki/Roberts_cross" />
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Imaging.EdgeDetection
+namespace ImageProcessor.Imaging.Filters.EdgeDetection
 {
     /// <summary>
-    /// The Kayyali operator filter.
-    /// <see href="http://edgedetection.webs.com/"/>
+    /// The Roberts Cross operator filter.
+    /// <see href="http://en.wikipedia.org/wiki/Roberts_cross"/>
     /// </summary>
-    public class KayyaliEdgeFilter : IEdgeFilter
+    public class RobertsCrossEdgeFilter : IEdgeFilter
     {
         /// <summary>
         /// Gets the horizontal gradient operator.
@@ -24,11 +24,10 @@ namespace ImageProcessor.Imaging.EdgeDetection
         {
             get
             {
-                return new double[,] 
+                return new double[,]
                 {
-                    { 6, 0, -6 }, 
-                    { 0, 0, 0 }, 
-                    { -6, 0, 6 }
+                    { 1, 0 }, 
+                    { 0, -1 }
                 };
             }
         }
@@ -40,11 +39,10 @@ namespace ImageProcessor.Imaging.EdgeDetection
         {
             get
             {
-                return new double[,] 
+                return new double[,]
                 {
-                    { -6, 0, 6 }, 
-                    { 0, 0, 0 }, 
-                    { 6, 0, -6 }
+                    { 0, 1 }, 
+                    { -1, 0 }
                 };
             }
         }

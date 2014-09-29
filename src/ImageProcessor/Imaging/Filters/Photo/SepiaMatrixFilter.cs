@@ -1,46 +1,40 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="InvertMatrixFilter.cs" company="James South">
+// <copyright file="SepiaMatrixFilter.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   Encapsulates methods with which to add an inverted filter to an image.
+//   Encapsulates methods with which to add a sepia filter to an image.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Imaging.Filters
+namespace ImageProcessor.Imaging.Filters.Photo
 {
-    #region Using
     using System.Drawing;
     using System.Drawing.Imaging;
-    #endregion
 
     /// <summary>
-    /// Encapsulates methods with which to add an inverted filter to an image.
+    /// Encapsulates methods with which to add a sepia filter to an image.
     /// </summary>
-    internal class InvertMatrixFilter : MatrixFilterBase
+    internal class SepiaMatrixFilter : MatrixFilterBase
     {
         /// <summary>
         /// Gets the <see cref="T:System.Drawing.Imaging.ColorMatrix"/> for this filter instance.
         /// </summary>
         public override ColorMatrix Matrix
         {
-            get { return ColorMatrixes.Invert; }
+            get { return ColorMatrixes.Sepia; }
         }
 
         /// <summary>
         /// Processes the image.
         /// </summary>
-        /// <param name="factory">
-        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class containing
-        /// the image to process.
-        /// </param>
         /// <param name="image">The current image to process</param>
         /// <param name="newImage">The new Image to return</param>
         /// <returns>
-        /// The processed image from the current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// The processed image.
         /// </returns>
-        public override Image TransformImage(ImageFactory factory, Image image, Image newImage)
+        public override Image TransformImage(Image image, Image newImage)
         {
             using (Graphics graphics = Graphics.FromImage(newImage))
             {

@@ -8,16 +8,13 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Imaging.Filters
+namespace ImageProcessor.Imaging.Filters.Photo
 {
-    #region Using
     using System.Drawing;
     using System.Drawing.Drawing2D;
     using System.Drawing.Imaging;
 
-    using ImageProcessor.Processors;
-
-    #endregion
+    using ImageProcessor.Imaging.Helpers;
 
     /// <summary>
     /// Encapsulates methods with which to add a gotham filter to an image.
@@ -35,16 +32,12 @@ namespace ImageProcessor.Imaging.Filters
         /// <summary>
         /// Processes the image.
         /// </summary>
-        /// <param name="factory">
-        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class containing
-        /// the image to process.
-        /// </param>
         /// <param name="image">The current image to process</param>
         /// <param name="newImage">The new Image to return</param>
         /// <returns>
-        /// The processed image from the current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// The processed image.
         /// </returns>
-        public override Image TransformImage(ImageFactory factory, Image image, Image newImage)
+        public override Image TransformImage(Image image, Image newImage)
         {
             using (Graphics graphics = Graphics.FromImage(newImage))
             {
@@ -79,13 +72,8 @@ namespace ImageProcessor.Imaging.Filters
             }
 
             // Add brightness and contrast to finish the effect.
-            factory.Image = newImage;
-            Brightness brightness = new Brightness { DynamicParameter = 5 };
-            newImage = brightness.ProcessImage(factory);
-
-            factory.Image = newImage;
-            Contrast contrast = new Contrast { DynamicParameter = 85 };
-            newImage = contrast.ProcessImage(factory);
+            newImage = Adjustments.Brightness((Bitmap)newImage, 5);
+            newImage = Adjustments.Contrast((Bitmap)newImage, 85);
 
             // Reassign the image.
             image.Dispose();

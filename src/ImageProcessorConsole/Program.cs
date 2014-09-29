@@ -8,7 +8,7 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessorConsole
+namespace ImageProcessor.PlayGround
 {
     using System;
     using System.Collections.Generic;
@@ -16,12 +16,10 @@ namespace ImageProcessorConsole
     using System.Drawing;
     using System.IO;
     using System.Linq;
+
     using ImageProcessor;
     using ImageProcessor.Imaging;
-    using ImageProcessor.Imaging.EdgeDetection;
-    using ImageProcessor.Imaging.Filters;
-    using ImageProcessor.Plugins.Cair;
-    using ImageProcessor.Plugins.Cair.Imaging;
+    using ImageProcessor.Imaging.Filters.Photo;
 
     /// <summary>
     /// The program.
@@ -46,7 +44,7 @@ namespace ImageProcessorConsole
                 di.Create();
             }
 
-            IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".png2");
+            IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".jpg");
             //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif", ".webp", ".bmp", ".jpg", ".png", ".tif");
 
             foreach (FileInfo fileInfo in files)
@@ -78,7 +76,8 @@ namespace ImageProcessorConsole
                             //.ReplaceColor(Color.FromArgb(255, 1, 107, 165), Color.FromArgb(255, 1, 165, 13), 80)
                             //.Resize(layer)
                             //.DetectEdges(new KirschEdgeFilter())
-                            .EntropyCrop()
+                            //.EntropyCrop()
+                            .Filter(MatrixFilters.Polaroid)
                             //.Filter(MatrixFilters.Comic)
                             //.Filter(MatrixFilters.HiSatch)
                             //.Pixelate(8)

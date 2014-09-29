@@ -14,8 +14,8 @@ namespace ImageProcessor.Processors
 
     using ImageProcessor.Common.Exceptions;
     using ImageProcessor.Imaging;
-    using ImageProcessor.Imaging.Binarization;
-    using ImageProcessor.Imaging.EdgeDetection;
+    using ImageProcessor.Imaging.Filters.Binarization;
+    using ImageProcessor.Imaging.Filters.EdgeDetection;
 
     /// <summary>
     /// The auto crop.
@@ -62,7 +62,7 @@ namespace ImageProcessor.Processors
                 grey = new ConvolutionFilter(new SobelEdgeFilter(), true).ProcessFilter((Bitmap)image);
                 grey = new BinaryThreshold(threshold).ProcessFilter(grey);
 
-                Rectangle rectangle = this.FindBox(grey, 0);
+                Rectangle rectangle = this.FindBoundingBox(grey, 0);
 
                 newImage = new Bitmap(rectangle.Width, rectangle.Height, PixelFormat.Format32bppPArgb);
                 using (Graphics graphics = Graphics.FromImage(newImage))
@@ -100,7 +100,20 @@ namespace ImageProcessor.Processors
             return image;
         }
 
-        private Rectangle FindBox(Bitmap bitmap, byte componentToRemove)
+        /// <summary>
+        /// Finds the bounding rectangle based on the first instance of any color component other
+        /// than the given one.
+        /// </summary>
+        /// <param name="bitmap">
+        /// The bitmap.
+        /// </param>
+        /// <param name="componentToRemove">
+        /// The color component to remove.
+        /// </param>
+        /// <returns>
+        /// The <see cref="Rectangle"/>.
+        /// </returns>
+        private Rectangle FindBoundingBox(Bitmap bitmap, byte componentToRemove)
         {
             int width = bitmap.Width;
             int height = bitmap.Height;
@@ -115,8 +128,6 @@ namespace ImageProcessor.Processors
                 {
                     for (int x = 0; x < width; x++)
                     {
-                        Color c = fastBitmap.GetPixel(x, y);
-
                         if (fastBitmap.GetPixel(x, y).B != componentToRemove)
                         {
                             return y;

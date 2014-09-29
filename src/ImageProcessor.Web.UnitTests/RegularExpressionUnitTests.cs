@@ -14,7 +14,7 @@ namespace ImageProcessor.Web.UnitTests
     using System.Collections.Generic;
     using System.Drawing;
     using ImageProcessor.Imaging;
-    using ImageProcessor.Imaging.Filters;
+    using ImageProcessor.Imaging.Filters.Photo;
     using ImageProcessor.Imaging.Formats;
     using ImageProcessor.Plugins.WebP.Imaging.Formats;
 

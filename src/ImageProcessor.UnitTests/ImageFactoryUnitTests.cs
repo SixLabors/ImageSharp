@@ -3,11 +3,7 @@
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
-// <summary>
-//   Unit tests for the ImageFactory (loading of images)
-// </summary>
 // --------------------------------------------------------------------------------------------------------------------
-
 namespace ImageProcessor.UnitTests
 {
     using System;
@@ -17,6 +13,7 @@ namespace ImageProcessor.UnitTests
     using System.Linq;
 
     using ImageProcessor.Imaging;
+    using ImageProcessor.Imaging.Filters.Photo;
 
     using NUnit.Framework;
 
@@ -249,9 +246,9 @@ namespace ImageProcessor.UnitTests
                     Image original = (Image)imageFactory.Image.Clone();
                     imageFactory.Watermark(new TextLayer
                     {
-                        FontFamily = new FontFamily("Arial"),
-                        FontSize = 10,
-                        Position = new Point(10, 10),
+                        FontFamily = new FontFamily("Arial"), 
+                        FontSize = 10, 
+                        Position = new Point(10, 10), 
                         Text = "Lorem ipsum dolor"
                     });
                     Assert.AreNotEqual(original, imageFactory.Image);
@@ -344,43 +341,43 @@ namespace ImageProcessor.UnitTests
                     imageFactory.Load(file.FullName);
                     Image original = (Image)imageFactory.Image.Clone();
 
-                    imageFactory.Filter(ImageProcessor.Imaging.Filters.MatrixFilters.BlackWhite);
+                    imageFactory.Filter(MatrixFilters.BlackWhite);
                     Assert.AreNotEqual(original, imageFactory.Image);
                     imageFactory.Reset();
 
-                    imageFactory.Filter(ImageProcessor.Imaging.Filters.MatrixFilters.Comic);
+                    imageFactory.Filter(MatrixFilters.Comic);
                     Assert.AreNotEqual(original, imageFactory.Image);
                     imageFactory.Reset();
 
-                    imageFactory.Filter(ImageProcessor.Imaging.Filters.MatrixFilters.Gotham);
+                    imageFactory.Filter(MatrixFilters.Gotham);
                     Assert.AreNotEqual(original, imageFactory.Image);
                     imageFactory.Reset();
 
-                    imageFactory.Filter(ImageProcessor.Imaging.Filters.MatrixFilters.GreyScale);
+                    imageFactory.Filter(MatrixFilters.GreyScale);
                     Assert.AreNotEqual(original, imageFactory.Image);
                     imageFactory.Reset();
 
-                    imageFactory.Filter(ImageProcessor.Imaging.Filters.MatrixFilters.HiSatch);
+                    imageFactory.Filter(MatrixFilters.HiSatch);
                     Assert.AreNotEqual(original, imageFactory.Image);
                     imageFactory.Reset();
 
-                    imageFactory.Filter(ImageProcessor.Imaging.Filters.MatrixFilters.Invert);
+                    imageFactory.Filter(MatrixFilters.Invert);
                     Assert.AreNotEqual(original, imageFactory.Image);
                     imageFactory.Reset();
 
-                    imageFactory.Filter(ImageProcessor.Imaging.Filters.MatrixFilters.Lomograph);
+                    imageFactory.Filter(MatrixFilters.Lomograph);
                     Assert.AreNotEqual(original, imageFactory.Image);
                     imageFactory.Reset();
 
-                    imageFactory.Filter(ImageProcessor.Imaging.Filters.MatrixFilters.LoSatch);
+                    imageFactory.Filter(MatrixFilters.LoSatch);
                     Assert.AreNotEqual(original, imageFactory.Image);
                     imageFactory.Reset();
 
-                    imageFactory.Filter(ImageProcessor.Imaging.Filters.MatrixFilters.Polaroid);
+                    imageFactory.Filter(MatrixFilters.Polaroid);
                     Assert.AreNotEqual(original, imageFactory.Image);
                     imageFactory.Reset();
 
-                    imageFactory.Filter(ImageProcessor.Imaging.Filters.MatrixFilters.Sepia);
+                    imageFactory.Filter(MatrixFilters.Sepia);
                     Assert.AreNotEqual(original, imageFactory.Image);
                     imageFactory.Reset();
                 }
@@ -552,10 +549,18 @@ namespace ImageProcessor.UnitTests
         /// <summary>
         /// Gets the files matching the given extensions.
         /// </summary>
-        /// <param name="dir">The <see cref="System.IO.DirectoryInfo"/>.</param>
-        /// <param name="extensions">The extensions.</param>
-        /// <returns>A collection of <see cref="System.IO.FileInfo"/></returns>
-        /// <exception cref="System.ArgumentNullException">The extensions variable is null.</exception>
+        /// <param name="dir">
+        /// The <see cref="System.IO.DirectoryInfo"/>.
+        /// </param>
+        /// <param name="extensions">
+        /// The extensions.
+        /// </param>
+        /// <returns>
+        /// A collection of <see cref="System.IO.FileInfo"/>
+        /// </returns>
+        /// <exception cref="System.ArgumentNullException">
+        /// The extensions variable is null.
+        /// </exception>
         private static IEnumerable<FileInfo> GetFilesByExtensions(DirectoryInfo dir, params string[] extensions)
         {
             if (extensions == null)

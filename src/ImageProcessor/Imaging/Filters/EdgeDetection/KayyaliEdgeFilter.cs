@@ -1,21 +1,21 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="PrewittEdgeFilter.cs" company="James South">
+// <copyright file="KayyaliEdgeFilter.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   The Prewitt operator filter.
-//   <see href="http://en.wikipedia.org/wiki/Prewitt_operator" />
+//   The Kayyali operator filter.
+//   <see href="http://edgedetection.webs.com/" />
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Imaging.EdgeDetection
+namespace ImageProcessor.Imaging.Filters.EdgeDetection
 {
     /// <summary>
-    /// The Prewitt operator filter.
-    /// <see href="http://en.wikipedia.org/wiki/Prewitt_operator"/>
+    /// The Kayyali operator filter.
+    /// <see href="http://edgedetection.webs.com/"/>
     /// </summary>
-    public class PrewittEdgeFilter : IEdgeFilter
+    public class KayyaliEdgeFilter : IEdgeFilter
     {
         /// <summary>
         /// Gets the horizontal gradient operator.
@@ -24,11 +24,11 @@ namespace ImageProcessor.Imaging.EdgeDetection
         {
             get
             {
-                return new double[,]
+                return new double[,] 
                 {
-                    { -1, 0, 1 }, 
-                    { -1, 0, 1 }, 
-                    { -1, 0, 1 }
+                    { 6, 0, -6 }, 
+                    { 0, 0, 0 }, 
+                    { -6, 0, 6 }
                 };
             }
         }
@@ -40,11 +40,11 @@ namespace ImageProcessor.Imaging.EdgeDetection
         {
             get
             {
-                return new double[,]
+                return new double[,] 
                 {
-                    { 1, 1, 1 }, 
+                    { -6, 0, 6 }, 
                     { 0, 0, 0 }, 
-                    { -1, -1, -1 }
+                    { 6, 0, -6 }
                 };
             }
         }

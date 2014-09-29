@@ -8,7 +8,7 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Imaging.Filters
+namespace ImageProcessor.Imaging.Filters.Photo
 {
     #region Using
     using System;
@@ -37,16 +37,12 @@ namespace ImageProcessor.Imaging.Filters
         /// <summary>
         /// Processes the image.
         /// </summary>
-        /// <param name="factory">
-        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class containing
-        /// the image to process.
-        /// </param>
         /// <param name="image">The current image to process</param>
         /// <param name="newImage">The new Image to return</param>
         /// <returns>
-        /// The processed image from the current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// The processed image.
         /// </returns>
-        public override Image TransformImage(ImageFactory factory, Image image, Image newImage)
+        public override Image TransformImage(Image image, Image newImage)
         {
             // Bitmaps for comic pattern
             Bitmap highBitmap = null;

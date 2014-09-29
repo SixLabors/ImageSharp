@@ -16,7 +16,7 @@ namespace ImageProcessor.Processors
     using System.Drawing;
 
     using ImageProcessor.Common.Exceptions;
-    using ImageProcessor.Imaging;
+    using ImageProcessor.Imaging.MetaData;
 
     /// <summary>
     /// Performs auto-rotation to ensure that EXIF defined rotation is reflected in 

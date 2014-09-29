@@ -15,7 +15,7 @@ namespace ImageProcessor.Imaging.Filters.EdgeDetection
     /// The Sobel operator filter.
     /// <see href="http://en.wikipedia.org/wiki/Sobel_operator"/>
     /// </summary>
-    public class SobelEdgeFilter : IEdgeFilter
+    public class SobelEdgeFilter : I2DEdgeFilter
     {
         /// <summary>
         /// Gets the horizontal gradient operator.

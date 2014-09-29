@@ -15,7 +15,7 @@ namespace ImageProcessor.Imaging.Filters.EdgeDetection
     /// The Kirsch operator filter.
     /// <see href="http://en.wikipedia.org/wiki/Kirsch_operator"/>
     /// </summary>
-    public class KirschEdgeFilter : IEdgeFilter
+    public class KirschEdgeFilter : I2DEdgeFilter
     {
         /// <summary>
         /// Gets the horizontal gradient operator.

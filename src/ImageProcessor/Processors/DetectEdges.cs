@@ -66,23 +66,27 @@ namespace ImageProcessor.Processors
             IEdgeFilter filter = parameters.Item1;
             bool greyscale = parameters.Item2;
 
-            //try
-            //{
+            try
+            {
                 ConvolutionFilter convolutionFilter = new ConvolutionFilter(filter, greyscale);
-                newImage = convolutionFilter.ProcessFilter((Bitmap)image);
+
+                // Check and assign the correct method. Don't use reflection for speed.
+                newImage = filter is I2DEdgeFilter
+                    ? convolutionFilter.Process2DFilter((Bitmap)image)
+                    : convolutionFilter.ProcessFilter((Bitmap)image);
 
                 image.Dispose();
                 image = newImage;
-            //}
-            //catch (Exception ex)
-            //{
-            //    if (newImage != null)
-            //    {
-            //        newImage.Dispose();
-            //    }
+            }
+            catch (Exception ex)
+            {
+                if (newImage != null)
+                {
+                    newImage.Dispose();
+                }
 
-            //    throw new ImageProcessingException("Error processing image with " + this.GetType().Name, ex);
-            //}
+                throw new ImageProcessingException("Error processing image with " + this.GetType().Name, ex);
+            }
 
             return image;
         }

@@ -16,7 +16,7 @@ namespace ImageProcessor.Web.Processors
     using System.Reflection;
     using System.Text;
     using System.Text.RegularExpressions;
-    using ImageProcessor.Imaging.Filters;
+    using ImageProcessor.Imaging.Filters.Photo;
     using ImageProcessor.Processors;
 
     /// <summary>

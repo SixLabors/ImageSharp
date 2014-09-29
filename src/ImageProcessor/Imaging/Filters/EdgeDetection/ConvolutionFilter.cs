@@ -8,14 +8,14 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Imaging.EdgeDetection
+namespace ImageProcessor.Imaging.Filters.EdgeDetection
 {
     using System;
     using System.Drawing;
     using System.Drawing.Imaging;
 
     using ImageProcessor.Common.Extensions;
-    using ImageProcessor.Imaging.Filters;
+    using ImageProcessor.Imaging.Filters.Photo;
 
     /// <summary>
     /// The convolution filter for applying gradient operators to detect edges within an image.
@@ -65,7 +65,7 @@ namespace ImageProcessor.Imaging.EdgeDetection
                 Rectangle rectangle = new Rectangle(0, 0, width, height);
                 if (this.greyscale)
                 {
-                    // If it's greyscale apply a colormatix to the image.
+                    // If it's greyscale apply a colormatrix to the image.
                     using (ImageAttributes attributes = new ImageAttributes())
                     {
                         attributes.SetColorMatrix(ColorMatrixes.GreyScale);
@@ -170,12 +170,13 @@ namespace ImageProcessor.Imaging.EdgeDetection
                 input.Dispose();
             }
 
+            // Draw a black rectangle around the area to ensure that the first row/column in covered.
             using (Graphics graphics = Graphics.FromImage(destination))
             {
                 // Draw an edge around the image.
                 using (Pen blackPen = new Pen(Color.Black))
                 {
-                    blackPen.Width = 4;
+                    blackPen.Width = 1;
                     graphics.DrawRectangle(blackPen, new Rectangle(0, 0, destination.Width, destination.Height));
                 }
             }

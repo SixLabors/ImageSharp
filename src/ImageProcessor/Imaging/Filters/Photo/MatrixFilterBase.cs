@@ -8,7 +8,7 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Imaging.Filters
+namespace ImageProcessor.Imaging.Filters.Photo
 {
     using System.Drawing;
     using System.Drawing.Imaging;
@@ -26,15 +26,12 @@ namespace ImageProcessor.Imaging.Filters
         /// <summary>
         /// Processes the image.
         /// </summary>
-        /// <param name="factory">The current instance of the 
-        /// <see cref="T:ImageProcessor.ImageFactory" /> class containing
-        /// the image to process.</param>
         /// <param name="image">The current image to process</param>
         /// <param name="newImage">The new Image to return</param>
         /// <returns>
-        /// The processed image from the current instance of the <see cref="T:ImageProcessor.ImageFactory" /> class.
+        /// The processed image.
         /// </returns>
-        public abstract Image TransformImage(ImageFactory factory, Image image, Image newImage);
+        public abstract Image TransformImage(Image image, Image newImage);
 
         /// <summary>
         /// Determines whether the specified <see cref="IMatrixFilter" />, is equal to this instance.
@@ -64,7 +61,7 @@ namespace ImageProcessor.Imaging.Filters
         /// </returns>
         public override int GetHashCode()
         {
-            return this.GetType().Name.GetHashCode() + this.Matrix.GetHashCode();
+            return this.GetType().Name.GetHashCode() ^ this.Matrix.GetHashCode();
         }
     }
 }

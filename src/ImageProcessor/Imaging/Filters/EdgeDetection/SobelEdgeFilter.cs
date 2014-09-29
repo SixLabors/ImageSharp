@@ -1,21 +1,21 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="ScharrEdgeFilter.cs" company="James South">
+// <copyright file="SobelEdgeFilter.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   The Scharr operator filter.
-//   <see href="http://en.wikipedia.org/wiki/Sobel_operator#Alternative_operators" />
+//   The Sobel operator filter.
+//   <see href="http://en.wikipedia.org/wiki/Sobel_operator" />
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Imaging.EdgeDetection
+namespace ImageProcessor.Imaging.Filters.EdgeDetection
 {
     /// <summary>
-    /// The Scharr operator filter.
-    /// <see href="http://en.wikipedia.org/wiki/Sobel_operator#Alternative_operators"/>
+    /// The Sobel operator filter.
+    /// <see href="http://en.wikipedia.org/wiki/Sobel_operator"/>
     /// </summary>
-    public class ScharrEdgeFilter : IEdgeFilter
+    public class SobelEdgeFilter : IEdgeFilter
     {
         /// <summary>
         /// Gets the horizontal gradient operator.
@@ -26,9 +26,9 @@ namespace ImageProcessor.Imaging.EdgeDetection
             {
                 return new double[,]
                 {
-                    { -3, 0, 3 }, 
-                    { -10, 0, 10 }, 
-                    { -3, 0, 3 }
+                    { -1, 0, 1 }, 
+                    { -2, 0, 2 }, 
+                    { -1, 0, 1 }
                 };
             }
         }
@@ -42,9 +42,9 @@ namespace ImageProcessor.Imaging.EdgeDetection
             {
                 return new double[,]
                 {
-                    { 3, 10, 3 }, 
+                    { 1, 2, 1 }, 
                     { 0, 0, 0 }, 
-                    { -3, -10, -3 }
+                    { -1, -2, -1 }
                 };
             }
         }

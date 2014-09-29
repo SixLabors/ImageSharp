@@ -8,7 +8,7 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Imaging
+namespace ImageProcessor.Imaging.MetaData
 {
     /// <summary>
     /// The following enum gives descriptions of the property items supported by Windows GDI+.

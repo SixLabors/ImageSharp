@@ -69,25 +69,25 @@ namespace ImageProcessor.Processors
                 {
                     if (!rotate)
                     {
-                        for (int i = 0; i < width; i++)
+                        for (int y = 0; y < height; y++)
                         {
-                            for (int j = 0; j < height; j++)
+                            for (int x = 0; x < width; x++)
                             {
-                                HslaColor original = HslaColor.FromColor(fastBitmap.GetPixel(i, j));
+                                HslaColor original = HslaColor.FromColor(fastBitmap.GetPixel(x, y));
                                 HslaColor altered = HslaColor.FromHslaColor(degrees / 360f, original.S, original.L, original.A);
-                                fastBitmap.SetPixel(i, j, altered);
+                                fastBitmap.SetPixel(x, y, altered);
                             }
                         }
                     }
                     else
                     {
-                        for (int i = 0; i < width; i++)
+                        for (int y = 0; y < height; y++)
                         {
-                            for (int j = 0; j < height; j++)
+                            for (int x = 0; x < width; x++)
                             {
-                                HslaColor original = HslaColor.FromColor(fastBitmap.GetPixel(i, j));
+                                HslaColor original = HslaColor.FromColor(fastBitmap.GetPixel(x, y));
                                 HslaColor altered = HslaColor.FromHslaColor((original.H + (degrees / 360f)) % 1, original.S, original.L, original.A);
-                                fastBitmap.SetPixel(i, j, altered);
+                                fastBitmap.SetPixel(x, y, altered);
                             }
                         }
                     }

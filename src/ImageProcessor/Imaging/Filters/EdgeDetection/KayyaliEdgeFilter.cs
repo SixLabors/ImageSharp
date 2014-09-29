@@ -15,7 +15,7 @@ namespace ImageProcessor.Imaging.Filters.EdgeDetection
     /// The Kayyali operator filter.
     /// <see href="http://edgedetection.webs.com/"/>
     /// </summary>
-    public class KayyaliEdgeFilter : IEdgeFilter
+    public class KayyaliEdgeFilter : I2DEdgeFilter
     {
         /// <summary>
         /// Gets the horizontal gradient operator.

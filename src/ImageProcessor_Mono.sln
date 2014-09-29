@@ -16,7 +16,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor.Web_NET4", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor.Web_NET45", "ImageProcessor.Web\NET45\ImageProcessor.Web_NET45.csproj", "{D011A778-59C8-4BFA-A770-C350216BF161}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessorConsole", "ImageProcessorConsole\ImageProcessorConsole.csproj", "{7BF5274B-56A7-4B62-8105-E9BDF25BAFE7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor.Playground", "ImageProcessor.Playground\ImageProcessor.Playground.csproj", "{7BF5274B-56A7-4B62-8105-E9BDF25BAFE7}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor.UnitTests", "ImageProcessor.UnitTests\ImageProcessor.UnitTests.csproj", "{03CA9055-F997-428C-BF28-F50F991777C6}"
 EndProject

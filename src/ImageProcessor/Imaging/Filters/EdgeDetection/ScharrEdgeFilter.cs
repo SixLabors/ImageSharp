@@ -15,7 +15,7 @@ namespace ImageProcessor.Imaging.Filters.EdgeDetection
     /// The Scharr operator filter.
     /// <see href="http://en.wikipedia.org/wiki/Sobel_operator#Alternative_operators"/>
     /// </summary>
-    public class ScharrEdgeFilter : IEdgeFilter
+    public class ScharrEdgeFilter : I2DEdgeFilter
     {
         /// <summary>
         /// Gets the horizontal gradient operator.

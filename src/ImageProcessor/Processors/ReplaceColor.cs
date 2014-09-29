@@ -85,9 +85,9 @@ namespace ImageProcessor.Processors
 
                 using (FastBitmap fastBitmap = new FastBitmap(newImage))
                 {
-                    for (int x = 0; x < width; x++)
+                    for (int y = 0; y < height; y++)
                     {
-                        for (int y = 0; y < height; y++)
+                        for (int x = 0; x < width; x++)
                         {
                             // Get the pixel color.
                             Color currentColor = fastBitmap.GetPixel(x, y);
@@ -103,7 +103,7 @@ namespace ImageProcessor.Processors
                                 {
                                     if (currentB <= originalB + fuzziness && currentB >= originalB - fuzziness)
                                     {
-                                        // Ensure the values are withing an acceptable byte range
+                                        // Ensure the values are within an acceptable byte range
                                         // and set the new value.
                                         byte r = (originalR - currentR + replacementR).ToByte();
                                         byte g = (originalG - currentG + replacementG).ToByte();

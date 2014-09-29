@@ -61,10 +61,9 @@ namespace ImageProcessor.Imaging.Filters.Binarization
 
             using (FastBitmap sourceBitmap = new FastBitmap(source))
             {
-
-                for (int x = 0; x < width; x++)
+                for (int y = 0; y < height; y++)
                 {
-                    for (int y = 0; y < height; y++)
+                    for (int x = 0; x < width; x++)
                     {
                         Color color = sourceBitmap.GetPixel(x, y);
                         sourceBitmap.SetPixel(x, y, color.B >= this.threshold ? Color.White : Color.Black);

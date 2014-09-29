@@ -9,7 +9,7 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Imaging
+namespace ImageProcessor.Imaging.MetaData
 {
     /// <summary>
     /// Specifies the data type of the values stored in the value data member of that same PropertyItem object.

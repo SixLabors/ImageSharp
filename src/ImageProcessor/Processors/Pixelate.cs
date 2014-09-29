@@ -82,31 +82,31 @@ namespace ImageProcessor.Processors
 
                 using (FastBitmap fastBitmap = new FastBitmap(newImage))
                 {
-                    for (int i = x; i < x + width && i < maxWidth; i += size)
+                    for (int j = y; j < y + height && j < maxHeight; j += size)
                     {
-                        for (int j = y; j < y + height && j < maxHeight; j += size)
+                        for (int i = x; i < x + width && i < maxWidth; i += size)
                         {
                             int offsetX = offset;
                             int offsetY = offset;
 
                             // Make sure that the offset is within the boundary of the image.
-                            while (i + offsetX >= maxWidth)
-                            {
-                                offsetX--;
-                            }
-
                             while (j + offsetY >= maxHeight)
                             {
                                 offsetY--;
+                            }
+
+                            while (i + offsetX >= maxWidth)
+                            {
+                                offsetX--;
                             }
 
                             // Get the pixel color in the centre of the soon to be pixelated area.
                             Color pixel = fastBitmap.GetPixel(i + offsetX, j + offsetY);
 
                             // For each pixel in the pixelate size, set it to the centre color.
-                            for (int k = i; k < i + size && k < maxWidth; k++)
+                            for (int l = j; l < j + size && l < maxHeight; l++)
                             {
-                                for (int l = j; l < j + size && l < maxHeight; l++)
+                                for (int k = i; k < i + size && k < maxWidth; k++)
                                 {
                                     fastBitmap.SetPixel(k, l, pixel);
                                 }

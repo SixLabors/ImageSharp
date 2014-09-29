@@ -19,6 +19,7 @@ namespace ImageProcessor.Imaging.Formats
     using System.Reflection;
 
     using ImageProcessor.Configuration;
+    using ImageProcessor.Imaging.MetaData;
 
     /// <summary>
     /// Utility methods for working with supported image formats.

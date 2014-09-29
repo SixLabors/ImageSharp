@@ -10,7 +10,6 @@
 
 namespace ImageProcessor.Imaging.Filters.Photo
 {
-    #region Using
     using System;
     using System.Drawing;
     using System.Drawing.Drawing2D;
@@ -18,8 +17,7 @@ namespace ImageProcessor.Imaging.Filters.Photo
     using System.Runtime.InteropServices;
 
     using ImageProcessor.Common.Extensions;
-
-    #endregion
+    using ImageProcessor.Imaging.Filters.Artistic;
 
     /// <summary>
     /// Encapsulates methods with which to add a comic filter to an image.
@@ -62,8 +60,8 @@ namespace ImageProcessor.Imaging.Filters.Photo
                     highBitmap = new Bitmap(rectangle.Width, rectangle.Height, PixelFormat.Format32bppPArgb);
 
                     // Apply a oil painting filter to the image.
-                    highBitmap = OilPaintFilter((Bitmap)image, 3, 5);
-
+                    highBitmap = new OilPaintingFilter(3, 5).ApplyFilter((Bitmap)image);
+                    
                     // Draw the edges.
                     edgeBitmap = DrawEdges((Bitmap)image, 120);
 
@@ -109,7 +107,7 @@ namespace ImageProcessor.Imaging.Filters.Photo
 
                     using (Graphics graphics = Graphics.FromImage(newImage))
                     {
-                        // graphics.Clear(Color.Transparent);
+                        graphics.Clear(Color.Transparent);
 
                         // Overlay the image.
                         graphics.DrawImage(highBitmap, 0, 0);
@@ -164,135 +162,6 @@ namespace ImageProcessor.Imaging.Filters.Photo
             }
 
             return image;
-        }
-
-        /// <summary>
-        /// Applies an oil paint filter.
-        /// TODO: Move this to another class and add to the factory
-        /// </summary>
-        /// <param name="sourceBitmap">
-        /// The source bitmap.
-        /// </param>
-        /// <param name="levels">
-        /// The levels.
-        /// </param>
-        /// <param name="filterSize">
-        /// The filter size.
-        /// </param>
-        /// <returns>
-        /// The <see cref="Bitmap"/>.
-        /// </returns>
-        private static Bitmap OilPaintFilter(Bitmap sourceBitmap, int levels, int filterSize)
-        {
-            int width = sourceBitmap.Width;
-            int height = sourceBitmap.Height;
-
-            BitmapData sourceData = sourceBitmap.LockBits(
-                new Rectangle(0, 0, width, height),
-                ImageLockMode.ReadOnly,
-                PixelFormat.Format32bppArgb);
-
-            int strideWidth = sourceData.Stride;
-            int scanHeight = sourceData.Height;
-
-            int bufferSize = strideWidth * scanHeight;
-            byte[] pixelBuffer = new byte[bufferSize];
-            byte[] resultBuffer = new byte[bufferSize];
-
-            Marshal.Copy(sourceData.Scan0, pixelBuffer, 0, pixelBuffer.Length);
-            sourceBitmap.UnlockBits(sourceData);
-
-            levels = levels - 1;
-
-            int radius = filterSize >> 1;
-
-            for (int y = 0; y < height; y++)
-            {
-                for (int x = 0; x < width; x++)
-                {
-                    int maxIntensity = 0;
-                    int maxIndex = 0;
-                    int[] intensityBin = new int[levels + 1];
-                    int[] blueBin = new int[levels + 1];
-                    int[] greenBin = new int[levels + 1];
-                    int[] redBin = new int[levels + 1];
-
-                    int byteOffset = (y * strideWidth) + (x * 4);
-
-                    for (int i = 0; i <= radius; i++)
-                    {
-                        int ir = i - radius;
-                        int offsetY = y + ir;
-
-                        // Skip the current row
-                        if (offsetY < 0)
-                        {
-                            continue;
-                        }
-
-                        // Outwith the current bounds so break.
-                        if (offsetY >= height)
-                        {
-                            break;
-                        }
-
-                        for (int j = 0; j <= radius; j++)
-                        {
-                            int jr = j - radius;
-                            int offsetX = x + jr;
-
-                            // Skip the column
-                            if (offsetX < 0)
-                            {
-                                continue;
-                            }
-
-                            if (offsetX < width)
-                            {
-                                int calcOffset = (offsetX * 4) + (offsetY * sourceData.Stride);
-
-                                byte sourceBlue = pixelBuffer[calcOffset];
-                                byte sourceGreen = pixelBuffer[calcOffset + 1];
-                                byte sourceRed = pixelBuffer[calcOffset + 2];
-
-                                int currentIntensity = (int)Math.Round(((sourceBlue + sourceGreen + sourceRed) / 3.0 * levels) / 255.0);
-
-                                intensityBin[currentIntensity] += 1;
-                                blueBin[currentIntensity] += sourceBlue;
-                                greenBin[currentIntensity] += sourceGreen;
-                                redBin[currentIntensity] += sourceRed;
-
-                                if (intensityBin[currentIntensity] > maxIntensity)
-                                {
-                                    maxIntensity = intensityBin[currentIntensity];
-                                    maxIndex = currentIntensity;
-                                }
-                            }
-                        }
-                    }
-
-                    double blue = Math.Abs(blueBin[maxIndex] / maxIntensity);
-                    double green = Math.Abs(greenBin[maxIndex] / maxIntensity);
-                    double red = Math.Abs(redBin[maxIndex] / maxIntensity);
-
-                    resultBuffer[byteOffset] = blue.ToByte();
-                    resultBuffer[byteOffset + 1] = green.ToByte();
-                    resultBuffer[byteOffset + 2] = red.ToByte();
-                    resultBuffer[byteOffset + 3] = pixelBuffer[byteOffset + 3];
-                }
-            }
-
-            Bitmap resultBitmap = new Bitmap(width, height);
-
-            BitmapData resultData = resultBitmap.LockBits(
-                                                new Rectangle(0, 0, width, height),
-                                                ImageLockMode.WriteOnly,
-                                                PixelFormat.Format32bppArgb);
-
-            Marshal.Copy(resultBuffer, 0, resultData.Scan0, resultBuffer.Length);
-            resultBitmap.UnlockBits(resultData);
-
-            return resultBitmap;
         }
 
         /// <summary>
@@ -514,16 +383,16 @@ namespace ImageProcessor.Imaging.Filters.Photo
                     int width = source.Width;
                     int height = source.Height;
 
-                    for (int i = 0; i < width; i++)
+                    for (int y = 0; y < height; y++)
                     {
-                        for (int j = 0; j < height; j++)
+                        for (int x = 0; x < width; x++)
                         {
-                            Color sourceColor = sourceBitmap.GetPixel(i, j);
-                            Color destinationColor = destinationBitmap.GetPixel(i, j);
+                            Color sourceColor = sourceBitmap.GetPixel(x, y);
+                            Color destinationColor = destinationBitmap.GetPixel(x, y);
 
                             if (destinationColor.A != 0)
                             {
-                                destinationBitmap.SetPixel(i, j, Color.FromArgb(sourceColor.B, destinationColor.R, destinationColor.G, destinationColor.B));
+                                destinationBitmap.SetPixel(x, y, Color.FromArgb(sourceColor.B, destinationColor.R, destinationColor.G, destinationColor.B));
                             }
                         }
                     }

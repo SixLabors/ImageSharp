@@ -18,7 +18,7 @@ namespace ImageProcessor.Processors
     using ImageProcessor.Imaging.Filters.EdgeDetection;
 
     /// <summary>
-    /// The auto crop.
+    /// Performs a crop on an image to the area of greatest entropy.
     /// </summary>
     public class EntropyCrop : IGraphicsProcessor
     {
@@ -194,7 +194,7 @@ namespace ImageProcessor.Processors
                 stopX = getMaxX(fastBitmap);
             }
 
-            return new Rectangle(startX, startY, stopX - startX + 1, stopY - startY + 1);
+            return new Rectangle(startX + 1, startY + 1, stopX - (startX + 1), stopY - (startY + 1));
         }
     }
 }

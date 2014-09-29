@@ -15,7 +15,7 @@ namespace ImageProcessor.Imaging.Filters.EdgeDetection
     /// The Prewitt operator filter.
     /// <see href="http://en.wikipedia.org/wiki/Prewitt_operator"/>
     /// </summary>
-    public class PrewittEdgeFilter : IEdgeFilter
+    public class PrewittEdgeFilter : I2DEdgeFilter
     {
         /// <summary>
         /// Gets the horizontal gradient operator.

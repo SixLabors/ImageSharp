@@ -19,6 +19,7 @@ namespace ImageProcessor.PlayGround
 
     using ImageProcessor;
     using ImageProcessor.Imaging;
+    using ImageProcessor.Imaging.Filters.EdgeDetection;
     using ImageProcessor.Imaging.Filters.Photo;
 
     /// <summary>
@@ -76,8 +77,9 @@ namespace ImageProcessor.PlayGround
                             //.ReplaceColor(Color.FromArgb(255, 1, 107, 165), Color.FromArgb(255, 1, 165, 13), 80)
                             //.Resize(layer)
                             //.DetectEdges(new KirschEdgeFilter())
+                            //.DetectEdges(new LaplacianOfGaussianFilter())
                             //.EntropyCrop()
-                            .Filter(MatrixFilters.Polaroid)
+                            .Filter(MatrixFilters.Comic)
                             //.Filter(MatrixFilters.Comic)
                             //.Filter(MatrixFilters.HiSatch)
                             //.Pixelate(8)

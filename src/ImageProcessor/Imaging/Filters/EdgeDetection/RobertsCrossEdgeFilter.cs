@@ -15,7 +15,7 @@ namespace ImageProcessor.Imaging.Filters.EdgeDetection
     /// The Roberts Cross operator filter.
     /// <see href="http://en.wikipedia.org/wiki/Roberts_cross"/>
     /// </summary>
-    public class RobertsCrossEdgeFilter : IEdgeFilter
+    public class RobertsCrossEdgeFilter : I2DEdgeFilter
     {
         /// <summary>
         /// Gets the horizontal gradient operator.

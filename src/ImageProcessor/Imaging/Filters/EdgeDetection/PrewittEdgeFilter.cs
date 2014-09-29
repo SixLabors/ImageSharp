@@ -1,21 +1,21 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="RobertsCrossEdgeFilter.cs" company="James South">
+// <copyright file="PrewittEdgeFilter.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   The Roberts Cross operator filter.
-//   <see href="http://en.wikipedia.org/wiki/Roberts_cross" />
+//   The Prewitt operator filter.
+//   <see href="http://en.wikipedia.org/wiki/Prewitt_operator" />
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Imaging.EdgeDetection
+namespace ImageProcessor.Imaging.Filters.EdgeDetection
 {
     /// <summary>
-    /// The Roberts Cross operator filter.
-    /// <see href="http://en.wikipedia.org/wiki/Roberts_cross"/>
+    /// The Prewitt operator filter.
+    /// <see href="http://en.wikipedia.org/wiki/Prewitt_operator"/>
     /// </summary>
-    public class RobertsCrossEdgeFilter : IEdgeFilter
+    public class PrewittEdgeFilter : IEdgeFilter
     {
         /// <summary>
         /// Gets the horizontal gradient operator.
@@ -26,8 +26,9 @@ namespace ImageProcessor.Imaging.EdgeDetection
             {
                 return new double[,]
                 {
-                    { 1, 0 }, 
-                    { 0, -1 }
+                    { -1, 0, 1 }, 
+                    { -1, 0, 1 }, 
+                    { -1, 0, 1 }
                 };
             }
         }
@@ -41,8 +42,9 @@ namespace ImageProcessor.Imaging.EdgeDetection
             {
                 return new double[,]
                 {
-                    { 0, 1 }, 
-                    { -1, 0 }
+                    { 1, 1, 1 }, 
+                    { 0, 0, 0 }, 
+                    { -1, -1, -1 }
                 };
             }
         }

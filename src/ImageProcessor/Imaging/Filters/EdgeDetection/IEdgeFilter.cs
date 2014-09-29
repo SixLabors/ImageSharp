@@ -8,7 +8,7 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Imaging.EdgeDetection
+namespace ImageProcessor.Imaging.Filters.EdgeDetection
 {
     /// <summary>
     /// Describes properties for creating edge detection filters.

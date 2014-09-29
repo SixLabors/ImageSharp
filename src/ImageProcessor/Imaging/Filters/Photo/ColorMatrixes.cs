@@ -8,7 +8,7 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Imaging.Filters
+namespace ImageProcessor.Imaging.Filters.Photo
 {
     using System.Drawing.Imaging;
 

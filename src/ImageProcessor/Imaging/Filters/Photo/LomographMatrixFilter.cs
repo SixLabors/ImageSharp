@@ -1,46 +1,42 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="LoSatchMatrixFilter.cs" company="James South">
+// <copyright file="LomographMatrixFilter.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   Encapsulates methods with which to add a low saturated filter to an image.
+//   Encapsulates methods with which to add a lomograph filter to an image.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Imaging.Filters
+namespace ImageProcessor.Imaging.Filters.Photo
 {
-    #region Using
     using System.Drawing;
     using System.Drawing.Imaging;
-    #endregion
+
+    using ImageProcessor.Imaging.Helpers;
 
     /// <summary>
-    /// Encapsulates methods with which to add a low saturated filter to an image.
+    /// Encapsulates methods with which to add a lomograph filter to an image.
     /// </summary>
-    internal class LoSatchMatrixFilter : MatrixFilterBase
+    internal class LomographMatrixFilter : MatrixFilterBase
     {
         /// <summary>
         /// Gets the <see cref="T:System.Drawing.Imaging.ColorMatrix"/> for this filter instance.
         /// </summary>
         public override ColorMatrix Matrix
         {
-            get { return ColorMatrixes.LoSatch; }
+            get { return ColorMatrixes.Lomograph; }
         }
 
         /// <summary>
         /// Processes the image.
         /// </summary>
-        /// <param name="factory">
-        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class containing
-        /// the image to process.
-        /// </param>
         /// <param name="image">The current image to process</param>
         /// <param name="newImage">The new Image to return</param>
         /// <returns>
-        /// The processed image from the current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// The processed image.
         /// </returns>
-        public override Image TransformImage(ImageFactory factory, Image image, Image newImage)
+        public override Image TransformImage(Image image, Image newImage)
         {
             using (Graphics graphics = Graphics.FromImage(newImage))
             {
@@ -49,10 +45,12 @@ namespace ImageProcessor.Imaging.Filters
                     attributes.SetColorMatrix(this.Matrix);
 
                     Rectangle rectangle = new Rectangle(0, 0, image.Width, image.Height);
-
                     graphics.DrawImage(image, rectangle, 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, attributes);
                 }
             }
+
+            // Add a vignette to finish the effect.
+            newImage = Effects.Vignette((Bitmap)newImage, Color.Black);
 
             // Reassign the image.
             image.Dispose();

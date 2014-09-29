@@ -1,21 +1,21 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="KirschEdgeFilter.cs" company="James South">
+// <copyright file="ScharrEdgeFilter.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   The Kirsch operator filter.
-//   <see href="http://en.wikipedia.org/wiki/Kirsch_operator" />
+//   The Scharr operator filter.
+//   <see href="http://en.wikipedia.org/wiki/Sobel_operator#Alternative_operators" />
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Imaging.EdgeDetection
+namespace ImageProcessor.Imaging.Filters.EdgeDetection
 {
     /// <summary>
-    /// The Kirsch operator filter.
-    /// <see href="http://en.wikipedia.org/wiki/Kirsch_operator"/>
+    /// The Scharr operator filter.
+    /// <see href="http://en.wikipedia.org/wiki/Sobel_operator#Alternative_operators"/>
     /// </summary>
-    public class KirschEdgeFilter : IEdgeFilter
+    public class ScharrEdgeFilter : IEdgeFilter
     {
         /// <summary>
         /// Gets the horizontal gradient operator.
@@ -24,11 +24,11 @@ namespace ImageProcessor.Imaging.EdgeDetection
         {
             get
             {
-                return new double[,] 
+                return new double[,]
                 {
-                    { 5, 5, 5 }, 
-                    { -3, 0, -3 }, 
-                    { -3, -3, -3 }
+                    { -3, 0, 3 }, 
+                    { -10, 0, 10 }, 
+                    { -3, 0, 3 }
                 };
             }
         }
@@ -40,11 +40,11 @@ namespace ImageProcessor.Imaging.EdgeDetection
         {
             get
             {
-                return new double[,] 
-                { 
-                    { 5, -3, -3 }, 
-                    { 5,  0, -3 }, 
-                    { 5, -3, -3 } 
+                return new double[,]
+                {
+                    { 3, 10, 3 }, 
+                    { 0, 0, 0 }, 
+                    { -3, -10, -3 }
                 };
             }
         }

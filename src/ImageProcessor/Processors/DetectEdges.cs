@@ -15,7 +15,7 @@ namespace ImageProcessor.Processors
     using System.Drawing;
 
     using ImageProcessor.Common.Exceptions;
-    using ImageProcessor.Imaging.EdgeDetection;
+    using ImageProcessor.Imaging.Filters.EdgeDetection;
 
     /// <summary>
     /// Produces an image with the detected edges highlighted.

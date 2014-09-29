@@ -16,7 +16,7 @@ namespace ImageProcessor.Processors
     using System.Drawing.Imaging;
 
     using ImageProcessor.Common.Exceptions;
-    using ImageProcessor.Imaging.Filters;
+    using ImageProcessor.Imaging.Filters.Photo;
 
     /// <summary>
     /// Encapsulates methods with which to add filters to an image.
@@ -71,7 +71,7 @@ namespace ImageProcessor.Processors
 
                 if (matrix != null)
                 {
-                    return matrix.TransformImage(factory, image, newImage);
+                    return matrix.TransformImage(image, newImage);
                 }
             }
             catch (Exception ex)

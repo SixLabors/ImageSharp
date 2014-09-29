@@ -288,11 +288,20 @@ namespace ImageProcessor
             return this;
         }
 
+        /// <summary>
+        /// Crops an image to the area of greatest entropy.
+        /// </summary>
+        /// <param name="threshold">
+        /// The threshold in bytes to control the entropy.
+        /// </param>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
         public ImageFactory EntropyCrop(byte threshold = 128)
         {
             if (this.ShouldProcess)
             {
-                EntropyCrop autoCrop = new EntropyCrop() { DynamicParameter = threshold };
+                EntropyCrop autoCrop = new EntropyCrop { DynamicParameter = threshold };
                 this.CurrentImageFormat.ApplyProcessor(autoCrop.ProcessImage, this);
             }
 

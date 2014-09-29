@@ -22,7 +22,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor.Web", "Image
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor.Plugins.WebP", "Plugins\ImageProcessor\ImageProcessor.Plugins.WebP\ImageProcessor.Plugins.WebP.csproj", "{2CF69699-959A-44DC-A281-4E2596C25043}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor.Playground", "ImageProcessorConsole\ImageProcessor.Playground.csproj", "{7BF5274B-56A7-4B62-8105-E9BDF25BAFE7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor.Playground", "ImageProcessor.Playground\ImageProcessor.Playground.csproj", "{7BF5274B-56A7-4B62-8105-E9BDF25BAFE7}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor.Web.UnitTests", "ImageProcessor.Web.UnitTests\ImageProcessor.Web.UnitTests.csproj", "{961340C8-8C93-401D-A0A2-FF9EC61E5260}"
 EndProject

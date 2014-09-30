@@ -13,6 +13,7 @@ namespace ImageProcessor.UnitTests
     using System.Linq;
 
     using ImageProcessor.Imaging;
+    using ImageProcessor.Imaging.Filters.EdgeDetection;
     using ImageProcessor.Imaging.Filters.Photo;
 
     using NUnit.Framework;
@@ -246,9 +247,9 @@ namespace ImageProcessor.UnitTests
                     Image original = (Image)imageFactory.Image.Clone();
                     imageFactory.Watermark(new TextLayer
                     {
-                        FontFamily = new FontFamily("Arial"), 
-                        FontSize = 10, 
-                        Position = new Point(10, 10), 
+                        FontFamily = new FontFamily("Arial"),
+                        FontSize = 10,
+                        Position = new Point(10, 10),
                         Text = "Lorem ipsum dolor"
                     });
                     Assert.AreNotEqual(original, imageFactory.Image);
@@ -542,6 +543,137 @@ namespace ImageProcessor.UnitTests
                     imageFactory.Rotate(90);
                     Assert.AreEqual(original.Height, imageFactory.Image.Width);
                     Assert.AreEqual(original.Width, imageFactory.Image.Height);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Tests that the images hue has been altered.
+        /// </summary>
+        [Test]
+        public void TestHue()
+        {
+            foreach (FileInfo file in this.ListInputFiles())
+            {
+                using (ImageFactory imageFactory = new ImageFactory())
+                {
+                    imageFactory.Load(file.FullName);
+                    Image original = (Image)imageFactory.Image.Clone();
+                    imageFactory.Hue(90);
+                    Assert.AreNotEqual(original, imageFactory.Image);
+
+                    imageFactory.Reset();
+
+                    imageFactory.Hue(116, true);
+                    Assert.AreNotEqual(original, imageFactory.Image);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Tests that the image has been pixelated.
+        /// </summary>
+        [Test]
+        public void TestPixelate()
+        {
+            foreach (FileInfo file in this.ListInputFiles())
+            {
+                using (ImageFactory imageFactory = new ImageFactory())
+                {
+                    imageFactory.Load(file.FullName);
+                    Image original = (Image)imageFactory.Image.Clone();
+                    imageFactory.Pixelate(8);
+                    Assert.AreNotEqual(original, imageFactory.Image);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Tests that the images quality has been set.
+        /// </summary>
+        [Test]
+        public void TestQuality()
+        {
+            foreach (FileInfo file in this.ListInputFiles())
+            {
+                using (ImageFactory imageFactory = new ImageFactory())
+                {
+                    imageFactory.Load(file.FullName);
+                    int original = imageFactory.CurrentImageFormat.Quality;
+                    imageFactory.Quality(69);
+                    int updated = imageFactory.CurrentImageFormat.Quality;
+
+                    Assert.AreNotEqual(original, updated);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Tests that the image has had a color replaced.
+        /// </summary>
+        [Test]
+        public void TestReplaceColor()
+        {
+            foreach (FileInfo file in this.ListInputFiles())
+            {
+                using (ImageFactory imageFactory = new ImageFactory())
+                {
+                    imageFactory.Load(file.FullName);
+                    Image original = (Image)imageFactory.Image.Clone();
+                    imageFactory.ReplaceColor(Color.White, Color.Black, 90);
+                    Assert.AreNotEqual(original, imageFactory.Image);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Tests that the various edge detection algorithms are applied.
+        /// </summary>
+        [Test]
+        public void TestEdgeDetection()
+        {
+            foreach (FileInfo file in this.ListInputFiles())
+            {
+                using (ImageFactory imageFactory = new ImageFactory())
+                {
+                    imageFactory.Load(file.FullName);
+                    Image original = (Image)imageFactory.Image.Clone();
+
+                    imageFactory.DetectEdges(new KayyaliEdgeFilter());
+                    Assert.AreNotEqual(original, imageFactory.Image);
+                    imageFactory.Reset();
+
+                    imageFactory.DetectEdges(new KirschEdgeFilter());
+                    Assert.AreNotEqual(original, imageFactory.Image);
+                    imageFactory.Reset();
+
+                    imageFactory.DetectEdges(new Laplacian3X3EdgeFilter());
+                    Assert.AreNotEqual(original, imageFactory.Image);
+                    imageFactory.Reset();
+
+                    imageFactory.DetectEdges(new Laplacian5X5EdgeFilter());
+                    Assert.AreNotEqual(original, imageFactory.Image);
+                    imageFactory.Reset();
+
+                    imageFactory.DetectEdges(new LaplacianOfGaussianEdgeFilter());
+                    Assert.AreNotEqual(original, imageFactory.Image);
+                    imageFactory.Reset();
+
+                    imageFactory.DetectEdges(new PrewittEdgeFilter());
+                    Assert.AreNotEqual(original, imageFactory.Image);
+                    imageFactory.Reset();
+
+                    imageFactory.DetectEdges(new RobertsCrossEdgeFilter());
+                    Assert.AreNotEqual(original, imageFactory.Image);
+                    imageFactory.Reset();
+
+                    imageFactory.DetectEdges(new ScharrEdgeFilter());
+                    Assert.AreNotEqual(original, imageFactory.Image);
+                    imageFactory.Reset();
+
+                    imageFactory.DetectEdges(new SobelEdgeFilter());
+                    Assert.AreNotEqual(original, imageFactory.Image);
+                    imageFactory.Reset();
                 }
             }
         }

@@ -86,7 +86,8 @@ namespace ImageProcessor.Web.Processors
 
             foreach (Match match in this.RegexPattern.Matches(queryString))
             {
-                if (match.Success)
+                // Match but ignore entropy
+                if (match.Success && !queryString.ToUpperInvariant().Contains("ENTROPYCROP="))
                 {
                     if (index == 0)
                     {

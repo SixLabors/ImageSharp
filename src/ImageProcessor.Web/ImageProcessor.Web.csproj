@@ -47,6 +47,7 @@
   <ItemGroup>
     <Compile Include="Caching\CachedImage.cs" />
     <Compile Include="Processors\DetectEdges.cs" />
+    <Compile Include="Processors\EntropyCrop.cs" />
     <Compile Include="Services\IImageService.cs" />
     <Compile Include="Caching\MemCache.cs" />
     <Compile Include="Caching\DiskCache.cs" />

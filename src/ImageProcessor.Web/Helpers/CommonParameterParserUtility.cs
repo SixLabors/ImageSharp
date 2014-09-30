@@ -35,7 +35,7 @@ namespace ImageProcessor.Web.Helpers
         /// The regular expression to search strings for colors.
         /// </summary>
         private static readonly Regex ColorRegex = BuildColorRegex();
-
+ 
         /// <summary>
         /// The regular expression to search strings for angles.
         /// </summary>

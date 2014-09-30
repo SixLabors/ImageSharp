@@ -43,7 +43,7 @@ namespace ImageProcessor.Web.Helpers
         /// <returns>True the value contains a valid image extension, otherwise false.</returns>
         public static bool IsValidImageExtension(string fileName)
         {
-            return EndFormatRegex.IsMatch(fileName) || string.IsNullOrWhiteSpace(Path.GetExtension(fileName));
+            return EndFormatRegex.IsMatch(fileName);
         }
 
         /// <summary>

@@ -20,12 +20,12 @@ namespace ImageProcessor.Web.Services
     public interface IImageService
     {
         /// <summary>
-        /// Gets the key for the given implementation.
+        /// Gets or sets the prefix for the given implementation.
         /// <remarks>
         /// This value is used as a prefix for any image requests that should use this service.
         /// </remarks>
         /// </summary>
-        string Key { get; }
+        string Prefix { get; set; }
 
         /// <summary>
         /// Gets a value indicating whether the image service requests files from

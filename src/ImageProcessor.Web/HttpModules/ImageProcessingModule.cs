@@ -270,182 +270,180 @@ namespace ImageProcessor.Web.HttpModules
             HttpRequest request = context.Request;
             IImageService currentService = this.GetImageServiceForRequest(request);
 
-            if (currentService == null)
+            if (currentService != null)
             {
-                throw new HttpException(500, "No ImageService found for current request.");
-            }
+                bool isFileLocal = currentService.IsFileLocalService;
+                string requestPath = string.Empty;
+                string queryString = string.Empty;
+                string urlParameters = string.Empty;
 
-            bool isFileLocal = currentService.IsFileLocalService;
-            string requestPath = string.Empty;
-            string queryString = string.Empty;
-            string urlParameters = string.Empty;
-
-            if (!isFileLocal)
-            {
-                // We need to split the querystring to get the actual values we want.
-                string urlDecode = HttpUtility.UrlDecode(request.QueryString.ToString());
-
-                if (!string.IsNullOrWhiteSpace(urlDecode))
+                if (!isFileLocal)
                 {
-                    // UrlDecode seems to mess up in some circumstance.
-                    if (urlDecode.IndexOf("://", StringComparison.OrdinalIgnoreCase) == -1)
+                    // We need to split the querystring to get the actual values we want.
+                    string urlDecode = HttpUtility.UrlDecode(request.QueryString.ToString());
+
+                    if (!string.IsNullOrWhiteSpace(urlDecode))
                     {
-                        urlDecode = urlDecode.Replace(":/", "://");
-                    }
-
-                    string[] paths = urlDecode.Split('?');
-
-                    requestPath = paths[0];
-
-                    // Handle extension-less urls.
-                    if (paths.Length > 2)
-                    {
-                        queryString = paths[2];
-                        urlParameters = paths[1];
-                    }
-                    else if (paths.Length > 1)
-                    {
-                        queryString = paths[1];
-                    }
-                }
-            }
-            else
-            {
-                requestPath = HostingEnvironment.MapPath(request.Path);
-                queryString = HttpUtility.UrlDecode(request.QueryString.ToString());
-            }
-
-            // Only process requests that pass our sanitizing filter.
-            if (ImageHelpers.IsValidImageExtension(requestPath) && !string.IsNullOrWhiteSpace(queryString))
-            {
-                // Replace any presets in the querystring with the actual value.
-                queryString = this.ReplacePresetsInQueryString(queryString);
-
-                string parts = !string.IsNullOrWhiteSpace(urlParameters) ? "?" + urlParameters : string.Empty;
-                string fullPath = string.Format("{0}{1}?{2}", requestPath, parts, queryString);
-
-                // Create a new cache to help process and cache the request.
-                DiskCache cache = new DiskCache(requestPath, fullPath);
-                string cachedPath = cache.CachedPath;
-
-                // Since we are now rewriting the path we need to check again that the current user has access
-                // to the rewritten path.
-                // Get the user for the current request
-                // If the user is anonymous or authentication doesn't work for this suffix avoid a NullReferenceException
-                // in the UrlAuthorizationModule by creating a generic identity.
-                string virtualCachedPath = cache.VirtualCachedPath;
-
-                IPrincipal user = context.User ?? new GenericPrincipal(new GenericIdentity(string.Empty, string.Empty), new string[0]);
-
-                // Do we have permission to call UrlAuthorizationModule.CheckUrlAccessForPrincipal?
-                PermissionSet permission = new PermissionSet(PermissionState.None);
-                permission.AddPermission(new AspNetHostingPermission(AspNetHostingPermissionLevel.Unrestricted));
-                bool hasPermission = permission.IsSubsetOf(AppDomain.CurrentDomain.PermissionSet);
-
-                bool isAllowed = true;
-
-                // Run the rewritten path past the authorization system again.
-                // We can then use the result as the default "AllowAccess" value
-                if (hasPermission && !context.SkipAuthorization)
-                {
-                    isAllowed = UrlAuthorizationModule.CheckUrlAccessForPrincipal(virtualCachedPath, user, "GET");
-                }
-
-                if (isAllowed)
-                {
-                    // Is the file new or updated?
-                    bool isNewOrUpdated = cache.IsNewOrUpdatedFile(cachedPath);
-
-                    // Only process if the file has been updated.
-                    if (isNewOrUpdated)
-                    {
-                        // Process the image.
-                        using (ImageFactory imageFactory = new ImageFactory(preserveExifMetaData != null && preserveExifMetaData.Value))
+                        // UrlDecode seems to mess up in some circumstance.
+                        if (urlDecode.IndexOf("://", StringComparison.OrdinalIgnoreCase) == -1)
                         {
-                            using (await Locker.LockAsync(cachedPath))
-                            {
-                                byte[] imageBuffer;
-
-                                if (!isFileLocal)
-                                {
-                                    Uri uri = new Uri(requestPath + "?" + urlParameters);
-                                    imageBuffer = await currentService.GetImage(uri);
-                                }
-                                else
-                                {
-                                    imageBuffer = await currentService.GetImage(requestPath);
-                                }
-
-                                using (MemoryStream memoryStream = new MemoryStream(imageBuffer))
-                                {
-                                    // Reset the position of the stream to ensure we're reading the correct part.
-                                    memoryStream.Position = 0;
-
-                                    // Process the Image
-                                    imageFactory.Load(memoryStream)
-                                                .AutoProcess(queryString)
-                                                .Save(cachedPath);
-
-                                    // Add to the cache.
-                                    cache.AddImageToCache(cachedPath);
-
-                                    // Store the cached path, response type, and cache dependency in the context for later retrieval.
-                                    context.Items[CachedPathKey] = cachedPath;
-                                    context.Items[CachedResponseTypeKey] = imageFactory.CurrentImageFormat.MimeType;
-                                    context.Items[CachedResponseFileDependency] = new List<string> { cachedPath };
-                                }
-                            }
-                        }
-                    }
-
-                    // Image is from the cache so the mime-type will need to be set.
-                    if (context.Items[CachedResponseTypeKey] == null)
-                    {
-                        string mimetype = ImageHelpers.GetMimeType(cachedPath);
-
-                        if (!string.IsNullOrEmpty(mimetype))
-                        {
-                            context.Items[CachedResponseTypeKey] = mimetype;
-                        }
-                    }
-
-                    if (context.Items[CachedResponseFileDependency] == null)
-                    {
-                        context.Items[CachedResponseFileDependency] = new List<string> { cachedPath };
-                    }
-
-                    string incomingEtag = context.Request.Headers["If" + "-None-Match"];
-
-                    if (incomingEtag != null && !isNewOrUpdated)
-                    {
-                        // Set the Content-Length header so the client doesn't wait for
-                        // content but keeps the connection open for other requests.
-                        context.Response.AddHeader("Content-Length", "0");
-                        context.Response.StatusCode = (int)HttpStatusCode.NotModified;
-                        context.Response.SuppressContent = true;
-
-                        if (!isFileLocal)
-                        {
-                            // Set the headers and quit.
-                            this.SetHeaders(context, (string)context.Items[CachedResponseTypeKey], new List<string> { requestPath, cachedPath });
-                            return;
+                            urlDecode = urlDecode.Replace(":/", "://");
                         }
 
-                        this.SetHeaders(context, (string)context.Items[CachedResponseTypeKey], new List<string> { cachedPath });
-                    }
+                        string[] paths = urlDecode.Split('?');
 
-                    // The cached file is valid so just rewrite the path.
-                    context.RewritePath(virtualCachedPath, false);
+                        requestPath = paths[0];
+
+                        // Handle extension-less urls.
+                        if (paths.Length > 2)
+                        {
+                            queryString = paths[2];
+                            urlParameters = paths[1];
+                        }
+                        else if (paths.Length > 1)
+                        {
+                            queryString = paths[1];
+                        }
+                    }
                 }
                 else
                 {
-                    throw new HttpException(403, "Access denied");
+                    requestPath = HostingEnvironment.MapPath(request.Path);
+                    queryString = HttpUtility.UrlDecode(request.QueryString.ToString());
                 }
-            }
-            else if (!isFileLocal)
-            {
-                // Just re-point to the external url.
-                HttpContext.Current.Response.Redirect(requestPath);
+
+                // Only process requests that pass our sanitizing filter.
+                if (!string.IsNullOrWhiteSpace(queryString))
+                {
+                    // Replace any presets in the querystring with the actual value.
+                    queryString = this.ReplacePresetsInQueryString(queryString);
+
+                    string parts = !string.IsNullOrWhiteSpace(urlParameters) ? "?" + urlParameters : string.Empty;
+                    string fullPath = string.Format("{0}{1}?{2}", requestPath, parts, queryString);
+
+                    // Create a new cache to help process and cache the request.
+                    DiskCache cache = new DiskCache(requestPath, fullPath);
+                    string cachedPath = cache.CachedPath;
+
+                    // Since we are now rewriting the path we need to check again that the current user has access
+                    // to the rewritten path.
+                    // Get the user for the current request
+                    // If the user is anonymous or authentication doesn't work for this suffix avoid a NullReferenceException
+                    // in the UrlAuthorizationModule by creating a generic identity.
+                    string virtualCachedPath = cache.VirtualCachedPath;
+
+                    IPrincipal user = context.User ?? new GenericPrincipal(new GenericIdentity(string.Empty, string.Empty), new string[0]);
+
+                    // Do we have permission to call UrlAuthorizationModule.CheckUrlAccessForPrincipal?
+                    PermissionSet permission = new PermissionSet(PermissionState.None);
+                    permission.AddPermission(new AspNetHostingPermission(AspNetHostingPermissionLevel.Unrestricted));
+                    bool hasPermission = permission.IsSubsetOf(AppDomain.CurrentDomain.PermissionSet);
+
+                    bool isAllowed = true;
+
+                    // Run the rewritten path past the authorization system again.
+                    // We can then use the result as the default "AllowAccess" value
+                    if (hasPermission && !context.SkipAuthorization)
+                    {
+                        isAllowed = UrlAuthorizationModule.CheckUrlAccessForPrincipal(virtualCachedPath, user, "GET");
+                    }
+
+                    if (isAllowed)
+                    {
+                        // Is the file new or updated?
+                        bool isNewOrUpdated = cache.IsNewOrUpdatedFile(cachedPath);
+
+                        // Only process if the file has been updated.
+                        if (isNewOrUpdated)
+                        {
+                            // Process the image.
+                            using (
+                                ImageFactory imageFactory =
+                                    new ImageFactory(preserveExifMetaData != null && preserveExifMetaData.Value))
+                            {
+                                using (await Locker.LockAsync(cachedPath))
+                                {
+                                    byte[] imageBuffer;
+
+                                    if (!isFileLocal)
+                                    {
+                                        Uri uri = new Uri(requestPath + "?" + urlParameters);
+                                        imageBuffer = await currentService.GetImage(uri);
+                                    }
+                                    else
+                                    {
+                                        imageBuffer = await currentService.GetImage(requestPath);
+                                    }
+
+                                    using (MemoryStream memoryStream = new MemoryStream(imageBuffer))
+                                    {
+                                        // Reset the position of the stream to ensure we're reading the correct part.
+                                        memoryStream.Position = 0;
+
+                                        // Process the Image
+                                        imageFactory.Load(memoryStream).AutoProcess(queryString).Save(cachedPath);
+
+                                        // Add to the cache.
+                                        cache.AddImageToCache(cachedPath);
+
+                                        // Store the cached path, response type, and cache dependency in the context for later retrieval.
+                                        context.Items[CachedPathKey] = cachedPath;
+                                        context.Items[CachedResponseTypeKey] = imageFactory.CurrentImageFormat.MimeType;
+                                        context.Items[CachedResponseFileDependency] = new List<string> { cachedPath };
+                                    }
+                                }
+                            }
+                        }
+
+                        // Image is from the cache so the mime-type will need to be set.
+                        if (context.Items[CachedResponseTypeKey] == null)
+                        {
+                            string mimetype = ImageHelpers.GetMimeType(cachedPath);
+
+                            if (!string.IsNullOrEmpty(mimetype))
+                            {
+                                context.Items[CachedResponseTypeKey] = mimetype;
+                            }
+                        }
+
+                        if (context.Items[CachedResponseFileDependency] == null)
+                        {
+                            context.Items[CachedResponseFileDependency] = new List<string> { cachedPath };
+                        }
+
+                        string incomingEtag = context.Request.Headers["If" + "-None-Match"];
+
+                        if (incomingEtag != null && !isNewOrUpdated)
+                        {
+                            // Set the Content-Length header so the client doesn't wait for
+                            // content but keeps the connection open for other requests.
+                            context.Response.AddHeader("Content-Length", "0");
+                            context.Response.StatusCode = (int)HttpStatusCode.NotModified;
+                            context.Response.SuppressContent = true;
+
+                            if (isFileLocal)
+                            {
+                                // Set the headers and quit.
+                                this.SetHeaders(context, (string)context.Items[CachedResponseTypeKey], new List<string> { requestPath, cachedPath });
+                                return;
+                            }
+
+                            this.SetHeaders(context, (string)context.Items[CachedResponseTypeKey], new List<string> { cachedPath });
+                        }
+
+                        // The cached file is valid so just rewrite the path.
+                        context.RewritePath(virtualCachedPath, false);
+                    }
+                    else
+                    {
+                        throw new HttpException(403, "Access denied");
+                    }
+                }
+                else if (!isFileLocal)
+                {
+                    // Just re-point to the external url.
+                    HttpContext.Current.Response.Redirect(requestPath);
+                }
             }
         }
 
@@ -539,7 +537,18 @@ namespace ImageProcessor.Web.HttpModules
                 }
             }
 
-            return imageService ?? services.FirstOrDefault(s => string.IsNullOrWhiteSpace(s.Key));
+            if (imageService != null)
+            {
+                return imageService;
+            }
+
+            // Return the file based service
+            if (ImageHelpers.IsValidImageExtension(path))
+            {
+                return services.FirstOrDefault(s => string.IsNullOrWhiteSpace(s.Key));
+            }
+
+            return null;
         }
         #endregion
     }

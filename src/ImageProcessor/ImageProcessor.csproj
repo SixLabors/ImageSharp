@@ -81,9 +81,9 @@
     <Compile Include="Imaging\Filters\EdgeDetection\I2DEdgeFilter.cs" />
     <Compile Include="Imaging\Filters\EdgeDetection\IEdgeFilter.cs" />
     <Compile Include="Imaging\Filters\EdgeDetection\KirschEdgeFilter.cs" />
-    <Compile Include="Imaging\Filters\EdgeDetection\Laplacian5X5Filter.cs" />
-    <Compile Include="Imaging\Filters\EdgeDetection\Laplacian3x3Filter.cs" />
-    <Compile Include="Imaging\Filters\EdgeDetection\LaplacianOfGaussianFilter.cs" />
+    <Compile Include="Imaging\Filters\EdgeDetection\Laplacian5X5EdgeFilter.cs" />
+    <Compile Include="Imaging\Filters\EdgeDetection\Laplacian3X3EdgeFilter.cs" />
+    <Compile Include="Imaging\Filters\EdgeDetection\LaplacianOfGaussianEdgeFilter.cs" />
     <Compile Include="Imaging\Filters\EdgeDetection\ScharrEdgeFilter.cs" />
     <Compile Include="Imaging\Filters\EdgeDetection\RobertsCrossEdgeFilter.cs" />
     <Compile Include="Imaging\Filters\EdgeDetection\PrewittEdgeFilter.cs" />

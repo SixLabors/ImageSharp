@@ -68,9 +68,9 @@ namespace ImageProcessor.Web.Configuration
         public class ServiceElement : ConfigurationElement
         {
             /// <summary>
-            /// Gets or sets the name of the plugin file.
+            /// Gets or sets the name of the service.
             /// </summary>
-            /// <value>The name of the plugin.</value>
+            /// <value>The name of the service.</value>
             [ConfigurationProperty("name", DefaultValue = "", IsRequired = true)]
             public string Name
             {
@@ -80,9 +80,21 @@ namespace ImageProcessor.Web.Configuration
             }
 
             /// <summary>
-            /// Gets or sets the type of the service file.
+            /// Gets or sets the prefix of the service.
             /// </summary>
-            /// <value>The full Type definition of the plugin</value>
+            /// <value>The prefix of the service.</value>
+            [ConfigurationProperty("prefix", DefaultValue = "", IsRequired = false)]
+            public string Prefix
+            {
+                get { return (string)this["prefix"]; }
+
+                set { this["prefix"] = value; }
+            }
+
+            /// <summary>
+            /// Gets or sets the type of the service.
+            /// </summary>
+            /// <value>The full Type definition of the service</value>
             [ConfigurationProperty("type", DefaultValue = "", IsRequired = true)]
             public string Type
             {

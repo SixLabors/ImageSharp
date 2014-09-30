@@ -22,16 +22,26 @@ namespace ImageProcessor.Web.Services
     public class LocalFileImageService : IImageService
     {
         /// <summary>
-        /// Gets the key for the given implementation.
+        /// The prefix for the given implementation.
+        /// </summary>
+        private string prefix = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the prefix for the given implementation.
         /// <remarks>
         /// This value is used as a prefix for any image requests that should use this service.
         /// </remarks>
         /// </summary>
-        public string Key
+        public string Prefix
         {
             get
             {
-                return string.Empty;
+                return this.prefix;
+            }
+
+            set
+            {
+                this.prefix = value;
             }
         }
 

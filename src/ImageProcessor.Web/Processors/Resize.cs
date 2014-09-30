@@ -128,24 +128,29 @@ namespace ImageProcessor.Web.Processors
                 }
             }
 
-            // Match syntax
-            string toParse = stringBuilder.ToString();
-
-            Size size = this.ParseSize(toParse);
-            ResizeLayer resizeLayer = new ResizeLayer(size)
+            if (this.SortOrder < int.MaxValue)
             {
-                ResizeMode = this.ParseMode(toParse),
-                AnchorPosition = this.ParsePosition(toParse),
-                Upscale = !UpscaleRegex.IsMatch(toParse),
-                CenterCoordinates = this.ParseCoordinates(toParse),
-            };
+                // Match syntax
+                string toParse = stringBuilder.ToString();
 
-            this.Processor.DynamicParameter = resizeLayer;
+                Size size = this.ParseSize(toParse);
+                ResizeLayer resizeLayer = new ResizeLayer(size)
+                {
+                    ResizeMode = this.ParseMode(toParse),
+                    AnchorPosition = this.ParsePosition(toParse),
+                    Upscale = !UpscaleRegex.IsMatch(toParse),
+                    CenterCoordinates = this.ParseCoordinates(toParse),
+                };
 
-            // Correctly parse any restrictions.
-            string restrictions;
-            this.Processor.Settings.TryGetValue("RestrictTo", out restrictions);
-            ((ImageProcessor.Processors.Resize)this.Processor).RestrictedSizes = this.ParseRestrictions(restrictions);
+                this.Processor.DynamicParameter = resizeLayer;
+
+                // Correctly parse any restrictions.
+                string restrictions;
+                this.Processor.Settings.TryGetValue("RestrictTo", out restrictions);
+                ((ImageProcessor.Processors.Resize)this.Processor).RestrictedSizes = this.ParseRestrictions(
+                    restrictions);
+            }
+
             return this.SortOrder;
         }
 

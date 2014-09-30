@@ -1,21 +1,21 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="Laplacian5X5Filter.cs" company="James South">
+// <copyright file="LaplacianOfGaussianEdgeFilter.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   The Laplacian 5 x 5 operator filter.
-//   <see href="http://en.wikipedia.org/wiki/Discrete_Laplace_operator" />
+//   The Laplacian of Gaussian operator filter.
+//   <see href="http://fourier.eng.hmc.edu/e161/lectures/gradient/node9.html" />
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Imaging.Filters.EdgeDetection
 {
     /// <summary>
-    /// The Laplacian 5 x 5 operator filter.
-    /// <see href="http://en.wikipedia.org/wiki/Discrete_Laplace_operator"/>
+    /// The Laplacian of Gaussian operator filter.
+    /// <see href="http://fourier.eng.hmc.edu/e161/lectures/gradient/node9.html"/>
     /// </summary>
-    public class Laplacian5X5Filter : IEdgeFilter
+    public class LaplacianOfGaussianEdgeFilter : IEdgeFilter
     {
         /// <summary>
         /// Gets the horizontal gradient operator.
@@ -24,13 +24,13 @@ namespace ImageProcessor.Imaging.Filters.EdgeDetection
         {
             get
             {
-                return new double[,] 
+                return new double[,]  
                 { 
-                    { -1, -1, -1, -1, -1 }, 
-                    { -1, -1, -1, -1, -1 }, 
-                    { -1, -1, 24, -1, -1 }, 
-                    { -1, -1, -1, -1, -1 }, 
-                    { -1, -1, -1, -1, -1 }
+                    { 0, 0, -1,  0,  0 }, 
+                    { 0, -1, -2, -1,  0 }, 
+                    { -1, -2, 16, -2, -1 },
+                    { 0, -1, -2, -1,  0 },
+                    { 0, 0, -1,  0,  0 }
                 };
             }
         }

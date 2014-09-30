@@ -530,7 +530,7 @@ namespace ImageProcessor.Web.HttpModules
             string path = request.Path;
             foreach (IImageService service in services)
             {
-                string key = service.Key;
+                string key = service.Prefix;
                 if (!string.IsNullOrWhiteSpace(key) && path.EndsWith(key, StringComparison.InvariantCultureIgnoreCase))
                 {
                     imageService = service;
@@ -545,7 +545,7 @@ namespace ImageProcessor.Web.HttpModules
             // Return the file based service
             if (ImageHelpers.IsValidImageExtension(path))
             {
-                return services.FirstOrDefault(s => string.IsNullOrWhiteSpace(s.Key));
+                return services.FirstOrDefault(s => string.IsNullOrWhiteSpace(s.Prefix));
             }
 
             return null;

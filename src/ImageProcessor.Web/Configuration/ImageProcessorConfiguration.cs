@@ -281,7 +281,7 @@ namespace ImageProcessor.Web.Configuration
 
             return settings;
         }
-#endregion
+        #endregion
 
         #region ImageServices
         /// <summary>
@@ -345,7 +345,19 @@ namespace ImageProcessor.Web.Configuration
                     throw new TypeLoadException("Couldn't load IImageService: " + config.Type);
                 }
 
-                this.GraphicsProcessors.Add(Activator.CreateInstance(type) as IWebGraphicsProcessor);
+                IImageService imageService = Activator.CreateInstance(type) as IImageService;
+                if (!string.IsNullOrWhiteSpace(config.Prefix))
+                {
+                    if (!string.IsNullOrWhiteSpace(config.Prefix))
+                    {
+                        if (imageService != null)
+                        {
+                            imageService.Prefix = config.Prefix;
+                        }
+                    }
+                }
+
+                this.ImageServices.Add(imageService);
             }
 
             // Add the available settings.

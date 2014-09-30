@@ -1,10 +1,10 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="Filter.cs" company="James South">
+// <copyright file="DetectEdges.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   Encapsulates methods with which to add filters to an image.
+//   Produces an image with the detected edges highlighted.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -16,13 +16,16 @@ namespace ImageProcessor.Web.Processors
     using System.Reflection;
     using System.Text;
     using System.Text.RegularExpressions;
-    using ImageProcessor.Imaging.Filters.Photo;
+    using System.Web.Compilation;
+
+    using ImageProcessor.Common.Extensions;
+    using ImageProcessor.Imaging.Filters.EdgeDetection;
     using ImageProcessor.Processors;
 
     /// <summary>
-    /// Encapsulates methods with which to add filters to an image.
+    /// Produces an image with the detected edges highlighted.
     /// </summary>
-    public class Filter : IWebGraphicsProcessor
+    public class DetectEdges : IWebGraphicsProcessor
     {
         /// <summary>
         /// The regular expression to search strings for.
@@ -30,11 +33,21 @@ namespace ImageProcessor.Web.Processors
         private static readonly Regex QueryRegex = BuildRegex();
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Filter"/> class.
+        /// The regular expression to search strings for the greyscale attribute.
         /// </summary>
-        public Filter()
+        private static readonly Regex GreyscaleRegex = new Regex(@"greyscale=false", RegexOptions.Compiled);
+
+        /// <summary>
+        /// The edge detectors.
+        /// </summary>
+        private static Dictionary<string, object> detectors;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DetectEdges"/> class.
+        /// </summary>
+        public DetectEdges()
         {
-            this.Processor = new ImageProcessor.Processors.Filter();
+            this.Processor = new ImageProcessor.Processors.DetectEdges();
         }
 
         /// <summary>
@@ -77,6 +90,9 @@ namespace ImageProcessor.Web.Processors
             // Set the sort order to max to allow filtering.
             this.SortOrder = int.MaxValue;
 
+            // First merge the matches so we can parse .
+            StringBuilder stringBuilder = new StringBuilder();
+
             foreach (Match match in this.RegexPattern.Matches(queryString))
             {
                 if (match.Success)
@@ -85,47 +101,48 @@ namespace ImageProcessor.Web.Processors
                     {
                         // Set the index on the first instance only.
                         this.SortOrder = match.Index;
-                        this.Processor.DynamicParameter = this.ParseFilter(match.Value.Split('=')[1]);
+                        stringBuilder.Append(queryString);
                     }
 
                     index += 1;
                 }
             }
 
+            if (this.SortOrder < int.MaxValue)
+            {
+                // Match syntax
+                string toParse = stringBuilder.ToString();
+                IEdgeFilter filter = this.ParseFilter(toParse);
+                bool greyscale = !GreyscaleRegex.IsMatch(toParse);
+
+                this.Processor.DynamicParameter = new Tuple<IEdgeFilter, bool>(filter, greyscale);
+            }
+
             return this.SortOrder;
         }
 
         /// <summary>
-        /// Builds a regular expression from the <see cref="MatrixFilters"/> type, this allows extensibility.
+        /// Builds a regular expression from the <see cref="IEdgeFilter"/> type, this allows extensibility.
         /// </summary>
         /// <returns>
         /// The <see cref="Regex"/> to match matrix filters.
         /// </returns>
         private static Regex BuildRegex()
         {
-            const BindingFlags Flags = BindingFlags.Public | BindingFlags.Static;
-            Type type = typeof(MatrixFilters);
-            IEnumerable<PropertyInfo> filters = type.GetProperties(Flags)
-                              .Where(p => p.PropertyType.IsAssignableFrom(typeof(IMatrixFilter)))
-                              .ToList();
-
             StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.Append("filter=(");
-            int counter = 0;
 
-            foreach (PropertyInfo filter in filters)
-            {
-                if (counter == 0)
-                {
-                    stringBuilder.Append(filter.Name.ToLowerInvariant());
-                }
-                else
-                {
-                    stringBuilder.AppendFormat("|{0}", filter.Name.ToLowerInvariant());
-                }
+            stringBuilder.Append("detectedges=(");
 
-                counter++;
-            }
+            Type type = typeof(IEdgeFilter);
+
+            // Build a list of native IEdgeFilter instances.
+            detectors = BuildManager.GetReferencedAssemblies()
+                                    .Cast<Assembly>()
+                                    .SelectMany(s => s.GetLoadableTypes())
+                                    .Where(t => type.IsAssignableFrom(t) && t.IsClass && !t.IsAbstract)
+                                    .ToDictionary(t => t.Name.ToLowerInvariant().Replace("edgefilter", string.Empty), Activator.CreateInstance);
+
+            stringBuilder.Append(string.Join("|", detectors.Keys.ToList()));
 
             stringBuilder.Append(")");
 
@@ -133,25 +150,17 @@ namespace ImageProcessor.Web.Processors
         }
 
         /// <summary>
-        /// Parses the input string to return the correct <see cref="IMatrixFilter"/>.
+        /// Parses the input string to return the correct <see cref="IEdgeFilter"/>.
         /// </summary>
         /// <param name="identifier">
         /// The identifier.
         /// </param>
         /// <returns>
-        /// The <see cref="IMatrixFilter"/>.
+        /// The <see cref="IEdgeFilter"/>.
         /// </returns>
-        private IMatrixFilter ParseFilter(string identifier)
+        private IEdgeFilter ParseFilter(string identifier)
         {
-            const BindingFlags Flags = BindingFlags.Public | BindingFlags.Static;
-
-            Type type = typeof(MatrixFilters);
-            PropertyInfo filter =
-                type.GetProperties(Flags)
-                    .Where(p => p.PropertyType.IsAssignableFrom(typeof(IMatrixFilter)))
-                    .First(p => p.Name.Equals(identifier, StringComparison.InvariantCultureIgnoreCase));
-
-            return filter.GetValue(null, null) as IMatrixFilter;
+            return (IEdgeFilter)detectors[this.RegexPattern.Match(identifier).Value.Split('=')[1]];
         }
     }
 }

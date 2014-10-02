@@ -14,6 +14,10 @@ Properties {
 	$BIN_PATH = Join-Path $BUILD_PATH "_BuildOutput"
 	$NUGET_OUTPUT = Join-Path $BIN_PATH "NuGets"
 	$TEST_RESULTS = Join-Path $BUILD_PATH "TestResults"
+
+	# API documentation
+	$API_BIN_PATH = Join-Path $BIN_PATH "ImageProcessor\lib\net45\ImageProcessor.dll" # from what Docu builds its help output
+	$API_DOC_PATH = Join-Path $BIN_PATH "Help\docu" # change this to switch to Doxygen help
 	
 	# External binaries paths
 	$NUGET_EXE = Join-Path $SRC_PATH ".nuget\NuGet.exe"
@@ -150,11 +154,11 @@ task Run-Coverage -depends Build-Tests {
 
 # generates the API documentation
 task Generate-APIDoc -depends Build-Solution {
-  Write-Host "Generating API docs"
+	Write-Host "Generating API docs"
 
-  & .\tools\docu\docu.exe .\_BuildOutput\ImageProcessor\lib\net45\ImageProcessor.dll --output=.\_BuildOutput\Help\docu
+	& .\tools\docu\docu.exe $API_BIN_PATH --output=$API_DOC_PATH
 
-  & .\tools\doxygen\doxygen.exe .\Doxyfile
+	& .\tools\doxygen\doxygen.exe .\Doxyfile
 }
 
 # generates a Nuget package

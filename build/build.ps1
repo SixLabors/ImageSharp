@@ -1,7 +1,14 @@
 Properties {
+	# call nuget.bat with these values as parameters
+	$NugetApiKey = $null
+	$NugetSource = $null
+	
+	# see appveyor.yml for usage
+	$BuildNumber = $null
+	
 	# Input and output paths
 	$BUILD_PATH = Resolve-Path "."
-	$SRC_PATH = Resolve-Path "..\src"
+	$SRC_PATH = Join-Path $BUILD_PATH "..\src"
 	$PLUGINS_PATH = Join-Path $SRC_PATH "Plugins\ImageProcessor"
 	$NUSPECS_PATH = Join-Path $BUILD_PATH "NuSpecs"
 	$BIN_PATH = Join-Path $BUILD_PATH "_BuildOutput"
@@ -16,7 +23,8 @@ Properties {
 	$NUNITREPORT_EXE = Join-Path $BUILD_PATH "tools\NUnitHTMLReportGenerator.exe"
 	
 	# list of projects
-	[xml]$PROJECTS = Get-Content ".\build.xml"
+	$PROJECTS_PATH = (Join-Path $BUILD_PATH "build.xml")
+	[xml]$PROJECTS = Get-Content $PROJECTS_PATH
 	
 	$TestProjects = @(
 		"ImageProcessor.UnitTests",
@@ -27,7 +35,7 @@ Properties {
 Framework "4.0x86"
 FormatTaskName "-------- {0} --------"
 
-task default -depends Cleanup-Binaries, Build-Solution, Run-Tests, Generate-Package
+task default -depends Cleanup-Binaries, Set-VersionNumber, Build-Solution, Run-Tests, Generate-Package
 
 # cleans up the binaries output folder
 task Cleanup-Binaries {
@@ -45,8 +53,22 @@ task Cleanup-Binaries {
 	}
 }
 
+# sets the version number from the build number in the build.xml file
+task Set-VersionNumber {
+	if ($BuildNumber -eq $null -or $BuildNumber -eq "") {
+		return
+	}
+	
+	$PROJECTS.projects.project | % {
+		if ($_.version -match "([\d+\.]*)[\d+|\*]") { # get numbers of current version except last one
+			$_.version = "$($Matches[1])$BuildNumber"
+		}
+	}
+	$PROJECTS.Save($PROJECTS_PATH)
+}
+
 # builds the solutions
-task Build-Solution -depends Cleanup-Binaries {
+task Build-Solution -depends Cleanup-Binaries, Set-VersionNumber {
 	Write-Host "Building projects"
 
 	# build the projects
@@ -87,7 +109,6 @@ task Build-Tests -depends Cleanup-Binaries {
 			msbuild (Join-Path $SRC_PATH "$_\$_.csproj") /t:Build /p:Configuration=Release /p:Platform="AnyCPU" /p:Warnings=true /clp:WarningsOnly /clp:ErrorsOnly /v:Normal /nologo
 		}
 	}
-	
 }
 
 # runs the unit tests
@@ -128,7 +149,7 @@ task Run-Coverage -depends Build-Tests {
 }
 
 # generates a Nuget package
-task Generate-Package -depends Build-Solution {
+task Generate-Package -depends Set-VersionNumber, Build-Solution {
 	Write-Host "Generating Nuget packages for each project"
 	
 	# Nuget doesn't create the output dir automatically...
@@ -146,8 +167,27 @@ task Generate-Package -depends Build-Solution {
 		$nuspec_contents.package.metadata.version = $_.version
 		$nuspec_contents.Save($nuspec_local_path)
 		
+		if ((-not (Test-Path $nuspec_local_path)) -or (-not (Test-Path $NUGET_OUTPUT))) {
+			throw New-Object [System.IO.FileNotFoundException] "The file $nuspec_local_path or $NUGET_OUTPUT could not be found"
+		}
+		
 		# pack the nuget
 		& $NUGET_EXE Pack $nuspec_local_path -OutputDirectory $NUGET_OUTPUT
+	}
+}
+
+# publishes the nuget on a feed
+task Publish-Nuget {
+	if ($NugetApiKey -eq $null -or $NugetApiKey -eq "") {
+		throw New-Object [System.ArgumentException] "You must provide an API key as parameter: 'Invoke-psake Publish-Nuget -properties @{`"NugetApiKey`"=`"YOURAPIKEY`"}' ; or add a APIKEY environment variable to AppVeyor"
+	}
+	
+	Get-ChildItem $NUGET_OUTPUT -Filter "*.nugpkg" | % {
+		if ($NugetSource -eq $null -or $NugetSource -eq "") {
+			& $NUGET_EXE push $_ -ApiKey $apikey -Source $NugetSource
+		} else {
+			& $NUGET_EXE push $_ -ApiKey $apikey
+		}
 	}
 }
 

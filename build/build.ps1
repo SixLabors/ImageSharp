@@ -35,7 +35,7 @@ Properties {
 Framework "4.0x86"
 FormatTaskName "-------- {0} --------"
 
-task default -depends Cleanup-Binaries, Set-VersionNumber, Build-Solution, Run-Tests, Generate-Package
+task default -depends Cleanup-Binaries, Set-VersionNumber, Build-Solution, Run-Tests, Generate-APIDoc, Generate-Package
 
 # cleans up the binaries output folder
 task Cleanup-Binaries {
@@ -146,6 +146,15 @@ task Run-Coverage -depends Build-Tests {
 		Write-Host "Transforming coverage results file to HTML"
 		& $REPORTGEN_EXE -reports:$CoverageOutputPath -targetdir:(Join-Path $TEST_RESULTS "Coverage\$_")
 	}
+}
+
+# generates the API documentation
+task Generate-APIDoc -depends Build-Solution {
+  Write-Host "Generating API docs"
+
+  & .\tools\docu\docu.exe .\_BuildOutput\ImageProcessor\lib\net45\ImageProcessor.dll --output=.\_BuildOutput\Help\docu
+
+  & .\tools\doxygen\doxygen.exe .\Doxyfile
 }
 
 # generates a Nuget package

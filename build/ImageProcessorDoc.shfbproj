@@ -14,11 +14,11 @@
     <Name>Documentation</Name>
     <!-- SHFB properties -->
     <FrameworkVersion>.NET Framework 4.0</FrameworkVersion>
-    <OutputPath>_BuildOutput\Help\</OutputPath>
+    <OutputPath>_BuildOutput\Help\SandCastle\</OutputPath>
     <HtmlHelpName>Documentation</HtmlHelpName>
     <Language>en-US</Language>
     <BuildAssemblerVerbosity>OnlyWarningsAndErrors</BuildAssemblerVerbosity>
-    <HelpFileFormat>HtmlHelp1, Website</HelpFileFormat>
+    <HelpFileFormat>HtmlHelp1</HelpFileFormat>
     <IndentHtml>False</IndentHtml>
     <KeepLogFile>True</KeepLogFile>
     <DisableCodeBlockComponent>False</DisableCodeBlockComponent>
@@ -36,7 +36,8 @@
     <ContentPlacement>AboveNamespaces</ContentPlacement>
     <DocumentationSources>
       <DocumentationSource sourceFile="_BuildOutput\ImageProcessor\lib\net45\ImageProcessor.dll" xmlns="" />
-<DocumentationSource sourceFile="_BuildOutput\ImageProcessor\lib\net45\ImageProcessor.XML" xmlns="" /></DocumentationSources>
+      <DocumentationSource sourceFile="_BuildOutput\ImageProcessor\lib\net45\ImageProcessor.XML" xmlns="" />
+    </DocumentationSources>
     <ProjectSummary>Imageprocessor is a lightweight library written in C# that allows you to manipulate images on-the-fly using .NET.
 
 It&amp;#39%3bs fast, extensible, easy to use, comes bundled with some great features and is fully open source.
@@ -44,15 +45,16 @@ It&amp;#39%3bs fast, extensible, easy to use, comes bundled with some great feat
 For full documentation please see http://imageprocessor.org/</ProjectSummary>
     <NamespaceSummaries>
       <NamespaceSummaryItem name="ImageProcessor" isDocumented="True" xmlns="">The main namespace for all features</NamespaceSummaryItem>
-<NamespaceSummaryItem name="ImageProcessor.Common.Exceptions" isDocumented="True" xmlns="">Regroups the possible exceptions</NamespaceSummaryItem>
-<NamespaceSummaryItem name="ImageProcessor.Common.Extensions" isDocumented="True" xmlns="">Regroups the extensions</NamespaceSummaryItem>
-<NamespaceSummaryItem name="ImageProcessor.Configuration" isDocumented="True" xmlns="">The library configuration</NamespaceSummaryItem>
-<NamespaceSummaryItem name="ImageProcessor.Imaging" isDocumented="True" xmlns="">The imaging components</NamespaceSummaryItem>
-<NamespaceSummaryItem name="ImageProcessor.Imaging.Filters" isDocumented="True" xmlns="">The filters to apply on the images</NamespaceSummaryItem>
-<NamespaceSummaryItem name="ImageProcessor.Imaging.Formats" isDocumented="True" xmlns="">The possible image formats</NamespaceSummaryItem>
-<NamespaceSummaryItem name="ImageProcessor.Processors" isDocumented="True" xmlns="">The image processors</NamespaceSummaryItem></NamespaceSummaries>
+      <NamespaceSummaryItem name="ImageProcessor.Common.Exceptions" isDocumented="True" xmlns="">Regroups the possible exceptions</NamespaceSummaryItem>
+      <NamespaceSummaryItem name="ImageProcessor.Common.Extensions" isDocumented="True" xmlns="">Regroups the extensions</NamespaceSummaryItem>
+      <NamespaceSummaryItem name="ImageProcessor.Configuration" isDocumented="True" xmlns="">The library configuration</NamespaceSummaryItem>
+      <NamespaceSummaryItem name="ImageProcessor.Imaging" isDocumented="True" xmlns="">The imaging components</NamespaceSummaryItem>
+      <NamespaceSummaryItem name="ImageProcessor.Imaging.Filters" isDocumented="True" xmlns="">The filters to apply on the images</NamespaceSummaryItem>
+      <NamespaceSummaryItem name="ImageProcessor.Imaging.Formats" isDocumented="True" xmlns="">The possible image formats</NamespaceSummaryItem>
+      <NamespaceSummaryItem name="ImageProcessor.Processors" isDocumented="True" xmlns="">The image processors</NamespaceSummaryItem>
+    </NamespaceSummaries>
     <MissingTags>Summary, Parameter, Returns, AutoDocumentCtors, TypeParameter, AutoDocumentDispose</MissingTags>
-    <WorkingPath>_BuildOutput\Help\Working\</WorkingPath>
+    <WorkingPath>_BuildOutput\Help\SandCastle\Working\</WorkingPath>
   </PropertyGroup>
   <!-- There are no properties for these groups.  AnyCPU needs to appear in order for Visual Studio to perform
 			 the build.  The others are optional common platform types that may appear. -->

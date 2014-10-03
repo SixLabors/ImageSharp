@@ -100,21 +100,27 @@ namespace ImageProcessor.Imaging
             return this.Size == resizeLayer.Size
                 && this.ResizeMode == resizeLayer.ResizeMode
                 && this.AnchorPosition == resizeLayer.AnchorPosition
-                && this.Upscale == resizeLayer.Upscale;
+                && this.Upscale == resizeLayer.Upscale
+                && this.CenterCoordinates == resizeLayer.CenterCoordinates;
         }
 
         /// <summary>
-        /// Returns a hash code value that represents this object.
+        /// Returns the hash code for this instance.
         /// </summary>
         /// <returns>
-        /// A hash code that represents this object.
+        /// A 32-bit signed integer that is the hash code for this instance.
         /// </returns>
         public override int GetHashCode()
         {
-            return this.Size.GetHashCode() +
-                this.ResizeMode.GetHashCode() +
-                this.AnchorPosition.GetHashCode() +
-                this.Upscale.GetHashCode();
+            unchecked
+            {
+                int hashCode = this.Size.GetHashCode();
+                hashCode = (hashCode * 397) ^ (int)this.ResizeMode;
+                hashCode = (hashCode * 397) ^ (int)this.AnchorPosition;
+                hashCode = (hashCode * 397) ^ this.Upscale.GetHashCode();
+                hashCode = (hashCode * 397) ^ (this.CenterCoordinates != null ? this.CenterCoordinates.GetHashCode() : 0);
+                return hashCode;
+            }
         }
     }
 }

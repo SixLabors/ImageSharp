@@ -14,6 +14,10 @@ Properties {
 	$BIN_PATH = Join-Path $BUILD_PATH "_BuildOutput"
 	$NUGET_OUTPUT = Join-Path $BIN_PATH "NuGets"
 	$TEST_RESULTS = Join-Path $BUILD_PATH "TestResults"
+
+	# API documentation
+	$API_BIN_PATH = Join-Path $BIN_PATH "ImageProcessor\lib\net45\ImageProcessor.dll" # from which DLL Docu builds its help output
+	$API_DOC_PATH = Join-Path $BIN_PATH "Help\docu"
 	
 	# External binaries paths
 	$NUGET_EXE = Join-Path $SRC_PATH ".nuget\NuGet.exe"
@@ -35,7 +39,7 @@ Properties {
 Framework "4.0x86"
 FormatTaskName "-------- {0} --------"
 
-task default -depends Cleanup-Binaries, Set-VersionNumber, Build-Solution, Run-Tests, Generate-Package
+task default -depends Cleanup-Binaries, Set-VersionNumber, Build-Solution, Run-Tests, Generate-APIDoc, Generate-Nuget
 
 # cleans up the binaries output folder
 task Cleanup-Binaries {
@@ -148,8 +152,17 @@ task Run-Coverage -depends Build-Tests {
 	}
 }
 
+# generates the API documentation
+task Generate-APIDoc -depends Build-Solution {
+	Write-Host "Generating API docs"
+
+	& .\tools\docu\docu.exe $API_BIN_PATH --output=$API_DOC_PATH
+
+	& .\tools\doxygen\doxygen.exe .\Doxyfile
+}
+
 # generates a Nuget package
-task Generate-Package -depends Set-VersionNumber, Build-Solution {
+task Generate-Nuget -depends Set-VersionNumber, Build-Solution, Generate-APIDoc {
 	Write-Host "Generating Nuget packages for each project"
 	
 	# Nuget doesn't create the output dir automatically...

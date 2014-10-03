@@ -10,12 +10,16 @@
     <RootNamespace>ImageProcessor</RootNamespace>
     <AssemblyName>ImageProcessor</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <!-- This establishes a new variable called 'Framework'. Don't confuse this with the actual .net TargetFrameworkVersion. 
+         It is just variable we can use in our conditions. We might as well set it to the main or current target framework if it is ''.-->
+    <Framework Condition=" '$(Framework)' == '' ">NET45</Framework>
     <FileAlignment>512</FileAlignment>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
     <TargetFrameworkProfile>
     </TargetFrameworkProfile>
   </PropertyGroup>
+  <!-- Here is our 'Debug' 4.5 group -->
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
@@ -28,6 +32,24 @@
     <Prefer32Bit>false</Prefer32Bit>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+  <!-- Here is our 'Debug' 4.0 group keep reading to see where this is set -->
+  <PropertyGroup Condition=" '$(Framework)' == 'NET40' And '$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
+    <!-- Set the TargetFrameworkVersion here. This is the variable to tell ms build what .net framework to target.-->
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkProfile>Client</TargetFrameworkProfile>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\$(Framework)\</OutputPath>
+    <DefineConstants>DEBUG;TRACE;NET40</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <DocumentationFile>bin\$(Configuration)\$(Framework)\ImageProcessor.XML</DocumentationFile>
+    <Prefer32Bit>false</Prefer32Bit>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <!-- Here is our 'Release' 4.5 group -->
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
@@ -39,11 +61,46 @@
     <Prefer32Bit>false</Prefer32Bit>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+  <!-- Here is the 'Release' 4.0 group -->
+  <PropertyGroup Condition=" '$(Framework)' == 'NET40' And '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <!-- Set the TargetFrameworkVersion here. This is the variable to tell ms build what .net framework to target.-->
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkProfile>Client</TargetFrameworkProfile>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\$(Framework)\</OutputPath>
+    <DefineConstants>TRACE;NET40</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <DocumentationFile>bin\Release\$(Framework)\ImageProcessor.XML</DocumentationFile>
+    <Prefer32Bit>false</Prefer32Bit>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <!-- Here is our 'All' 4.5 group -->
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'All|AnyCPU'">
     <DebugSymbols>true</DebugSymbols>
     <OutputPath>bin\All\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <DocumentationFile>bin\Debug\ImageProcessor.XML</DocumentationFile>
+    <DebugType>full</DebugType>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisIgnoreBuiltInRuleSets>false</CodeAnalysisIgnoreBuiltInRuleSets>
+    <CodeAnalysisIgnoreBuiltInRules>true</CodeAnalysisIgnoreBuiltInRules>
+    <WarningLevel>4</WarningLevel>
+    <Optimize>false</Optimize>
+    <Prefer32Bit>false</Prefer32Bit>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <!-- Here is the 'All' 4.0 group -->
+  <PropertyGroup Condition=" '$(Framework)' == 'NET40' And '$(Configuration)|$(Platform)' == 'All|AnyCPU' ">
+    <!-- Set the TargetFrameworkVersion here. This is the variable to tell ms build what .net framework to target.-->
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkProfile>Client</TargetFrameworkProfile>
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\All\$(Framework)\</OutputPath>
+    <DefineConstants>DEBUG;TRACE;NET40</DefineConstants>
+    <DocumentationFile>bin\Debug\$(Framework)\ImageProcessor.XML</DocumentationFile>
     <DebugType>full</DebugType>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <ErrorReport>prompt</ErrorReport>
@@ -175,4 +232,13 @@
   <Target Name="AfterBuild">
   </Target>
   -->
+  <Target Name="AfterBuild">
+    <!-- This just allows us to drop a note in the build output -->
+    <Message Text="Enter After Build TargetFrameworkVersion:$(TargetFrameworkVersion) Framework:$(Framework)" Importance="high" />
+    <!-- This is the key to the whole process. The second build happens here.  We set our 'Framework' variable allowing the above PropertyGroups to run more frameworks.  -->
+    <MSBuild Condition=" '$(Framework)' != 'NET40'" Projects="$(MSBuildProjectFile)" Properties="Framework=NET40" RunEachTargetSeparately="true" />
+    <!-- You could repeat the above node again here and target another framework if there was a property group that would evaluate to true-->
+    <!-- Just more logging -->
+    <Message Text="Exiting After Build TargetFrameworkVersion:$(TargetFrameworkVersion) Framework:$(Framework)" Importance="high" />
+  </Target>
 </Project>

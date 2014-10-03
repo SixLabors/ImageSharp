@@ -54,14 +54,19 @@ namespace ImageProcessor.Imaging.Filters.Photo
         }
 
         /// <summary>
-        /// Returns a hash code for this instance.
+        /// Returns the hash code for this instance.
         /// </summary>
         /// <returns>
-        /// A hash code for this instance, suitable for use in hashing algorithms and data structures like a hash table. 
+        /// A 32-bit signed integer that is the hash code for this instance.
         /// </returns>
         public override int GetHashCode()
         {
-            return this.GetType().Name.GetHashCode() ^ this.Matrix.GetHashCode();
+            unchecked
+            {
+                int hashCode = GetType().Name.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.Matrix.GetHashCode();
+                return hashCode;
+            }
         }
     }
 }

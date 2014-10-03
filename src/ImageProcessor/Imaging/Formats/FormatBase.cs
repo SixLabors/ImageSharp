@@ -147,14 +147,20 @@ namespace ImageProcessor.Imaging.Formats
         }
 
         /// <summary>
-        /// Returns a hash code for this instance.
+        /// Returns the hash code for this instance.
         /// </summary>
         /// <returns>
-        /// A hash code for this instance, suitable for use in hashing algorithms and data structures like a hash table. 
+        /// A 32-bit signed integer that is the hash code for this instance.
         /// </returns>
         public override int GetHashCode()
         {
-            return this.MimeType.GetHashCode();
+            unchecked
+            {
+                int hashCode = this.MimeType.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.IsIndexed.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.Quality;
+                return hashCode;
+            }
         }
     }
 }

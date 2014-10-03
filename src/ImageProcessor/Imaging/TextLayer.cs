@@ -160,21 +160,25 @@ namespace ImageProcessor.Imaging
         }
 
         /// <summary>
-        /// Returns a hash code value that represents this object.
+        /// Returns the hash code for this instance.
         /// </summary>
         /// <returns>
-        /// A hash code that represents this object.
+        /// A 32-bit signed integer that is the hash code for this instance.
         /// </returns>
         public override int GetHashCode()
         {
-            return this.Text.GetHashCode() +
-                this.FontColor.GetHashCode() +
-                this.FontFamily.GetHashCode() +
-                this.FontSize.GetHashCode() +
-                this.Style.GetHashCode() +
-                this.DropShadow.GetHashCode() +
-                this.Opacity.GetHashCode() +
-                this.Position.GetHashCode();
+            unchecked
+            {
+                int hashCode = this.Text != null ? this.Text.GetHashCode() : 0;
+                hashCode = (hashCode * 397) ^ this.DropShadow.GetHashCode();
+                hashCode = (hashCode * 397) ^ (this.FontFamily != null ? this.FontFamily.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (int)this.Style;
+                hashCode = (hashCode * 397) ^ this.FontColor.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.Opacity;
+                hashCode = (hashCode * 397) ^ this.FontSize;
+                hashCode = (hashCode * 397) ^ this.Position.GetHashCode();
+                return hashCode;
+            }
         }
     }
 }

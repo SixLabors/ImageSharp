@@ -166,14 +166,20 @@ namespace ImageProcessor.Imaging
         }
 
         /// <summary>
-        /// Returns a hash code value that represents this object.
+        /// Serves as a hash function for a particular type. 
         /// </summary>
         /// <returns>
-        /// A hash code that represents this object.
+        /// A hash code for the current <see cref="T:System.Object"/>.
         /// </returns>
         public override int GetHashCode()
         {
-            return this.Size.GetHashCode() + this.Sigma.GetHashCode() + this.Threshold.GetHashCode();
+            unchecked
+            {
+                int hashCode = this.Size;
+                hashCode = (hashCode * 397) ^ this.Size.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.Threshold;
+                return hashCode;
+            }
         }
     }
 }

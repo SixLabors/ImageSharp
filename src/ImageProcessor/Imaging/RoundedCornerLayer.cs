@@ -96,16 +96,22 @@ namespace ImageProcessor.Imaging
         }
 
         /// <summary>
-        /// Returns a hash code value that represents this object.
+        /// Returns the hash code for this instance.
         /// </summary>
         /// <returns>
-        /// A hash code that represents this object.
+        /// A 32-bit signed integer that is the hash code for this instance.
         /// </returns>
         public override int GetHashCode()
         {
-            return this.Radius.GetHashCode() +
-                   this.TopLeft.GetHashCode() + this.TopRight.GetHashCode() +
-                   this.BottomLeft.GetHashCode() + this.BottomRight.GetHashCode();
+            unchecked
+            {
+                int hashCode = this.Radius;
+                hashCode = (hashCode * 397) ^ this.TopLeft.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.TopRight.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.BottomLeft.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.BottomRight.GetHashCode();
+                return hashCode;
+            }
         }
     }
 }

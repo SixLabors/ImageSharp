@@ -107,17 +107,22 @@ namespace ImageProcessor.Imaging
         }
 
         /// <summary>
-        /// Returns a hash code for this instance.
+        /// Serves as a hash function for a particular type. 
         /// </summary>
         /// <returns>
-        /// A hash code for this instance, suitable for use in hashing algorithms 
-        /// and data structures like a hash table. 
+        /// A hash code for the current <see cref="T:System.Object"/>.
         /// </returns>
         public override int GetHashCode()
         {
-            return this.Top.GetHashCode() + this.Right.GetHashCode() +
-                   this.Bottom.GetHashCode() + this.Left.GetHashCode() +
-                   this.CropMode.GetHashCode();
+            unchecked
+            {
+                int hashCode = this.Left.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.Top.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.Right.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.Bottom.GetHashCode();
+                hashCode = (hashCode * 397) ^ (int)this.CropMode;
+                return hashCode;
+            }
         }
     }
 }

@@ -182,20 +182,24 @@ namespace ImageProcessor.Plugins.Cair.Imaging
         }
 
         /// <summary>
-        /// Returns a hash code value that represents this object.
+        /// Returns the hash code for this instance.
         /// </summary>
         /// <returns>
-        /// A hash code that represents this object.
+        /// A 32-bit signed integer that is the hash code for this instance.
         /// </returns>
         public override int GetHashCode()
         {
-            return this.Size.GetHashCode() +
-                   this.ConvolutionType.GetHashCode() +
-                   this.EnergyFunction.GetHashCode() +
-                   this.OutputType.GetHashCode() +
-                   this.Parallelize.GetHashCode() +
-                   this.Timeout.GetHashCode() +
-                   this.WeightPath.GetHashCode();
+            unchecked
+            {
+                int hashCode = (int)this.ConvolutionType;
+                hashCode = (hashCode * 397) ^ (int)this.EnergyFunction;
+                hashCode = (hashCode * 397) ^ this.Parallelize.GetHashCode();
+                hashCode = (hashCode * 397) ^ (int)this.OutputType;
+                hashCode = (hashCode * 397) ^ this.Timeout;
+                hashCode = (hashCode * 397) ^ this.Size.GetHashCode();
+                hashCode = (hashCode * 397) ^ (this.WeightPath != null ? this.WeightPath.GetHashCode() : 0);
+                return hashCode;
+            }
         }
     }
 }

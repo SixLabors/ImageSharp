@@ -4,10 +4,7 @@
     <version>2.1.0.0</version>
     <folder>..\src\ImageProcessor</folder>
     <projfile>ImageProcessor.csproj</projfile>
-    <outputs>
-      <output additionalParameters="/p:Framework=NET40" folder="ImageProcessor\lib\net40" />
-      <output additionalParameters="/p:Framework=NET45" folder="ImageProcessor\lib\net45" />
-    </outputs>
+    <output>ImageProcessor\lib\net45</output>
     <nuspec>ImageProcessor.nuspec</nuspec>
   </project>
 
@@ -16,9 +13,7 @@
     <version>4.1.0.0</version>
     <folder>..\src\ImageProcessor.Web</folder>
     <projfile>ImageProcessor.Web.csproj</projfile>
-    <outputs>
-      <output folder="ImageProcessor.Web\lib\net45" />
-    </outputs>
+    <output>ImageProcessor.Web\lib\net45</output>
     <nuspec>ImageProcessor.Web.nuspec</nuspec>
   </project>
 
@@ -33,9 +28,7 @@
     <version>1.0.0.0</version>
     <folder>..\src\Plugins\ImageProcessor\ImageProcessor.Plugins.Cair</folder>
     <projfile>ImageProcessor.Plugins.Cair.csproj</projfile>
-    <outputs>
-      <output folder="ImageProcessor.Plugins.Cair\lib\net45" />
-    </outputs>
+    <output>ImageProcessor.Plugins.Cair\lib\net45</output>
     <nuspec>ImageProcessor.Plugins.Cair.nuspec</nuspec>
   </project>
 
@@ -44,9 +37,7 @@
     <version>1.0.1.0</version>
     <folder>..\src\Plugins\ImageProcessor\ImageProcessor.Plugins.WebP</folder>
     <projfile>ImageProcessor.Plugins.WebP.csproj</projfile>
-    <outputs>
-      <output folder="ImageProcessor.Plugins.WebP\lib\net45" />
-    </outputs>
+    <output>ImageProcessor.Plugins.WebP\lib\net45</output>
     <nuspec>ImageProcessor.Plugins.WebP.nuspec</nuspec>
   </project>
 </projects>

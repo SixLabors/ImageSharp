@@ -76,28 +76,21 @@ task Build-Solution -depends Cleanup-Binaries, Set-VersionNumber {
 	Write-Host "Building projects"
 
 	# build the projects
-	# regular "$xmlobject.node | % { $_ }" don't work when they're nested: http://fredmorrison.wordpress.com/2013/03/19/reading-xml-with-powershell-why-most-examples-you-see-are-wrong/
-	[System.Xml.XmlElement] $root = $PROJECTS.get_DocumentElement()
-	[System.Xml.XmlElement] $project = $null
-	foreach($project in $root.ChildNodes) {
-		if ($project.projfile -eq $null -or $project.projfile -eq "") {
-			continue # goes to next item
+	$PROJECTS.projects.project | % {
+		if ($_.projfile -eq $null -or $_.projfile -eq "") {
+			return # breaks out of ForEach-Object loop
 		}
-
-		$projectPath = Resolve-Path $project.folder
-		Write-Host "Building project $($project.name) at version $($project.version)"
+		
+		$projectPath = Resolve-Path $_.folder
+		Write-Host "Building project $($_.name) at version $($_.version)"
 
 		# it would be possible to update more infos from the xml (description etc), so as to have all infos in one place
-		Update-AssemblyInfo -file (Join-Path $projectPath "Properties\AssemblyInfo.cs") -version $project.version
+		Update-AssemblyInfo -file (Join-Path $projectPath "Properties\AssemblyInfo.cs") -version $_.version
 
-		[System.Xml.XmlElement] $output = $null
-		foreach($output in $project.outputs.ChildNodes) {
-			# using invoke-expression solves a few character escape issues
-			$buildCommand = "msbuild $(Join-Path $projectPath $project.projfile) /t:Build /p:Warnings=true /p:Configuration=Release /p:PipelineDependsOnBuild=False /p:OutDir=$(Join-Path $BIN_PATH $output.folder) $($output.additionalParameters) /clp:WarningsOnly /clp:ErrorsOnly /clp:Summary /clp:PerformanceSummary /v:Normal /nologo"
-			Write-Host $buildCommand -ForegroundColor DarkGreen
-			Exec {
-				Invoke-Expression $buildCommand
-			}
+		# using the invoke-expression on a string solves a few character escape issues
+		$buildCommand = "msbuild $(Join-Path $projectPath $_.projfile) /t:Build /p:Warnings=true /p:Configuration=Release /p:PipelineDependsOnBuild=False /p:OutDir=$(Join-Path $BIN_PATH $($_.output)) /clp:WarningsOnly /clp:ErrorsOnly /clp:Summary /clp:PerformanceSummary /v:Normal /nologo"
+		Exec {
+			Invoke-Expression $buildCommand
 		}
 	}
 }

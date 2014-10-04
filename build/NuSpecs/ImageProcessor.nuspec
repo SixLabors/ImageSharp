@@ -29,7 +29,6 @@
     </tags>
   </metadata>
   <files>
-    <file src="..\_BuildOutput\ImageProcessor\lib\net40\ImageProcessor.dll" target="lib\net40\ImageProcessor.dll" />
     <file src="..\_BuildOutput\ImageProcessor\lib\net45\ImageProcessor.dll" target="lib\net45\ImageProcessor.dll" />
     <file src="..\_BuildOutput\Help\docu\**" target="contents\docs\api" />
   </files>

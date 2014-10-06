@@ -9,6 +9,7 @@ namespace ImageProcessor.UnitTests
     using System;
     using System.Collections.Generic;
     using System.Drawing;
+    using System.Drawing.Imaging;
     using System.IO;
     using System.Linq;
 
@@ -117,8 +118,9 @@ namespace ImageProcessor.UnitTests
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
+                AssertImagesAreIdentical(original, imageFactory.Image);
                 imageFactory.Alpha(50);
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
             }
         }
 
@@ -131,8 +133,9 @@ namespace ImageProcessor.UnitTests
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
+                AssertImagesAreIdentical(original, imageFactory.Image);
                 imageFactory.Brightness(50);
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
             }
         }
 
@@ -145,8 +148,9 @@ namespace ImageProcessor.UnitTests
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
+                AssertImagesAreIdentical(original, imageFactory.Image);
                 imageFactory.BackgroundColor(Color.Yellow);
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
             }
         }
 
@@ -159,8 +163,9 @@ namespace ImageProcessor.UnitTests
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
+                AssertImagesAreIdentical(original, imageFactory.Image);
                 imageFactory.Contrast(50);
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
             }
         }
 
@@ -173,8 +178,9 @@ namespace ImageProcessor.UnitTests
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
+                AssertImagesAreIdentical(original, imageFactory.Image);
                 imageFactory.Saturation(50);
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
             }
         }
 
@@ -187,8 +193,9 @@ namespace ImageProcessor.UnitTests
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
+                AssertImagesAreIdentical(original, imageFactory.Image);
                 imageFactory.Tint(Color.FromKnownColor(KnownColor.AliceBlue));
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
             }
         }
 
@@ -201,8 +208,9 @@ namespace ImageProcessor.UnitTests
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
+                AssertImagesAreIdentical(original, imageFactory.Image);
                 imageFactory.Vignette(Color.FromKnownColor(KnownColor.AliceBlue));
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
             }
         }
 
@@ -215,6 +223,7 @@ namespace ImageProcessor.UnitTests
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
+                AssertImagesAreIdentical(original, imageFactory.Image);
                 imageFactory.Watermark(new TextLayer
                 {
                     FontFamily = new FontFamily("Arial"),
@@ -222,7 +231,7 @@ namespace ImageProcessor.UnitTests
                     Position = new Point(10, 10),
                     Text = "Lorem ipsum dolor"
                 });
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
             }
         }
 
@@ -235,8 +244,9 @@ namespace ImageProcessor.UnitTests
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
+                AssertImagesAreIdentical(original, imageFactory.Image);
                 imageFactory.GaussianBlur(5);
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
             }
         }
 
@@ -249,8 +259,9 @@ namespace ImageProcessor.UnitTests
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
+                AssertImagesAreIdentical(original, imageFactory.Image);
                 imageFactory.GaussianBlur(new GaussianLayer { Sigma = 10, Size = 5, Threshold = 2 });
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
             }
         }
 
@@ -263,8 +274,9 @@ namespace ImageProcessor.UnitTests
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
+                AssertImagesAreIdentical(original, imageFactory.Image);
                 imageFactory.GaussianSharpen(5);
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
             }
         }
 
@@ -277,8 +289,9 @@ namespace ImageProcessor.UnitTests
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
+                AssertImagesAreIdentical(original, imageFactory.Image);
                 imageFactory.GaussianSharpen(new GaussianLayer { Sigma = 10, Size = 5, Threshold = 2 });
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
             }
         }
 
@@ -291,46 +304,57 @@ namespace ImageProcessor.UnitTests
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
+                AssertImagesAreIdentical(original, imageFactory.Image);
 
                 imageFactory.Filter(MatrixFilters.BlackWhite);
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
                 imageFactory.Reset();
+                AssertImagesAreIdentical(original, imageFactory.Image);
 
                 imageFactory.Filter(MatrixFilters.Comic);
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
                 imageFactory.Reset();
+                AssertImagesAreIdentical(original, imageFactory.Image);
 
                 imageFactory.Filter(MatrixFilters.Gotham);
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
                 imageFactory.Reset();
+                AssertImagesAreIdentical(original, imageFactory.Image);
 
                 imageFactory.Filter(MatrixFilters.GreyScale);
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
                 imageFactory.Reset();
+                AssertImagesAreIdentical(original, imageFactory.Image);
 
                 imageFactory.Filter(MatrixFilters.HiSatch);
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
                 imageFactory.Reset();
+                AssertImagesAreIdentical(original, imageFactory.Image);
 
                 imageFactory.Filter(MatrixFilters.Invert);
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
                 imageFactory.Reset();
+                AssertImagesAreIdentical(original, imageFactory.Image);
 
                 imageFactory.Filter(MatrixFilters.Lomograph);
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
                 imageFactory.Reset();
+                AssertImagesAreIdentical(original, imageFactory.Image);
 
                 imageFactory.Filter(MatrixFilters.LoSatch);
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
                 imageFactory.Reset();
+                AssertImagesAreIdentical(original, imageFactory.Image);
 
                 imageFactory.Filter(MatrixFilters.Polaroid);
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
                 imageFactory.Reset();
+                AssertImagesAreIdentical(original, imageFactory.Image);
 
                 imageFactory.Filter(MatrixFilters.Sepia);
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
                 imageFactory.Reset();
+                AssertImagesAreIdentical(original, imageFactory.Image);
             }
         }
 
@@ -343,8 +367,9 @@ namespace ImageProcessor.UnitTests
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
+                AssertImagesAreIdentical(original, imageFactory.Image);
                 imageFactory.RoundedCorners(new RoundedCornerLayer(5));
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
             }
         }
 
@@ -373,8 +398,9 @@ namespace ImageProcessor.UnitTests
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
+                AssertImagesAreIdentical(original, imageFactory.Image);
                 imageFactory.Crop(new Rectangle(0, 0, MaxSize, MaxSize));
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
                 Assert.AreEqual(MaxSize, imageFactory.Image.Width);
                 Assert.LessOrEqual(MaxSize, imageFactory.Image.Height);
             }
@@ -390,8 +416,9 @@ namespace ImageProcessor.UnitTests
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
+                AssertImagesAreIdentical(original, imageFactory.Image);
                 imageFactory.Crop(new CropLayer(0, 0, MaxSize, MaxSize, CropMode.Pixels));
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
                 Assert.AreEqual(MaxSize, imageFactory.Image.Width);
                 Assert.LessOrEqual(MaxSize, imageFactory.Image.Height);
             }
@@ -406,14 +433,16 @@ namespace ImageProcessor.UnitTests
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
+                AssertImagesAreIdentical(original, imageFactory.Image);
                 imageFactory.Flip(true);
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
                 Assert.AreEqual(original.Width, imageFactory.Image.Width);
                 Assert.AreEqual(original.Height, imageFactory.Image.Height);
                 imageFactory.Reset();
+                AssertImagesAreIdentical(original, imageFactory.Image);
 
                 imageFactory.Flip();
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
                 Assert.AreEqual(original.Width, imageFactory.Image.Width);
                 Assert.AreEqual(original.Height, imageFactory.Image.Height);
             }
@@ -458,6 +487,7 @@ namespace ImageProcessor.UnitTests
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
+                AssertImagesAreIdentical(original, imageFactory.Image);
                 imageFactory.Rotate(90);
                 Assert.AreEqual(original.Height, imageFactory.Image.Width);
                 Assert.AreEqual(original.Width, imageFactory.Image.Height);
@@ -473,13 +503,15 @@ namespace ImageProcessor.UnitTests
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
+                AssertImagesAreIdentical(original, imageFactory.Image);
                 imageFactory.Hue(90);
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
 
                 imageFactory.Reset();
+                AssertImagesAreIdentical(original, imageFactory.Image);
 
                 imageFactory.Hue(116, true);
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
             }
         }
 
@@ -492,8 +524,9 @@ namespace ImageProcessor.UnitTests
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
+                AssertImagesAreIdentical(original, imageFactory.Image);
                 imageFactory.Pixelate(8);
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
             }
         }
 
@@ -522,8 +555,9 @@ namespace ImageProcessor.UnitTests
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
+                AssertImagesAreIdentical(original, imageFactory.Image);
                 imageFactory.ReplaceColor(Color.White, Color.Black, 90);
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
             }
         }
 
@@ -536,42 +570,52 @@ namespace ImageProcessor.UnitTests
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
+                AssertImagesAreIdentical(original, imageFactory.Image);
 
                 imageFactory.DetectEdges(new KayyaliEdgeFilter());
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
                 imageFactory.Reset();
+                AssertImagesAreIdentical(original, imageFactory.Image);
 
                 imageFactory.DetectEdges(new KirschEdgeFilter());
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
                 imageFactory.Reset();
+                AssertImagesAreIdentical(original, imageFactory.Image);
 
                 imageFactory.DetectEdges(new Laplacian3X3EdgeFilter());
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
                 imageFactory.Reset();
+                AssertImagesAreIdentical(original, imageFactory.Image);
 
                 imageFactory.DetectEdges(new Laplacian5X5EdgeFilter());
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
                 imageFactory.Reset();
+                AssertImagesAreIdentical(original, imageFactory.Image);
 
                 imageFactory.DetectEdges(new LaplacianOfGaussianEdgeFilter());
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
                 imageFactory.Reset();
+                AssertImagesAreIdentical(original, imageFactory.Image);
 
                 imageFactory.DetectEdges(new PrewittEdgeFilter());
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
                 imageFactory.Reset();
+                AssertImagesAreIdentical(original, imageFactory.Image);
 
                 imageFactory.DetectEdges(new RobertsCrossEdgeFilter());
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
                 imageFactory.Reset();
+                AssertImagesAreIdentical(original, imageFactory.Image);
 
                 imageFactory.DetectEdges(new ScharrEdgeFilter());
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
                 imageFactory.Reset();
+                AssertImagesAreIdentical(original, imageFactory.Image);
 
                 imageFactory.DetectEdges(new SobelEdgeFilter());
-                Assert.AreNotEqual(original, imageFactory.Image);
+                AssertImagesAreDifferent(original, imageFactory.Image);
                 imageFactory.Reset();
+                AssertImagesAreIdentical(original, imageFactory.Image);
             }
         }
 
@@ -635,6 +679,41 @@ namespace ImageProcessor.UnitTests
             }
 
             return imagesFactories;
+        }
+
+        /// <summary>
+        /// Asserts that two images are identical
+        /// </summary>
+        /// <param name="expected">The expected result</param>
+        /// <param name="tested">The tested image</param>
+        private void AssertImagesAreIdentical(Image expected, Image tested)
+        {
+            Assert.IsTrue(ToByteArray(expected).SequenceEqual(ToByteArray(tested)));
+        }
+
+        /// <summary>
+        /// Asserts that two images are different
+        /// </summary>
+        /// <param name="expected">The not-expected result</param>
+        /// <param name="tested">The tested image</param>
+        private void AssertImagesAreDifferent(Image expected, Image tested)
+        {
+            Assert.IsFalse(ToByteArray(expected).SequenceEqual(ToByteArray(tested)));
+        }
+
+        /// <summary>
+        /// Converts an image to a byte array
+        /// </summary>
+        /// <param name="imageIn">The image to convert</param>
+        /// <param name="format">The format to use</param>
+        /// <returns>An array of bytes representing the image</returns>
+        public static byte[] ToByteArray(Image imageIn)
+        {
+            using (MemoryStream ms = new MemoryStream())
+            {
+                imageIn.Save(ms, ImageFormat.Jpeg);
+                return ms.ToArray();
+            }
         }
     }
 }

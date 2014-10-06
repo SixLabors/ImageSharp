@@ -152,6 +152,7 @@ task Run-Coverage -depends Build-Tests {
 		$CoverageOutputPath = Join-Path $TEST_RESULTS "$($_)_Coverage.xml"
 		
 		Write-Host "Running code coverage on project $_"
+		$coverageFilter = "-filter:+[*]* -[FluentAssertions*]* -[*]Common.Exceptions -[ImageProcessor.UnitTests]* -[ImageProcessor.Web.UnitTests]*"
 		& $OPENCOVER_EXE -register:user -target:$NUNIT_EXE -targetargs:"$TestDdlPath /noshadow /nologo" -targetdir:$TestDllFolder -output:$CoverageOutputPath
 		
 		Write-Host "Transforming coverage results file to HTML"

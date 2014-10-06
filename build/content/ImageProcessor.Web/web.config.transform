@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0"?>
-<configuration> 
+<configuration>
   <system.web>
     <httpModules>
       <add name="ImageProcessorModule" type="ImageProcessor.Web.HttpModules.ImageProcessingModule, ImageProcessor.Web"/>
@@ -7,10 +7,6 @@
   </system.web>
   <system.webServer>
     <validation validateIntegratedModeConfiguration="false" />
-    <staticContent>
-      <remove fileExtension=".webp"/>
-      <mimeMap fileExtension=".webp" mimeType="image/webp" />
-    </staticContent>
     <modules>
       <add name="ImageProcessorModule" type="ImageProcessor.Web.HttpModules.ImageProcessingModule, ImageProcessor.Web"/>
     </modules>

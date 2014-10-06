@@ -668,6 +668,12 @@ namespace ImageProcessor.UnitTests
                 }
             }
 
+            // reset all the images whenever we call this
+            foreach (ImageFactory image in imagesFactories)
+            {
+                image.Reset();
+            }
+
             return imagesFactories;
         }
 

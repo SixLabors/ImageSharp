@@ -300,55 +300,27 @@ namespace ImageProcessor.UnitTests
             {
                 Image original = (Image)imageFactory.Image.Clone();
 
-                imageFactory.Filter(MatrixFilters.BlackWhite);
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the bw filter operation should have been applied on {0}", imageFactory.ImagePath);
-                imageFactory.Reset();
-                AssertImagesAreIdentical(original, imageFactory.Image, "because the image should be reset");
+                List<IMatrixFilter> filters = new List<IMatrixFilter>()
+                {
+                    MatrixFilters.BlackWhite,
+                    MatrixFilters.Comic,
+                    MatrixFilters.Gotham,
+                    MatrixFilters.GreyScale,
+                    MatrixFilters.HiSatch,
+                    MatrixFilters.Invert,
+                    MatrixFilters.Lomograph,
+                    MatrixFilters.LoSatch,
+                    MatrixFilters.Polaroid,
+                    MatrixFilters.Sepia
+                };
 
-                imageFactory.Filter(MatrixFilters.Comic);
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the comic filter operation should have been applied on {0}", imageFactory.ImagePath);
-                imageFactory.Reset();
-                AssertImagesAreIdentical(original, imageFactory.Image, "because the image should be reset");
-
-                imageFactory.Filter(MatrixFilters.Gotham);
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the gotham filter operation should have been applied on {0}", imageFactory.ImagePath);
-                imageFactory.Reset();
-                AssertImagesAreIdentical(original, imageFactory.Image, "because the image should be reset");
-
-                imageFactory.Filter(MatrixFilters.GreyScale);
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the greyscale filter operation should have been applied on {0}", imageFactory.ImagePath);
-                imageFactory.Reset();
-                AssertImagesAreIdentical(original, imageFactory.Image, "because the image should be reset");
-
-                imageFactory.Filter(MatrixFilters.HiSatch);
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the hisatch operation should have been applied on {0}", imageFactory.ImagePath);
-                imageFactory.Reset();
-                AssertImagesAreIdentical(original, imageFactory.Image, "because the image should be reset");
-
-                imageFactory.Filter(MatrixFilters.Invert);
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the invert filter operation should have been applied on {0}", imageFactory.ImagePath);
-                imageFactory.Reset();
-                AssertImagesAreIdentical(original, imageFactory.Image, "because the image should be reset");
-
-                imageFactory.Filter(MatrixFilters.Lomograph);
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the lomo filter operation should have been applied on {0}", imageFactory.ImagePath);
-                imageFactory.Reset();
-                AssertImagesAreIdentical(original, imageFactory.Image, "because the image should be reset");
-
-                imageFactory.Filter(MatrixFilters.LoSatch);
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the losatch filter operation should have been applied on {0}", imageFactory.ImagePath);
-                imageFactory.Reset();
-                AssertImagesAreIdentical(original, imageFactory.Image, "because the image should be reset");
-
-                imageFactory.Filter(MatrixFilters.Polaroid);
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the polaroid filter operation should have been applied on {0}", imageFactory.ImagePath);
-                imageFactory.Reset();
-                AssertImagesAreIdentical(original, imageFactory.Image, "because the image should be reset");
-
-                imageFactory.Filter(MatrixFilters.Sepia);
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the sepia filter operation should have been applied on {0}", imageFactory.ImagePath);
-                imageFactory.Reset();
-                AssertImagesAreIdentical(original, imageFactory.Image, "because the image should be reset");
+                foreach (IMatrixFilter filter in filters)
+                {
+                    imageFactory.Filter(filter);
+                    AssertImagesAreDifferent(original, imageFactory.Image, "because the filter operation should have been applied on {0}", imageFactory.ImagePath);
+                    imageFactory.Reset();
+                    AssertImagesAreIdentical(original, imageFactory.Image, "because the image should be reset");
+                }
             }
         }
 
@@ -562,50 +534,26 @@ namespace ImageProcessor.UnitTests
             {
                 Image original = (Image)imageFactory.Image.Clone();
 
-                imageFactory.DetectEdges(new KayyaliEdgeFilter());
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the kayyali edge operation should have been applied on {0}", imageFactory.ImagePath);
-                imageFactory.Reset();
-                AssertImagesAreIdentical(original, imageFactory.Image, "because the image should be reset");
+                List<IEdgeFilter> filters = new List<IEdgeFilter>()
+                {
+                    new KayyaliEdgeFilter(),
+                    new KirschEdgeFilter(),
+                    new Laplacian3X3EdgeFilter(),
+                    new Laplacian5X5EdgeFilter(),
+                    new LaplacianOfGaussianEdgeFilter(),
+                    new PrewittEdgeFilter(),
+                    new RobertsCrossEdgeFilter(),
+                    new ScharrEdgeFilter(),
+                    new SobelEdgeFilter()
+                };
 
-                imageFactory.DetectEdges(new KirschEdgeFilter());
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the kirsch edge operation should have been applied on {0}", imageFactory.ImagePath);
-                imageFactory.Reset();
-                AssertImagesAreIdentical(original, imageFactory.Image, "because the image should be reset");
-
-                imageFactory.DetectEdges(new Laplacian3X3EdgeFilter());
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the laplacian 3x3 edge operation should have been applied on {0}", imageFactory.ImagePath);
-                imageFactory.Reset();
-                AssertImagesAreIdentical(original, imageFactory.Image, "because the image should be reset");
-
-                imageFactory.DetectEdges(new Laplacian5X5EdgeFilter());
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the laplacian 5x5 edge operation should have been applied on {0}", imageFactory.ImagePath);
-                imageFactory.Reset();
-                AssertImagesAreIdentical(original, imageFactory.Image, "because the image should be reset");
-
-                imageFactory.DetectEdges(new LaplacianOfGaussianEdgeFilter());
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the laplacian gaussian edge operation should have been applied on {0}", imageFactory.ImagePath);
-                imageFactory.Reset();
-                AssertImagesAreIdentical(original, imageFactory.Image, "because the image should be reset");
-
-                imageFactory.DetectEdges(new PrewittEdgeFilter());
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the prewitt edge operation should have been applied on {0}", imageFactory.ImagePath);
-                imageFactory.Reset();
-                AssertImagesAreIdentical(original, imageFactory.Image, "because the image should be reset");
-
-                imageFactory.DetectEdges(new RobertsCrossEdgeFilter());
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the roberts edge operation should have been applied on {0}", imageFactory.ImagePath);
-                imageFactory.Reset();
-                AssertImagesAreIdentical(original, imageFactory.Image, "because the image should be reset");
-
-                imageFactory.DetectEdges(new ScharrEdgeFilter());
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the scharr edge operation should have been applied on {0}", imageFactory.ImagePath);
-                imageFactory.Reset();
-                AssertImagesAreIdentical(original, imageFactory.Image, "because the image should be reset");
-
-                imageFactory.DetectEdges(new SobelEdgeFilter());
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the sobel edge operation should have been applied on {0}", imageFactory.ImagePath);
-                imageFactory.Reset();
-                AssertImagesAreIdentical(original, imageFactory.Image, "because the image should be reset");
+                foreach (IEdgeFilter filter in filters)
+                {
+                    imageFactory.DetectEdges(filter);
+                    AssertImagesAreDifferent(original, imageFactory.Image, "because the edge operation should have been applied on {0}", imageFactory.ImagePath);
+                    imageFactory.Reset();
+                    AssertImagesAreIdentical(original, imageFactory.Image, "because the image should be reset");
+                }
             }
         }
 

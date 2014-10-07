@@ -150,12 +150,11 @@ namespace ImageProcessor.UnitTests
         [Test]
         public void TestApplyEffectBackgroundColor()
         {
-            foreach (ImageFactory imageFactory in this.ListInputImages())
-            {
-                Image original = (Image)imageFactory.Image.Clone();
-                imageFactory.BackgroundColor(Color.Yellow);
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the background color operation should have been applied on {0}", imageFactory.ImagePath);
-            }
+            ImageFactory imageFactory = new ImageFactory();
+            imageFactory.Load(@"Images\text.png");
+            Image original = (Image)imageFactory.Image.Clone();
+            imageFactory.BackgroundColor(Color.Yellow);
+            AssertImagesAreDifferent(original, imageFactory.Image, "because the background color operation should have been applied on {0}", imageFactory.ImagePath);
         }
 
         /// <summary>

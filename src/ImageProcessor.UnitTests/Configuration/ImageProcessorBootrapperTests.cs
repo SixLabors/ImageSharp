@@ -21,7 +21,7 @@ namespace ImageProcessor.UnitTests.Configuration
     public class ImageProcessorBootrapperTests
     {
         [Test]
-        public void Singleton_is_instantiated()
+        public void BoostrapperSingletonIsInstantiated()
         {
             ImageProcessorBootstrapper.Instance.SupportedImageFormats.Count().Should().BeGreaterThan(0, "because there should be supported image formats");
 

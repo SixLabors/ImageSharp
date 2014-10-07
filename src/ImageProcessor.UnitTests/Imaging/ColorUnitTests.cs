@@ -14,6 +14,7 @@ namespace ImageProcessor.UnitTests.Imaging
     using System.Drawing;
     using ImageProcessor.Imaging.Colors;
     using NUnit.Framework;
+    using FluentAssertions;
 
     /// <summary>
     /// Test harness for the color classes.
@@ -25,36 +26,36 @@ namespace ImageProcessor.UnitTests.Imaging
         /// Tests the <see cref="RgbaColor"/> struct equality operators.
         /// </summary>
         [Test]
-        public void TestRgbaEquality()
+        public void RgbaColorImplementsEquals()
         {
             RgbaColor first = RgbaColor.FromColor(Color.White);
             RgbaColor second = RgbaColor.FromColor(Color.White);
 
-            Assert.AreEqual(first, second);
+            first.Equals(second).Should().BeTrue("because the color structure should implement Equals()");
         }
 
         /// <summary>
         /// Tests the <see cref="HslaColor"/> struct equality operators.
         /// </summary>
         [Test]
-        public void TestHslaEquality()
+        public void HslaColorImplementsEquals()
         {
             HslaColor first = HslaColor.FromColor(Color.White);
             HslaColor second = HslaColor.FromColor(Color.White);
 
-            Assert.AreEqual(first, second);
+            first.Equals(second).Should().BeTrue("because the color structure should implement Equals()");
         }
 
         /// <summary>
         /// Tests the <see cref="YCbCrColor"/> struct equality operators.
         /// </summary>
         [Test]
-        public void TestYCbCrEquality()
+        public void YCbCrColorImplementsEquals()
         {
             YCbCrColor first = YCbCrColor.FromColor(Color.White);
             YCbCrColor second = YCbCrColor.FromColor(Color.White);
 
-            Assert.AreEqual(first, second);
+            first.Equals(second).Should().BeTrue("because the color structure should implement Equals()");
         }
 
         /// <summary>
@@ -78,12 +79,13 @@ namespace ImageProcessor.UnitTests.Imaging
         [TestCase("#FFFFBB")]
         [TestCase("#FF002B")]
         [TestCase("#00ABFF")]
-        public void TestHslaConversion(string expected)
+        public void HslaColorShouldConvertToAndFromString(string expected)
         {
             Color color = ColorTranslator.FromHtml(expected);
             HslaColor hslaColor = HslaColor.FromColor(color);
             string result = ColorTranslator.ToHtml(hslaColor);
-            Assert.AreEqual(expected, result);
+
+            result.Should().Be(expected);
         }
 
         /// <summary>
@@ -107,12 +109,13 @@ namespace ImageProcessor.UnitTests.Imaging
         [TestCase("#FFFFBB")]
         [TestCase("#FF002B")]
         [TestCase("#00ABFF")]
-        public void TestRgbaConversion(string expected)
+        public void RgbaColorShouldConvertToAndFromString(string expected)
         {
             Color color = ColorTranslator.FromHtml(expected);
             RgbaColor rgbaColor = RgbaColor.FromColor(color);
             string result = ColorTranslator.ToHtml(rgbaColor);
-            Assert.AreEqual(expected, result);
+
+            result.Should().Be(expected);
         }
 
         /// <summary>
@@ -136,12 +139,13 @@ namespace ImageProcessor.UnitTests.Imaging
         [TestCase("#FFFFBB")]
         [TestCase("#FF002B")]
         [TestCase("#00ABFF")]
-        public void TestYCbCrConversion(string expected)
+        public void YCbCrColorShouldConvertToAndFromString(string expected)
         {
             Color color = ColorTranslator.FromHtml(expected);
             YCbCrColor yCbCrColor = YCbCrColor.FromColor(color);
             string result = ColorTranslator.ToHtml(yCbCrColor);
-            Assert.AreEqual(expected, result);
+
+            result.Should().Be(expected);
         }
     }
 }

@@ -40,7 +40,7 @@ namespace ImageProcessor.UnitTests
         /// Tests the loading of image from a file
         /// </summary>
         [Test]
-        public void TestLoadImageFromFile()
+        public void ImageIsLoadedFromFile()
         {
             foreach (FileInfo file in this.ListInputFiles())
             {
@@ -58,7 +58,7 @@ namespace ImageProcessor.UnitTests
         /// Tests the loading of image from a memory stream
         /// </summary>
         [Test]
-        public void TestLoadImageFromMemory()
+        public void ImageIsLoadedFromMemoryStream()
         {
             foreach (FileInfo file in this.ListInputFiles())
             {
@@ -81,7 +81,7 @@ namespace ImageProcessor.UnitTests
         /// Tests that the save method actually saves a file
         /// </summary>
         [Test]
-        public void TestSaveToDisk()
+        public void ImageIsSavedToDisk()
         {
             foreach (FileInfo file in this.ListInputFiles())
             {
@@ -102,7 +102,7 @@ namespace ImageProcessor.UnitTests
         /// Tests that the save method actually writes to memory
         /// </summary>
         [Test]
-        public void TestSaveToMemory()
+        public void ImageIsSavedToMemory()
         {
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
@@ -120,7 +120,7 @@ namespace ImageProcessor.UnitTests
         /// Tests that a filter is really applied by checking that the image is modified
         /// </summary>
         [Test]
-        public void TestApplyEffectAlpha()
+        public void AlphaIsModified()
         {
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
@@ -134,7 +134,7 @@ namespace ImageProcessor.UnitTests
         /// Tests that brightness changes is really applied by checking that the image is modified
         /// </summary>
         [Test]
-        public void TestApplyEffectBrightness()
+        public void BrightnessIsModified()
         {
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
@@ -148,7 +148,7 @@ namespace ImageProcessor.UnitTests
         /// Tests that background color changes are really applied by checking that the image is modified
         /// </summary>
         [Test]
-        public void TestApplyEffectBackgroundColor()
+        public void BackgroundColorIsChanged()
         {
             ImageFactory imageFactory = new ImageFactory();
             imageFactory.Load(@"Images\text.png");
@@ -161,7 +161,7 @@ namespace ImageProcessor.UnitTests
         /// Tests that a contrast change is really applied by checking that the image is modified
         /// </summary>
         [Test]
-        public void TestApplyEffectContrast()
+        public void ContrastIsModified()
         {
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
@@ -175,7 +175,7 @@ namespace ImageProcessor.UnitTests
         /// Tests that a saturation change is really applied by checking that the image is modified
         /// </summary>
         [Test]
-        public void TestApplyEffectSaturation()
+        public void SaturationIsModified()
         {
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
@@ -189,7 +189,7 @@ namespace ImageProcessor.UnitTests
         /// Tests that a tint change is really applied by checking that the image is modified
         /// </summary>
         [Test]
-        public void TestApplyEffectTint()
+        public void TintIsModified()
         {
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
@@ -203,7 +203,7 @@ namespace ImageProcessor.UnitTests
         /// Tests that a vignette change is really applied by checking that the image is modified
         /// </summary>
         [Test]
-        public void TestApplyEffectVignette()
+        public void VignetteEffectIsApplied()
         {
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
@@ -217,7 +217,7 @@ namespace ImageProcessor.UnitTests
         /// Tests that a filter is really applied by checking that the image is modified
         /// </summary>
         [Test]
-        public void TestApplyEffectWatermark()
+        public void WatermarkIsApplied()
         {
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
@@ -237,7 +237,7 @@ namespace ImageProcessor.UnitTests
         /// Tests that a filter is really applied by checking that the image is modified
         /// </summary>
         [Test]
-        public void TestApplyEffectBlur()
+        public void BlurEffectIsApplied()
         {
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
@@ -251,7 +251,7 @@ namespace ImageProcessor.UnitTests
         /// Tests that a filter is really applied by checking that the image is modified
         /// </summary>
         [Test]
-        public void TestApplyEffectBlurWithLayer()
+        public void BlurWithLayerIsApplied()
         {
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
@@ -265,7 +265,7 @@ namespace ImageProcessor.UnitTests
         /// Tests that a filter is really applied by checking that the image is modified
         /// </summary>
         [Test]
-        public void TestApplyEffectSharpen()
+        public void SharpenEffectIsApplied()
         {
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
@@ -279,7 +279,7 @@ namespace ImageProcessor.UnitTests
         /// Tests that a filter is really applied by checking that the image is modified
         /// </summary>
         [Test]
-        public void TestApplyEffectSharpenWithLayer()
+        public void SharpenWithLayerIsApplied()
         {
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
@@ -293,7 +293,7 @@ namespace ImageProcessor.UnitTests
         /// Tests that all filters can be applied
         /// </summary>
         [Test]
-        public void TestApplyEffectFilter()
+        public void FilterIsApplied()
         {
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
@@ -327,7 +327,7 @@ namespace ImageProcessor.UnitTests
         /// Tests that a filter is really applied by checking that the image is modified
         /// </summary>
         [Test]
-        public void TestRoundedCorners()
+        public void RoundedCornersAreApplied()
         {
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
@@ -341,7 +341,7 @@ namespace ImageProcessor.UnitTests
         /// Tests that the image is well resized using constraints
         /// </summary>
         [Test]
-        public void TestResizeConstraints()
+        public void ImageIsResizedWithinConstraints()
         {
             const int MaxSize = 200;
             foreach (ImageFactory imageFactory in this.ListInputImages())
@@ -356,7 +356,7 @@ namespace ImageProcessor.UnitTests
         /// Tests that the image is well cropped
         /// </summary>
         [Test]
-        public void TestCrop()
+        public void ImageIsCropped()
         {
             const int MaxSize = 20;
             foreach (ImageFactory imageFactory in this.ListInputImages())
@@ -374,7 +374,7 @@ namespace ImageProcessor.UnitTests
         /// Tests that the image is well cropped
         /// </summary>
         [Test]
-        public void TestCropWithCropLayer()
+        public void ImageIsCroppedWithLayer()
         {
             const int MaxSize = 20;
             foreach (ImageFactory imageFactory in this.ListInputImages())
@@ -392,7 +392,7 @@ namespace ImageProcessor.UnitTests
         /// Tests that the image is flipped
         /// </summary>
         [Test]
-        public void TestFlip()
+        public void ImageIsFlipped()
         {
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
@@ -415,7 +415,7 @@ namespace ImageProcessor.UnitTests
         /// Tests that the image is resized
         /// </summary>
         [Test]
-        public void TestResize()
+        public void ImageIsResized()
         {
             const int NewSize = 150;
             foreach (ImageFactory imageFactory in this.ListInputImages())
@@ -431,7 +431,7 @@ namespace ImageProcessor.UnitTests
         /// Tests that the image is resized
         /// </summary>
         [Test]
-        public void TestResizeWithLayer()
+        public void ImageIsResizedWithLayer()
         {
             const int NewSize = 150;
             foreach (ImageFactory imageFactory in this.ListInputImages())
@@ -447,7 +447,7 @@ namespace ImageProcessor.UnitTests
         /// Tests that the image is resized
         /// </summary>
         [Test]
-        public void TestRotate()
+        public void ImageIsRotated()
         {
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
@@ -463,7 +463,7 @@ namespace ImageProcessor.UnitTests
         /// Tests that the images hue has been altered.
         /// </summary>
         [Test]
-        public void TestHue()
+        public void HueIsModified()
         {
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
@@ -483,7 +483,7 @@ namespace ImageProcessor.UnitTests
         /// Tests that the image has been pixelated.
         /// </summary>
         [Test]
-        public void TestPixelate()
+        public void PixelateEffectIsApplied()
         {
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
@@ -497,7 +497,7 @@ namespace ImageProcessor.UnitTests
         /// Tests that the images quality has been set.
         /// </summary>
         [Test]
-        public void TestQuality()
+        public void ImageQualityIsModified()
         {
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
@@ -513,7 +513,7 @@ namespace ImageProcessor.UnitTests
         /// Tests that the image has had a color replaced.
         /// </summary>
         [Test]
-        public void TestReplaceColor()
+        public void ColorIsReplaced()
         {
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
@@ -527,7 +527,7 @@ namespace ImageProcessor.UnitTests
         /// Tests that the various edge detection algorithms are applied.
         /// </summary>
         [Test]
-        public void TestEdgeDetection()
+        public void EdgeDetectionEffectIsApplied()
         {
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {

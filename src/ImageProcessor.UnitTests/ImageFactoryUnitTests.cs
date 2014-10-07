@@ -126,7 +126,7 @@ namespace ImageProcessor.UnitTests
             {
                 Image original = (Image)imageFactory.Image.Clone();
                 imageFactory.Alpha(50);
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the alpha operation should have been applied on {0}", imageFactory.ImagePath);
+                AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the alpha operation should have been applied on {0}", imageFactory.ImagePath);
             }
         }
 
@@ -140,7 +140,7 @@ namespace ImageProcessor.UnitTests
             {
                 Image original = (Image)imageFactory.Image.Clone();
                 imageFactory.Brightness(50);
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the brightness operation should have been applied on {0}", imageFactory.ImagePath);
+                AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the brightness operation should have been applied on {0}", imageFactory.ImagePath);
             }
         }
 
@@ -154,7 +154,7 @@ namespace ImageProcessor.UnitTests
             imageFactory.Load(@"Images\text.png");
             Image original = (Image)imageFactory.Image.Clone();
             imageFactory.BackgroundColor(Color.Yellow);
-            AssertImagesAreDifferent(original, imageFactory.Image, "because the background color operation should have been applied on {0}", imageFactory.ImagePath);
+            AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the background color operation should have been applied on {0}", imageFactory.ImagePath);
         }
 
         /// <summary>
@@ -167,7 +167,7 @@ namespace ImageProcessor.UnitTests
             {
                 Image original = (Image)imageFactory.Image.Clone();
                 imageFactory.Contrast(50);
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the contrast operation should have been applied on {0}", imageFactory.ImagePath);
+                AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the contrast operation should have been applied on {0}", imageFactory.ImagePath);
             }
         }
 
@@ -181,7 +181,7 @@ namespace ImageProcessor.UnitTests
             {
                 Image original = (Image)imageFactory.Image.Clone();
                 imageFactory.Saturation(50);
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the saturation operation should have been applied on {0}", imageFactory.ImagePath);
+                AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the saturation operation should have been applied on {0}", imageFactory.ImagePath);
             }
         }
 
@@ -195,7 +195,7 @@ namespace ImageProcessor.UnitTests
             {
                 Image original = (Image)imageFactory.Image.Clone();
                 imageFactory.Tint(Color.FromKnownColor(KnownColor.AliceBlue));
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the tint operation should have been applied on {0}", imageFactory.ImagePath);
+                AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the tint operation should have been applied on {0}", imageFactory.ImagePath);
             }
         }
 
@@ -209,7 +209,7 @@ namespace ImageProcessor.UnitTests
             {
                 Image original = (Image)imageFactory.Image.Clone();
                 imageFactory.Vignette(Color.FromKnownColor(KnownColor.AliceBlue));
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the vignette operation should have been applied on {0}", imageFactory.ImagePath);
+                AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the vignette operation should have been applied on {0}", imageFactory.ImagePath);
             }
         }
 
@@ -229,7 +229,7 @@ namespace ImageProcessor.UnitTests
                     Position = new Point(10, 10),
                     Text = "Lorem ipsum dolor"
                 });
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the watermark operation should have been applied on {0}", imageFactory.ImagePath);
+                AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the watermark operation should have been applied on {0}", imageFactory.ImagePath);
             }
         }
 
@@ -243,7 +243,7 @@ namespace ImageProcessor.UnitTests
             {
                 Image original = (Image)imageFactory.Image.Clone();
                 imageFactory.GaussianBlur(5);
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the blur operation should have been applied on {0}", imageFactory.ImagePath);
+                AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the blur operation should have been applied on {0}", imageFactory.ImagePath);
             }
         }
 
@@ -257,7 +257,7 @@ namespace ImageProcessor.UnitTests
             {
                 Image original = (Image)imageFactory.Image.Clone();
                 imageFactory.GaussianBlur(new GaussianLayer { Sigma = 10, Size = 5, Threshold = 2 });
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the layered blur operation should have been applied on {0}", imageFactory.ImagePath);
+                AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the layered blur operation should have been applied on {0}", imageFactory.ImagePath);
             }
         }
 
@@ -271,7 +271,7 @@ namespace ImageProcessor.UnitTests
             {
                 Image original = (Image)imageFactory.Image.Clone();
                 imageFactory.GaussianSharpen(5);
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the sharpen operation should have been applied on {0}", imageFactory.ImagePath);
+                AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the sharpen operation should have been applied on {0}", imageFactory.ImagePath);
             }
         }
 
@@ -285,7 +285,7 @@ namespace ImageProcessor.UnitTests
             {
                 Image original = (Image)imageFactory.Image.Clone();
                 imageFactory.GaussianSharpen(new GaussianLayer { Sigma = 10, Size = 5, Threshold = 2 });
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the layered sharpen operation should have been applied on {0}", imageFactory.ImagePath);
+                AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the layered sharpen operation should have been applied on {0}", imageFactory.ImagePath);
             }
         }
 
@@ -316,9 +316,9 @@ namespace ImageProcessor.UnitTests
                 foreach (IMatrixFilter filter in filters)
                 {
                     imageFactory.Filter(filter);
-                    AssertImagesAreDifferent(original, imageFactory.Image, "because the filter operation should have been applied on {0}", imageFactory.ImagePath);
+                    AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the filter operation should have been applied on {0}", imageFactory.ImagePath);
                     imageFactory.Reset();
-                    AssertImagesAreIdentical(original, imageFactory.Image, "because the image should be reset");
+                    AssertionHelpers.AssertImagesAreIdentical(original, imageFactory.Image, "because the image should be reset");
                 }
             }
         }
@@ -333,7 +333,7 @@ namespace ImageProcessor.UnitTests
             {
                 Image original = (Image)imageFactory.Image.Clone();
                 imageFactory.RoundedCorners(new RoundedCornerLayer(5));
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the rounded corners operation should have been applied on {0}", imageFactory.ImagePath);
+                AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the rounded corners operation should have been applied on {0}", imageFactory.ImagePath);
             }
         }
 
@@ -363,7 +363,7 @@ namespace ImageProcessor.UnitTests
             {
                 Image original = (Image)imageFactory.Image.Clone();
                 imageFactory.Crop(new Rectangle(0, 0, MaxSize, MaxSize));
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the crop operation should have been applied on {0}", imageFactory.ImagePath);
+                AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the crop operation should have been applied on {0}", imageFactory.ImagePath);
 
                 imageFactory.Image.Width.Should().Be(MaxSize, "because the cropped image should be {0}x{0}", MaxSize);
                 imageFactory.Image.Height.Should().Be(MaxSize, "because the cropped image should be {0}x{0}", MaxSize);
@@ -381,7 +381,7 @@ namespace ImageProcessor.UnitTests
             {
                 Image original = (Image)imageFactory.Image.Clone();
                 imageFactory.Crop(new CropLayer(0, 0, MaxSize, MaxSize, CropMode.Pixels));
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the layered crop operation should have been applied on {0}", imageFactory.ImagePath);
+                AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the layered crop operation should have been applied on {0}", imageFactory.ImagePath);
 
                 imageFactory.Image.Width.Should().Be(MaxSize, "because the cropped image should be {0}x{0}", MaxSize);
                 imageFactory.Image.Height.Should().Be(MaxSize, "because the cropped image should be {0}x{0}", MaxSize);
@@ -398,14 +398,14 @@ namespace ImageProcessor.UnitTests
             {
                 Image original = (Image)imageFactory.Image.Clone();
                 imageFactory.Flip(true);
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the vertical flip operation should have been applied on {0}", imageFactory.ImagePath);
+                AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the vertical flip operation should have been applied on {0}", imageFactory.ImagePath);
                 imageFactory.Image.Width.Should().Be(original.Width, "because the dimensions should not have changed");
                 imageFactory.Image.Height.Should().Be(original.Height, "because the dimensions should not have changed");
                 imageFactory.Reset();
-                AssertImagesAreIdentical(original, imageFactory.Image, "because the image should be reset");
+                AssertionHelpers.AssertImagesAreIdentical(original, imageFactory.Image, "because the image should be reset");
 
                 imageFactory.Flip();
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the horizontal flip operation should have been applied on {0}", imageFactory.ImagePath);
+                AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the horizontal flip operation should have been applied on {0}", imageFactory.ImagePath);
                 imageFactory.Image.Width.Should().Be(original.Width, "because the dimensions should not have changed");
                 imageFactory.Image.Height.Should().Be(original.Height, "because the dimensions should not have changed");
             }
@@ -469,13 +469,13 @@ namespace ImageProcessor.UnitTests
             {
                 Image original = (Image)imageFactory.Image.Clone();
                 imageFactory.Hue(90);
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the hue operation should have been applied on {0}", imageFactory.ImagePath);
+                AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the hue operation should have been applied on {0}", imageFactory.ImagePath);
 
                 imageFactory.Reset();
-                AssertImagesAreIdentical(original, imageFactory.Image, "because the image should be reset");
+                AssertionHelpers.AssertImagesAreIdentical(original, imageFactory.Image, "because the image should be reset");
 
                 imageFactory.Hue(116, true);
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the hue+rotate operation should have been applied on {0}", imageFactory.ImagePath);
+                AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the hue+rotate operation should have been applied on {0}", imageFactory.ImagePath);
             }
         }
 
@@ -489,7 +489,7 @@ namespace ImageProcessor.UnitTests
             {
                 Image original = (Image)imageFactory.Image.Clone();
                 imageFactory.Pixelate(8);
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the pixelate operation should have been applied on {0}", imageFactory.ImagePath);
+                AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the pixelate operation should have been applied on {0}", imageFactory.ImagePath);
             }
         }
 
@@ -519,7 +519,7 @@ namespace ImageProcessor.UnitTests
             {
                 Image original = (Image)imageFactory.Image.Clone();
                 imageFactory.ReplaceColor(Color.White, Color.Black, 90);
-                AssertImagesAreDifferent(original, imageFactory.Image, "because the color replace operation should have been applied on {0}", imageFactory.ImagePath);
+                AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the color replace operation should have been applied on {0}", imageFactory.ImagePath);
             }
         }
 
@@ -549,9 +549,9 @@ namespace ImageProcessor.UnitTests
                 foreach (IEdgeFilter filter in filters)
                 {
                     imageFactory.DetectEdges(filter);
-                    AssertImagesAreDifferent(original, imageFactory.Image, "because the edge operation should have been applied on {0}", imageFactory.ImagePath);
+                    AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the edge operation should have been applied on {0}", imageFactory.ImagePath);
                     imageFactory.Reset();
-                    AssertImagesAreIdentical(original, imageFactory.Image, "because the image should be reset");
+                    AssertionHelpers.AssertImagesAreIdentical(original, imageFactory.Image, "because the image should be reset");
                 }
             }
         }
@@ -622,41 +622,6 @@ namespace ImageProcessor.UnitTests
             }
 
             return imagesFactories;
-        }
-
-        /// <summary>
-        /// Asserts that two images are identical
-        /// </summary>
-        /// <param name="expected">The expected result</param>
-        /// <param name="tested">The tested image</param>
-        private void AssertImagesAreIdentical(Image expected, Image tested, string because, params string[] becauseArgs)
-        {
-            ToByteArray(expected).SequenceEqual(ToByteArray(tested)).Should().BeTrue(because, becauseArgs);
-        }
-
-        /// <summary>
-        /// Asserts that two images are different
-        /// </summary>
-        /// <param name="expected">The not-expected result</param>
-        /// <param name="tested">The tested image</param>
-        private void AssertImagesAreDifferent(Image expected, Image tested, string because, params string[] becauseArgs)
-        {
-            ToByteArray(expected).SequenceEqual(ToByteArray(tested)).Should().BeFalse(because, becauseArgs);
-        }
-
-        /// <summary>
-        /// Converts an image to a byte array
-        /// </summary>
-        /// <param name="imageIn">The image to convert</param>
-        /// <param name="format">The format to use</param>
-        /// <returns>An array of bytes representing the image</returns>
-        public static byte[] ToByteArray(Image imageIn)
-        {
-            using (MemoryStream ms = new MemoryStream())
-            {
-                imageIn.Save(ms, ImageFormat.Jpeg);
-                return ms.ToArray();
-            }
         }
     }
 }

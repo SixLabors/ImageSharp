@@ -28,7 +28,7 @@ namespace ImageProcessor.UnitTests.Extensions
         [TestCase(21, 0x15)]
         [TestCase(190, 0xBE)]
         [TestCase(3156, 0xFF)]
-        public void ToByteTest(int input, byte expected)
+        public void IntegerIsConvertedToByte(int input, byte expected)
         {
             byte result = input.ToByte();
             Assert.AreEqual(expected, result);

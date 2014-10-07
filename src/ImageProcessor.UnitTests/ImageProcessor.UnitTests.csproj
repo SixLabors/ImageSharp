@@ -54,6 +54,7 @@
     <Reference Include="System.Xml.Linq" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AssertionHelpers.cs" />
     <Compile Include="Configuration\ImageProcessorBootrapperTests.cs" />
     <Compile Include="ImageFactoryUnitTests.cs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -61,6 +62,8 @@
     <Compile Include="Extensions\DoubleExtensionsUnitTests.cs" />
     <Compile Include="Extensions\IntegerExtensionsUnitTests.cs" />
     <Compile Include="Imaging\ColorUnitTests.cs" />
+    <Compile Include="Imaging\CropLayerUnitTests.cs" />
+    <Compile Include="Imaging\FastBitmapUnitTests.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

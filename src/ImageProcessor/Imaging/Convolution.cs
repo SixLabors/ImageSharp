@@ -12,6 +12,7 @@ namespace ImageProcessor.Imaging
 {
     using System;
     using System.Drawing;
+    using System.Threading.Tasks;
 
     using ImageProcessor.Common.Extensions;
 
@@ -274,101 +275,106 @@ namespace ImageProcessor.Imaging
                     int threshold = this.Threshold;
 
                     // For each line
-                    for (int y = 0; y < height; y++)
-                    {
-                        // For each pixel
-                        for (int x = 0; x < width; x++)
+                    Parallel.For(
+                        0,
+                        height,
+                        y =>
                         {
-                            // The number of kernel elements taken into account
-                            int processedKernelSize;
-
-                            // Colour sums
-                            double blue;
-                            double alpha;
-                            double divider;
-                            double green;
-                            double red = green = blue = alpha = divider = processedKernelSize = 0;
-
-                            // For each kernel row
-                            for (int i = 0; i < kernelLength; i++)
+                            // For each pixel
+                            for (int x = 0; x < width; x++)
                             {
-                                int ir = i - radius;
-                                int offsetY = y + ir;
+                                // The number of kernel elements taken into account
+                                int processedKernelSize;
 
-                                // Skip the current row
-                                if (offsetY < 0)
+                                // Colour sums
+                                double blue;
+                                double alpha;
+                                double divider;
+                                double green;
+                                double red = green = blue = alpha = divider = processedKernelSize = 0;
+
+                                // For each kernel row
+                                for (int i = 0; i < kernelLength; i++)
                                 {
-                                    continue;
-                                }
+                                    int ir = i - radius;
+                                    int offsetY = y + ir;
 
-                                // Outwith the current bounds so break.
-                                if (offsetY >= height)
-                                {
-                                    break;
-                                }
-
-                                // For each kernel column
-                                for (int j = 0; j < kernelLength; j++)
-                                {
-                                    int jr = j - radius;
-                                    int offsetX = x + jr;
-
-                                    // Skip the column
-                                    if (offsetX < 0)
+                                    // Skip the current row
+                                    if (offsetY < 0)
                                     {
                                         continue;
                                     }
 
-                                    if (offsetX < width)
+                                    // Outwith the current bounds so break.
+                                    if (offsetY >= height)
                                     {
-                                        Color color = sourceFastBitmap.GetPixel(offsetX, offsetY);
-                                        double k = kernel[i, j];
-                                        divider += k;
+                                        break;
+                                    }
 
-                                        red += k * color.R;
-                                        green += k * color.G;
-                                        blue += k * color.B;
-                                        alpha += k * color.A;
+                                    // For each kernel column
+                                    for (int j = 0; j < kernelLength; j++)
+                                    {
+                                        int jr = j - radius;
+                                        int offsetX = x + jr;
 
-                                        processedKernelSize++;
+                                        // Skip the column
+                                        if (offsetX < 0)
+                                        {
+                                            continue;
+                                        }
+
+                                        if (offsetX < width)
+                                        {
+                                            // ReSharper disable once AccessToDisposedClosure
+                                            Color color = sourceFastBitmap.GetPixel(offsetX, offsetY);
+                                            double k = kernel[i, j];
+                                            divider += k;
+
+                                            red += k * color.R;
+                                            green += k * color.G;
+                                            blue += k * color.B;
+                                            alpha += k * color.A;
+
+                                            processedKernelSize++;
+                                        }
                                     }
                                 }
-                            }
 
-                            // Check to see if all kernel elements were processed
-                            if (processedKernelSize == kernelSize)
-                            {
-                                // All kernel elements are processed; we are not on the edge.
-                                divider = this.Divider;
-                            }
-                            else
-                            {
-                                // We are on an edge; do we need to use dynamic divider or not?
-                                if (!this.UseDynamicDividerForEdges)
+                                // Check to see if all kernel elements were processed
+                                if (processedKernelSize == kernelSize)
                                 {
-                                    // Apply the set divider.
+                                    // All kernel elements are processed; we are not on the edge.
                                     divider = this.Divider;
                                 }
+                                else
+                                {
+                                    // We are on an edge; do we need to use dynamic divider or not?
+                                    if (!this.UseDynamicDividerForEdges)
+                                    {
+                                        // Apply the set divider.
+                                        divider = this.Divider;
+                                    }
+                                }
+
+                                // Check and apply the divider
+                                if ((long)divider != 0)
+                                {
+                                    red /= divider;
+                                    green /= divider;
+                                    blue /= divider;
+                                    alpha /= divider;
+                                }
+
+                                // Add any applicable threshold.
+                                red += threshold;
+                                green += threshold;
+                                blue += threshold;
+                                alpha += threshold;
+
+                                // ReSharper disable once AccessToDisposedClosure
+                                destinationFastBitmap.SetPixel(x, y, Color.FromArgb(alpha.ToByte(), red.ToByte(), green.ToByte(), blue.ToByte()));
                             }
-
-                            // Check and apply the divider
-                            if ((long)divider != 0)
-                            {
-                                red /= divider;
-                                green /= divider;
-                                blue /= divider;
-                                alpha /= divider;
-                            }
-
-                            // Add any applicable threshold.
-                            red += threshold;
-                            green += threshold;
-                            blue += threshold;
-                            alpha += threshold;
-
-                            destinationFastBitmap.SetPixel(x, y, Color.FromArgb(alpha.ToByte(), red.ToByte(), green.ToByte(), blue.ToByte()));
-                        }
-                    }
+                        });
                 }
             }
 

@@ -156,6 +156,7 @@ namespace ImageProcessor.Imaging
         /// <returns>The <see cref="System.Drawing.Color"/> at the given pixel.</returns>
         public Color GetPixel(int x, int y)
         {
+#if DEBUG
             if ((x < 0) || (x >= this.width))
             {
                 throw new ArgumentOutOfRangeException("x", "Value cannot be less than zero or greater than the bitmap width.");
@@ -165,7 +166,7 @@ namespace ImageProcessor.Imaging
             {
                 throw new ArgumentOutOfRangeException("y", "Value cannot be less than zero or greater than the bitmap height.");
             }
-
+#endif
             PixelData* data = this[x, y];
             return Color.FromArgb(data->A, data->R, data->G, data->B);
         }
@@ -181,6 +182,7 @@ namespace ImageProcessor.Imaging
         /// </param>
         public void SetPixel(int x, int y, Color color)
         {
+#if DEBUG
             if ((x < 0) || (x >= this.width))
             {
                 throw new ArgumentOutOfRangeException("x", "Value cannot be less than zero or greater than the bitmap width.");
@@ -190,7 +192,7 @@ namespace ImageProcessor.Imaging
             {
                 throw new ArgumentOutOfRangeException("y", "Value cannot be less than zero or greater than the bitmap height.");
             }
-
+#endif
             PixelData* data = this[x, y];
             data->R = color.R;
             data->G = color.G;

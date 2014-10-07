@@ -13,6 +13,7 @@ namespace ImageProcessor.Imaging.Filters.EdgeDetection
     using System;
     using System.Drawing;
     using System.Drawing.Imaging;
+    using System.Threading.Tasks;
 
     using ImageProcessor.Common.Extensions;
     using ImageProcessor.Imaging.Filters.Photo;
@@ -92,68 +93,73 @@ namespace ImageProcessor.Imaging.Filters.EdgeDetection
                     using (FastBitmap destinationBitmap = new FastBitmap(destination))
                     {
                         // Loop through the pixels.
-                        for (int y = 0; y < height; y++)
-                        {
-                            for (int x = 0; x < width; x++)
+                        Parallel.For(
+                            0,
+                            height,
+                            y =>
                             {
-                                double rX = 0;
-                                double gX = 0;
-                                double bX = 0;
-
-                                // Apply each matrix multiplier to the color components for each pixel.
-                                for (int fy = 0; fy < kernelLength; fy++)
+                                for (int x = 0; x < width; x++)
                                 {
-                                    int fyr = fy - radius;
-                                    int offsetY = y + fyr;
+                                    double rX = 0;
+                                    double gX = 0;
+                                    double bX = 0;
 
-                                    // Skip the current row
-                                    if (offsetY < 0)
+                                    // Apply each matrix multiplier to the color components for each pixel.
+                                    for (int fy = 0; fy < kernelLength; fy++)
                                     {
-                                        continue;
-                                    }
+                                        int fyr = fy - radius;
+                                        int offsetY = y + fyr;
 
-                                    // Outwith the current bounds so break.
-                                    if (offsetY >= height)
-                                    {
-                                        break;
-                                    }
-
-                                    for (int fx = 0; fx < kernelLength; fx++)
-                                    {
-                                        int fxr = fx - radius;
-                                        int offsetX = x + fxr;
-
-                                        // Skip the column
-                                        if (offsetX < 0)
+                                        // Skip the current row
+                                        if (offsetY < 0)
                                         {
                                             continue;
                                         }
 
-                                        if (offsetX < width)
+                                        // Outwith the current bounds so break.
+                                        if (offsetY >= height)
                                         {
-                                            Color currentColor = sourceBitmap.GetPixel(offsetX, offsetY);
-                                            double r = currentColor.R;
-                                            double g = currentColor.G;
-                                            double b = currentColor.B;
+                                            break;
+                                        }
 
-                                            rX += horizontalFilter[fy, fx] * r;
+                                        for (int fx = 0; fx < kernelLength; fx++)
+                                        {
+                                            int fxr = fx - radius;
+                                            int offsetX = x + fxr;
 
-                                            gX += horizontalFilter[fy, fx] * g;
+                                            // Skip the column
+                                            if (offsetX < 0)
+                                            {
+                                                continue;
+                                            }
 
-                                            bX += horizontalFilter[fy, fx] * b;
+                                            if (offsetX < width)
+                                            {
+                                                // ReSharper disable once AccessToDisposedClosure
+                                                Color currentColor = sourceBitmap.GetPixel(offsetX, offsetY);
+                                                double r = currentColor.R;
+                                                double g = currentColor.G;
+                                                double b = currentColor.B;
+
+                                                rX += horizontalFilter[fy, fx] * r;
+
+                                                gX += horizontalFilter[fy, fx] * g;
+
+                                                bX += horizontalFilter[fy, fx] * b;
+                                            }
                                         }
                                     }
+
+                                    // Apply the equation and sanitize.
+                                    byte red = rX.ToByte();
+                                    byte green = gX.ToByte();
+                                    byte blue = bX.ToByte();
+
+                                    Color newColor = Color.FromArgb(red, green, blue);
+                                    // ReSharper disable once AccessToDisposedClosure
+                                    destinationBitmap.SetPixel(x, y, newColor);
                                 }
-
-                                // Apply the equation and sanitize.
-                                byte red = rX.ToByte();
-                                byte green = gX.ToByte();
-                                byte blue = bX.ToByte();
-
-                                Color newColor = Color.FromArgb(red, green, blue);
-                                destinationBitmap.SetPixel(x, y, newColor);
-                            }
-                        }
+                            });
                     }
                 }
             }

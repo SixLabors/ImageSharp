@@ -11,6 +11,10 @@
 namespace ImageProcessor.Imaging.Filters.Binarization
 {
     using System.Drawing;
+    using System.Drawing.Imaging;
+    using System.Threading.Tasks;
+
+    using ImageProcessor.Imaging.Filters.Photo;
 
     /// <summary>
     /// Performs binary threshold filtering against a given greyscale image.
@@ -20,7 +24,7 @@ namespace ImageProcessor.Imaging.Filters.Binarization
         /// <summary>
         /// The threshold value.
         /// </summary>
-        private byte threshold = 128;
+        private byte threshold = 10;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BinaryThreshold"/> class.
@@ -61,14 +65,19 @@ namespace ImageProcessor.Imaging.Filters.Binarization
 
             using (FastBitmap sourceBitmap = new FastBitmap(source))
             {
-                for (int y = 0; y < height; y++)
-                {
-                    for (int x = 0; x < width; x++)
+                Parallel.For(
+                    0,
+                    height,
+                    y =>
                     {
-                        Color color = sourceBitmap.GetPixel(x, y);
-                        sourceBitmap.SetPixel(x, y, color.B >= this.threshold ? Color.White : Color.Black);
-                    }
-                }
+                        for (int x = 0; x < width; x++)
+                        {
+                            // ReSharper disable AccessToDisposedClosure
+                            Color color = sourceBitmap.GetPixel(x, y);
+                            sourceBitmap.SetPixel(x, y, color.B >= this.threshold ? Color.White : Color.Black);
+                            // ReSharper restore AccessToDisposedClosure
+                        }
+                    });
             }
 
             return source;

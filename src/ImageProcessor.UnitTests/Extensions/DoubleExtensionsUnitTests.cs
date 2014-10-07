@@ -29,7 +29,7 @@ namespace ImageProcessor.UnitTests.Extensions
         [TestCase(1.5, 2)]
         [TestCase(25.7, 26)]
         [TestCase(1289047, 255)]
-        public void TestDoubleToByte(double input, byte expected)
+        public void DoubleIsConvertedToByte(double input, byte expected)
         {
             byte result = input.ToByte();
             Assert.AreEqual(expected, result);

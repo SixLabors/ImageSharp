@@ -12,6 +12,8 @@ namespace ImageProcessor.Imaging
 {
     #region Using
     using System.Drawing;
+    using System.Linq;
+
     #endregion
 
     /// <summary>
@@ -20,6 +22,7 @@ namespace ImageProcessor.Imaging
     public class ResizeLayer
     {
         #region Constructors
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ResizeLayer"/> class.
         /// </summary>
@@ -35,16 +38,21 @@ namespace ImageProcessor.Imaging
         /// <param name="upscale">
         /// Whether to allow up-scaling of images. (Default true)
         /// </param>
+        /// <param name="centerCoordinates">
+        /// The center coordinates (Default null)
+        /// </param>
         public ResizeLayer(
             Size size,
             ResizeMode resizeMode = ResizeMode.Pad,
             AnchorPosition anchorPosition = AnchorPosition.Center,
-            bool upscale = true)
+            bool upscale = true,
+            float[] centerCoordinates = null)
         {
             this.Size = size;
             this.Upscale = upscale;
             this.ResizeMode = resizeMode;
             this.AnchorPosition = anchorPosition;
+            this.CenterCoordinates = centerCoordinates ?? new float[] { };
         }
         #endregion
 
@@ -101,7 +109,7 @@ namespace ImageProcessor.Imaging
                 && this.ResizeMode == resizeLayer.ResizeMode
                 && this.AnchorPosition == resizeLayer.AnchorPosition
                 && this.Upscale == resizeLayer.Upscale
-                && this.CenterCoordinates == resizeLayer.CenterCoordinates;
+                && this.CenterCoordinates.SequenceEqual(resizeLayer.CenterCoordinates);
         }
 
         /// <summary>

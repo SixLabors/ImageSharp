@@ -10,8 +10,6 @@
 
 namespace ImageProcessor.Imaging
 {
-    using System.Collections.Generic;
-
     /// <summary>
     /// Contains the component parts that make up a single pixel.
     /// </summary>

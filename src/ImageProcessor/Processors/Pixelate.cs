@@ -13,8 +13,10 @@ namespace ImageProcessor.Processors
     using System;
     using System.Collections.Generic;
     using System.Drawing;
+    using System.Threading.Tasks;
 
     using ImageProcessor.Common.Exceptions;
+    using ImageProcessor.Common.Extensions;
     using ImageProcessor.Imaging;
 
     /// <summary>
@@ -82,37 +84,44 @@ namespace ImageProcessor.Processors
 
                 using (FastBitmap fastBitmap = new FastBitmap(newImage))
                 {
-                    for (int j = y; j < y + height && j < maxHeight; j += size)
-                    {
-                        for (int i = x; i < x + width && i < maxWidth; i += size)
+                    // Get the range of on the y-plane to choose from.
+                    IEnumerable<int> range = EnumerableExtensions.SteppedRange(y, i => i < y + height && i < maxHeight, size);
+
+                    Parallel.ForEach(
+                        range,
+                        j =>
                         {
-                            int offsetX = offset;
-                            int offsetY = offset;
-
-                            // Make sure that the offset is within the boundary of the image.
-                            while (j + offsetY >= maxHeight)
+                            for (int i = x; i < x + width && i < maxWidth; i += size)
                             {
-                                offsetY--;
-                            }
+                                int offsetX = offset;
+                                int offsetY = offset;
 
-                            while (i + offsetX >= maxWidth)
-                            {
-                                offsetX--;
-                            }
-
-                            // Get the pixel color in the centre of the soon to be pixelated area.
-                            Color pixel = fastBitmap.GetPixel(i + offsetX, j + offsetY);
-
-                            // For each pixel in the pixelate size, set it to the centre color.
-                            for (int l = j; l < j + size && l < maxHeight; l++)
-                            {
-                                for (int k = i; k < i + size && k < maxWidth; k++)
+                                // Make sure that the offset is within the boundary of the image.
+                                while (j + offsetY >= maxHeight)
                                 {
-                                    fastBitmap.SetPixel(k, l, pixel);
+                                    offsetY--;
                                 }
+
+                                while (i + offsetX >= maxWidth)
+                                {
+                                    offsetX--;
+                                }
+
+                                // Get the pixel color in the centre of the soon to be pixelated area.
+                                // ReSharper disable AccessToDisposedClosure
+                                Color pixel = fastBitmap.GetPixel(i + offsetX, j + offsetY);
+
+                                // For each pixel in the pixelate size, set it to the centre color.
+                                for (int l = j; l < j + size && l < maxHeight; l++)
+                                {
+                                    for (int k = i; k < i + size && k < maxWidth; k++)
+                                    {
+                                        fastBitmap.SetPixel(k, l, pixel);
+                                    }
+                                }
+                                // ReSharper restore AccessToDisposedClosure
                             }
-                        }
-                    }
+                        });
                 }
 
                 image.Dispose();

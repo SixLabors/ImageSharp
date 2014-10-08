@@ -77,12 +77,12 @@ namespace ImageProcessor.PlayGround
                             //.ReplaceColor(Color.FromArgb(255, 1, 107, 165), Color.FromArgb(255, 1, 165, 13), 80)
                             //.Resize(layer)
                             //.DetectEdges(new KirschEdgeFilter())
-                            .DetectEdges(new LaplacianOfGaussianEdgeFilter())
+                            //.DetectEdges(new LaplacianOfGaussianEdgeFilter())
                             //.EntropyCrop()
                             //.Filter(MatrixFilters.Comic)
                             //.Filter(MatrixFilters.Comic)
                             //.Filter(MatrixFilters.HiSatch)
-                            //.Pixelate(8)
+                            .Pixelate(8)
                             //.GaussianSharpen(10)
                             .Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", fileInfo.Name)));
 

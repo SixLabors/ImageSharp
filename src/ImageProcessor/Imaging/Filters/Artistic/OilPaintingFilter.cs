@@ -12,6 +12,7 @@ namespace ImageProcessor.Imaging.Filters.Artistic
 {
     using System;
     using System.Drawing;
+    using System.Threading.Tasks;
 
     using ImageProcessor.Common.Extensions;
 
@@ -104,76 +105,81 @@ namespace ImageProcessor.Imaging.Filters.Artistic
             {
                 using (FastBitmap destinationBitmap = new FastBitmap(destination))
                 {
-                    for (int y = 0; y < height; y++)
-                    {
-                        for (int x = 0; x < width; x++)
+                    Parallel.For(
+                        0,
+                        height,
+                        y =>
                         {
-                            int maxIntensity = 0;
-                            int maxIndex = 0;
-                            int[] intensityBin = new int[this.levels];
-                            int[] blueBin = new int[this.levels];
-                            int[] greenBin = new int[this.levels];
-                            int[] redBin = new int[this.levels];
-
-                            for (int i = 0; i <= radius; i++)
+                            for (int x = 0; x < width; x++)
                             {
-                                int ir = i - radius;
-                                int offsetY = y + ir;
+                                int maxIntensity = 0;
+                                int maxIndex = 0;
+                                int[] intensityBin = new int[this.levels];
+                                int[] blueBin = new int[this.levels];
+                                int[] greenBin = new int[this.levels];
+                                int[] redBin = new int[this.levels];
 
-                                // Skip the current row
-                                if (offsetY < 0)
+                                for (int i = 0; i <= radius; i++)
                                 {
-                                    continue;
-                                }
+                                    int ir = i - radius;
+                                    int offsetY = y + ir;
 
-                                // Outwith the current bounds so break.
-                                if (offsetY >= height)
-                                {
-                                    break;
-                                }
-
-                                for (int fx = 0; fx <= radius; fx++)
-                                {
-                                    int jr = fx - radius;
-                                    int offsetX = x + jr;
-
-                                    // Skip the column
-                                    if (offsetX < 0)
+                                    // Skip the current row
+                                    if (offsetY < 0)
                                     {
                                         continue;
                                     }
 
-                                    if (offsetX < width)
+                                    // Outwith the current bounds so break.
+                                    if (offsetY >= height)
                                     {
-                                        Color color = sourceBitmap.GetPixel(offsetX, offsetY);
+                                        break;
+                                    }
 
-                                        byte sourceBlue = color.B;
-                                        byte sourceGreen = color.G;
-                                        byte sourceRed = color.R;
+                                    for (int fx = 0; fx <= radius; fx++)
+                                    {
+                                        int jr = fx - radius;
+                                        int offsetX = x + jr;
 
-                                        int currentIntensity = (int)Math.Round(((sourceBlue + sourceGreen + sourceRed) / 3.0 * (this.levels - 1)) / 255.0);
-
-                                        intensityBin[currentIntensity] += 1;
-                                        blueBin[currentIntensity] += sourceBlue;
-                                        greenBin[currentIntensity] += sourceGreen;
-                                        redBin[currentIntensity] += sourceRed;
-
-                                        if (intensityBin[currentIntensity] > maxIntensity)
+                                        // Skip the column
+                                        if (offsetX < 0)
                                         {
-                                            maxIntensity = intensityBin[currentIntensity];
-                                            maxIndex = currentIntensity;
+                                            continue;
+                                        }
+
+                                        if (offsetX < width)
+                                        {
+                                            // ReSharper disable once AccessToDisposedClosure
+                                            Color color = sourceBitmap.GetPixel(offsetX, offsetY);
+
+                                            byte sourceBlue = color.B;
+                                            byte sourceGreen = color.G;
+                                            byte sourceRed = color.R;
+
+                                            int currentIntensity = (int)Math.Round(((sourceBlue + sourceGreen + sourceRed) / 3.0 * (this.levels - 1)) / 255.0);
+
+                                            intensityBin[currentIntensity] += 1;
+                                            blueBin[currentIntensity] += sourceBlue;
+                                            greenBin[currentIntensity] += sourceGreen;
+                                            redBin[currentIntensity] += sourceRed;
+
+                                            if (intensityBin[currentIntensity] > maxIntensity)
+                                            {
+                                                maxIntensity = intensityBin[currentIntensity];
+                                                maxIndex = currentIntensity;
+                                            }
                                         }
                                     }
                                 }
+
+                                byte blue = Math.Abs(blueBin[maxIndex] / maxIntensity).ToByte();
+                                byte green = Math.Abs(greenBin[maxIndex] / maxIntensity).ToByte();
+                                byte red = Math.Abs(redBin[maxIndex] / maxIntensity).ToByte();
+
+                                // ReSharper disable once AccessToDisposedClosure
+                                destinationBitmap.SetPixel(x, y, Color.FromArgb(red, green, blue));
                             }
-
-                            byte blue = Math.Abs(blueBin[maxIndex] / maxIntensity).ToByte();
-                            byte green = Math.Abs(greenBin[maxIndex] / maxIntensity).ToByte();
-                            byte red = Math.Abs(redBin[maxIndex] / maxIntensity).ToByte();
-
-                            destinationBitmap.SetPixel(x, y, Color.FromArgb(red, green, blue));
-                        }
-                    }
+                        });
                 }
             }
 

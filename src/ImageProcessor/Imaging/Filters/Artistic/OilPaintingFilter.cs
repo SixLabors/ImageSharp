@@ -118,6 +118,7 @@ namespace ImageProcessor.Imaging.Filters.Artistic
                                 int[] blueBin = new int[this.levels];
                                 int[] greenBin = new int[this.levels];
                                 int[] redBin = new int[this.levels];
+                                byte sourceAlpha = 255;
 
                                 for (int i = 0; i <= radius; i++)
                                 {
@@ -155,6 +156,7 @@ namespace ImageProcessor.Imaging.Filters.Artistic
                                             byte sourceBlue = color.B;
                                             byte sourceGreen = color.G;
                                             byte sourceRed = color.R;
+                                            sourceAlpha = color.A;
 
                                             int currentIntensity = (int)Math.Round(((sourceBlue + sourceGreen + sourceRed) / 3.0 * (this.levels - 1)) / 255.0);
 
@@ -177,7 +179,7 @@ namespace ImageProcessor.Imaging.Filters.Artistic
                                 byte red = Math.Abs(redBin[maxIndex] / maxIntensity).ToByte();
 
                                 // ReSharper disable once AccessToDisposedClosure
-                                destinationBitmap.SetPixel(x, y, Color.FromArgb(red, green, blue));
+                                destinationBitmap.SetPixel(x, y, Color.FromArgb(sourceAlpha, red, green, blue));
                             }
                         });
                 }

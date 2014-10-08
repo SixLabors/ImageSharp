@@ -19,6 +19,7 @@ namespace ImageProcessor.Imaging.Filters.Photo
 
     using ImageProcessor.Common.Extensions;
     using ImageProcessor.Imaging.Filters.Artistic;
+    using ImageProcessor.Imaging.Filters.EdgeDetection;
 
     /// <summary>
     /// Encapsulates methods with which to add a comic filter to an image.
@@ -64,7 +65,7 @@ namespace ImageProcessor.Imaging.Filters.Photo
                     highBitmap = new OilPaintingFilter(3, 5).ApplyFilter((Bitmap)image);
 
                     // Draw the edges.
-                    edgeBitmap = DrawEdges((Bitmap)image, 120);
+                    edgeBitmap = Trace((Bitmap)image, 120);
 
                     using (Graphics graphics = Graphics.FromImage(highBitmap))
                     {
@@ -169,7 +170,7 @@ namespace ImageProcessor.Imaging.Filters.Photo
         /// Detects and draws edges.
         /// TODO: Move this to another class and do edge detection.
         /// </summary>
-        /// <param name="sourceBitmap">
+        /// <param name="source">
         /// The source bitmap.
         /// </param>
         /// <param name="threshold">
@@ -178,184 +179,44 @@ namespace ImageProcessor.Imaging.Filters.Photo
         /// <returns>
         /// The <see cref="Bitmap"/>.
         /// </returns>
-        private static Bitmap DrawEdges(Bitmap sourceBitmap, byte threshold = 0)
+        private static Bitmap Trace(Bitmap source, byte threshold = 0)
         {
-            Color color = Color.Black;
-            int width = sourceBitmap.Width;
-            int height = sourceBitmap.Height;
+            int width = source.Width;
+            int height = source.Height;
 
-            BitmapData sourceData = sourceBitmap.LockBits(
-                new Rectangle(0, 0, width, height),
-                ImageLockMode.ReadOnly,
-                PixelFormat.Format32bppArgb);
+            // Grab the edges converting to greyscale, and invert the colors.
+            ConvolutionFilter filter = new ConvolutionFilter(new SobelEdgeFilter(), true);
+            Bitmap destination = filter.Process2DFilter(source);
+            Bitmap invert = new Bitmap(width, height, PixelFormat.Format32bppArgb);
+            InvertMatrixFilter matrix = new InvertMatrixFilter();
+            invert = (Bitmap)matrix.TransformImage(destination, invert);
 
-            int strideWidth = sourceData.Stride;
-            int scanHeight = sourceData.Height;
-
-            int bufferSize = strideWidth * scanHeight;
-            byte[] pixelBuffer = new byte[bufferSize];
-            byte[] resultBuffer = new byte[bufferSize];
-
-            Marshal.Copy(sourceData.Scan0, pixelBuffer, 0, pixelBuffer.Length);
-
-            sourceBitmap.UnlockBits(sourceData);
-
-            for (int offsetY = 1; offsetY < height - 1; offsetY++)
+            // Loop through and replace any colors more white than the threshold
+            // with a transparent one. 
+            using (FastBitmap sourceBitmap = new FastBitmap(invert))
             {
-                for (int offsetX = 1; offsetX < width - 1; offsetX++)
-                {
-                    int byteOffset = (offsetY * strideWidth) + (offsetX * 4);
-
-                    int blueGradient = Math.Abs(pixelBuffer[byteOffset - 4] - pixelBuffer[byteOffset + 4]);
-
-                    blueGradient +=
-                        Math.Abs(
-                            pixelBuffer[byteOffset - strideWidth] - pixelBuffer[byteOffset + strideWidth]);
-
-                    byteOffset++;
-
-                    int greenGradient = Math.Abs(pixelBuffer[byteOffset - 4] - pixelBuffer[byteOffset + 4]);
-
-                    greenGradient +=
-                        Math.Abs(
-                            pixelBuffer[byteOffset - strideWidth] - pixelBuffer[byteOffset + strideWidth]);
-
-                    byteOffset++;
-
-                    int redGradient = Math.Abs(pixelBuffer[byteOffset - 4] - pixelBuffer[byteOffset + 4]);
-
-                    redGradient +=
-                        Math.Abs(
-                            pixelBuffer[byteOffset - strideWidth] - pixelBuffer[byteOffset + strideWidth]);
-
-                    bool exceedsThreshold;
-                    if (blueGradient + greenGradient + redGradient > threshold)
+                Parallel.For(
+                    0,
+                    height,
+                    y =>
                     {
-                        exceedsThreshold = true;
-                    }
-                    else
-                    {
-                        byteOffset -= 2;
-
-                        blueGradient = Math.Abs(pixelBuffer[byteOffset - 4] - pixelBuffer[byteOffset + 4]);
-                        byteOffset++;
-
-                        greenGradient = Math.Abs(pixelBuffer[byteOffset - 4] - pixelBuffer[byteOffset + 4]);
-                        byteOffset++;
-
-                        redGradient = Math.Abs(pixelBuffer[byteOffset - 4] - pixelBuffer[byteOffset + 4]);
-
-                        if (blueGradient + greenGradient + redGradient > threshold)
+                        for (int x = 0; x < width; x++)
                         {
-                            exceedsThreshold = true;
-                        }
-                        else
-                        {
-                            byteOffset -= 2;
-
-                            blueGradient =
-                                Math.Abs(pixelBuffer[byteOffset - strideWidth] - pixelBuffer[byteOffset + strideWidth]);
-
-                            byteOffset++;
-
-                            greenGradient =
-                                Math.Abs(pixelBuffer[byteOffset - strideWidth] - pixelBuffer[byteOffset + strideWidth]);
-
-                            byteOffset++;
-
-                            redGradient =
-                                Math.Abs(pixelBuffer[byteOffset - strideWidth] - pixelBuffer[byteOffset + strideWidth]);
-
-                            if (blueGradient + greenGradient + redGradient > threshold)
+                            // ReSharper disable AccessToDisposedClosure
+                            Color color = sourceBitmap.GetPixel(x, y);
+                            if (color.B >= threshold)
                             {
-                                exceedsThreshold = true;
+                                sourceBitmap.SetPixel(x, y, Color.Transparent);
                             }
-                            else
-                            {
-                                byteOffset -= 2;
-
-                                blueGradient =
-                                    Math.Abs(
-                                        pixelBuffer[byteOffset - 4 - strideWidth]
-                                        - pixelBuffer[byteOffset + 4 + strideWidth]);
-
-                                blueGradient +=
-                                    Math.Abs(
-                                        pixelBuffer[byteOffset - strideWidth + 4]
-                                        - pixelBuffer[byteOffset + strideWidth - 4]);
-
-                                byteOffset++;
-
-                                greenGradient =
-                                    Math.Abs(
-                                        pixelBuffer[byteOffset - 4 - strideWidth]
-                                        - pixelBuffer[byteOffset + 4 + strideWidth]);
-
-                                greenGradient +=
-                                    Math.Abs(
-                                        pixelBuffer[byteOffset - strideWidth + 4]
-                                        - pixelBuffer[byteOffset + strideWidth - 4]);
-
-                                byteOffset++;
-
-                                redGradient =
-                                    Math.Abs(
-                                        pixelBuffer[byteOffset - 4 - strideWidth]
-                                        - pixelBuffer[byteOffset + 4 + strideWidth]);
-
-                                redGradient +=
-                                    Math.Abs(
-                                        pixelBuffer[byteOffset - strideWidth + 4]
-                                        - pixelBuffer[byteOffset + strideWidth - 4]);
-
-                                exceedsThreshold = blueGradient + greenGradient + redGradient > threshold;
-                            }
+                            // ReSharper restore AccessToDisposedClosure
                         }
-                    }
-
-                    byteOffset -= 2;
-
-                    double blue;
-                    double red;
-                    double green;
-                    double alpha;
-                    if (exceedsThreshold)
-                    {
-                        blue = color.B; // 0;
-                        green = color.G; // 0;
-                        red = color.R; // 0;
-                        alpha = 255;
-                    }
-                    else
-                    {
-                        // These would normally be used to transfer the correct value across.
-                        // blue = pixelBuffer[byteOffset];
-                        // green = pixelBuffer[byteOffset + 1];
-                        // red = pixelBuffer[byteOffset + 2];
-                        blue = 255;
-                        green = 255;
-                        red = 255;
-                        alpha = 0;
-                    }
-
-                    resultBuffer[byteOffset] = blue.ToByte();
-                    resultBuffer[byteOffset + 1] = green.ToByte();
-                    resultBuffer[byteOffset + 2] = red.ToByte();
-                    resultBuffer[byteOffset + 3] = alpha.ToByte();
-                }
+                    });
             }
 
-            Bitmap resultBitmap = new Bitmap(width, height);
+            destination.Dispose();
+            destination = invert;
 
-            BitmapData resultData = resultBitmap.LockBits(
-                new Rectangle(0, 0, resultBitmap.Width, resultBitmap.Height),
-                ImageLockMode.WriteOnly,
-                PixelFormat.Format32bppArgb);
-
-            Marshal.Copy(resultBuffer, 0, resultData.Scan0, resultBuffer.Length);
-
-            resultBitmap.UnlockBits(resultData);
-            return resultBitmap;
+            return destination;
         }
 
         /// <summary>

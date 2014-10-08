@@ -15,6 +15,7 @@ namespace ImageProcessor.Imaging.Filters.Photo
     using System.Drawing.Drawing2D;
     using System.Drawing.Imaging;
     using System.Runtime.InteropServices;
+    using System.Threading.Tasks;
 
     using ImageProcessor.Common.Extensions;
     using ImageProcessor.Imaging.Filters.Artistic;
@@ -61,7 +62,7 @@ namespace ImageProcessor.Imaging.Filters.Photo
 
                     // Apply a oil painting filter to the image.
                     highBitmap = new OilPaintingFilter(3, 5).ApplyFilter((Bitmap)image);
-                    
+
                     // Draw the edges.
                     edgeBitmap = DrawEdges((Bitmap)image, 120);
 
@@ -383,19 +384,25 @@ namespace ImageProcessor.Imaging.Filters.Photo
                     int width = source.Width;
                     int height = source.Height;
 
-                    for (int y = 0; y < height; y++)
-                    {
-                        for (int x = 0; x < width; x++)
+                    Parallel.For(
+                        0,
+                        height,
+                        y =>
                         {
-                            Color sourceColor = sourceBitmap.GetPixel(x, y);
-                            Color destinationColor = destinationBitmap.GetPixel(x, y);
-
-                            if (destinationColor.A != 0)
+                            for (int x = 0; x < width; x++)
                             {
-                                destinationBitmap.SetPixel(x, y, Color.FromArgb(sourceColor.B, destinationColor.R, destinationColor.G, destinationColor.B));
+                                // ReSharper disable AccessToDisposedClosure
+                                Color sourceColor = sourceBitmap.GetPixel(x, y);
+                                Color destinationColor = destinationBitmap.GetPixel(x, y);
+
+                                if (destinationColor.A != 0)
+                                {
+                                    destinationBitmap.SetPixel(x, y, Color.FromArgb(sourceColor.B, destinationColor.R, destinationColor.G, destinationColor.B));
+                                }
+
+                                // ReSharper restore AccessToDisposedClosure
                             }
-                        }
-                    }
+                        });
                 }
             }
         }

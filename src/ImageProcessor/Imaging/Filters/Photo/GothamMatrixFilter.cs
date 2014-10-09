@@ -32,22 +32,22 @@ namespace ImageProcessor.Imaging.Filters.Photo
         /// <summary>
         /// Processes the image.
         /// </summary>
-        /// <param name="image">The current image to process</param>
-        /// <param name="newImage">The new Image to return</param>
+        /// <param name="source">The current image to process</param>
+        /// <param name="destination">The new Image to return</param>
         /// <returns>
-        /// The processed image.
+        /// The processed <see cref="System.Drawing.Bitmap"/>.
         /// </returns>
-        public override Image TransformImage(Image image, Image newImage)
+        public override Bitmap TransformImage(Image source, Image destination)
         {
-            using (Graphics graphics = Graphics.FromImage(newImage))
+            using (Graphics graphics = Graphics.FromImage(destination))
             {
                 using (ImageAttributes attributes = new ImageAttributes())
                 {
                     attributes.SetColorMatrix(this.Matrix);
 
-                    Rectangle rectangle = new Rectangle(0, 0, image.Width, image.Height);
+                    Rectangle rectangle = new Rectangle(0, 0, source.Width, source.Height);
 
-                    graphics.DrawImage(image, rectangle, 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, attributes);
+                    graphics.DrawImage(source, rectangle, 0, 0, source.Width, source.Height, GraphicsUnit.Pixel, attributes);
 
                     // Overlay the image with some semi-transparent colors to finish the effect.
                     using (GraphicsPath path = new GraphicsPath())
@@ -72,14 +72,10 @@ namespace ImageProcessor.Imaging.Filters.Photo
             }
 
             // Add brightness and contrast to finish the effect.
-            newImage = Adjustments.Brightness((Bitmap)newImage, 5);
-            newImage = Adjustments.Contrast((Bitmap)newImage, 85);
+            destination = Adjustments.Brightness(destination, 5);
+            destination = Adjustments.Contrast(destination, 85);
 
-            // Reassign the image.
-            image.Dispose();
-            image = newImage;
-
-            return image;
+            return (Bitmap)destination;
         }
     }
 }

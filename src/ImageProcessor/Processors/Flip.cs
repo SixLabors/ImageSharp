@@ -66,7 +66,7 @@ namespace ImageProcessor.Processors
             {
                 RotateFlipType rotateFlipType = this.DynamicParameter;
 
-                newImage = (Bitmap)image.Clone();
+                newImage = new Bitmap(image);
 
                 // Flip
                 newImage.RotateFlip(rotateFlipType);

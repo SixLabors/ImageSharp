@@ -11,7 +11,6 @@ namespace ImageProcessor.Processors
     using System.Collections.Generic;
     using System.Drawing;
     using System.Drawing.Imaging;
-    using System.IO;
 
     using ImageProcessor.Common.Exceptions;
     using ImageProcessor.Imaging;
@@ -61,12 +60,12 @@ namespace ImageProcessor.Processors
             try
             {
                 // Detect the edges then strip out middle shades.
-                grey = new ConvolutionFilter(new SobelEdgeFilter(), true).Process2DFilter((Bitmap)image);
+                grey = new ConvolutionFilter(new SobelEdgeFilter(), true).Process2DFilter(image);
                 grey = new BinaryThreshold(threshold).ProcessFilter(grey);
                 
                 Rectangle rectangle = this.FindBoundingBox(grey, 0);
 
-                newImage = new Bitmap(rectangle.Width, rectangle.Height, PixelFormat.Format32bppPArgb);
+                newImage = new Bitmap(rectangle.Width, rectangle.Height);
                 using (Graphics graphics = Graphics.FromImage(newImage))
                 {
                     graphics.DrawImage(

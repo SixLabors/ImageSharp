@@ -205,6 +205,7 @@
     <Compile Include="Processors\Contrast.cs" />
     <Compile Include="Processors\GaussianSharpen.cs" />
     <Compile Include="Processors\Hue.cs" />
+    <Compile Include="Processors\Mask.cs" />
     <Compile Include="Processors\Meta.cs" />
     <Compile Include="Processors\Pixelate.cs" />
     <Compile Include="Processors\ReplaceColor.cs" />

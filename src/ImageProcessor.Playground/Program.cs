@@ -61,7 +61,7 @@ namespace ImageProcessor.PlayGround
                 {
                     using (ImageFactory imageFactory = new ImageFactory(true))
                     {
-                        Size size = new Size(800, 0);
+                        Size size = new Size(400, 0);
                         ResizeLayer layer = new ResizeLayer(size, ResizeMode.Max, AnchorPosition.Center, false);
 
                         //ContentAwareResizeLayer layer = new ContentAwareResizeLayer(size)
@@ -73,14 +73,15 @@ namespace ImageProcessor.PlayGround
                             //.BackgroundColor(Color.White)
                             //.Resize(new Size((int)(size.Width * 1.1), 0))
                             //.ContentAwareResize(layer)
-                           // .Constrain(size)
+                            .Constrain(size)
+                            .Mask()
                             //.ReplaceColor(Color.FromArgb(255, 1, 107, 165), Color.FromArgb(255, 1, 165, 13), 80)
                             //.Resize(layer)
                             //.DetectEdges(new SobelEdgeFilter(), false)
                             //.DetectEdges(new LaplacianOfGaussianEdgeFilter())
                             //.EntropyCrop()
                             //.Filter(MatrixFilters.Invert)
-                            .Filter(MatrixFilters.Comic)
+                            //.Filter(MatrixFilters.Comic)
                             //.Filter(MatrixFilters.HiSatch)
                             //.Pixelate(8)
                             //.GaussianSharpen(10)

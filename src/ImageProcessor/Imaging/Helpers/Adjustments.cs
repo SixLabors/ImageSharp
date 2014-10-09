@@ -23,7 +23,7 @@ namespace ImageProcessor.Imaging.Helpers
         /// Adjusts the brightness component of the given image.
         /// </summary>
         /// <param name="source">
-        /// The <see cref="Bitmap"/> source to adjust.
+        /// The <see cref="Image"/> source to adjust.
         /// </param>
         /// <param name="threshold">
         /// The threshold value between -100 and 100 for adjusting the brightness.
@@ -36,7 +36,7 @@ namespace ImageProcessor.Imaging.Helpers
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown if the threshold value falls outside the acceptable range.
         /// </exception>
-        public static Bitmap Brightness(Bitmap source, int threshold, Rectangle? rectangle = null)
+        public static Bitmap Brightness(Image source, int threshold, Rectangle? rectangle = null)
         {
             if (threshold > 100 || threshold < -100)
             {
@@ -66,14 +66,14 @@ namespace ImageProcessor.Imaging.Helpers
                 }
             }
 
-            return source;
+            return (Bitmap)source;
         }
 
         /// <summary>
         /// Adjusts the contrast component of the given image.
         /// </summary>
         /// <param name="source">
-        /// The <see cref="Bitmap"/> source to adjust.
+        /// The <see cref="Image"/> source to adjust.
         /// </param>
         /// <param name="threshold">
         /// The threshold value between -100 and 100 for adjusting the contrast.
@@ -86,7 +86,7 @@ namespace ImageProcessor.Imaging.Helpers
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown if the threshold value falls outside the acceptable range.
         /// </exception>
-        public static Bitmap Contrast(Bitmap source, int threshold, Rectangle? rectangle = null)
+        public static Bitmap Contrast(Image source, int threshold, Rectangle? rectangle = null)
         {
             if (threshold > 100 || threshold < -100)
             {
@@ -120,7 +120,7 @@ namespace ImageProcessor.Imaging.Helpers
                 }
             }
 
-            return source;
+            return (Bitmap)source;
         }
     }
 }

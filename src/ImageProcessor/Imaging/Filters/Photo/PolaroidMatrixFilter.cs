@@ -31,39 +31,35 @@ namespace ImageProcessor.Imaging.Filters.Photo
         /// <summary>
         /// Processes the image.
         /// </summary>
-        /// <param name="image">The current image to process</param>
-        /// <param name="newImage">The new Image to return</param>
+        /// <param name="source">The current image to process</param>
+        /// <param name="destination">The new Image to return</param>
         /// <returns>
-        /// The processed image.
+        /// The processed <see cref="System.Drawing.Bitmap"/>.
         /// </returns>
-        public override Image TransformImage(Image image, Image newImage)
+        public override Bitmap TransformImage(Image source, Image destination)
         {
-            using (Graphics graphics = Graphics.FromImage(newImage))
+            using (Graphics graphics = Graphics.FromImage(destination))
             {
                 using (ImageAttributes attributes = new ImageAttributes())
                 {
                     attributes.SetColorMatrix(this.Matrix);
 
-                    Rectangle rectangle = new Rectangle(0, 0, image.Width, image.Height);
+                    Rectangle rectangle = new Rectangle(0, 0, source.Width, source.Height);
 
-                    graphics.DrawImage(image, rectangle, 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, attributes);
+                    graphics.DrawImage(source, rectangle, 0, 0, source.Width, source.Height, GraphicsUnit.Pixel, attributes);
                 }
             }
 
             // Fade the contrast
-            newImage = Adjustments.Contrast((Bitmap)newImage, -30);
+            destination = Adjustments.Contrast(destination, -25);
 
             // Add a glow to the image.
-            newImage = Effects.Glow((Bitmap)newImage, Color.FromArgb(70, 255, 153, 102));
+            destination = Effects.Glow(destination, Color.FromArgb(70, 255, 153, 102));
 
             // Add a vignette to finish the effect.
-            newImage = Effects.Vignette((Bitmap)newImage, Color.FromArgb(80, 0, 0));
+            destination = Effects.Vignette(destination, Color.FromArgb(80, 0, 0));
 
-            // Reassign the image.
-            image.Dispose();
-            image = newImage;
-
-            return image;
+            return (Bitmap)destination;
         }
     }
 }

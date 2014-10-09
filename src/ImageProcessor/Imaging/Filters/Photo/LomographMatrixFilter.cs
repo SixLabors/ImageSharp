@@ -31,32 +31,28 @@ namespace ImageProcessor.Imaging.Filters.Photo
         /// <summary>
         /// Processes the image.
         /// </summary>
-        /// <param name="image">The current image to process</param>
-        /// <param name="newImage">The new Image to return</param>
+        /// <param name="source">The current image to process</param>
+        /// <param name="destination">The new Image to return</param>
         /// <returns>
-        /// The processed image.
+        /// The processed <see cref="System.Drawing.Bitmap"/>.
         /// </returns>
-        public override Image TransformImage(Image image, Image newImage)
+        public override Bitmap TransformImage(Image source, Image destination)
         {
-            using (Graphics graphics = Graphics.FromImage(newImage))
+            using (Graphics graphics = Graphics.FromImage(destination))
             {
                 using (ImageAttributes attributes = new ImageAttributes())
                 {
                     attributes.SetColorMatrix(this.Matrix);
 
-                    Rectangle rectangle = new Rectangle(0, 0, image.Width, image.Height);
-                    graphics.DrawImage(image, rectangle, 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, attributes);
+                    Rectangle rectangle = new Rectangle(0, 0, source.Width, source.Height);
+                    graphics.DrawImage(source, rectangle, 0, 0, source.Width, source.Height, GraphicsUnit.Pixel, attributes);
                 }
             }
 
             // Add a vignette to finish the effect.
-            newImage = Effects.Vignette((Bitmap)newImage, Color.Black);
+            destination = Effects.Vignette(destination, Color.Black);
 
-            // Reassign the image.
-            image.Dispose();
-            image = newImage;
-
-            return image;
+            return (Bitmap)destination;
         }
     }
 }

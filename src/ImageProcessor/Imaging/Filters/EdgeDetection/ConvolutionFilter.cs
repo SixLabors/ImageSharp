@@ -53,7 +53,7 @@ namespace ImageProcessor.Imaging.Filters.EdgeDetection
         /// </summary>
         /// <param name="source">The image to process.</param>
         /// <returns>A processed bitmap.</returns>
-        public Bitmap ProcessFilter(Bitmap source)
+        public Bitmap ProcessFilter(Image source)
         {
             int width = source.Width;
             int height = source.Height;
@@ -188,7 +188,7 @@ namespace ImageProcessor.Imaging.Filters.EdgeDetection
         /// </summary>
         /// <param name="source">The image to process.</param>
         /// <returns>A processed bitmap.</returns>
-        public Bitmap Process2DFilter(Bitmap source)
+        public Bitmap Process2DFilter(Image source)
         {
             int width = source.Width;
             int height = source.Height;

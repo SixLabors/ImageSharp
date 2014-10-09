@@ -14,12 +14,11 @@ namespace ImageProcessor.Imaging.Filters.Photo
     using System.Drawing;
     using System.Drawing.Drawing2D;
     using System.Drawing.Imaging;
-    using System.Runtime.InteropServices;
     using System.Threading.Tasks;
 
-    using ImageProcessor.Common.Extensions;
     using ImageProcessor.Imaging.Filters.Artistic;
     using ImageProcessor.Imaging.Filters.EdgeDetection;
+    using ImageProcessor.Imaging.Helpers;
 
     /// <summary>
     /// Encapsulates methods with which to add a comic filter to an image.
@@ -40,15 +39,17 @@ namespace ImageProcessor.Imaging.Filters.Photo
         /// <param name="image">The current image to process</param>
         /// <param name="newImage">The new Image to return</param>
         /// <returns>
-        /// The processed image.
+        /// The processed <see cref="System.Drawing.Bitmap"/>.
         /// </returns>
-        public override Image TransformImage(Image image, Image newImage)
+        public override Bitmap TransformImage(Image image, Image newImage)
         {
             // Bitmaps for comic pattern
             Bitmap highBitmap = null;
             Bitmap lowBitmap = null;
             Bitmap patternBitmap = null;
             Bitmap edgeBitmap = null;
+            int width = image.Width;
+            int height = image.Height;
 
             try
             {
@@ -65,7 +66,8 @@ namespace ImageProcessor.Imaging.Filters.Photo
                     highBitmap = new OilPaintingFilter(3, 5).ApplyFilter((Bitmap)image);
 
                     // Draw the edges.
-                    edgeBitmap = Trace((Bitmap)image, 120);
+                    edgeBitmap = new Bitmap(width, height);
+                    edgeBitmap = Trace(image, edgeBitmap, 120);
 
                     using (Graphics graphics = Graphics.FromImage(highBitmap))
                     {
@@ -163,37 +165,44 @@ namespace ImageProcessor.Imaging.Filters.Photo
                 }
             }
 
-            return image;
+            return (Bitmap)image;
         }
 
         /// <summary>
-        /// Detects and draws edges.
-        /// TODO: Move this to another class and do edge detection.
+        /// Traces the edges of a given <see cref="Image"/>.
+        /// TODO: Move this to another class.
         /// </summary>
         /// <param name="source">
-        /// The source bitmap.
+        /// The source <see cref="Image"/>.
+        /// </param>
+        /// <param name="destination">
+        /// The destination <see cref="Image"/>.
         /// </param>
         /// <param name="threshold">
-        /// The threshold.
+        /// The threshold (between 0 and 255).
         /// </param>
         /// <returns>
-        /// The <see cref="Bitmap"/>.
+        /// The a new instance of <see cref="Bitmap"/> traced.
         /// </returns>
-        private static Bitmap Trace(Bitmap source, byte threshold = 0)
+        private static Bitmap Trace(Image source, Image destination, byte threshold = 0)
         {
             int width = source.Width;
             int height = source.Height;
 
             // Grab the edges converting to greyscale, and invert the colors.
             ConvolutionFilter filter = new ConvolutionFilter(new SobelEdgeFilter(), true);
-            Bitmap destination = filter.Process2DFilter(source);
-            Bitmap invert = new Bitmap(width, height, PixelFormat.Format32bppArgb);
-            InvertMatrixFilter matrix = new InvertMatrixFilter();
-            invert = (Bitmap)matrix.TransformImage(destination, invert);
+
+            using (Bitmap temp = filter.Process2DFilter(source))
+            {
+                destination = new InvertMatrixFilter().TransformImage(temp, destination);
+                
+                // Darken it slightly
+                destination = Adjustments.Brightness(destination, -5);
+            }
 
             // Loop through and replace any colors more white than the threshold
             // with a transparent one. 
-            using (FastBitmap sourceBitmap = new FastBitmap(invert))
+            using (FastBitmap destinationBitmap = new FastBitmap(destination))
             {
                 Parallel.For(
                     0,
@@ -203,20 +212,17 @@ namespace ImageProcessor.Imaging.Filters.Photo
                         for (int x = 0; x < width; x++)
                         {
                             // ReSharper disable AccessToDisposedClosure
-                            Color color = sourceBitmap.GetPixel(x, y);
+                            Color color = destinationBitmap.GetPixel(x, y);
                             if (color.B >= threshold)
                             {
-                                sourceBitmap.SetPixel(x, y, Color.Transparent);
+                                destinationBitmap.SetPixel(x, y, Color.Transparent);
                             }
                             // ReSharper restore AccessToDisposedClosure
                         }
                     });
             }
 
-            destination.Dispose();
-            destination = invert;
-
-            return destination;
+            return (Bitmap)destination;
         }
 
         /// <summary>
@@ -231,7 +237,7 @@ namespace ImageProcessor.Imaging.Filters.Photo
         /// <exception cref="ArgumentException">
         /// Thrown if the two images are of different size.
         /// </exception>
-        private static void ApplyMask(Bitmap source, Bitmap destination)
+        private static void ApplyMask(Image source, Image destination)
         {
             if (source.Size != destination.Size)
             {

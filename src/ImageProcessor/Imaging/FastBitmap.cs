@@ -71,9 +71,9 @@ namespace ImageProcessor.Imaging
         /// Initializes a new instance of the <see cref="FastBitmap"/> class.
         /// </summary>
         /// <param name="bitmap">The input bitmap.</param>
-        public FastBitmap(Bitmap bitmap)
+        public FastBitmap(Image bitmap)
         {
-            this.bitmap = bitmap;
+            this.bitmap = (Bitmap)bitmap;
             this.width = this.bitmap.Width;
             this.height = this.bitmap.Height;
             this.LockBitmap();

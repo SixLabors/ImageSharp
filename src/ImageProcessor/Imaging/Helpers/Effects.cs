@@ -23,7 +23,7 @@ namespace ImageProcessor.Imaging.Helpers
         /// Adds a vignette effect to the source image based on the given color.
         /// </summary>
         /// <param name="source">
-        /// The <see cref="Bitmap"/> source.
+        /// The <see cref="Image"/> source.
         /// </param>
         /// <param name="baseColor">
         /// <see cref="Color"/> to base the vignette on.
@@ -38,7 +38,7 @@ namespace ImageProcessor.Imaging.Helpers
         /// <returns>
         /// The <see cref="Bitmap"/> with the vignette applied.
         /// </returns>
-        public static Bitmap Vignette(Bitmap source, Color baseColor, Rectangle? rectangle = null, bool invert = false)
+        public static Bitmap Vignette(Image source, Color baseColor, Rectangle? rectangle = null, bool invert = false)
         {
             using (Graphics graphics = Graphics.FromImage(source))
             {
@@ -93,18 +93,18 @@ namespace ImageProcessor.Imaging.Helpers
                 }
             }
 
-            return source;
+            return (Bitmap)source;
         }
 
         /// <summary>
         /// Adds a diffused glow (inverted vignette) effect to the source image based on the given color.
         /// </summary>
-        /// <param name="source">The <see cref="Bitmap"/> source.</param>
+        /// <param name="source">The <see cref="Image"/> source.</param>
         /// <param name="baseColor"><see cref="Color"/> to base the vignette on.</param>
         /// <param name="rectangle">The rectangle to define the bounds of the area to vignette. If null then the effect is applied
         /// to the entire image.</param>
         /// <returns>The <see cref="Bitmap"/> with the vignette applied.</returns>
-        public static Bitmap Glow(Bitmap source, Color baseColor, Rectangle? rectangle = null)
+        public static Bitmap Glow(Image source, Color baseColor, Rectangle? rectangle = null)
         {
             return Vignette(source, baseColor, rectangle, true);
         }

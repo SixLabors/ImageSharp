@@ -26,11 +26,11 @@ namespace ImageProcessor.Imaging.Filters.Photo
         /// <summary>
         /// Processes the image.
         /// </summary>
-        /// <param name="image">The current image to process</param>
-        /// <param name="newImage">The new Image to return</param>
+        /// <param name="source">The current image to process</param>
+        /// <param name="destination">The new Image to return</param>
         /// <returns>
-        /// The processed image from the current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// The processed <see cref="System.Drawing.Bitmap"/>.
         /// </returns>
-        Image TransformImage(Image image, Image newImage);
+        Bitmap TransformImage(Image source, Image destination);
     }
 }

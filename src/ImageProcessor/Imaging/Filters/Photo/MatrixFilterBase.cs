@@ -29,9 +29,9 @@ namespace ImageProcessor.Imaging.Filters.Photo
         /// <param name="image">The current image to process</param>
         /// <param name="newImage">The new Image to return</param>
         /// <returns>
-        /// The processed image.
+        /// The processed <see cref="System.Drawing.Bitmap"/>.
         /// </returns>
-        public abstract Image TransformImage(Image image, Image newImage);
+        public abstract Bitmap TransformImage(Image image, Image newImage);
 
         /// <summary>
         /// Determines whether the specified <see cref="IMatrixFilter" />, is equal to this instance.

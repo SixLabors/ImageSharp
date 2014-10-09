@@ -66,13 +66,12 @@ namespace ImageProcessor.Processors
 
             try
             {
-                newImage = new Bitmap(image.Width, image.Height, PixelFormat.Format32bppPArgb);
+                newImage = new Bitmap(image.Width, image.Height);
                 IMatrixFilter matrix = this.DynamicParameter;
-
-                if (matrix != null)
-                {
-                    return matrix.TransformImage(image, newImage);
-                }
+                newImage = matrix.TransformImage(image, newImage);
+                
+                image.Dispose();
+                image = newImage;
             }
             catch (Exception ex)
             {

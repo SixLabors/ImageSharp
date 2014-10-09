@@ -670,6 +670,17 @@ namespace ImageProcessor
             return this;
         }
 
+        public ImageFactory Mask()
+        {
+            if (this.ShouldProcess)
+            {
+                Mask mask = new Mask();
+                this.CurrentImageFormat.ApplyProcessor(mask.ProcessImage, this);
+            }
+
+            return this;
+        }
+
         /// <summary>
         /// Pixelates an image with the given size.
         /// </summary>

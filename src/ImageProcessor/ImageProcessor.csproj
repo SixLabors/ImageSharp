@@ -155,6 +155,7 @@
     <Compile Include="Common\Exceptions\ImageFormatException.cs" />
     <Compile Include="ImageFactory.cs" />
     <Compile Include="Imaging\AnchorPosition.cs" />
+    <Compile Include="Imaging\Helpers\ImageMaths.cs" />
     <Compile Include="Imaging\MetaData\ExifPropertyTagType.cs" />
     <Compile Include="Imaging\Convolution.cs" />
     <Compile Include="Imaging\CropLayer.cs" />

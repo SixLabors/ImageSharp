@@ -10,7 +10,6 @@
 
 namespace ImageProcessor.Imaging.Filters.Photo
 {
-    using System;
     using System.Drawing;
     using System.Drawing.Drawing2D;
     using System.Drawing.Imaging;
@@ -106,8 +105,8 @@ namespace ImageProcessor.Imaging.Filters.Photo
                         }
                     }
 
-                    // Transfer the alpha channel from the mask to the high saturation image.
-                    ApplyMask(patternBitmap, lowBitmap);
+                    // Transfer the alpha channel from the mask to the low saturation image.
+                    lowBitmap = Effects.ApplyMask(lowBitmap, patternBitmap);
 
                     using (Graphics graphics = Graphics.FromImage(newImage))
                     {
@@ -195,8 +194,8 @@ namespace ImageProcessor.Imaging.Filters.Photo
             using (Bitmap temp = filter.Process2DFilter(source))
             {
                 destination = new InvertMatrixFilter().TransformImage(temp, destination);
-                
-                // Darken it slightly
+
+                // Darken it slightly to aid detection
                 destination = Adjustments.Brightness(destination, -5);
             }
 
@@ -222,56 +221,9 @@ namespace ImageProcessor.Imaging.Filters.Photo
                     });
             }
 
+            // Darken it again to average out the color.
+            destination = Adjustments.Brightness(destination, -5);
             return (Bitmap)destination;
-        }
-
-        /// <summary>
-        /// Applies a mask .
-        /// </summary>
-        /// <param name="source">
-        /// The source.
-        /// </param>
-        /// <param name="destination">
-        /// The destination.
-        /// </param>
-        /// <exception cref="ArgumentException">
-        /// Thrown if the two images are of different size.
-        /// </exception>
-        private static void ApplyMask(Image source, Image destination)
-        {
-            if (source.Size != destination.Size)
-            {
-                throw new ArgumentException();
-            }
-
-            using (FastBitmap sourceBitmap = new FastBitmap(source))
-            {
-                using (FastBitmap destinationBitmap = new FastBitmap(destination))
-                {
-                    int width = source.Width;
-                    int height = source.Height;
-
-                    Parallel.For(
-                        0,
-                        height,
-                        y =>
-                        {
-                            for (int x = 0; x < width; x++)
-                            {
-                                // ReSharper disable AccessToDisposedClosure
-                                Color sourceColor = sourceBitmap.GetPixel(x, y);
-                                Color destinationColor = destinationBitmap.GetPixel(x, y);
-
-                                if (destinationColor.A != 0)
-                                {
-                                    destinationBitmap.SetPixel(x, y, Color.FromArgb(sourceColor.B, destinationColor.R, destinationColor.G, destinationColor.B));
-                                }
-
-                                // ReSharper restore AccessToDisposedClosure
-                            }
-                        });
-                }
-            }
         }
     }
 }

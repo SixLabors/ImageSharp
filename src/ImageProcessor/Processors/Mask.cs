@@ -15,9 +15,11 @@ namespace ImageProcessor.Processors
     using System.Drawing;
 
     using ImageProcessor.Common.Exceptions;
+    using ImageProcessor.Imaging.Helpers;
 
     /// <summary>
-    /// Applies a mask to the given image.
+    /// Applies a mask to the given image. If the mask is not the same size as the image 
+    /// it will be centered against the image.
     /// </summary>
     public class Mask : IGraphicsProcessor
     {
@@ -60,29 +62,46 @@ namespace ImageProcessor.Processors
         public Image ProcessImage(ImageFactory factory)
         {
             Bitmap newImage = null;
+            Bitmap mask = null;
+            Bitmap maskResized = null;
             Image image = factory.Image;
-            Size original = image.Size;
-            Size smaller = new Size(image.Width / 2, image.Height / 2);
-            int x = (original.Width - smaller.Width) / 2;
-            int y = (original.Height - smaller.Height) / 2;
-
-            int width = image.Width;
-            int height = image.Height;
 
             try
             {
-                newImage = new Bitmap(original.Width, image.Height);
+                int width = image.Width;
+                int height = image.Height;
+                mask = new Bitmap(this.DynamicParameter);
+                Rectangle parent = new Rectangle(0, 0, width, height);
+                Rectangle child = new Rectangle(0, 0, mask.Width, mask.Height);
+                RectangleF centered = ImageMaths.CenteredRectangle(parent, child);
 
-                using (Graphics graphics = Graphics.FromImage(newImage))
+                // Resize the mask to the size of the input image so that we can apply it.
+                maskResized = new Bitmap(width, height);
+                using (Graphics graphics = Graphics.FromImage(maskResized))
                 {
-                    graphics.DrawImage(image, x, y, smaller.Width, smaller.Height);
+                    graphics.Clear(Color.Transparent);
+                    graphics.DrawImage(mask, new PointF(centered.X, centered.Y));
                 }
 
+                newImage = Effects.ApplyMask(image, maskResized);
+
+                mask.Dispose();
+                maskResized.Dispose();
                 image.Dispose();
                 image = newImage;
             }
             catch (Exception ex)
             {
+                if (mask != null)
+                {
+                    mask.Dispose();
+                }
+
+                if (maskResized != null)
+                {
+                    maskResized.Dispose();
+                }
+
                 if (newImage != null)
                 {
                     newImage.Dispose();

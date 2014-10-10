@@ -13,6 +13,7 @@ namespace ImageProcessor.Imaging.Helpers
     using System;
     using System.Drawing;
     using System.Drawing.Drawing2D;
+    using System.Threading.Tasks;
 
     /// <summary>
     /// Provides reusable effect methods to apply to images.
@@ -69,8 +70,8 @@ namespace ImageProcessor.Imaging.Helpers
                         }
                         else
                         {
-                             centerColor = Color.FromArgb(0, baseColor.R, baseColor.G, baseColor.B);
-                             edgeColor = Color.FromArgb(255, baseColor.R, baseColor.G, baseColor.B);
+                            centerColor = Color.FromArgb(0, baseColor.R, baseColor.G, baseColor.B);
+                            edgeColor = Color.FromArgb(255, baseColor.R, baseColor.G, baseColor.B);
                         }
 
                         brush.WrapMode = WrapMode.Tile;
@@ -107,6 +108,72 @@ namespace ImageProcessor.Imaging.Helpers
         public static Bitmap Glow(Image source, Color baseColor, Rectangle? rectangle = null)
         {
             return Vignette(source, baseColor, rectangle, true);
+        }
+
+        /// <summary>
+        /// Applies the given image mask to the source.
+        /// </summary>
+        /// <param name="source">
+        /// The source <see cref="Image"/>.
+        /// </param>
+        /// <param name="mask">
+        /// The mask <see cref="Image"/>.
+        /// </param>
+        /// <exception cref="ArgumentException">
+        /// Thrown if the two images are of different size.
+        /// </exception>
+        /// <returns>
+        /// The masked <see cref="Bitmap"/>.
+        /// </returns>
+        public static Bitmap ApplyMask(Image source, Image mask)
+        {
+            if (mask.Size != source.Size)
+            {
+                throw new ArgumentException();
+            }
+
+            int width = mask.Width;
+            int height = mask.Height;
+
+            Bitmap toMask = new Bitmap(source);
+
+            // Loop through and replace the alpha channel
+            using (FastBitmap maskBitmap = new FastBitmap(mask))
+            {
+                using (FastBitmap sourceBitmap = new FastBitmap(toMask))
+                {
+                    Parallel.For(
+                        0,
+                        height,
+                        y =>
+                        {
+                            for (int x = 0; x < width; x++)
+                            {
+                                // ReSharper disable AccessToDisposedClosure
+                                Color maskColor = maskBitmap.GetPixel(x, y);
+                                Color sourceColor = sourceBitmap.GetPixel(x, y);
+
+                                if (sourceColor.A != 0)
+                                {
+                                    sourceBitmap.SetPixel(x, y, Color.FromArgb(maskColor.B, sourceColor.R, sourceColor.G, sourceColor.B));
+                                }
+
+                                // ReSharper restore AccessToDisposedClosure
+                            }
+                        });
+                }
+            }
+
+            // Ensure the background is cleared out on non alpha supporting formats.
+            Bitmap clear = new Bitmap(width, height);
+            using (Graphics graphics = Graphics.FromImage(clear))
+            {
+                graphics.Clear(Color.Transparent);
+                graphics.DrawImage(toMask, 0, 0, width, height);
+            }
+
+            toMask.Dispose();
+            return clear;
         }
     }
 }

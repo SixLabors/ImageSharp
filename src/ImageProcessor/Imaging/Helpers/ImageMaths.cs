@@ -15,7 +15,7 @@ namespace ImageProcessor.Imaging.Helpers
     /// <summary>
     /// Provides reusable mathematical methods to apply to images.
     /// </summary>
-    public class ImageMaths
+    public static class ImageMaths
     {
         /// <summary>
         /// Gets the bounding <see cref="Rectangle"/> from the given points.
@@ -29,13 +29,13 @@ namespace ImageProcessor.Imaging.Helpers
         /// <returns>
         /// The bounding <see cref="Rectangle"/>.
         /// </returns>
-        public Rectangle GetBoundingRectangle(Point topLeft, Point bottomRight)
+        public static Rectangle GetBoundingRectangle(Point topLeft, Point bottomRight)
         {
             return new Rectangle(topLeft.X, topLeft.Y, bottomRight.X - topLeft.X, bottomRight.Y - topLeft.Y);
         }
 
         /// <summary>
-        /// Gets a <see cref="Rectangle"/> centered within it's parent.
+        /// Gets a <see cref="Rectangle"/> representing the child centered relative to the parent.
         /// </summary>
         /// <param name="parent">
         /// The parent <see cref="Rectangle"/>.
@@ -46,17 +46,33 @@ namespace ImageProcessor.Imaging.Helpers
         /// <returns>
         /// The centered <see cref="Rectangle"/>.
         /// </returns>
-        public Rectangle CenteredRectangle(Rectangle parent, Rectangle child)
+        public static RectangleF CenteredRectangle(Rectangle parent, Rectangle child)
         {
-            if (parent.Size.Width < child.Size.Width && parent.Size.Height < child.Size.Height)
+            float x = (parent.Width - child.Width) / 2.0F;
+            float y = (parent.Height - child.Height) / 2.0F;
+            int width = child.Width;
+            int height = child.Height;
+            return new RectangleF(x, y, width, height);
+        }
+
+        /// <summary>
+        /// Returns the array of <see cref="Point"/> matching the bounds of the given rectangle.
+        /// </summary>
+        /// <param name="rectangle">
+        /// The <see cref="Rectangle"/> to return the points from.
+        /// </param>
+        /// <returns>
+        /// The <see cref="Point"/> array.
+        /// </returns>
+        public static Point[] ToPoints(Rectangle rectangle)
+        {
+            return new[]
             {
-                return parent;
-            }
-
-            int x = (parent.Width - child.Width) / 2;
-            int y = (parent.Height - child.Height) / 2;
-
-            return new Rectangle(x, y, child.Width, child.Height);
+                new Point(rectangle.Left, rectangle.Top), 
+                new Point(rectangle.Right, rectangle.Top), 
+                new Point(rectangle.Right, rectangle.Bottom), 
+                new Point(rectangle.Left, rectangle.Bottom)
+            };
         }
     }
 }

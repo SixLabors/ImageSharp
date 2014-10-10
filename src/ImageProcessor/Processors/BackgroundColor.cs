@@ -55,8 +55,11 @@ namespace ImageProcessor.Processors
 
             try
             {
+                int width = image.Width;
+                int height = image.Height;
+
                 Color backgroundColor = this.DynamicParameter;
-                newImage = new Bitmap(image.Width, image.Height);
+                newImage = new Bitmap(width, height);
 
                 // Make a graphics object from the empty bitmap.
                 using (Graphics graphics = Graphics.FromImage(newImage))
@@ -65,7 +68,7 @@ namespace ImageProcessor.Processors
                     graphics.Clear(backgroundColor);
 
                     // Draw passed in image onto graphics object.
-                    graphics.DrawImage(image, 0, 0);
+                    graphics.DrawImage(image, 0, 0, width, height);
                 }
 
                 image.Dispose();

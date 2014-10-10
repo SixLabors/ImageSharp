@@ -13,7 +13,6 @@ namespace ImageProcessor.Processors
     using System;
     using System.Collections.Generic;
     using System.Drawing;
-    using System.Drawing.Imaging;
 
     using ImageProcessor.Common.Exceptions;
     using ImageProcessor.Imaging.Filters.Photo;

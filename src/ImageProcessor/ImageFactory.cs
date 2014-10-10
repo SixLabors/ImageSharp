@@ -670,11 +670,21 @@ namespace ImageProcessor
             return this;
         }
 
-        public ImageFactory Mask()
+        /// <summary>
+        /// Applies the given image mask to the current image. If the mask is not the same size as the image 
+        /// it will be centered against the image.
+        /// </summary>
+        /// <param name="imageMask">
+        /// The image containing the mask to apply.
+        /// </param>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory Mask(Image imageMask)
         {
             if (this.ShouldProcess)
             {
-                Mask mask = new Mask();
+                Mask mask = new Mask { DynamicParameter = imageMask };
                 this.CurrentImageFormat.ApplyProcessor(mask.ProcessImage, this);
             }
 

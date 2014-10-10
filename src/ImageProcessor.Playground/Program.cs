@@ -18,15 +18,19 @@ namespace ImageProcessor.PlayGround
     using System.Linq;
 
     using ImageProcessor;
+    using ImageProcessor.Configuration;
     using ImageProcessor.Imaging;
     using ImageProcessor.Imaging.Filters.EdgeDetection;
     using ImageProcessor.Imaging.Filters.Photo;
+    using ImageProcessor.Imaging.Formats;
 
     /// <summary>
     /// The program.
     /// </summary>
     public class Program
     {
+        protected static readonly IEnumerable<ISupportedImageFormat> formats = ImageProcessorBootstrapper.Instance.SupportedImageFormats;
+
         /// <summary>
         /// The main routine.
         /// </summary>
@@ -45,6 +49,7 @@ namespace ImageProcessor.PlayGround
                 di.Create();
             }
 
+            Image mask = Image.FromFile(Path.Combine(resolvedPath, "mask.png"));
             IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".jpg");
             //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif", ".webp", ".bmp", ".jpg", ".png", ".tif");
 
@@ -73,15 +78,16 @@ namespace ImageProcessor.PlayGround
                             //.BackgroundColor(Color.White)
                             //.Resize(new Size((int)(size.Width * 1.1), 0))
                             //.ContentAwareResize(layer)
-                            .Constrain(size)
-                            .Mask()
+                            //.Constrain(size)
+                            //.Mask(mask)
+                            //.BackgroundColor(Color.HotPink)
                             //.ReplaceColor(Color.FromArgb(255, 1, 107, 165), Color.FromArgb(255, 1, 165, 13), 80)
                             //.Resize(layer)
                             //.DetectEdges(new SobelEdgeFilter(), false)
                             //.DetectEdges(new LaplacianOfGaussianEdgeFilter())
                             //.EntropyCrop()
                             //.Filter(MatrixFilters.Invert)
-                            //.Filter(MatrixFilters.Comic)
+                            .Filter(MatrixFilters.Comic)
                             //.Filter(MatrixFilters.HiSatch)
                             //.Pixelate(8)
                             //.GaussianSharpen(10)

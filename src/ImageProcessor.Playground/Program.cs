@@ -50,7 +50,7 @@ namespace ImageProcessor.PlayGround
             }
 
             Image mask = Image.FromFile(Path.Combine(resolvedPath, "mask.png"));
-            IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".jpg");
+            IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".png");
             //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif", ".webp", ".bmp", ".jpg", ".png", ".tif");
 
             foreach (FileInfo fileInfo in files)
@@ -85,9 +85,9 @@ namespace ImageProcessor.PlayGround
                             //.Resize(layer)
                             //.DetectEdges(new SobelEdgeFilter(), false)
                             //.DetectEdges(new LaplacianOfGaussianEdgeFilter())
-                            //.EntropyCrop()
+                            .EntropyCrop()
                             //.Filter(MatrixFilters.Invert)
-                            .Filter(MatrixFilters.Comic)
+                            //.Filter(MatrixFilters.Comic)
                             //.Filter(MatrixFilters.HiSatch)
                             //.Pixelate(8)
                             //.GaussianSharpen(10)

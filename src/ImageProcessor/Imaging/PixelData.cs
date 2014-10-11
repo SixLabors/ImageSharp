@@ -10,29 +10,36 @@
 
 namespace ImageProcessor.Imaging
 {
+    using System.Runtime.InteropServices;
+
     /// <summary>
     /// Contains the component parts that make up a single pixel.
     /// </summary>
+    [StructLayout(LayoutKind.Explicit)]
     public struct PixelData
     {
         /// <summary>
         /// The blue component.
         /// </summary>
+        [FieldOffset(0)]
         public byte B;
 
         /// <summary>
         /// The green component.
         /// </summary>
+        [FieldOffset(1)]
         public byte G;
 
         /// <summary>
         /// The red component.
         /// </summary>
+        [FieldOffset(2)]
         public byte R;
 
         /// <summary>
         /// The alpha component.
         /// </summary>
+        [FieldOffset(3)]
         public byte A;
 
         /// <summary>

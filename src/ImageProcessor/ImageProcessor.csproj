@@ -133,6 +133,7 @@
     <Compile Include="Configuration\NativeMethods.cs" />
     <Compile Include="Imaging\Colors\HslaColor.cs" />
     <Compile Include="Imaging\Colors\RgbaColor.cs" />
+    <Compile Include="Imaging\Colors\RgbaComponent.cs" />
     <Compile Include="Imaging\Colors\YCbCrColor.cs" />
     <Compile Include="Imaging\Filters\Artistic\OilPaintingFilter.cs" />
     <Compile Include="Imaging\Filters\EdgeDetection\ConvolutionFilter.cs" />

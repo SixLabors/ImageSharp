@@ -671,20 +671,23 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Applies the given image mask to the current image. If the mask is not the same size as the image 
-        /// it will be centered against the image.
+        /// Applies the given image mask to the current image.
         /// </summary>
         /// <param name="imageMask">
         /// The image containing the mask to apply.
         /// </param>
+        /// <param name="point">
+        /// The <see cref="Point"/> to place the mask if it not the same dimensions as the original image.
+        /// If no position is set, the mask will be centered within the image.
+        /// </param>
         /// <returns>
         /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
         /// </returns>
-        public ImageFactory Mask(Image imageMask)
+        public ImageFactory Mask(Image imageMask, Point? point = null)
         {
             if (this.ShouldProcess)
             {
-                Mask mask = new Mask { DynamicParameter = imageMask };
+                Mask mask = new Mask { DynamicParameter = new Tuple<Image, Point?>(imageMask, point) };
                 this.CurrentImageFormat.ApplyProcessor(mask.ProcessImage, this);
             }
 

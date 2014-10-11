@@ -155,7 +155,7 @@ namespace ImageProcessor.Imaging.Helpers
 
                                 if (sourceColor.A != 0)
                                 {
-                                    sourceBitmap.SetPixel(x, y, Color.FromArgb(maskColor.B, sourceColor.R, sourceColor.G, sourceColor.B));
+                                    sourceBitmap.SetPixel(x, y, Color.FromArgb(maskColor.A, sourceColor.R, sourceColor.G, sourceColor.B));
                                 }
 
                                 // ReSharper restore AccessToDisposedClosure

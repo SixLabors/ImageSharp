@@ -49,8 +49,8 @@ namespace ImageProcessor.PlayGround
                 di.Create();
             }
 
-            Image mask = Image.FromFile(Path.Combine(resolvedPath, "mask.png"));
-            IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".png");
+            Image mask = Image.FromFile(Path.Combine(resolvedPath, "mask2.png"));
+            IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".jpg");
             //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif", ".webp", ".bmp", ".jpg", ".png", ".tif");
 
             foreach (FileInfo fileInfo in files)
@@ -66,7 +66,7 @@ namespace ImageProcessor.PlayGround
                 {
                     using (ImageFactory imageFactory = new ImageFactory(true))
                     {
-                        Size size = new Size(400, 0);
+                        Size size = new Size(800, 0);
                         ResizeLayer layer = new ResizeLayer(size, ResizeMode.Max, AnchorPosition.Center, false);
 
                         //ContentAwareResizeLayer layer = new ContentAwareResizeLayer(size)
@@ -78,16 +78,17 @@ namespace ImageProcessor.PlayGround
                             //.BackgroundColor(Color.White)
                             //.Resize(new Size((int)(size.Width * 1.1), 0))
                             //.ContentAwareResize(layer)
-                            //.Constrain(size)
-                            //.Mask(mask)
+                            .Constrain(size)
+                            .Mask(mask)
+                            //.Format(new PngFormat())
                             //.BackgroundColor(Color.HotPink)
                             //.ReplaceColor(Color.FromArgb(255, 1, 107, 165), Color.FromArgb(255, 1, 165, 13), 80)
                             //.Resize(layer)
                             //.DetectEdges(new SobelEdgeFilter(), false)
                             //.DetectEdges(new LaplacianOfGaussianEdgeFilter())
-                            .EntropyCrop()
+                            //.EntropyCrop()
                             //.Filter(MatrixFilters.Invert)
-                            //.Filter(MatrixFilters.Comic)
+                            .Filter(MatrixFilters.Comic)
                             //.Filter(MatrixFilters.HiSatch)
                             //.Pixelate(8)
                             //.GaussianSharpen(10)

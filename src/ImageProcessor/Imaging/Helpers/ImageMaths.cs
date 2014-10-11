@@ -145,10 +145,10 @@ namespace ImageProcessor.Imaging.Helpers
 
             using (FastBitmap fastBitmap = new FastBitmap(bitmap))
             {
-                topLeft.Y = getMinY(fastBitmap) + 1;
-                topLeft.X = getMinX(fastBitmap) + 1;
-                bottomRight.Y = getMaxY(fastBitmap);
-                bottomRight.X = getMaxX(fastBitmap);
+                topLeft.Y = getMinY(fastBitmap);
+                topLeft.X = getMinX(fastBitmap);
+                bottomRight.Y = getMaxY(fastBitmap) + 1;
+                bottomRight.X = getMaxX(fastBitmap) + 1;
             }
 
             return ImageMaths.GetBoundingRectangle(topLeft, bottomRight);

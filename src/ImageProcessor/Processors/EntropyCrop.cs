@@ -12,9 +12,9 @@ namespace ImageProcessor.Processors
     using System.Drawing;
 
     using ImageProcessor.Common.Exceptions;
-    using ImageProcessor.Imaging;
     using ImageProcessor.Imaging.Filters.Binarization;
     using ImageProcessor.Imaging.Filters.EdgeDetection;
+    using ImageProcessor.Imaging.Helpers;
 
     /// <summary>
     /// Performs a crop on an image to the area of greatest entropy.
@@ -61,8 +61,9 @@ namespace ImageProcessor.Processors
                 // Detect the edges then strip out middle shades.
                 grey = new ConvolutionFilter(new SobelEdgeFilter(), true).Process2DFilter(image);
                 grey = new BinaryThreshold(threshold).ProcessFilter(grey);
-                
-                Rectangle rectangle = this.FindBoundingBox(grey, 0);
+
+                // Search for the first white pixels
+                Rectangle rectangle = ImageMaths.GetFilteredBoundingRectangle(grey, 0);
 
                 newImage = new Bitmap(rectangle.Width, rectangle.Height);
                 using (Graphics graphics = Graphics.FromImage(newImage))
@@ -98,103 +99,6 @@ namespace ImageProcessor.Processors
             }
 
             return image;
-        }
-
-        /// <summary>
-        /// Finds the bounding rectangle based on the first instance of any color component other
-        /// than the given one.
-        /// </summary>
-        /// <param name="bitmap">
-        /// The bitmap.
-        /// </param>
-        /// <param name="componentToRemove">
-        /// The color component to remove.
-        /// </param>
-        /// <returns>
-        /// The <see cref="Rectangle"/>.
-        /// </returns>
-        private Rectangle FindBoundingBox(Bitmap bitmap, byte componentToRemove)
-        {
-            int width = bitmap.Width;
-            int height = bitmap.Height;
-            int startX;
-            int startY;
-            int stopX;
-            int stopY;
-
-            Func<FastBitmap, int> getMinY = fastBitmap =>
-            {
-                for (int y = 0; y < height; y++)
-                {
-                    for (int x = 0; x < width; x++)
-                    {
-                        if (fastBitmap.GetPixel(x, y).B != componentToRemove)
-                        {
-                            return y;
-                        }
-                    }
-                }
-
-                return 0;
-            };
-
-            Func<FastBitmap, int> getMaxY = fastBitmap =>
-            {
-                for (int y = height - 1; y > -1; y--)
-                {
-                    for (int x = 0; x < width; x++)
-                    {
-                        if (fastBitmap.GetPixel(x, y).B != componentToRemove)
-                        {
-                            return y;
-                        }
-                    }
-                }
-
-                return height;
-            };
-
-            Func<FastBitmap, int> getMinX = fastBitmap =>
-            {
-                for (int x = 0; x < width; x++)
-                {
-                    for (int y = 0; y < height; y++)
-                    {
-                        if (fastBitmap.GetPixel(x, y).B != componentToRemove)
-                        {
-                            return x;
-                        }
-                    }
-                }
-
-                return 0;
-            };
-
-            Func<FastBitmap, int> getMaxX = fastBitmap =>
-            {
-                for (int x = width - 1; x > -1; x--)
-                {
-                    for (int y = 0; y < height; y++)
-                    {
-                        if (fastBitmap.GetPixel(x, y).B != componentToRemove)
-                        {
-                            return x;
-                        }
-                    }
-                }
-
-                return height;
-            };
-
-            using (FastBitmap fastBitmap = new FastBitmap(bitmap))
-            {
-                startY = getMinY(fastBitmap);
-                stopY = getMaxY(fastBitmap);
-                startX = getMinX(fastBitmap);
-                stopX = getMaxX(fastBitmap);
-            }
-
-            return new Rectangle(startX + 1, startY + 1, stopX - (startX + 1), stopY - (startY + 1));
         }
     }
 }

@@ -15,6 +15,7 @@ namespace ImageProcessor.Processors
     using System.Drawing;
 
     using ImageProcessor.Common.Exceptions;
+    using ImageProcessor.Imaging.Colors;
     using ImageProcessor.Imaging.Helpers;
 
     /// <summary>
@@ -63,30 +64,67 @@ namespace ImageProcessor.Processors
         {
             Bitmap newImage = null;
             Bitmap mask = null;
-            Bitmap maskResized = null;
+            Bitmap maskCropped = null;
+            Bitmap maskPositioned = null;
             Image image = factory.Image;
 
             try
             {
                 int width = image.Width;
                 int height = image.Height;
-                mask = new Bitmap(this.DynamicParameter);
-                Rectangle parent = new Rectangle(0, 0, width, height);
-                Rectangle child = new Rectangle(0, 0, mask.Width, mask.Height);
-                RectangleF centered = ImageMaths.CenteredRectangle(parent, child);
+                Tuple<Image, Point?> parameters = this.DynamicParameter;
+                mask = new Bitmap(parameters.Item1);
+                Point? position = parameters.Item2.HasValue ? parameters.Item2 : null;
 
-                // Resize the mask to the size of the input image so that we can apply it.
-                maskResized = new Bitmap(width, height);
-                using (Graphics graphics = Graphics.FromImage(maskResized))
+                if (mask.Size != image.Size)
                 {
-                    graphics.Clear(Color.Transparent);
-                    graphics.DrawImage(mask, new PointF(centered.X, centered.Y));
+                    Rectangle parent = new Rectangle(0, 0, width, height);
+                    Rectangle child = ImageMaths.GetFilteredBoundingRectangle(mask, 0, RgbaComponent.A);
+                    maskCropped = new Bitmap(child.Width, child.Height);
+
+                    // First crop any bounding transparency.
+                    using (Graphics graphics = Graphics.FromImage(maskCropped))
+                    {
+                        graphics.Clear(Color.Transparent);
+                        graphics.DrawImage(
+                                         mask,
+                                         new Rectangle(0, 0, child.Width, child.Height),
+                                         child.X,
+                                         child.Y,
+                                         child.Width,
+                                         child.Height,
+                                         GraphicsUnit.Pixel);
+                    }
+
+                    // Now position the mask in an image of the same dimensions as the original.
+                    maskPositioned = new Bitmap(width, height);
+                    using (Graphics graphics = Graphics.FromImage(maskPositioned))
+                    {
+                        graphics.Clear(Color.Transparent);
+
+                        if (position != null)
+                        {
+                            // Apply the mask at the given position.
+                            graphics.DrawImage(maskCropped, position.Value);
+                        }
+                        else
+                        {
+                            // Center it instead
+                            RectangleF centered = ImageMaths.CenteredRectangle(parent, child);
+                            graphics.DrawImage(maskCropped, new PointF(centered.X, centered.Y));
+                        }
+                    }
+
+                    newImage = Effects.ApplyMask(image, maskPositioned);
+                    maskCropped.Dispose();
+                    maskPositioned.Dispose();
+                }
+                else
+                {
+                    newImage = Effects.ApplyMask(image, mask);
+                    mask.Dispose();
                 }
 
-                newImage = Effects.ApplyMask(image, maskResized);
-
-                mask.Dispose();
-                maskResized.Dispose();
                 image.Dispose();
                 image = newImage;
             }
@@ -97,9 +135,14 @@ namespace ImageProcessor.Processors
                     mask.Dispose();
                 }
 
-                if (maskResized != null)
+                if (maskCropped != null)
                 {
-                    maskResized.Dispose();
+                    maskCropped.Dispose();
+                }
+
+                if (maskPositioned != null)
+                {
+                    maskPositioned.Dispose();
                 }
 
                 if (newImage != null)

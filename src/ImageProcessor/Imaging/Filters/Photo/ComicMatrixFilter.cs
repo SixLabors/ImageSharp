@@ -92,12 +92,12 @@ namespace ImageProcessor.Imaging.Filters.Photo
                     // Create the pattern mask.
                     using (Graphics graphics = Graphics.FromImage(patternBitmap))
                     {
-                        graphics.Clear(Color.Black);
+                        graphics.Clear(Color.Transparent);
                         graphics.SmoothingMode = SmoothingMode.HighQuality;
 
-                        for (int y = 0; y < image.Height; y += 8)
+                        for (int y = 0; y < height; y += 8)
                         {
-                            for (int x = 0; x < image.Width; x += 4)
+                            for (int x = 0; x < width; x += 4)
                             {
                                 graphics.FillEllipse(Brushes.White, x, y, 3, 3);
                                 graphics.FillEllipse(Brushes.White, x + 2, y + 4, 3, 3);

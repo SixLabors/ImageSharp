@@ -11,6 +11,8 @@
 namespace ImageProcessor.Imaging
 {
     #region Using
+
+    using System.Collections.Generic;
     using System.Drawing;
     using System.Linq;
 
@@ -41,18 +43,30 @@ namespace ImageProcessor.Imaging
         /// <param name="centerCoordinates">
         /// The center coordinates (Default null)
         /// </param>
+        /// <param name="maxSize">
+        /// The maximum size to resize an image to. 
+        /// Used to restrict resizing based on calculated resizing
+        /// </param>
+        /// <param name="restrictedSizes">
+        /// The range of sizes to restrict resizing an image to. 
+        /// Used to restrict resizing based on calculated resizing
+        /// </param>
         public ResizeLayer(
             Size size,
             ResizeMode resizeMode = ResizeMode.Pad,
             AnchorPosition anchorPosition = AnchorPosition.Center,
             bool upscale = true,
-            float[] centerCoordinates = null)
+            float[] centerCoordinates = null,
+            Size? maxSize = null,
+            List<Size> restrictedSizes = null)
         {
             this.Size = size;
             this.Upscale = upscale;
             this.ResizeMode = resizeMode;
             this.AnchorPosition = anchorPosition;
             this.CenterCoordinates = centerCoordinates ?? new float[] { };
+            this.MaxSize = maxSize;
+            this.RestrictedSizes = restrictedSizes ?? new List<Size>();
         }
         #endregion
 
@@ -61,6 +75,16 @@ namespace ImageProcessor.Imaging
         /// Gets or sets the size.
         /// </summary>
         public Size Size { get; set; }
+
+        /// <summary>
+        /// Gets or sets the max size.
+        /// </summary>
+        public Size? MaxSize { get; set; }
+
+        /// <summary>
+        /// Gets or sets the restricted range of sizes. to restrict resizing methods to.
+        /// </summary>
+        public List<Size> RestrictedSizes { get; set; }
 
         /// <summary>
         /// Gets or sets the resize mode.
@@ -81,7 +105,6 @@ namespace ImageProcessor.Imaging
         /// Gets or sets the center coordinates.
         /// </summary>
         public float[] CenterCoordinates { get; set; }
-
         #endregion
 
         /// <summary>
@@ -109,7 +132,9 @@ namespace ImageProcessor.Imaging
                 && this.ResizeMode == resizeLayer.ResizeMode
                 && this.AnchorPosition == resizeLayer.AnchorPosition
                 && this.Upscale == resizeLayer.Upscale
-                && this.CenterCoordinates.SequenceEqual(resizeLayer.CenterCoordinates);
+                && this.CenterCoordinates.SequenceEqual(resizeLayer.CenterCoordinates)
+                && this.MaxSize == resizeLayer.MaxSize
+                && this.RestrictedSizes.SequenceEqual(resizeLayer.RestrictedSizes);
         }
 
         /// <summary>
@@ -123,6 +148,8 @@ namespace ImageProcessor.Imaging
             unchecked
             {
                 int hashCode = this.Size.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.MaxSize.GetHashCode();
+                hashCode = (hashCode * 397) ^ (this.RestrictedSizes != null ? this.RestrictedSizes.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ (int)this.ResizeMode;
                 hashCode = (hashCode * 397) ^ (int)this.AnchorPosition;
                 hashCode = (hashCode * 397) ^ this.Upscale.GetHashCode();

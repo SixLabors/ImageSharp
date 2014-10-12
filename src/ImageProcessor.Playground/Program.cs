@@ -79,7 +79,7 @@ namespace ImageProcessor.PlayGround
                             //.Resize(new Size((int)(size.Width * 1.1), 0))
                             //.ContentAwareResize(layer)
                             .Constrain(size)
-                            .Mask(mask)
+                            //.Mask(mask)
                             //.Format(new PngFormat())
                             //.BackgroundColor(Color.HotPink)
                             //.ReplaceColor(Color.FromArgb(255, 1, 107, 165), Color.FromArgb(255, 1, 165, 13), 80)

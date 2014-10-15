@@ -59,13 +59,15 @@ namespace ImageProcessor.Imaging.Filters.Photo
                     attributes.SetColorMatrix(ColorMatrixes.ComicHigh);
 
                     // Draw the image with the high comic colormatrix.
-                    highBitmap = new Bitmap(rectangle.Width, rectangle.Height, PixelFormat.Format32bppPArgb);
+                    highBitmap = new Bitmap(rectangle.Width, rectangle.Height);
+                    highBitmap.SetResolution(image.HorizontalResolution, image.VerticalResolution);
 
                     // Apply a oil painting filter to the image.
                     highBitmap = new OilPaintingFilter(3, 5).ApplyFilter((Bitmap)image);
 
                     // Draw the edges.
                     edgeBitmap = new Bitmap(width, height);
+                    edgeBitmap.SetResolution(image.HorizontalResolution, image.VerticalResolution);
                     edgeBitmap = Trace(image, edgeBitmap, 120);
 
                     using (Graphics graphics = Graphics.FromImage(highBitmap))
@@ -74,7 +76,8 @@ namespace ImageProcessor.Imaging.Filters.Photo
                     }
 
                     // Create a bitmap for overlaying.
-                    lowBitmap = new Bitmap(rectangle.Width, rectangle.Height, PixelFormat.Format32bppPArgb);
+                    lowBitmap = new Bitmap(rectangle.Width, rectangle.Height);
+                    lowBitmap.SetResolution(image.HorizontalResolution, image.VerticalResolution);
 
                     // Set the color matrix
                     attributes.SetColorMatrix(this.Matrix);
@@ -87,7 +90,8 @@ namespace ImageProcessor.Imaging.Filters.Photo
 
                     // We need to create a new image now with a pattern mask to paint it
                     // onto the other image with.
-                    patternBitmap = new Bitmap(rectangle.Width, rectangle.Height, PixelFormat.Format32bppPArgb);
+                    patternBitmap = new Bitmap(rectangle.Width, rectangle.Height);
+                    patternBitmap.SetResolution(image.HorizontalResolution, image.VerticalResolution);
 
                     // Create the pattern mask.
                     using (Graphics graphics = Graphics.FromImage(patternBitmap))

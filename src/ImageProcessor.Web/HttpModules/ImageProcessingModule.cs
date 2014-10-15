@@ -268,6 +268,13 @@ namespace ImageProcessor.Web.HttpModules
         private async Task ProcessImageAsync(HttpContext context)
         {
             HttpRequest request = context.Request;
+
+            // SHould we ignore this request?
+            if (request.RawUrl.ToUpperInvariant().Contains("IPIGNORE=TRUE"))
+            {
+                return;
+            }
+
             IImageService currentService = this.GetImageServiceForRequest(request);
 
             if (currentService != null)
@@ -357,9 +364,7 @@ namespace ImageProcessor.Web.HttpModules
                         if (isNewOrUpdated)
                         {
                             // Process the image.
-                            using (
-                                ImageFactory imageFactory =
-                                    new ImageFactory(preserveExifMetaData != null && preserveExifMetaData.Value))
+                            using (ImageFactory imageFactory = new ImageFactory(preserveExifMetaData != null && preserveExifMetaData.Value))
                             {
                                 using (await Locker.LockAsync(cachedPath))
                                 {

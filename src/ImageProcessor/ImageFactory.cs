@@ -829,16 +829,10 @@ namespace ImageProcessor
         /// <returns>
         /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
         /// </returns>
-        public ImageFactory Rotate(int degrees)
+        public ImageFactory Rotate(float degrees)
         {
             if (this.ShouldProcess)
             {
-                // Sanitize the input.
-                if (degrees > 360 || degrees < 0)
-                {
-                    degrees = 0;
-                }
-
                 Rotate rotate = new Rotate { DynamicParameter = degrees };
                 this.CurrentImageFormat.ApplyProcessor(rotate.ProcessImage, this);
             }

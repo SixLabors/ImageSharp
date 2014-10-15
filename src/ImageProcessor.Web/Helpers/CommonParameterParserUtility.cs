@@ -35,11 +35,12 @@ namespace ImageProcessor.Web.Helpers
         /// The regular expression to search strings for colors.
         /// </summary>
         private static readonly Regex ColorRegex = BuildColorRegex();
- 
+
         /// <summary>
         /// The regular expression to search strings for angles.
         /// </summary>
-        private static readonly Regex AngleRegex = new Regex(@"(rotate|angle)(=|-)(?:3[0-5][0-9]|[12][0-9]{2}|[1-9][0-9]?)", RegexOptions.Compiled);
+        //private static readonly Regex AngleRegex = new Regex(@"(rotate|angle)(=|-)(?:3[0-5][0-9]|[12][0-9]{2}|[1-9][0-9]?)", RegexOptions.Compiled);
+        private static readonly Regex AngleRegex = new Regex(@"(rotate|angle)(=|-)(-)?\d+(.?\d+)?", RegexOptions.Compiled);
 
         /// <summary>
         /// The regular expression to search strings for values between 1 and 100.
@@ -70,14 +71,18 @@ namespace ImageProcessor.Web.Helpers
         /// <returns>
         /// The correct <see cref="T:System.Int32"/> containing the angle for the given string.
         /// </returns>
-        public static int ParseAngle(string input)
+        public static float ParseAngle(string input)
         {
             foreach (Match match in AngleRegex.Matches(input))
             {
                 // Split on angle
-                int angle;
-                string value = match.Value.Split(new[] { '=', '-' })[1];
-                int.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out angle);
+                float angle;
+                string value = match.Value;
+                value = match.Value.ToUpperInvariant().Contains("ANGLE") 
+                    ? value.Substring(value.IndexOf("-", System.StringComparison.Ordinal) + 1) 
+                    : match.Value.Split('=')[1];
+
+                float.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out angle);
                 return angle;
             }
 

@@ -66,6 +66,7 @@ namespace ImageProcessor.Processors
                 Rectangle rectangle = ImageMaths.GetFilteredBoundingRectangle(grey, 0);
 
                 newImage = new Bitmap(rectangle.Width, rectangle.Height);
+                newImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
                 using (Graphics graphics = Graphics.FromImage(newImage))
                 {
                     graphics.DrawImage(

@@ -312,7 +312,8 @@ namespace ImageProcessor.Imaging
                         return source;
                     }
 
-                    newImage = new Bitmap(width, height, PixelFormat.Format32bppPArgb);
+                    newImage = new Bitmap(width, height);
+                    newImage.SetResolution(source.HorizontalResolution, source.VerticalResolution);
 
                     using (Graphics graphics = Graphics.FromImage(newImage))
                     {

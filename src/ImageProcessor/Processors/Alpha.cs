@@ -67,7 +67,8 @@ namespace ImageProcessor.Processors
             {
                 int alphaPercent = this.DynamicParameter;
 
-                newImage = new Bitmap(image.Width, image.Height, PixelFormat.Format32bppPArgb);
+                newImage = new Bitmap(image.Width, image.Height);
+                newImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
 
                 ColorMatrix colorMatrix = new ColorMatrix();
                 colorMatrix.Matrix00 = colorMatrix.Matrix11 = colorMatrix.Matrix22 = colorMatrix.Matrix44 = 1;

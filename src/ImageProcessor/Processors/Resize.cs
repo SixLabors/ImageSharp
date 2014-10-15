@@ -73,7 +73,7 @@ namespace ImageProcessor.Processors
             try
             {
                 ResizeLayer resizeLayer = this.DynamicParameter;
-                
+
                 // Augment the layer with the extra information.
                 resizeLayer.RestrictedSizes = this.RestrictedSizes;
                 Size maxSize = new Size();
@@ -91,9 +91,13 @@ namespace ImageProcessor.Processors
                 Resizer resizer = new Resizer(resizeLayer);
                 newImage = (Bitmap)resizer.ResizeImage(image);
 
-                // Reassign the image.
-                image.Dispose();
-                image = newImage;
+                // Check that the original image has not been returned.
+                if (newImage != image)
+                {
+                    // Reassign the image.
+                    image.Dispose();
+                    image = newImage;
+                }
             }
             catch (Exception ex)
             {

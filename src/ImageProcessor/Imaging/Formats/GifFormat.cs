@@ -16,6 +16,8 @@ namespace ImageProcessor.Imaging.Formats
     using System.IO;
     using System.Text;
 
+    using ImageProcessor.Imaging.Quantizers;
+
     /// <summary>
     /// Provides the necessary information to support gif images.
     /// </summary>

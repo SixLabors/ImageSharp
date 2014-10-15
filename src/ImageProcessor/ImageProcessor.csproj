@@ -131,6 +131,9 @@
     <Compile Include="Common\Extensions\DoubleExtensions.cs" />
     <Compile Include="Configuration\NativeBinaryFactory.cs" />
     <Compile Include="Configuration\NativeMethods.cs" />
+    <Compile Include="Imaging\Colors\Color32.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Imaging\Colors\HslaColor.cs" />
     <Compile Include="Imaging\Colors\RgbaColor.cs" />
     <Compile Include="Imaging\Colors\RgbaComponent.cs" />
@@ -177,8 +180,8 @@
     <Compile Include="Imaging\Formats\GifFrame.cs" />
     <Compile Include="Imaging\Helpers\Adjustments.cs" />
     <Compile Include="Imaging\Helpers\Effects.cs" />
-    <Compile Include="Imaging\PixelData.cs" />
-    <Compile Include="Imaging\Quantizer.cs" />
+    <Compile Include="Imaging\Quantizers\OctreeQuantizer.cs" />
+    <Compile Include="Imaging\Quantizers\Quantizer.cs" />
     <Compile Include="Imaging\ResizeLayer.cs" />
     <Compile Include="Imaging\Filters\Photo\BlackWhiteMatrixFilter.cs" />
     <Compile Include="Imaging\Filters\Photo\ColorMatrixes.cs" />
@@ -196,7 +199,6 @@
     <Compile Include="Imaging\Resizer.cs" />
     <Compile Include="Imaging\RoundedCornerLayer.cs" />
     <Compile Include="Imaging\TextLayer.cs" />
-    <Compile Include="Imaging\OctreeQuantizer.cs" />
     <Compile Include="Processors\Alpha.cs" />
     <Compile Include="Processors\EntropyCrop.cs" />
     <Compile Include="Processors\BackgroundColor.cs" />

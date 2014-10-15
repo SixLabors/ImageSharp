@@ -14,6 +14,8 @@ namespace ImageProcessor.Imaging
     using System.Drawing;
     using System.Drawing.Imaging;
 
+    using ImageProcessor.Imaging.Colors;
+
     /// <summary>
     /// Allows fast access to <see cref="System.Drawing.Bitmap"/>'s pixel data.
     /// </summary>
@@ -40,9 +42,9 @@ namespace ImageProcessor.Imaging
         private int bytesInARow;
 
         /// <summary>
-        /// The size of the pixel data.
+        /// The size of the color32 structure.
         /// </summary>
-        private int pixelDataSize;
+        private int color32Size;
 
         /// <summary>
         /// The bitmap data.
@@ -111,11 +113,11 @@ namespace ImageProcessor.Imaging
         /// The y position of the pixel.
         /// </param>
         /// <returns>
-        /// The <see cref="PixelData"/>.
+        /// The <see cref="Color32"/>.
         /// </returns>
-        private PixelData* this[int x, int y]
+        private Color32* this[int x, int y]
         {
-            get { return (PixelData*)(this.pixelBuffer + (y * this.bytesInARow) + (x * this.pixelDataSize)); }
+            get { return (Color32*)(this.pixelBuffer + (y * this.bytesInARow) + (x * this.color32Size)); }
         }
 
         /// <summary>
@@ -167,7 +169,7 @@ namespace ImageProcessor.Imaging
                 throw new ArgumentOutOfRangeException("y", "Value cannot be less than zero or greater than the bitmap height.");
             }
 #endif
-            PixelData* data = this[x, y];
+            Color32* data = this[x, y];
             return Color.FromArgb(data->A, data->R, data->G, data->B);
         }
 
@@ -193,7 +195,7 @@ namespace ImageProcessor.Imaging
                 throw new ArgumentOutOfRangeException("y", "Value cannot be less than zero or greater than the bitmap height.");
             }
 #endif
-            PixelData* data = this[x, y];
+            Color32* data = this[x, y];
             data->R = color.R;
             data->G = color.G;
             data->B = color.B;
@@ -278,8 +280,8 @@ namespace ImageProcessor.Imaging
             // Figure out the number of bytes in a row. This is rounded up to be a multiple
             // of 4 bytes, since a scan line in an image must always be a multiple of 4 bytes
             // in length.
-            this.pixelDataSize = sizeof(PixelData);
-            this.bytesInARow = bounds.Width * this.pixelDataSize;
+            this.color32Size = sizeof(Color32);
+            this.bytesInARow = bounds.Width * this.color32Size;
             if (this.bytesInARow % 4 != 0)
             {
                 this.bytesInARow = 4 * ((this.bytesInARow / 4) + 1);

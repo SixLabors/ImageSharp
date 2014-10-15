@@ -228,7 +228,7 @@
   </ProjectExtensions>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Target Name="AfterBuild">
-    <Exec Command="xcopy &quot;$(SolutionDir)Images&quot; &quot;$(ProjectDir)Images&quot; /S /Y /I" />
+    <Exec Command="xcopy &quot;$(SolutionDir)ImageProcessor.UnitTests\Images&quot; &quot;$(ProjectDir)Images&quot; /S /Y /I" />
   </Target>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

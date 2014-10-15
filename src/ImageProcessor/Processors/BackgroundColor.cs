@@ -60,6 +60,7 @@ namespace ImageProcessor.Processors
 
                 Color backgroundColor = this.DynamicParameter;
                 newImage = new Bitmap(width, height);
+                newImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
 
                 // Make a graphics object from the empty bitmap.
                 using (Graphics graphics = Graphics.FromImage(newImage))

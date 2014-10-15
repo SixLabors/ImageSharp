@@ -81,6 +81,7 @@ namespace ImageProcessor.Processors
                     Rectangle parent = new Rectangle(0, 0, width, height);
                     Rectangle child = ImageMaths.GetFilteredBoundingRectangle(mask, 0, RgbaComponent.A);
                     maskCropped = new Bitmap(child.Width, child.Height);
+                    maskCropped.SetResolution(image.HorizontalResolution, image.VerticalResolution);
 
                     // First crop any bounding transparency.
                     using (Graphics graphics = Graphics.FromImage(maskCropped))
@@ -98,6 +99,7 @@ namespace ImageProcessor.Processors
 
                     // Now position the mask in an image of the same dimensions as the original.
                     maskPositioned = new Bitmap(width, height);
+                    maskPositioned.SetResolution(image.HorizontalResolution, image.VerticalResolution);
                     using (Graphics graphics = Graphics.FromImage(maskPositioned))
                     {
                         graphics.Clear(Color.Transparent);

@@ -65,7 +65,7 @@ namespace ImageProcessor.Processors
 
             try
             {
-                int angle = this.DynamicParameter;
+                float angle = this.DynamicParameter;
 
                 // Center of the image
                 float rotateAtX = Math.Abs(image.Width / 2);
@@ -104,50 +104,27 @@ namespace ImageProcessor.Processors
         /// </remarks>
         private Bitmap RotateImage(Image image, float rotateAtX, float rotateAtY, float angle)
         {
-            int width, height, x, y;
-
-            // Degrees to radians according to Google. 
-            const double DegreeToRadian = 0.0174532925;
-
             double widthAsDouble = image.Width;
             double heightAsDouble = image.Height;
 
-            // Allow for angles over 180
-            if (angle > 180)
-            {
-                angle = angle - 360;
-            }
+            double radians = angle * Math.PI / 180d;
+            double radiansSin = Math.Sin(radians);
+            double radiansCos = Math.Cos(radians);
+            double width1 = (heightAsDouble * radiansSin) + (widthAsDouble * radiansCos);
+            double height1 = (widthAsDouble * radiansSin) + (heightAsDouble * radiansCos);
 
-            double degrees = Math.Abs(angle);
+            // Find dimensions in the other direction
+            radiansSin = Math.Sin(-radians);
+            radiansCos = Math.Cos(-radians);
+            double width2 = (heightAsDouble * radiansSin) + (widthAsDouble * radiansCos);
+            double height2 = (widthAsDouble * radiansSin) + (heightAsDouble * radiansCos);
 
-            if (degrees <= 90)
-            {
-                double radians = DegreeToRadian * degrees;
-                double radiansSin = Math.Sin(radians);
-                double radiansCos = Math.Cos(radians);
-                width = (int)((heightAsDouble * radiansSin) + (widthAsDouble * radiansCos));
-                height = (int)((widthAsDouble * radiansSin) + (heightAsDouble * radiansCos));
-                x = (width - image.Width) / 2;
-                y = (height - image.Height) / 2;
-            }
-            else
-            {
-                degrees -= 90;
-                double radians = DegreeToRadian * degrees;
-                double radiansSin = Math.Sin(radians);
-                double radiansCos = Math.Cos(radians);
+            // Get the external vertex for the rotation
+            int width = Convert.ToInt32(Math.Max(Math.Abs(width1), Math.Abs(width2)));
+            int height = Convert.ToInt32(Math.Max(Math.Abs(height1), Math.Abs(height2)));
 
-                // Fix the 270 error
-                if (Math.Abs(radiansCos - -1.0D) < 0.00001)
-                {
-                    radiansCos = 1;
-                }
-
-                width = (int)((widthAsDouble * radiansSin) + (heightAsDouble * radiansCos));
-                height = (int)((heightAsDouble * radiansSin) + (widthAsDouble * radiansCos));
-                x = (width - image.Width) / 2;
-                y = (height - image.Height) / 2;
-            }
+            int x = (width - image.Width) / 2;
+            int y = (height - image.Height) / 2;
 
             // Create a new empty bitmap to hold rotated image
             Bitmap newImage = new Bitmap(width, height);
@@ -157,7 +134,7 @@ namespace ImageProcessor.Processors
             using (Graphics graphics = Graphics.FromImage(newImage))
             {
                 // Reduce the jagged edge.
-                graphics.SmoothingMode = SmoothingMode.HighQuality;
+                graphics.SmoothingMode = SmoothingMode.AntiAlias;
                 graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
                 graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
                 graphics.CompositingQuality = CompositingQuality.HighQuality;
@@ -172,7 +149,7 @@ namespace ImageProcessor.Processors
                 graphics.TranslateTransform(-rotateAtX - x, -rotateAtY - y);
 
                 // Draw passed in image onto graphics object
-                graphics.DrawImage(image, new PointF(0 + x, 0 + y));
+                graphics.DrawImage(image, new PointF(x, y));
             }
 
             return newImage;

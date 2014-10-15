@@ -4,53 +4,50 @@
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   Defines the Quantizer type.
+//   Encapsulates methods to calculate the color palette of an image.
+//   <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx" />
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Imaging
+namespace ImageProcessor.Imaging.Quantizers
 {
-    using System;
     using System.Drawing;
     using System.Drawing.Imaging;
-    using System.Runtime.InteropServices;
+
+    using ImageProcessor.Imaging.Colors;
 
     /// <summary>
     /// Encapsulates methods to calculate the color palette of an image.
+    /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>
     /// </summary>
-    public abstract class Quantizer
+    public unsafe abstract class Quantizer
     {
         /// <summary>
-        /// The flag used to indicate whether a single pass or two passes are needed for quantization.
+        /// Flag used to indicate whether a single pass or two passes are needed for quantization.
         /// </summary>
         private readonly bool singlePass;
 
         /// <summary>
-        /// The size in bytes of the 32 bytes per pixel Color structure.
-        /// </summary>
-        private readonly int pixelSize;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="T:ImageProcessor.Imaging.Quantizer">Quantizer</see> class. 
+        /// Initializes a new instance of the <see cref="Quantizer"/> class. 
         /// </summary>
         /// <param name="singlePass">
-        /// If set to <see langword="true"/>, then the quantizer will loop through the source pixels once; 
-        /// otherwise, <see langword="false"/>.
+        /// If true, the quantization only needs to loop through the source pixels once
         /// </param>
+        /// <remarks>
+        /// If you construct this class with a true value for singlePass, then the code will, when quantizing your image,
+        /// only call the 'QuantizeImage' function. If two passes are required, the code will call 'InitialQuantizeImage'
+        /// and then 'QuantizeImage'.
+        /// </remarks>
         protected Quantizer(bool singlePass)
         {
             this.singlePass = singlePass;
-            this.pixelSize = Marshal.SizeOf(typeof(Color32));
         }
 
         /// <summary>
-        /// Quantizes the given <see cref="T:System.Drawing.Image">Image</see> and returns the resulting output
-        /// <see cref="T:System.Drawing.Bitmap">Bitmap.</see>
+        /// Quantize an image and return the resulting output bitmap
         /// </summary>
         /// <param name="source">The image to quantize</param>
-        /// <returns>
-        /// A quantized <see cref="T:System.Drawing.Bitmap">Bitmap</see> version of the <see cref="T:System.Drawing.Image">Image</see>
-        /// </returns>
+        /// <returns>A quantized version of the image</returns>
         public Bitmap Quantize(Image source)
         {
             // Get the size of the source image
@@ -62,11 +59,9 @@ namespace ImageProcessor.Imaging
 
             // First off take a 32bpp copy of the image
             Bitmap copy = new Bitmap(width, height, PixelFormat.Format32bppArgb);
-            copy.SetResolution(source.HorizontalResolution, source.VerticalResolution);
 
             // And construct an 8bpp version
             Bitmap output = new Bitmap(width, height, PixelFormat.Format8bppIndexed);
-            output.SetResolution(source.HorizontalResolution, source.VerticalResolution);
 
             // Now lock the bitmap into memory
             using (Graphics g = Graphics.FromImage(copy))
@@ -75,7 +70,7 @@ namespace ImageProcessor.Imaging
 
                 // Draw the source image onto the copy bitmap,
                 // which will effect a widening as appropriate.
-                g.DrawImage(source, bounds);
+                g.DrawImageUnscaled(source, bounds);
             }
 
             // Define a pointer to the bitmap data
@@ -87,7 +82,7 @@ namespace ImageProcessor.Imaging
                 sourceData = copy.LockBits(bounds, ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
 
                 // Call the FirstPass function if not a single pass algorithm.
-                // For something like an octree quantizer, this will run through
+                // For something like an Octree quantizer, this will run through
                 // all image pixels, build a data structure, and create a palette.
                 if (!this.singlePass)
                 {
@@ -120,25 +115,24 @@ namespace ImageProcessor.Imaging
         protected virtual void FirstPass(BitmapData sourceData, int width, int height)
         {
             // Define the source data pointers. The source row is a byte to
-            // keep addition of the stride value easier (as this is in bytes)              
-            IntPtr sourceRow = sourceData.Scan0;
+            // keep addition of the stride value easier (as this is in bytes)
+            byte* sourceRow = (byte*)sourceData.Scan0.ToPointer();
 
             // Loop through each row
             for (int row = 0; row < height; row++)
             {
                 // Set the source pixel to the first pixel in this row
-                IntPtr sourcePixel = sourceRow;
+                int* sourcePixel = (int*)sourceRow;
 
                 // And loop through each column
-                for (int col = 0; col < width; col++)
+                for (int col = 0; col < width; col++, sourcePixel++)
                 {
-                    this.InitialQuantizePixel(new Color32(sourcePixel));
-                    sourcePixel = (IntPtr)((long)sourcePixel + this.pixelSize);
+                    // Now I have the pixel, call the FirstPassQuantize function...
+                    this.InitialQuantizePixel((Color32*)sourcePixel);
                 }
 
-                // Now I have the pixel, call the FirstPassQuantize function...
                 // Add the stride to the source row
-                sourceRow = (IntPtr)((long)sourceRow + sourceData.Stride);
+                sourceRow += sourceData.Stride;
             }
         }
 
@@ -161,55 +155,52 @@ namespace ImageProcessor.Imaging
 
                 // Define the source data pointers. The source row is a byte to
                 // keep addition of the stride value easier (as this is in bytes)
-                IntPtr sourceRow = sourceData.Scan0;
-                IntPtr sourcePixel = sourceRow;
-                IntPtr previousPixel = sourcePixel;
+                byte* sourceRow = (byte*)sourceData.Scan0.ToPointer();
+                int* sourcePixel = (int*)sourceRow;
+                int* previousPixel = sourcePixel;
 
                 // Now define the destination data pointers
-                IntPtr destinationRow = outputData.Scan0;
-                IntPtr destinationPixel = destinationRow;
+                byte* destinationRow = (byte*)outputData.Scan0.ToPointer();
+                byte* destinationPixel = destinationRow;
 
-                // And convert the first pixel, so that I have values going into the loop.
-                byte pixelValue = this.QuantizePixel(new Color32(sourcePixel));
+                // And convert the first pixel, so that I have values going into the loop
+                byte pixelValue = this.QuantizePixel((Color32*)sourcePixel);
 
                 // Assign the value of the first pixel
-                Marshal.WriteByte(destinationPixel, pixelValue);
+                *destinationPixel = pixelValue;
 
                 // Loop through each row
                 for (int row = 0; row < height; row++)
                 {
                     // Set the source pixel to the first pixel in this row
-                    sourcePixel = sourceRow;
+                    sourcePixel = (int*)sourceRow;
 
                     // And set the destination pixel pointer to the first pixel in the row
                     destinationPixel = destinationRow;
 
                     // Loop through each pixel on this scan line
-                    for (int col = 0; col < width; col++)
+                    for (int col = 0; col < width; col++, sourcePixel++, destinationPixel++)
                     {
                         // Check if this is the same as the last pixel. If so use that value
                         // rather than calculating it again. This is an inexpensive optimisation.
-                        if (Marshal.ReadInt32(previousPixel) != Marshal.ReadInt32(sourcePixel))
+                        if (*previousPixel != *sourcePixel)
                         {
                             // Quantize the pixel
-                            pixelValue = this.QuantizePixel(new Color32(sourcePixel));
+                            pixelValue = this.QuantizePixel((Color32*)sourcePixel);
 
                             // And setup the previous pointer
                             previousPixel = sourcePixel;
                         }
 
                         // And set the pixel in the output
-                        Marshal.WriteByte(destinationPixel, pixelValue);
-
-                        sourcePixel = (IntPtr)((long)sourcePixel + this.pixelSize);
-                        destinationPixel = (IntPtr)((long)destinationPixel + 1);
+                        *destinationPixel = pixelValue;
                     }
 
                     // Add the stride to the source row
-                    sourceRow = (IntPtr)((long)sourceRow + sourceData.Stride);
+                    sourceRow += sourceData.Stride;
 
                     // And to the destination row
-                    destinationRow = (IntPtr)((long)destinationRow + outputData.Stride);
+                    destinationRow += outputData.Stride;
                 }
             }
             finally
@@ -227,7 +218,7 @@ namespace ImageProcessor.Imaging
         /// This function need only be overridden if your quantize algorithm needs two passes,
         /// such as an Octree quantizer.
         /// </remarks>
-        protected virtual void InitialQuantizePixel(Color32 pixel)
+        protected virtual void InitialQuantizePixel(Color32* pixel)
         {
         }
 
@@ -236,7 +227,7 @@ namespace ImageProcessor.Imaging
         /// </summary>
         /// <param name="pixel">The pixel to quantize</param>
         /// <returns>The quantized value</returns>
-        protected abstract byte QuantizePixel(Color32 pixel);
+        protected abstract byte QuantizePixel(Color32* pixel);
 
         /// <summary>
         /// Retrieve the palette for the quantized image
@@ -244,109 +235,5 @@ namespace ImageProcessor.Imaging
         /// <param name="original">Any old palette, this is overwritten</param>
         /// <returns>The new color palette</returns>
         protected abstract ColorPalette GetPalette(ColorPalette original);
-
-        /// <summary>
-        /// Structure that defines a 32 bit color
-        /// </summary>
-        /// <remarks>
-        /// This structure is used to read data from a 32 bits per pixel image
-        /// in memory, and is ordered in this manner as this is the way that
-        /// the data is laid out in memory
-        /// </remarks>
-        [StructLayout(LayoutKind.Explicit)]
-        public struct Color32
-        {
-            /// <summary>
-            /// Holds the blue component of the colour
-            /// </summary>
-            [FieldOffset(0)]
-            private byte blue;
-
-            /// <summary>
-            /// Holds the green component of the colour
-            /// </summary>
-            [FieldOffset(1)]
-            private byte green;
-
-            /// <summary>
-            /// Holds the red component of the colour
-            /// </summary>
-            [FieldOffset(2)]
-            private byte red;
-
-            /// <summary>
-            /// Holds the alpha component of the colour
-            /// </summary>
-            [FieldOffset(3)]
-            private byte alpha;
-
-            /// <summary>
-            /// Permits the color32 to be treated as a 32 bit integer.
-            /// </summary>
-            [FieldOffset(0)]
-            private int argb;
-
-            /// <summary>
-            /// Initializes a new instance of the <see cref="T:ImageProcessor.Imaging.Quantizer.Color32">Color32</see> structure. 
-            /// </summary>
-            /// <param name="sourcePixel">The pointer to the pixel.</param>
-            public Color32(IntPtr sourcePixel)
-            {
-                this = (Color32)Marshal.PtrToStructure(sourcePixel, typeof(Color32));
-            }
-
-            /// <summary>
-            /// Gets or sets the blue component of the colour
-            /// </summary>
-            public byte Blue
-            {
-                get { return this.blue; }
-                set { this.blue = value; }
-            }
-            
-            /// <summary>
-            /// Gets or sets the green component of the colour
-            /// </summary>
-            public byte Green
-            {
-                get { return this.green; }
-                set { this.green = value; }
-            }
-
-            /// <summary>
-            /// Gets or sets the red component of the colour
-            /// </summary>
-            public byte Red
-            {
-                get { return this.red; }
-                set { this.red = value; }
-            }
-
-            /// <summary>
-            /// Gets or sets the alpha component of the colour
-            /// </summary>
-            public byte Alpha
-            {
-                get { return this.alpha; }
-                set { this.alpha = value; }
-            }
-
-            /// <summary>
-            /// Gets or sets the ARGB component, permitting the color32 to be treated as a 32 bit integer.
-            /// </summary>
-            public int Argb
-            {
-                get { return this.argb; }
-                set { this.argb = value; }
-            }
-
-            /// <summary>
-            /// Gets the color for this Color32 object
-            /// </summary>
-            public Color Color
-            {
-                get { return Color.FromArgb(this.Alpha, this.Red, this.Green, this.Blue); }
-            }
-        }
     }
 }

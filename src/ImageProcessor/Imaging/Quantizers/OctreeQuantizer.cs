@@ -4,29 +4,33 @@
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   Encapsulates methods to calculate the colour palette if an image using an octree pattern.
+//   Encapsulates methods to calculate the colour palette if an image using an Octree pattern.
+//   <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx" />
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Imaging
+namespace ImageProcessor.Imaging.Quantizers
 {
     using System;
     using System.Collections;
     using System.Drawing;
     using System.Drawing.Imaging;
 
+    using ImageProcessor.Imaging.Colors;
+
     /// <summary>
-    /// Encapsulates methods to calculate the colour palette if an image using an octree pattern.
+    /// Encapsulates methods to calculate the colour palette if an image using an Octree pattern.
+    /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>
     /// </summary>
-    public class OctreeQuantizer : Quantizer
+    public unsafe class OctreeQuantizer : Quantizer
     {
         /// <summary>
-        /// Stores the tree.
+        /// Stores the tree
         /// </summary>
         private readonly Octree octree;
 
         /// <summary>
-        /// The maximum allowed color depth.
+        /// Maximum allowed color depth
         /// </summary>
         private readonly int maxColors;
 
@@ -34,7 +38,7 @@ namespace ImageProcessor.Imaging
         /// Initializes a new instance of the <see cref="OctreeQuantizer"/> class. 
         /// </summary>
         /// <remarks>
-        /// The Octree quantizer is a two pass algorithm. The initial pass sets up the octree,
+        /// The Octree quantizer is a two pass algorithm. The initial pass sets up the Octree,
         /// the second pass quantizes a color based on the nodes in the tree
         /// </remarks>
         /// <param name="maxColors">
@@ -56,22 +60,23 @@ namespace ImageProcessor.Imaging
                 throw new ArgumentOutOfRangeException("maxColorBits", maxColorBits, "This should be between 1 and 8");
             }
 
-            // Construct the octree
+            // Construct the Octree
             this.octree = new Octree(maxColorBits);
+
             this.maxColors = maxColors;
         }
 
         /// <summary>
-        /// Override this to process the pixel in the first pass of the algorithm
+        /// Process the pixel in the first pass of the algorithm
         /// </summary>
         /// <param name="pixel">The pixel to quantize</param>
         /// <remarks>
         /// This function need only be overridden if your quantize algorithm needs two passes,
         /// such as an Octree quantizer.
         /// </remarks>
-        protected override void InitialQuantizePixel(Color32 pixel)
+        protected override void InitialQuantizePixel(Color32* pixel)
         {
-            // Add the color to the octree
+            // Add the color to the Octree
             this.octree.AddColor(pixel);
         }
 
@@ -79,16 +84,14 @@ namespace ImageProcessor.Imaging
         /// Override this to process the pixel in the second pass of the algorithm
         /// </summary>
         /// <param name="pixel">The pixel to quantize</param>
-        /// <returns>
-        /// The quantized value
-        /// </returns>
-        protected override byte QuantizePixel(Color32 pixel)
+        /// <returns>The quantized value</returns>
+        protected override byte QuantizePixel(Color32* pixel)
         {
             // The color at [_maxColors] is set to transparent
             byte paletteIndex = (byte)this.maxColors;
 
             // Get the palette index if this non-transparent
-            if (pixel.Alpha > 0)
+            if (pixel->A > 0)
             {
                 paletteIndex = (byte)this.octree.GetPaletteIndex(pixel);
             }
@@ -100,41 +103,26 @@ namespace ImageProcessor.Imaging
         /// Retrieve the palette for the quantized image
         /// </summary>
         /// <param name="original">Any old palette, this is overwritten</param>
-        /// <returns>
-        /// The new color palette
-        /// </returns>
+        /// <returns>The new color palette</returns>
         protected override ColorPalette GetPalette(ColorPalette original)
         {
-            // First off convert the octree to _maxColors colors
+            // First off convert the Octree to _maxColors colors
             ArrayList palette = this.octree.Palletize(this.maxColors - 1);
 
             // Then convert the palette based on those colors
             for (int index = 0; index < palette.Count; index++)
             {
-                Color testColor = (Color)palette[index];
-
-                // Test set transparent color when color transparency used
-                if (testColor.ToArgb() == Color.Transparent.ToArgb())
-                {
-                    testColor = Color.FromArgb(0, 0, 0, 0);
-                }
-
-                original.Entries[index] = testColor;
+                original.Entries[index] = (Color)palette[index];
             }
 
-            // Clear unused palette entries
-            for (int index = palette.Count; index < this.maxColors; index++)
-            {
-                original.Entries[index] = Color.FromArgb(255, 0, 0, 0);
-            }
+            // Add the transparent color
+            original.Entries[this.maxColors] = Color.FromArgb(0, 0, 0, 0);
 
-            // Add the transparent color when alpha transparency used
-            original.Entries[this.maxColors] = Color.FromArgb(0, Color.Transparent);
             return original;
         }
 
         /// <summary>
-        /// Describes a tree data structure in which each internal node has exactly eight children.
+        /// Class which does the actual quantization
         /// </summary>
         private class Octree
         {
@@ -144,7 +132,7 @@ namespace ImageProcessor.Imaging
             private static readonly int[] Mask = { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
 
             /// <summary>
-            /// The root of the octree
+            /// The root of the Octree
             /// </summary>
             private readonly OctreeNode root;
 
@@ -199,21 +187,29 @@ namespace ImageProcessor.Imaging
             }
 
             /// <summary>
-            /// Add a given colour value to the octree
+            /// Gets the array of reducible nodes
+            /// </summary>
+            private OctreeNode[] ReducibleNodes
+            {
+                get { return this.reducibleNodes; }
+            }
+
+            /// <summary>
+            /// Add a given color value to the Octree
             /// </summary>
             /// <param name="pixel">
-            /// The color value to add.
+            /// The <see cref="Color32"/>containing color information to add.
             /// </param>
-            public void AddColor(Color32 pixel)
+            public void AddColor(Color32* pixel)
             {
                 // Check if this request is for the same color as the last
-                if (this.previousColor == pixel.Argb)
+                if (this.previousColor == pixel->ARGB)
                 {
-                    // If so, check if I have a previous node setup. This will only ocurr if the first color in the image
+                    // If so, check if I have a previous node setup. This will only occur if the first color in the image
                     // happens to be black, with an alpha component of zero.
                     if (null == this.previousNode)
                     {
-                        this.previousColor = pixel.Argb;
+                        this.previousColor = pixel->ARGB;
                         this.root.AddColor(pixel, this.maxColorBits, 0, this);
                     }
                     else
@@ -224,16 +220,16 @@ namespace ImageProcessor.Imaging
                 }
                 else
                 {
-                    this.previousColor = pixel.Argb;
+                    this.previousColor = pixel->ARGB;
                     this.root.AddColor(pixel, this.maxColorBits, 0, this);
                 }
             }
 
             /// <summary>
-            /// Convert the nodes in the octree to a palette with a maximum of colorCount colors
+            /// Convert the nodes in the Octree to a palette with a maximum of colorCount colors
             /// </summary>
             /// <param name="colorCount">The maximum number of colors</param>
-            /// <returns>An array-list with the palletized colors</returns>
+            /// <returns>An <see cref="ArrayList"/> with the palletized colors</returns>
             public ArrayList Palletize(int colorCount)
             {
                 while (this.Leaves > colorCount)
@@ -241,7 +237,7 @@ namespace ImageProcessor.Imaging
                     this.Reduce();
                 }
 
-                // Now palletized the nodes
+                // Now palletize the nodes
                 ArrayList palette = new ArrayList(this.Leaves);
                 int paletteIndex = 0;
                 this.root.ConstructPalette(palette, ref paletteIndex);
@@ -251,28 +247,17 @@ namespace ImageProcessor.Imaging
             }
 
             /// <summary>
-            /// Get the palette index for the passed colour.
+            /// Get the palette index for the passed color
             /// </summary>
             /// <param name="pixel">
-            /// The color to return the palette index for.
+            /// The <see cref="Color32"/> containing the pixel data.
             /// </param>
             /// <returns>
-            /// The palette index for the passed colour.
+            /// The index of the given structure.
             /// </returns>
-            public int GetPaletteIndex(Color32 pixel)
+            public int GetPaletteIndex(Color32* pixel)
             {
                 return this.root.GetPaletteIndex(pixel, 0);
-            }
-
-            /// <summary>
-            /// Return the array of reducible nodes
-            /// </summary>
-            /// <returns>
-            /// The array of <see cref="OctreeNode"/>.
-            /// </returns>
-            protected OctreeNode[] ReducibleNodes()
-            {
-                return this.reducibleNodes;
             }
 
             /// <summary>
@@ -289,8 +274,6 @@ namespace ImageProcessor.Imaging
             /// </summary>
             private void Reduce()
             {
-                // Find the deepest level containing at least one reducible node
-                // for (index = _maxColorBits - 1; (index > 0) && (null == _reducibleNodes[index]); index--) ;
                 // Find the deepest level containing at least one reducible node
                 int index = this.maxColorBits - 1;
                 while ((index > 0) && (null == this.reducibleNodes[index]))
@@ -385,15 +368,14 @@ namespace ImageProcessor.Imaging
                     else
                     {
                         // Otherwise add this to the reducible nodes
-                        var repNodes = octree.ReducibleNodes();
-                        this.nextReducible = repNodes[level];
-                        repNodes[level] = this;
+                        this.nextReducible = octree.ReducibleNodes[level];
+                        octree.ReducibleNodes[level] = this;
                         this.children = new OctreeNode[8];
                     }
                 }
 
                 /// <summary>
-                /// Gets the next reducible node.
+                /// Gets the next reducible node
                 /// </summary>
                 public OctreeNode NextReducible
                 {
@@ -407,7 +389,7 @@ namespace ImageProcessor.Imaging
                 /// <param name="colorBits">The number of significant color bits</param>
                 /// <param name="level">The level in the tree</param>
                 /// <param name="octree">The tree to which this node belongs</param>
-                public void AddColor(Color32 pixel, int colorBits, int level, Octree octree)
+                public void AddColor(Color32* pixel, int colorBits, int level, Octree octree)
                 {
                     // Update the color information if this is a leaf
                     if (this.leaf)
@@ -419,26 +401,23 @@ namespace ImageProcessor.Imaging
                     }
                     else
                     {
-                        checked
+                        // Go to the next level down in the tree
+                        int shift = 7 - level;
+                        int index = ((pixel->R & Mask[level]) >> (shift - 2)) |
+                                    ((pixel->G & Mask[level]) >> (shift - 1)) |
+                                    ((pixel->B & Mask[level]) >> shift);
+
+                        OctreeNode child = this.children[index];
+
+                        if (null == child)
                         {
-                            // Go to the next level down in the tree
-                            int shift = 7 - level;
-                            int index = ((pixel.Red & Mask[level]) >> (shift - 2)) |
-                                ((pixel.Green & Mask[level]) >> (shift - 1)) |
-                                ((pixel.Blue & Mask[level]) >> shift);
-
-                            OctreeNode child = this.children[index];
-
-                            if (null == child)
-                            {
-                                // Create a new child node and store in the array
-                                child = new OctreeNode(level + 1, colorBits, octree);
-                                this.children[index] = child;
-                            }
-
-                            // Add the color to the child node
-                            child.AddColor(pixel, colorBits, level + 1, octree);
+                            // Create a new child node & store in the array
+                            child = new OctreeNode(level + 1, colorBits, octree);
+                            this.children[index] = child;
                         }
+
+                        // Add the color to the child node
+                        child.AddColor(pixel, colorBits, level + 1, octree);
                     }
                 }
 
@@ -501,38 +480,35 @@ namespace ImageProcessor.Imaging
                 }
 
                 /// <summary>
-                /// Return the palette index for the passed color.
+                /// Return the palette index for the passed color
                 /// </summary>
                 /// <param name="pixel">
-                /// The pixel.
+                /// The <see cref="Color32"/> representing the pixel.
                 /// </param>
                 /// <param name="level">
                 /// The level.
                 /// </param>
                 /// <returns>
-                /// The palette index for the passed color.
+                /// The <see cref="int"/> representing the index of the pixel in the palette.
                 /// </returns>
-                public int GetPaletteIndex(Color32 pixel, int level)
+                public int GetPaletteIndex(Color32* pixel, int level)
                 {
                     int index = this.paletteIndex;
 
                     if (!this.leaf)
                     {
-                        checked
-                        {
-                            int shift = 7 - level;
-                            int i = ((pixel.Red & Mask[level]) >> (shift - 2))
-                                        | ((pixel.Green & Mask[level]) >> (shift - 1))
-                                        | ((pixel.Blue & Mask[level]) >> shift);
+                        int shift = 7 - level;
+                        int pixelIndex = ((pixel->R & Mask[level]) >> (shift - 2)) |
+                                    ((pixel->G & Mask[level]) >> (shift - 1)) |
+                                    ((pixel->B & Mask[level]) >> shift);
 
-                            if (null != this.children[i])
-                            {
-                                index = this.children[i].GetPaletteIndex(pixel, level + 1);
-                            }
-                            else
-                            {
-                                throw new ArgumentException("Didn't expect this!");
-                            }
+                        if (null != this.children[pixelIndex])
+                        {
+                            index = this.children[pixelIndex].GetPaletteIndex(pixel, level + 1);
+                        }
+                        else
+                        {
+                            throw new Exception("Didn't expect this!");
                         }
                     }
 
@@ -543,14 +519,14 @@ namespace ImageProcessor.Imaging
                 /// Increment the pixel count and add to the color information
                 /// </summary>
                 /// <param name="pixel">
-                /// The pixel.
+                /// The pixel to add.
                 /// </param>
-                public void Increment(Color32 pixel)
+                public void Increment(Color32* pixel)
                 {
                     this.pixelCount++;
-                    this.red += pixel.Red;
-                    this.green += pixel.Green;
-                    this.blue += pixel.Blue;
+                    this.red += pixel->R;
+                    this.green += pixel->G;
+                    this.blue += pixel->B;
                 }
             }
         }

@@ -135,7 +135,7 @@ namespace ImageProcessor.Imaging.Formats
                     int frameCount = image.GetFrameCount(FrameDimension.Time);
                     int last = frameCount - 1;
                     int length = 0;
-                   
+
                     List<GifFrame> gifFrames = new List<GifFrame>();
 
                     // Get the times stored in the gif.
@@ -152,7 +152,7 @@ namespace ImageProcessor.Imaging.Formats
                         image.SelectActiveFrame(FrameDimension.Time, i);
 
                         // TODO: Get positions.
-                        gifFrames.Add(new GifFrame { Delay = delay, Image = (Image)image.Clone() });
+                        gifFrames.Add(new GifFrame { Delay = delay, Image = new Bitmap(image) });
 
                         // Reset the position.
                         if (i == last)

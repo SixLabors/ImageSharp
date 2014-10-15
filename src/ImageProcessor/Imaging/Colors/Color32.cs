@@ -1,46 +1,66 @@
-// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="PixelData.cs" company="James South">
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="Color32.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   Contains the component parts that make up a single pixel.
+//   Structure that defines a 32 bit color
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Imaging
+namespace ImageProcessor.Imaging.Colors
 {
+    using System.Drawing;
     using System.Runtime.InteropServices;
 
     /// <summary>
-    /// Contains the component parts that make up a single pixel.
+    /// Structure that defines a 32 bits per pixel color, used for pixel manipulation not for color conversion.
     /// </summary>
+    /// <remarks>
+    /// This structure is used to read data from a 32 bits per pixel image
+    /// in memory, and is ordered in this manner as this is the way that
+    /// the data is laid out in memory
+    /// </remarks>
     [StructLayout(LayoutKind.Explicit)]
-    public struct PixelData
+    public struct Color32
     {
         /// <summary>
-        /// The blue component.
+        /// Holds the blue component of the colour
         /// </summary>
         [FieldOffset(0)]
         public byte B;
 
         /// <summary>
-        /// The green component.
+        /// Holds the green component of the colour
         /// </summary>
         [FieldOffset(1)]
         public byte G;
 
         /// <summary>
-        /// The red component.
+        /// Holds the red component of the colour
         /// </summary>
         [FieldOffset(2)]
         public byte R;
 
         /// <summary>
-        /// The alpha component.
+        /// Holds the alpha component of the colour
         /// </summary>
         [FieldOffset(3)]
         public byte A;
+
+        /// <summary>
+        /// Permits the color32 to be treated as a 32 bit integer.
+        /// </summary>
+        [FieldOffset(0)]
+        public int ARGB;
+
+        /// <summary>
+        /// Gets the color for this Color32 object
+        /// </summary>
+        public Color Color
+        {
+            get { return Color.FromArgb(this.A, this.R, this.G, this.B); }
+        }
 
         /// <summary>
         /// Indicates whether this instance and a specified object are equal.
@@ -51,11 +71,11 @@ namespace ImageProcessor.Imaging
         /// <param name="obj">Another object to compare to. </param>
         public override bool Equals(object obj)
         {
-            if (obj is PixelData)
+            if (obj is Color32)
             {
-                PixelData pixelData = (PixelData)obj;
+                Color32 color32 = (Color32)obj;
 
-                return this.B == pixelData.B && this.G == pixelData.G & this.R == pixelData.R & this.A == pixelData.A;
+                return this.B == color32.B && this.G == color32.G & this.R == color32.R & this.A == color32.A;
             }
 
             return false;
@@ -76,12 +96,12 @@ namespace ImageProcessor.Imaging
         /// Returns the hash code for the given instance.
         /// </summary>
         /// <param name="obj">
-        /// The instance of <see cref="PixelData"/> to return the hash code for.
+        /// The instance of <see cref="Color32"/> to return the hash code for.
         /// </param>
         /// <returns>
         /// A 32-bit signed integer that is the hash code for this instance.
         /// </returns>
-        private int GetHashCode(PixelData obj)
+        private int GetHashCode(Color32 obj)
         {
             unchecked
             {

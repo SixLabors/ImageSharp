@@ -14,6 +14,8 @@ namespace ImageProcessor.Imaging.Formats
     using System.Drawing.Imaging;
     using System.IO;
 
+    using ImageProcessor.Imaging.Quantizers;
+
     /// <summary>
     /// Provides the necessary information to support png images.
     /// </summary>

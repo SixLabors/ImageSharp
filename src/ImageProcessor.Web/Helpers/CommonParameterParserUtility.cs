@@ -44,7 +44,7 @@ namespace ImageProcessor.Web.Helpers
         /// <summary>
         /// The regular expression to search strings for values between 1 and 100.
         /// </summary>
-        private static readonly Regex In100RangeRegex = new Regex(@"(-?(0*(?:[1-9][0-9]?|100)))", RegexOptions.Compiled);
+        private static readonly Regex In100RangeRegex = new Regex(@"(-?0*(?:100|[1-9][0-9]?))", RegexOptions.Compiled);
 
         /// <summary>
         /// The sharpen regex.

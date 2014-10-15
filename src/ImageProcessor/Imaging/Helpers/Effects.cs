@@ -166,6 +166,7 @@ namespace ImageProcessor.Imaging.Helpers
 
             // Ensure the background is cleared out on non alpha supporting formats.
             Bitmap clear = new Bitmap(width, height);
+            clear.SetResolution(source.HorizontalResolution, source.VerticalResolution);
             using (Graphics graphics = Graphics.FromImage(clear))
             {
                 graphics.Clear(Color.Transparent);

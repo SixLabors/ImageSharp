@@ -256,18 +256,19 @@ namespace ImageProcessor.Imaging
         /// <summary>
         /// Processes the given kernel to produce an array of pixels representing a bitmap.
         /// </summary>
-        /// <param name="sourceBitmap">The image to process.</param>
+        /// <param name="source">The image to process.</param>
         /// <param name="kernel">The Gaussian kernel to use when performing the method</param>
         /// <returns>A processed bitmap.</returns>
-        public Bitmap ProcessKernel(Bitmap sourceBitmap, double[,] kernel)
+        public Bitmap ProcessKernel(Bitmap source, double[,] kernel)
         {
-            int width = sourceBitmap.Width;
-            int height = sourceBitmap.Height;
-            Bitmap destinationBitmap = new Bitmap(width, height);
+            int width = source.Width;
+            int height = source.Height;
+            Bitmap destination = new Bitmap(width, height);
+            destination.SetResolution(source.HorizontalResolution, source.VerticalResolution);
 
-            using (FastBitmap sourceFastBitmap = new FastBitmap(sourceBitmap))
+            using (FastBitmap sourceBitmap = new FastBitmap(source))
             {
-                using (FastBitmap destinationFastBitmap = new FastBitmap(destinationBitmap))
+                using (FastBitmap destinationBitmap = new FastBitmap(destination))
                 {
                     int kernelLength = kernel.GetLength(0);
                     int radius = kernelLength >> 1;
@@ -326,7 +327,7 @@ namespace ImageProcessor.Imaging
                                         if (offsetX < width)
                                         {
                                             // ReSharper disable once AccessToDisposedClosure
-                                            Color color = sourceFastBitmap.GetPixel(offsetX, offsetY);
+                                            Color color = sourceBitmap.GetPixel(offsetX, offsetY);
                                             double k = kernel[i, j];
                                             divider += k;
 
@@ -372,13 +373,13 @@ namespace ImageProcessor.Imaging
                                 alpha += threshold;
 
                                 // ReSharper disable once AccessToDisposedClosure
-                                destinationFastBitmap.SetPixel(x, y, Color.FromArgb(alpha.ToByte(), red.ToByte(), green.ToByte(), blue.ToByte()));
+                                destinationBitmap.SetPixel(x, y, Color.FromArgb(alpha.ToByte(), red.ToByte(), green.ToByte(), blue.ToByte()));
                             }
                         });
                 }
             }
 
-            return destinationBitmap;
+            return destination;
         }
 
         #region Private

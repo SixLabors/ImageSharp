@@ -66,6 +66,7 @@ namespace ImageProcessor.Processors
             try
             {
                 newImage = new Bitmap(image.Width, image.Height);
+                newImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
                 IMatrixFilter matrix = this.DynamicParameter;
                 newImage = matrix.TransformImage(image, newImage);
                 

@@ -69,7 +69,8 @@ namespace ImageProcessor.Processors
                     };
 
                 ColorMatrix colorMatrix = new ColorMatrix(colorMatrixElements);
-                newImage = new Bitmap(image.Width, image.Height, PixelFormat.Format32bppPArgb);
+                newImage = new Bitmap(image.Width, image.Height);
+                newImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
 
                 using (Graphics graphics = Graphics.FromImage(newImage))
                 {

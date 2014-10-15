@@ -100,7 +100,8 @@ namespace ImageProcessor.Processors
                         rectangle.Height = sourceHeight - rectangle.Y;
                     }
 
-                    newImage = new Bitmap(rectangle.Width, rectangle.Height, PixelFormat.Format32bppPArgb);
+                    newImage = new Bitmap(rectangle.Width, rectangle.Height);
+                    newImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
 
                     using (Graphics graphics = Graphics.FromImage(newImage))
                     {

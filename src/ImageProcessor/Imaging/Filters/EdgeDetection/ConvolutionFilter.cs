@@ -58,8 +58,10 @@ namespace ImageProcessor.Imaging.Filters.EdgeDetection
             int width = source.Width;
             int height = source.Height;
 
-            Bitmap destination = new Bitmap(width, height, PixelFormat.Format32bppArgb);
-            Bitmap input = new Bitmap(width, height, PixelFormat.Format32bppArgb);
+            Bitmap destination = new Bitmap(width, height);
+            Bitmap input = new Bitmap(width, height);
+            destination.SetResolution(source.HorizontalResolution, source.VerticalResolution);
+            input.SetResolution(source.HorizontalResolution, source.VerticalResolution);
 
             using (Graphics graphics = Graphics.FromImage(input))
             {
@@ -193,8 +195,10 @@ namespace ImageProcessor.Imaging.Filters.EdgeDetection
             int width = source.Width;
             int height = source.Height;
 
-            Bitmap destination = new Bitmap(width, height, PixelFormat.Format32bppArgb);
-            Bitmap input = new Bitmap(width, height, PixelFormat.Format32bppArgb);
+            Bitmap destination = new Bitmap(width, height);
+            Bitmap input = new Bitmap(width, height);
+            destination.SetResolution(source.HorizontalResolution, source.VerticalResolution);
+            input.SetResolution(source.HorizontalResolution, source.VerticalResolution);
 
             using (Graphics graphics = Graphics.FromImage(input))
             {

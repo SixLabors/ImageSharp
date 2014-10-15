@@ -101,15 +101,16 @@ namespace ImageProcessor.Imaging.Helpers
             contrastFactor++;
             float factorTransform = 0.5f * (1.0f - contrastFactor);
 
-            ColorMatrix colorMatrix = new ColorMatrix(
-                                            new[]
-                                                        {
-                                                            new[] { contrastFactor, 0, 0, 0, 0 }, 
-                                                            new[] { 0, contrastFactor, 0, 0, 0 },
-                                                            new[] { 0, 0, contrastFactor, 0, 0 },
-                                                            new float[] { 0, 0, 0, 1, 0 },
-                                                            new[] { factorTransform, factorTransform, factorTransform, 0, 1 }
-                                                      });
+            ColorMatrix colorMatrix = 
+                new ColorMatrix(
+                    new[]
+                    {
+                        new[] { contrastFactor, 0, 0, 0, 0 }, 
+                        new[] { 0, contrastFactor, 0, 0, 0 },
+                        new[] { 0, 0, contrastFactor, 0, 0 },
+                        new float[] { 0, 0, 0, 1, 0 },
+                        new[] { factorTransform, factorTransform, factorTransform, 0, 1 }
+                    });
 
             using (Graphics graphics = Graphics.FromImage(source))
             {

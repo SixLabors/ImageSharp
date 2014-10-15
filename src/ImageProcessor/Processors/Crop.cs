@@ -126,11 +126,11 @@ namespace ImageProcessor.Processors
                                 GraphicsUnit.Pixel,
                                 wrapMode);
                         }
-
-                        // Reassign the image.
-                        image.Dispose();
-                        image = newImage;
                     }
+
+                    // Reassign the image.
+                    image.Dispose();
+                    image = newImage;
                 }
             }
             catch (Exception ex)

@@ -53,6 +53,6 @@ namespace ImageProcessor.Imaging.Formats
         /// <summary>
         /// Gets or sets the animation length in milliseconds.
         /// </summary>
-        public int AnimationLength { get; set; }
+        public double AnimationLength { get; set; }
     }
 }

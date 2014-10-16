@@ -211,7 +211,7 @@ namespace ImageProcessor.Imaging.Formats
                     this.WriteHeaderBlock(gifStream, frame.Image.Width, frame.Image.Height);
                 }
 
-                this.WriteGraphicControlBlock(gifStream, frame.Delay);
+                this.WriteGraphicControlBlock(gifStream, Convert.ToInt32(frame.Delay.TotalMilliseconds / 10F));
                 this.WriteImageBlock(gifStream, !this.isFirstImage, frame.X, frame.Y, frame.Image.Width, frame.Image.Height);
             }
 
@@ -351,7 +351,7 @@ namespace ImageProcessor.Imaging.Formats
             this.WriteShort(GraphicControlExtensionBlockIdentifier); // Identifier
             this.WriteByte(GraphicControlExtensionBlockSize); // Block Size
             this.WriteByte(blockhead[3] & 0xf7 | 0x08); // Setting disposal flag
-            this.WriteShort(Convert.ToInt32(frameDelay / 10.0f)); // Setting frame delay
+            this.WriteShort(frameDelay); // Setting frame delay
             this.WriteByte(blockhead[6]); // Transparent color index
             this.WriteByte(0); // Terminator
         }

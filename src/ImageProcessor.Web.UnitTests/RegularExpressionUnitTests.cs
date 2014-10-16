@@ -288,10 +288,10 @@ namespace ImageProcessor.Web.UnitTests
         /// The expected result.
         /// </param>
         [Test]
-        [TestCase("rotate=0", 0)]
-        [TestCase("rotate=270", 270)]
-        [TestCase("rotate=-270", 0)]
-        [TestCase("rotate=angle-28", 28)]
+        [TestCase("rotate=0", 0F)]
+        [TestCase("rotate=270", 270F)]
+        [TestCase("rotate=-270", 0F)]
+        [TestCase("rotate=angle-28", 28F)]
         public void TestRotateRegex(string input, int expected)
         {
             Processors.Rotate rotate = new Processors.Rotate();

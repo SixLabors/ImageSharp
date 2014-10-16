@@ -83,7 +83,7 @@ namespace ImageProcessor.Processors
                 int.TryParse(this.Settings["MaxWidth"], NumberStyles.Any, CultureInfo.InvariantCulture, out maxWidth);
                 int.TryParse(this.Settings["MaxHeight"], NumberStyles.Any, CultureInfo.InvariantCulture, out maxHeight);
 
-                maxSize.Width = maxHeight;
+                maxSize.Width = maxWidth;
                 maxSize.Height = maxHeight;
 
                 resizeLayer.MaxSize = maxSize;

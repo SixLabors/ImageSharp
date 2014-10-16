@@ -1026,6 +1026,8 @@ namespace ImageProcessor
         {
             if (this.ShouldProcess)
             {
+                // Allow the same stream to be used as for input.
+                stream.Seek(0, SeekOrigin.Begin);
                 this.Image = this.CurrentImageFormat.Save(stream, this.Image);
             }
 

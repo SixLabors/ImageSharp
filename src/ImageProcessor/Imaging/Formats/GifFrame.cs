@@ -10,6 +10,7 @@
 
 namespace ImageProcessor.Imaging.Formats
 {
+    using System;
     using System.Drawing;
 
     /// <summary>
@@ -25,7 +26,7 @@ namespace ImageProcessor.Imaging.Formats
         /// <summary>
         /// Gets or sets the delay in milliseconds.
         /// </summary>
-        public int Delay { get; set; }
+        public TimeSpan Delay { get; set; }
 
         /// <summary>
         /// Gets or sets the x position of the frame.

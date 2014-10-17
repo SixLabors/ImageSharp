@@ -74,18 +74,20 @@ namespace ImageProcessor.Imaging.Formats
         /// <param name="factory">The <see cref="ImageFactory" />.</param>
         public override void ApplyProcessor(Func<ImageFactory, Image> processor, ImageFactory factory)
         {
-            GifInfo info = FormatUtilities.GetGifInfo(factory.Image, this.ImageFormat);
+            //GifInfo info = FormatUtilities.GetGifInfo(factory.Image, this.ImageFormat);
 
-            if (info.IsAnimated)
+            GifDecoder decoder = new GifDecoder(factory.Image);
+
+            if (decoder.IsAnimated)
             {
                 OctreeQuantizer quantizer = new OctreeQuantizer(255, 8);
 
                 // We don't dispose of the memory stream as that is disposed when a new image is created and doing so 
                 // beforehand will cause an exception.
                 MemoryStream stream = new MemoryStream();
-                using (GifEncoder encoder = new GifEncoder(stream, null, null, info.LoopCount))
+                using (GifEncoder encoder = new GifEncoder(stream, null, null, decoder.LoopCount))
                 {
-                    foreach (GifFrame frame in info.GifFrames)
+                    foreach (GifFrame frame in decoder.GifFrames)
                     {
                         factory.Image = frame.Image;
                         frame.Image = quantizer.Quantize(processor.Invoke(factory));

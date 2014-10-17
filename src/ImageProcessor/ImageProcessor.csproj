@@ -154,7 +154,7 @@
     <Compile Include="Imaging\FastBitmap.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Imaging\Formats\GifInfo.cs" />
+    <Compile Include="Imaging\Formats\GifDecoder.cs" />
     <Compile Include="Common\Extensions\IntegerExtensions.cs" />
     <Compile Include="Common\Exceptions\ImageFormatException.cs" />
     <Compile Include="ImageFactory.cs" />

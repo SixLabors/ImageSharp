@@ -146,11 +146,20 @@ namespace ImageProcessor
                 throw new ImageFormatException("Input stream is not a supported format.");
             }
 
+            MemoryStream memoryStream = new MemoryStream();
+
+            // Copy the stream. Disposal of the input stream is the responsibility  
+            // of the user.
+            stream.CopyTo(memoryStream);
+
+            // Set the position to 0 afterwards.
+            stream.Position = memoryStream.Position = 0;
+
             // Set our image as the memory stream value.
-            this.Image = format.Load(stream);
+            this.Image = format.Load(memoryStream);
 
             // Store the stream so we can dispose of it later.
-            this.InputStream = stream;
+            this.InputStream = memoryStream;
 
             // Set the other properties.
             format.Quality = DefaultQuality;
@@ -242,6 +251,8 @@ namespace ImageProcessor
             if (this.ShouldProcess)
             {
                 // Set our new image as the memory stream value.
+                this.InputStream.Position = 0;
+
 #if !__MonoCS__
                 Image newImage = Image.FromStream(this.InputStream, true);
 #else
@@ -1027,7 +1038,7 @@ namespace ImageProcessor
             if (this.ShouldProcess)
             {
                 // Allow the same stream to be used as for input.
-                stream.Seek(0, SeekOrigin.Begin);
+                stream.Position = 0;
                 this.Image = this.CurrentImageFormat.Save(stream, this.Image);
             }
 

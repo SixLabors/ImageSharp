@@ -74,8 +74,6 @@ namespace ImageProcessor.Imaging.Formats
         /// <param name="factory">The <see cref="ImageFactory" />.</param>
         public override void ApplyProcessor(Func<ImageFactory, Image> processor, ImageFactory factory)
         {
-            //GifInfo info = FormatUtilities.GetGifInfo(factory.Image, this.ImageFormat);
-
             GifDecoder decoder = new GifDecoder(factory.Image);
 
             if (decoder.IsAnimated)

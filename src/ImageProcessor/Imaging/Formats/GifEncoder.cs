@@ -250,9 +250,6 @@ namespace ImageProcessor.Imaging.Formats
 
             if (disposing)
             {
-                // Complete Application Block
-                this.WriteByte(0);
-
                 // Complete File
                 this.WriteByte(FileTrailer);
 

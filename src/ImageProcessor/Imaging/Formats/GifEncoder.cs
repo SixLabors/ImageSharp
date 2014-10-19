@@ -277,8 +277,6 @@ namespace ImageProcessor.Imaging.Formats
         /// </param>
         private void WriteHeaderBlock(Stream sourceGif, int w, int h)
         {
-            int count = this.repeatCount.GetValueOrDefault(0);
-
             // File Header signature and version.
             this.WriteString(FileType);
             this.WriteString(FileVersion);
@@ -296,13 +294,21 @@ namespace ImageProcessor.Imaging.Formats
             this.WriteColorTable(sourceGif);
 
             // Application Extension Header
-            this.WriteShort(ApplicationExtensionBlockIdentifier);
-            this.WriteByte(ApplicationBlockSize);
-            this.WriteString(ApplicationIdentification);
-            this.WriteByte(3); // Application block length
-            this.WriteByte(1);
-            this.WriteShort(count); // Repeat count for images.
-            this.WriteByte(0); // Terminator
+            int count = this.repeatCount.GetValueOrDefault(0);
+            if (count != 1)
+            {
+                // 0 means loop indefinitely. count is set as play n + 1 times.
+                count = Math.Max(0, count - 1);
+                this.WriteShort(ApplicationExtensionBlockIdentifier);
+                this.WriteByte(ApplicationBlockSize);
+
+                this.WriteString(ApplicationIdentification);
+                this.WriteByte(3); // Application block length
+                this.WriteByte(1);
+                this.WriteShort(count); // Repeat count for images.
+
+                this.WriteByte(0); // Terminator
+            }
         }
 
         /// <summary>

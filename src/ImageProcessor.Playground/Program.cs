@@ -50,7 +50,7 @@ namespace ImageProcessor.PlayGround
             }
 
             Image mask = Image.FromFile(Path.Combine(resolvedPath, "mask2.png"));
-            IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif");
+            IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".jfif");
             //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif", ".webp", ".bmp", ".jpg", ".png", ".tif");
 
             foreach (FileInfo fileInfo in files)
@@ -66,7 +66,7 @@ namespace ImageProcessor.PlayGround
                 {
                     using (ImageFactory imageFactory = new ImageFactory(true))
                     {
-                        Size size = new Size(270, 260);
+                        Size size = new Size(400, 400);
                         ResizeLayer layer = new ResizeLayer(size, ResizeMode.Max, AnchorPosition.Center, false);
 
                         //ContentAwareResizeLayer layer = new ContentAwareResizeLayer(size)
@@ -85,7 +85,9 @@ namespace ImageProcessor.PlayGround
                             //.BackgroundColor(Color.Cyan)
                             //.ReplaceColor(Color.FromArgb(255, 1, 107, 165), Color.FromArgb(255, 1, 165, 13), 80)
                             //.Resize(size)
-                            .DetectEdges(new SobelEdgeFilter(), true)
+                             .Resize(new ResizeLayer(size, ResizeMode.Max))
+                              .Resize(new ResizeLayer(size, ResizeMode.Stretch))
+                            //.DetectEdges(new SobelEdgeFilter(), true)
                             //.DetectEdges(new LaplacianOfGaussianEdgeFilter())
                             //.EntropyCrop()
                             //.Filter(MatrixFilters.Invert)

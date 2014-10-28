@@ -1,49 +1,50 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="Crop.cs" company="James South">
+// <copyright file="Pixelate.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   Crops an image to the given directions.
+//   Encapsulates methods to pixelate an image.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Web.Processors
 {
+    using System;
+    using System.Drawing;
+    using System.Globalization;
     using System.Text;
     using System.Text.RegularExpressions;
 
-    using ImageProcessor.Imaging;
     using ImageProcessor.Processors;
     using ImageProcessor.Web.Extensions;
 
     /// <summary>
-    /// Crops an image to the given directions.
+    /// Encapsulates methods to pixelate an image.
     /// </summary>
-    public class Crop : IWebGraphicsProcessor
+    public class Pixelate : IWebGraphicsProcessor
     {
         /// <summary>
         /// The regular expression to search strings for.
-        /// <see href="http://stackoverflow.com/a/6400969/427899"/>
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"(crop=|cropmode=)[^&]+", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"(pixelate=|pixelrect=)[^&]+", RegexOptions.Compiled);
 
         /// <summary>
-        /// The coordinate regex.
+        /// The pixel regex.
         /// </summary>
-        private static readonly Regex CoordinateRegex = new Regex(@"crop=\d+(.\d+)?[,-]\d+(.\d+)?[,-]\d+(.\d+)?[,-]\d+(.\d+)?", RegexOptions.Compiled);
+        private static readonly Regex PixelRegex = new Regex(@"pixelate=\d+", RegexOptions.Compiled);
 
         /// <summary>
-        /// The mode regex.
+        /// The rectangle regex.
         /// </summary>
-        private static readonly Regex ModeRegex = new Regex(@"cropmode=(pixels|percent)", RegexOptions.Compiled);
+        private static readonly Regex RectangleRegex = new Regex(@"pixelrect=\d+,\d+,\d+,\d+", RegexOptions.Compiled);
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Crop"/> class.
+        /// Initializes a new instance of the <see cref="Pixelate"/> class.
         /// </summary>
-        public Crop()
+        public Pixelate()
         {
-            this.Processor = new ImageProcessor.Processors.Crop();
+            this.Processor = new ImageProcessor.Processors.Pixelate();
         }
 
         /// <summary>
@@ -86,8 +87,7 @@ namespace ImageProcessor.Web.Processors
 
             foreach (Match match in this.RegexPattern.Matches(queryString))
             {
-                // Match but ignore entropy
-                if (match.Success && !queryString.ToUpperInvariant().Contains("ENTROPYCROP="))
+                if (match.Success)
                 {
                     if (index == 0)
                     {
@@ -105,64 +105,59 @@ namespace ImageProcessor.Web.Processors
             {
                 // Match syntax
                 string toParse = stringBuilder.ToString();
-
-                float[] coordinates = this.ParseCoordinates(toParse);
-                CropMode cropMode = this.ParseMode(toParse);
-
-                CropLayer cropLayer = new CropLayer(coordinates[0], coordinates[1], coordinates[2], coordinates[3], cropMode);
-                this.Processor.DynamicParameter = cropLayer;
+                int size = this.ParseSize(toParse);
+                Rectangle? rectangle = this.ParseRectangle(toParse);
+                this.Processor.DynamicParameter = new Tuple<int, Rectangle?>(size, rectangle);
             }
 
             return this.SortOrder;
         }
 
         /// <summary>
-        /// Returns the correct <see cref="CropMode"/> for the given string.
+        /// Returns the correct size of pixels.
         /// </summary>
         /// <param name="input">
-        /// The input string containing the value to parse.
+        /// The input containing the value to parse.
         /// </param>
         /// <returns>
-        /// The correct <see cref="CropMode"/>.
+        /// The <see cref="int"/> representing the pixel size.
         /// </returns>
-        private CropMode ParseMode(string input)
+        public int ParseSize(string input)
         {
-            foreach (Match match in ModeRegex.Matches(input))
-            {
-                // Split on =
-                string mode = match.Value.Split('=')[1];
+            int size = 0;
 
-                switch (mode)
-                {
-                    case "percent":
-                        return CropMode.Percentage;
-                    case "pixels":
-                        return CropMode.Pixels;
-                }
+            foreach (Match match in PixelRegex.Matches(input))
+            {
+                size = int.Parse(match.Value.Split('=')[1], CultureInfo.InvariantCulture);
             }
 
-            return CropMode.Pixels;
+            return size;
         }
 
         /// <summary>
-        /// Returns the crop coordinates for the given string.
+        /// Returns the correct <see cref="Nullable{Rectange}"/> for the given string.
         /// </summary>
         /// <param name="input">
         /// The input string containing the value to parse.
         /// </param>
         /// <returns>
-        /// The <see cref="float"/> array containing the crop coordinates.
+        /// The correct <see cref="Nullable{Rectange}"/>
         /// </returns>
-        private float[] ParseCoordinates(string input)
+        private Rectangle? ParseRectangle(string input)
         {
-            float[] floats = { };
+            int[] dimensions = { };
 
-            foreach (Match match in CoordinateRegex.Matches(input))
+            foreach (Match match in RectangleRegex.Matches(input))
             {
-                floats = match.Value.ToPositiveFloatArray();
+                dimensions = match.Value.ToPositiveIntegerArray();
             }
 
-            return floats;
+            if (dimensions.Length == 4)
+            {
+                return new Rectangle(dimensions[0], dimensions[1], dimensions[2], dimensions[3]);
+            }
+
+            return null;
         }
     }
 }

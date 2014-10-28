@@ -39,7 +39,6 @@ namespace ImageProcessor.Web.Helpers
         /// <summary>
         /// The regular expression to search strings for angles.
         /// </summary>
-        //private static readonly Regex AngleRegex = new Regex(@"(rotate|angle)(=|-)(?:3[0-5][0-9]|[12][0-9]{2}|[1-9][0-9]?)", RegexOptions.Compiled);
         private static readonly Regex AngleRegex = new Regex(@"(rotate|angle)(=|-)(-)?\d+(.?\d+)?", RegexOptions.Compiled);
 
         /// <summary>
@@ -78,8 +77,8 @@ namespace ImageProcessor.Web.Helpers
                 // Split on angle
                 float angle;
                 string value = match.Value;
-                value = match.Value.ToUpperInvariant().Contains("ANGLE") 
-                    ? value.Substring(value.IndexOf("-", System.StringComparison.Ordinal) + 1) 
+                value = match.Value.ToUpperInvariant().Contains("ANGLE")
+                    ? value.Substring(value.IndexOf("-", System.StringComparison.Ordinal) + 1)
                     : match.Value.Split('=')[1];
 
                 float.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out angle);

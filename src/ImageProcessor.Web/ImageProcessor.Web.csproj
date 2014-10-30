@@ -48,6 +48,7 @@
     <Compile Include="Caching\CachedImage.cs" />
     <Compile Include="Processors\DetectEdges.cs" />
     <Compile Include="Processors\EntropyCrop.cs" />
+    <Compile Include="Processors\Mask.cs" />
     <Compile Include="Processors\Pixelate.cs" />
     <Compile Include="Services\IImageService.cs" />
     <Compile Include="Caching\MemCache.cs" />

@@ -17,6 +17,7 @@
 namespace ImageProcessor.Imaging.Formats
 {
     using System;
+    using System.Drawing;
     using System.Drawing.Imaging;
     using System.IO;
     using System.Linq;
@@ -114,7 +115,7 @@ namespace ImageProcessor.Imaging.Formats
         /// The stream.
         /// </summary>
         // ReSharper disable once FieldCanBeMadeReadOnly.Local
-        private MemoryStream inputStream;
+        private MemoryStream imageStream;
 
         /// <summary>
         /// The height.
@@ -154,9 +155,6 @@ namespace ImageProcessor.Imaging.Formats
         /// <summary>
         /// Initializes a new instance of the <see cref="GifEncoder"/> class.
         /// </summary>
-        /// <param name="stream">
-        /// The stream that will be written to.
-        /// </param>
         /// <param name="width">
         /// Sets the width for this gif or null to use the first frame's width.
         /// </param>
@@ -166,9 +164,9 @@ namespace ImageProcessor.Imaging.Formats
         /// <param name="repeatCount">
         /// The number of times to repeat the animation.
         /// </param>
-        public GifEncoder(MemoryStream stream, int? width = null, int? height = null, int? repeatCount = null)
+        public GifEncoder(int? width = null, int? height = null, int? repeatCount = null)
         {
-            this.inputStream = stream;
+            this.imageStream = new MemoryStream();
             this.width = width;
             this.height = height;
             this.repeatCount = repeatCount;
@@ -232,6 +230,23 @@ namespace ImageProcessor.Imaging.Formats
             // from executing a second time.
             GC.SuppressFinalize(this);
         }
+
+        /// <summary>
+        /// Saves the completed gif to an <see cref="Image"/>
+        /// </summary>
+        /// <returns>The completed animated gif.</returns>
+        public Image Save()
+        {
+            // Complete File
+            this.WriteByte(FileTrailer);
+
+            // Push the data
+            this.imageStream.Flush();
+            this.imageStream.Position = 0;
+            byte[] bytes = this.imageStream.ToArray();
+            ImageConverter converter = new ImageConverter();
+            return (Image)converter.ConvertFrom(bytes);
+        }
         #endregion
 
         #region Methods
@@ -250,11 +265,7 @@ namespace ImageProcessor.Imaging.Formats
 
             if (disposing)
             {
-                // Complete File
-                this.WriteByte(FileTrailer);
-
-                // Push the data
-                this.inputStream.Flush();
+                this.imageStream.Dispose();
             }
 
             // Call the appropriate methods to clean up
@@ -319,7 +330,7 @@ namespace ImageProcessor.Imaging.Formats
         /// </param>
         private void WriteByte(int value)
         {
-            this.inputStream.WriteByte(Convert.ToByte(value));
+            this.imageStream.WriteByte(Convert.ToByte(value));
         }
 
         /// <summary>
@@ -333,7 +344,7 @@ namespace ImageProcessor.Imaging.Formats
             sourceGif.Position = SourceColorBlockPosition; // Locating the image color table
             byte[] colorTable = new byte[SourceColorBlockLength];
             sourceGif.Read(colorTable, 0, colorTable.Length);
-            this.inputStream.Write(colorTable, 0, colorTable.Length);
+            this.imageStream.Write(colorTable, 0, colorTable.Length);
         }
 
         /// <summary>
@@ -415,12 +426,12 @@ namespace ImageProcessor.Imaging.Formats
                 byte[] imgData = new byte[dataLength];
                 sourceGif.Read(imgData, 0, dataLength);
 
-                this.inputStream.WriteByte(Convert.ToByte(dataLength));
-                this.inputStream.Write(imgData, 0, dataLength);
+                this.imageStream.WriteByte(Convert.ToByte(dataLength));
+                this.imageStream.Write(imgData, 0, dataLength);
                 dataLength = sourceGif.ReadByte();
             }
 
-            this.inputStream.WriteByte(0); // Terminator
+            this.imageStream.WriteByte(0); // Terminator
         }
 
         /// <summary>
@@ -432,8 +443,8 @@ namespace ImageProcessor.Imaging.Formats
         private void WriteShort(int value)
         {
             // Leave only one significant byte.
-            this.inputStream.WriteByte(Convert.ToByte(value & 0xff));
-            this.inputStream.WriteByte(Convert.ToByte((value >> 8) & 0xff));
+            this.imageStream.WriteByte(Convert.ToByte(value & 0xff));
+            this.imageStream.WriteByte(Convert.ToByte((value >> 8) & 0xff));
         }
 
         /// <summary>
@@ -444,7 +455,7 @@ namespace ImageProcessor.Imaging.Formats
         /// </param>
         private void WriteString(string value)
         {
-            this.inputStream.Write(value.ToArray().Select(c => (byte)c).ToArray(), 0, value.Length);
+            this.imageStream.Write(value.ToArray().Select(c => (byte)c).ToArray(), 0, value.Length);
         }
         #endregion
     }

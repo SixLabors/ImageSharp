@@ -111,7 +111,6 @@ namespace ImageProcessor.Imaging.Formats
         #endregion
 
         #region Fields
-
         /// <summary>
         /// The converter for creating the output image from a byte array.
         /// </summary>

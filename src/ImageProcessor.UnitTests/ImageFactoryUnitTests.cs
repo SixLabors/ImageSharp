@@ -9,15 +9,15 @@ namespace ImageProcessor.UnitTests
     using System;
     using System.Collections.Generic;
     using System.Drawing;
-    using System.Drawing.Imaging;
     using System.IO;
     using System.Linq;
+
+    using FluentAssertions;
 
     using ImageProcessor.Imaging;
     using ImageProcessor.Imaging.Filters.EdgeDetection;
     using ImageProcessor.Imaging.Filters.Photo;
 
-    using FluentAssertions;
     using NUnit.Framework;
 
     /// <summary>
@@ -299,7 +299,7 @@ namespace ImageProcessor.UnitTests
             {
                 Image original = (Image)imageFactory.Image.Clone();
 
-                List<IMatrixFilter> filters = new List<IMatrixFilter>()
+                List<IMatrixFilter> filters = new List<IMatrixFilter>
                 {
                     MatrixFilters.BlackWhite,
                     MatrixFilters.Comic,
@@ -533,7 +533,7 @@ namespace ImageProcessor.UnitTests
             {
                 Image original = (Image)imageFactory.Image.Clone();
 
-                List<IEdgeFilter> filters = new List<IEdgeFilter>()
+                List<IEdgeFilter> filters = new List<IEdgeFilter>
                 {
                     new KayyaliEdgeFilter(),
                     new KirschEdgeFilter(),
@@ -606,22 +606,22 @@ namespace ImageProcessor.UnitTests
         /// <returns>The list of images</returns>
         private IEnumerable<ImageFactory> ListInputImages()
         {
-            if (imagesFactories == null || imagesFactories.Count() == 0)
+            if (this.imagesFactories == null || !this.imagesFactories.Any())
             {
-                imagesFactories = new List<ImageFactory>();
+                this.imagesFactories = new List<ImageFactory>();
                 foreach (FileInfo fi in this.ListInputFiles())
                 {
-                    imagesFactories.Add((new ImageFactory()).Load(fi.FullName));
+                    this.imagesFactories.Add((new ImageFactory()).Load(fi.FullName));
                 }
             }
 
             // reset all the images whenever we call this
-            foreach (ImageFactory image in imagesFactories)
+            foreach (ImageFactory image in this.imagesFactories)
             {
                 image.Reset();
             }
 
-            return imagesFactories;
+            return this.imagesFactories;
         }
     }
 }

@@ -79,11 +79,7 @@ namespace ImageProcessor.Imaging.Formats
             if (decoder.IsAnimated)
             {
                 OctreeQuantizer quantizer = new OctreeQuantizer(255, 8);
-
-                // We don't dispose of the memory stream as that is disposed when a new image is created and doing so 
-                // beforehand will cause an exception.
-                MemoryStream stream = new MemoryStream();
-                using (GifEncoder encoder = new GifEncoder(stream, null, null, decoder.LoopCount))
+                using (GifEncoder encoder = new GifEncoder(null, null, decoder.LoopCount))
                 {
                     foreach (GifFrame frame in decoder.GifFrames)
                     {
@@ -91,10 +87,9 @@ namespace ImageProcessor.Imaging.Formats
                         frame.Image = quantizer.Quantize(processor.Invoke(factory));
                         encoder.AddFrame(frame);
                     }
-                }
 
-                stream.Position = 0;
-                factory.Image = Image.FromStream(stream);
+                    factory.Image = encoder.Save();
+                }
             }
             else
             {

@@ -111,6 +111,12 @@ namespace ImageProcessor.Imaging.Formats
         #endregion
 
         #region Fields
+
+        /// <summary>
+        /// The converter for creating the output image from a byte array.
+        /// </summary>
+        private static readonly ImageConverter Converter = new ImageConverter();
+
         /// <summary>
         /// The stream.
         /// </summary>
@@ -244,8 +250,7 @@ namespace ImageProcessor.Imaging.Formats
             this.imageStream.Flush();
             this.imageStream.Position = 0;
             byte[] bytes = this.imageStream.ToArray();
-            ImageConverter converter = new ImageConverter();
-            return (Image)converter.ConvertFrom(bytes);
+            return (Image)Converter.ConvertFrom(bytes);
         }
         #endregion
 

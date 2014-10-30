@@ -24,7 +24,13 @@ namespace ImageProcessor.Web.Helpers
         /// <summary>
         /// The regex pattern.
         /// </summary>
-        private static readonly string ExtensionRegexPattern = BuildExtensionRegexPattern();
+        public static readonly string ExtensionRegexPattern = BuildExtensionRegexPattern();
+
+        /// <summary>
+        /// The exclude regex for matching things to ignore when parsing image extensions.
+        /// I'd like to make something more extensible than this.
+        /// </summary>
+        private static readonly Regex ExcludeRegex = new Regex(@"mask=[\w+-]+.", RegexOptions.IgnoreCase);
 
         /// <summary>
         /// The image format regex.
@@ -57,6 +63,12 @@ namespace ImageProcessor.Web.Helpers
         /// </returns>
         public static string GetExtension(string input)
         {
+            // First filter out any troublesome elements.
+            foreach (Match exlude in ExcludeRegex.Matches(input))
+            {
+                input = input.Replace(exlude.Value, string.Empty);
+            }
+
             Match match = FormatRegex.Match(input);
 
             if (match.Success)

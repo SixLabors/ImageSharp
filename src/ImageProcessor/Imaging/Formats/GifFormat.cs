@@ -79,17 +79,15 @@ namespace ImageProcessor.Imaging.Formats
             if (decoder.IsAnimated)
             {
                 OctreeQuantizer quantizer = new OctreeQuantizer(255, 8);
-                using (GifEncoder encoder = new GifEncoder(null, null, decoder.LoopCount))
+                GifEncoder encoder = new GifEncoder(null, null, decoder.LoopCount);
+                foreach (GifFrame frame in decoder.GifFrames)
                 {
-                    foreach (GifFrame frame in decoder.GifFrames)
-                    {
-                        factory.Image = frame.Image;
-                        frame.Image = quantizer.Quantize(processor.Invoke(factory));
-                        encoder.AddFrame(frame);
-                    }
-
-                    factory.Image = encoder.Save();
+                    factory.Image = frame.Image;
+                    frame.Image = quantizer.Quantize(processor.Invoke(factory));
+                    encoder.AddFrame(frame);
                 }
+
+                factory.Image = encoder.Save();
             }
             else
             {

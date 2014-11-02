@@ -79,7 +79,7 @@ namespace ImageProcessor.Web.Processors
                         // Set the index on the first instance only.
                         this.SortOrder = match.Index;
 
-                        Color color = CommonParameterParserUtility.ParseColor(match.Value);
+                        Color color = CommonParameterParserUtility.ParseColor(match.Value.Split('=')[1]);
                         if (color.Equals(Color.Transparent))
                         {
                             color = Color.Black;

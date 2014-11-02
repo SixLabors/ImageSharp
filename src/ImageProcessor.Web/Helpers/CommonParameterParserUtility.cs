@@ -102,7 +102,7 @@ namespace ImageProcessor.Web.Helpers
         {
             foreach (Match match in ColorRegex.Matches(input))
             {
-                string value = match.Value.Split(new[] { '=', '-' })[1];
+                string value = match.Value;
 
                 if (KnownColors.ContainsKey(value))
                 {
@@ -250,7 +250,7 @@ namespace ImageProcessor.Web.Helpers
         private static Regex BuildColorRegex()
         {
             StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.Append(@"(bgcolor|color|tint|vignette)(=|-)(\d+,\d+,\d+,\d+|([0-9a-fA-F]{3}){1,2}|(");
+            stringBuilder.Append(@"(\d+,\d+,\d+,\d+|([0-9a-fA-F]{3}){1,2}|(");
 
             KnownColor[] knownColors = (KnownColor[])Enum.GetValues(typeof(KnownColor));
 

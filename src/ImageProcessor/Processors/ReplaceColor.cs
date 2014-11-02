@@ -13,6 +13,8 @@ namespace ImageProcessor.Processors
     using System;
     using System.Collections.Generic;
     using System.Drawing;
+    using System.Threading.Tasks;
+
     using ImageProcessor.Common.Exceptions;
     using ImageProcessor.Common.Extensions;
     using ImageProcessor.Imaging;
@@ -72,7 +74,7 @@ namespace ImageProcessor.Processors
                 byte originalB = original.B;
 
                 Color replacement = parameters.Item2;
-                byte replacementR = original.R;
+                byte replacementR = replacement.R;
                 byte replacementG = replacement.G;
                 byte replacementB = replacement.B;
                 byte replacementA = replacement.A;
@@ -85,39 +87,44 @@ namespace ImageProcessor.Processors
 
                 using (FastBitmap fastBitmap = new FastBitmap(newImage))
                 {
-                    for (int y = 0; y < height; y++)
-                    {
-                        for (int x = 0; x < width; x++)
+                    Parallel.For(
+                        0,
+                        height,
+                        y =>
                         {
-                            // Get the pixel color.
-                            Color currentColor = fastBitmap.GetPixel(x, y);
-                            byte currentR = currentColor.R;
-                            byte currentG = currentColor.B;
-                            byte currentB = currentColor.B;
-                            byte currentA = currentColor.A;
-
-                            // Test whether it is in the expected range.
-                            if (currentR <= originalR + fuzziness && currentR >= originalR - fuzziness)
+                            for (int x = 0; x < width; x++)
                             {
-                                if (currentG <= originalG + fuzziness && currentG >= originalG - fuzziness)
+                                // Get the pixel color.
+                                // ReSharper disable once AccessToDisposedClosure
+                                Color currentColor = fastBitmap.GetPixel(x, y);
+                                byte currentR = currentColor.R;
+                                byte currentG = currentColor.G;
+                                byte currentB = currentColor.B;
+                                byte currentA = currentColor.A;
+
+                                // Test whether it is in the expected range.
+                                if (currentR <= originalR + fuzziness && currentR >= originalR - fuzziness)
                                 {
-                                    if (currentB <= originalB + fuzziness && currentB >= originalB - fuzziness)
+                                    if (currentG <= originalG + fuzziness && currentG >= originalG - fuzziness)
                                     {
-                                        // Ensure the values are within an acceptable byte range
-                                        // and set the new value.
-                                        byte r = (originalR - currentR + replacementR).ToByte();
-                                        byte g = (originalG - currentG + replacementG).ToByte();
-                                        byte b = (originalB - currentB + replacementB).ToByte();
+                                        if (currentB <= originalB + fuzziness && currentB >= originalB - fuzziness)
+                                        {
+                                            // Ensure the values are within an acceptable byte range
+                                            // and set the new value.
+                                            byte r = (originalR - currentR + replacementR).ToByte();
+                                            byte g = (originalG - currentG + replacementG).ToByte();
+                                            byte b = (originalB - currentB + replacementB).ToByte();
 
-                                        // Allow replacement with transparent color.
-                                        byte a = currentA != replacementA ? replacementA : currentA;
+                                            // Allow replacement with transparent color.
+                                            byte a = currentA != replacementA ? replacementA : currentA;
 
-                                        fastBitmap.SetPixel(x, y, Color.FromArgb(a, r, g, b));
+                                            // ReSharper disable once AccessToDisposedClosure
+                                            fastBitmap.SetPixel(x, y, Color.FromArgb(a, r, g, b));
+                                        }
                                     }
                                 }
                             }
-                        }
-                    }
+                        });
                 }
 
                 image.Dispose();

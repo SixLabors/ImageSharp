@@ -75,7 +75,7 @@ namespace ImageProcessor.Web.Processors
                     {
                         // Set the index on the first instance only.
                         this.SortOrder = match.Index;
-                        this.Processor.DynamicParameter = CommonParameterParserUtility.ParseColor(match.Value);
+                        this.Processor.DynamicParameter = CommonParameterParserUtility.ParseColor(match.Value.Split(new[] { '=', '-' })[1]);
                     }
 
                     index += 1;

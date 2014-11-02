@@ -1,30 +1,41 @@
-﻿namespace ImageProcessor.Web.Processors
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="Hue.cs" company="James South">
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
+// </copyright>
+// <summary>
+//   Encapsulates methods to adjust the hue component of an image.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
+
+namespace ImageProcessor.Web.Processors
 {
     using System;
-    using System.Drawing;
     using System.Globalization;
     using System.Text;
     using System.Text.RegularExpressions;
 
     using ImageProcessor.Processors;
-    using ImageProcessor.Web.Extensions;
 
+    /// <summary>
+    /// Encapsulates methods to adjust the hue component of an image.
+    /// </summary>
     public class Hue : IWebGraphicsProcessor
     {
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"(hue=|pixelrect=)[^&]+", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"(hue=|rotatehue=)[^&]+", RegexOptions.Compiled);
 
         /// <summary>
-        /// The pixel regex.
+        /// The hue regex.
         /// </summary>
-        private static readonly Regex PixelRegex = new Regex(@"pixelate=\d+", RegexOptions.Compiled);
+        private static readonly Regex HueRegex = new Regex(@"hue=\d+", RegexOptions.Compiled);
 
         /// <summary>
-        /// The rectangle regex.
+        /// The rotate regex.
         /// </summary>
-        private static readonly Regex RectangleRegex = new Regex(@"pixelrect=\d+,\d+,\d+,\d+", RegexOptions.Compiled);
+        private static readonly Regex RotateRegex = new Regex(@"rotatehue=true", RegexOptions.Compiled);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Hue"/> class.
@@ -92,59 +103,33 @@
             {
                 // Match syntax
                 string toParse = stringBuilder.ToString();
-                int size = this.ParseSize(toParse);
-                Rectangle? rectangle = this.ParseRectangle(toParse);
-                this.Processor.DynamicParameter = new Tuple<int, Rectangle?>(size, rectangle);
+                int degrees = this.ParseDegrees(toParse);
+                bool rotate = RotateRegex.Match(toParse).Success;
+                this.Processor.DynamicParameter = new Tuple<int, bool>(degrees, rotate);
             }
 
             return this.SortOrder;
         }
 
         /// <summary>
-        /// Returns the correct size of pixels.
+        /// Returns the angle to alter the hue.
         /// </summary>
         /// <param name="input">
         /// The input containing the value to parse.
         /// </param>
         /// <returns>
-        /// The <see cref="int"/> representing the pixel size.
+        /// The <see cref="int"/> representing the angle.
         /// </returns>
-        public int ParseSize(string input)
+        public int ParseDegrees(string input)
         {
-            int size = 0;
+            int degrees = 0;
 
-            foreach (Match match in PixelRegex.Matches(input))
+            foreach (Match match in HueRegex.Matches(input))
             {
-                size = int.Parse(match.Value.Split('=')[1], CultureInfo.InvariantCulture);
+                degrees = int.Parse(match.Value.Split('=')[1], CultureInfo.InvariantCulture);
             }
 
-            return size;
-        }
-
-        /// <summary>
-        /// Returns the correct <see cref="Nullable{Rectange}"/> for the given string.
-        /// </summary>
-        /// <param name="input">
-        /// The input string containing the value to parse.
-        /// </param>
-        /// <returns>
-        /// The correct <see cref="Nullable{Rectange}"/>
-        /// </returns>
-        private Rectangle? ParseRectangle(string input)
-        {
-            int[] dimensions = { };
-
-            foreach (Match match in RectangleRegex.Matches(input))
-            {
-                dimensions = match.Value.ToPositiveIntegerArray();
-            }
-
-            if (dimensions.Length == 4)
-            {
-                return new Rectangle(dimensions[0], dimensions[1], dimensions[2], dimensions[3]);
-            }
-
-            return null;
+            return Math.Max(0, Math.Min(360, degrees));
         }
     }
 }

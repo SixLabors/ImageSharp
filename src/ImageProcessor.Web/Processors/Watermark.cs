@@ -67,6 +67,11 @@ namespace ImageProcessor.Web.Processors
         private static readonly Regex ShadowRegex = new Regex(@"((text|font|drop)?)shadow(=|-)true", RegexOptions.Compiled);
 
         /// <summary>
+        /// The regular expression to search strings for the color attribute.
+        /// </summary>
+        private static readonly Regex ColorRegex = new Regex(@"color(=|-)[^&]+", RegexOptions.Compiled);
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="Watermark"/> class.
         /// </summary>
         public Watermark()
@@ -202,11 +207,17 @@ namespace ImageProcessor.Web.Processors
         /// </returns>
         private Color ParseColor(string input)
         {
-            Color textColor = CommonParameterParserUtility.ParseColor(input);
-            if (!textColor.Equals(Color.Transparent))
+            foreach (Match match in ColorRegex.Matches(input))
             {
-                return textColor;
+                string value = match.Value.Split(new[] { '=', '-' })[1];
+                Color textColor = CommonParameterParserUtility.ParseColor(value);
+                if (!textColor.Equals(Color.Transparent))
+                {
+                    return textColor;
+                }
             }
+
+
 
             return Color.Black;
         }

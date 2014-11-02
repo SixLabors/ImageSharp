@@ -290,14 +290,14 @@ namespace ImageProcessor.Web.UnitTests
         [Test]
         [TestCase("rotate=0", 0F)]
         [TestCase("rotate=270", 270F)]
-        [TestCase("rotate=-270", 0F)]
+        [TestCase("rotate=-270", -270F)]
         [TestCase("rotate=angle-28", 28F)]
-        public void TestRotateRegex(string input, int expected)
+        public void TestRotateRegex(string input, float expected)
         {
             Processors.Rotate rotate = new Processors.Rotate();
             rotate.MatchRegexIndex(input);
 
-            int result = rotate.Processor.DynamicParameter;
+            float result = rotate.Processor.DynamicParameter;
 
             Assert.AreEqual(expected, result);
         }

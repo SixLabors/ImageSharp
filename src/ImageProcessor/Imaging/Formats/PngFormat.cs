@@ -104,6 +104,7 @@ namespace ImageProcessor.Imaging.Formats
                 // The Wu Quantizer expects a 32bbp image.
                 //if (Image.GetPixelFormatSize(image.PixelFormat) != 32)
                 //{
+
                 Bitmap clone = new Bitmap(image.Width, image.Height, PixelFormat.Format32bppPArgb);
                 clone.SetResolution(image.HorizontalResolution, image.VerticalResolution);
 
@@ -116,6 +117,8 @@ namespace ImageProcessor.Imaging.Formats
                 image.Dispose();
 
                 image = new WuQuantizer().QuantizeImage(clone);
+
+                // image = new OctreeQuantizer(255, 8).Quantize(image);
                 //}
                 //else
                 //{

@@ -203,13 +203,13 @@ namespace ImageProcessor.Imaging.Quantizers
             public void AddColor(Color32* pixel)
             {
                 // Check if this request is for the same color as the last
-                if (this.previousColor == pixel->ARGB)
+                if (this.previousColor == pixel->Argb)
                 {
                     // If so, check if I have a previous node setup. This will only occur if the first color in the image
                     // happens to be black, with an alpha component of zero.
                     if (null == this.previousNode)
                     {
-                        this.previousColor = pixel->ARGB;
+                        this.previousColor = pixel->Argb;
                         this.root.AddColor(pixel, this.maxColorBits, 0, this);
                     }
                     else
@@ -220,7 +220,7 @@ namespace ImageProcessor.Imaging.Quantizers
                 }
                 else
                 {
-                    this.previousColor = pixel->ARGB;
+                    this.previousColor = pixel->Argb;
                     this.root.AddColor(pixel, this.maxColorBits, 0, this);
                 }
             }

@@ -126,6 +126,7 @@
   <ItemGroup>
     <Compile Include="Common\Extensions\AssemblyExtensions.cs" />
     <Compile Include="Common\Extensions\EnumerableExtensions.cs" />
+    <Compile Include="Common\Extensions\ImageExtensions.cs" />
     <Compile Include="Configuration\ImageProcessorBootstrapper.cs" />
     <Compile Include="Common\Exceptions\ImageProcessingException.cs" />
     <Compile Include="Common\Extensions\DoubleExtensions.cs" />
@@ -160,6 +161,7 @@
     <Compile Include="ImageFactory.cs" />
     <Compile Include="Imaging\AnchorPosition.cs" />
     <Compile Include="Imaging\Helpers\ImageMaths.cs" />
+    <Compile Include="Imaging\ImageLayer.cs" />
     <Compile Include="Imaging\MetaData\ExifPropertyTagType.cs" />
     <Compile Include="Imaging\Convolution.cs" />
     <Compile Include="Imaging\CropLayer.cs" />
@@ -182,6 +184,19 @@
     <Compile Include="Imaging\Helpers\Effects.cs" />
     <Compile Include="Imaging\Quantizers\OctreeQuantizer.cs" />
     <Compile Include="Imaging\Quantizers\Quantizer.cs" />
+    <Compile Include="Imaging\Quantizers\WuQuantizer\Box.cs" />
+    <Compile Include="Imaging\Quantizers\WuQuantizer\ColorData.cs" />
+    <Compile Include="Imaging\Quantizers\WuQuantizer\ColorMoment.cs" />
+    <Compile Include="Imaging\Quantizers\WuQuantizer\CubeCut.cs" />
+    <Compile Include="Imaging\Quantizers\WuQuantizer\IWuQuantizer.cs" />
+    <Compile Include="Imaging\Quantizers\WuQuantizer\Lookup.cs" />
+    <Compile Include="Imaging\Quantizers\WuQuantizer\Pixel.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Imaging\Quantizers\WuQuantizer\QuantizationException.cs" />
+    <Compile Include="Imaging\Quantizers\WuQuantizer\QuantizedPalette.cs" />
+    <Compile Include="Imaging\Quantizers\WuQuantizer\WuQuantizer.cs" />
+    <Compile Include="Imaging\Quantizers\WuQuantizer\WuQuantizerBase.cs" />
     <Compile Include="Imaging\ResizeLayer.cs" />
     <Compile Include="Imaging\Filters\Photo\BlackWhiteMatrixFilter.cs" />
     <Compile Include="Imaging\Filters\Photo\ColorMatrixes.cs" />
@@ -230,7 +245,9 @@
     <Compile Include="Processors\Watermark.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <WCFMetadata Include="Service References\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
 </Project>

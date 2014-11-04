@@ -43,30 +43,39 @@ namespace nQuant
             return c1;
         }
 
-        public static ColorMoment operator +(ColorMoment m, Pixel p)
+        public void Add(Pixel p)
         {
-            m.Alpha += p.Alpha;
-            m.Red += p.Red;
-            m.Green += p.Green;
-            m.Blue += p.Blue;
-            m.Weight++;
-            m.Moment += p.Distance();
-            return m;
+            Alpha += p.Alpha;
+            Red += p.Red;
+            Green += p.Green;
+            Blue += p.Blue;
+            Weight++;
+            Moment += p.Amplitude();
         }
 
-        public long Distance()
+        public void AddFast(ref ColorMoment c2)
+        {
+            Alpha += c2.Alpha;
+            Red += c2.Red;
+            Green += c2.Green;
+            Blue += c2.Blue;
+            Weight += c2.Weight;
+            Moment += c2.Moment;
+        }
+        
+        public long Amplitude()
         {
             return (Alpha * Alpha) + (Red * Red) + (Green * Green) + (Blue * Blue);
         }
 
         public long WeightedDistance()
         {
-            return Distance() / Weight;
+            return this.Amplitude() / Weight;
         }
 
         public float Variance()
         {
-            var result = Moment - ((float)Distance() / Weight);
+            var result = Moment - ((float)this.Amplitude() / this.Weight);
             return float.IsNaN(result) ? 0.0f : result;
         }
     }

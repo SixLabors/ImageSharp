@@ -59,9 +59,11 @@ namespace ImageProcessor.Imaging.Quantizers
 
             // First off take a 32bpp copy of the image
             Bitmap copy = new Bitmap(width, height, PixelFormat.Format32bppArgb);
+            copy.SetResolution(source.HorizontalResolution, source.VerticalResolution);
 
             // And construct an 8bpp version
             Bitmap output = new Bitmap(width, height, PixelFormat.Format8bppIndexed);
+            output.SetResolution(source.HorizontalResolution, source.VerticalResolution);
 
             // Now lock the bitmap into memory
             using (Graphics g = Graphics.FromImage(copy))

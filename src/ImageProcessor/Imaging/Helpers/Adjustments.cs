@@ -20,6 +20,53 @@ namespace ImageProcessor.Imaging.Helpers
     public static class Adjustments
     {
         /// <summary>
+        /// Adjusts the alpha component of the given image.
+        /// </summary>
+        /// <param name="source">
+        /// The <see cref="Image"/> source to adjust.
+        /// </param>
+        /// <param name="percentage">
+        /// The percentage value between 0 and 100 for adjusting the opacity.
+        /// </param>
+        /// <param name="rectangle">The rectangle to define the bounds of the area to adjust the opacity. 
+        /// If null then the effect is applied to the entire image.</param>
+        /// <returns>
+        /// The <see cref="Bitmap"/> with the alpha component adjusted.
+        /// </returns>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown if the percentage value falls outside the acceptable range.
+        /// </exception>
+        public static Bitmap Alpha(Image source, int percentage, Rectangle? rectangle = null)
+        {
+            if (percentage > 100 || percentage < 0)
+            {
+                throw new ArgumentOutOfRangeException("percentage", "Percentage should be between 0 and 100.");
+            }
+
+            Rectangle bounds = rectangle.HasValue ? rectangle.Value : new Rectangle(0, 0, source.Width, source.Height);
+
+            ColorMatrix colorMatrix = new ColorMatrix();
+            colorMatrix.Matrix00 = colorMatrix.Matrix11 = colorMatrix.Matrix22 = colorMatrix.Matrix44 = 1;
+            colorMatrix.Matrix33 = (float)percentage / 100;
+
+            Bitmap alpha = new Bitmap(source.Width, source.Height);
+            alpha.SetResolution(source.HorizontalResolution, source.VerticalResolution);
+
+            using (Graphics graphics = Graphics.FromImage(alpha))
+            {
+                graphics.Clear(Color.Transparent);
+                using (ImageAttributes imageAttributes = new ImageAttributes())
+                {
+                    imageAttributes.SetColorMatrix(colorMatrix);
+                    graphics.DrawImage(source, bounds, 0, 0, source.Width, source.Height, GraphicsUnit.Pixel, imageAttributes);
+                }
+            }
+            
+            source.Dispose();
+            return alpha;
+        }
+
+        /// <summary>
         /// Adjusts the brightness component of the given image.
         /// </summary>
         /// <param name="source">
@@ -101,7 +148,7 @@ namespace ImageProcessor.Imaging.Helpers
             contrastFactor++;
             float factorTransform = 0.5f * (1.0f - contrastFactor);
 
-            ColorMatrix colorMatrix = 
+            ColorMatrix colorMatrix =
                 new ColorMatrix(
                     new[]
                     {

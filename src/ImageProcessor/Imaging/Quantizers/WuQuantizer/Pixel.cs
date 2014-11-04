@@ -26,7 +26,7 @@ namespace nQuant
             this.Argb = argb;
         }
 
-        public long Distance()
+        public long Amplitude()
         {
             return (Alpha * Alpha) + (Red * Red) + (Green * Green) + (Blue * Blue);
         }

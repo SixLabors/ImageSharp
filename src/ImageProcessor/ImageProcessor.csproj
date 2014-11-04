@@ -185,16 +185,18 @@
     <Compile Include="Imaging\Quantizers\OctreeQuantizer.cs" />
     <Compile Include="Imaging\Quantizers\Quantizer.cs" />
     <Compile Include="Imaging\Quantizers\WuQuantizer\Box.cs" />
+    <Compile Include="Imaging\Quantizers\WuQuantizer\PaletteLookup.cs" />
+    <Compile Include="Imaging\Quantizers\WuQuantizer\PaletteBuffer.cs" />
     <Compile Include="Imaging\Quantizers\WuQuantizer\ColorData.cs" />
     <Compile Include="Imaging\Quantizers\WuQuantizer\ColorMoment.cs" />
     <Compile Include="Imaging\Quantizers\WuQuantizer\CubeCut.cs" />
+    <Compile Include="Imaging\Quantizers\WuQuantizer\ImageBuffer.cs" />
     <Compile Include="Imaging\Quantizers\WuQuantizer\IWuQuantizer.cs" />
     <Compile Include="Imaging\Quantizers\WuQuantizer\Lookup.cs" />
     <Compile Include="Imaging\Quantizers\WuQuantizer\Pixel.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Imaging\Quantizers\WuQuantizer\QuantizationException.cs" />
-    <Compile Include="Imaging\Quantizers\WuQuantizer\QuantizedPalette.cs" />
     <Compile Include="Imaging\Quantizers\WuQuantizer\WuQuantizer.cs" />
     <Compile Include="Imaging\Quantizers\WuQuantizer\WuQuantizerBase.cs" />
     <Compile Include="Imaging\ResizeLayer.cs" />

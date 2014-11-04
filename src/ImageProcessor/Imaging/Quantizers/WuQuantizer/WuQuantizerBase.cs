@@ -20,151 +20,52 @@ namespace nQuant
 
         public Image QuantizeImage(Bitmap image)
         {
-            return QuantizeImage(image, 10, 70);
+            return QuantizeImage(image, 0, 1);
         }
 
         public Image QuantizeImage(Bitmap image, int alphaThreshold, int alphaFader)
         {
             var colorCount = MaxColor;
-            var data = BuildHistogram(image, alphaThreshold, alphaFader);
+            ImageBuffer buffer = new ImageBuffer(image);
+            var data = BuildHistogram(buffer, alphaThreshold, alphaFader);
+
             data = CalculateMoments(data);
             var cubes = SplitData(ref colorCount, data);
-            var palette = GetQuantizedPalette(colorCount, data, cubes, alphaThreshold);
-            return ProcessImagePixels(image, palette);
+            var lookups = BuildLookups(cubes, data);
+            return GetQuantizedImage(buffer, colorCount, lookups, alphaThreshold);
         }
 
-        private static Bitmap ProcessImagePixels(Image sourceImage, QuantizedPalette palette)
+        private static ColorData BuildHistogram(ImageBuffer sourceImage, int alphaThreshold, int alphaFader)
         {
-            var result = new Bitmap(sourceImage.Width, sourceImage.Height, PixelFormat.Format8bppIndexed);
-            var newPalette = result.Palette;
-            for (var index = 0; index < palette.Colors.Count; index++)
-                newPalette.Entries[index] = palette.Colors[index];
-            result.Palette = newPalette;
-
-            BitmapData targetData = null;
-            try
+            ColorData colorData = new ColorData(MaxSideIndex);
+            foreach (Pixel pixel in sourceImage.Pixels)
             {
-                var resultHeight = result.Height;
-                var resultWidth = result.Width;
-                targetData = result.LockBits(Rectangle.FromLTRB(0, 0, resultWidth, resultHeight), ImageLockMode.WriteOnly, result.PixelFormat);
-                const byte targetBitDepth = 8;
-                var targetByteLength = targetData.Stride < 0 ? -targetData.Stride : targetData.Stride;
-                var targetByteCount = Math.Max(1, targetBitDepth >> 3);
-                var targetBuffer = new byte[targetByteLength];
-                var targetValue = new byte[targetByteCount];
-                var pixelIndex = 0;
-
-
-
-                for (var y = 0; y < resultHeight; y++)
+                if (pixel.Alpha >= alphaThreshold)
                 {
-                    var targetIndex = 0;
-                    for (var x = 0; x < resultWidth; x++)
+                    Pixel indexedPixel = pixel;
+                    if (indexedPixel.Alpha < 255)
                     {
-                        var targetIndexOffset = targetIndex >> 3;
-                        targetValue[0] =
-                            (byte)
-                            (palette.PixelIndex[pixelIndex] == AlphaColor
-                                 ? palette.Colors.Count - 1
-                                 : palette.PixelIndex[pixelIndex]);
-                        pixelIndex++;
-
-                        for (var valueIndex = 0; valueIndex < targetByteCount; valueIndex++)
-                        {
-                            targetBuffer[valueIndex + targetIndexOffset] = targetValue[valueIndex];
-                        }
-
-                        targetIndex += targetBitDepth;
+                        int alpha = pixel.Alpha + (pixel.Alpha % alphaFader);
+                        indexedPixel.Alpha = (byte)(alpha > 255 ? 255 : alpha);
                     }
 
-                    Marshal.Copy(targetBuffer, 0, targetData.Scan0 + (targetByteLength * y), targetByteLength);
-                }
-            }
-            finally
-            {
-                if (targetData != null)
-                {
-                    result.UnlockBits(targetData);
+                    indexedPixel.Alpha = (byte)((indexedPixel.Alpha >> 3) + 1);
+                    indexedPixel.Red = (byte)((indexedPixel.Red >> 3) + 1);
+                    indexedPixel.Green = (byte)((indexedPixel.Green >> 3) + 1);
+                    indexedPixel.Blue = (byte)((indexedPixel.Blue >> 3) + 1);
+                    colorData.Moments[indexedPixel.Alpha, indexedPixel.Red, indexedPixel.Green, indexedPixel.Blue].Add(pixel);
                 }
             }
 
-            return result;
-        }
-
-        private static ColorData BuildHistogram(Bitmap sourceImage, int alphaThreshold, int alphaFader)
-        {
-            int bitmapWidth = sourceImage.Width;
-            int bitmapHeight = sourceImage.Height;
-
-            BitmapData data = sourceImage.LockBits(
-                Rectangle.FromLTRB(0, 0, bitmapWidth, bitmapHeight),
-                ImageLockMode.ReadOnly,
-                sourceImage.PixelFormat);
-            ColorData colorData = new ColorData(MaxSideIndex, bitmapWidth, bitmapHeight);
-
-            try
-            {
-                var bitDepth = Image.GetPixelFormatSize(sourceImage.PixelFormat);
-                if (bitDepth != 32)
-                    throw new QuantizationException(string.Format("Thie image you are attempting to quantize does not contain a 32 bit ARGB palette. This image has a bit depth of {0} with {1} colors.", bitDepth, sourceImage.Palette.Entries.Length));
-                var byteLength = data.Stride < 0 ? -data.Stride : data.Stride;
-                var byteCount = Math.Max(1, bitDepth >> 3);
-                var buffer = new Byte[byteLength];
-
-                var value = new Byte[byteCount];
-
-                for (int y = 0; y < bitmapHeight; y++)
-                {
-                    Marshal.Copy(data.Scan0 + (byteLength * y), buffer, 0, buffer.Length);
-
-                    var index = 0;
-                    for (int x = 0; x < bitmapWidth; x++)
-                    {
-                        var indexOffset = index >> 3;
-
-                        for (var valueIndex = 0; valueIndex < byteCount; valueIndex++)
-                        {
-                            value[valueIndex] = buffer[valueIndex + indexOffset];
-                        }
-
-                        Pixel pixelValue = new Pixel(value[Alpha], value[Red], value[Green], value[Blue]);
-
-                        var indexAlpha = (byte)((value[Alpha] >> 3) + 1);
-                        var indexRed = (byte)((value[Red] >> 3) + 1);
-                        var indexGreen = (byte)((value[Green] >> 3) + 1);
-                        var indexBlue = (byte)((value[Blue] >> 3) + 1);
-
-                        if (value[Alpha] > alphaThreshold)
-                        {
-                            if (value[Alpha] < 255)
-                            {
-                                var alpha = value[Alpha] + (value[Alpha] % alphaFader);
-                                value[Alpha] = (byte)(alpha > 255 ? 255 : alpha);
-                                indexAlpha = (byte)((value[Alpha] >> 3) + 1);
-                            }
-
-                            colorData.Moments[indexAlpha, indexRed, indexGreen, indexBlue] += pixelValue;
-                        }
-
-                        colorData.AddPixel(
-                            pixelValue,
-                            new Pixel(indexAlpha, indexRed, indexGreen, indexBlue));
-                        index += bitDepth;
-                    }
-                }
-            }
-            finally
-            {
-                sourceImage.UnlockBits(data);
-            }
             return colorData;
         }
 
         private static ColorData CalculateMoments(ColorData data)
         {
             var xarea = new ColorMoment[SideSize, SideSize];
-            var xPreviousArea = new ColorMoment[SideSize, SideSize];
             var area = new ColorMoment[SideSize];
+            var moments = data.Moments;
+
             for (var alphaIndex = 1; alphaIndex <= MaxSideIndex; ++alphaIndex)
             {
                 for (var redIndex = 1; redIndex <= MaxSideIndex; ++redIndex)
@@ -175,17 +76,12 @@ namespace nQuant
                         ColorMoment line = new ColorMoment();
                         for (var blueIndex = 1; blueIndex <= MaxSideIndex; ++blueIndex)
                         {
-                            line += data.Moments[alphaIndex, redIndex, greenIndex, blueIndex];
-                            area[blueIndex] += line;
-
-                            xarea[greenIndex, blueIndex] = xPreviousArea[greenIndex, blueIndex] + area[blueIndex];
-                            data.Moments[alphaIndex, redIndex, greenIndex, blueIndex] = data.Moments[alphaIndex - 1, redIndex, greenIndex, blueIndex] + xarea[greenIndex, blueIndex];
+                            line.AddFast(ref moments[alphaIndex, redIndex, greenIndex, blueIndex]);
+                            area[blueIndex].AddFast(ref line);
+                            xarea[greenIndex, blueIndex].AddFast(ref area[blueIndex]);
+                            moments[alphaIndex, redIndex, greenIndex, blueIndex] = moments[alphaIndex - 1, redIndex, greenIndex, blueIndex] + xarea[greenIndex, blueIndex];
                         }
                     }
-
-                    var temp = xarea;
-                    xarea = xPreviousArea;
-                    xPreviousArea = temp;
                 }
             }
             return data;
@@ -474,9 +370,9 @@ namespace nQuant
             return cubes.Take(colorCount).ToArray();
         }
 
-        protected Lookup[] BuildLookups(Box[] cubes, ColorData data)
+        private List<Pixel> BuildLookups(Box[] cubes, ColorData data)
         {
-            List<Lookup> lookups = new List<Lookup>(cubes.Length);
+            List<Pixel> lookups = new List<Pixel>(cubes.Length);
 
             foreach (var cube in cubes)
             {
@@ -487,20 +383,20 @@ namespace nQuant
                     continue;
                 }
 
-                var lookup = new Lookup
+                var lookup = new Pixel
                     {
-                        Alpha = (int)(volume.Alpha / volume.Weight),
-                        Red = (int)(volume.Red / volume.Weight),
-                        Green = (int)(volume.Green / volume.Weight),
-                        Blue = (int)(volume.Blue / volume.Weight)
+                        Alpha = (byte)(volume.Alpha / volume.Weight),
+                        Red = (byte)(volume.Red / volume.Weight),
+                        Green = (byte)(volume.Green / volume.Weight),
+                        Blue = (byte)(volume.Blue / volume.Weight)
                     };
 
                 lookups.Add(lookup);
             }
 
-            return lookups.ToArray();
+            return lookups;
         }
 
-        protected abstract QuantizedPalette GetQuantizedPalette(int colorCount, ColorData data, Box[] cubes, int alphaThreshold);
+        internal abstract Image GetQuantizedImage(ImageBuffer image, int colorCount, List<Pixel> lookups, int alphaThreshold);
     }
 }

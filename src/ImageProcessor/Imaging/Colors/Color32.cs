@@ -52,7 +52,43 @@ namespace ImageProcessor.Imaging.Colors
         /// Permits the color32 to be treated as a 32 bit integer.
         /// </summary>
         [FieldOffset(0)]
-        public int ARGB;
+        public int Argb;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Color32"/> struct.
+        /// </summary>
+        /// <param name="alpha">
+        /// The alpha component.
+        /// </param>
+        /// <param name="red">
+        /// The red component.
+        /// </param>
+        /// <param name="green">
+        /// The green component.
+        /// </param>
+        /// <param name="blue">
+        /// The blue component.
+        /// </param>
+        public Color32(byte alpha, byte red, byte green, byte blue)
+            : this()
+        {
+            this.A = alpha;
+            this.R = red;
+            this.G = green;
+            this.B = blue;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Color32"/> struct.
+        /// </summary>
+        /// <param name="argb">
+        /// The combined color components.
+        /// </param>
+        public Color32(int argb)
+            : this()
+        {
+            this.Argb = argb;
+        }
 
         /// <summary>
         /// Gets the color for this Color32 object

@@ -14,6 +14,9 @@ namespace ImageProcessor.Processors
     using System.Collections.Generic;
     using System.Drawing;
 
+    using ImageProcessor.Common.Exceptions;
+    using ImageProcessor.Imaging;
+
     /// <summary>
     /// Adds an image overlay to the current image.
     /// </summary>
@@ -57,7 +60,34 @@ namespace ImageProcessor.Processors
         /// </returns>
         public Image ProcessImage(ImageFactory factory)
         {
-            throw new NotImplementedException();
+            Bitmap newImage = null;
+            Image image = factory.Image;
+
+            try
+            {
+                newImage = new Bitmap(image);
+                ImageLayer imageLayer = this.DynamicParameter;
+                Image overlay = imageLayer.Image;
+                Size size = imageLayer.Size;
+                int opacity = Math.Min((int)Math.Ceiling((imageLayer.Opacity / 100f) * 255), 255);
+
+
+
+                image.Dispose();
+                image = newImage;
+
+            }
+            catch (Exception ex)
+            {
+                if (newImage != null)
+                {
+                    newImage.Dispose();
+                }
+
+                throw new ImageProcessingException("Error processing image with " + this.GetType().Name, ex);
+            }
+
+            return image;
         }
     }
 }

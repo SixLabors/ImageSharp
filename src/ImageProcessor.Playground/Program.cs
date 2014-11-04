@@ -50,7 +50,7 @@ namespace ImageProcessor.PlayGround
             }
 
             Image mask = Image.FromFile(Path.Combine(resolvedPath, "mask2.png"));
-            IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif");
+            IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".png");
             //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif", ".webp", ".bmp", ".jpg", ".png", ".tif");
 
             foreach (FileInfo fileInfo in files)
@@ -75,6 +75,7 @@ namespace ImageProcessor.PlayGround
                         //};
                         // Load, resize, set the format and quality and save an image.
                         imageFactory.Load(inStream)
+                            //.Alpha(50)
                             //.BackgroundColor(Color.White)
                             //.Resize(new Size((int)(size.Width * 1.1), 0))
                             //.ContentAwareResize(layer)
@@ -86,8 +87,8 @@ namespace ImageProcessor.PlayGround
                             //.ReplaceColor(Color.FromArgb(255, 1, 107, 165), Color.FromArgb(255, 1, 165, 13), 80)
                             //.Resize(size)
                             // .Resize(new ResizeLayer(size, ResizeMode.Max))
-                             // .Resize(new ResizeLayer(size, ResizeMode.Stretch))
-                            .DetectEdges(new SobelEdgeFilter(), true)
+                            // .Resize(new ResizeLayer(size, ResizeMode.Stretch))
+                            //.DetectEdges(new SobelEdgeFilter(), true)
                             //.DetectEdges(new LaplacianOfGaussianEdgeFilter())
                             //.EntropyCrop()
                             //.Filter(MatrixFilters.Invert)
@@ -97,13 +98,16 @@ namespace ImageProcessor.PlayGround
                             //.Filter(MatrixFilters.HiSatch)
                             //.Pixelate(8)
                             //.GaussianSharpen(10)
+                            .Format(new PngFormat() { IsIndexed = true })
                             .Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", fileInfo.Name)));
 
                         stopwatch.Stop();
                     }
                 }
 
-                Console.WriteLine("Processed: " + fileInfo.Name + " in " + stopwatch.ElapsedMilliseconds + "ms");
+                Console.WriteLine(@"Completed {0} in {1:s\.fff} secs with peak memory usage of {2}.", fileInfo.Name, stopwatch.Elapsed, Process.GetCurrentProcess().PeakWorkingSet64.ToString("#,#"));
+
+                //Console.WriteLine("Processed: " + fileInfo.Name + " in " + stopwatch.ElapsedMilliseconds + "ms");
             }
 
             Console.ReadLine();

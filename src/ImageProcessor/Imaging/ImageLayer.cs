@@ -1,4 +1,12 @@
-﻿
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="ImageLayer.cs" company="James South">
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
+// </copyright>
+// <summary>
+//   Encapsulates the properties required to add an image layer to an image.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Imaging
 {
@@ -45,6 +53,51 @@ namespace ImageProcessor.Imaging
         {
             get { return this.position; }
             set { this.position = value; }
+        }
+
+        /// <summary>
+        /// Returns a value that indicates whether the specified object is an 
+        /// <see cref="TextLayer"/> object that is equivalent to 
+        /// this <see cref="TextLayer"/> object.
+        /// </summary>
+        /// <param name="obj">
+        /// The object to test.
+        /// </param>
+        /// <returns>
+        /// True if the given object  is an <see cref="TextLayer"/> object that is equivalent to 
+        /// this <see cref="TextLayer"/> object; otherwise, false.
+        /// </returns>
+        public override bool Equals(object obj)
+        {
+            ImageLayer imageLayer = obj as ImageLayer;
+
+            if (imageLayer == null)
+            {
+                return false;
+            }
+
+            return this.Image == imageLayer.Image
+                && this.Size == imageLayer.Size
+                && this.Opacity == imageLayer.Opacity
+                && this.Position == imageLayer.Position;
+        }
+
+        /// <summary>
+        /// Returns the hash code for this instance.
+        /// </summary>
+        /// <returns>
+        /// A 32-bit signed integer that is the hash code for this instance.
+        /// </returns>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hashCode = this.Image.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.Size.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.Opacity;
+                hashCode = (hashCode * 397) ^ this.Position.GetHashCode();
+                return hashCode;
+            }
         }
     }
 }

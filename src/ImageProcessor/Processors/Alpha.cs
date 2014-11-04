@@ -13,9 +13,9 @@ namespace ImageProcessor.Processors
     using System;
     using System.Collections.Generic;
     using System.Drawing;
-    using System.Drawing.Imaging;
 
     using ImageProcessor.Common.Exceptions;
+    using ImageProcessor.Imaging.Helpers;
 
     /// <summary>
     /// Encapsulates methods to change the alpha component of the image to effect its transparency.
@@ -65,35 +65,13 @@ namespace ImageProcessor.Processors
 
             try
             {
-                int alphaPercent = this.DynamicParameter;
+                int percentage = this.DynamicParameter;
 
-                newImage = new Bitmap(image.Width, image.Height);
-                newImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
+                newImage = new Bitmap(image);
+                newImage = Adjustments.Alpha(newImage, percentage);
 
-                ColorMatrix colorMatrix = new ColorMatrix();
-                colorMatrix.Matrix00 = colorMatrix.Matrix11 = colorMatrix.Matrix22 = colorMatrix.Matrix44 = 1;
-                colorMatrix.Matrix33 = (float)alphaPercent / 100;
-
-                using (Graphics graphics = Graphics.FromImage(newImage))
-                {
-                    using (ImageAttributes imageAttributes = new ImageAttributes())
-                    {
-                        imageAttributes.SetColorMatrix(colorMatrix);
-
-                        graphics.DrawImage(
-                            image,
-                            new Rectangle(0, 0, image.Width, image.Height),
-                            0,
-                            0,
-                            image.Width,
-                            image.Height,
-                            GraphicsUnit.Pixel,
-                            imageAttributes);
-
-                        image.Dispose();
-                        image = newImage;
-                    }
-                }
+                image.Dispose();
+                image = newImage;
             }
             catch (Exception ex)
             {

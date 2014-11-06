@@ -17,7 +17,7 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
 
         internal void Clear()
         {
-            Array.Clear(Moments, 0, SideSize*SideSize*SideSize*SideSize);
+            Array.Clear(Moments, 0, SideSize * SideSize * SideSize * SideSize);
         }
     }
 
@@ -46,32 +46,35 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
             var buffer = new ImageBuffer(image);
 
             if (histogram == null)
+            {
                 histogram = new Histogram();
+            }
             else
+            {
                 histogram.Clear();
+            }
 
             BuildHistogram(histogram, buffer, alphaThreshold, alphaFader);
             CalculateMoments(histogram.Moments);
             var cubes = SplitData(ref maxColors, histogram.Moments);
             var lookups = BuildLookups(cubes, histogram.Moments);
-            return GetQuantizedImage(buffer, maxColors, lookups, alphaThreshold);
+            return this.GetQuantizedImage(buffer, maxColors, lookups, alphaThreshold);
         }
 
         private static void BuildHistogram(Histogram histogram, ImageBuffer sourceImage, int alphaThreshold, int alphaFader)
         {
-            var moments = histogram.Moments;
+            ColorMoment[,,,] moments = histogram.Moments;
 
-            foreach(var pixelLine in sourceImage.PixelLines)
+            foreach (Pixel[] pixelLine in sourceImage.PixelLines)
             {
-                for (int pixelIndex = 0; pixelIndex < pixelLine.Length; pixelIndex++)
+                foreach (Pixel pixel in pixelLine)
                 {
-                    Pixel pixel = pixelLine[pixelIndex];
                     byte pixelAlpha = pixel.Alpha;
                     if (pixelAlpha >= alphaThreshold)
                     {
                         if (pixelAlpha < 255)
                         {
-                            var alpha = pixel.Alpha + (pixel.Alpha % alphaFader);
+                            int alpha = pixel.Alpha + (pixel.Alpha % alphaFader);
                             pixelAlpha = (byte)(alpha > 255 ? 255 : alpha);
                         }
 
@@ -91,17 +94,17 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
 
         private static void CalculateMoments(ColorMoment[, , ,] moments)
         {
-            var xarea = new ColorMoment[SideSize, SideSize];
-            var area = new ColorMoment[SideSize];
-            for (var alphaIndex = 1; alphaIndex < SideSize; alphaIndex++)
+            ColorMoment[,] xarea = new ColorMoment[SideSize, SideSize];
+            ColorMoment[] area = new ColorMoment[SideSize];
+            for (int alphaIndex = 1; alphaIndex < SideSize; alphaIndex++)
             {
-                for (var redIndex = 1; redIndex < SideSize; redIndex++)
+                for (int redIndex = 1; redIndex < SideSize; redIndex++)
                 {
                     Array.Clear(area, 0, area.Length);
-                    for (var greenIndex = 1; greenIndex < SideSize; greenIndex++)
+                    for (int greenIndex = 1; greenIndex < SideSize; greenIndex++)
                     {
-                        var line = new ColorMoment();
-                        for (var blueIndex = 1; blueIndex < SideSize; blueIndex++)
+                        ColorMoment line = new ColorMoment();
+                        for (int blueIndex = 1; blueIndex < SideSize; blueIndex++)
                         {
                             line.AddFast(ref moments[alphaIndex, redIndex, greenIndex, blueIndex]);
                             area[blueIndex].AddFast(ref line);
@@ -220,10 +223,13 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
             var result = 0.0f;
             byte? cutPoint = null;
 
-            for (var position = first; position < last; ++position)
+            for (byte position = first; position < last; ++position)
             {
-                var half = bottom + Top(cube, direction, position, moments);
-                if (half.Weight == 0) continue;
+                ColorMoment half = bottom + Top(cube, direction, position, moments);
+                if (half.Weight == 0)
+                {
+                    continue;
+                }
 
                 var temp = half.WeightedDistance();
 
@@ -275,28 +281,28 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
             switch (direction)
             {
                 case Alpha:
-                    second.AlphaMinimum = first.AlphaMaximum = (byte) maxAlpha.Position;
+                    second.AlphaMinimum = first.AlphaMaximum = (byte)maxAlpha.Position;
                     second.RedMinimum = first.RedMinimum;
                     second.GreenMinimum = first.GreenMinimum;
                     second.BlueMinimum = first.BlueMinimum;
                     break;
 
                 case Red:
-                    second.RedMinimum = first.RedMaximum = (byte) maxRed.Position;
+                    second.RedMinimum = first.RedMaximum = (byte)maxRed.Position;
                     second.AlphaMinimum = first.AlphaMinimum;
                     second.GreenMinimum = first.GreenMinimum;
                     second.BlueMinimum = first.BlueMinimum;
                     break;
 
                 case Green:
-                    second.GreenMinimum = first.GreenMaximum = (byte) maxGreen.Position;
+                    second.GreenMinimum = first.GreenMaximum = (byte)maxGreen.Position;
                     second.AlphaMinimum = first.AlphaMinimum;
                     second.RedMinimum = first.RedMinimum;
                     second.BlueMinimum = first.BlueMinimum;
                     break;
 
                 case Blue:
-                    second.BlueMinimum = first.BlueMaximum = (byte) maxBlue.Position;
+                    second.BlueMinimum = first.BlueMaximum = (byte)maxBlue.Position;
                     second.AlphaMinimum = first.AlphaMinimum;
                     second.RedMinimum = first.RedMinimum;
                     second.GreenMinimum = first.GreenMinimum;

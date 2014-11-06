@@ -59,7 +59,7 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
         /// Adds a pixel to the color history.
         /// </summary>
         /// <param name="pixel">
-        /// The pixel.
+        /// The pixel to add.
         /// </param>
         public void AddPixel(Pixel pixel)
         {

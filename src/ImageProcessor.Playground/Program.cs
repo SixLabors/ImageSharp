@@ -50,12 +50,12 @@ namespace ImageProcessor.PlayGround
             }
 
             // Image mask = Image.FromFile(Path.Combine(resolvedPath, "mask2.png"));
-            //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "rgba.png"));
-            IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".png");
+            FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "rgba.png"));
+            //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".png");
             //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif", ".webp", ".bmp", ".jpg", ".png", ".tif");
 
-            foreach (FileInfo fileInfo in files)
-            {
+            //foreach (FileInfo fileInfo in files)
+            //{
                 byte[] photoBytes = File.ReadAllBytes(fileInfo.FullName);
                 Console.WriteLine("Processing: " + fileInfo.Name);
 
@@ -109,7 +109,7 @@ namespace ImageProcessor.PlayGround
                 Console.WriteLine(@"Completed {0} in {1:s\.fff} secs with peak memory usage of {2}.", fileInfo.Name, stopwatch.Elapsed, Process.GetCurrentProcess().PeakWorkingSet64.ToString("#,#"));
 
                 //Console.WriteLine("Processed: " + fileInfo.Name + " in " + stopwatch.ElapsedMilliseconds + "ms");
-            }
+            //}
 
             Console.ReadLine();
         }

@@ -12,7 +12,9 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
     using System.Drawing.Imaging;
 
     /// <summary>
-    /// The wu quantizer.
+    /// Encapsulates methods to calculate the color palette of an image using 
+    /// a Wu color quantizer <see href="http://www.ece.mcmaster.ca/~xwu/cq.c"/>.
+    /// Adapted from <see href="https://github.com/drewnoakes"/>
     /// </summary>
     public class WuQuantizer : WuQuantizerBase, IWuQuantizer
     {
@@ -89,13 +91,14 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
         {
             byte[] lineIndexes = new byte[image.Image.Width];
             PaletteLookup lookup = new PaletteLookup(lookups);
+
             foreach (Pixel[] pixelLine in image.PixelLines)
             {
                 for (int pixelIndex = 0; pixelIndex < pixelLine.Length; pixelIndex++)
                 {
                     Pixel pixel = pixelLine[pixelIndex];
-                    byte bestMatch = AlphaColor;
-                    if (pixel.Alpha >= alphaThreshold)
+                    byte bestMatch = 0;
+                    if (pixel.Alpha > alphaThreshold)
                     {
                         bestMatch = lookup.GetPaletteIndex(pixel);
                         paletteHistogram[bestMatch].AddPixel(pixel);

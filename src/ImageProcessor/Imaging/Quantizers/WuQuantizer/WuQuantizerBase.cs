@@ -1,15 +1,28 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Drawing;
-using System.Drawing.Imaging;
 using System.Linq;
-using System.Runtime.InteropServices;
 
-namespace nQuant
+namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
 {
+    public class Histogram
+    {
+        private const int SideSize = 33;
+        internal readonly ColorMoment[, , ,] Moments;
+
+        public Histogram()
+        {
+            // 47,436,840 bytes
+            Moments = new ColorMoment[SideSize, SideSize, SideSize, SideSize];
+        }
+
+        internal void Clear()
+        {
+            Array.Clear(Moments, 0, SideSize*SideSize*SideSize*SideSize);
+        }
+    }
+
     public abstract class WuQuantizerBase
     {
-        private const int MaxColor = 256;
         protected const byte AlphaColor = 255;
         protected const int Alpha = 3;
         protected const int Red = 2;
@@ -25,66 +38,82 @@ namespace nQuant
 
         public Image QuantizeImage(Bitmap image, int alphaThreshold, int alphaFader)
         {
-            var colorCount = MaxColor;
-            ImageBuffer buffer = new ImageBuffer(image);
-            var data = BuildHistogram(buffer, alphaThreshold, alphaFader);
-
-            data = CalculateMoments(data);
-            var cubes = SplitData(ref colorCount, data);
-            var lookups = BuildLookups(cubes, data);
-            return GetQuantizedImage(buffer, colorCount, lookups, alphaThreshold);
+            return QuantizeImage(image, alphaThreshold, alphaFader, null, 256);
         }
 
-        private static ColorData BuildHistogram(ImageBuffer sourceImage, int alphaThreshold, int alphaFader)
+        public Image QuantizeImage(Bitmap image, int alphaThreshold, int alphaFader, Histogram histogram, int maxColors)
         {
-            ColorData colorData = new ColorData(MaxSideIndex);
-            foreach (Pixel pixel in sourceImage.Pixels)
-            {
-                if (pixel.Alpha >= alphaThreshold)
-                {
-                    Pixel indexedPixel = pixel;
-                    if (indexedPixel.Alpha < 255)
-                    {
-                        int alpha = pixel.Alpha + (pixel.Alpha % alphaFader);
-                        indexedPixel.Alpha = (byte)(alpha > 255 ? 255 : alpha);
-                    }
+            var buffer = new ImageBuffer(image);
 
-                    indexedPixel.Alpha = (byte)((indexedPixel.Alpha >> 3) + 1);
-                    indexedPixel.Red = (byte)((indexedPixel.Red >> 3) + 1);
-                    indexedPixel.Green = (byte)((indexedPixel.Green >> 3) + 1);
-                    indexedPixel.Blue = (byte)((indexedPixel.Blue >> 3) + 1);
-                    colorData.Moments[indexedPixel.Alpha, indexedPixel.Red, indexedPixel.Green, indexedPixel.Blue].Add(pixel);
+            if (histogram == null)
+                histogram = new Histogram();
+            else
+                histogram.Clear();
+
+            BuildHistogram(histogram, buffer, alphaThreshold, alphaFader);
+            CalculateMoments(histogram.Moments);
+            var cubes = SplitData(ref maxColors, histogram.Moments);
+            var lookups = BuildLookups(cubes, histogram.Moments);
+            return GetQuantizedImage(buffer, maxColors, lookups, alphaThreshold);
+        }
+
+        private static void BuildHistogram(Histogram histogram, ImageBuffer sourceImage, int alphaThreshold, int alphaFader)
+        {
+            var moments = histogram.Moments;
+
+            foreach(var pixelLine in sourceImage.PixelLines)
+            {
+                for (int pixelIndex = 0; pixelIndex < pixelLine.Length; pixelIndex++)
+                {
+                    Pixel pixel = pixelLine[pixelIndex];
+                    byte pixelAlpha = pixel.Alpha;
+                    if (pixelAlpha >= alphaThreshold)
+                    {
+                        if (pixelAlpha < 255)
+                        {
+                            var alpha = pixel.Alpha + (pixel.Alpha % alphaFader);
+                            pixelAlpha = (byte)(alpha > 255 ? 255 : alpha);
+                        }
+
+                        byte pixelRed = pixel.Red;
+                        byte pixelGreen = pixel.Green;
+                        byte pixelBlue = pixel.Blue;
+
+                        pixelAlpha = (byte)((pixelAlpha >> 3) + 1);
+                        pixelRed = (byte)((pixelRed >> 3) + 1);
+                        pixelGreen = (byte)((pixelGreen >> 3) + 1);
+                        pixelBlue = (byte)((pixelBlue >> 3) + 1);
+                        moments[pixelAlpha, pixelRed, pixelGreen, pixelBlue].Add(pixel);
+                    }
                 }
             }
-
-            return colorData;
         }
 
-        private static ColorData CalculateMoments(ColorData data)
+        private static void CalculateMoments(ColorMoment[, , ,] moments)
         {
             var xarea = new ColorMoment[SideSize, SideSize];
             var area = new ColorMoment[SideSize];
-            var moments = data.Moments;
-
-            for (var alphaIndex = 1; alphaIndex <= MaxSideIndex; ++alphaIndex)
+            for (var alphaIndex = 1; alphaIndex < SideSize; alphaIndex++)
             {
-                for (var redIndex = 1; redIndex <= MaxSideIndex; ++redIndex)
+                for (var redIndex = 1; redIndex < SideSize; redIndex++)
                 {
                     Array.Clear(area, 0, area.Length);
-                    for (var greenIndex = 1; greenIndex <= MaxSideIndex; ++greenIndex)
+                    for (var greenIndex = 1; greenIndex < SideSize; greenIndex++)
                     {
-                        ColorMoment line = new ColorMoment();
-                        for (var blueIndex = 1; blueIndex <= MaxSideIndex; ++blueIndex)
+                        var line = new ColorMoment();
+                        for (var blueIndex = 1; blueIndex < SideSize; blueIndex++)
                         {
                             line.AddFast(ref moments[alphaIndex, redIndex, greenIndex, blueIndex]);
                             area[blueIndex].AddFast(ref line);
                             xarea[greenIndex, blueIndex].AddFast(ref area[blueIndex]);
-                            moments[alphaIndex, redIndex, greenIndex, blueIndex] = moments[alphaIndex - 1, redIndex, greenIndex, blueIndex] + xarea[greenIndex, blueIndex];
+
+                            ColorMoment moment = moments[alphaIndex - 1, redIndex, greenIndex, blueIndex];
+                            moment.AddFast(ref xarea[greenIndex, blueIndex]);
+                            moments[alphaIndex, redIndex, greenIndex, blueIndex] = moment;
                         }
                     }
                 }
             }
-            return data;
         }
 
         private static ColorMoment Top(Box cube, int direction, int position, ColorMoment[, , ,] moment)
@@ -185,21 +214,19 @@ namespace nQuant
             }
         }
 
-        private static CubeCut Maximize(ColorData data, Box cube, int direction, byte first, byte last, ColorMoment whole)
+        private static CubeCut Maximize(ColorMoment[, , ,] moments, Box cube, int direction, byte first, byte last, ColorMoment whole)
         {
-            var bottom = Bottom(cube, direction, data.Moments);
-            float result = 0.0f;
+            var bottom = Bottom(cube, direction, moments);
+            var result = 0.0f;
             byte? cutPoint = null;
 
-            for (byte position = first; position < last; ++position)
+            for (var position = first; position < last; ++position)
             {
-                var half = bottom + Top(cube, direction, position, data.Moments);
-                if (half.Weight == 0)
-                {
-                    continue;
-                }
+                var half = bottom + Top(cube, direction, position, moments);
+                if (half.Weight == 0) continue;
 
-                long temp = half.WeightedDistance();
+                var temp = half.WeightedDistance();
+
                 half = whole - half;
                 if (half.Weight != 0)
                 {
@@ -216,14 +243,14 @@ namespace nQuant
             return new CubeCut(cutPoint, result);
         }
 
-        private bool Cut(ColorData data, ref Box first, ref Box second)
+        private static bool Cut(ColorMoment[, , ,] moments, ref Box first, ref Box second)
         {
             int direction;
-            var whole = Volume(first, data.Moments);
-            var maxAlpha = Maximize(data, first, Alpha, (byte)(first.AlphaMinimum + 1), first.AlphaMaximum, whole);
-            var maxRed = Maximize(data, first, Red, (byte)(first.RedMinimum + 1), first.RedMaximum, whole);
-            var maxGreen = Maximize(data, first, Green, (byte)(first.GreenMinimum + 1), first.GreenMaximum, whole);
-            var maxBlue = Maximize(data, first, Blue, (byte)(first.BlueMinimum + 1), first.BlueMaximum, whole);
+            var whole = Volume(first, moments);
+            var maxAlpha = Maximize(moments, first, Alpha, (byte)(first.AlphaMinimum + 1), first.AlphaMaximum, whole);
+            var maxRed = Maximize(moments, first, Red, (byte)(first.RedMinimum + 1), first.RedMaximum, whole);
+            var maxGreen = Maximize(moments, first, Green, (byte)(first.GreenMinimum + 1), first.GreenMaximum, whole);
+            var maxBlue = Maximize(moments, first, Blue, (byte)(first.BlueMinimum + 1), first.BlueMaximum, whole);
 
             if ((maxAlpha.Value >= maxRed.Value) && (maxAlpha.Value >= maxGreen.Value) && (maxAlpha.Value >= maxBlue.Value))
             {
@@ -248,28 +275,28 @@ namespace nQuant
             switch (direction)
             {
                 case Alpha:
-                    second.AlphaMinimum = first.AlphaMaximum = (byte)maxAlpha.Position;
+                    second.AlphaMinimum = first.AlphaMaximum = (byte) maxAlpha.Position;
                     second.RedMinimum = first.RedMinimum;
                     second.GreenMinimum = first.GreenMinimum;
                     second.BlueMinimum = first.BlueMinimum;
                     break;
 
                 case Red:
-                    second.RedMinimum = first.RedMaximum = (byte)maxRed.Position;
+                    second.RedMinimum = first.RedMaximum = (byte) maxRed.Position;
                     second.AlphaMinimum = first.AlphaMinimum;
                     second.GreenMinimum = first.GreenMinimum;
                     second.BlueMinimum = first.BlueMinimum;
                     break;
 
                 case Green:
-                    second.GreenMinimum = first.GreenMaximum = (byte)maxGreen.Position;
+                    second.GreenMinimum = first.GreenMaximum = (byte) maxGreen.Position;
                     second.AlphaMinimum = first.AlphaMinimum;
                     second.RedMinimum = first.RedMinimum;
                     second.BlueMinimum = first.BlueMinimum;
                     break;
 
                 case Blue:
-                    second.BlueMinimum = first.BlueMaximum = (byte)maxBlue.Position;
+                    second.BlueMinimum = first.BlueMaximum = (byte) maxBlue.Position;
                     second.AlphaMinimum = first.AlphaMinimum;
                     second.RedMinimum = first.RedMinimum;
                     second.GreenMinimum = first.GreenMinimum;
@@ -282,9 +309,9 @@ namespace nQuant
             return true;
         }
 
-        private static float CalculateVariance(ColorData data, Box cube)
+        private static float CalculateVariance(ColorMoment[, , ,] moments, Box cube)
         {
-            ColorMoment volume = Volume(cube, data.Moments);
+            ColorMoment volume = Volume(cube, moments);
             return volume.Variance();
         }
 
@@ -309,43 +336,22 @@ namespace nQuant
                     moment[cube.AlphaMinimum, cube.RedMinimum, cube.GreenMinimum, cube.BlueMinimum]);
         }
 
-        private static float VolumeFloat(Box cube, float[, , ,] moment)
-        {
-            return (moment[cube.AlphaMaximum, cube.RedMaximum, cube.GreenMaximum, cube.BlueMaximum] -
-                    moment[cube.AlphaMaximum, cube.RedMaximum, cube.GreenMinimum, cube.BlueMaximum] -
-                    moment[cube.AlphaMaximum, cube.RedMinimum, cube.GreenMaximum, cube.BlueMaximum] +
-                    moment[cube.AlphaMaximum, cube.RedMinimum, cube.GreenMinimum, cube.BlueMaximum] -
-                    moment[cube.AlphaMinimum, cube.RedMaximum, cube.GreenMaximum, cube.BlueMaximum] +
-                    moment[cube.AlphaMinimum, cube.RedMaximum, cube.GreenMinimum, cube.BlueMaximum] +
-                    moment[cube.AlphaMinimum, cube.RedMinimum, cube.GreenMaximum, cube.BlueMaximum] -
-                    moment[cube.AlphaMinimum, cube.RedMinimum, cube.GreenMinimum, cube.BlueMaximum]) -
-
-                   (moment[cube.AlphaMaximum, cube.RedMaximum, cube.GreenMaximum, cube.BlueMinimum] -
-                    moment[cube.AlphaMinimum, cube.RedMaximum, cube.GreenMaximum, cube.BlueMinimum] -
-                    moment[cube.AlphaMaximum, cube.RedMaximum, cube.GreenMinimum, cube.BlueMinimum] +
-                    moment[cube.AlphaMinimum, cube.RedMaximum, cube.GreenMinimum, cube.BlueMinimum] -
-                    moment[cube.AlphaMaximum, cube.RedMinimum, cube.GreenMaximum, cube.BlueMinimum] +
-                    moment[cube.AlphaMinimum, cube.RedMinimum, cube.GreenMaximum, cube.BlueMinimum] +
-                    moment[cube.AlphaMaximum, cube.RedMinimum, cube.GreenMinimum, cube.BlueMinimum] -
-                    moment[cube.AlphaMinimum, cube.RedMinimum, cube.GreenMinimum, cube.BlueMinimum]);
-        }
-
-        private Box[] SplitData(ref int colorCount, ColorData data)
+        private static Box[] SplitData(ref int colorCount, ColorMoment[, , ,] moments)
         {
             --colorCount;
             var next = 0;
-            var volumeVariance = new float[MaxColor];
-            var cubes = new Box[MaxColor];
+            var volumeVariance = new float[colorCount];
+            var cubes = new Box[colorCount];
             cubes[0].AlphaMaximum = MaxSideIndex;
             cubes[0].RedMaximum = MaxSideIndex;
             cubes[0].GreenMaximum = MaxSideIndex;
             cubes[0].BlueMaximum = MaxSideIndex;
             for (var cubeIndex = 1; cubeIndex < colorCount; ++cubeIndex)
             {
-                if (Cut(data, ref cubes[next], ref cubes[cubeIndex]))
+                if (Cut(moments, ref cubes[next], ref cubes[cubeIndex]))
                 {
-                    volumeVariance[next] = cubes[next].Size > 1 ? CalculateVariance(data, cubes[next]) : 0.0f;
-                    volumeVariance[cubeIndex] = cubes[cubeIndex].Size > 1 ? CalculateVariance(data, cubes[cubeIndex]) : 0.0f;
+                    volumeVariance[next] = cubes[next].Size > 1 ? CalculateVariance(moments, cubes[next]) : 0.0f;
+                    volumeVariance[cubeIndex] = cubes[cubeIndex].Size > 1 ? CalculateVariance(moments, cubes[cubeIndex]) : 0.0f;
                 }
                 else
                 {
@@ -370,18 +376,15 @@ namespace nQuant
             return cubes.Take(colorCount).ToArray();
         }
 
-        private List<Pixel> BuildLookups(Box[] cubes, ColorData data)
+        private static Pixel[] BuildLookups(Box[] cubes, ColorMoment[, , ,] moments)
         {
-            List<Pixel> lookups = new List<Pixel>(cubes.Length);
+            Pixel[] lookups = new Pixel[cubes.Length];
 
-            foreach (var cube in cubes)
+            for (int cubeIndex = 0; cubeIndex < cubes.Length; cubeIndex++)
             {
-                var volume = Volume(cube, data.Moments);
+                var volume = Volume(cubes[cubeIndex], moments);
 
-                if (volume.Weight <= 0)
-                {
-                    continue;
-                }
+                if (volume.Weight <= 0) continue;
 
                 var lookup = new Pixel
                     {
@@ -390,13 +393,11 @@ namespace nQuant
                         Green = (byte)(volume.Green / volume.Weight),
                         Blue = (byte)(volume.Blue / volume.Weight)
                     };
-
-                lookups.Add(lookup);
+                lookups[cubeIndex] = lookup;
             }
-
             return lookups;
         }
 
-        internal abstract Image GetQuantizedImage(ImageBuffer image, int colorCount, List<Pixel> lookups, int alphaThreshold);
+        internal abstract Image GetQuantizedImage(ImageBuffer image, int colorCount, Pixel[] lookups, int alphaThreshold);
     }
 }

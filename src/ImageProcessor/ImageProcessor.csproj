@@ -185,6 +185,7 @@
     <Compile Include="Imaging\Quantizers\OctreeQuantizer.cs" />
     <Compile Include="Imaging\Quantizers\Quantizer.cs" />
     <Compile Include="Imaging\Quantizers\WuQuantizer\Box.cs" />
+    <Compile Include="Imaging\Quantizers\WuQuantizer\Histogram.cs" />
     <Compile Include="Imaging\Quantizers\WuQuantizer\ColorMoment.cs" />
     <Compile Include="Imaging\Quantizers\WuQuantizer\PaletteColorHistory.cs" />
     <Compile Include="Imaging\Quantizers\WuQuantizer\PaletteLookup.cs" />

@@ -1,32 +1,101 @@
-﻿using System;
-using System.Drawing;
-using System.Linq;
-
-namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
+﻿namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
 {
+    using System;
+    using System.Drawing;
+    using System.Linq;
+
+    /// <summary>
+    /// Encapsulates methods to calculate the color palette of an image using 
+    /// a Wu color quantizer <see href="http://www.ece.mcmaster.ca/~xwu/cq.c"/>.
+    /// Adapted from <see href="https://github.com/drewnoakes"/>
+    /// </summary>
     public abstract class WuQuantizerBase
     {
+        /// <summary>
+        /// The alpha color component.
+        /// </summary>
         protected const byte AlphaColor = 255;
+
+        /// <summary>
+        /// The position of the alpha component within a byte array.
+        /// </summary>
         protected const int Alpha = 3;
+
+        /// <summary>
+        /// The position of the red component within a byte array.
+        /// </summary>
         protected const int Red = 2;
+
+        /// <summary>
+        /// The position of the green component within a byte array.
+        /// </summary>
         protected const int Green = 1;
+
+        /// <summary>
+        /// The position of the blue component within a byte array.
+        /// </summary>
         protected const int Blue = 0;
+
+        /// <summary>
+        /// The size of a color cube side.
+        /// </summary>
         private const int SideSize = 33;
+
+        /// <summary>
+        /// The maximum index within a color cube side
+        /// </summary>
         private const int MaxSideIndex = 32;
 
-        public Image QuantizeImage(Bitmap image)
+        /// <summary>
+        /// Quantize an image and return the resulting output bitmap
+        /// </summary>
+        /// <param name="source">
+        /// The 32 bit per pixel image to quantize.
+        /// </param>
+        /// <returns>A quantized version of the image.</returns>
+        public Image QuantizeImage(Bitmap source)
         {
-            return QuantizeImage(image, 0, 1);
+            return this.QuantizeImage(source, 0, 1);
         }
 
-        public Image QuantizeImage(Bitmap image, int alphaThreshold, int alphaFader)
+        /// <summary>
+        /// Quantize an image and return the resulting output bitmap
+        /// </summary>
+        /// <param name="source">
+        /// The 32 bit per pixel image to quantize.
+        /// </param>
+        /// <param name="alphaThreshold">All colors with an alpha value less than this will be considered fully transparent.</param>
+        /// <param name="alphaFader">Alpha values will be normalized to the nearest multiple of this value.</param>
+        /// <returns>A quantized version of the image.</returns>
+        public Image QuantizeImage(Bitmap source, int alphaThreshold, int alphaFader)
         {
-            return QuantizeImage(image, alphaThreshold, alphaFader, null, 256);
+            return this.QuantizeImage(source, alphaThreshold, alphaFader, null, 256);
         }
 
-        public Image QuantizeImage(Bitmap image, int alphaThreshold, int alphaFader, Histogram histogram, int maxColors)
+        /// <summary>
+        /// Quantize an image and return the resulting output bitmap
+        /// </summary>
+        /// <param name="source">
+        /// The 32 bit per pixel image to quantize.
+        /// </param>
+        /// <param name="alphaThreshold">
+        /// All colors with an alpha value less than this will be considered fully transparent.
+        /// </param>
+        /// <param name="alphaFader">
+        /// Alpha values will be normalized to the nearest multiple of this value.
+        /// </param>
+        /// <param name="histogram">
+        /// The <see cref="Histogram"/> representing the distribution of color data.
+        /// </param>
+        /// <param name="maxColors">
+        /// The maximum number of colors apply to the image.
+        /// </param>
+        /// <returns>
+        /// A quantized version of the image.
+        /// </returns>
+        public Image QuantizeImage(Bitmap source, int alphaThreshold, int alphaFader, Histogram histogram, int maxColors)
         {
-            var buffer = new ImageBuffer(image);
+            ImageBuffer buffer = new ImageBuffer(source);
 
             if (histogram == null)
             {
@@ -39,16 +108,31 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
 
             BuildHistogram(histogram, buffer, alphaThreshold, alphaFader);
             CalculateMoments(histogram.Moments);
-            var cubes = SplitData(ref maxColors, histogram.Moments);
-            var lookups = BuildLookups(cubes, histogram.Moments);
+            Box[] cubes = SplitData(ref maxColors, histogram.Moments);
+            Pixel[] lookups = BuildLookups(cubes, histogram.Moments);
             return this.GetQuantizedImage(buffer, maxColors, lookups, alphaThreshold);
         }
 
-        private static void BuildHistogram(Histogram histogram, ImageBuffer sourceImage, int alphaThreshold, int alphaFader)
+        /// <summary>
+        /// Builds a histogram from the current image.
+        /// </summary>
+        /// <param name="histogram">
+        /// The <see cref="Histogram"/> representing the distribution of color data.
+        /// </param>
+        /// <param name="imageBuffer">
+        /// The <see cref="ImageBuffer"/> for storing pixel information.
+        /// </param>
+        /// <param name="alphaThreshold">
+        /// All colors with an alpha value less than this will be considered fully transparent.
+        /// </param>
+        /// <param name="alphaFader">
+        /// Alpha values will be normalized to the nearest multiple of this value.
+        /// </param>
+        private static void BuildHistogram(Histogram histogram, ImageBuffer imageBuffer, int alphaThreshold, int alphaFader)
         {
             ColorMoment[,,,] moments = histogram.Moments;
 
-            foreach (Pixel[] pixelLine in sourceImage.PixelLines)
+            foreach (Pixel[] pixelLine in imageBuffer.PixelLines)
             {
                 foreach (Pixel pixel in pixelLine)
                 {

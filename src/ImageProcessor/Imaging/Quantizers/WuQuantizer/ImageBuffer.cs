@@ -18,6 +18,8 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
     using System.Drawing.Imaging;
     using System.Runtime.InteropServices;
 
+    using ImageProcessor.Common.Exceptions;
+
     /// <summary>
     /// The image buffer for storing pixel information.
     /// Adapted from <see href="https://github.com/drewnoakes"/>

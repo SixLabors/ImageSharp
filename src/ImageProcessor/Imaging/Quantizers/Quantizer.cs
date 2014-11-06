@@ -44,10 +44,10 @@ namespace ImageProcessor.Imaging.Quantizers
         }
 
         /// <summary>
-        /// Quantize an image and return the resulting output bitmap
+        /// Quantize an image and return the resulting output bitmap.
         /// </summary>
-        /// <param name="source">The image to quantize</param>
-        /// <returns>A quantized version of the image</returns>
+        /// <param name="source">The image to quantize.</param>
+        /// <returns>A quantized version of the image.</returns>
         public Bitmap Quantize(Image source)
         {
             // Get the size of the source image

@@ -8,8 +8,8 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
     {
         private static IEnumerable<byte[]> IndexedPixels(ImageBuffer image, Pixel[] lookups, int alphaThreshold, PaletteColorHistory[] paletteHistogram)
         {
-            var lineIndexes = new byte[image.Image.Width];
-            var lookup = new PaletteLookup(lookups);
+            byte[] lineIndexes = new byte[image.Image.Width];
+            PaletteLookup lookup = new PaletteLookup(lookups);
             foreach (var pixelLine in image.PixelLines)
             {
                 for (int pixelIndex = 0; pixelIndex < pixelLine.Length; pixelIndex++)
@@ -21,8 +21,10 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
                         bestMatch = lookup.GetPaletteIndex(pixel);
                         paletteHistogram[bestMatch].AddPixel(pixel);
                     }
+
                     lineIndexes[pixelIndex] = bestMatch;
                 }
+
                 yield return lineIndexes;
             }
         }
@@ -43,6 +45,7 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
             {
                 palette.Entries[paletteColorIndex] = paletteHistogram[paletteColorIndex].ToNormalizedColor();
             }
+
             return palette;
         }
     }

@@ -52,9 +52,9 @@ namespace ImageProcessor.Imaging
         private BitmapData bitmapData;
 
         /// <summary>
-        /// The pixel buffer for holding pixel data.
+        /// The position of the first pixel in the bitmap.
         /// </summary>
-        private byte* pixelBuffer;
+        private byte* pixelBase;
 
         /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.
@@ -117,7 +117,7 @@ namespace ImageProcessor.Imaging
         /// </returns>
         private Color32* this[int x, int y]
         {
-            get { return (Color32*)(this.pixelBuffer + (y * this.bytesInARow) + (x * this.color32Size)); }
+            get { return (Color32*)(this.pixelBase + (y * this.bytesInARow) + (x * this.color32Size)); }
         }
 
         /// <summary>
@@ -210,7 +210,7 @@ namespace ImageProcessor.Imaging
             this.Dispose(true);
 
             // This object will be cleaned up by the Dispose method.
-            // Therefore, you should call GC.SupressFinalize to
+            // Therefore, you should call GC.SuppressFinalize to
             // take this object off the finalization queue 
             // and prevent finalization code for this object
             // from executing a second time.
@@ -290,8 +290,8 @@ namespace ImageProcessor.Imaging
             // Lock the bitmap
             this.bitmapData = this.bitmap.LockBits(bounds, ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
 
-            // Copy the bitmap data across to the array for manipulation.
-            this.pixelBuffer = (byte*)this.bitmapData.Scan0.ToPointer();
+            // Set the value to the first scan line
+            this.pixelBase = (byte*)this.bitmapData.Scan0.ToPointer();
         }
 
         /// <summary>
@@ -302,7 +302,7 @@ namespace ImageProcessor.Imaging
             // Copy the RGB values back to the bitmap and unlock the bitmap.
             this.bitmap.UnlockBits(this.bitmapData);
             this.bitmapData = null;
-            this.pixelBuffer = null;
+            this.pixelBase = null;
         }
     }
 }

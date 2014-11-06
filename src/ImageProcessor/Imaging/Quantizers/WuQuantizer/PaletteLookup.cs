@@ -82,11 +82,11 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
 
             int bestDistance = int.MaxValue;
             byte bestMatch = 0;
-            foreach (var lookup in bucket)
+            foreach (LookupNode lookup in bucket)
             {
-                var lookupPixel = lookup.Pixel;
+                Pixel lookupPixel = lookup.Pixel;
 
-                var deltaAlpha = pixel.Alpha - lookupPixel.Alpha;
+                int deltaAlpha = pixel.Alpha - lookupPixel.Alpha;
                 int distance = deltaAlpha * deltaAlpha;
 
                 var deltaRed = pixel.Red - lookupPixel.Red;

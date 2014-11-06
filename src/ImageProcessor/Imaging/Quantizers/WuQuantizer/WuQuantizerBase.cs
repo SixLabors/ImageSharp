@@ -1,4 +1,16 @@
-﻿namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="WuQuantizerBase.cs" company="James South">
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
+// </copyright>
+// <summary>
+//   Encapsulates methods to calculate the color palette of an image using
+//   a Wu color quantizer <see href="http://www.ece.mcmaster.ca/~xwu/cq.c" />.
+//   Adapted from <see href="https://github.com/drewnoakes" />
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
+
+namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
 {
     using System;
     using System.Drawing;
@@ -130,14 +142,14 @@
         /// </param>
         private static void BuildHistogram(Histogram histogram, ImageBuffer imageBuffer, int alphaThreshold, int alphaFader)
         {
-            ColorMoment[,,,] moments = histogram.Moments;
+            ColorMoment[, , ,] moments = histogram.Moments;
 
             foreach (Pixel[] pixelLine in imageBuffer.PixelLines)
             {
                 foreach (Pixel pixel in pixelLine)
                 {
                     byte pixelAlpha = pixel.Alpha;
-                    if (pixelAlpha >= alphaThreshold)
+                    if (pixelAlpha > alphaThreshold)
                     {
                         if (pixelAlpha < 255)
                         {
@@ -156,6 +168,8 @@
                         moments[pixelAlpha, pixelRed, pixelGreen, pixelBlue].Add(pixel);
                     }
                 }
+
+                moments[0, 0, 0, 0].Add(new Pixel(0, 255, 255, 255));
             }
         }
 
@@ -455,19 +469,24 @@
 
             for (int cubeIndex = 0; cubeIndex < cubes.Length; cubeIndex++)
             {
-                var volume = Volume(cubes[cubeIndex], moments);
+                ColorMoment volume = Volume(cubes[cubeIndex], moments);
 
-                if (volume.Weight <= 0) continue;
+                if (volume.Weight <= 0)
+                {
+                    continue;
+                }
 
-                var lookup = new Pixel
-                    {
-                        Alpha = (byte)(volume.Alpha / volume.Weight),
-                        Red = (byte)(volume.Red / volume.Weight),
-                        Green = (byte)(volume.Green / volume.Weight),
-                        Blue = (byte)(volume.Blue / volume.Weight)
-                    };
+                Pixel lookup = new Pixel
+                {
+                    Alpha = (byte)(volume.Alpha / volume.Weight),
+                    Red = (byte)(volume.Red / volume.Weight),
+                    Green = (byte)(volume.Green / volume.Weight),
+                    Blue = (byte)(volume.Blue / volume.Weight)
+                };
+
                 lookups[cubeIndex] = lookup;
             }
+
             return lookups;
         }
 

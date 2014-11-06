@@ -1,75 +1,106 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Imaging;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="ImageBuffer.cs" company="James South">
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
+// </copyright>
+// <summary>
+//   The image buffer for storing pixel information.
+//   Adapted from <see href="https://github.com/drewnoakes" />
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
 
-namespace nQuant
+namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
 {
-    class ImageBuffer
+    using System.Collections.Generic;
+    using System.Drawing;
+    using System.Drawing.Imaging;
+    using System.Runtime.InteropServices;
+
+    /// <summary>
+    /// The image buffer for storing pixel information.
+    /// Adapted from <see href="https://github.com/drewnoakes"/>
+    /// </summary>
+    internal class ImageBuffer
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ImageBuffer"/> class.
+        /// </summary>
+        /// <param name="image">
+        /// The image to store.
+        /// </param>
         public ImageBuffer(Bitmap image)
         {
             this.Image = image;
         }
 
-        public Bitmap Image { get; set; }
+        /// <summary>
+        /// Gets the image.
+        /// </summary>
+        public Bitmap Image { get; private set; }
 
-        protected const int Alpha = 3;
-        protected const int Red = 2;
-        protected const int Green = 1;
-        protected const int Blue = 0;
-
-        public IEnumerable<Pixel> Pixels
+        /// <summary>
+        /// Gets the pixel lines.
+        /// </summary>
+        /// <exception cref="QuantizationException">
+        /// Thrown if the given image is not a 32 bit per pixel image.
+        /// </exception>
+        public IEnumerable<Pixel[]> PixelLines
         {
             get
             {
-                var bitDepth = System.Drawing.Image.GetPixelFormatSize(Image.PixelFormat);
+                int bitDepth = System.Drawing.Image.GetPixelFormatSize(this.Image.PixelFormat);
                 if (bitDepth != 32)
-                    throw new QuantizationException(string.Format("The image you are attempting to quantize does not contain a 32 bit ARGB palette. This image has a bit depth of {0} with {1} colors.", bitDepth, Image.Palette.Entries.Length));
+                {
+                    throw new QuantizationException(
+                        string.Format(
+                            "The image you are attempting to quantize does not contain a 32 bit ARGB palette. This image has a bit depth of {0} with {1} colors.",
+                            bitDepth,
+                            this.Image.Palette.Entries.Length));
+                }
 
                 int width = this.Image.Width;
                 int height = this.Image.Height;
                 int[] buffer = new int[width];
+                Pixel[] pixels = new Pixel[width];
                 for (int rowIndex = 0; rowIndex < height; rowIndex++)
                 {
                     BitmapData data = this.Image.LockBits(Rectangle.FromLTRB(0, rowIndex, width, rowIndex + 1), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
                     try
                     {
                         Marshal.Copy(data.Scan0, buffer, 0, width);
-                        foreach (int pixel in buffer)
+                        for (int pixelIndex = 0; pixelIndex < buffer.Length; pixelIndex++)
                         {
-                            yield return new Pixel(pixel);
+                            pixels[pixelIndex] = new Pixel(buffer[pixelIndex]);
                         }
                     }
                     finally
                     {
                         this.Image.UnlockBits(data);
                     }
+
+                    yield return pixels;
                 }
             }
         }
 
-        public void UpdatePixelIndexes(IEnumerable<byte> indexes)
+        /// <summary>
+        /// Updates the pixel indexes.
+        /// </summary>
+        /// <param name="lineIndexes">
+        /// The line indexes.
+        /// </param>
+        public void UpdatePixelIndexes(IEnumerable<byte[]> lineIndexes)
         {
             int width = this.Image.Width;
             int height = this.Image.Height;
-            byte[] buffer = new byte[width];
-            IEnumerator<byte> indexesIterator = indexes.GetEnumerator();
+            var indexesIterator = lineIndexes.GetEnumerator();
             for (int rowIndex = 0; rowIndex < height; rowIndex++)
             {
-                for (int columnIndex = 0; columnIndex < buffer.Length; columnIndex++)
-                {
-                    indexesIterator.MoveNext();
-                    buffer[columnIndex] = indexesIterator.Current;
-                }
-
+                indexesIterator.MoveNext();
                 BitmapData data = this.Image.LockBits(Rectangle.FromLTRB(0, rowIndex, width, rowIndex + 1), ImageLockMode.WriteOnly, PixelFormat.Format8bppIndexed);
                 try
                 {
-                    Marshal.Copy(buffer, 0, data.Scan0, width);
+                    Marshal.Copy(indexesIterator.Current, 0, data.Scan0, width);
                 }
                 finally
                 {

@@ -89,13 +89,13 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
                 int deltaAlpha = pixel.Alpha - lookupPixel.Alpha;
                 int distance = deltaAlpha * deltaAlpha;
 
-                var deltaRed = pixel.Red - lookupPixel.Red;
+                int deltaRed = pixel.Red - lookupPixel.Red;
                 distance += deltaRed * deltaRed;
 
-                var deltaGreen = pixel.Green - lookupPixel.Green;
+                int deltaGreen = pixel.Green - lookupPixel.Green;
                 distance += deltaGreen * deltaGreen;
 
-                var deltaBlue = pixel.Blue - lookupPixel.Blue;
+                int deltaBlue = pixel.Blue - lookupPixel.Blue;
                 distance += deltaBlue * deltaBlue;
 
                 if (distance >= bestDistance)

@@ -14,7 +14,6 @@ namespace ImageProcessor.Imaging.Formats
     using System.Drawing.Imaging;
     using System.IO;
 
-    using ImageProcessor.Common.Extensions;
     using ImageProcessor.Imaging.Quantizers;
     using ImageProcessor.Imaging.Quantizers.WuQuantizer;
 
@@ -103,7 +102,6 @@ namespace ImageProcessor.Imaging.Formats
                 // The Wu Quantizer expects a 32bbp image.
                 if (Image.GetPixelFormatSize(image.PixelFormat) != 32)
                 {
-
                     Bitmap clone = new Bitmap(image.Width, image.Height, PixelFormat.Format32bppPArgb);
                     clone.SetResolution(image.HorizontalResolution, image.VerticalResolution);
 

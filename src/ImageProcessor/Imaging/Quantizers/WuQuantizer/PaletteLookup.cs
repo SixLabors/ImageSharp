@@ -1,32 +1,78 @@
-﻿namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="PaletteLookup.cs" company="James South">
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
+// </copyright>
+// <summary>
+//   Stores the indexed color palette of an image for fast access.
+//   Adapted from <see href="https://github.com/drewnoakes" />
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
+
+namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
 
-    class PaletteLookup
+    /// <summary>
+    /// Stores the indexed color palette of an image for fast access.
+    /// Adapted from <see href="https://github.com/drewnoakes" />
+    /// </summary>
+    internal class PaletteLookup
     {
-        private int mMask;
-        private Dictionary<int, LookupNode[]> mLookup;
-        private LookupNode[] Palette { get; set; }
+        /// <summary>
+        /// The dictionary for caching lookup nodes.
+        /// </summary>
+        private Dictionary<int, LookupNode[]> lookupNodes;
 
+        /// <summary>
+        /// The palette mask.
+        /// </summary>
+        private int paletteMask;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PaletteLookup"/> class.
+        /// </summary>
+        /// <param name="palette">
+        /// The palette.
+        /// </param>
         public PaletteLookup(Pixel[] palette)
         {
-            Palette = new LookupNode[palette.Length];
+            this.Palette = new LookupNode[palette.Length];
             for (int paletteIndex = 0; paletteIndex < palette.Length; paletteIndex++)
             {
-                Palette[paletteIndex] = new LookupNode { Pixel = palette[paletteIndex], PaletteIndex = (byte)paletteIndex };
+                this.Palette[paletteIndex] = new LookupNode
+                {
+                    Pixel = palette[paletteIndex],
+                    PaletteIndex = (byte)paletteIndex
+                };
             }
-            BuildLookup(palette);
+
+            this.BuildLookup(palette);
         }
 
+        /// <summary>
+        /// Gets or sets the palette.
+        /// </summary>
+        private LookupNode[] Palette { get; set; }
+
+        /// <summary>
+        /// Gets palette index for the given pixel.
+        /// </summary>
+        /// <param name="pixel">
+        /// The pixel to return the index for.
+        /// </param>
+        /// <returns>
+        /// The <see cref="byte"/> representing the index.
+        /// </returns>
         public byte GetPaletteIndex(Pixel pixel)
         {
-            int pixelKey = pixel.Argb & mMask;
+            int pixelKey = pixel.Argb & this.paletteMask;
             LookupNode[] bucket;
-            if (!mLookup.TryGetValue(pixelKey, out bucket))
+            if (!this.lookupNodes.TryGetValue(pixelKey, out bucket))
             {
-                bucket = Palette;
+                bucket = this.Palette;
             }
 
             if (bucket.Length == 1)
@@ -53,80 +99,34 @@
                 distance += deltaBlue * deltaBlue;
 
                 if (distance >= bestDistance)
+                {
                     continue;
+                }
 
                 bestDistance = distance;
                 bestMatch = lookup.PaletteIndex;
             }
 
-            if ((bucket == Palette) && (pixelKey != 0))
+            if ((bucket == this.Palette) && (pixelKey != 0))
             {
-                mLookup[pixelKey] = new LookupNode[] { bucket[bestMatch] };
+                this.lookupNodes[pixelKey] = new[] { bucket[bestMatch] };
             }
 
             return bestMatch;
         }
 
-        private void BuildLookup(Pixel[] palette)
-        {
-            int mask = GetMask(palette);
-            Dictionary<int, List<LookupNode>> tempLookup = new Dictionary<int, List<LookupNode>>();
-            foreach (LookupNode lookup in Palette)
-            {
-                int pixelKey = lookup.Pixel.Argb & mask;
-
-                List<LookupNode> bucket;
-                if (!tempLookup.TryGetValue(pixelKey, out bucket))
-                {
-                    bucket = new List<LookupNode>();
-                    tempLookup[pixelKey] = bucket;
-                }
-                bucket.Add(lookup);
-            }
-
-            mLookup = new Dictionary<int, LookupNode[]>(tempLookup.Count);
-            foreach (var key in tempLookup.Keys)
-            {
-                mLookup[key] = tempLookup[key].ToArray();
-            }
-            mMask = mask;
-        }
-
-        private static int GetMask(Pixel[] palette)
-        {
-            IEnumerable<byte> alphas = from pixel in palette
-                                       select pixel.Alpha;
-            byte maxAlpha = alphas.Max();
-            int uniqueAlphas = alphas.Distinct().Count();
-
-            IEnumerable<byte> reds = from pixel in palette
-                                     select pixel.Red;
-            byte maxRed = reds.Max();
-            int uniqueReds = reds.Distinct().Count();
-
-            IEnumerable<byte> greens = from pixel in palette
-                                       select pixel.Green;
-            byte maxGreen = greens.Max();
-            int uniqueGreens = greens.Distinct().Count();
-
-            IEnumerable<byte> blues = from pixel in palette
-                                      select pixel.Blue;
-            byte maxBlue = blues.Max();
-            int uniqueBlues = blues.Distinct().Count();
-
-            double totalUniques = uniqueAlphas + uniqueReds + uniqueGreens + uniqueBlues;
-
-            double AvailableBits = 1.0 + Math.Log(uniqueAlphas * uniqueReds * uniqueGreens * uniqueBlues);
-
-            byte alphaMask = ComputeBitMask(maxAlpha, Convert.ToInt32(Math.Round(uniqueAlphas / totalUniques * AvailableBits)));
-            byte redMask = ComputeBitMask(maxRed, Convert.ToInt32(Math.Round(uniqueReds / totalUniques * AvailableBits)));
-            byte greenMask = ComputeBitMask(maxGreen, Convert.ToInt32(Math.Round(uniqueGreens / totalUniques * AvailableBits)));
-            byte blueMask = ComputeBitMask(maxBlue, Convert.ToInt32(Math.Round(uniqueBlues / totalUniques * AvailableBits)));
-
-            Pixel maskedPixel = new Pixel(alphaMask, redMask, greenMask, blueMask);
-            return maskedPixel.Argb;
-        }
-
+        /// <summary>
+        /// Computes the bit mask.
+        /// </summary>
+        /// <param name="max">
+        /// The maximum byte value.
+        /// </param>
+        /// <param name="bits">
+        /// The number of bits.
+        /// </param>
+        /// <returns>
+        /// The <see cref="byte"/>.
+        /// </returns>
         private static byte ComputeBitMask(byte max, int bits)
         {
             byte mask = 0;
@@ -134,7 +134,6 @@
             if (bits != 0)
             {
                 byte highestSetBitIndex = HighestSetBitIndex(max);
-
 
                 for (int i = 0; i < bits; i++)
                 {
@@ -147,9 +146,59 @@
                     mask <<= 1;
                 }
             }
+
             return mask;
         }
 
+        /// <summary>
+        /// Gets the mask value from the palette.
+        /// </summary>
+        /// <param name="palette">
+        /// The palette.
+        /// </param>
+        /// <returns>
+        /// The <see cref="int"/> representing the component value of the mask.
+        /// </returns>
+        private static int GetMask(Pixel[] palette)
+        {
+            IEnumerable<byte> alphas = palette.Select(p => p.Alpha).ToArray();
+            byte maxAlpha = alphas.Max();
+            int uniqueAlphas = alphas.Distinct().Count();
+
+            IEnumerable<byte> reds = palette.Select(p => p.Red).ToArray();
+            byte maxRed = reds.Max();
+            int uniqueReds = reds.Distinct().Count();
+
+            IEnumerable<byte> greens = palette.Select(p => p.Green).ToArray();
+            byte maxGreen = greens.Max();
+            int uniqueGreens = greens.Distinct().Count();
+
+            IEnumerable<byte> blues = palette.Select(p => p.Green).ToArray();
+            byte maxBlue = blues.Max();
+            int uniqueBlues = blues.Distinct().Count();
+
+            double totalUniques = uniqueAlphas + uniqueReds + uniqueGreens + uniqueBlues;
+
+            double availableBits = 1.0 + Math.Log(uniqueAlphas * uniqueReds * uniqueGreens * uniqueBlues);
+
+            byte alphaMask = ComputeBitMask(maxAlpha, Convert.ToInt32(Math.Round(uniqueAlphas / totalUniques * availableBits)));
+            byte redMask = ComputeBitMask(maxRed, Convert.ToInt32(Math.Round(uniqueReds / totalUniques * availableBits)));
+            byte greenMask = ComputeBitMask(maxGreen, Convert.ToInt32(Math.Round(uniqueGreens / totalUniques * availableBits)));
+            byte blueMask = ComputeBitMask(maxBlue, Convert.ToInt32(Math.Round(uniqueBlues / totalUniques * availableBits)));
+
+            Pixel maskedPixel = new Pixel(alphaMask, redMask, greenMask, blueMask);
+            return maskedPixel.Argb;
+        }
+
+        /// <summary>
+        /// Gets the highest set bit index.
+        /// </summary>
+        /// <param name="value">
+        /// The value.
+        /// </param>
+        /// <returns>
+        /// The <see cref="byte"/>.
+        /// </returns>
         private static byte HighestSetBitIndex(byte value)
         {
             byte index = 0;
@@ -159,15 +208,60 @@
                 {
                     index = (byte)i;
                 }
+
                 value >>= 1;
             }
+
             return index;
         }
 
+        /// <summary>
+        /// The build lookup.
+        /// </summary>
+        /// <param name="palette">
+        /// The palette.
+        /// </param>
+        private void BuildLookup(Pixel[] palette)
+        {
+            int mask = GetMask(palette);
+            Dictionary<int, List<LookupNode>> tempLookup = new Dictionary<int, List<LookupNode>>();
+            foreach (LookupNode lookup in this.Palette)
+            {
+                int pixelKey = lookup.Pixel.Argb & mask;
+
+                List<LookupNode> bucket;
+                if (!tempLookup.TryGetValue(pixelKey, out bucket))
+                {
+                    bucket = new List<LookupNode>();
+                    tempLookup[pixelKey] = bucket;
+                }
+
+                bucket.Add(lookup);
+            }
+
+            this.lookupNodes = new Dictionary<int, LookupNode[]>(tempLookup.Count);
+            foreach (var key in tempLookup.Keys)
+            {
+                this.lookupNodes[key] = tempLookup[key].ToArray();
+            }
+
+            this.paletteMask = mask;
+        }
+
+        /// <summary>
+        /// Represents a single node containing the index and pixel.
+        /// </summary>
         private struct LookupNode
         {
-            public Pixel Pixel;
+            /// <summary>
+            /// The palette index.
+            /// </summary>
             public byte PaletteIndex;
+
+            /// <summary>
+            /// The pixel.
+            /// </summary>
+            public Pixel Pixel;
         }
     }
 }

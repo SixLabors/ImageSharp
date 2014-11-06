@@ -195,7 +195,7 @@
     <Compile Include="Imaging\Quantizers\WuQuantizer\Pixel.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Imaging\Quantizers\WuQuantizer\QuantizationException.cs" />
+    <Compile Include="Common\Exceptions\QuantizationException.cs" />
     <Compile Include="Imaging\Quantizers\WuQuantizer\WuQuantizer.cs" />
     <Compile Include="Imaging\Quantizers\WuQuantizer\WuQuantizerBase.cs" />
     <Compile Include="Imaging\ResizeLayer.cs" />

@@ -16,8 +16,7 @@ namespace ImageProcessor.Imaging.Formats
 
     using ImageProcessor.Common.Extensions;
     using ImageProcessor.Imaging.Quantizers;
-
-    using nQuant;
+    using ImageProcessor.Imaging.Quantizers.WuQuantizer;
 
     /// <summary>
     /// Provides the necessary information to support png images.

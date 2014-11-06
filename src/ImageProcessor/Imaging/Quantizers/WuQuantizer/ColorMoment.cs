@@ -1,7 +1,8 @@
-﻿
-namespace nQuant
+﻿//using System.Runtime.CompilerServices;
+
+namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
 {
-    public struct ColorMoment
+    struct ColorMoment
     {
         public long Alpha;
         public long Red;
@@ -43,16 +44,22 @@ namespace nQuant
             return c1;
         }
 
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Add(Pixel p)
         {
-            Alpha += p.Alpha;
-            Red += p.Red;
-            Green += p.Green;
-            Blue += p.Blue;
+            byte pAlpha = p.Alpha;
+            byte pRed = p.Red;
+            byte pGreen = p.Green;
+            byte pBlue = p.Blue;
+            Alpha += pAlpha;
+            Red += pRed;
+            Green += pGreen;
+            Blue += pBlue;
             Weight++;
-            Moment += p.Amplitude();
+            Moment += pAlpha * pAlpha + pRed * pRed + pGreen * pGreen + pBlue * pBlue;
         }
 
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AddFast(ref ColorMoment c2)
         {
             Alpha += c2.Alpha;
@@ -62,20 +69,20 @@ namespace nQuant
             Weight += c2.Weight;
             Moment += c2.Moment;
         }
-        
+
         public long Amplitude()
         {
-            return (Alpha * Alpha) + (Red * Red) + (Green * Green) + (Blue * Blue);
+            return Alpha * Alpha + Red * Red + Green * Green + Blue * Blue;
         }
 
         public long WeightedDistance()
         {
-            return this.Amplitude() / Weight;
+            return Amplitude() / Weight;
         }
 
         public float Variance()
         {
-            var result = Moment - ((float)this.Amplitude() / this.Weight);
+            var result = Moment - (float)Amplitude() / Weight;
             return float.IsNaN(result) ? 0.0f : result;
         }
     }

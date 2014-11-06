@@ -1,7 +1,7 @@
-namespace nQuant
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
 {
-    using System.Runtime.InteropServices;
-
     [StructLayout(LayoutKind.Explicit)]
     public struct Pixel
     {
@@ -12,32 +12,27 @@ namespace nQuant
             Red = red;
             Green = green;
             Blue = blue;
+
+            Debug.Assert(Argb == (alpha << 24 | red << 16 | green << 8 | blue));
         }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Pixel"/> struct.
-        /// </summary>
-        /// <param name="argb">
-        /// The combined color components.
-        /// </param>
         public Pixel(int argb)
             : this()
         {
-            this.Argb = argb;
+            Argb = argb;
+            Debug.Assert(Alpha == ((uint)argb >> 24));
+            Debug.Assert(Red == ((uint)(argb >> 16) & 255));
+            Debug.Assert(Green == ((uint)(argb >> 8) & 255));
+            Debug.Assert(Blue == ((uint)argb & 255));
         }
 
-        public long Amplitude()
-        {
-            return (Alpha * Alpha) + (Red * Red) + (Green * Green) + (Blue * Blue);
-        }
-
-        [FieldOffsetAttribute(3)]
+        [FieldOffset(3)]
         public byte Alpha;
-        [FieldOffsetAttribute(2)]
+        [FieldOffset(2)]
         public byte Red;
-        [FieldOffsetAttribute(1)]
+        [FieldOffset(1)]
         public byte Green;
-        [FieldOffsetAttribute(0)]
+        [FieldOffset(0)]
         public byte Blue;
         [FieldOffset(0)]
         public int Argb;

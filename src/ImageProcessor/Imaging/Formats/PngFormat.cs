@@ -101,28 +101,28 @@ namespace ImageProcessor.Imaging.Formats
             if (this.IsIndexed)
             {
                 // The Wu Quantizer expects a 32bbp image.
-                //if (Image.GetPixelFormatSize(image.PixelFormat) != 32)
-                //{
-
-                Bitmap clone = new Bitmap(image.Width, image.Height, PixelFormat.Format32bppPArgb);
-                clone.SetResolution(image.HorizontalResolution, image.VerticalResolution);
-
-                using (Graphics graphics = Graphics.FromImage(clone))
+                if (Image.GetPixelFormatSize(image.PixelFormat) != 32)
                 {
-                    graphics.Clear(Color.Transparent);
-                    graphics.DrawImage(image, new Rectangle(0, 0, clone.Width, clone.Height));
+
+                    Bitmap clone = new Bitmap(image.Width, image.Height, PixelFormat.Format32bppPArgb);
+                    clone.SetResolution(image.HorizontalResolution, image.VerticalResolution);
+
+                    using (Graphics graphics = Graphics.FromImage(clone))
+                    {
+                        graphics.Clear(Color.Transparent);
+                        graphics.DrawImage(image, new Rectangle(0, 0, clone.Width, clone.Height));
+                    }
+
+                    image.Dispose();
+
+                    image = new WuQuantizer().QuantizeImage(clone);
+
+                    // image = new OctreeQuantizer(255, 8).Quantize(image);
                 }
-
-                image.Dispose();
-
-                image = new WuQuantizer().QuantizeImage(clone);
-
-                // image = new OctreeQuantizer(255, 8).Quantize(image);
-                //}
-                //else
-                //{
-                //    image = new WuQuantizer().QuantizeImage((Bitmap)image);
-                //}
+                else
+                {
+                    image = new WuQuantizer().QuantizeImage((Bitmap)image);
+                }
             }
 
             return base.Save(path, image);

@@ -13,6 +13,9 @@ namespace ImageProcessor.Imaging.Helpers
     using System;
     using System.Drawing;
     using System.Drawing.Imaging;
+    using System.Threading.Tasks;
+
+    using ImageProcessor.Imaging.Colors;
 
     /// <summary>
     /// Provides reusable adjustment methods to apply to images.
@@ -43,27 +46,30 @@ namespace ImageProcessor.Imaging.Helpers
                 throw new ArgumentOutOfRangeException("percentage", "Percentage should be between 0 and 100.");
             }
 
-            Rectangle bounds = rectangle.HasValue ? rectangle.Value : new Rectangle(0, 0, source.Width, source.Height);
+            float factor = (float)percentage / 100;
+            int width = source.Width;
+            int height = source.Height;
 
-            ColorMatrix colorMatrix = new ColorMatrix();
-            colorMatrix.Matrix00 = colorMatrix.Matrix11 = colorMatrix.Matrix22 = colorMatrix.Matrix44 = 1;
-            colorMatrix.Matrix33 = (float)percentage / 100;
-
-            Bitmap alpha = new Bitmap(source.Width, source.Height);
-            alpha.SetResolution(source.HorizontalResolution, source.VerticalResolution);
-
-            using (Graphics graphics = Graphics.FromImage(alpha))
+            // Traditional examples using a color matrix alter the rgb values also.
+            using (FastBitmap bitmap = new FastBitmap(source))
             {
-                graphics.Clear(Color.Transparent);
-                using (ImageAttributes imageAttributes = new ImageAttributes())
-                {
-                    imageAttributes.SetColorMatrix(colorMatrix);
-                    graphics.DrawImage(source, bounds, 0, 0, source.Width, source.Height, GraphicsUnit.Pixel, imageAttributes);
-                }
+                // Loop through the pixels.
+                Parallel.For(
+                    0,
+                    height,
+                    y =>
+                    {
+                        for (int x = 0; x < width; x++)
+                        {
+                            // ReSharper disable AccessToDisposedClosure
+                            Color color = bitmap.GetPixel(x, y);
+                            bitmap.SetPixel(x, y, Color.FromArgb(Convert.ToInt32(color.A * factor), color.R, color.G, color.B));
+                            // ReSharper restore AccessToDisposedClosure
+                        }
+                    });
             }
-            
-            source.Dispose();
-            return alpha;
+
+            return (Bitmap)source;
         }
 
         /// <summary>

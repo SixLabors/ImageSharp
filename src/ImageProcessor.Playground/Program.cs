@@ -49,7 +49,8 @@ namespace ImageProcessor.PlayGround
                 di.Create();
             }
 
-           // Image mask = Image.FromFile(Path.Combine(resolvedPath, "mask2.png"));
+            // Image mask = Image.FromFile(Path.Combine(resolvedPath, "mask2.png"));
+            //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "rgba.png"));
             IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".png");
             //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif", ".webp", ".bmp", ".jpg", ".png", ".tif");
 

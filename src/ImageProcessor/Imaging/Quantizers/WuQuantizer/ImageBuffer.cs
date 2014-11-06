@@ -11,8 +11,10 @@
 
 namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
 {
+    using System;
     using System.Collections.Generic;
     using System.Drawing;
+    using System.Drawing.Drawing2D;
     using System.Drawing.Imaging;
     using System.Runtime.InteropServices;
 
@@ -62,6 +64,20 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
                 int height = this.Image.Height;
                 int[] buffer = new int[width];
                 Pixel[] pixels = new Pixel[width];
+                //using (FastBitmap bitmap = new FastBitmap(this.Image))
+                //{
+                //    for (int y = 0; y < height; y++)
+                //    {
+                //        for (int x = 0; x < width; x++)
+                //        {
+                //            Color color = bitmap.GetPixel(x, y);
+                //            pixels[x] = new Pixel(color.A, color.R, color.G, color.B);
+                //        }
+
+                //        yield return pixels;
+                //    }
+                //}
+
                 for (int rowIndex = 0; rowIndex < height; rowIndex++)
                 {
                     BitmapData data = this.Image.LockBits(Rectangle.FromLTRB(0, rowIndex, width, rowIndex + 1), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
@@ -93,11 +109,16 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
         {
             int width = this.Image.Width;
             int height = this.Image.Height;
-            var indexesIterator = lineIndexes.GetEnumerator();
+
+            IEnumerator<byte[]> indexesIterator = lineIndexes.GetEnumerator();
+            
             for (int rowIndex = 0; rowIndex < height; rowIndex++)
             {
                 indexesIterator.MoveNext();
+
+
                 BitmapData data = this.Image.LockBits(Rectangle.FromLTRB(0, rowIndex, width, rowIndex + 1), ImageLockMode.WriteOnly, PixelFormat.Format8bppIndexed);
+
                 try
                 {
                     Marshal.Copy(indexesIterator.Current, 0, data.Scan0, width);

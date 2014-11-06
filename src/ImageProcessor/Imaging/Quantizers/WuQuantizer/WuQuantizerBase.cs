@@ -4,23 +4,6 @@ using System.Linq;
 
 namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
 {
-    public class Histogram
-    {
-        private const int SideSize = 33;
-        internal readonly ColorMoment[, , ,] Moments;
-
-        public Histogram()
-        {
-            // 47,436,840 bytes
-            Moments = new ColorMoment[SideSize, SideSize, SideSize, SideSize];
-        }
-
-        internal void Clear()
-        {
-            Array.Clear(Moments, 0, SideSize * SideSize * SideSize * SideSize);
-        }
-    }
-
     public abstract class WuQuantizerBase
     {
         protected const byte AlphaColor = 255;

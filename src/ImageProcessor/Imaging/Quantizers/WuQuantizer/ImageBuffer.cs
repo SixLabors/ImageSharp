@@ -14,7 +14,6 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
     using System;
     using System.Collections.Generic;
     using System.Drawing;
-    using System.Drawing.Drawing2D;
     using System.Drawing.Imaging;
     using System.Runtime.InteropServices;
 
@@ -43,7 +42,7 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
         public Bitmap Image { get; private set; }
 
         /// <summary>
-        /// Gets the pixel lines.
+        /// Gets the enumerable pixel array representing each row of pixels.
         /// </summary>
         /// <exception cref="QuantizationException">
         /// Thrown if the given image is not a 32 bit per pixel image.
@@ -64,39 +63,20 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
 
                 int width = this.Image.Width;
                 int height = this.Image.Height;
-                int[] buffer = new int[width];
                 Pixel[] pixels = new Pixel[width];
-                //using (FastBitmap bitmap = new FastBitmap(this.Image))
-                //{
-                //    for (int y = 0; y < height; y++)
-                //    {
-                //        for (int x = 0; x < width; x++)
-                //        {
-                //            Color color = bitmap.GetPixel(x, y);
-                //            pixels[x] = new Pixel(color.A, color.R, color.G, color.B);
-                //        }
 
-                //        yield return pixels;
-                //    }
-                //}
-
-                for (int rowIndex = 0; rowIndex < height; rowIndex++)
+                using (FastBitmap bitmap = new FastBitmap(this.Image))
                 {
-                    BitmapData data = this.Image.LockBits(Rectangle.FromLTRB(0, rowIndex, width, rowIndex + 1), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
-                    try
+                    for (int y = 0; y < height; y++)
                     {
-                        Marshal.Copy(data.Scan0, buffer, 0, width);
-                        for (int pixelIndex = 0; pixelIndex < buffer.Length; pixelIndex++)
+                        for (int x = 0; x < width; x++)
                         {
-                            pixels[pixelIndex] = new Pixel(buffer[pixelIndex]);
+                            Color color = bitmap.GetPixel(x, y);
+                            pixels[x] = new Pixel(color.A, color.R, color.G, color.B);
                         }
-                    }
-                    finally
-                    {
-                        this.Image.UnlockBits(data);
-                    }
 
-                    yield return pixels;
+                        yield return pixels;
+                    }
                 }
             }
         }
@@ -105,30 +85,33 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
         /// Updates the pixel indexes.
         /// </summary>
         /// <param name="lineIndexes">
-        /// The line indexes.
+        /// The enumerable byte array representing each row of pixels.
         /// </param>
         public void UpdatePixelIndexes(IEnumerable<byte[]> lineIndexes)
         {
             int width = this.Image.Width;
             int height = this.Image.Height;
+            int rowIndex = 0;
 
-            IEnumerator<byte[]> indexesIterator = lineIndexes.GetEnumerator();
-            
-            for (int rowIndex = 0; rowIndex < height; rowIndex++)
+            BitmapData data = this.Image.LockBits(Rectangle.FromLTRB(0, 0, width, height), ImageLockMode.WriteOnly, PixelFormat.Format8bppIndexed);
+            try
             {
-                indexesIterator.MoveNext();
-
-
-                BitmapData data = this.Image.LockBits(Rectangle.FromLTRB(0, rowIndex, width, rowIndex + 1), ImageLockMode.WriteOnly, PixelFormat.Format8bppIndexed);
-
-                try
+                IntPtr pixelBase = data.Scan0;
+                int scanWidth = data.Stride;
+                foreach (byte[] scanLine in lineIndexes)
                 {
-                    Marshal.Copy(indexesIterator.Current, 0, data.Scan0, width);
+                    // TODO: Use unsafe code
+                    Marshal.Copy(scanLine, 0, IntPtr.Add(pixelBase, scanWidth * rowIndex), width);
+
+                    if (++rowIndex >= height)
+                    {
+                        break;
+                    }
                 }
-                finally
-                {
-                    this.Image.UnlockBits(data);
-                }
+            }
+            finally
+            {
+                this.Image.UnlockBits(data);
             }
         }
     }

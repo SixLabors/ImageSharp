@@ -12,23 +12,23 @@
 namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
 {
     /// <summary>
-    /// The color moment for holding pixel information.
+    /// The cumulative color moment for holding pixel information.
     /// Adapted from <see href="https://github.com/drewnoakes" />
     /// </summary>
     internal struct ColorMoment
     {
         /// <summary>
-        /// The alpha.
+        /// The alpha component.
         /// </summary>
         public long Alpha;
 
         /// <summary>
-        /// The blue.
+        /// The blue component.
         /// </summary>
         public long Blue;
 
         /// <summary>
-        /// The green.
+        /// The green component.
         /// </summary>
         public long Green;
 

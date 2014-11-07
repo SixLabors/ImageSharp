@@ -182,6 +182,7 @@
     <Compile Include="Imaging\Formats\GifFrame.cs" />
     <Compile Include="Imaging\Helpers\Adjustments.cs" />
     <Compile Include="Imaging\Helpers\Effects.cs" />
+    <Compile Include="Imaging\Quantizers\IQuantizer.cs" />
     <Compile Include="Imaging\Quantizers\OctreeQuantizer.cs" />
     <Compile Include="Imaging\Quantizers\Quantizer.cs" />
     <Compile Include="Imaging\Quantizers\WuQuantizer\Box.cs" />
@@ -192,9 +193,6 @@
     <Compile Include="Imaging\Quantizers\WuQuantizer\CubeCut.cs" />
     <Compile Include="Imaging\Quantizers\WuQuantizer\ImageBuffer.cs" />
     <Compile Include="Imaging\Quantizers\WuQuantizer\IWuQuantizer.cs" />
-    <Compile Include="Imaging\Quantizers\WuQuantizer\Pixel.cs">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="Common\Exceptions\QuantizationException.cs" />
     <Compile Include="Imaging\Quantizers\WuQuantizer\WuQuantizer.cs" />
     <Compile Include="Imaging\Quantizers\WuQuantizer\WuQuantizerBase.cs" />

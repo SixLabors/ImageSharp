@@ -1,4 +1,16 @@
-﻿namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="WuQuantizerBase.cs" company="James South">
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
+// </copyright>
+// <summary>
+//   Encapsulates methods to calculate the color palette of an image using
+//   a Wu color quantizer <see href="http://www.ece.mcmaster.ca/~xwu/cq.c" />.
+//   Adapted from <see href="https://github.com/drewnoakes" />
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
+
+namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
 {
     using System;
     using System.Diagnostics.CodeAnalysis;
@@ -7,6 +19,7 @@
     using System.Linq;
 
     using ImageProcessor.Common.Exceptions;
+    using ImageProcessor.Imaging.Colors;
 
     /// <summary>
     /// Encapsulates methods to calculate the color palette of an image using 
@@ -148,7 +161,7 @@
                 BuildHistogram(histogram, buffer, alphaThreshold, alphaFader);
                 CalculateMoments(histogram.Moments);
                 Box[] cubes = SplitData(ref maxColors, histogram.Moments);
-                Pixel[] lookups = BuildLookups(cubes, histogram.Moments);
+                Color32[] lookups = BuildLookups(cubes, histogram.Moments);
                 return this.GetQuantizedImage(buffer, maxColors, lookups, alphaThreshold);
             }
             catch (Exception ex)
@@ -167,7 +180,7 @@
         /// The maximum number of colors apply to the image.
         /// </param>
         /// <param name="lookups">
-        /// The array of <see cref="Pixel"/> containing indexed versions of the images colors.
+        /// The array of <see cref="Color32"/> containing indexed versions of the images colors.
         /// </param>
         /// <param name="alphaThreshold">
         /// All colors with an alpha value less than this will be considered fully transparent.
@@ -175,7 +188,7 @@
         /// <returns>
         /// The quantized <see cref="Bitmap"/>.
         /// </returns>
-        internal abstract Bitmap GetQuantizedImage(ImageBuffer imageBuffer, int colorCount, Pixel[] lookups, int alphaThreshold);
+        internal abstract Bitmap GetQuantizedImage(ImageBuffer imageBuffer, int colorCount, Color32[] lookups, int alphaThreshold);
 
         /// <summary>
         /// Builds a histogram from the current image.
@@ -197,22 +210,22 @@
         {
             ColorMoment[, , ,] moments = histogram.Moments;
 
-            foreach (Pixel[] pixelLine in imageBuffer.PixelLines)
+            foreach (Color32[] pixelLine in imageBuffer.PixelLines)
             {
-                foreach (Pixel pixel in pixelLine)
+                foreach (Color32 pixel in pixelLine)
                 {
-                    byte pixelAlpha = pixel.Alpha;
+                    byte pixelAlpha = pixel.A;
                     if (pixelAlpha > alphaThreshold)
                     {
                         if (pixelAlpha < 255)
                         {
-                            int alpha = pixel.Alpha + (pixel.Alpha % alphaFader);
+                            int alpha = pixel.A + (pixel.A % alphaFader);
                             pixelAlpha = (byte)(alpha > 255 ? 255 : alpha);
                         }
 
-                        byte pixelRed = pixel.Red;
-                        byte pixelGreen = pixel.Green;
-                        byte pixelBlue = pixel.Blue;
+                        byte pixelRed = pixel.R;
+                        byte pixelGreen = pixel.G;
+                        byte pixelBlue = pixel.B;
 
                         pixelAlpha = (byte)((pixelAlpha >> 3) + 1);
                         pixelRed = (byte)((pixelRed >> 3) + 1);
@@ -224,7 +237,7 @@
             }
 
             // Set a default pixel for images with less than 256 colors.
-            moments[0, 0, 0, 0].Add(new Pixel(0, 0, 0, 0));
+            moments[0, 0, 0, 0].Add(new Color32(0, 0, 0, 0));
         }
 
         /// <summary>
@@ -689,12 +702,12 @@
         /// The three dimensional array of <see cref="ColorMoment"/>.
         /// </param>
         /// <returns>
-        /// The array of <see cref="Pixel"/>.
+        /// The array of <see cref="Color32"/>.
         /// </returns>
         [SuppressMessage("StyleCop.CSharp.SpacingRules", "SA1001:CommasMustBeSpacedCorrectly", Justification = "Reviewed. Suppression is OK here.")]
-        private static Pixel[] BuildLookups(Box[] cubes, ColorMoment[, , ,] moments)
+        private static Color32[] BuildLookups(Box[] cubes, ColorMoment[, , ,] moments)
         {
-            Pixel[] lookups = new Pixel[cubes.Length];
+            Color32[] lookups = new Color32[cubes.Length];
 
             for (int cubeIndex = 0; cubeIndex < cubes.Length; cubeIndex++)
             {
@@ -705,12 +718,12 @@
                     continue;
                 }
 
-                Pixel lookup = new Pixel
+                Color32 lookup = new Color32
                 {
-                    Alpha = (byte)(volume.Alpha / volume.Weight),
-                    Red = (byte)(volume.Red / volume.Weight),
-                    Green = (byte)(volume.Green / volume.Weight),
-                    Blue = (byte)(volume.Blue / volume.Weight)
+                    A = (byte)(volume.Alpha / volume.Weight),
+                    R = (byte)(volume.Red / volume.Weight),
+                    G = (byte)(volume.Green / volume.Weight),
+                    B = (byte)(volume.Blue / volume.Weight)
                 };
 
                 lookups[cubeIndex] = lookup;

@@ -94,7 +94,7 @@ namespace ImageProcessor.PlayGround
                             //.EntropyCrop()
                             //.Filter(MatrixFilters.Invert)
                             //.Contrast(50)
-                            .Filter(MatrixFilters.Comic)
+                            //.Filter(MatrixFilters.Comic)
                             //.Flip()
                             //.Filter(MatrixFilters.HiSatch)
                             //.Pixelate(8)

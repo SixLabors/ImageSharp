@@ -16,6 +16,8 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
     using System.Drawing;
     using System.Drawing.Imaging;
 
+    using ImageProcessor.Imaging.Colors;
+
     /// <summary>
     /// Encapsulates methods to calculate the color palette of an image using 
     /// a Wu color quantizer <see href="http://www.ece.mcmaster.ca/~xwu/cq.c"/>.
@@ -33,7 +35,7 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
         /// The maximum number of colors apply to the image.
         /// </param>
         /// <param name="lookups">
-        /// The array of <see cref="Pixel"/> containing indexed versions of the images colors.
+        /// The array of <see cref="Color32"/> containing indexed versions of the images colors.
         /// </param>
         /// <param name="alphaThreshold">
         /// All colors with an alpha value less than this will be considered fully transparent.
@@ -41,7 +43,7 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
         /// <returns>
         /// The quantized <see cref="Bitmap"/>.
         /// </returns>
-        internal override Bitmap GetQuantizedImage(ImageBuffer imageBuffer, int colorCount, Pixel[] lookups, int alphaThreshold)
+        internal override Bitmap GetQuantizedImage(ImageBuffer imageBuffer, int colorCount, Color32[] lookups, int alphaThreshold)
         {
             Bitmap result = new Bitmap(imageBuffer.Image.Width, imageBuffer.Image.Height, PixelFormat.Format8bppIndexed);
             result.SetResolution(imageBuffer.Image.HorizontalResolution, imageBuffer.Image.VerticalResolution);
@@ -82,7 +84,7 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
         /// The <see cref="ImageBuffer"/> for storing and manipulating pixel information.
         /// </param>
         /// <param name="lookups">
-        /// The array of <see cref="Pixel"/> containing indexed versions of the images colors.
+        /// The array of <see cref="Color32"/> containing indexed versions of the images colors.
         /// </param>
         /// <param name="alphaThreshold">
         /// The alpha threshold.
@@ -93,21 +95,21 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
         /// <returns>
         /// The enumerable list of <see cref="byte"/> representing each pixel.
         /// </returns>
-        private static IEnumerable<byte[]> IndexedPixels(ImageBuffer image, Pixel[] lookups, int alphaThreshold, PaletteColorHistory[] paletteHistogram)
+        private static IEnumerable<byte[]> IndexedPixels(ImageBuffer image, Color32[] lookups, int alphaThreshold, PaletteColorHistory[] paletteHistogram)
         {
             byte[] lineIndexes = new byte[image.Image.Width];
             PaletteLookup lookup = new PaletteLookup(lookups);
 
             // Determine the correct fallback color.
             byte fallback = lookups.Length < AlphaMax ? AlphaMin : AlphaMax;
-            foreach (Pixel[] pixelLine in image.PixelLines)
+            foreach (Color32[] pixelLine in image.PixelLines)
             {
                 int length = pixelLine.Length;
                 for (int i = 0; i < length; i++)
                 {
-                    Pixel pixel = pixelLine[i];
+                    Color32 pixel = pixelLine[i];
                     byte bestMatch = fallback;
-                    if (pixel.Alpha > alphaThreshold)
+                    if (pixel.A > alphaThreshold)
                     {
                         bestMatch = lookup.GetPaletteIndex(pixel);
                         paletteHistogram[bestMatch].AddPixel(pixel);

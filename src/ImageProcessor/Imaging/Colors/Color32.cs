@@ -76,6 +76,9 @@ namespace ImageProcessor.Imaging.Colors
             this.R = red;
             this.G = green;
             this.B = blue;
+
+            // Stolen from Color.
+            this.Argb = (int)(((uint)((((red << 0x10) | (green << 8)) | blue) | (alpha << 0x18))) & 0xffffffffL);
         }
 
         /// <summary>

@@ -92,12 +92,14 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
             byte[] lineIndexes = new byte[image.Image.Width];
             PaletteLookup lookup = new PaletteLookup(lookups);
 
+            // Determine the correct fallback color.
+            byte fallback = (byte)(lookups.Length < AlphaColor ? 0 : AlphaColor);
             foreach (Pixel[] pixelLine in image.PixelLines)
             {
                 for (int pixelIndex = 0; pixelIndex < pixelLine.Length; pixelIndex++)
                 {
                     Pixel pixel = pixelLine[pixelIndex];
-                    byte bestMatch = 0;
+                    byte bestMatch = fallback;
                     if (pixel.Alpha > alphaThreshold)
                     {
                         bestMatch = lookup.GetPaletteIndex(pixel);

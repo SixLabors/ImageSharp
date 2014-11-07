@@ -168,9 +168,10 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
                         moments[pixelAlpha, pixelRed, pixelGreen, pixelBlue].Add(pixel);
                     }
                 }
-
-                moments[0, 0, 0, 0].Add(new Pixel(0, 255, 255, 255));
             }
+
+            // Set a default pixel for images with less than 256 colors.
+            moments[0, 0, 0, 0].Add(new Pixel(0, 0, 0, 0));
         }
 
         private static void CalculateMoments(ColorMoment[, , ,] moments)

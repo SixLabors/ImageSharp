@@ -20,7 +20,7 @@ namespace ImageProcessor.Imaging.Quantizers
     /// Encapsulates methods to calculate the color palette of an image.
     /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>
     /// </summary>
-    public unsafe abstract class Quantizer
+    public unsafe abstract class Quantizer : IQuantizer
     {
         /// <summary>
         /// Flag used to indicate whether a single pass or two passes are needed for quantization.
@@ -46,8 +46,12 @@ namespace ImageProcessor.Imaging.Quantizers
         /// <summary>
         /// Quantize an image and return the resulting output bitmap.
         /// </summary>
-        /// <param name="source">The image to quantize.</param>
-        /// <returns>A quantized version of the image.</returns>
+        /// <param name="source">
+        /// The image to quantize.
+        /// </param>
+        /// <returns>
+        /// A quantized version of the image.
+        /// </returns>
         public Bitmap Quantize(Image source)
         {
             // Get the size of the source image
@@ -111,9 +115,15 @@ namespace ImageProcessor.Imaging.Quantizers
         /// <summary>
         /// Execute the first pass through the pixels in the image
         /// </summary>
-        /// <param name="sourceData">The source data</param>
-        /// <param name="width">The width in pixels of the image</param>
-        /// <param name="height">The height in pixels of the image</param>
+        /// <param name="sourceData">
+        /// The source data
+        /// </param>
+        /// <param name="width">
+        /// The width in pixels of the image
+        /// </param>
+        /// <param name="height">
+        /// The height in pixels of the image
+        /// </param>
         protected virtual void FirstPass(BitmapData sourceData, int width, int height)
         {
             // Define the source data pointers. The source row is a byte to
@@ -141,11 +151,21 @@ namespace ImageProcessor.Imaging.Quantizers
         /// <summary>
         /// Execute a second pass through the bitmap
         /// </summary>
-        /// <param name="sourceData">The source bitmap, locked into memory</param>
-        /// <param name="output">The output bitmap</param>
-        /// <param name="width">The width in pixels of the image</param>
-        /// <param name="height">The height in pixels of the image</param>
-        /// <param name="bounds">The bounding rectangle</param>
+        /// <param name="sourceData">
+        /// The source bitmap, locked into memory
+        /// </param>
+        /// <param name="output">
+        /// The output bitmap
+        /// </param>
+        /// <param name="width">
+        /// The width in pixels of the image
+        /// </param>
+        /// <param name="height">
+        /// The height in pixels of the image
+        /// </param>
+        /// <param name="bounds">
+        /// The bounding rectangle
+        /// </param>
         protected virtual void SecondPass(BitmapData sourceData, Bitmap output, int width, int height, Rectangle bounds)
         {
             BitmapData outputData = null;
@@ -184,7 +204,7 @@ namespace ImageProcessor.Imaging.Quantizers
                     for (int col = 0; col < width; col++, sourcePixel++, destinationPixel++)
                     {
                         // Check if this is the same as the last pixel. If so use that value
-                        // rather than calculating it again. This is an inexpensive optimisation.
+                        // rather than calculating it again. This is an inexpensive optimization.
                         if (*previousPixel != *sourcePixel)
                         {
                             // Quantize the pixel
@@ -215,7 +235,9 @@ namespace ImageProcessor.Imaging.Quantizers
         /// <summary>
         /// Override this to process the pixel in the first pass of the algorithm
         /// </summary>
-        /// <param name="pixel">The pixel to quantize</param>
+        /// <param name="pixel">
+        /// The pixel to quantize
+        /// </param>
         /// <remarks>
         /// This function need only be overridden if your quantize algorithm needs two passes,
         /// such as an Octree quantizer.
@@ -227,15 +249,23 @@ namespace ImageProcessor.Imaging.Quantizers
         /// <summary>
         /// Override this to process the pixel in the second pass of the algorithm
         /// </summary>
-        /// <param name="pixel">The pixel to quantize</param>
-        /// <returns>The quantized value</returns>
+        /// <param name="pixel">
+        /// The pixel to quantize
+        /// </param>
+        /// <returns>
+        /// The quantized value
+        /// </returns>
         protected abstract byte QuantizePixel(Color32* pixel);
 
         /// <summary>
         /// Retrieve the palette for the quantized image
         /// </summary>
-        /// <param name="original">Any old palette, this is overwritten</param>
-        /// <returns>The new color palette</returns>
+        /// <param name="original">
+        /// Any old palette, this is overwritten
+        /// </param>
+        /// <returns>
+        /// The new color palette
+        /// </returns>
         protected abstract ColorPalette GetPalette(ColorPalette original);
     }
 }

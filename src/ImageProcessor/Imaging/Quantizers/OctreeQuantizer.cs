@@ -35,6 +35,21 @@ namespace ImageProcessor.Imaging.Quantizers
         private readonly int maxColors;
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="OctreeQuantizer"/> class.
+        /// </summary>
+        /// <remarks>
+        /// The Octree quantizer is a two pass algorithm. The initial pass sets up the Octree,
+        /// the second pass quantizes a color based on the nodes in the tree.
+        /// <para>
+        /// Defaults to return a maximum of 255 colors plus transparency with 8 significant bits.
+        /// </para>
+        /// </remarks>
+        public OctreeQuantizer()
+            : this(255, 8)
+        {
+        }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="OctreeQuantizer"/> class. 
         /// </summary>
         /// <remarks>
@@ -69,7 +84,9 @@ namespace ImageProcessor.Imaging.Quantizers
         /// <summary>
         /// Process the pixel in the first pass of the algorithm
         /// </summary>
-        /// <param name="pixel">The pixel to quantize</param>
+        /// <param name="pixel">
+        /// The pixel to quantize
+        /// </param>
         /// <remarks>
         /// This function need only be overridden if your quantize algorithm needs two passes,
         /// such as an Octree quantizer.
@@ -83,8 +100,12 @@ namespace ImageProcessor.Imaging.Quantizers
         /// <summary>
         /// Override this to process the pixel in the second pass of the algorithm
         /// </summary>
-        /// <param name="pixel">The pixel to quantize</param>
-        /// <returns>The quantized value</returns>
+        /// <param name="pixel">
+        /// The pixel to quantize
+        /// </param>
+        /// <returns>
+        /// The quantized value
+        /// </returns>
         protected override byte QuantizePixel(Color32* pixel)
         {
             // The color at [_maxColors] is set to transparent
@@ -102,8 +123,12 @@ namespace ImageProcessor.Imaging.Quantizers
         /// <summary>
         /// Retrieve the palette for the quantized image
         /// </summary>
-        /// <param name="original">Any old palette, this is overwritten</param>
-        /// <returns>The new color palette</returns>
+        /// <param name="original">
+        /// Any old palette, this is overwritten
+        /// </param>
+        /// <returns>
+        /// The new color palette
+        /// </returns>
         protected override ColorPalette GetPalette(ColorPalette original)
         {
             // First off convert the Octree to maxColors colors
@@ -228,8 +253,12 @@ namespace ImageProcessor.Imaging.Quantizers
             /// <summary>
             /// Convert the nodes in the Octree to a palette with a maximum of colorCount colors
             /// </summary>
-            /// <param name="colorCount">The maximum number of colors</param>
-            /// <returns>An <see cref="ArrayList"/> with the palletized colors</returns>
+            /// <param name="colorCount">
+            /// The maximum number of colors
+            /// </param>
+            /// <returns>
+            /// An <see cref="ArrayList"/> with the palletized colors
+            /// </returns>
             public ArrayList Palletize(int colorCount)
             {
                 while (this.Leaves > colorCount)
@@ -263,7 +292,9 @@ namespace ImageProcessor.Imaging.Quantizers
             /// <summary>
             /// Keep track of the previous node that was quantized
             /// </summary>
-            /// <param name="node">The node last quantized</param>
+            /// <param name="node">
+            /// The node last quantized
+            /// </param>
             protected void TrackPrevious(OctreeNode node)
             {
                 this.previousNode = node;
@@ -385,10 +416,18 @@ namespace ImageProcessor.Imaging.Quantizers
                 /// <summary>
                 /// Add a color into the tree
                 /// </summary>
-                /// <param name="pixel">The color</param>
-                /// <param name="colorBits">The number of significant color bits</param>
-                /// <param name="level">The level in the tree</param>
-                /// <param name="octree">The tree to which this node belongs</param>
+                /// <param name="pixel">
+                /// The color
+                /// </param>
+                /// <param name="colorBits">
+                /// The number of significant color bits
+                /// </param>
+                /// <param name="level">
+                /// The level in the tree
+                /// </param>
+                /// <param name="octree">
+                /// The tree to which this node belongs
+                /// </param>
                 public void AddColor(Color32* pixel, int colorBits, int level, Octree octree)
                 {
                     // Update the color information if this is a leaf
@@ -454,8 +493,12 @@ namespace ImageProcessor.Imaging.Quantizers
                 /// <summary>
                 /// Traverse the tree, building up the color palette
                 /// </summary>
-                /// <param name="palette">The palette</param>
-                /// <param name="index">The current palette index</param>
+                /// <param name="palette">
+                /// The palette
+                /// </param>
+                /// <param name="index">
+                /// The current palette index
+                /// </param>
                 public void ConstructPalette(ArrayList palette, ref int index)
                 {
                     if (this.leaf)

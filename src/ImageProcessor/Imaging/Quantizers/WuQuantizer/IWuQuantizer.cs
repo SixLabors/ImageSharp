@@ -4,7 +4,8 @@
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   The WuQuantizer interface.
+//   Encapsulates methods to calculate the color palette of an image using
+//   a Wu color quantizer <see href="http://www.ece.mcmaster.ca/~xwu/cq.c" />.
 //   Adapted from <see href="https://github.com/drewnoakes" />
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
@@ -14,10 +15,11 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
     using System.Drawing;
 
     /// <summary>
-    /// The WuQuantizer interface.
+    /// Encapsulates methods to calculate the color palette of an image using 
+    /// a Wu color quantizer <see href="http://www.ece.mcmaster.ca/~xwu/cq.c"/>.
     /// Adapted from <see href="https://github.com/drewnoakes" />
     /// </summary>
-    public interface IWuQuantizer
+    public interface IWuQuantizer : IQuantizer
     {
         /// <summary>
         /// Quantizes the given image.
@@ -35,6 +37,6 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
         /// <returns>
         /// The quantized <see cref="Image"/>.
         /// </returns>
-        Image QuantizeImage(Bitmap image, int alphaThreshold, int alphaFader);
+        Bitmap Quantize(Image image, int alphaThreshold, int alphaFader);
     }
 }

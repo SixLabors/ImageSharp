@@ -44,7 +44,7 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
             {
                 this.Palette[paletteIndex] = new LookupNode
                 {
-                    Pixel = palette[paletteIndex],
+                    Pixel = palette[paletteIndex], 
                     PaletteIndex = (byte)paletteIndex
                 };
             }
@@ -240,7 +240,7 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
             }
 
             this.lookupNodes = new Dictionary<int, LookupNode[]>(tempLookup.Count);
-            foreach (var key in tempLookup.Keys)
+            foreach (int key in tempLookup.Keys)
             {
                 this.lookupNodes[key] = tempLookup[key].ToArray();
             }

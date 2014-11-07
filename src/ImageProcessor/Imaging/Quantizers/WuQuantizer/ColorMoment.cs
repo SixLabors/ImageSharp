@@ -4,7 +4,7 @@
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   The color moment for holding pixel information.
+//   The cumulative color moment for holding pixel information.
 //   Adapted from <see href="https://github.com/drewnoakes" />
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------

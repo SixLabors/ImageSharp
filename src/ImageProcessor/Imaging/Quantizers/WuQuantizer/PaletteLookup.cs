@@ -15,6 +15,8 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
     using System.Collections.Generic;
     using System.Linq;
 
+    using ImageProcessor.Imaging.Colors;
+
     /// <summary>
     /// Stores the indexed color palette of an image for fast access.
     /// Adapted from <see href="https://github.com/drewnoakes" />
@@ -37,14 +39,14 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
         /// <param name="palette">
         /// The palette.
         /// </param>
-        public PaletteLookup(Pixel[] palette)
+        public PaletteLookup(Color32[] palette)
         {
             this.Palette = new LookupNode[palette.Length];
             for (int paletteIndex = 0; paletteIndex < palette.Length; paletteIndex++)
             {
                 this.Palette[paletteIndex] = new LookupNode
                 {
-                    Pixel = palette[paletteIndex], 
+                    Color32 = palette[paletteIndex],
                     PaletteIndex = (byte)paletteIndex
                 };
             }
@@ -66,7 +68,7 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
         /// <returns>
         /// The <see cref="byte"/> representing the index.
         /// </returns>
-        public byte GetPaletteIndex(Pixel pixel)
+        public byte GetPaletteIndex(Color32 pixel)
         {
             int pixelKey = pixel.Argb & this.paletteMask;
             LookupNode[] bucket;
@@ -84,18 +86,18 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
             byte bestMatch = 0;
             foreach (LookupNode lookup in bucket)
             {
-                Pixel lookupPixel = lookup.Pixel;
+                Color32 lookupPixel = lookup.Color32;
 
-                int deltaAlpha = pixel.Alpha - lookupPixel.Alpha;
+                int deltaAlpha = pixel.A - lookupPixel.A;
                 int distance = deltaAlpha * deltaAlpha;
 
-                int deltaRed = pixel.Red - lookupPixel.Red;
+                int deltaRed = pixel.R - lookupPixel.R;
                 distance += deltaRed * deltaRed;
 
-                int deltaGreen = pixel.Green - lookupPixel.Green;
+                int deltaGreen = pixel.G - lookupPixel.G;
                 distance += deltaGreen * deltaGreen;
 
-                int deltaBlue = pixel.Blue - lookupPixel.Blue;
+                int deltaBlue = pixel.B - lookupPixel.B;
                 distance += deltaBlue * deltaBlue;
 
                 if (distance >= bestDistance)
@@ -159,21 +161,21 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
         /// <returns>
         /// The <see cref="int"/> representing the component value of the mask.
         /// </returns>
-        private static int GetMask(Pixel[] palette)
+        private static int GetMask(Color32[] palette)
         {
-            IEnumerable<byte> alphas = palette.Select(p => p.Alpha).ToArray();
+            IEnumerable<byte> alphas = palette.Select(p => p.A).ToArray();
             byte maxAlpha = alphas.Max();
             int uniqueAlphas = alphas.Distinct().Count();
 
-            IEnumerable<byte> reds = palette.Select(p => p.Red).ToArray();
+            IEnumerable<byte> reds = palette.Select(p => p.R).ToArray();
             byte maxRed = reds.Max();
             int uniqueReds = reds.Distinct().Count();
 
-            IEnumerable<byte> greens = palette.Select(p => p.Green).ToArray();
+            IEnumerable<byte> greens = palette.Select(p => p.G).ToArray();
             byte maxGreen = greens.Max();
             int uniqueGreens = greens.Distinct().Count();
 
-            IEnumerable<byte> blues = palette.Select(p => p.Green).ToArray();
+            IEnumerable<byte> blues = palette.Select(p => p.B).ToArray();
             byte maxBlue = blues.Max();
             int uniqueBlues = blues.Distinct().Count();
 
@@ -186,7 +188,7 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
             byte greenMask = ComputeBitMask(maxGreen, Convert.ToInt32(Math.Round(uniqueGreens / totalUniques * availableBits)));
             byte blueMask = ComputeBitMask(maxBlue, Convert.ToInt32(Math.Round(uniqueBlues / totalUniques * availableBits)));
 
-            Pixel maskedPixel = new Pixel(alphaMask, redMask, greenMask, blueMask);
+            Color32 maskedPixel = new Color32(alphaMask, redMask, greenMask, blueMask);
             return maskedPixel.Argb;
         }
 
@@ -221,13 +223,13 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
         /// <param name="palette">
         /// The palette.
         /// </param>
-        private void BuildLookup(Pixel[] palette)
+        private void BuildLookup(Color32[] palette)
         {
             int mask = GetMask(palette);
             Dictionary<int, List<LookupNode>> tempLookup = new Dictionary<int, List<LookupNode>>();
             foreach (LookupNode lookup in this.Palette)
             {
-                int pixelKey = lookup.Pixel.Argb & mask;
+                int pixelKey = lookup.Color32.Argb & mask;
 
                 List<LookupNode> bucket;
                 if (!tempLookup.TryGetValue(pixelKey, out bucket))
@@ -261,7 +263,7 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
             /// <summary>
             /// The pixel.
             /// </summary>
-            public Pixel Pixel;
+            public Color32 Color32;
         }
     }
 }

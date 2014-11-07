@@ -18,6 +18,7 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
     using System.Runtime.InteropServices;
 
     using ImageProcessor.Common.Exceptions;
+    using ImageProcessor.Imaging.Colors;
 
     /// <summary>
     /// The image buffer for storing and manipulating pixel information.
@@ -47,13 +48,13 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
         /// <exception cref="QuantizationException">
         /// Thrown if the given image is not a 32 bit per pixel image.
         /// </exception>
-        public IEnumerable<Pixel[]> PixelLines
+        public IEnumerable<Color32[]> PixelLines
         {
             get
             {
                 int width = this.Image.Width;
                 int height = this.Image.Height;
-                Pixel[] pixels = new Pixel[width];
+                Color32[] pixels = new Color32[width];
 
                 using (FastBitmap bitmap = new FastBitmap(this.Image))
                 {
@@ -62,7 +63,7 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
                         for (int x = 0; x < width; x++)
                         {
                             Color color = bitmap.GetPixel(x, y);
-                            pixels[x] = new Pixel(color.A, color.R, color.G, color.B);
+                            pixels[x] = new Color32(color.A, color.R, color.G, color.B);
                         }
 
                         yield return pixels;

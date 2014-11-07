@@ -11,6 +11,8 @@
 
 namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
 {
+    using ImageProcessor.Imaging.Colors;
+
     /// <summary>
     /// The cumulative color moment for holding pixel information.
     /// Adapted from <see href="https://github.com/drewnoakes" />
@@ -119,12 +121,12 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
         /// <param name="pixel">
         /// The pixel to add.
         /// </param>
-        public void Add(Pixel pixel)
+        public void Add(Color32 pixel)
         {
-            byte alpha = pixel.Alpha;
-            byte red = pixel.Red;
-            byte green = pixel.Green;
-            byte blue = pixel.Blue;
+            byte alpha = pixel.A;
+            byte red = pixel.R;
+            byte green = pixel.G;
+            byte blue = pixel.B;
             this.Alpha += alpha;
             this.Red += red;
             this.Green += green;

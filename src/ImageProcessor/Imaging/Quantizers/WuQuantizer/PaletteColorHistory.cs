@@ -13,6 +13,8 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
 {
     using System.Drawing;
 
+    using ImageProcessor.Imaging.Colors;
+
     /// <summary>
     /// The palette color history containing the sum of all pixel data.
     /// Adapted from <see href="https://github.com/drewnoakes" />
@@ -61,12 +63,12 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
         /// <param name="pixel">
         /// The pixel to add.
         /// </param>
-        public void AddPixel(Pixel pixel)
+        public void AddPixel(Color32 pixel)
         {
-            this.Alpha += pixel.Alpha;
-            this.Red += pixel.Red;
-            this.Green += pixel.Green;
-            this.Blue += pixel.Blue;
+            this.Alpha += pixel.A;
+            this.Red += pixel.R;
+            this.Green += pixel.G;
+            this.Blue += pixel.B;
             this.Sum++;
         }
     }

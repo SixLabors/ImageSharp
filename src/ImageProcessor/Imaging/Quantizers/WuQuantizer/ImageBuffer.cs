@@ -4,7 +4,7 @@
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   The image buffer for storing pixel information.
+//   The image buffer for storing and manipulating pixel information.
 //   Adapted from <see href="https://github.com/drewnoakes" />
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
@@ -20,7 +20,7 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
     using ImageProcessor.Common.Exceptions;
 
     /// <summary>
-    /// The image buffer for storing pixel information.
+    /// The image buffer for storing and manipulating pixel information.
     /// Adapted from <see href="https://github.com/drewnoakes"/>
     /// </summary>
     internal class ImageBuffer
@@ -51,16 +51,6 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
         {
             get
             {
-                int bitDepth = System.Drawing.Image.GetPixelFormatSize(this.Image.PixelFormat);
-                if (bitDepth != 32)
-                {
-                    throw new QuantizationException(
-                        string.Format(
-                            "The image you are attempting to quantize does not contain a 32 bit ARGB palette. This image has a bit depth of {0} with {1} colors.",
-                            bitDepth,
-                            this.Image.Palette.Entries.Length));
-                }
-
                 int width = this.Image.Width;
                 int height = this.Image.Height;
                 Pixel[] pixels = new Pixel[width];

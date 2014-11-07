@@ -1,32 +1,29 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="WuQuantizerBase.cs" company="James South">
-//   Copyright (c) James South.
-//   Licensed under the Apache License, Version 2.0.
-// </copyright>
-// <summary>
-//   Encapsulates methods to calculate the color palette of an image using
-//   a Wu color quantizer <see href="http://www.ece.mcmaster.ca/~xwu/cq.c" />.
-//   Adapted from <see href="https://github.com/drewnoakes" />
-// </summary>
-// --------------------------------------------------------------------------------------------------------------------
-
-namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
+﻿namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
 {
     using System;
+    using System.Diagnostics.CodeAnalysis;
     using System.Drawing;
+    using System.Drawing.Imaging;
     using System.Linq;
+
+    using ImageProcessor.Common.Exceptions;
 
     /// <summary>
     /// Encapsulates methods to calculate the color palette of an image using 
     /// a Wu color quantizer <see href="http://www.ece.mcmaster.ca/~xwu/cq.c"/>.
     /// Adapted from <see href="https://github.com/drewnoakes"/>
     /// </summary>
-    public abstract class WuQuantizerBase
+    public abstract class WuQuantizerBase : IWuQuantizer
     {
         /// <summary>
-        /// The alpha color component.
+        /// The maximum value for an alpha color component.
         /// </summary>
-        protected const byte AlphaColor = 255;
+        protected const byte AlphaMax = 255;
+
+        /// <summary>
+        /// The minimum value for an alpha color component.
+        /// </summary>
+        protected const byte AlphaMin = 0;
 
         /// <summary>
         /// The position of the alpha component within a byte array.
@@ -64,10 +61,12 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
         /// <param name="source">
         /// The 32 bit per pixel image to quantize.
         /// </param>
-        /// <returns>A quantized version of the image.</returns>
-        public Image QuantizeImage(Bitmap source)
+        /// <returns>
+        /// A quantized version of the image.
+        /// </returns>
+        public Bitmap Quantize(Image source)
         {
-            return this.QuantizeImage(source, 0, 1);
+            return this.Quantize(source, 0, 1);
         }
 
         /// <summary>
@@ -76,12 +75,18 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
         /// <param name="source">
         /// The 32 bit per pixel image to quantize.
         /// </param>
-        /// <param name="alphaThreshold">All colors with an alpha value less than this will be considered fully transparent.</param>
-        /// <param name="alphaFader">Alpha values will be normalized to the nearest multiple of this value.</param>
-        /// <returns>A quantized version of the image.</returns>
-        public Image QuantizeImage(Bitmap source, int alphaThreshold, int alphaFader)
+        /// <param name="alphaThreshold">
+        /// All colors with an alpha value less than this will be considered fully transparent.
+        /// </param>
+        /// <param name="alphaFader">
+        /// Alpha values will be normalized to the nearest multiple of this value.
+        /// </param>
+        /// <returns>
+        /// A quantized version of the image.
+        /// </returns>
+        public Bitmap Quantize(Image source, int alphaThreshold, int alphaFader)
         {
-            return this.QuantizeImage(source, alphaThreshold, alphaFader, null, 256);
+            return this.Quantize(source, alphaThreshold, alphaFader, null, 256);
         }
 
         /// <summary>
@@ -105,25 +110,72 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
         /// <returns>
         /// A quantized version of the image.
         /// </returns>
-        public Image QuantizeImage(Bitmap source, int alphaThreshold, int alphaFader, Histogram histogram, int maxColors)
+        public Bitmap Quantize(Image source, int alphaThreshold, int alphaFader, Histogram histogram, int maxColors)
         {
-            ImageBuffer buffer = new ImageBuffer(source);
-
-            if (histogram == null)
+            try
             {
-                histogram = new Histogram();
-            }
-            else
-            {
-                histogram.Clear();
-            }
+                ImageBuffer buffer;
 
-            BuildHistogram(histogram, buffer, alphaThreshold, alphaFader);
-            CalculateMoments(histogram.Moments);
-            Box[] cubes = SplitData(ref maxColors, histogram.Moments);
-            Pixel[] lookups = BuildLookups(cubes, histogram.Moments);
-            return this.GetQuantizedImage(buffer, maxColors, lookups, alphaThreshold);
+                // The image has to be a 32 bit per pixel Argb image.
+                if (Image.GetPixelFormatSize(source.PixelFormat) != 32)
+                {
+                    Bitmap clone = new Bitmap(source.Width, source.Height, PixelFormat.Format32bppPArgb);
+                    clone.SetResolution(source.HorizontalResolution, source.VerticalResolution);
+
+                    using (Graphics graphics = Graphics.FromImage(clone))
+                    {
+                        graphics.Clear(Color.Transparent);
+                        graphics.DrawImage(source, new Rectangle(0, 0, clone.Width, clone.Height));
+                    }
+
+                    source.Dispose();
+                    buffer = new ImageBuffer(clone);
+                }
+                else
+                {
+                    buffer = new ImageBuffer((Bitmap)source);
+                }
+
+                if (histogram == null)
+                {
+                    histogram = new Histogram();
+                }
+                else
+                {
+                    histogram.Clear();
+                }
+
+                BuildHistogram(histogram, buffer, alphaThreshold, alphaFader);
+                CalculateMoments(histogram.Moments);
+                Box[] cubes = SplitData(ref maxColors, histogram.Moments);
+                Pixel[] lookups = BuildLookups(cubes, histogram.Moments);
+                return this.GetQuantizedImage(buffer, maxColors, lookups, alphaThreshold);
+            }
+            catch (Exception ex)
+            {
+                throw new QuantizationException(ex.Message, ex);
+            }
         }
+
+        /// <summary>
+        /// Quantizes the image contained within the <see cref="ImageBuffer"/> returning the result.
+        /// </summary>
+        /// <param name="imageBuffer">
+        /// The <see cref="ImageBuffer"/> for storing and manipulating pixel information..
+        /// </param>
+        /// <param name="colorCount">
+        /// The maximum number of colors apply to the image.
+        /// </param>
+        /// <param name="lookups">
+        /// The array of <see cref="Pixel"/> containing indexed versions of the images colors.
+        /// </param>
+        /// <param name="alphaThreshold">
+        /// All colors with an alpha value less than this will be considered fully transparent.
+        /// </param>
+        /// <returns>
+        /// The quantized <see cref="Bitmap"/>.
+        /// </returns>
+        internal abstract Bitmap GetQuantizedImage(ImageBuffer imageBuffer, int colorCount, Pixel[] lookups, int alphaThreshold);
 
         /// <summary>
         /// Builds a histogram from the current image.
@@ -140,6 +192,7 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
         /// <param name="alphaFader">
         /// Alpha values will be normalized to the nearest multiple of this value.
         /// </param>
+        [SuppressMessage("StyleCop.CSharp.SpacingRules", "SA1001:CommasMustBeSpacedCorrectly", Justification = "Reviewed. Suppression is OK here.")]
         private static void BuildHistogram(Histogram histogram, ImageBuffer imageBuffer, int alphaThreshold, int alphaFader)
         {
             ColorMoment[, , ,] moments = histogram.Moments;
@@ -174,9 +227,16 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
             moments[0, 0, 0, 0].Add(new Pixel(0, 0, 0, 0));
         }
 
+        /// <summary>
+        /// Calculates the color moments from the histogram of moments.
+        /// </summary>
+        /// <param name="moments">
+        /// The three dimensional array of <see cref="ColorMoment"/> to process.
+        /// </param>
+        [SuppressMessage("StyleCop.CSharp.SpacingRules", "SA1001:CommasMustBeSpacedCorrectly", Justification = "Reviewed. Suppression is OK here.")]
         private static void CalculateMoments(ColorMoment[, , ,] moments)
         {
-            ColorMoment[,] xarea = new ColorMoment[SideSize, SideSize];
+            ColorMoment[,] areaSquared = new ColorMoment[SideSize, SideSize];
             ColorMoment[] area = new ColorMoment[SideSize];
             for (int alphaIndex = 1; alphaIndex < SideSize; alphaIndex++)
             {
@@ -190,10 +250,10 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
                         {
                             line.AddFast(ref moments[alphaIndex, redIndex, greenIndex, blueIndex]);
                             area[blueIndex].AddFast(ref line);
-                            xarea[greenIndex, blueIndex].AddFast(ref area[blueIndex]);
+                            areaSquared[greenIndex, blueIndex].AddFast(ref area[blueIndex]);
 
                             ColorMoment moment = moments[alphaIndex - 1, redIndex, greenIndex, blueIndex];
-                            moment.AddFast(ref xarea[greenIndex, blueIndex]);
+                            moment.AddFast(ref areaSquared[greenIndex, blueIndex]);
                             moments[alphaIndex, redIndex, greenIndex, blueIndex] = moment;
                         }
                     }
@@ -201,6 +261,25 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
             }
         }
 
+        /// <summary>
+        /// Calculates the volume of the top of the cube.
+        /// </summary>
+        /// <param name="cube">
+        /// The cube to calculate the volume from.
+        /// </param>
+        /// <param name="direction">
+        /// The direction to calculate.
+        /// </param>
+        /// <param name="position">
+        /// The position at which to begin.
+        /// </param>
+        /// <param name="moment">
+        /// The three dimensional moment.
+        /// </param>
+        /// <returns>
+        /// The <see cref="ColorMoment"/> representing the top of the cube.
+        /// </returns>
+        [SuppressMessage("StyleCop.CSharp.SpacingRules", "SA1001:CommasMustBeSpacedCorrectly", Justification = "Reviewed. Suppression is OK here.")]
         private static ColorMoment Top(Box cube, int direction, int position, ColorMoment[, , ,] moment)
         {
             switch (direction)
@@ -250,6 +329,22 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
             }
         }
 
+        /// <summary>
+        /// Calculates the volume of the bottom of the cube.
+        /// </summary>
+        /// <param name="cube">
+        /// The cube to calculate the volume from.
+        /// </param>
+        /// <param name="direction">
+        /// The direction to calculate.
+        /// </param>
+        /// <param name="moment">
+        /// The three dimensional moment.
+        /// </param>
+        /// <returns>
+        /// The <see cref="ColorMoment"/> representing the bottom of the cube.
+        /// </returns>
+        [SuppressMessage("StyleCop.CSharp.SpacingRules", "SA1001:CommasMustBeSpacedCorrectly", Justification = "Reviewed. Suppression is OK here.")]
         private static ColorMoment Bottom(Box cube, int direction, ColorMoment[, , ,] moment)
         {
             switch (direction)
@@ -299,10 +394,35 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
             }
         }
 
+        /// <summary>
+        /// Maximizes the sum of the two boxes.
+        /// </summary>
+        /// <param name="moments">
+        /// The <see cref="ColorMoment"/>.
+        /// </param>
+        /// <param name="cube">
+        /// The <see cref="Box"/> cube.
+        /// </param>
+        /// <param name="direction">
+        /// The direction.
+        /// </param>
+        /// <param name="first">
+        /// The first byte.
+        /// </param>
+        /// <param name="last">
+        /// The last byte.
+        /// </param>
+        /// <param name="whole">
+        /// The whole <see cref="ColorMoment"/>.
+        /// </param>
+        /// <returns>
+        /// The <see cref="CubeCut"/> representing the sum.
+        /// </returns>
+        [SuppressMessage("StyleCop.CSharp.SpacingRules", "SA1001:CommasMustBeSpacedCorrectly", Justification = "Reviewed. Suppression is OK here.")]
         private static CubeCut Maximize(ColorMoment[, , ,] moments, Box cube, int direction, byte first, byte last, ColorMoment whole)
         {
-            var bottom = Bottom(cube, direction, moments);
-            var result = 0.0f;
+            ColorMoment bottom = Bottom(cube, direction, moments);
+            float result = 0.0f;
             byte? cutPoint = null;
 
             for (byte position = first; position < last; ++position)
@@ -313,7 +433,7 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
                     continue;
                 }
 
-                var temp = half.WeightedDistance();
+                long temp = half.WeightedDistance();
 
                 half = whole - half;
                 if (half.Weight != 0)
@@ -331,28 +451,55 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
             return new CubeCut(cutPoint, result);
         }
 
+        /// <summary>
+        /// Returns a value indicating whether a cube can be cut.
+        /// </summary>
+        /// <param name="moments">
+        /// The three dimensional array of <see cref="ColorMoment"/>.
+        /// </param>
+        /// <param name="first">
+        /// The first <see cref="Box"/>.
+        /// </param>
+        /// <param name="second">
+        /// The second <see cref="Box"/>.
+        /// </param>
+        /// <returns>
+        /// The <see cref="bool"/> indicating the result.
+        /// </returns>
+        [SuppressMessage("StyleCop.CSharp.SpacingRules", "SA1001:CommasMustBeSpacedCorrectly", Justification = "Reviewed. Suppression is OK here.")]
         private static bool Cut(ColorMoment[, , ,] moments, ref Box first, ref Box second)
         {
             int direction;
-            var whole = Volume(first, moments);
-            var maxAlpha = Maximize(moments, first, Alpha, (byte)(first.AlphaMinimum + 1), first.AlphaMaximum, whole);
-            var maxRed = Maximize(moments, first, Red, (byte)(first.RedMinimum + 1), first.RedMaximum, whole);
-            var maxGreen = Maximize(moments, first, Green, (byte)(first.GreenMinimum + 1), first.GreenMaximum, whole);
-            var maxBlue = Maximize(moments, first, Blue, (byte)(first.BlueMinimum + 1), first.BlueMaximum, whole);
+            ColorMoment whole = Volume(moments, first);
+            CubeCut maxAlpha = Maximize(moments, first, Alpha, (byte)(first.AlphaMinimum + 1), first.AlphaMaximum, whole);
+            CubeCut maxRed = Maximize(moments, first, Red, (byte)(first.RedMinimum + 1), first.RedMaximum, whole);
+            CubeCut maxGreen = Maximize(moments, first, Green, (byte)(first.GreenMinimum + 1), first.GreenMaximum, whole);
+            CubeCut maxBlue = Maximize(moments, first, Blue, (byte)(first.BlueMinimum + 1), first.BlueMaximum, whole);
 
             if ((maxAlpha.Value >= maxRed.Value) && (maxAlpha.Value >= maxGreen.Value) && (maxAlpha.Value >= maxBlue.Value))
             {
                 direction = Alpha;
-                if (maxAlpha.Position == null) return false;
+                if (maxAlpha.Position == null)
+                {
+                    return false;
+                }
             }
-            else if ((maxRed.Value >= maxAlpha.Value) && (maxRed.Value >= maxGreen.Value) && (maxRed.Value >= maxBlue.Value))
+            else if ((maxRed.Value >= maxAlpha.Value) && (maxRed.Value >= maxGreen.Value)
+                     && (maxRed.Value >= maxBlue.Value))
+            {
                 direction = Red;
+            }
             else
             {
-                if ((maxGreen.Value >= maxAlpha.Value) && (maxGreen.Value >= maxRed.Value) && (maxGreen.Value >= maxBlue.Value))
+                if ((maxGreen.Value >= maxAlpha.Value) && (maxGreen.Value >= maxRed.Value)
+                    && (maxGreen.Value >= maxBlue.Value))
+                {
                     direction = Green;
+                }
                 else
+                {
                     direction = Blue;
+                }
             }
 
             second.AlphaMaximum = first.AlphaMaximum;
@@ -363,6 +510,11 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
             switch (direction)
             {
                 case Alpha:
+                    if (maxAlpha.Position == null)
+                    {
+                        return false;
+                    }
+
                     second.AlphaMinimum = first.AlphaMaximum = (byte)maxAlpha.Position;
                     second.RedMinimum = first.RedMinimum;
                     second.GreenMinimum = first.GreenMinimum;
@@ -370,6 +522,11 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
                     break;
 
                 case Red:
+                    if (maxRed.Position == null)
+                    {
+                        return false;
+                    }
+
                     second.RedMinimum = first.RedMaximum = (byte)maxRed.Position;
                     second.AlphaMinimum = first.AlphaMinimum;
                     second.GreenMinimum = first.GreenMinimum;
@@ -377,6 +534,11 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
                     break;
 
                 case Green:
+                    if (maxGreen.Position == null)
+                    {
+                        return false;
+                    }
+
                     second.GreenMinimum = first.GreenMaximum = (byte)maxGreen.Position;
                     second.AlphaMinimum = first.AlphaMinimum;
                     second.RedMinimum = first.RedMinimum;
@@ -384,6 +546,11 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
                     break;
 
                 case Blue:
+                    if (maxBlue.Position == null)
+                    {
+                        return false;
+                    }
+
                     second.BlueMinimum = first.BlueMaximum = (byte)maxBlue.Position;
                     second.AlphaMinimum = first.AlphaMinimum;
                     second.RedMinimum = first.RedMinimum;
@@ -397,44 +564,83 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
             return true;
         }
 
+        /// <summary>
+        /// Calculates the variance of the volume of the cube.
+        /// </summary>
+        /// <param name="moments">
+        /// The three dimensional array of <see cref="ColorMoment"/>.
+        /// </param>
+        /// <param name="cube">
+        /// The <see cref="Box"/> cube.
+        /// </param>
+        /// <returns>
+        /// The <see cref="float"/> representing the variance.
+        /// </returns>
+        [SuppressMessage("StyleCop.CSharp.SpacingRules", "SA1001:CommasMustBeSpacedCorrectly", Justification = "Reviewed. Suppression is OK here.")]
         private static float CalculateVariance(ColorMoment[, , ,] moments, Box cube)
         {
-            ColorMoment volume = Volume(cube, moments);
+            ColorMoment volume = Volume(moments, cube);
             return volume.Variance();
         }
 
-        private static ColorMoment Volume(Box cube, ColorMoment[, , ,] moment)
+        /// <summary>
+        /// Calculates the volume of the colors.
+        /// </summary>
+        /// <param name="moments">
+        /// The three dimensional array of <see cref="ColorMoment"/>.
+        /// </param>
+        /// <param name="cube">
+        /// The <see cref="Box"/> cube.
+        /// </param>
+        /// <returns>
+        /// The <see cref="float"/> representing the volume.
+        /// </returns>
+        [SuppressMessage("StyleCop.CSharp.SpacingRules", "SA1001:CommasMustBeSpacedCorrectly", Justification = "Reviewed. Suppression is OK here.")]
+        private static ColorMoment Volume(ColorMoment[, , ,] moments, Box cube)
         {
-            return (moment[cube.AlphaMaximum, cube.RedMaximum, cube.GreenMaximum, cube.BlueMaximum] -
-                    moment[cube.AlphaMaximum, cube.RedMaximum, cube.GreenMinimum, cube.BlueMaximum] -
-                    moment[cube.AlphaMaximum, cube.RedMinimum, cube.GreenMaximum, cube.BlueMaximum] +
-                    moment[cube.AlphaMaximum, cube.RedMinimum, cube.GreenMinimum, cube.BlueMaximum] -
-                    moment[cube.AlphaMinimum, cube.RedMaximum, cube.GreenMaximum, cube.BlueMaximum] +
-                    moment[cube.AlphaMinimum, cube.RedMaximum, cube.GreenMinimum, cube.BlueMaximum] +
-                    moment[cube.AlphaMinimum, cube.RedMinimum, cube.GreenMaximum, cube.BlueMaximum] -
-                    moment[cube.AlphaMinimum, cube.RedMinimum, cube.GreenMinimum, cube.BlueMaximum]) -
+            return (moments[cube.AlphaMaximum, cube.RedMaximum, cube.GreenMaximum, cube.BlueMaximum] -
+                    moments[cube.AlphaMaximum, cube.RedMaximum, cube.GreenMinimum, cube.BlueMaximum] -
+                    moments[cube.AlphaMaximum, cube.RedMinimum, cube.GreenMaximum, cube.BlueMaximum] +
+                    moments[cube.AlphaMaximum, cube.RedMinimum, cube.GreenMinimum, cube.BlueMaximum] -
+                    moments[cube.AlphaMinimum, cube.RedMaximum, cube.GreenMaximum, cube.BlueMaximum] +
+                    moments[cube.AlphaMinimum, cube.RedMaximum, cube.GreenMinimum, cube.BlueMaximum] +
+                    moments[cube.AlphaMinimum, cube.RedMinimum, cube.GreenMaximum, cube.BlueMaximum] -
+                    moments[cube.AlphaMinimum, cube.RedMinimum, cube.GreenMinimum, cube.BlueMaximum]) -
 
-                   (moment[cube.AlphaMaximum, cube.RedMaximum, cube.GreenMaximum, cube.BlueMinimum] -
-                    moment[cube.AlphaMinimum, cube.RedMaximum, cube.GreenMaximum, cube.BlueMinimum] -
-                    moment[cube.AlphaMaximum, cube.RedMaximum, cube.GreenMinimum, cube.BlueMinimum] +
-                    moment[cube.AlphaMinimum, cube.RedMaximum, cube.GreenMinimum, cube.BlueMinimum] -
-                    moment[cube.AlphaMaximum, cube.RedMinimum, cube.GreenMaximum, cube.BlueMinimum] +
-                    moment[cube.AlphaMinimum, cube.RedMinimum, cube.GreenMaximum, cube.BlueMinimum] +
-                    moment[cube.AlphaMaximum, cube.RedMinimum, cube.GreenMinimum, cube.BlueMinimum] -
-                    moment[cube.AlphaMinimum, cube.RedMinimum, cube.GreenMinimum, cube.BlueMinimum]);
+                   (moments[cube.AlphaMaximum, cube.RedMaximum, cube.GreenMaximum, cube.BlueMinimum] -
+                    moments[cube.AlphaMinimum, cube.RedMaximum, cube.GreenMaximum, cube.BlueMinimum] -
+                    moments[cube.AlphaMaximum, cube.RedMaximum, cube.GreenMinimum, cube.BlueMinimum] +
+                    moments[cube.AlphaMinimum, cube.RedMaximum, cube.GreenMinimum, cube.BlueMinimum] -
+                    moments[cube.AlphaMaximum, cube.RedMinimum, cube.GreenMaximum, cube.BlueMinimum] +
+                    moments[cube.AlphaMinimum, cube.RedMinimum, cube.GreenMaximum, cube.BlueMinimum] +
+                    moments[cube.AlphaMaximum, cube.RedMinimum, cube.GreenMinimum, cube.BlueMinimum] -
+                    moments[cube.AlphaMinimum, cube.RedMinimum, cube.GreenMinimum, cube.BlueMinimum]);
         }
 
+        /// <summary>
+        /// Splits the data.
+        /// </summary>
+        /// <param name="colorCount">
+        /// The color count.
+        /// </param>
+        /// <param name="moments">
+        /// The three dimensional array of <see cref="ColorMoment"/>.
+        /// </param>
+        /// <returns>
+        /// The array <see cref="Box"/>.
+        /// </returns>
+        [SuppressMessage("StyleCop.CSharp.SpacingRules", "SA1001:CommasMustBeSpacedCorrectly", Justification = "Reviewed. Suppression is OK here.")]
         private static Box[] SplitData(ref int colorCount, ColorMoment[, , ,] moments)
         {
             --colorCount;
-            var next = 0;
-            var volumeVariance = new float[colorCount];
-            var cubes = new Box[colorCount];
+            int next = 0;
+            float[] volumeVariance = new float[colorCount];
+            Box[] cubes = new Box[colorCount];
             cubes[0].AlphaMaximum = MaxSideIndex;
             cubes[0].RedMaximum = MaxSideIndex;
             cubes[0].GreenMaximum = MaxSideIndex;
             cubes[0].BlueMaximum = MaxSideIndex;
-            for (var cubeIndex = 1; cubeIndex < colorCount; ++cubeIndex)
+            for (int cubeIndex = 1; cubeIndex < colorCount; ++cubeIndex)
             {
                 if (Cut(moments, ref cubes[next], ref cubes[cubeIndex]))
                 {
@@ -448,29 +654,51 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
                 }
 
                 next = 0;
-                var temp = volumeVariance[0];
+                float temp = volumeVariance[0];
 
-                for (var index = 1; index <= cubeIndex; ++index)
+                for (int index = 1; index <= cubeIndex; ++index)
                 {
-                    if (volumeVariance[index] <= temp) continue;
+                    if (volumeVariance[index] <= temp)
+                    {
+                        continue;
+                    }
+
                     temp = volumeVariance[index];
                     next = index;
                 }
 
-                if (temp > 0.0) continue;
+                if (temp > 0.0)
+                {
+                    continue;
+                }
+
                 colorCount = cubeIndex + 1;
                 break;
             }
+
             return cubes.Take(colorCount).ToArray();
         }
 
+        /// <summary>
+        /// Builds an array of pixel data to look within.
+        /// </summary>
+        /// <param name="cubes">
+        /// The array of <see cref="Box"/> cubes.
+        /// </param>
+        /// <param name="moments">
+        /// The three dimensional array of <see cref="ColorMoment"/>.
+        /// </param>
+        /// <returns>
+        /// The array of <see cref="Pixel"/>.
+        /// </returns>
+        [SuppressMessage("StyleCop.CSharp.SpacingRules", "SA1001:CommasMustBeSpacedCorrectly", Justification = "Reviewed. Suppression is OK here.")]
         private static Pixel[] BuildLookups(Box[] cubes, ColorMoment[, , ,] moments)
         {
             Pixel[] lookups = new Pixel[cubes.Length];
 
             for (int cubeIndex = 0; cubeIndex < cubes.Length; cubeIndex++)
             {
-                ColorMoment volume = Volume(cubes[cubeIndex], moments);
+                ColorMoment volume = Volume(moments, cubes[cubeIndex]);
 
                 if (volume.Weight <= 0)
                 {
@@ -490,7 +718,5 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
 
             return lookups;
         }
-
-        internal abstract Image GetQuantizedImage(ImageBuffer image, int colorCount, Pixel[] lookups, int alphaThreshold);
     }
 }

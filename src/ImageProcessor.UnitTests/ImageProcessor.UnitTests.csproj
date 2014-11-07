@@ -55,7 +55,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssertionHelpers.cs" />
-    <Compile Include="Configuration\ImageProcessorBootrapperTests.cs" />
+    <Compile Include="Configuration\ImageProcessorBootstrapperTests.cs" />
     <Compile Include="ImageFactoryUnitTests.cs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Compile>

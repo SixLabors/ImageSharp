@@ -23,11 +23,6 @@ namespace ImageProcessor.Imaging
         private int opacity = 100;
 
         /// <summary>
-        /// The position to start creating the text from.
-        /// </summary>
-        private Point position = Point.Empty;
-
-        /// <summary>
         /// Gets or sets the image.
         /// </summary>
         public Image Image { get; set; }
@@ -49,11 +44,7 @@ namespace ImageProcessor.Imaging
         /// <summary>
         /// Gets or sets the Position of the text layer.
         /// </summary>
-        public Point Position
-        {
-            get { return this.position; }
-            set { this.position = value; }
-        }
+        public Point? Position { get; set; }
 
         /// <summary>
         /// Returns a value that indicates whether the specified object is an 

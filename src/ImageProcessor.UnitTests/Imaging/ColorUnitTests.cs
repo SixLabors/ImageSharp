@@ -12,9 +12,12 @@ namespace ImageProcessor.UnitTests.Imaging
 {
     using System.Diagnostics.CodeAnalysis;
     using System.Drawing;
-    using ImageProcessor.Imaging.Colors;
-    using NUnit.Framework;
+
     using FluentAssertions;
+
+    using ImageProcessor.Imaging.Colors;
+
+    using NUnit.Framework;
 
     /// <summary>
     /// Test harness for the color classes.

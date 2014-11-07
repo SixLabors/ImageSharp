@@ -15,8 +15,6 @@ namespace ImageProcessor.Imaging.Helpers
     using System.Drawing.Imaging;
     using System.Threading.Tasks;
 
-    using ImageProcessor.Imaging.Colors;
-
     /// <summary>
     /// Provides reusable adjustment methods to apply to images.
     /// </summary>

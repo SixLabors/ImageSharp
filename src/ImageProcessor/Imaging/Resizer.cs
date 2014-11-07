@@ -60,7 +60,7 @@ namespace ImageProcessor.Imaging
         /// <returns>
         /// The resized <see cref="Image"/>.
         /// </returns>
-        public Image ResizeImage(Image source)
+        public Bitmap ResizeImage(Image source)
         {
             int width = this.ResizeLayer.Size.Width;
             int height = this.ResizeLayer.Size.Height;
@@ -111,7 +111,7 @@ namespace ImageProcessor.Imaging
         /// <returns>
         /// The resized <see cref="Image"/>.
         /// </returns>
-        private Image ResizeImage(
+        private Bitmap ResizeImage(
             Image source,
             int width,
             int height,
@@ -275,7 +275,7 @@ namespace ImageProcessor.Imaging
 
                 if (width == 0)
                 {
-                    destinationHeight = Convert.ToInt32(sourceHeight * percentWidth);
+                    destinationWidth = Convert.ToInt32(sourceWidth * percentHeight);
                     width = destinationWidth;
                 }
 
@@ -300,7 +300,7 @@ namespace ImageProcessor.Imaging
 
                     if (reject)
                     {
-                        return source;
+                        return (Bitmap)source;
                     }
                 }
 
@@ -309,7 +309,7 @@ namespace ImageProcessor.Imaging
                     // Exit if upscaling is not allowed.
                     if ((width > sourceWidth || height > sourceHeight) && upscale == false && resizeMode != ResizeMode.Stretch)
                     {
-                        return source;
+                        return (Bitmap)source;
                     }
 
                     newImage = new Bitmap(width, height);
@@ -340,8 +340,8 @@ namespace ImageProcessor.Imaging
                         using (ImageAttributes wrapMode = new ImageAttributes())
                         {
                             wrapMode.SetWrapMode(WrapMode.TileFlipXY);
-                            Rectangle destRect = new Rectangle(destinationX, destinationY, destinationWidth, destinationHeight);
-                            graphics.DrawImage(source, destRect, 0, 0, sourceWidth, sourceHeight, GraphicsUnit.Pixel, wrapMode);
+                            Rectangle destinationRectangle = new Rectangle(destinationX, destinationY, destinationWidth, destinationHeight);
+                            graphics.DrawImage(source, destinationRectangle, 0, 0, sourceWidth, sourceHeight, GraphicsUnit.Pixel, wrapMode);
                         }
 
                         // Reassign the image.
@@ -360,7 +360,7 @@ namespace ImageProcessor.Imaging
                 throw new ImageProcessingException("Error processing image with " + this.GetType().Name, ex);
             }
 
-            return source;
+            return (Bitmap)source;
         }
     }
 }

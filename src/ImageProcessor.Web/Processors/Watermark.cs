@@ -178,7 +178,7 @@ namespace ImageProcessor.Web.Processors
         /// <returns>
         /// The correct <see cref="T:System.Drawing.Point"/>
         /// </returns>
-        private Point ParsePosition(string input)
+        private Point? ParsePosition(string input)
         {
             foreach (Match match in PositionRegex.Matches(input))
             {
@@ -193,7 +193,7 @@ namespace ImageProcessor.Web.Processors
                 }
             }
 
-            return Point.Empty;
+            return null;
         }
 
         /// <summary>
@@ -216,8 +216,6 @@ namespace ImageProcessor.Web.Processors
                     return textColor;
                 }
             }
-
-
 
             return Color.Black;
         }

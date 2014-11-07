@@ -64,14 +64,14 @@ namespace ImageProcessor.Web.HttpModules
         private static readonly string AssemblyVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
 
         /// <summary>
-        /// The locker for preventing duplicate requests.
-        /// </summary>
-        private static readonly AsyncDuplicateLock Locker = new AsyncDuplicateLock();
-
-        /// <summary>
         /// Whether to preserve exif meta data.
         /// </summary>
         private static bool? preserveExifMetaData;
+
+        /// <summary>
+        /// The locker for preventing duplicate requests.
+        /// </summary>
+        private readonly AsyncDuplicateLock locker = new AsyncDuplicateLock();
 
         /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.
@@ -366,7 +366,7 @@ namespace ImageProcessor.Web.HttpModules
                             // Process the image.
                             using (ImageFactory imageFactory = new ImageFactory(preserveExifMetaData != null && preserveExifMetaData.Value))
                             {
-                                using (await Locker.LockAsync(cachedPath))
+                                using (await this.locker.LockAsync(cachedPath))
                                 {
                                     byte[] imageBuffer;
 

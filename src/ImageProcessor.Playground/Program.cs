@@ -23,6 +23,7 @@ namespace ImageProcessor.PlayGround
     using ImageProcessor.Imaging.Filters.EdgeDetection;
     using ImageProcessor.Imaging.Filters.Photo;
     using ImageProcessor.Imaging.Formats;
+    using ImageProcessor.Processors;
 
     /// <summary>
     /// The program.
@@ -50,8 +51,9 @@ namespace ImageProcessor.PlayGround
             }
 
             // Image mask = Image.FromFile(Path.Combine(resolvedPath, "mask2.png"));
-            //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "circle.png"));
-            IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".png");
+            Image overlay = Image.FromFile(Path.Combine(resolvedPath, "monster.png"));
+            //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "cow_PNG2140.png"));
+            IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".jpg");
             //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif", ".webp", ".bmp", ".jpg", ".png", ".tif");
 
             foreach (FileInfo fileInfo in files)
@@ -67,7 +69,7 @@ namespace ImageProcessor.PlayGround
                 {
                     using (ImageFactory imageFactory = new ImageFactory(true))
                     {
-                        Size size = new Size(400, 400);
+                        Size size = new Size(200, 200);
                         ResizeLayer layer = new ResizeLayer(size, ResizeMode.Max, AnchorPosition.Center, false);
 
                         //ContentAwareResizeLayer layer = new ContentAwareResizeLayer(size)
@@ -76,7 +78,13 @@ namespace ImageProcessor.PlayGround
                         //};
                         // Load, resize, set the format and quality and save an image.
                         imageFactory.Load(inStream)
-                            //.Alpha(50)
+                            //.Overlay(new ImageLayer
+                            //            {
+                            //                Image = overlay,
+                            //                Size = size,
+                            //                Opacity = 80
+                            //            })
+                            .Alpha(50)
                             //.BackgroundColor(Color.White)
                             //.Resize(new Size((int)(size.Width * 1.1), 0))
                             //.ContentAwareResize(layer)
@@ -99,7 +107,7 @@ namespace ImageProcessor.PlayGround
                             //.Filter(MatrixFilters.HiSatch)
                             //.Pixelate(8)
                             //.GaussianSharpen(10)
-                            .Format(new PngFormat() { IsIndexed = true })
+                            //.Format(new PngFormat() { IsIndexed = true })
                             .Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", fileInfo.Name)));
 
                         stopwatch.Stop();

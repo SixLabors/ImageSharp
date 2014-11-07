@@ -81,13 +81,13 @@ namespace ImageProcessor.Processors
                         {
                             using (Brush brush = new SolidBrush(Color.FromArgb(opacity, textLayer.FontColor)))
                             {
-                                Point origin = textLayer.Position;
+                                Point? origin = textLayer.Position;
 
                                 // Work out the size of the text.
                                 SizeF textSize = graphics.MeasureString(text, font, new SizeF(image.Width, image.Height), drawFormat);
 
                                 // We need to ensure that there is a position set for the watermark
-                                if (origin == Point.Empty)
+                                if (origin == null)
                                 {
                                     int x = (int)(image.Width - textSize.Width) / 2;
                                     int y = (int)(image.Height - textSize.Height) / 2;
@@ -111,7 +111,7 @@ namespace ImageProcessor.Processors
                                         // Scale the shadow position to match the font size.
                                         // Magic number but it's based on artistic preference.
                                         int shadowDiff = (int)Math.Ceiling(fontSize / 24f);
-                                        Point shadowPoint = new Point(origin.X + shadowDiff, origin.Y + shadowDiff);
+                                        Point shadowPoint = new Point(origin.Value.X + shadowDiff, origin.Value.Y + shadowDiff);
 
                                         // Set the bounds so any overlapping text will wrap.
                                         bounds = new RectangleF(shadowPoint, new SizeF(image.Width - shadowPoint.X, image.Height - shadowPoint.Y));
@@ -121,7 +121,7 @@ namespace ImageProcessor.Processors
                                 }
 
                                 // Set the bounds so any overlapping text will wrap.
-                                bounds = new RectangleF(origin, new SizeF(image.Width - origin.X, image.Height - origin.Y));
+                                bounds = new RectangleF(origin.Value, new SizeF(image.Width - origin.Value.X, image.Height - origin.Value.Y));
 
                                 graphics.DrawString(text, font, brush, bounds, drawFormat);
                             }

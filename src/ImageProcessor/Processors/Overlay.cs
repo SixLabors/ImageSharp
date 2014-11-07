@@ -13,9 +13,11 @@ namespace ImageProcessor.Processors
     using System;
     using System.Collections.Generic;
     using System.Drawing;
+    using System.Drawing.Drawing2D;
 
     using ImageProcessor.Common.Exceptions;
     using ImageProcessor.Imaging;
+    using ImageProcessor.Imaging.Helpers;
 
     /// <summary>
     /// Adds an image overlay to the current image.
@@ -67,15 +69,60 @@ namespace ImageProcessor.Processors
             {
                 newImage = new Bitmap(image);
                 ImageLayer imageLayer = this.DynamicParameter;
-                Image overlay = imageLayer.Image;
+                Bitmap overlay = new Bitmap(imageLayer.Image);
+
+                // Set the resolution of the overlay and the image to match.
+                overlay.SetResolution(newImage.HorizontalResolution, newImage.VerticalResolution);
+
                 Size size = imageLayer.Size;
-                int opacity = Math.Min((int)Math.Ceiling((imageLayer.Opacity / 100f) * 255), 255);
+                int width = image.Width;
+                int height = image.Height;
+                int overlayWidth = Math.Min(image.Size.Width, size.Width);
+                int overlayHeight = Math.Min(image.Size.Height, size.Height);
 
+                Point? position = imageLayer.Position;
+                int opacity = imageLayer.Opacity;
 
+                if (image.Size != overlay.Size)
+                {
+                    // Find the maximum possible dimensions and resize the image.
+                    ResizeLayer layer = new ResizeLayer(new Size(overlayWidth, overlayHeight), ResizeMode.Max);
+                    overlay = new Resizer(layer).ResizeImage(overlay);
+                    overlayWidth = overlay.Width;
+                    overlayHeight = overlay.Height;
+                }
+
+                // Figure out bounds.
+                Rectangle parent = new Rectangle(0, 0, width, height);
+                Rectangle child = new Rectangle(0, 0, overlayWidth, overlayHeight);
+
+                // Apply opacity.
+                if (opacity < 100)
+                {
+                    overlay = Adjustments.Alpha(overlay, opacity);
+                }
+
+                using (Graphics graphics = Graphics.FromImage(newImage))
+                {
+                    graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                    graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                    graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                    graphics.CompositingQuality = CompositingQuality.HighQuality;
+
+                    if (position != null)
+                    {
+                        // Draw the image in position catering for overflow.
+                        graphics.DrawImage(overlay, new Point(Math.Min(position.Value.X, width - overlayWidth), Math.Min(position.Value.Y, height - overlayHeight)));
+                    }
+                    else
+                    {
+                        RectangleF centered = ImageMaths.CenteredRectangle(parent, child);
+                        graphics.DrawImage(overlay, new PointF(centered.X, centered.Y));
+                    }
+                }
 
                 image.Dispose();
                 image = newImage;
-
             }
             catch (Exception ex)
             {

@@ -17,6 +17,7 @@ namespace ImageProcessor.UnitTests
     using ImageProcessor.Imaging;
     using ImageProcessor.Imaging.Filters.EdgeDetection;
     using ImageProcessor.Imaging.Filters.Photo;
+    using ImageProcessor.Imaging.Formats;
 
     using NUnit.Framework;
 
@@ -126,7 +127,25 @@ namespace ImageProcessor.UnitTests
             {
                 Image original = (Image)imageFactory.Image.Clone();
                 imageFactory.Alpha(50);
-                AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the alpha operation should have been applied on {0}", imageFactory.ImagePath);
+
+                ISupportedImageFormat format = imageFactory.CurrentImageFormat;
+
+                if (format.GetType() == typeof(BitmapFormat))
+                {
+                    AssertionHelpers.AssertImagesAreIdentical(
+                        original,
+                        imageFactory.Image,
+                        "because the alpha operation should not have been applied on {0}",
+                        imageFactory.ImagePath);
+                }
+                else
+                {
+                    AssertionHelpers.AssertImagesAreDifferent(
+                        original,
+                        imageFactory.Image,
+                        "because the alpha operation should have been applied on {0}",
+                        imageFactory.ImagePath);
+                }
             }
         }
 

@@ -706,6 +706,27 @@ namespace ImageProcessor
         }
 
         /// <summary>
+        /// Adds a image overlay to the current image.
+        /// </summary>
+        /// <param name="imageLayer">
+        /// The <see cref="T:ImageProcessor.Imaging.ImageLayer"/> containing the properties necessary to add 
+        /// the image overlay to the image.
+        /// </param>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory Overlay(ImageLayer imageLayer)
+        {
+            if (this.ShouldProcess)
+            {
+                Overlay watermark = new Overlay { DynamicParameter = imageLayer };
+                this.CurrentImageFormat.ApplyProcessor(watermark.ProcessImage, this);
+            }
+
+            return this;
+        }
+
+        /// <summary>
         /// Pixelates an image with the given size.
         /// </summary>
         /// <param name="pixelSize">

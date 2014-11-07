@@ -43,11 +43,6 @@ namespace ImageProcessor.Imaging
         /// The font size to render the text.
         /// </summary>
         private int fontSize = 48;
-
-        /// <summary>
-        /// The position to start creating the text from.
-        /// </summary>
-        private Point position = Point.Empty;
         #endregion
 
         #region Properties
@@ -116,11 +111,7 @@ namespace ImageProcessor.Imaging
         /// <summary>
         /// Gets or sets the Position of the text layer.
         /// </summary>
-        public Point Position
-        {
-            get { return this.position; }
-            set { this.position = value; }
-        }
+        public Point? Position { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether a DropShadow should be drawn.

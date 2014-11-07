@@ -3,6 +3,11 @@
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
+// <summary>
+//   Encapsulates methods to calculate the color palette of an image using
+//   a Wu color quantizer <see href="http://www.ece.mcmaster.ca/~xwu/cq.c" />.
+//   Adapted from <see href="https://github.com/drewnoakes" />
+// </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
@@ -16,67 +21,68 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
     /// a Wu color quantizer <see href="http://www.ece.mcmaster.ca/~xwu/cq.c"/>.
     /// Adapted from <see href="https://github.com/drewnoakes"/>
     /// </summary>
-    public class WuQuantizer : WuQuantizerBase, IWuQuantizer
+    public class WuQuantizer : WuQuantizerBase
     {
         /// <summary>
-        /// The get quantized image.
+        /// Quantizes the image contained within the <see cref="ImageBuffer"/> returning the result.
         /// </summary>
-        /// <param name="image">
-        /// The image.
+        /// <param name="imageBuffer">
+        /// The <see cref="ImageBuffer"/> for storing and manipulating pixel information..
         /// </param>
         /// <param name="colorCount">
-        /// The color count.
+        /// The maximum number of colors apply to the image.
         /// </param>
         /// <param name="lookups">
-        /// The lookups.
+        /// The array of <see cref="Pixel"/> containing indexed versions of the images colors.
         /// </param>
         /// <param name="alphaThreshold">
-        /// The alpha threshold.
+        /// All colors with an alpha value less than this will be considered fully transparent.
         /// </param>
         /// <returns>
-        /// The <see cref="Image"/>.
+        /// The quantized <see cref="Bitmap"/>.
         /// </returns>
-        internal override Image GetQuantizedImage(ImageBuffer image, int colorCount, Pixel[] lookups, int alphaThreshold)
+        internal override Bitmap GetQuantizedImage(ImageBuffer imageBuffer, int colorCount, Pixel[] lookups, int alphaThreshold)
         {
-            Bitmap result = new Bitmap(image.Image.Width, image.Image.Height, PixelFormat.Format8bppIndexed);
-            result.SetResolution(image.Image.HorizontalResolution, image.Image.VerticalResolution);
+            Bitmap result = new Bitmap(imageBuffer.Image.Width, imageBuffer.Image.Height, PixelFormat.Format8bppIndexed);
+            result.SetResolution(imageBuffer.Image.HorizontalResolution, imageBuffer.Image.VerticalResolution);
             ImageBuffer resultBuffer = new ImageBuffer(result);
             PaletteColorHistory[] paletteHistogram = new PaletteColorHistory[colorCount + 1];
-            resultBuffer.UpdatePixelIndexes(IndexedPixels(image, lookups, alphaThreshold, paletteHistogram));
+            resultBuffer.UpdatePixelIndexes(IndexedPixels(imageBuffer, lookups, alphaThreshold, paletteHistogram));
             result.Palette = BuildPalette(result.Palette, paletteHistogram);
             return result;
         }
 
         /// <summary>
-        /// The build palette.
+        /// Builds a color palette from the given <see cref="PaletteColorHistory"/>.
         /// </summary>
         /// <param name="palette">
-        /// The palette.
+        /// The <see cref="ColorPalette"/> to fill.
         /// </param>
-        /// <param name="paletteHistogram">
-        /// The palette histogram.
+        /// <param name="paletteHistory">
+        /// The <see cref="PaletteColorHistory"/> containing the sum of all pixel data.
         /// </param>
         /// <returns>
         /// The <see cref="ColorPalette"/>.
         /// </returns>
-        private static ColorPalette BuildPalette(ColorPalette palette, PaletteColorHistory[] paletteHistogram)
+        private static ColorPalette BuildPalette(ColorPalette palette, PaletteColorHistory[] paletteHistory)
         {
-            for (int paletteColorIndex = 0; paletteColorIndex < paletteHistogram.Length; paletteColorIndex++)
+            int length = paletteHistory.Length;
+            for (int i = 0; i < length; i++)
             {
-                palette.Entries[paletteColorIndex] = paletteHistogram[paletteColorIndex].ToNormalizedColor();
+                palette.Entries[i] = paletteHistory[i].ToNormalizedColor();
             }
 
             return palette;
         }
 
         /// <summary>
-        /// The indexed pixels.
+        /// Gets an enumerable array of bytes representing each row of the image.
         /// </summary>
         /// <param name="image">
-        /// The image.
+        /// The <see cref="ImageBuffer"/> for storing and manipulating pixel information.
         /// </param>
         /// <param name="lookups">
-        /// The lookups.
+        /// The array of <see cref="Pixel"/> containing indexed versions of the images colors.
         /// </param>
         /// <param name="alphaThreshold">
         /// The alpha threshold.
@@ -85,7 +91,7 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
         /// The palette histogram.
         /// </param>
         /// <returns>
-        /// The <see cref="IEnumerable"/>.
+        /// The enumerable list of <see cref="byte"/> representing each pixel.
         /// </returns>
         private static IEnumerable<byte[]> IndexedPixels(ImageBuffer image, Pixel[] lookups, int alphaThreshold, PaletteColorHistory[] paletteHistogram)
         {
@@ -93,12 +99,13 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
             PaletteLookup lookup = new PaletteLookup(lookups);
 
             // Determine the correct fallback color.
-            byte fallback = (byte)(lookups.Length < AlphaColor ? 0 : AlphaColor);
+            byte fallback = lookups.Length < AlphaMax ? AlphaMin : AlphaMax;
             foreach (Pixel[] pixelLine in image.PixelLines)
             {
-                for (int pixelIndex = 0; pixelIndex < pixelLine.Length; pixelIndex++)
+                int length = pixelLine.Length;
+                for (int i = 0; i < length; i++)
                 {
-                    Pixel pixel = pixelLine[pixelIndex];
+                    Pixel pixel = pixelLine[i];
                     byte bestMatch = fallback;
                     if (pixel.Alpha > alphaThreshold)
                     {
@@ -106,7 +113,7 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
                         paletteHistogram[bestMatch].AddPixel(pixel);
                     }
 
-                    lineIndexes[pixelIndex] = bestMatch;
+                    lineIndexes[i] = bestMatch;
                 }
 
                 yield return lineIndexes;

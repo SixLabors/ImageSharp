@@ -50,7 +50,7 @@ namespace ImageProcessor.PlayGround
             }
 
             // Image mask = Image.FromFile(Path.Combine(resolvedPath, "mask2.png"));
-            //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "effect_24bit.png"));
+            //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "circle.png"));
             IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".png");
             //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif", ".webp", ".bmp", ".jpg", ".png", ".tif");
 

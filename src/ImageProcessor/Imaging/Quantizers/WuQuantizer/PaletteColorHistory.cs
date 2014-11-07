@@ -4,7 +4,7 @@
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   The palette color history.
+//   The palette color history containing the sum of all pixel data.
 //   Adapted from <see href="https://github.com/drewnoakes" />
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
@@ -14,7 +14,7 @@ namespace ImageProcessor.Imaging.Quantizers.WuQuantizer
     using System.Drawing;
 
     /// <summary>
-    /// The palette color history.
+    /// The palette color history containing the sum of all pixel data.
     /// Adapted from <see href="https://github.com/drewnoakes" />
     /// </summary>
     internal struct PaletteColorHistory

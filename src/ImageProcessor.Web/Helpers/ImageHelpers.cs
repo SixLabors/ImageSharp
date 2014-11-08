@@ -11,10 +11,13 @@
 namespace ImageProcessor.Web.Helpers
 {
     using System.IO;
+    using System.Linq;
     using System.Text;
     using System.Text.RegularExpressions;
     using ImageProcessor.Configuration;
     using ImageProcessor.Imaging.Formats;
+    using ImageProcessor.Web.Configuration;
+    using ImageProcessor.Web.Processors;
 
     /// <summary>
     /// The image helpers.
@@ -27,10 +30,9 @@ namespace ImageProcessor.Web.Helpers
         public static readonly string ExtensionRegexPattern = BuildExtensionRegexPattern();
 
         /// <summary>
-        /// The exclude regex for matching things to ignore when parsing image extensions.
-        /// TODO: This is hacky and awful and should go.
+        /// The regex for matching the format to ignore when parsing image extensions.
         /// </summary>
-        private static readonly Regex ExcludeRegex = new Regex(@"(mask|overlay)=[\w+-]+.", RegexOptions.IgnoreCase);
+        private static readonly Regex FormatProcessorRegex = new Regex(@"format=[\w+-]+.", RegexOptions.IgnoreCase);
 
         /// <summary>
         /// The image format regex.
@@ -55,31 +57,52 @@ namespace ImageProcessor.Web.Helpers
         /// <summary>
         /// Returns the correct file extension for the given string input
         /// </summary>
-        /// <param name="input">
+        /// <param name="fullPath">
         /// The string to parse.
+        /// </param>
+        /// <param name="queryString">
+        /// The querystring containing instructions.
         /// </param>
         /// <returns>
         /// The correct file extension for the given string input if it can find one; otherwise an empty string.
         /// </returns>
-        public static string GetExtension(string input)
+        public static string GetExtension(string fullPath, string queryString)
         {
-            // First filter out any troublesome elements.
-            foreach (Match exclude in ExcludeRegex.Matches(input))
-            {
-                input = input.Replace(exclude.Value, string.Empty);
-            }
+            Match match;
 
-            Match match = FormatRegex.Match(input);
+            // First check to see if the format processor is being used and test against that.
+            IWebGraphicsProcessor format = ImageProcessorConfiguration.Instance.GraphicsProcessors
+                                           .First(p => typeof(Format) == p.GetType());
+
+            if (format != null)
+            {
+                match = format.RegexPattern.Match(queryString);
+            }
+            else
+            {
+                // Test against the path minus the querystring so any other
+                // processors don't interere.
+                string trimmed = fullPath.Replace(queryString, string.Empty);
+                match = FormatRegex.Match(trimmed);
+            }
 
             if (match.Success)
             {
+                string value = match.Value;
+
+                // Clip if format processor match.
+                if (match.Value.Contains("="))
+                {
+                    value = value.Split('=')[1];
+                }
+
                 // Ah the enigma that is the png file.
-                if (match.Value.ToLowerInvariant().EndsWith("png8"))
+                if (value.ToLowerInvariant().EndsWith("png8"))
                 {
                     return "png";
                 }
 
-                return match.Value;
+                return value;
             }
 
             return string.Empty;

@@ -459,6 +459,20 @@ namespace ImageProcessor.Web.UnitTests
                             DropShadow = true, 
                             FontFamily = new FontFamily("arial") 
                         }
+                },
+                {
+                    "watermark=watermark goodness&color=fff&fontsize=36&fontstyle=italic&fontopacity=80&watermark.position=30,150&textshadow=true&fontfamily=arial", 
+                    new TextLayer
+                        {
+                            Text = "watermark goodness", 
+                            FontColor = ColorTranslator.FromHtml("#" + "ffffff"), 
+                            FontSize = 36,
+                            Style = FontStyle.Italic,
+                            Opacity = 80, 
+                            Position = new Point(30, 150),
+                            DropShadow = true, 
+                            FontFamily = new FontFamily("arial") 
+                        }
                 }
             };
 

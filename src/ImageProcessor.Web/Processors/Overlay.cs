@@ -1,11 +1,11 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="Mask.cs" company="James South">
+// <copyright file="Overlay.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   Applies a mask to the given image. If the mask is not the same size as the image
-//   it will be centered against the image.
+//   Adds an image overlay to the current image.
+//   If the overlay is larger than the image it will be scaled to match the image.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -18,37 +18,48 @@ namespace ImageProcessor.Web.Processors
     using System.Text.RegularExpressions;
     using System.Web.Hosting;
 
+    using ImageProcessor.Imaging;
     using ImageProcessor.Processors;
     using ImageProcessor.Web.Extensions;
     using ImageProcessor.Web.Helpers;
 
     /// <summary>
-    /// Applies a mask to the given image. If the mask is not the same size as the image 
-    /// it will be centered against the image.
+    /// Adds an image overlay to the current image. 
+    /// If the overlay is larger than the image it will be scaled to match the image.
     /// </summary>
-    public class Mask : IWebGraphicsProcessor
+    public class Overlay : IWebGraphicsProcessor
     {
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"(mask=|mask.\w+=)[^&]+", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"(overlay=|overlay.\w+=)[^&]+", RegexOptions.Compiled);
 
         /// <summary>
-        /// The mask image regex.
+        /// The overlay image regex.
         /// </summary>
-        private static readonly Regex ImageRegex = new Regex(@"mask=[\w+-]+." + ImageHelpers.ExtensionRegexPattern);
+        private static readonly Regex ImageRegex = new Regex(@"overlay=[\w+-]+." + ImageHelpers.ExtensionRegexPattern);
 
         /// <summary>
         /// The point regex.
         /// </summary>
-        private static readonly Regex PointRegex = new Regex(@"mask.position=\d+,\d+", RegexOptions.Compiled);
+        private static readonly Regex PointRegex = new Regex(@"overlay.position=\d+,\d+", RegexOptions.Compiled);
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Mask"/> class.
+        /// The size regex.
         /// </summary>
-        public Mask()
+        private static readonly Regex SizeRegex = new Regex(@"overlay.size=\d+,\d+", RegexOptions.Compiled);
+
+        /// <summary>
+        /// The opacity regex.
+        /// </summary>
+        private static readonly Regex OpacityRegex = new Regex(@"overlay.opacity=\d+", RegexOptions.Compiled);
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Overlay"/> class.
+        /// </summary>
+        public Overlay()
         {
-            this.Processor = new ImageProcessor.Processors.Mask();
+            this.Processor = new ImageProcessor.Processors.Overlay();
         }
 
         /// <summary>
@@ -109,9 +120,13 @@ namespace ImageProcessor.Web.Processors
             {
                 // Match syntax
                 string toParse = stringBuilder.ToString();
-                Image image = this.ParseImage(toParse);
-                Point? position = this.ParsePoint(toParse);
-                this.Processor.DynamicParameter = new Tuple<Image, Point?>(image, position);
+                this.Processor.DynamicParameter = new ImageLayer
+                {
+                    Image = this.ParseImage(toParse),
+                    Position = this.ParsePoint(toParse),
+                    Opacity = this.ParseOpacity(toParse),
+                    Size = this.ParseSize(toParse)
+                };
             }
 
             return this.SortOrder;
@@ -168,6 +183,7 @@ namespace ImageProcessor.Web.Processors
         private Point? ParsePoint(string input)
         {
             int[] dimensions = { };
+
             Match match = PointRegex.Match(input);
             if (match.Success)
             {
@@ -180,6 +196,49 @@ namespace ImageProcessor.Web.Processors
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Returns the correct <see cref="int"/> for the given string.
+        /// </summary>
+        /// <param name="input">
+        /// The input string containing the value to parse.
+        /// </param>
+        /// <returns>
+        /// The correct <see cref="int"/>
+        /// </returns>
+        private int ParseOpacity(string input)
+        {
+            int opacity = 100;
+            Match match = OpacityRegex.Match(input);
+            if (match.Success)
+            {
+                opacity = Math.Abs(CommonParameterParserUtility.ParseIn100Range(match.Value.Split('=')[1]));
+            }
+
+            return opacity;
+        }
+
+        /// <summary>
+        /// Returns the correct <see cref="Size"/> for the given string.
+        /// </summary>
+        /// <param name="input">
+        /// The input string containing the value to parse.
+        /// </param>
+        /// <returns>
+        /// The <see cref="Size"/>.
+        /// </returns>
+        private Size ParseSize(string input)
+        {
+            Size size = Size.Empty;
+            Match match = SizeRegex.Match(input);
+            if (match.Success)
+            {
+                int[] dimensions = match.Value.ToPositiveIntegerArray();
+                size = new Size(dimensions[0], dimensions[1]);
+            }
+
+            return size;
         }
     }
 }

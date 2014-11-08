@@ -28,9 +28,9 @@ namespace ImageProcessor.Web.Helpers
 
         /// <summary>
         /// The exclude regex for matching things to ignore when parsing image extensions.
-        /// I'd like to make something more extensible than this.
+        /// TODO: This is hacky and awful and should go.
         /// </summary>
-        private static readonly Regex ExcludeRegex = new Regex(@"mask=[\w+-]+.", RegexOptions.IgnoreCase);
+        private static readonly Regex ExcludeRegex = new Regex(@"(mask|overlay)=[\w+-]+.", RegexOptions.IgnoreCase);
 
         /// <summary>
         /// The image format regex.

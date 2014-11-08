@@ -21,8 +21,13 @@ namespace ImageProcessor.Imaging.Formats
     /// <summary>
     /// Provides the necessary information to support gif images.
     /// </summary>
-    public class GifFormat : FormatBase
+    public class GifFormat : FormatBase, IQuantizableImageFormat
     {
+        /// <summary>
+        /// The quantizer for reducing the image palette.
+        /// </summary>
+        private IQuantizer quantizer = new OctreeQuantizer(255, 8);
+
         /// <summary>
         /// Gets the file headers.
         /// </summary>
@@ -68,6 +73,22 @@ namespace ImageProcessor.Imaging.Formats
         }
 
         /// <summary>
+        /// Gets or sets the quantizer for reducing the image palette.
+        /// </summary>
+        public IQuantizer Quantizer
+        {
+            get
+            {
+                return this.quantizer;
+            }
+
+            set
+            {
+                this.quantizer = value;
+            }
+        }
+
+        /// <summary>
         /// Applies the given processor the current image.
         /// </summary>
         /// <param name="processor">The processor delegate.</param>
@@ -78,12 +99,11 @@ namespace ImageProcessor.Imaging.Formats
 
             if (decoder.IsAnimated)
             {
-                OctreeQuantizer quantizer = new OctreeQuantizer(255, 8);
                 GifEncoder encoder = new GifEncoder(null, null, decoder.LoopCount);
                 foreach (GifFrame frame in decoder.GifFrames)
                 {
                     factory.Image = frame.Image;
-                    frame.Image = quantizer.Quantize(processor.Invoke(factory));
+                    frame.Image = this.Quantizer.Quantize(processor.Invoke(factory));
                     encoder.AddFrame(frame);
                 }
 
@@ -109,7 +129,7 @@ namespace ImageProcessor.Imaging.Formats
         {
             if (!FormatUtilities.IsAnimated(image))
             {
-                image = new OctreeQuantizer(255, 8).Quantize(image);
+                image = this.Quantizer.Quantize(image);
             }
 
             return base.Save(stream, image);
@@ -128,7 +148,7 @@ namespace ImageProcessor.Imaging.Formats
         {
             if (!FormatUtilities.IsAnimated(image))
             {
-                image = new OctreeQuantizer(255, 8).Quantize(image);
+                image = this.Quantizer.Quantize(image);
             }
 
             return base.Save(path, image);

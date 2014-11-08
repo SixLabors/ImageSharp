@@ -83,7 +83,7 @@ namespace ImageProcessor.Processors
                 Point? position = imageLayer.Position;
                 int opacity = imageLayer.Opacity;
 
-                if (image.Size != overlay.Size)
+                if (image.Size != overlay.Size || image.Size != new Size(overlayWidth, overlayHeight))
                 {
                     // Find the maximum possible dimensions and resize the image.
                     ResizeLayer layer = new ResizeLayer(new Size(overlayWidth, overlayHeight), ResizeMode.Max);

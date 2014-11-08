@@ -112,6 +112,7 @@ namespace ImageProcessor.Web.Processors
                 if (match.Success)
                 {
                     // We don't want any resize carve or percentile crops requests to interfere.
+                    // TODO: This is hacky and awful and should go.
                     if (match.Value.ToUpperInvariant().Contains("CARVE") || match.Value.ToUpperInvariant().Contains("PERCENT"))
                     {
                         break;

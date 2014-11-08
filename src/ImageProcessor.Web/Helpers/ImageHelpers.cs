@@ -64,9 +64,9 @@ namespace ImageProcessor.Web.Helpers
         public static string GetExtension(string input)
         {
             // First filter out any troublesome elements.
-            foreach (Match exlude in ExcludeRegex.Matches(input))
+            foreach (Match exclude in ExcludeRegex.Matches(input))
             {
-                input = input.Replace(exlude.Value, string.Empty);
+                input = input.Replace(exclude.Value, string.Empty);
             }
 
             Match match = FormatRegex.Match(input);

@@ -39,7 +39,7 @@ namespace ImageProcessor.Web.Processors
         /// <summary>
         /// The regular expression to search strings for the position attribute.
         /// </summary>
-        private static readonly Regex PositionRegex = new Regex(@"(text)?position(=|-)\d+[-,]\d+", RegexOptions.Compiled);
+        private static readonly Regex PositionRegex = new Regex(@"(watermark.position|textposition|[^.](&,=)?position)(=|-)\d+[-,]\d+", RegexOptions.Compiled);
 
         /// <summary>
         /// The regular expression to search strings for the font size attribute.
@@ -59,7 +59,7 @@ namespace ImageProcessor.Web.Processors
         /// <summary>
         /// The regular expression to search strings for the opacity attribute.
         /// </summary>
-        private static readonly Regex OpacityRegex = new Regex(@"((font)?)opacity(=|-)(?:100|[1-9]?[0-9])", RegexOptions.Compiled);
+        private static readonly Regex OpacityRegex = new Regex(@"(watermark.opacity|fontopacity|[^.](&,=)?opacity)(=|-)(?:100|[1-9]?[0-9])", RegexOptions.Compiled);
 
         /// <summary>
         /// The regular expression to search strings for the shadow attribute.
@@ -182,7 +182,8 @@ namespace ImageProcessor.Web.Processors
         {
             foreach (Match match in PositionRegex.Matches(input))
             {
-                int[] position = match.Value.ToPositiveIntegerArray();
+                // Chop off the leading legacy support '='
+                int[] position = match.Value.TrimStart('=').ToPositiveIntegerArray();
 
                 if (position != null)
                 {

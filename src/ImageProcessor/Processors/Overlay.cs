@@ -20,7 +20,8 @@ namespace ImageProcessor.Processors
     using ImageProcessor.Imaging.Helpers;
 
     /// <summary>
-    /// Adds an image overlay to the current image.
+    /// Adds an image overlay to the current image. 
+    /// If the overlay is larger than the image it will be scaled to match the image.
     /// </summary>
     public class Overlay : IGraphicsProcessor
     {
@@ -77,8 +78,8 @@ namespace ImageProcessor.Processors
                 Size size = imageLayer.Size;
                 int width = image.Width;
                 int height = image.Height;
-                int overlayWidth = Math.Min(image.Size.Width, size.Width);
-                int overlayHeight = Math.Min(image.Size.Height, size.Height);
+                int overlayWidth = size != Size.Empty ? Math.Min(image.Size.Width, size.Width) : image.Size.Width;
+                int overlayHeight = size != Size.Empty ? Math.Min(image.Size.Height, size.Height) : image.Size.Height;
 
                 Point? position = imageLayer.Position;
                 int opacity = imageLayer.Opacity;

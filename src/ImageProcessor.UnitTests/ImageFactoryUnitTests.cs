@@ -130,6 +130,7 @@ namespace ImageProcessor.UnitTests
 
                 ISupportedImageFormat format = imageFactory.CurrentImageFormat;
 
+                // The Image class does not support alpha transparency in bitmaps. 
                 if (format.GetType() == typeof(BitmapFormat))
                 {
                     AssertionHelpers.AssertImagesAreIdentical(

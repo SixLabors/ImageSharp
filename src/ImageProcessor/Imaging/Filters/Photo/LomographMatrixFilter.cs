@@ -50,7 +50,7 @@ namespace ImageProcessor.Imaging.Filters.Photo
             }
 
             // Add a vignette to finish the effect.
-            destination = Effects.Vignette(destination, Color.Black);
+            destination = Effects.Vignette(destination, Color.FromArgb(220, 0, 10, 0));
 
             return (Bitmap)destination;
         }

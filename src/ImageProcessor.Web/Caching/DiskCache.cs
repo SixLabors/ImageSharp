@@ -67,6 +67,11 @@ namespace ImageProcessor.Web.Caching
         private readonly string fullPath;
 
         /// <summary>
+        /// The querystring containing processing instructions.
+        /// </summary>
+        private readonly string querystring;
+
+        /// <summary>
         /// The physical cached path.
         /// </summary>
         private string physicalCachedPath;
@@ -87,10 +92,14 @@ namespace ImageProcessor.Web.Caching
         /// <param name="fullPath">
         /// The full path for the image.
         /// </param>
-        public DiskCache(string requestPath, string fullPath)
+        /// <param name="querystring">
+        /// The querystring containing instructions.
+        /// </param>
+        public DiskCache(string requestPath, string fullPath, string querystring)
         {
             this.requestPath = requestPath;
             this.fullPath = fullPath;
+            this.querystring = querystring;
 
             // Get the physical and virtual paths.
             this.GetCachePaths();
@@ -279,7 +288,7 @@ namespace ImageProcessor.Web.Caching
                 // Use an sha1 hash of the full path including the querystring to create the image name.
                 // That name can also be used as a key for the cached image and we should be able to use
                 // The characters of that hash as sub-folders.
-                string parsedExtension = ImageHelpers.GetExtension(this.fullPath);
+                string parsedExtension = ImageHelpers.GetExtension(this.fullPath, this.querystring);
                 string encryptedName = (streamHash + this.fullPath).ToSHA1Fingerprint();
 
                 // Collision rate of about 1 in 10000 for the folder structure.

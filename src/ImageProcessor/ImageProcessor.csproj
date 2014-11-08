@@ -159,6 +159,7 @@
     <Compile Include="Common\Exceptions\ImageFormatException.cs" />
     <Compile Include="ImageFactory.cs" />
     <Compile Include="Imaging\AnchorPosition.cs" />
+    <Compile Include="Imaging\Formats\IIndexedImageFormat.cs" />
     <Compile Include="Imaging\Helpers\ImageMaths.cs" />
     <Compile Include="Imaging\ImageLayer.cs" />
     <Compile Include="Imaging\MetaData\ExifPropertyTagType.cs" />

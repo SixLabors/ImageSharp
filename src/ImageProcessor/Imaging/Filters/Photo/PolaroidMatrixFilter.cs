@@ -57,7 +57,7 @@ namespace ImageProcessor.Imaging.Filters.Photo
             destination = Effects.Glow(destination, Color.FromArgb(70, 255, 153, 102));
 
             // Add a vignette to finish the effect.
-            destination = Effects.Vignette(destination, Color.FromArgb(80, 0, 0));
+            destination = Effects.Vignette(destination, Color.FromArgb(220, 102, 34, 0));
 
             return (Bitmap)destination;
         }

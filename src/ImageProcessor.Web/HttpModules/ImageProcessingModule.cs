@@ -145,7 +145,7 @@ namespace ImageProcessor.Web.HttpModules
             this.Dispose(true);
 
             // This object will be cleaned up by the Dispose method.
-            // Therefore, you should call GC.SupressFinalize to
+            // Therefore, you should call GC.SuppressFinalize to
             // take this object off the finalization queue
             // and prevent finalization code for this object
             // from executing a second time.
@@ -269,7 +269,7 @@ namespace ImageProcessor.Web.HttpModules
         {
             HttpRequest request = context.Request;
 
-            // SHould we ignore this request?
+            // Should we ignore this request?
             if (request.RawUrl.ToUpperInvariant().Contains("IPIGNORE=TRUE"))
             {
                 return;
@@ -329,7 +329,7 @@ namespace ImageProcessor.Web.HttpModules
                     string fullPath = string.Format("{0}{1}?{2}", requestPath, parts, queryString);
 
                     // Create a new cache to help process and cache the request.
-                    DiskCache cache = new DiskCache(requestPath, fullPath);
+                    DiskCache cache = new DiskCache(requestPath, fullPath, queryString);
                     string cachedPath = cache.CachedPath;
 
                     // Since we are now rewriting the path we need to check again that the current user has access

@@ -10,6 +10,7 @@
       <Value>Laplacian</Value>
       <Value>mmmm</Value>
       <Value>orig</Value>
+      <Value>quantizable</Value>
       <Value>Scharr</Value>
       <Value>Sobel</Value>
       <Value>specifier</Value>

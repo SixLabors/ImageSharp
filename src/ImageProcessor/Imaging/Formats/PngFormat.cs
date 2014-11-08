@@ -14,13 +14,19 @@ namespace ImageProcessor.Imaging.Formats
     using System.Drawing.Imaging;
     using System.IO;
 
+    using ImageProcessor.Imaging.Quantizers;
     using ImageProcessor.Imaging.Quantizers.WuQuantizer;
 
     /// <summary>
     /// Provides the necessary information to support png images.
     /// </summary>
-    public class PngFormat : FormatBase
+    public class PngFormat : FormatBase, IQuantizableImageFormat
     {
+        /// <summary>
+        /// The quantizer for reducing the image palette.
+        /// </summary>
+        private IQuantizer quantizer = new WuQuantizer();
+
         /// <summary>
         /// Gets the file headers.
         /// </summary>
@@ -34,8 +40,6 @@ namespace ImageProcessor.Imaging.Formats
 
         /// <summary>
         /// Gets the list of file extensions.
-        /// Obviously png8 isn't a valid file extension but it's a neat way to 
-        /// add the value to the format method detection.
         /// </summary>
         public override string[] FileExtensions
         {
@@ -68,6 +72,22 @@ namespace ImageProcessor.Imaging.Formats
         }
 
         /// <summary>
+        /// Gets or sets the quantizer for reducing the image palette.
+        /// </summary>
+        public IQuantizer Quantizer
+        {
+            get
+            {
+                return this.quantizer;
+            }
+
+            set
+            {
+                this.quantizer = value;
+            }
+        }
+
+        /// <summary>
         /// Saves the current image to the specified output stream.
         /// </summary>
         /// <param name="stream">The <see cref="T:System.IO.Stream" /> to save the image information to.</param>
@@ -79,7 +99,7 @@ namespace ImageProcessor.Imaging.Formats
         {
             if (this.IsIndexed)
             {
-                image = new WuQuantizer().Quantize(image);
+                image = this.Quantizer.Quantize(image);
             }
 
             return base.Save(stream, image);
@@ -98,7 +118,7 @@ namespace ImageProcessor.Imaging.Formats
         {
             if (this.IsIndexed)
             {
-                image = new WuQuantizer().Quantize(image);
+                image = this.Quantizer.Quantize(image);
             }
 
             return base.Save(path, image);

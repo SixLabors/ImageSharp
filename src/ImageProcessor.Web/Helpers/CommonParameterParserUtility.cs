@@ -78,7 +78,7 @@ namespace ImageProcessor.Web.Helpers
                 float angle;
                 string value = match.Value;
                 value = match.Value.ToUpperInvariant().Contains("ANGLE")
-                    ? value.Substring(value.IndexOf("-", System.StringComparison.Ordinal) + 1)
+                    ? value.Substring(value.IndexOf("-", StringComparison.Ordinal) + 1)
                     : match.Value.Split('=')[1];
 
                 float.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out angle);

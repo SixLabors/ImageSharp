@@ -156,7 +156,7 @@ namespace ImageProcessor.Web.Processors
                 fuzziness = int.Parse(match.Value.Split('=')[1], CultureInfo.InvariantCulture);
             }
 
-            return Math.Max(0, Math.Min(100, fuzziness));
+            return Math.Max(0, Math.Min(128, fuzziness));
         }
     }
 }

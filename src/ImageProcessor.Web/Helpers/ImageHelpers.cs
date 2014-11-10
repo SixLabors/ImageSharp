@@ -30,11 +30,6 @@ namespace ImageProcessor.Web.Helpers
         public static readonly string ExtensionRegexPattern = BuildExtensionRegexPattern();
 
         /// <summary>
-        /// The regex for matching the format to ignore when parsing image extensions.
-        /// </summary>
-        private static readonly Regex FormatProcessorRegex = new Regex(@"format=[\w+-]+.", RegexOptions.IgnoreCase);
-
-        /// <summary>
         /// The image format regex.
         /// </summary>
         private static readonly Regex FormatRegex = new Regex(@"(\.?)(png8|" + ExtensionRegexPattern + ")", RegexOptions.IgnoreCase | RegexOptions.RightToLeft);

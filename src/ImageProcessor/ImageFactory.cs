@@ -778,7 +778,7 @@ namespace ImageProcessor
         /// The replacement <see cref="System.Drawing.Color"/>.
         /// </param>
         /// <param name="fuzziness">
-        /// A value between 0 and 100 with which to alter the target detection accuracy.
+        /// A value between 0 and 128 with which to alter the target detection accuracy.
         /// </param>
         /// <returns>
         /// The <see cref="ImageFactory"/>.
@@ -786,7 +786,7 @@ namespace ImageProcessor
         public ImageFactory ReplaceColor(Color target, Color replacement, int fuzziness = 0)
         {
             // Sanitize the input.
-            if (fuzziness < 0 || fuzziness > 100)
+            if (fuzziness < 0 || fuzziness > 128)
             {
                 fuzziness = 0;
             }

@@ -140,7 +140,7 @@ namespace ImageProcessor.Web.Services
                 TimeoutLength = int.Parse(this.Settings["Timeout"])
             };
 
-            byte[] buffer = { };
+            byte[] buffer;
 
             // Prevent response blocking.
             WebResponse webResponse = await remoteFile.GetWebResponseAsync().ConfigureAwait(false);

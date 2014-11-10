@@ -50,10 +50,10 @@ namespace ImageProcessor.PlayGround
                 di.Create();
             }
 
-            // Image mask = Image.FromFile(Path.Combine(resolvedPath, "mask2.png"));
-            Image overlay = Image.FromFile(Path.Combine(resolvedPath, "monster.png"));
+            Image mask = Image.FromFile(Path.Combine(resolvedPath, "mask.png"));
+            Image overlay = Image.FromFile(Path.Combine(resolvedPath, "imageprocessor.128.png"));
             //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "monster.png"));
-            IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".png");
+            IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".jpg");
             //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif", ".webp", ".bmp", ".jpg", ".png", ".tif");
 
             foreach (FileInfo fileInfo in files)
@@ -78,12 +78,11 @@ namespace ImageProcessor.PlayGround
                         //};
                         // Load, resize, set the format and quality and save an image.
                         imageFactory.Load(inStream)
-                            .Overlay(new ImageLayer
-                                        {
-                                            Image = overlay,
-                                            Size = size,
-                                            Opacity = 80
-                                        })
+                            //.Overlay(new ImageLayer
+                            //            {
+                            //                Image = overlay,
+                            //                Opacity = 50
+                            //            })
                             //.Alpha(50)
                             //.BackgroundColor(Color.White)
                             //.Resize(new Size((int)(size.Width * 1.1), 0))
@@ -93,7 +92,7 @@ namespace ImageProcessor.PlayGround
                             //.Mask(mask)
                             //.Format(new PngFormat())
                             //.BackgroundColor(Color.Cyan)
-                            //.ReplaceColor(Color.FromArgb(255, 1, 107, 165), Color.FromArgb(255, 1, 165, 13), 80)
+                            .ReplaceColor(Color.FromArgb(255, 223, 224), Color.FromArgb(121, 188, 255), 128)
                             //.Resize(size)
                             // .Resize(new ResizeLayer(size, ResizeMode.Max))
                             // .Resize(new ResizeLayer(size, ResizeMode.Stretch))
@@ -107,8 +106,10 @@ namespace ImageProcessor.PlayGround
                             //.Filter(MatrixFilters.HiSatch)
                             //.Pixelate(8)
                             //.GaussianSharpen(10)
-                            .Format(new PngFormat() { IsIndexed = true })
-                            .Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", fileInfo.Name)));
+                            .Format(new PngFormat())
+                            //.Format(new PngFormat() { IsIndexed = true })
+                            //.Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", fileInfo.Name)));
+                            .Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", Path.GetFileNameWithoutExtension(fileInfo.Name) + ".png")));
 
                         stopwatch.Stop();
                     }

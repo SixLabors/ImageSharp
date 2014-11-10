@@ -16,6 +16,8 @@ namespace ImageProcessor.Web.Services
     using System.Threading.Tasks;
     using System.Web;
 
+    using ImageProcessor.Web.Helpers;
+
     /// <summary>
     /// The local file image service for retrieving images from the file system.
     /// </summary>
@@ -66,6 +68,20 @@ namespace ImageProcessor.Web.Services
         /// Gets or sets the white list of <see cref="System.Uri"/>. 
         /// </summary>
         public Uri[] WhiteList { get; set; }
+
+        /// <summary>
+        /// Gets a value indicating whether the current request passes sanitizing rules.
+        /// </summary>
+        /// <param name="path">
+        /// The image path.
+        /// </param>
+        /// <returns>
+        /// <c>True</c> if the request is valid; otherwise, <c>False</c>.
+        /// </returns>
+        public bool IsValidRequest(string path)
+        {
+            return ImageHelpers.IsValidImageExtension(path);
+        }
 
         /// <summary>
         /// Gets the image using the given identifier.

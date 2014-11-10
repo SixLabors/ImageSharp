@@ -44,6 +44,17 @@ namespace ImageProcessor.Web.Services
         Uri[] WhiteList { get; set; }
 
         /// <summary>
+        /// Gets a value indicating whether the current request passes sanitizing rules.
+        /// </summary>
+        /// <param name="path">
+        /// The image path.
+        /// </param>
+        /// <returns>
+        /// <c>True</c> if the request is valid; otherwise, <c>False</c>.
+        /// </returns>
+        bool IsValidRequest(string path);
+
+        /// <summary>
         /// Gets the image using the given identifier.
         /// </summary>
         /// <param name="id">

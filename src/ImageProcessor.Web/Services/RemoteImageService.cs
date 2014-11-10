@@ -14,7 +14,6 @@ namespace ImageProcessor.Web.Services
     using System.Collections.Generic;
     using System.IO;
     using System.Net;
-    using System.Security;
     using System.Threading.Tasks;
 
     using ImageProcessor.Web.Helpers;
@@ -85,6 +84,44 @@ namespace ImageProcessor.Web.Services
         public Uri[] WhiteList { get; set; }
 
         /// <summary>
+        /// Gets a value indicating whether the current request passes sanitizing rules.
+        /// </summary>
+        /// <param name="path">
+        /// The image path.
+        /// </param>
+        /// <returns>
+        /// <c>True</c> if the request is valid; otherwise, <c>False</c>.
+        /// </returns>
+        public bool IsValidRequest(string path)
+        {
+            // Check the url is from a whitelisted location.
+            Uri url = new Uri(path);
+            string upper = url.Host.ToUpperInvariant();
+
+            // Check for root or sub domain.
+            bool validUrl = false;
+            foreach (Uri uri in this.WhiteList)
+            {
+                if (!uri.IsAbsoluteUri)
+                {
+                    Uri rebaseUri = new Uri("http://" + uri.ToString().TrimStart(new[] { '.', '/' }));
+                    validUrl = upper.StartsWith(rebaseUri.Host.ToUpperInvariant()) || upper.EndsWith(rebaseUri.Host.ToUpperInvariant());
+                }
+                else
+                {
+                    validUrl = upper.StartsWith(uri.Host.ToUpperInvariant()) || upper.EndsWith(uri.Host.ToUpperInvariant());
+                }
+
+                if (validUrl)
+                {
+                    break;
+                }
+            }
+
+            return validUrl;
+        }
+
+        /// <summary>
         /// Gets the image using the given identifier.
         /// </summary>
         /// <param name="id">
@@ -96,10 +133,6 @@ namespace ImageProcessor.Web.Services
         public async Task<byte[]> GetImage(object id)
         {
             Uri uri = new Uri(id.ToString());
-
-            // Check the url is from a whitelisted location.
-            this.CheckSafeUrlLocation(uri);
-
             RemoteFile remoteFile = new RemoteFile(uri)
             {
                 MaxDownloadSize = int.Parse(this.Settings["MaxBytes"]),
@@ -131,42 +164,6 @@ namespace ImageProcessor.Web.Services
             }
 
             return buffer;
-        }
-
-        /// <summary>
-        /// Returns a value indicating whether the current url is in a list of safe download locations.
-        /// </summary>
-        /// <param name="url">
-        /// The <see cref="System.Uri"/> to check against.
-        /// </param>
-        private void CheckSafeUrlLocation(Uri url)
-        {
-            string upper = url.Host.ToUpperInvariant();
-
-            // Check for root or sub domain.
-            bool validUrl = false;
-            foreach (Uri uri in this.WhiteList)
-            {
-                if (!uri.IsAbsoluteUri)
-                {
-                    Uri rebaseUri = new Uri("http://" + uri.ToString().TrimStart(new[] { '.', '/' }));
-                    validUrl = upper.StartsWith(rebaseUri.Host.ToUpperInvariant()) || upper.EndsWith(rebaseUri.Host.ToUpperInvariant());
-                }
-                else
-                {
-                    validUrl = upper.StartsWith(uri.Host.ToUpperInvariant()) || upper.EndsWith(uri.Host.ToUpperInvariant());
-                }
-
-                if (validUrl)
-                {
-                    break;
-                }
-            }
-
-            if (!validUrl)
-            {
-                throw new SecurityException("Application is not configured to allow remote file downloads from this domain.");
-            }
         }
     }
 }

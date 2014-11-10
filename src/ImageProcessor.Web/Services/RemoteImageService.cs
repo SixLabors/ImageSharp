@@ -15,6 +15,7 @@ namespace ImageProcessor.Web.Services
     using System.IO;
     using System.Net;
     using System.Threading.Tasks;
+    using System.Web;
 
     using ImageProcessor.Web.Helpers;
 
@@ -158,6 +159,10 @@ namespace ImageProcessor.Web.Services
                             memoryStream.Position = 0;
 
                             buffer = memoryStream.ToArray();
+                        }
+                        else
+                        {
+                            throw new HttpException(404, "No image exists at " + uri);
                         }
                     }
                 }

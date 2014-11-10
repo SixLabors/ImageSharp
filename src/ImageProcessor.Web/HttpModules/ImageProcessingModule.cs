@@ -328,6 +328,12 @@ namespace ImageProcessor.Web.HttpModules
                     string parts = !string.IsNullOrWhiteSpace(urlParameters) ? "?" + urlParameters : string.Empty;
                     string fullPath = string.Format("{0}{1}?{2}", requestPath, parts, queryString);
 
+                    // Check whether the path is valid for other requests.
+                    if (!isFileLocal && !currentService.IsValidRequest(requestPath + "?" + urlParameters))
+                    {
+                        return;
+                    }
+
                     // Create a new cache to help process and cache the request.
                     DiskCache cache = new DiskCache(requestPath, fullPath, queryString);
                     string cachedPath = cache.CachedPath;
@@ -548,12 +554,7 @@ namespace ImageProcessor.Web.HttpModules
             }
 
             // Return the file based service
-            if (ImageHelpers.IsValidImageExtension(path))
-            {
-                return services.FirstOrDefault(s => string.IsNullOrWhiteSpace(s.Prefix));
-            }
-
-            return null;
+            return services.FirstOrDefault(s => string.IsNullOrWhiteSpace(s.Prefix) && s.IsValidRequest(path));
         }
         #endregion
     }

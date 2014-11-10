@@ -78,8 +78,8 @@ namespace ImageProcessor.Processors
                 Size size = imageLayer.Size;
                 int width = image.Width;
                 int height = image.Height;
-                int overlayWidth = size != Size.Empty ? Math.Min(image.Size.Width, size.Width) : image.Size.Width;
-                int overlayHeight = size != Size.Empty ? Math.Min(image.Size.Height, size.Height) : image.Size.Height;
+                int overlayWidth = size != Size.Empty ? Math.Min(image.Size.Width, size.Width) : Math.Min(image.Size.Width, overlay.Size.Width);
+                int overlayHeight = size != Size.Empty ? Math.Min(image.Size.Height, size.Height) : Math.Min(image.Size.Height, overlay.Size.Height);
 
                 Point? position = imageLayer.Position;
                 int opacity = imageLayer.Opacity;

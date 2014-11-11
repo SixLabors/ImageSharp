@@ -130,8 +130,8 @@ namespace ImageProcessor.Web.Processors
             Match match = ReplaceRegex.Match(input);
             if (match.Success)
             {
-                string[] colorQuery = match.Value.Split('=')[1].Split('|');
-                colors = colorQuery.Select(CommonParameterParserUtility.ParseColor);
+                string[] colorQuery = match.Value.Split('=')[1].Split(new[] { "],[" }, StringSplitOptions.None);
+                colors = colorQuery.Select(s => CommonParameterParserUtility.ParseColor(s.Replace("[", string.Empty).Replace("]", string.Empty)));
             }
 
             return colors.ToArray();

@@ -25,7 +25,7 @@ namespace ImageProcessor.Web.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"(hue=|rotatehue=)[^&]+", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"(hue=|hue.\w+=)[^&]+", RegexOptions.Compiled);
 
         /// <summary>
         /// The hue regex.
@@ -35,7 +35,7 @@ namespace ImageProcessor.Web.Processors
         /// <summary>
         /// The rotate regex.
         /// </summary>
-        private static readonly Regex RotateRegex = new Regex(@"rotatehue=true", RegexOptions.Compiled);
+        private static readonly Regex RotateRegex = new Regex(@"hue.rotate=true", RegexOptions.Compiled);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Hue"/> class.

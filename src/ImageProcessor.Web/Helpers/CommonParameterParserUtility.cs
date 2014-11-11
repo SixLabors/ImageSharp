@@ -39,7 +39,7 @@ namespace ImageProcessor.Web.Helpers
         /// <summary>
         /// The regular expression to search strings for angles.
         /// </summary>
-        private static readonly Regex AngleRegex = new Regex(@"(rotate|angle)(=|-)(-)?\d+(.?\d+)?", RegexOptions.Compiled);
+        private static readonly Regex AngleRegex = new Regex(@"([^.](&,=)?rotate|angle)(=|-)(-)?\d+(.?\d+)?", RegexOptions.Compiled);
 
         /// <summary>
         /// The regular expression to search strings for values between 1 and 100.

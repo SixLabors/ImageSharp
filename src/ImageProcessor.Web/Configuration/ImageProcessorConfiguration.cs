@@ -348,12 +348,9 @@ namespace ImageProcessor.Web.Configuration
                 IImageService imageService = Activator.CreateInstance(type) as IImageService;
                 if (!string.IsNullOrWhiteSpace(config.Prefix))
                 {
-                    if (!string.IsNullOrWhiteSpace(config.Prefix))
+                    if (imageService != null)
                     {
-                        if (imageService != null)
-                        {
-                            imageService.Prefix = config.Prefix;
-                        }
+                        imageService.Prefix = config.Prefix;
                     }
                 }
 

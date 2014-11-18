@@ -280,11 +280,12 @@ namespace ImageProcessor.Web.HttpModules
             if (currentService != null)
             {
                 bool isFileLocal = currentService.IsFileLocalService;
+                bool hasMultiParams = request.Url.ToString().Count(f => f == '?') > 1;
                 string requestPath = string.Empty;
                 string queryString = string.Empty;
                 string urlParameters = string.Empty;
 
-                if (!isFileLocal)
+                if (hasMultiParams)
                 {
                     // We need to split the querystring to get the actual values we want.
                     string urlDecode = HttpUtility.UrlDecode(request.QueryString.ToString());
@@ -376,9 +377,11 @@ namespace ImageProcessor.Web.HttpModules
                                 {
                                     byte[] imageBuffer;
 
-                                    if (!isFileLocal)
+                                    if (hasMultiParams)
                                     {
-                                        Uri uri = new Uri(requestPath + "?" + urlParameters);
+                                        Uri uri = string.IsNullOrWhiteSpace(urlParameters)
+                                            ? new Uri(requestPath, UriKind.RelativeOrAbsolute)
+                                            : new Uri(requestPath + "?" + urlParameters, UriKind.RelativeOrAbsolute);
                                         imageBuffer = await currentService.GetImage(uri);
                                     }
                                     else
@@ -434,12 +437,21 @@ namespace ImageProcessor.Web.HttpModules
 
                             if (isFileLocal)
                             {
-                                // Set the headers and quit.
-                                this.SetHeaders(context, (string)context.Items[CachedResponseTypeKey], new List<string> { requestPath, cachedPath });
-                                return;
+                                // Set the headers and quit. 
+                                // Some services might only provide filename so we can't monitor for the browser.
+                                this.SetHeaders(
+                                    context,
+                                    (string)context.Items[CachedResponseTypeKey],
+                                    Path.GetFileName(requestPath) == requestPath ? new List<string> { cachedPath } : new List<string> { requestPath, cachedPath });
+                            }
+                            else
+                            {
+                                this.SetHeaders(context, (string)context.Items[CachedResponseTypeKey], new List<string> { cachedPath });
                             }
 
-                            this.SetHeaders(context, (string)context.Items[CachedResponseTypeKey], new List<string> { cachedPath });
+                            // Complete the requests but don't abort the thread.
+                            context.ApplicationInstance.CompleteRequest();
+                            return;
                         }
 
                         // The cached file is valid so just rewrite the path.
@@ -449,11 +461,6 @@ namespace ImageProcessor.Web.HttpModules
                     {
                         throw new HttpException(403, "Access denied");
                     }
-                }
-                else if (!isFileLocal)
-                {
-                    // Just re-point to the external url.
-                    HttpContext.Current.Response.Redirect(requestPath);
                 }
             }
         }
@@ -496,6 +503,9 @@ namespace ImageProcessor.Web.HttpModules
             cache.SetExpires(DateTime.Now.ToUniversalTime().AddDays(maxDays));
             cache.SetMaxAge(new TimeSpan(maxDays, 0, 0, 0));
             cache.SetRevalidation(HttpCacheRevalidation.AllCaches);
+
+            context.Items[CachedResponseTypeKey] = null;
+            context.Items[CachedResponseFileDependency] = null;
         }
 
         /// <summary>

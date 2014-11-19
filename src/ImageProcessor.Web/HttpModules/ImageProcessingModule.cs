@@ -328,9 +328,21 @@ namespace ImageProcessor.Web.HttpModules
 
                     string parts = !string.IsNullOrWhiteSpace(urlParameters) ? "?" + urlParameters : string.Empty;
                     string fullPath = string.Format("{0}{1}?{2}", requestPath, parts, queryString);
+                    object resourcePath;
+
+                    if (hasMultiParams)
+                    {
+                        resourcePath = string.IsNullOrWhiteSpace(urlParameters)
+                            ? new Uri(requestPath, UriKind.RelativeOrAbsolute)
+                            : new Uri(requestPath + "?" + urlParameters, UriKind.RelativeOrAbsolute);
+                    }
+                    else
+                    {
+                        resourcePath = requestPath;
+                    }
 
                     // Check whether the path is valid for other requests.
-                    if (!isFileLocal && !currentService.IsValidRequest(requestPath + "?" + urlParameters))
+                    if (resourcePath == null || !currentService.IsValidRequest(resourcePath.ToString()))
                     {
                         return;
                     }
@@ -375,19 +387,7 @@ namespace ImageProcessor.Web.HttpModules
                             {
                                 using (await this.locker.LockAsync(cachedPath))
                                 {
-                                    byte[] imageBuffer;
-
-                                    if (hasMultiParams)
-                                    {
-                                        Uri uri = string.IsNullOrWhiteSpace(urlParameters)
-                                            ? new Uri(requestPath, UriKind.RelativeOrAbsolute)
-                                            : new Uri(requestPath + "?" + urlParameters, UriKind.RelativeOrAbsolute);
-                                        imageBuffer = await currentService.GetImage(uri);
-                                    }
-                                    else
-                                    {
-                                        imageBuffer = await currentService.GetImage(requestPath);
-                                    }
+                                    byte[] imageBuffer = await currentService.GetImage(resourcePath);
 
                                     using (MemoryStream memoryStream = new MemoryStream(imageBuffer))
                                     {

@@ -17,6 +17,7 @@ namespace Test_Website_NET45
     using System.Web;
     using System.Web.Hosting;
 
+    using ImageProcessor.Web.Helpers;
     using ImageProcessor.Web.Services;
 
     /// <summary>
@@ -81,7 +82,7 @@ namespace Test_Website_NET45
         /// </returns>
         public bool IsValidRequest(string path)
         {
-            return true;
+            return ImageHelpers.IsValidImageExtension(path.Split(new[] { '&', '?' })[0]);
         }
 
         /// <summary>

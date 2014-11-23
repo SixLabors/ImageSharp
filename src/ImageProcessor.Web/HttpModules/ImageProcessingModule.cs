@@ -316,151 +316,161 @@ namespace ImageProcessor.Web.HttpModules
                 }
                 else
                 {
-                    requestPath = HostingEnvironment.MapPath(request.Path);
-                    queryString = HttpUtility.UrlDecode(request.QueryString.ToString());
-                }
-
-                // Only process requests that pass our sanitizing filter.
-                if (!string.IsNullOrWhiteSpace(queryString))
-                {
-                    // Replace any presets in the querystring with the actual value.
-                    queryString = this.ReplacePresetsInQueryString(queryString);
-
-                    string parts = !string.IsNullOrWhiteSpace(urlParameters) ? "?" + urlParameters : string.Empty;
-                    string fullPath = string.Format("{0}{1}?{2}", requestPath, parts, queryString);
-                    object resourcePath;
-
-                    if (hasMultiParams)
+                    if (string.IsNullOrWhiteSpace(currentService.Prefix))
                     {
-                        resourcePath = string.IsNullOrWhiteSpace(urlParameters)
-                            ? new Uri(requestPath, UriKind.RelativeOrAbsolute)
-                            : new Uri(requestPath + "?" + urlParameters, UriKind.RelativeOrAbsolute);
+                        requestPath = HostingEnvironment.MapPath(request.Path);
+                        queryString = HttpUtility.UrlDecode(request.QueryString.ToString());
                     }
                     else
                     {
-                        resourcePath = requestPath;
+                        requestPath = HttpUtility.UrlDecode(request.QueryString.ToString());
                     }
+                }
 
-                    // Check whether the path is valid for other requests.
-                    if (resourcePath == null || !currentService.IsValidRequest(resourcePath.ToString()))
+                // If the current service doesn't require a prefix, don't fetch it.
+                // Let the static file handler take over.
+                if (string.IsNullOrWhiteSpace(currentService.Prefix) && string.IsNullOrWhiteSpace(queryString))
+                {
+                    return;
+                }
+
+                // Replace any presets in the querystring with the actual value.
+                queryString = this.ReplacePresetsInQueryString(queryString);
+
+                string parts = !string.IsNullOrWhiteSpace(urlParameters) ? "?" + urlParameters : string.Empty;
+                string fullPath = string.Format("{0}{1}?{2}", requestPath, parts, queryString);
+                object resourcePath;
+
+                if (hasMultiParams)
+                {
+                    resourcePath = string.IsNullOrWhiteSpace(urlParameters)
+                        ? new Uri(requestPath, UriKind.RelativeOrAbsolute)
+                        : new Uri(requestPath + "?" + urlParameters, UriKind.RelativeOrAbsolute);
+                }
+                else
+                {
+                    resourcePath = requestPath;
+                }
+
+                // Check whether the path is valid for other requests.
+                if (resourcePath == null || !currentService.IsValidRequest(resourcePath.ToString()))
+                {
+                    return;
+                }
+
+                // Create a new cache to help process and cache the request.
+                DiskCache cache = new DiskCache(requestPath, fullPath, queryString);
+                string cachedPath = cache.CachedPath;
+
+                // Since we are now rewriting the path we need to check again that the current user has access
+                // to the rewritten path.
+                // Get the user for the current request
+                // If the user is anonymous or authentication doesn't work for this suffix avoid a NullReferenceException
+                // in the UrlAuthorizationModule by creating a generic identity.
+                string virtualCachedPath = cache.VirtualCachedPath;
+
+                IPrincipal user = context.User ?? new GenericPrincipal(new GenericIdentity(string.Empty, string.Empty), new string[0]);
+
+                // Do we have permission to call UrlAuthorizationModule.CheckUrlAccessForPrincipal?
+                PermissionSet permission = new PermissionSet(PermissionState.None);
+                permission.AddPermission(new AspNetHostingPermission(AspNetHostingPermissionLevel.Unrestricted));
+                bool hasPermission = permission.IsSubsetOf(AppDomain.CurrentDomain.PermissionSet);
+
+                bool isAllowed = true;
+
+                // Run the rewritten path past the authorization system again.
+                // We can then use the result as the default "AllowAccess" value
+                if (hasPermission && !context.SkipAuthorization)
+                {
+                    isAllowed = UrlAuthorizationModule.CheckUrlAccessForPrincipal(virtualCachedPath, user, "GET");
+                }
+
+                if (isAllowed)
+                {
+                    // Is the file new or updated?
+                    bool isNewOrUpdated = cache.IsNewOrUpdatedFile(cachedPath);
+
+                    // Only process if the file has been updated.
+                    if (isNewOrUpdated)
                     {
-                        return;
-                    }
-
-                    // Create a new cache to help process and cache the request.
-                    DiskCache cache = new DiskCache(requestPath, fullPath, queryString);
-                    string cachedPath = cache.CachedPath;
-
-                    // Since we are now rewriting the path we need to check again that the current user has access
-                    // to the rewritten path.
-                    // Get the user for the current request
-                    // If the user is anonymous or authentication doesn't work for this suffix avoid a NullReferenceException
-                    // in the UrlAuthorizationModule by creating a generic identity.
-                    string virtualCachedPath = cache.VirtualCachedPath;
-
-                    IPrincipal user = context.User ?? new GenericPrincipal(new GenericIdentity(string.Empty, string.Empty), new string[0]);
-
-                    // Do we have permission to call UrlAuthorizationModule.CheckUrlAccessForPrincipal?
-                    PermissionSet permission = new PermissionSet(PermissionState.None);
-                    permission.AddPermission(new AspNetHostingPermission(AspNetHostingPermissionLevel.Unrestricted));
-                    bool hasPermission = permission.IsSubsetOf(AppDomain.CurrentDomain.PermissionSet);
-
-                    bool isAllowed = true;
-
-                    // Run the rewritten path past the authorization system again.
-                    // We can then use the result as the default "AllowAccess" value
-                    if (hasPermission && !context.SkipAuthorization)
-                    {
-                        isAllowed = UrlAuthorizationModule.CheckUrlAccessForPrincipal(virtualCachedPath, user, "GET");
-                    }
-
-                    if (isAllowed)
-                    {
-                        // Is the file new or updated?
-                        bool isNewOrUpdated = cache.IsNewOrUpdatedFile(cachedPath);
-
-                        // Only process if the file has been updated.
-                        if (isNewOrUpdated)
+                        // Process the image.
+                        using (ImageFactory imageFactory = new ImageFactory(preserveExifMetaData != null && preserveExifMetaData.Value))
                         {
-                            // Process the image.
-                            using (ImageFactory imageFactory = new ImageFactory(preserveExifMetaData != null && preserveExifMetaData.Value))
+                            using (await this.locker.LockAsync(cachedPath))
                             {
-                                using (await this.locker.LockAsync(cachedPath))
+                                byte[] imageBuffer = await currentService.GetImage(resourcePath);
+
+                                using (MemoryStream memoryStream = new MemoryStream(imageBuffer))
                                 {
-                                    byte[] imageBuffer = await currentService.GetImage(resourcePath);
+                                    // Reset the position of the stream to ensure we're reading the correct part.
+                                    memoryStream.Position = 0;
 
-                                    using (MemoryStream memoryStream = new MemoryStream(imageBuffer))
-                                    {
-                                        // Reset the position of the stream to ensure we're reading the correct part.
-                                        memoryStream.Position = 0;
+                                    // Process the Image
+                                    imageFactory.Load(memoryStream).AutoProcess(queryString).Save(cachedPath);
 
-                                        // Process the Image
-                                        imageFactory.Load(memoryStream).AutoProcess(queryString).Save(cachedPath);
+                                    // Add to the cache.
+                                    cache.AddImageToCache(cachedPath);
 
-                                        // Add to the cache.
-                                        cache.AddImageToCache(cachedPath);
-
-                                        // Store the cached path, response type, and cache dependency in the context for later retrieval.
-                                        context.Items[CachedPathKey] = cachedPath;
-                                        context.Items[CachedResponseTypeKey] = imageFactory.CurrentImageFormat.MimeType;
-                                        context.Items[CachedResponseFileDependency] = new List<string> { cachedPath };
-                                    }
+                                    // Store the cached path, response type, and cache dependency in the context for later retrieval.
+                                    context.Items[CachedPathKey] = cachedPath;
+                                    context.Items[CachedResponseTypeKey] = imageFactory.CurrentImageFormat.MimeType;
+                                    context.Items[CachedResponseFileDependency] = new List<string> { cachedPath };
                                 }
                             }
                         }
-
-                        // Image is from the cache so the mime-type will need to be set.
-                        if (context.Items[CachedResponseTypeKey] == null)
-                        {
-                            string mimetype = ImageHelpers.GetMimeType(cachedPath);
-
-                            if (!string.IsNullOrEmpty(mimetype))
-                            {
-                                context.Items[CachedResponseTypeKey] = mimetype;
-                            }
-                        }
-
-                        if (context.Items[CachedResponseFileDependency] == null)
-                        {
-                            context.Items[CachedResponseFileDependency] = new List<string> { cachedPath };
-                        }
-
-                        string incomingEtag = context.Request.Headers["If" + "-None-Match"];
-
-                        if (incomingEtag != null && !isNewOrUpdated)
-                        {
-                            // Set the Content-Length header so the client doesn't wait for
-                            // content but keeps the connection open for other requests.
-                            context.Response.AddHeader("Content-Length", "0");
-                            context.Response.StatusCode = (int)HttpStatusCode.NotModified;
-                            context.Response.SuppressContent = true;
-
-                            if (isFileLocal)
-                            {
-                                // Set the headers and quit. 
-                                // Some services might only provide filename so we can't monitor for the browser.
-                                this.SetHeaders(
-                                    context,
-                                    (string)context.Items[CachedResponseTypeKey],
-                                    Path.GetFileName(requestPath) == requestPath ? new List<string> { cachedPath } : new List<string> { requestPath, cachedPath });
-                            }
-                            else
-                            {
-                                this.SetHeaders(context, (string)context.Items[CachedResponseTypeKey], new List<string> { cachedPath });
-                            }
-
-                            // Complete the requests but don't abort the thread.
-                            context.ApplicationInstance.CompleteRequest();
-                            return;
-                        }
-
-                        // The cached file is valid so just rewrite the path.
-                        context.RewritePath(virtualCachedPath, false);
                     }
-                    else
+
+                    // Image is from the cache so the mime-type will need to be set.
+                    if (context.Items[CachedResponseTypeKey] == null)
                     {
-                        throw new HttpException(403, "Access denied");
+                        string mimetype = ImageHelpers.GetMimeType(cachedPath);
+
+                        if (!string.IsNullOrEmpty(mimetype))
+                        {
+                            context.Items[CachedResponseTypeKey] = mimetype;
+                        }
                     }
+
+                    if (context.Items[CachedResponseFileDependency] == null)
+                    {
+                        context.Items[CachedResponseFileDependency] = new List<string> { cachedPath };
+                    }
+
+                    string incomingEtag = context.Request.Headers["If" + "-None-Match"];
+
+                    if (incomingEtag != null && !isNewOrUpdated)
+                    {
+                        // Set the Content-Length header so the client doesn't wait for
+                        // content but keeps the connection open for other requests.
+                        context.Response.AddHeader("Content-Length", "0");
+                        context.Response.StatusCode = (int)HttpStatusCode.NotModified;
+                        context.Response.SuppressContent = true;
+
+                        if (isFileLocal)
+                        {
+                            // Set the headers and quit. 
+                            // Some services might only provide filename so we can't monitor for the browser.
+                            this.SetHeaders(
+                                context,
+                                (string)context.Items[CachedResponseTypeKey],
+                                Path.GetFileName(requestPath) == requestPath ? new List<string> { cachedPath } : new List<string> { requestPath, cachedPath });
+                        }
+                        else
+                        {
+                            this.SetHeaders(context, (string)context.Items[CachedResponseTypeKey], new List<string> { cachedPath });
+                        }
+
+                        // Complete the requests but don't abort the thread.
+                        context.ApplicationInstance.CompleteRequest();
+                        return;
+                    }
+
+                    // The cached file is valid so just rewrite the path.
+                    context.RewritePath(virtualCachedPath, false);
+                }
+                else
+                {
+                    throw new HttpException(403, "Access denied");
                 }
             }
         }

@@ -53,7 +53,7 @@ namespace ImageProcessor.PlayGround
             Image mask = Image.FromFile(Path.Combine(resolvedPath, "mask.png"));
             Image overlay = Image.FromFile(Path.Combine(resolvedPath, "imageprocessor.128.png"));
             //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "monster.png"));
-            IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".jpg");
+            IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif");
             //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif", ".webp", ".bmp", ".jpg", ".png", ".tif");
 
             foreach (FileInfo fileInfo in files)
@@ -88,11 +88,10 @@ namespace ImageProcessor.PlayGround
                             //.Resize(new Size((int)(size.Width * 1.1), 0))
                             //.ContentAwareResize(layer)
                             //.Constrain(size)
-                            //.Rotate(-64)
                             //.Mask(mask)
                             //.Format(new PngFormat())
                             //.BackgroundColor(Color.Cyan)
-                            .ReplaceColor(Color.FromArgb(255, 223, 224), Color.FromArgb(121, 188, 255), 128)
+                            //.ReplaceColor(Color.FromArgb(255, 223, 224), Color.FromArgb(121, 188, 255), 128)
                             //.Resize(size)
                             // .Resize(new ResizeLayer(size, ResizeMode.Max))
                             // .Resize(new ResizeLayer(size, ResizeMode.Stretch))
@@ -104,9 +103,10 @@ namespace ImageProcessor.PlayGround
                             //.Filter(MatrixFilters.Comic)
                             //.Flip()
                             //.Filter(MatrixFilters.HiSatch)
-                            //.Pixelate(8)
+                            .Pixelate(8)
+                            .Rotate(45)
                             //.GaussianSharpen(10)
-                            .Format(new PngFormat())
+                            //.Format(new PngFormat() { IsIndexed = true })
                             //.Format(new PngFormat() { IsIndexed = true })
                             //.Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", fileInfo.Name)));
                             .Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", Path.GetFileNameWithoutExtension(fileInfo.Name) + ".png")));

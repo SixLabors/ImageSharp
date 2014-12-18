@@ -152,6 +152,10 @@
     <Content Include="Views\Home\Index.cshtml" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\ImageProcessor.Web.PostProcessor\ImageProcessor.Web.PostProcessor.csproj">
+      <Project>{55d08737-7d7e-4995-8892-bd9f944329e6}</Project>
+      <Name>ImageProcessor.Web.PostProcessor</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\ImageProcessor.Web\ImageProcessor.Web.csproj">
       <Project>{d011a778-59c8-4bfa-a770-c350216bf161}</Project>
       <Name>ImageProcessor.Web</Name>

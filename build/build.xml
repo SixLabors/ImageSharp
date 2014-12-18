@@ -13,13 +13,24 @@
 
   <project>
     <name>ImageProcessor Web</name>
-    <version>4.1.3.0</version>
+    <version>4.1.4.0</version>
     <folder>..\src\ImageProcessor.Web</folder>
     <projfile>ImageProcessor.Web.csproj</projfile>
     <outputs>
       <output folder="ImageProcessor.Web\lib\net45" />
     </outputs>
     <nuspec>ImageProcessor.Web.nuspec</nuspec>
+  </project>
+
+  <project>
+    <name>ImageProcessor Web PostProcessor</name>
+    <version>1.0.0.0</version>
+    <folder>..\src\ImageProcessor.Web.PostProcessor</folder>
+    <projfile>ImageProcessor.Web.PostProcessor.csproj</projfile>
+    <outputs>
+      <output folder="ImageProcessor.Web.PostProcessor\lib\net45" />
+    </outputs>
+    <nuspec>ImageProcessor.Web.PostProcessor.nuspec</nuspec>
   </project>
 
   <project>

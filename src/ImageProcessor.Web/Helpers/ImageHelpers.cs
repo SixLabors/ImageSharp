@@ -63,7 +63,7 @@ namespace ImageProcessor.Web.Helpers
         /// </returns>
         public static string GetExtension(string fullPath, string queryString)
         {
-            Match match;
+            Match match = null;
 
             // First check to see if the format processor is being used and test against that.
             IWebGraphicsProcessor format = ImageProcessorConfiguration.Instance.GraphicsProcessors
@@ -73,7 +73,8 @@ namespace ImageProcessor.Web.Helpers
             {
                 match = format.RegexPattern.Match(queryString);
             }
-            else
+
+            if (match == null || !match.Success)
             {
                 // Test against the path minus the querystring so any other
                 // processors don't interere.

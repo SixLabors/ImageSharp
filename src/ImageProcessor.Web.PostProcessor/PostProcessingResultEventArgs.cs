@@ -45,27 +45,27 @@ namespace ImageProcessor.Web.PostProcessor
         }
 
         /// <summary>
-        /// Gets the original file size in bytes.
+        /// Gets or sets the original file size in bytes.
         /// </summary>
         public long OriginalFileSize { get; set; }
 
         /// <summary>
-        /// Gets the original file name.
+        /// Gets or sets the original file name.
         /// </summary>
         public string OriginalFileName { get; set; }
 
         /// <summary>
-        /// Gets the result file size in bytes.
+        /// Gets or sets the result file size in bytes.
         /// </summary>
         public long ResultFileSize { get; set; }
 
         /// <summary>
-        /// 
+        /// Gets or sets the result file name.
         /// </summary>
         public string ResultFileName { get; set; }
 
         /// <summary>
-        /// Gets the difference in filesize in bytes.
+        /// Gets the difference in file size in bytes.
         /// </summary>
         public long Saving
         {
@@ -73,13 +73,13 @@ namespace ImageProcessor.Web.PostProcessor
         }
 
         /// <summary>
-        /// Gets the difference in filesize as a percentage.
+        /// Gets the difference in file size as a percentage.
         /// </summary>
         public double Percent
         {
             get
             {
-                return Math.Round(100 - this.ResultFileSize / (double)this.OriginalFileSize * 100, 1);
+                return Math.Round(100 - ((this.ResultFileSize / (double)this.OriginalFileSize) * 100), 1);
             }
         }
 
@@ -95,7 +95,7 @@ namespace ImageProcessor.Web.PostProcessor
             stringBuilder.AppendLine("Optimized " + Path.GetFileName(this.OriginalFileName));
             stringBuilder.AppendLine("Before: " + this.OriginalFileSize + " bytes");
             stringBuilder.AppendLine("After: " + this.ResultFileSize + " bytes");
-            stringBuilder.AppendLine("Saving: " + this.Saving + " bytes / " + Percent + "%");
+            stringBuilder.AppendLine("Saving: " + this.Saving + " bytes / " + this.Percent + "%");
 
             return stringBuilder.ToString();
         }

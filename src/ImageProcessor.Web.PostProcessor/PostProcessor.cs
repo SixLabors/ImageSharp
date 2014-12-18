@@ -23,10 +23,19 @@ namespace ImageProcessor.Web.PostProcessor
     /// </summary>
     internal static class PostProcessor
     {
-        public async static Task PostProcessImage(string sourceFile)
+        /// <summary>
+        /// Post processes the image asynchronously.
+        /// </summary>
+        /// <param name="sourceFile">
+        /// The source file.
+        /// </param>
+        /// <returns>
+        /// The <see cref="Task"/>.
+        /// </returns>
+        public static async Task PostProcessImageAsync(string sourceFile)
         {
             string targetFile = Path.GetTempFileName();
-            PostProcessingResultEventArgs result = await RunProcessAsync(sourceFile, targetFile);
+            PostProcessingResultEventArgs result = await RunProcess(sourceFile, targetFile);
 
             if (result != null && result.Saving > 0 && result.ResultFileSize > 0)
             {
@@ -39,7 +48,19 @@ namespace ImageProcessor.Web.PostProcessor
             }
         }
 
-        private static Task<PostProcessingResultEventArgs> RunProcessAsync(string sourceFile, string targetFile)
+        /// <summary>
+        /// Runs the process to optimize the images.
+        /// </summary>
+        /// <param name="sourceFile">
+        /// The source file.
+        /// </param>
+        /// <param name="targetFile">
+        /// The target file.
+        /// </param>
+        /// <returns>
+        /// The <see cref="Task{PostProcessingResultEventArgs}"/> containing post-processing information.
+        /// </returns>
+        private static Task<PostProcessingResultEventArgs> RunProcess(string sourceFile, string targetFile)
         {
             TaskCompletionSource<PostProcessingResultEventArgs> tcs = new TaskCompletionSource<PostProcessingResultEventArgs>();
             ProcessStartInfo start = new ProcessStartInfo("cmd")
@@ -74,6 +95,18 @@ namespace ImageProcessor.Web.PostProcessor
             return tcs.Task;
         }
 
+        /// <summary>
+        /// Gets the correct arguments to pass to the post-processor.
+        /// </summary>
+        /// <param name="sourceFile">
+        /// The source file.
+        /// </param>
+        /// <param name="targetFile">
+        /// The target file.
+        /// </param>
+        /// <returns>
+        /// The <see cref="string"/> containing the correct command arguments.
+        /// </returns>
         private static string GetArguments(string sourceFile, string targetFile)
         {
             if (!Uri.IsWellFormedUriString(sourceFile, UriKind.RelativeOrAbsolute) && !File.Exists(sourceFile))
@@ -105,6 +138,7 @@ namespace ImageProcessor.Web.PostProcessor
                 case ".gif":
                     return string.Format(CultureInfo.CurrentCulture, "/c gifsicle --crop-transparency --no-comments --no-extensions --no-names --optimize=3 --batch \"{0}\" --output=\"{1}\"", sourceFile, targetFile);
             }
+
             return null;
         }
     }

@@ -24,7 +24,7 @@
 
   <project>
     <name>ImageProcessor Web PostProcessor</name>
-    <version>1.0.0.0</version>
+    <version>1.0.1.0</version>
     <folder>..\src\ImageProcessor.Web.PostProcessor</folder>
     <projfile>ImageProcessor.Web.PostProcessor.csproj</projfile>
     <outputs>

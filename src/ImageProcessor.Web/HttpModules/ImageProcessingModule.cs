@@ -436,9 +436,7 @@ namespace ImageProcessor.Web.HttpModules
                         context.Items[CachedResponseFileDependency] = new List<string> { cachedPath };
                     }
 
-                    string incomingEtag = context.Request.Headers["If" + "-None-Match"];
-
-                    if (incomingEtag != null && !isNewOrUpdated)
+                    if (!isNewOrUpdated)
                     {
                         // Set the Content-Length header so the client doesn't wait for
                         // content but keeps the connection open for other requests.
@@ -478,7 +476,6 @@ namespace ImageProcessor.Web.HttpModules
         /// <summary>
         /// This will make the browser and server keep the output
         /// in its cache and thereby improve performance.
-        /// <see href="http://en.wikipedia.org/wiki/HTTP_ETag"/>
         /// </summary>
         /// <param name="context">
         /// the <see cref="T:System.Web.HttpContext">HttpContext</see> object that provides

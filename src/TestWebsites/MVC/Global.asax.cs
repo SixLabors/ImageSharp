@@ -10,6 +10,7 @@ namespace Test_Website_NET45
 {
     using System.Diagnostics;
     using System.Threading.Tasks;
+    using System.Web.UI.WebControls;
 
     using ImageProcessor.Web.Helpers;
     using ImageProcessor.Web.HttpModules;
@@ -28,7 +29,16 @@ namespace Test_Website_NET45
 
             // Test the post processing event.
             ImageProcessingModule.OnPostProcessing += (sender, args) => Debug.WriteLine(args.CachedImagePath);
-            //ImageProcessingModule.OnPostProcessing += this.WritePath;
+
+            ImageProcessingModule.OnProcessQuerystring += (sender, args) =>
+                {
+                    if (!args.Querystring.Contains("watermark"))
+                    {
+                        return args.Querystring += "watermark=protected&color=fff&fontsize=36&fontopacity=70textshadow=true&fontfamily=arial";
+                    }
+
+                    return args.Querystring;
+                };
         }
 
         private async void WritePath(object sender, PostProcessingEventArgs e)

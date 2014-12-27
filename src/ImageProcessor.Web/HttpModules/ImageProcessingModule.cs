@@ -108,9 +108,26 @@ namespace ImageProcessor.Web.HttpModules
         #endregion
 
         /// <summary>
+        /// The process querystring event handler.
+        /// </summary>
+        /// <param name="sender">
+        /// The sender.
+        /// </param>
+        /// <param name="e">
+        /// The <see cref="ProcessQueryStringEventArgs"/>.
+        /// </param>
+        /// <returns>Returns the processed querystring.</returns>
+        public delegate string ProcessQuerystringEventHandler(object sender, ProcessQueryStringEventArgs e);
+
+        /// <summary>
         /// The event that is called when a new image is processed.
         /// </summary>
         public static event EventHandler<PostProcessingEventArgs> OnPostProcessing;
+
+        /// <summary>
+        /// The event that is called when a querystring is processed.
+        /// </summary>
+        public static event ProcessQuerystringEventHandler OnProcessQuerystring;
 
         #region IHttpModule Members
         /// <summary>
@@ -327,15 +344,15 @@ namespace ImageProcessor.Web.HttpModules
                     }
                 }
 
+                // Replace any presets in the querystring with the actual value.
+                queryString = this.ReplacePresetsInQueryString(queryString);
+
                 // If the current service doesn't require a prefix, don't fetch it.
                 // Let the static file handler take over.
                 if (string.IsNullOrWhiteSpace(currentService.Prefix) && string.IsNullOrWhiteSpace(queryString))
                 {
                     return;
                 }
-
-                // Replace any presets in the querystring with the actual value.
-                queryString = this.ReplacePresetsInQueryString(queryString);
 
                 string parts = !string.IsNullOrWhiteSpace(urlParameters) ? "?" + urlParameters : string.Empty;
                 string fullPath = string.Format("{0}{1}?{2}", requestPath, parts, queryString);
@@ -526,16 +543,27 @@ namespace ImageProcessor.Web.HttpModules
         /// </returns>
         private string ReplacePresetsInQueryString(string queryString)
         {
-            foreach (Match match in PresetRegex.Matches(queryString))
+            if (!string.IsNullOrWhiteSpace(queryString))
             {
-                if (match.Success)
+                foreach (Match match in PresetRegex.Matches(queryString))
                 {
-                    string preset = match.Value.Split('=')[1];
+                    if (match.Success)
+                    {
+                        string preset = match.Value.Split('=')[1];
 
-                    // We use the processor config system to store the preset values.
-                    string replacements = ImageProcessorConfiguration.Instance.GetPresetSettings(preset);
-                    queryString = Regex.Replace(queryString, preset, replacements ?? string.Empty);
+                        // We use the processor config system to store the preset values.
+                        string replacements = ImageProcessorConfiguration.Instance.GetPresetSettings(preset);
+                        queryString = Regex.Replace(queryString, preset, replacements ?? string.Empty);
+                    }
                 }
+            }
+
+            // Fire the process querystring event.
+            ProcessQuerystringEventHandler handler = OnProcessQuerystring;
+            if (handler != null)
+            {
+                ProcessQueryStringEventArgs args = new ProcessQueryStringEventArgs { Querystring = queryString ?? string.Empty };
+                queryString = handler(this, args);
             }
 
             return queryString;

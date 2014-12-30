@@ -32,7 +32,7 @@ namespace Test_Website_NET45
 
             ImageProcessingModule.OnProcessQuerystring += (sender, args) =>
                 {
-                    if (!args.Querystring.Contains("watermark"))
+                    if (!args.RawUrl.Contains("penguins"))
                     {
                         return args.Querystring += "watermark=protected&color=fff&fontsize=36&fontopacity=70textshadow=true&fontfamily=arial";
                     }

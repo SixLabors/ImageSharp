@@ -21,5 +21,10 @@ namespace ImageProcessor.Web.Helpers
         /// Gets or sets the querystring.
         /// </summary>
         public string Querystring { get; set; }
+
+        /// <summary>
+        /// Gets or sets the raw http request url.
+        /// </summary>
+        public string RawUrl { get; set; }
     }
 }

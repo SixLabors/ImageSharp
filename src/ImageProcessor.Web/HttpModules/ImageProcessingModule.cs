@@ -346,6 +346,9 @@ namespace ImageProcessor.Web.HttpModules
 
                 // Replace any presets in the querystring with the actual value.
                 queryString = this.ReplacePresetsInQueryString(queryString);
+                
+                // Execute the handler which can change the querystring 
+                queryString = this.CheckQuerystringHandler( queryString, request.RawUrl );
 
                 // If the current service doesn't require a prefix, don't fetch it.
                 // Let the static file handler take over.
@@ -557,13 +560,26 @@ namespace ImageProcessor.Web.HttpModules
                     }
                 }
             }
-
+            return queryString;
+        }
+        /// <summary>
+        /// Checks if there is a handler that changes the querystring and executes that handler.
+        /// </summary>
+        /// <param name="queryString">
+        /// The query string.
+        /// </param>
+        /// <param name="rawUrl">
+        /// The raw request url.
+        /// </param>
+        /// <returns>
+        /// The <see cref="string"/> containing the updated querystring.
+        /// </returns>
+        private string CheckQuerystringHandler(string queryString, string rawUrl) {
             // Fire the process querystring event.
             ProcessQuerystringEventHandler handler = OnProcessQuerystring;
-            if (handler != null)
-            {
-                ProcessQueryStringEventArgs args = new ProcessQueryStringEventArgs { Querystring = queryString ?? string.Empty };
-                queryString = handler(this, args);
+            if ( handler != null ) {
+                ProcessQueryStringEventArgs args = new ProcessQueryStringEventArgs { Querystring = queryString ?? string.Empty, RawUrl = rawUrl ?? string.Empty };
+                queryString = handler( this, args );
             }
 
             return queryString;

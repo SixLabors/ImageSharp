@@ -453,35 +453,17 @@ namespace ImageProcessor.Web.HttpModules
 
                     if (context.Items[CachedResponseFileDependency] == null)
                     {
-                        context.Items[CachedResponseFileDependency] = new List<string> { cachedPath };
-                    }
-
-                    string incomingEtag = context.Request.Headers["If-None-Match"];
-
-                    if (incomingEtag != null && !isNewOrUpdated)
-                    {
-                        // Set the Content-Length header so the client doesn't wait for
-                        // content but keeps the connection open for other requests.
-                        context.Response.AddHeader("Content-Length", "0");
-                        context.Response.StatusCode = (int)HttpStatusCode.NotModified;
-
                         if (isFileLocal)
                         {
-                            // Set the headers and quit. 
                             // Some services might only provide filename so we can't monitor for the browser.
-                            this.SetHeaders(
-                                context,
-                                (string)context.Items[CachedResponseTypeKey],
-                                Path.GetFileName(requestPath) == requestPath ? new List<string> { cachedPath } : new List<string> { requestPath, cachedPath });
+                            context.Items[CachedResponseFileDependency] = Path.GetFileName(requestPath) == requestPath
+                                ? new List<string> { cachedPath }
+                                : new List<string> { requestPath, cachedPath };
                         }
                         else
                         {
-                            this.SetHeaders(context, (string)context.Items[CachedResponseTypeKey], new List<string> { cachedPath });
+                            context.Items[CachedResponseFileDependency] = new List<string> { cachedPath };
                         }
-
-                        // Complete the requests but don't abort the thread.
-                        context.ApplicationInstance.CompleteRequest();
-                        return;
                     }
 
                     // The cached file is valid so just rewrite the path.

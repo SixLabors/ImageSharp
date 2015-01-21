@@ -188,7 +188,7 @@ namespace ImageProcessor.Web.Configuration
         {
             if (this.GraphicsProcessors == null)
             {
-                if (GetImageProcessingSection().Plugins.AutoLoadPlugins)
+                if (GetImageProcessingSection().AutoLoadPlugins)
                 {
                     Type type = typeof(IWebGraphicsProcessor);
                     try
@@ -291,7 +291,7 @@ namespace ImageProcessor.Web.Configuration
         {
             if (this.ImageServices == null)
             {
-                if (GetImageSecuritySection().ImageServices.AutoLoadServices)
+                if (GetImageSecuritySection().AutoLoadServices)
                 {
                     Type type = typeof(IImageService);
                     try

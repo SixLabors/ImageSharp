@@ -37,6 +37,11 @@ namespace ImageProcessor.Web.Configuration
                 return o as ServiceElementCollection;
             }
         }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to auto load services.
+        /// </summary>
+        public bool AutoLoadServices { get; set; }
         #endregion
 
         #region Methods
@@ -50,6 +55,7 @@ namespace ImageProcessor.Web.Configuration
 
             if (imageSecuritySection != null)
             {
+                imageSecuritySection.AutoLoadServices = false;
                 return imageSecuritySection;
             }
 
@@ -57,7 +63,7 @@ namespace ImageProcessor.Web.Configuration
             XmlReader reader = new XmlTextReader(new StringReader(section));
             imageSecuritySection = new ImageSecuritySection();
             imageSecuritySection.DeserializeSection(reader);
-
+            imageSecuritySection.AutoLoadServices = true;
             return imageSecuritySection;
         }
         #endregion
@@ -139,19 +145,6 @@ namespace ImageProcessor.Web.Configuration
         /// </summary>
         public class ServiceElementCollection : ConfigurationElementCollection
         {
-            /// <summary>
-            /// Gets or sets a value indicating whether to auto load all plugins.
-            /// <remarks>Defaults to <value>True</value>.</remarks>
-            /// </summary>
-            /// <value>If True plugins are auto discovered and loaded from all assemblies otherwise they must be defined in the configuration file</value>
-            [ConfigurationProperty("autoLoadServices", DefaultValue = true, IsRequired = false)]
-            public bool AutoLoadServices
-            {
-                get { return (bool)this["autoLoadServices"]; }
-
-                set { this["autoLoadServices"] = value; }
-            }
-
             /// <summary>
             /// Gets the type of the <see cref="T:System.Configuration.ConfigurationElementCollection"/>.
             /// </summary>

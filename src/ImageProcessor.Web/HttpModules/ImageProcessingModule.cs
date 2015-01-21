@@ -346,9 +346,9 @@ namespace ImageProcessor.Web.HttpModules
 
                 // Replace any presets in the querystring with the actual value.
                 queryString = this.ReplacePresetsInQueryString(queryString);
-                
+
                 // Execute the handler which can change the querystring 
-                queryString = this.CheckQuerystringHandler( queryString, request.RawUrl );
+                queryString = this.CheckQuerystringHandler(queryString, request.RawUrl);
 
                 // If the current service doesn't require a prefix, don't fetch it.
                 // Let the static file handler take over.
@@ -456,13 +456,14 @@ namespace ImageProcessor.Web.HttpModules
                         context.Items[CachedResponseFileDependency] = new List<string> { cachedPath };
                     }
 
-                    if (!isNewOrUpdated)
+                    string incomingEtag = context.Request.Headers["If-None-Match"];
+
+                    if (incomingEtag != null && !isNewOrUpdated)
                     {
                         // Set the Content-Length header so the client doesn't wait for
                         // content but keeps the connection open for other requests.
                         context.Response.AddHeader("Content-Length", "0");
                         context.Response.StatusCode = (int)HttpStatusCode.NotModified;
-                        context.Response.SuppressContent = true;
 
                         if (isFileLocal)
                         {
@@ -560,8 +561,10 @@ namespace ImageProcessor.Web.HttpModules
                     }
                 }
             }
+
             return queryString;
         }
+
         /// <summary>
         /// Checks if there is a handler that changes the querystring and executes that handler.
         /// </summary>
@@ -574,12 +577,14 @@ namespace ImageProcessor.Web.HttpModules
         /// <returns>
         /// The <see cref="string"/> containing the updated querystring.
         /// </returns>
-        private string CheckQuerystringHandler(string queryString, string rawUrl) {
+        private string CheckQuerystringHandler(string queryString, string rawUrl)
+        {
             // Fire the process querystring event.
             ProcessQuerystringEventHandler handler = OnProcessQuerystring;
-            if ( handler != null ) {
+            if (handler != null)
+            {
                 ProcessQueryStringEventArgs args = new ProcessQueryStringEventArgs { Querystring = queryString ?? string.Empty, RawUrl = rawUrl ?? string.Empty };
-                queryString = handler( this, args );
+                queryString = handler(this, args);
             }
 
             return queryString;

@@ -11,13 +11,11 @@
 
 namespace ImageProcessor.Web.Configuration
 {
-    #region Using
     using System.Configuration;
     using System.IO;
     using System.Linq;
     using System.Xml;
     using ImageProcessor.Web.Helpers;
-    #endregion
 
     /// <summary>
     /// Represents an image processing section within a configuration file.
@@ -26,7 +24,6 @@ namespace ImageProcessor.Web.Configuration
     public sealed class ImageProcessingSection : ConfigurationSection
     {
         #region Properties
-
         /// <summary>
         /// Gets or sets a value indicating whether to preserve exif meta data.
         /// </summary>
@@ -66,6 +63,11 @@ namespace ImageProcessor.Web.Configuration
                 return this["plugins"] as PluginElementCollection;
             }
         }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to auto load plugins.
+        /// </summary>
+        public bool AutoLoadPlugins { get; set; }
         #endregion
 
         #region Methods
@@ -80,6 +82,7 @@ namespace ImageProcessor.Web.Configuration
 
             if (imageProcessingSection != null)
             {
+                imageProcessingSection.AutoLoadPlugins = false;
                 return imageProcessingSection;
             }
 
@@ -87,7 +90,7 @@ namespace ImageProcessor.Web.Configuration
             XmlReader reader = new XmlTextReader(new StringReader(section));
             imageProcessingSection = new ImageProcessingSection();
             imageProcessingSection.DeserializeSection(reader);
-
+            imageProcessingSection.AutoLoadPlugins = true;
             return imageProcessingSection;
         }
         #endregion
@@ -251,19 +254,6 @@ namespace ImageProcessor.Web.Configuration
         /// </summary>
         public class PluginElementCollection : ConfigurationElementCollection
         {
-            /// <summary>
-            /// Gets or sets a value indicating whether to auto load all plugins.
-            /// <remarks>Defaults to <value>True</value>.</remarks>
-            /// </summary>
-            /// <value>If True plugins are auto discovered and loaded from all assemblies otherwise they must be defined in the configuration file</value>
-            [ConfigurationProperty("autoLoadPlugins", DefaultValue = true, IsRequired = false)]
-            public bool AutoLoadPlugins
-            {
-                get { return (bool)this["autoLoadPlugins"]; }
-
-                set { this["autoLoadPlugins"] = value; }
-            }
-
             /// <summary>
             /// Gets the type of the <see cref="T:System.Configuration.ConfigurationElementCollection"/>.
             /// </summary>

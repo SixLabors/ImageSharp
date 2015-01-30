@@ -12,6 +12,7 @@ namespace ImageProcessor.Imaging.Filters.EdgeDetection
 {
     using System;
     using System.Drawing;
+    using System.Drawing.Drawing2D;
     using System.Drawing.Imaging;
     using System.Threading.Tasks;
 
@@ -57,29 +58,42 @@ namespace ImageProcessor.Imaging.Filters.EdgeDetection
         {
             int width = source.Width;
             int height = source.Height;
+            int maxWidth = width + 1;
+            int maxHeight = height + 1;
+            int bufferedWidth = width + 2;
+            int bufferedHeight = height + 2;
 
             Bitmap destination = new Bitmap(width, height);
-            Bitmap input = new Bitmap(width, height);
+            Bitmap input = new Bitmap(bufferedWidth, bufferedHeight);
             destination.SetResolution(source.HorizontalResolution, source.VerticalResolution);
             input.SetResolution(source.HorizontalResolution, source.VerticalResolution);
 
             using (Graphics graphics = Graphics.FromImage(input))
             {
+                // Fixes an issue with transparency not converting properly.
+                graphics.Clear(Color.Transparent);
+
+                Rectangle destinationRectangle = new Rectangle(0, 0, bufferedWidth, bufferedHeight);
                 Rectangle rectangle = new Rectangle(0, 0, width, height);
-                if (this.greyscale)
+
+                // If it's greyscale apply a colormatrix to the image.
+                using (ImageAttributes attributes = new ImageAttributes())
                 {
-                    // If it's greyscale apply a colormatrix to the image.
-                    using (ImageAttributes attributes = new ImageAttributes())
+                    if (this.greyscale)
                     {
                         attributes.SetColorMatrix(ColorMatrixes.GreyScale);
-                        graphics.DrawImage(source, rectangle, 0, 0, width, height, GraphicsUnit.Pixel, attributes);
                     }
-                }
-                else
-                {
-                    // Fixes an issue with transparency not converting properly.
-                    graphics.Clear(Color.Transparent);
-                    graphics.DrawImage(source, rectangle);
+
+                    // We use a trick here to detect right to the edges of the image.
+                    // flip/tile the image with a pixel in excess in each direction to duplicate pixels.
+                    // Later on we draw pixels without that excess.
+                    using (TextureBrush tb = new TextureBrush(source, rectangle, attributes))
+                    {
+                        tb.WrapMode = WrapMode.TileFlipXY;
+                        tb.TranslateTransform(1, 1);
+
+                        graphics.FillRectangle(tb, destinationRectangle);
+                    }
                 }
             }
 
@@ -97,10 +111,10 @@ namespace ImageProcessor.Imaging.Filters.EdgeDetection
                         // Loop through the pixels.
                         Parallel.For(
                             0,
-                            height,
+                            bufferedHeight,
                             y =>
                             {
-                                for (int x = 0; x < width; x++)
+                                for (int x = 0; x < bufferedWidth; x++)
                                 {
                                     double rX = 0;
                                     double gX = 0;
@@ -119,7 +133,7 @@ namespace ImageProcessor.Imaging.Filters.EdgeDetection
                                         }
 
                                         // Outwith the current bounds so break.
-                                        if (offsetY >= height)
+                                        if (offsetY >= bufferedHeight)
                                         {
                                             break;
                                         }
@@ -135,7 +149,7 @@ namespace ImageProcessor.Imaging.Filters.EdgeDetection
                                                 continue;
                                             }
 
-                                            if (offsetX < width)
+                                            if (offsetX < bufferedWidth)
                                             {
                                                 // ReSharper disable once AccessToDisposedClosure
                                                 Color currentColor = sourceBitmap.GetPixel(offsetX, offsetY);
@@ -158,8 +172,11 @@ namespace ImageProcessor.Imaging.Filters.EdgeDetection
                                     byte blue = bX.ToByte();
 
                                     Color newColor = Color.FromArgb(red, green, blue);
-                                    // ReSharper disable once AccessToDisposedClosure
-                                    destinationBitmap.SetPixel(x, y, newColor);
+                                    if (y > 0 && x > 0 && y < maxHeight && x < maxWidth)
+                                    {
+                                        // ReSharper disable once AccessToDisposedClosure
+                                        destinationBitmap.SetPixel(x - 1, y - 1, newColor);
+                                    }
                                 }
                             });
                     }
@@ -169,17 +186,6 @@ namespace ImageProcessor.Imaging.Filters.EdgeDetection
             {
                 // We created a new image. Cleanup.
                 input.Dispose();
-            }
-
-            // Draw a black rectangle around the area to ensure that the first row/column in covered.
-            using (Graphics graphics = Graphics.FromImage(destination))
-            {
-                // Draw an edge around the image.
-                using (Pen blackPen = new Pen(Color.Black))
-                {
-                    blackPen.Width = 4;
-                    graphics.DrawRectangle(blackPen, new Rectangle(0, 0, destination.Width, destination.Height));
-                }
             }
 
             return destination;
@@ -194,29 +200,42 @@ namespace ImageProcessor.Imaging.Filters.EdgeDetection
         {
             int width = source.Width;
             int height = source.Height;
+            int maxWidth = width + 1;
+            int maxHeight = height + 1;
+            int bufferedWidth = width + 2;
+            int bufferedHeight = height + 2;
 
             Bitmap destination = new Bitmap(width, height);
-            Bitmap input = new Bitmap(width, height);
+            Bitmap input = new Bitmap(bufferedWidth, bufferedHeight);
             destination.SetResolution(source.HorizontalResolution, source.VerticalResolution);
             input.SetResolution(source.HorizontalResolution, source.VerticalResolution);
 
             using (Graphics graphics = Graphics.FromImage(input))
             {
+                // Fixes an issue with transparency not converting properly.
+                graphics.Clear(Color.Transparent);
+
+                Rectangle destinationRectangle = new Rectangle(0, 0, bufferedWidth, bufferedHeight);
                 Rectangle rectangle = new Rectangle(0, 0, width, height);
-                if (this.greyscale)
+
+                // If it's greyscale apply a colormatrix to the image.
+                using (ImageAttributes attributes = new ImageAttributes())
                 {
-                    // If it's greyscale apply a colormatrix to the image.
-                    using (ImageAttributes attributes = new ImageAttributes())
+                    if (this.greyscale)
                     {
                         attributes.SetColorMatrix(ColorMatrixes.GreyScale);
-                        graphics.DrawImage(source, rectangle, 0, 0, width, height, GraphicsUnit.Pixel, attributes);
                     }
-                }
-                else
-                {
-                    // Fixes an issue with transparency not converting properly.
-                    graphics.Clear(Color.Transparent);
-                    graphics.DrawImage(source, rectangle);
+
+                    // We use a trick here to detect right to the edges of the image.
+                    // flip/tile the image with a pixel in excess in each direction to duplicate pixels.
+                    // Later on we draw pixels without that excess.
+                    using (TextureBrush tb = new TextureBrush(source, rectangle, attributes))
+                    {
+                        tb.WrapMode = WrapMode.TileFlipXY;
+                        tb.TranslateTransform(1, 1);
+
+                        graphics.FillRectangle(tb, destinationRectangle);
+                    }
                 }
             }
 
@@ -235,10 +254,10 @@ namespace ImageProcessor.Imaging.Filters.EdgeDetection
                         // Loop through the pixels.
                         Parallel.For(
                             0,
-                            height,
+                            bufferedHeight,
                             y =>
                             {
-                                for (int x = 0; x < width; x++)
+                                for (int x = 0; x < bufferedWidth; x++)
                                 {
                                     double rX = 0;
                                     double rY = 0;
@@ -260,7 +279,7 @@ namespace ImageProcessor.Imaging.Filters.EdgeDetection
                                         }
 
                                         // Outwith the current bounds so break.
-                                        if (offsetY >= height)
+                                        if (offsetY >= bufferedHeight)
                                         {
                                             break;
                                         }
@@ -276,7 +295,7 @@ namespace ImageProcessor.Imaging.Filters.EdgeDetection
                                                 continue;
                                             }
 
-                                            if (offsetX < width)
+                                            if (offsetX < bufferedWidth)
                                             {
                                                 // ReSharper disable once AccessToDisposedClosure
                                                 Color currentColor = sourceBitmap.GetPixel(offsetX, offsetY);
@@ -302,8 +321,11 @@ namespace ImageProcessor.Imaging.Filters.EdgeDetection
                                     byte blue = Math.Sqrt((bX * bX) + (bY * bY)).ToByte();
 
                                     Color newColor = Color.FromArgb(red, green, blue);
-                                    // ReSharper disable once AccessToDisposedClosure
-                                    destinationBitmap.SetPixel(x, y, newColor);
+                                    if (y > 0 && x > 0 && y < maxHeight && x < maxWidth)
+                                    {
+                                        // ReSharper disable once AccessToDisposedClosure
+                                        destinationBitmap.SetPixel(x - 1, y - 1, newColor);
+                                    }
                                 }
                             });
                     }
@@ -313,17 +335,6 @@ namespace ImageProcessor.Imaging.Filters.EdgeDetection
             {
                 // We created a new image. Cleanup.
                 input.Dispose();
-            }
-
-            // Draw a black rectangle around the area to ensure that the first row/column in covered.
-            using (Graphics graphics = Graphics.FromImage(destination))
-            {
-                // Draw an edge around the image.
-                using (Pen blackPen = new Pen(Color.Black))
-                {
-                    blackPen.Width = 4;
-                    graphics.DrawRectangle(blackPen, new Rectangle(0, 0, destination.Width, destination.Height));
-                }
             }
 
             return destination;

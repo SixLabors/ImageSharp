@@ -64,6 +64,7 @@ namespace ImageProcessor.Processors
 
                 // Search for the first white pixels
                 Rectangle rectangle = ImageMaths.GetFilteredBoundingRectangle(grey, 0);
+                grey.Dispose();
 
                 newImage = new Bitmap(rectangle.Width, rectangle.Height);
                 newImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
@@ -80,7 +81,6 @@ namespace ImageProcessor.Processors
                 }
 
                 // Reassign the image.
-                grey.Dispose();
                 image.Dispose();
                 image = newImage;
             }

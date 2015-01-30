@@ -50,7 +50,7 @@ namespace ImageProcessor.PlayGround
 
             // Image mask = Image.FromFile(Path.Combine(resolvedPath, "mask.png"));
             // Image overlay = Image.FromFile(Path.Combine(resolvedPath, "imageprocessor.128.png"));
-            FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "test5.jpg"));
+            FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "bob_revolutionpro_wilderness_02_2013_72dpi_2000x2000.jpg"));
             IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif");
             //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif", ".webp", ".bmp", ".jpg", ".png", ".tif");
 
@@ -91,11 +91,11 @@ namespace ImageProcessor.PlayGround
                         //.BackgroundColor(Color.Cyan)
                         //.ReplaceColor(Color.FromArgb(255, 223, 224), Color.FromArgb(121, 188, 255), 128)
                         //.Resize(size)
-                        .Resize(new ResizeLayer(size, ResizeMode.Max))
+                        //.Resize(new ResizeLayer(size, ResizeMode.Max))
                         // .Resize(new ResizeLayer(size, ResizeMode.Stretch))
-                        //.DetectEdges(new SobelEdgeFilter(), true)
+                        //.DetectEdges(new Laplacian3X3EdgeFilter(), true)
                         //.DetectEdges(new LaplacianOfGaussianEdgeFilter())
-                        //.EntropyCrop()
+                        .EntropyCrop()
                         //.Filter(MatrixFilters.Invert)
                         //.Contrast(50)
                         //.Filter(MatrixFilters.Comic)

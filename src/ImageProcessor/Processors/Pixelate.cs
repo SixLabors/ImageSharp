@@ -69,9 +69,7 @@ namespace ImageProcessor.Processors
             {
                 Tuple<int, Rectangle?> parameters = this.DynamicParameter;
                 int size = parameters.Item1;
-                Rectangle rectangle = parameters.Item2.HasValue
-                                      ? parameters.Item2.Value
-                                      : new Rectangle(0, 0, image.Width, image.Height);
+                Rectangle rectangle = parameters.Item2 ?? new Rectangle(0, 0, image.Width, image.Height);
                 int x = rectangle.X;
                 int y = rectangle.Y;
                 int offset = size / 2;

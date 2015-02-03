@@ -131,13 +131,16 @@
     <Compile Include="Common\Extensions\DoubleExtensions.cs" />
     <Compile Include="Configuration\NativeBinaryFactory.cs" />
     <Compile Include="Configuration\NativeMethods.cs" />
+    <Compile Include="Imaging\Colors\CmykColor.cs" />
     <Compile Include="Imaging\Colors\Color32.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Imaging\Colors\ColorExtensions.cs" />
     <Compile Include="Imaging\Colors\HslaColor.cs" />
     <Compile Include="Imaging\Colors\RgbaColor.cs" />
     <Compile Include="Imaging\Colors\RgbaComponent.cs" />
     <Compile Include="Imaging\Colors\YCbCrColor.cs" />
+    <Compile Include="Imaging\Filters\Artistic\HalftoneFilter.cs" />
     <Compile Include="Imaging\Filters\Artistic\OilPaintingFilter.cs" />
     <Compile Include="Imaging\Filters\EdgeDetection\ConvolutionFilter.cs" />
     <Compile Include="Imaging\Filters\EdgeDetection\I2DEdgeFilter.cs" />
@@ -223,6 +226,7 @@
     <Compile Include="Processors\Brightness.cs" />
     <Compile Include="Processors\Contrast.cs" />
     <Compile Include="Processors\GaussianSharpen.cs" />
+    <Compile Include="Processors\Halftone.cs" />
     <Compile Include="Processors\Hue.cs" />
     <Compile Include="Processors\Mask.cs" />
     <Compile Include="Processors\Meta.cs" />

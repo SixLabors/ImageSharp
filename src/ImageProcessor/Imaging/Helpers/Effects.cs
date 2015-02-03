@@ -43,7 +43,7 @@ namespace ImageProcessor.Imaging.Helpers
         {
             using (Graphics graphics = Graphics.FromImage(source))
             {
-                Rectangle bounds = rectangle.HasValue ? rectangle.Value : new Rectangle(0, 0, source.Width, source.Height);
+                Rectangle bounds = rectangle ?? new Rectangle(0, 0, source.Width, source.Height);
                 Rectangle ellipsebounds = bounds;
 
                 // Increase the rectangle size by the difference between the rectangle dimensions and sqrt(2)/2 * the rectangle dimensions.

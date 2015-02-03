@@ -681,6 +681,17 @@ namespace ImageProcessor
             return this;
         }
 
+        public ImageFactory Halftone()
+        {
+            if (this.ShouldProcess)
+            {
+                Halftone halftone = new Halftone();
+                this.CurrentImageFormat.ApplyProcessor(halftone.ProcessImage, this);
+            }
+
+            return this;
+        }
+
         /// <summary>
         /// Applies the given image mask to the current image.
         /// </summary>

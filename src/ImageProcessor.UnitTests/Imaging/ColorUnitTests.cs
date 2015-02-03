@@ -10,6 +10,7 @@
 
 namespace ImageProcessor.UnitTests.Imaging
 {
+    using System.Diagnostics;
     using System.Diagnostics.CodeAnalysis;
     using System.Drawing;
 
@@ -62,6 +63,18 @@ namespace ImageProcessor.UnitTests.Imaging
         }
 
         /// <summary>
+        /// Tests the <see cref="CmykColor"/> struct equality operators.
+        /// </summary>
+        [Test]
+        public void CmykColorImplementsEquals()
+        {
+            CmykColor first = CmykColor.FromColor(Color.White);
+            CmykColor second = CmykColor.FromColor(Color.White);
+
+            first.Equals(second).Should().BeTrue("because the color structure should implement Equals()");
+        }
+
+        /// <summary>
         /// Test conversion to and from a <see cref="HslaColor"/>.
         /// </summary>
         /// <param name="expected">
@@ -87,6 +100,40 @@ namespace ImageProcessor.UnitTests.Imaging
             Color color = ColorTranslator.FromHtml(expected);
             HslaColor hslaColor = HslaColor.FromColor(color);
             string result = ColorTranslator.ToHtml(hslaColor);
+
+            result.Should().Be(expected);
+        }
+
+        /// <summary>
+        /// Test conversion to and from a <see cref="CmykColor"/>.
+        /// </summary>
+        /// <param name="expected">
+        /// The expected output.
+        /// </param>
+        [Test]
+        [TestCase("#FFFFFF")]
+        [TestCase("#FEFFFE")]
+        [TestCase("#F0F8FF")]
+        [TestCase("#000000")]
+        [TestCase("#CCFF33")]
+        [TestCase("#00FF00")]
+        [TestCase("#FF00FF")]
+        [TestCase("#990000")]
+        [TestCase("#5C955C")]
+        [TestCase("#5C5C95")]
+        [TestCase("#3F3F66")]
+        [TestCase("#FFFFBB")]
+        [TestCase("#FF002B")]
+        [TestCase("#00ABFF")]
+        public void CmykColorShouldConvertToAndFromString(string expected)
+        {
+            Color color = ColorTranslator.FromHtml(expected);
+            CmykColor cmykColor = CmykColor.FromColor(color);
+
+            Debug.Print(cmykColor.ToString());
+
+
+            string result = ColorTranslator.ToHtml(cmykColor);
 
             result.Should().Be(expected);
         }
@@ -122,7 +169,7 @@ namespace ImageProcessor.UnitTests.Imaging
         }
 
         /// <summary>
-        /// Test conversion to and from a <see cref="RgbaColor"/>.
+        /// Test conversion to and from a <see cref="YCbCrColor"/>.
         /// </summary>
         /// <param name="expected">
         /// The expected output.

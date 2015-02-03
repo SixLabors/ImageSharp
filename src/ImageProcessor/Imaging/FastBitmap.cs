@@ -288,7 +288,7 @@ namespace ImageProcessor.Imaging
             }
 
             // Lock the bitmap
-            this.bitmapData = this.bitmap.LockBits(bounds, ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
+            this.bitmapData = this.bitmap.LockBits(bounds, ImageLockMode.ReadWrite, PixelFormat.Format32bppPArgb);
 
             // Set the value to the first scan line
             this.pixelBase = (byte*)this.bitmapData.Scan0.ToPointer();

@@ -337,6 +337,21 @@ namespace ImageProcessor.Imaging.Colors
         }
 
         /// <summary>
+        /// Allows the implicit conversion of an instance of <see cref="HslaColor"/> to a 
+        /// <see cref="CmykColor"/>.
+        /// </summary>
+        /// <param name="hslaColor">
+        /// The instance of <see cref="HslaColor"/> to convert.
+        /// </param>
+        /// <returns>
+        /// An instance of <see cref="CmykColor"/>.
+        /// </returns>
+        public static implicit operator CmykColor(HslaColor hslaColor)
+        {
+            return CmykColor.FromColor(hslaColor);
+        }
+
+        /// <summary>
         /// Returns a <see cref="System.String" /> that represents this instance.
         /// </summary>
         /// <returns>
@@ -346,10 +361,10 @@ namespace ImageProcessor.Imaging.Colors
         {
             if (this.IsEmpty())
             {
-                return "HSLAColor [Empty]";
+                return "HslaColor [Empty]";
             }
 
-            return string.Format("HSLAColor [ H={0:#0.##}, S={1:#0.##}, L={2:#0.##}, A={3:#0.##}]", this.H, this.S, this.L, this.A);
+            return string.Format("HslaColor [ H={0:#0.##}, S={1:#0.##}, L={2:#0.##}, A={3:#0.##}]", this.H, this.S, this.L, this.A);
         }
 
         /// <summary>

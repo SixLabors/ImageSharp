@@ -224,6 +224,22 @@ namespace ImageProcessor.Imaging.Colors
             return HslaColor.FromColor(ycbcrColor);
         }
 
+
+        /// <summary>
+        /// Allows the implicit conversion of an instance of <see cref="YCbCrColor"/> to a 
+        /// <see cref="CmykColor"/>.
+        /// </summary>
+        /// <param name="ycbcrColor">
+        /// The instance of <see cref="YCbCrColor"/> to convert.
+        /// </param>
+        /// <returns>
+        /// An instance of <see cref="CmykColor"/>.
+        /// </returns>
+        public static implicit operator CmykColor(YCbCrColor ycbcrColor)
+        {
+            return CmykColor.FromColor(ycbcrColor);
+        }
+
         /// <summary>
         /// Returns a <see cref="System.String" /> that represents this instance.
         /// </summary>

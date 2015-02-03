@@ -62,7 +62,7 @@ namespace ImageProcessor.Imaging.Quantizers
             Rectangle bounds = new Rectangle(0, 0, width, height);
 
             // First off take a 32bpp copy of the image
-            Bitmap copy = new Bitmap(width, height, PixelFormat.Format32bppArgb);
+            Bitmap copy = new Bitmap(width, height, PixelFormat.Format32bppPArgb);
             copy.SetResolution(source.HorizontalResolution, source.VerticalResolution);
 
             // And construct an 8bpp version
@@ -85,7 +85,7 @@ namespace ImageProcessor.Imaging.Quantizers
             try
             {
                 // Get the source image bits and lock into memory
-                sourceData = copy.LockBits(bounds, ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+                sourceData = copy.LockBits(bounds, ImageLockMode.ReadOnly, PixelFormat.Format32bppPArgb);
 
                 // Call the FirstPass function if not a single pass algorithm.
                 // For something like an Octree quantizer, this will run through

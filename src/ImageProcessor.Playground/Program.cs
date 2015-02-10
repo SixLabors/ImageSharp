@@ -50,23 +50,23 @@ namespace ImageProcessor.PlayGround
 
             // Image mask = Image.FromFile(Path.Combine(resolvedPath, "mask.png"));
             // Image overlay = Image.FromFile(Path.Combine(resolvedPath, "imageprocessor.128.png"));
-            FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "ej.jpg"));
+            //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "2008.jpg"));
             //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "new-york.jpg"));
             //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "mountain.jpg"));
             //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "Arc-de-Triomphe-France.jpg"));
             //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "Martin-Schoeller-Jack-Nicholson-Portrait.jpeg"));
             //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "crop-base-300x200.jpg"));
             //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "cmyk.png"));
-            //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".jpg", ".jpeg", ".jfif");
-
+            //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif");
+            IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".jpg", ".jpeg", ".jfif");
             //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif", ".webp", ".bmp", ".jpg", ".png", ".tif");
 
-            //foreach (FileInfo fileInfo in files)
-            //{
-                //if (fileInfo.Name == "test5.jpg")
-                //{
-                //    continue;
-                //}
+            foreach (FileInfo fileInfo in files)
+            {
+                if (fileInfo.Name == "test5.jpg")
+                {
+                    continue;
+                }
 
                 byte[] photoBytes = File.ReadAllBytes(fileInfo.FullName);
                 Console.WriteLine("Processing: " + fileInfo.Name);
@@ -79,8 +79,8 @@ namespace ImageProcessor.PlayGround
                 {
                     using (ImageFactory imageFactory = new ImageFactory(true))
                     {
-                        Size size = new Size(844, 1017);
-                        ResizeLayer layer = new ResizeLayer(size, ResizeMode.Max, AnchorPosition.Center, false);
+                        Size size = new Size(1024, 0);
+                        //ResizeLayer layer = new ResizeLayer(size, ResizeMode.Max, AnchorPosition.Center, false);
 
                         //ContentAwareResizeLayer layer = new ContentAwareResizeLayer(size)
                         //{
@@ -102,7 +102,7 @@ namespace ImageProcessor.PlayGround
                             //.Format(new PngFormat())
                             //.BackgroundColor(Color.Cyan)
                             //.ReplaceColor(Color.FromArgb(255, 223, 224), Color.FromArgb(121, 188, 255), 128)
-                            //.Resize(size)
+                            .Resize(size)
                             //.Resize(new ResizeLayer(size, ResizeMode.Max))
                             // .Resize(new ResizeLayer(size, ResizeMode.Stretch))
                             //.DetectEdges(new Laplacian3X3EdgeFilter(), true)
@@ -119,8 +119,8 @@ namespace ImageProcessor.PlayGround
                             //.GaussianSharpen(10)
                             //.Format(new PngFormat() { IsIndexed = true })
                             //.Format(new PngFormat() { IsIndexed = true })
-                            //.Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", fileInfo.Name)));
-                            .Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", Path.GetFileNameWithoutExtension(fileInfo.Name) + ".png")));
+                            .Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", fileInfo.Name)));
+                        //.Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", Path.GetFileNameWithoutExtension(fileInfo.Name) + ".png")));
 
                         stopwatch.Stop();
                     }
@@ -132,7 +132,7 @@ namespace ImageProcessor.PlayGround
                 Console.WriteLine(@"Completed {0} in {1:s\.fff} secs {2}Peak memory usage was {3} bytes or {4} Mb.", fileInfo.Name, stopwatch.Elapsed, Environment.NewLine, peakWorkingSet64.ToString("#,#"), mB);
 
                 //Console.WriteLine("Processed: " + fileInfo.Name + " in " + stopwatch.ElapsedMilliseconds + "ms");
-            //}
+            }
 
             Console.ReadLine();
         }

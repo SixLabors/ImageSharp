@@ -14,6 +14,8 @@ namespace ImageProcessor.Imaging.Colors
     using System;
     using System.Drawing;
 
+    using ImageProcessor.Imaging.Helpers;
+
     /// <summary>
     /// Represents an YCbCr (luminance, chroma, chroma) color conforming to the ITU-R BT.601 standard used in digital imaging systems.
     /// <see href="http://en.wikipedia.org/wiki/YCbCr"/>
@@ -48,9 +50,9 @@ namespace ImageProcessor.Imaging.Colors
         /// <param name="cr">The v chroma component.</param> 
         private YCbCrColor(float y, float cb, float cr)
         {
-            this.y = Math.Max(0f, Math.Min(255f, y));
-            this.cb = Math.Max(-255f, Math.Min(255f, cb));
-            this.cr = Math.Max(-255f, Math.Min(255f, cr));
+            this.y = ImageMaths.Clamp(y, 0, 255);
+            this.cb = ImageMaths.Clamp(cb, -255, 255);
+            this.cr = ImageMaths.Clamp(cr, -255, 255);
         }
 
         /// <summary>

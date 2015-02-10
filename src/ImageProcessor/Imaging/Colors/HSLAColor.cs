@@ -10,6 +10,8 @@ namespace ImageProcessor.Imaging.Colors
     using System;
     using System.Drawing;
 
+    using ImageProcessor.Imaging.Helpers;
+
     /// <summary>
     /// Represents an HSLA (hue, saturation, luminosity, alpha) color.
     /// Adapted from <see href="http://richnewman.wordpress.com/about/code-listings-and-diagrams/hslcolor-class/"/>
@@ -493,16 +495,7 @@ namespace ImageProcessor.Imaging.Colors
         /// </returns>
         private static float Clamp(float value)
         {
-            if (value < 0.0)
-            {
-                value = 0.0f;
-            }
-            else if (value > 1.0)
-            {
-                value = 1.0f;
-            }
-
-            return value;
+            return ImageMaths.Clamp(value, 0, 1);
         }
 
         /// <summary>

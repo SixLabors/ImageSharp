@@ -10,7 +10,10 @@
 
 namespace ImageProcessor.Common.Extensions
 {
+    using System;
     using System.Globalization;
+
+    using ImageProcessor.Imaging.Helpers;
 
     /// <summary>
     /// Encapsulates a series of time saving extension methods to the <see cref="T:System.Int32"/> class.
@@ -24,27 +27,27 @@ namespace ImageProcessor.Common.Extensions
         /// those restricted ranges.
         /// </remarks>
         /// </summary>
-        /// <param name="integer">
+        /// <param name="value">
         /// The <see cref="T:System.Int32"/> to convert.
         /// </param>
         /// <returns>
         /// The <see cref="T:System.Byte"/>.
         /// </returns>
-        public static byte ToByte(this int integer)
+        public static byte ToByte(this int value)
         {
-            return ((double)integer).ToByte();
+            return Convert.ToByte(ImageMaths.Clamp(value, 0, 255));
         }
 
         /// <summary>
         /// Converts the string representation of a number in a specified culture-specific format to its 
         /// 32-bit signed integer equivalent using invariant culture.
         /// </summary>
-        /// <param name="integer">The integer.</param>
-        /// <param name="s">A string containing a number to convert.</param>
-        /// <returns>A 32-bit signed integer equivalent to the number specified in s.</returns>
-        public static int ParseInvariant(this int integer, string s)
+        /// <param name="value">The integer.</param>
+        /// <param name="toParse">A string containing a number to convert.</param>
+        /// <returns>A 32-bit signed integer equivalent to the number specified in toParse.</returns>
+        public static int ParseInvariant(this int value, string toParse)
         {
-            return int.Parse(s, CultureInfo.InvariantCulture);
+            return int.Parse(toParse, CultureInfo.InvariantCulture);
         }
     }
 }

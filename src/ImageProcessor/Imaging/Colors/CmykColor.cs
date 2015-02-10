@@ -14,6 +14,7 @@ namespace ImageProcessor.Imaging.Colors
     using System.Drawing;
 
     using ImageProcessor.Common.Extensions;
+    using ImageProcessor.Imaging.Helpers;
 
     /// <summary>
     /// Represents an CMYK (cyan, magenta, yellow, keyline) color.
@@ -355,16 +356,7 @@ namespace ImageProcessor.Imaging.Colors
         /// </returns>
         private static float Clamp(float value)
         {
-            if (value < 0.0)
-            {
-                value = 0.0f;
-            }
-            else if (value > 100)
-            {
-                value = 100f;
-            }
-
-            return value;
+            return ImageMaths.Clamp(value, 0, 100);
         }
 
         /// <summary>

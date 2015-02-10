@@ -70,7 +70,7 @@ namespace ImageProcessor.Processors
             int width = image.Width;
             int height = image.Height;
             Bitmap newImage = null;
-            Bitmap edgeBitmap = null;
+            //Bitmap edgeBitmap = null;
             try
             {
                 HalftoneFilter filter = new HalftoneFilter(5);
@@ -79,34 +79,34 @@ namespace ImageProcessor.Processors
                 newImage = filter.ApplyFilter(newImage);
 
                 // Draw the edges.
-                edgeBitmap = new Bitmap(width, height);
-                edgeBitmap.SetResolution(image.HorizontalResolution, image.VerticalResolution);
-                edgeBitmap = Trace(image, edgeBitmap, 120);
+                //edgeBitmap = new Bitmap(width, height);
+                //edgeBitmap.SetResolution(image.HorizontalResolution, image.VerticalResolution);
+                //edgeBitmap = Trace(image, edgeBitmap, 120);
 
                 using (Graphics graphics = Graphics.FromImage(newImage))
                 {
                     // Overlay the image.
-                    graphics.DrawImage(edgeBitmap, 0, 0);
+                    //graphics.DrawImage(edgeBitmap, 0, 0);
                     Rectangle rectangle = new Rectangle(0, 0, width, height);
 
                     // Draw an edge around the image.
-                    using (Pen blackPen = new Pen(Color.Black))
-                    {
-                        blackPen.Width = 4;
-                        graphics.DrawRectangle(blackPen, rectangle);
-                    }
+                    //using (Pen blackPen = new Pen(Color.Black))
+                    //{
+                    //    blackPen.Width = 4;
+                    //    graphics.DrawRectangle(blackPen, rectangle);
+                    //}
                 }
 
-                edgeBitmap.Dispose();
+                //edgeBitmap.Dispose();
                 image.Dispose();
                 image = newImage;
             }
             catch (Exception ex)
             {
-                if (edgeBitmap != null)
-                {
-                    edgeBitmap.Dispose();
-                }
+                //if (edgeBitmap != null)
+                //{
+                //    edgeBitmap.Dispose();
+                //}
 
                 if (newImage != null)
                 {

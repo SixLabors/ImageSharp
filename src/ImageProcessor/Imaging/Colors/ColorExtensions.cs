@@ -1,17 +1,37 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="ColorExtensions.cs" company="James South">
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
+// </copyright>
+// <summary>
+//   Provides extensions for manipulating colors.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Imaging.Colors
 {
+    using System;
     using System.Drawing;
 
     using ImageProcessor.Common.Extensions;
 
+    /// <summary>
+    /// Provides extensions for manipulating colors.
+    /// </summary>
     internal static class ColorExtensions
     {
+        /// <summary>
+        /// Adds colors together using the RGBA color format.
+        /// </summary>
+        /// <param name="color">
+        /// The color to add to.
+        /// </param>
+        /// <param name="colors">
+        /// The colors to add to the initial one.
+        /// </param>
+        /// <returns>
+        /// The combined <see cref="Color"/>.
+        /// </returns>
         public static Color Add(this Color color, params Color[] colors)
         {
             int red = color.A > 0 ? color.R : 0;
@@ -37,6 +57,18 @@ namespace ImageProcessor.Imaging.Colors
             return Color.FromArgb((alpha / counter).ToByte(), (red / counter).ToByte(), (green / counter).ToByte(), (blue / counter).ToByte());
         }
 
+        /// <summary>
+        /// Adds colors together using the CMYK color format.
+        /// </summary>
+        /// <param name="color">
+        /// The color to add to.
+        /// </param>
+        /// <param name="colors">
+        /// The colors to add to the initial one.
+        /// </param>
+        /// <returns>
+        /// The combined <see cref="CmykColor"/>.
+        /// </returns>
         public static CmykColor AddAsCmykColor(this Color color, params Color[] colors)
         {
             CmykColor cmyk = color;
@@ -56,11 +88,6 @@ namespace ImageProcessor.Imaging.Colors
                     k += cmykAdd.K;
                 }
             }
-
-            //c = Math.Max(0.0f, Math.Min(100f, c));
-            //m = Math.Max(0.0f, Math.Min(100f, m));
-            //y = Math.Max(0.0f, Math.Min(100f, y));
-            //k = Math.Max(0.0f, Math.Min(100f, k));
 
             return CmykColor.FromCmykColor(c, m, y, k);
         }

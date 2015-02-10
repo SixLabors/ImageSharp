@@ -12,6 +12,7 @@ namespace ImageProcessor.Imaging.Filters.Artistic
 {
     using System;
     using System.Drawing;
+    using System.Drawing.Drawing2D;
     using System.Threading.Tasks;
 
     using ImageProcessor.Imaging.Colors;
@@ -167,9 +168,14 @@ namespace ImageProcessor.Imaging.Filters.Artistic
                 int width = source.Width;
                 int height = source.Height;
 
+                int minHeight = -height * 2;
+                int maxHeight = height * 2;
+                int minWidth = -width * 2;
+                int maxWidth = width * 2;
+
                 float multiplier = 4 * (float)Math.Sqrt(2);
-                float max = this.distance + (float)Math.Sqrt(2);
-                float keylineMax = max + 1;
+                float max = this.distance + ((float)Math.Sqrt(2) / 2);
+                float keylineMax = this.distance + (float)Math.Sqrt(2) + ((float)Math.Sqrt(2) / 2);
 
                 // Cyan color sampled from Wikipedia page. Keyline brush is declared
                 // separately.
@@ -199,19 +205,27 @@ namespace ImageProcessor.Imaging.Filters.Artistic
                 using (Graphics graphicsYellow = Graphics.FromImage(yellow))
                 using (Graphics graphicsKeyline = Graphics.FromImage(keyline))
                 {
-                    // Ensure cleared out.
+                    // Set the quality properties.
+                    graphicsCyan.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                    graphicsMagenta.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                    graphicsYellow.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                    graphicsKeyline.PixelOffsetMode = PixelOffsetMode.HighQuality;
+
+                    // Set up the canvas.
                     graphicsCyan.Clear(Color.Transparent);
                     graphicsMagenta.Clear(Color.Transparent);
                     graphicsYellow.Clear(Color.Transparent);
                     graphicsKeyline.Clear(Color.Transparent);
 
+                    int d = this.distance;
+
                     // This is too slow. The graphics object can't be called within a parallel 
                     // loop so we have to do it old school. :(
                     using (FastBitmap sourceBitmap = new FastBitmap(source))
                     {
-                        for (int y = -height * 2; y < height * 2; y += this.distance)
+                        for (int y = minHeight; y < maxHeight; y += d)
                         {
-                            for (int x = -width * 2; x < width * 2; x += this.distance)
+                            for (int x = minWidth; x < maxWidth; x += d)
                             {
                                 Color color;
                                 CmykColor cmykColor;
@@ -225,7 +239,7 @@ namespace ImageProcessor.Imaging.Filters.Artistic
                                 {
                                     color = sourceBitmap.GetPixel(angledX, angledY);
                                     cmykColor = color;
-                                    brushWidth = Math.Max(0, Math.Min(max, this.distance * (cmykColor.C / 255f) * multiplier));
+                                    brushWidth = ImageMaths.Clamp(d * (cmykColor.C / 255f) * multiplier, 0, max);
                                     graphicsCyan.FillEllipse(cyanBrush, angledX, angledY, brushWidth, brushWidth);
                                 }
 
@@ -237,7 +251,7 @@ namespace ImageProcessor.Imaging.Filters.Artistic
                                 {
                                     color = sourceBitmap.GetPixel(angledX, angledY);
                                     cmykColor = color;
-                                    brushWidth = Math.Max(0, Math.Min(max, this.distance * (cmykColor.M / 255f) * multiplier));
+                                    brushWidth = ImageMaths.Clamp(d * (cmykColor.M / 255f) * multiplier, 0, max);
                                     graphicsMagenta.FillEllipse(magentaBrush, angledX, angledY, brushWidth, brushWidth);
                                 }
 
@@ -249,7 +263,7 @@ namespace ImageProcessor.Imaging.Filters.Artistic
                                 {
                                     color = sourceBitmap.GetPixel(angledX, angledY);
                                     cmykColor = color;
-                                    brushWidth = Math.Max(0, Math.Min(max, this.distance * (cmykColor.Y / 255f) * multiplier));
+                                    brushWidth = ImageMaths.Clamp(d * (cmykColor.Y / 255f) * multiplier, 0, max);
                                     graphicsYellow.FillEllipse(yellowBrush, angledX, angledY, brushWidth, brushWidth);
                                 }
 
@@ -261,7 +275,7 @@ namespace ImageProcessor.Imaging.Filters.Artistic
                                 {
                                     color = sourceBitmap.GetPixel(angledX, angledY);
                                     cmykColor = color;
-                                    brushWidth = Math.Max(0, Math.Min(keylineMax, this.distance * (cmykColor.K / 255f) * multiplier));
+                                    brushWidth = ImageMaths.Clamp(d * (cmykColor.K / 255f) * multiplier, 0, keylineMax);
 
                                     // Just using black is too dark. 
                                     Brush keylineBrush = new SolidBrush(CmykColor.FromCmykColor(0, 0, 0, cmykColor.K));
@@ -341,6 +355,18 @@ namespace ImageProcessor.Imaging.Filters.Artistic
             }
 
             return source;
+        }
+
+        private void SetGraphicsSettings(ref Graphics graphics)
+        {
+            // Set the quality properties.
+            graphics.SmoothingMode = graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+            graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+            graphics.CompositingQuality = CompositingQuality.HighQuality;
+
+            // Set up the canvas.
+            graphics.Clear(Color.Transparent);
         }
     }
 }

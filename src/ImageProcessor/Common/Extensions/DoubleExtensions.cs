@@ -12,6 +12,8 @@ namespace ImageProcessor.Common.Extensions
 {
     using System;
 
+    using ImageProcessor.Imaging.Helpers;
+
     /// <summary>
     /// Encapsulates a series of time saving extension methods to the <see cref="T:System.Double"/> class.
     /// </summary>
@@ -24,15 +26,15 @@ namespace ImageProcessor.Common.Extensions
         /// those restricted ranges.
         /// </remarks>
         /// </summary>
-        /// <param name="d">
+        /// <param name="value">
         /// The <see cref="T:System.Double"/> to convert.
         /// </param>
         /// <returns>
         /// The <see cref="T:System.Byte"/>.
         /// </returns>
-        public static byte ToByte(this double d)
+        public static byte ToByte(this double value)
         {
-            return Convert.ToByte(Math.Max(0.0d, Math.Min(255d, d))); 
+            return Convert.ToByte(ImageMaths.Clamp(value, 0, 255));
         }
     }
 }

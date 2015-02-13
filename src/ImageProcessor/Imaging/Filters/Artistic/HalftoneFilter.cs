@@ -180,7 +180,7 @@ namespace ImageProcessor.Imaging.Filters.Artistic
                 // Color sampled process colours from Wikipedia pages. 
                 // Keyline brush is declared separately.
                 Brush cyanBrush = new SolidBrush(Color.FromArgb(0, 183, 235));
-                Brush magentaBrush = new SolidBrush(Color.FromArgb(0, 183, 235));
+                Brush magentaBrush = new SolidBrush(Color.FromArgb(255, 0, 144));
                 Brush yellowBrush = new SolidBrush(Color.FromArgb(255, 239, 0));
 
                 // Create our images.

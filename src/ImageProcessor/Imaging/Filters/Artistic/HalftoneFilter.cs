@@ -177,11 +177,11 @@ namespace ImageProcessor.Imaging.Filters.Artistic
                 float max = this.distance + ((float)Math.Sqrt(2) / 2);
                 float keylineMax = this.distance + (float)Math.Sqrt(2) + ((float)Math.Sqrt(2) / 2);
 
-                // Cyan color sampled from Wikipedia page. Keyline brush is declared
-                // separately.
-                Brush cyanBrush = new SolidBrush(Color.FromArgb(0, 153, 239));
-                Brush magentaBrush = Brushes.Magenta;
-                Brush yellowBrush = Brushes.Yellow;
+                // Color sampled process colours from Wikipedia pages. 
+                // Keyline brush is declared separately.
+                Brush cyanBrush = new SolidBrush(Color.FromArgb(0, 183, 235));
+                Brush magentaBrush = new SolidBrush(Color.FromArgb(0, 183, 235));
+                Brush yellowBrush = new SolidBrush(Color.FromArgb(255, 239, 0));
 
                 // Create our images.
                 cyan = new Bitmap(width, height);

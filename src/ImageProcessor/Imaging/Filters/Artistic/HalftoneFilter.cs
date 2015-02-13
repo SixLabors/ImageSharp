@@ -1,4 +1,4 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="HalftoneFilter.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
@@ -11,6 +11,7 @@
 namespace ImageProcessor.Imaging.Filters.Artistic
 {
     using System;
+    using System.Collections.Generic;
     using System.Drawing;
     using System.Drawing.Drawing2D;
     using System.Threading.Tasks;
@@ -168,14 +169,22 @@ namespace ImageProcessor.Imaging.Filters.Artistic
                 int width = source.Width;
                 int height = source.Height;
 
-                int minHeight = -height * 2;
-                int maxHeight = height * 2;
-                int minWidth = -width * 2;
-                int maxWidth = width * 2;
+                // Calculate min and max widths/heights.
+                Rectangle rotatedBounds = this.GetBoundingRectangle(width, height);
+                int minY = -(rotatedBounds.Height + height);
+                int maxY = rotatedBounds.Height + height;
+                int minX = -(rotatedBounds.Width + width);
+                int maxX = rotatedBounds.Width + width;
+                Point center = Point.Empty;
 
-                float multiplier = 4 * (float)Math.Sqrt(2);
-                float max = this.distance + ((float)Math.Sqrt(2) / 2);
-                float keylineMax = this.distance + (float)Math.Sqrt(2) + ((float)Math.Sqrt(2) / 2);
+                // Yellow oversaturates the output.
+                const float YellowMultiplier = 4;
+                float multiplier = YellowMultiplier * (float)Math.Sqrt(2);
+
+                float max = this.distance;
+
+                // Bump up the keyline max so that black looks black.
+                float keylineMax = max + ((float)Math.Sqrt(2) * 1.5f);
 
                 // Color sampled process colours from Wikipedia pages. 
                 // Keyline brush is declared separately.
@@ -223,16 +232,16 @@ namespace ImageProcessor.Imaging.Filters.Artistic
                     // loop so we have to do it old school. :(
                     using (FastBitmap sourceBitmap = new FastBitmap(source))
                     {
-                        for (int y = minHeight; y < maxHeight; y += d)
+                        for (int y = minY; y < maxY; y += d)
                         {
-                            for (int x = minWidth; x < maxWidth; x += d)
+                            for (int x = minX; x < maxX; x += d)
                             {
                                 Color color;
                                 CmykColor cmykColor;
                                 float brushWidth;
 
                                 // Cyan
-                                Point rotatedPoint = ImageMaths.RotatePoint(new Point(x, y), this.cyanAngle);
+                                Point rotatedPoint = ImageMaths.RotatePoint(new Point(x, y), this.cyanAngle, center);
                                 int angledX = rotatedPoint.X;
                                 int angledY = rotatedPoint.Y;
                                 if (rectangle.Contains(new Point(angledX, angledY)))
@@ -244,7 +253,7 @@ namespace ImageProcessor.Imaging.Filters.Artistic
                                 }
 
                                 // Magenta
-                                rotatedPoint = ImageMaths.RotatePoint(new Point(x, y), this.magentaAngle);
+                                rotatedPoint = ImageMaths.RotatePoint(new Point(x, y), this.magentaAngle, center);
                                 angledX = rotatedPoint.X;
                                 angledY = rotatedPoint.Y;
                                 if (rectangle.Contains(new Point(angledX, angledY)))
@@ -256,19 +265,19 @@ namespace ImageProcessor.Imaging.Filters.Artistic
                                 }
 
                                 // Yellow
-                                rotatedPoint = ImageMaths.RotatePoint(new Point(x, y), this.yellowAngle);
+                                rotatedPoint = ImageMaths.RotatePoint(new Point(x, y), this.yellowAngle, center);
                                 angledX = rotatedPoint.X;
                                 angledY = rotatedPoint.Y;
                                 if (rectangle.Contains(new Point(angledX, angledY)))
                                 {
                                     color = sourceBitmap.GetPixel(angledX, angledY);
                                     cmykColor = color;
-                                    brushWidth = ImageMaths.Clamp(d * (cmykColor.Y / 255f) * multiplier, 0, max);
+                                    brushWidth = ImageMaths.Clamp(d * (cmykColor.Y / 255f) * YellowMultiplier, 0, max);
                                     graphicsYellow.FillEllipse(yellowBrush, angledX, angledY, brushWidth, brushWidth);
                                 }
 
                                 // Keyline 
-                                rotatedPoint = ImageMaths.RotatePoint(new Point(x, y), this.keylineAngle);
+                                rotatedPoint = ImageMaths.RotatePoint(new Point(x, y), this.keylineAngle, center);
                                 angledX = rotatedPoint.X;
                                 angledY = rotatedPoint.Y;
                                 if (rectangle.Contains(new Point(angledX, angledY)))
@@ -357,16 +366,46 @@ namespace ImageProcessor.Imaging.Filters.Artistic
             return source;
         }
 
-        private void SetGraphicsSettings(ref Graphics graphics)
+        /// <summary>
+        /// Gets the bounding rectangle of the image based on the rotating angles.
+        /// </summary>
+        /// <param name="width">
+        /// The width of the image.
+        /// </param>
+        /// <param name="height">
+        /// The height of the image.
+        /// </param>
+        /// <returns>
+        /// The <see cref="Rectangle"/>.
+        /// </returns>
+        private Rectangle GetBoundingRectangle(int width, int height)
         {
-            // Set the quality properties.
-            graphics.SmoothingMode = graphics.SmoothingMode = SmoothingMode.AntiAlias;
-            graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
-            graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-            graphics.CompositingQuality = CompositingQuality.HighQuality;
+            int maxWidth = 0;
+            int maxHeight = 0;
+            List<float> angles = new List<float> { this.CyanAngle, this.MagentaAngle, this.YellowAngle, this.KeylineAngle };
 
-            // Set up the canvas.
-            graphics.Clear(Color.Transparent);
+            foreach (float angle in angles)
+            {
+                double radians = ImageMaths.DegreesToRadians(angle);
+                double radiansSin = Math.Sin(radians);
+                double radiansCos = Math.Cos(radians);
+                double width1 = (height * radiansSin) + (width * radiansCos);
+                double height1 = (width * radiansSin) + (height * radiansCos);
+
+                // Find dimensions in the other direction
+                radiansSin = Math.Sin(-radians);
+                radiansCos = Math.Cos(-radians);
+                double width2 = (height * radiansSin) + (width * radiansCos);
+                double height2 = (width * radiansSin) + (height * radiansCos);
+
+                int maxW = Math.Max(maxWidth, Convert.ToInt32(Math.Max(Math.Abs(width1), Math.Abs(width2))));
+                int maxH = Math.Max(maxHeight, Convert.ToInt32(Math.Max(Math.Abs(height1), Math.Abs(height2))));
+
+                maxHeight = maxH;
+                maxWidth = maxW;
+            }
+
+            return new Rectangle(0, 0, maxWidth, maxHeight);
         }
     }
 }

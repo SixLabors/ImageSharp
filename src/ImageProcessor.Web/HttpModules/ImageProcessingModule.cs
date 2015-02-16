@@ -85,6 +85,8 @@ namespace ImageProcessor.Web.HttpModules
         /// life in the Garbage Collector.
         /// </remarks>
         private bool isDisposed;
+
+        private IImageCache imageCache;
         #endregion
 
         #region Destructors
@@ -222,7 +224,7 @@ namespace ImageProcessor.Web.HttpModules
         /// <returns>
         /// The <see cref="T:System.Threading.Tasks.Task"/>.
         /// </returns>
-        private Task PostProcessImage(object sender, EventArgs e)
+        private async Task PostProcessImage(object sender, EventArgs e)
         {
             HttpContext context = ((HttpApplication)sender).Context;
             object cachedPathObject = context.Items[CachedPathKey];
@@ -232,18 +234,16 @@ namespace ImageProcessor.Web.HttpModules
                 string cachedPath = cachedPathObject.ToString();
 
                 // Trim the cache.
-                DiskCache.TrimCachedFolders(cachedPath);
+                await this.imageCache.TrimCacheAsync();
 
                 // Fire the post processing event.
                 EventHandler<PostProcessingEventArgs> handler = OnPostProcessing;
                 if (handler != null)
                 {
                     context.Items[CachedPathKey] = null;
-                    return Task.Run(() => handler(this, new PostProcessingEventArgs { CachedImagePath = cachedPath }));
+                    await Task.Run(() => handler(this, new PostProcessingEventArgs { CachedImagePath = cachedPath }));
                 }
             }
-
-            return Task.FromResult<object>(null);
         }
 
         /// <summary>
@@ -258,17 +258,11 @@ namespace ImageProcessor.Web.HttpModules
             object responseTypeObject = context.Items[CachedResponseTypeKey];
             object dependencyFileObject = context.Items[CachedResponseFileDependency];
 
-            if (responseTypeObject != null && dependencyFileObject != null)
-            {
-                string responseType = (string)responseTypeObject;
-                List<string> dependencyFiles = (List<string>)dependencyFileObject;
+            string responseType = responseTypeObject as string;
+            List<string> dependencyFiles = dependencyFileObject as List<string>;
 
-                // Set the headers
-                this.SetHeaders(context, responseType, dependencyFiles);
-
-                context.Items[CachedResponseTypeKey] = null;
-                context.Items[CachedResponseFileDependency] = null;
-            }
+            // Set the headers
+            this.SetHeaders(context, responseType, dependencyFiles);
         }
 
         #region Private
@@ -379,100 +373,83 @@ namespace ImageProcessor.Web.HttpModules
                 }
 
                 // Create a new cache to help process and cache the request.
-                DiskCache cache = new DiskCache(requestPath, fullPath, queryString);
-                string cachedPath = cache.CachedPath;
+                this.imageCache = new DiskCache2(requestPath, fullPath, queryString);
 
-                // Since we are now rewriting the path we need to check again that the current user has access
-                // to the rewritten path.
-                // Get the user for the current request
-                // If the user is anonymous or authentication doesn't work for this suffix avoid a NullReferenceException
-                // in the UrlAuthorizationModule by creating a generic identity.
-                string virtualCachedPath = cache.VirtualCachedPath;
+                // Is the file new or updated?
+                bool isNewOrUpdated = await this.imageCache.IsNewOrUpdatedAsync();
+                string cachedPath = this.imageCache.CachedPath;
 
-                IPrincipal user = context.User ?? new GenericPrincipal(new GenericIdentity(string.Empty, string.Empty), new string[0]);
-
-                // Do we have permission to call UrlAuthorizationModule.CheckUrlAccessForPrincipal?
-                PermissionSet permission = new PermissionSet(PermissionState.None);
-                permission.AddPermission(new AspNetHostingPermission(AspNetHostingPermissionLevel.Unrestricted));
-                bool hasPermission = permission.IsSubsetOf(AppDomain.CurrentDomain.PermissionSet);
-
-                bool isAllowed = true;
-
-                // Run the rewritten path past the authorization system again.
-                // We can then use the result as the default "AllowAccess" value
-                if (hasPermission && !context.SkipAuthorization)
+                // Only process if the file has been updated.
+                if (isNewOrUpdated)
                 {
-                    isAllowed = UrlAuthorizationModule.CheckUrlAccessForPrincipal(virtualCachedPath, user, "GET");
-                }
-
-                if (isAllowed)
-                {
-                    // Is the file new or updated?
-                    bool isNewOrUpdated = cache.IsNewOrUpdatedFile(cachedPath);
-
-                    // Only process if the file has been updated.
-                    if (isNewOrUpdated)
+                    // Process the image.
+                    using (ImageFactory imageFactory = new ImageFactory(preserveExifMetaData != null && preserveExifMetaData.Value))
                     {
-                        // Process the image.
-                        using (ImageFactory imageFactory = new ImageFactory(preserveExifMetaData != null && preserveExifMetaData.Value))
+                        using (await this.locker.LockAsync(cachedPath))
                         {
-                            using (await this.locker.LockAsync(cachedPath))
+                            byte[] imageBuffer = await currentService.GetImage(resourcePath);
+
+                            using (MemoryStream memoryStream = new MemoryStream(imageBuffer))
                             {
-                                byte[] imageBuffer = await currentService.GetImage(resourcePath);
+                                // Reset the position of the stream to ensure we're reading the correct part.
+                                memoryStream.Position = 0;
 
-                                using (MemoryStream memoryStream = new MemoryStream(imageBuffer))
+                                // Process the Image
+                                imageFactory.Load(memoryStream).AutoProcess(queryString).Save(memoryStream);
+                                memoryStream.Position = 0;
+
+                                // Add to the cache.
+                                await this.imageCache.AddImageToCacheAsync(memoryStream);
+
+                                // Store the cached path, response type, and cache dependency in the context for later retrieval.
+                                context.Items[CachedPathKey] = cachedPath;
+                                context.Items[CachedResponseTypeKey] = imageFactory.CurrentImageFormat.MimeType;
+                                if (isFileLocal)
                                 {
-                                    // Reset the position of the stream to ensure we're reading the correct part.
-                                    memoryStream.Position = 0;
-
-                                    // Process the Image
-                                    imageFactory.Load(memoryStream).AutoProcess(queryString).Save(cachedPath);
-
-                                    // Add to the cache.
-                                    cache.AddImageToCache(cachedPath);
-
-                                    // Store the cached path, response type, and cache dependency in the context for later retrieval.
-                                    context.Items[CachedPathKey] = cachedPath;
-                                    context.Items[CachedResponseTypeKey] = imageFactory.CurrentImageFormat.MimeType;
+                                    // Some services might only provide filename so we can't monitor for the browser.
+                                    context.Items[CachedResponseFileDependency] = Path.GetFileName(requestPath) == requestPath
+                                        ? new List<string> { cachedPath }
+                                        : new List<string> { requestPath, cachedPath };
+                                }
+                                else
+                                {
                                     context.Items[CachedResponseFileDependency] = new List<string> { cachedPath };
                                 }
                             }
                         }
                     }
-
-                    // Image is from the cache so the mime-type will need to be set.
-                    if (context.Items[CachedResponseTypeKey] == null)
-                    {
-                        string mimetype = ImageHelpers.GetMimeType(cachedPath);
-
-                        if (!string.IsNullOrEmpty(mimetype))
-                        {
-                            context.Items[CachedResponseTypeKey] = mimetype;
-                        }
-                    }
-
-                    if (context.Items[CachedResponseFileDependency] == null)
-                    {
-                        if (isFileLocal)
-                        {
-                            // Some services might only provide filename so we can't monitor for the browser.
-                            context.Items[CachedResponseFileDependency] = Path.GetFileName(requestPath) == requestPath
-                                ? new List<string> { cachedPath }
-                                : new List<string> { requestPath, cachedPath };
-                        }
-                        else
-                        {
-                            context.Items[CachedResponseFileDependency] = new List<string> { cachedPath };
-                        }
-                    }
-
-                    // The cached file is valid so just rewrite the path.
-                    context.RewritePath(virtualCachedPath, false);
                 }
-                else
+
+                // Image is from the cache so the mime-type will need to be set.
+                // TODO: Is this bit needed? Is the static file handler doing stuff for the filecache 
+                // but not others.
+                if (context.Items[CachedResponseTypeKey] == null)
                 {
-                    throw new HttpException(403, "Access denied");
+                    string mimetype = ImageHelpers.GetMimeType(this.imageCache.CachedPath);
+
+                    if (!string.IsNullOrEmpty(mimetype))
+                    {
+                        context.Items[CachedResponseTypeKey] = mimetype;
+                    }
                 }
+
+                if (context.Items[CachedResponseFileDependency] == null)
+                {
+                    if (isFileLocal)
+                    {
+                        // Some services might only provide filename so we can't monitor for the browser.
+                        context.Items[CachedResponseFileDependency] = Path.GetFileName(requestPath) == requestPath
+                            ? new List<string> { this.imageCache.CachedPath }
+                            : new List<string> { requestPath, this.imageCache.CachedPath };
+                    }
+                    else
+                    {
+                        context.Items[CachedResponseFileDependency] = new List<string> { this.imageCache.CachedPath };
+                    }
+                }
+
+                // The cached file is valid so just rewrite the path.
+                this.imageCache.RewritePath(context);
             }
         }
 
@@ -494,28 +471,34 @@ namespace ImageProcessor.Web.HttpModules
         {
             HttpResponse response = context.Response;
 
-            response.ContentType = responseType;
-
             if (response.Headers["Image-Served-By"] == null)
             {
                 response.AddHeader("Image-Served-By", "ImageProcessor.Web/" + AssemblyVersion);
             }
 
-            HttpCachePolicy cache = response.Cache;
-            cache.SetCacheability(HttpCacheability.Public);
-            cache.VaryByHeaders["Accept-Encoding"] = true;
+            if (this.imageCache != null)
+            {
+                HttpCachePolicy cache = response.Cache;
+                cache.SetCacheability(HttpCacheability.Public);
+                cache.VaryByHeaders["Accept-Encoding"] = true;
 
-            context.Response.AddFileDependencies(dependencyPaths.ToArray());
-            cache.SetLastModifiedFromFileDependencies();
+                if (!string.IsNullOrWhiteSpace(responseType))
+                {
+                    response.ContentType = responseType;
+                }
 
-            int maxDays = DiskCache.MaxFileCachedDuration;
+                if (dependencyPaths != null)
+                {
+                    context.Response.AddFileDependencies(dependencyPaths.ToArray());
+                    cache.SetLastModifiedFromFileDependencies();
+                }
 
-            cache.SetExpires(DateTime.Now.ToUniversalTime().AddDays(maxDays));
-            cache.SetMaxAge(new TimeSpan(maxDays, 0, 0, 0));
-            cache.SetRevalidation(HttpCacheRevalidation.AllCaches);
+                int maxDays = this.imageCache.MaxAge;
 
-            context.Items[CachedResponseTypeKey] = null;
-            context.Items[CachedResponseFileDependency] = null;
+                cache.SetExpires(DateTime.Now.ToUniversalTime().AddDays(maxDays));
+                cache.SetMaxAge(new TimeSpan(maxDays, 0, 0, 0));
+                cache.SetRevalidation(HttpCacheRevalidation.AllCaches);
+            }
         }
 
         /// <summary>

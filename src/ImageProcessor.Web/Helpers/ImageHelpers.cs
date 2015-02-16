@@ -67,7 +67,7 @@ namespace ImageProcessor.Web.Helpers
 
             // First check to see if the format processor is being used and test against that.
             IWebGraphicsProcessor format = ImageProcessorConfiguration.Instance.GraphicsProcessors
-                                           .First(p => typeof(Format) == p.GetType());
+                                           .FirstOrDefault(p => typeof(Format) == p.GetType());
 
             if (format != null)
             {

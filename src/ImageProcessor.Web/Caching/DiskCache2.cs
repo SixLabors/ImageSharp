@@ -26,29 +26,33 @@
         private const int MaxFilesCount = 100;
 
         /// <summary>
+        /// The max age.
+        /// </summary>
+        private readonly int maxAge;
+
+        /// <summary>
         /// The virtual cache path.
         /// </summary>
-        private static readonly string VirtualCachePath = ImageProcessorConfiguration.Instance.VirtualCachePath;
+        private readonly string virtualCachePath;
 
         /// <summary>
         /// The absolute path to virtual cache path on the server.
-        /// TODO: Change this so configuration is determined per IImageCache instance.
         /// </summary>
-        private static readonly string AbsoluteCachePath = HostingEnvironment.MapPath(VirtualCachePath);
+        private readonly string absoluteCachePath;
 
         /// <summary>
-        /// The physical cached path.
+        /// The virtual cached path to the cached file.
         /// </summary>
-        private string physicalCachedPath;
-
-        /// <summary>
-        /// The virtual cached path.
-        /// </summary>
-        private string virtualCachedPath;
+        private string virtualCachedFilePath;
 
         public DiskCache2(string requestPath, string fullPath, string querystring)
             : base(requestPath, fullPath, querystring)
         {
+            // TODO: Get from configuration.
+            this.Settings = new Dictionary<string, string>();
+            this.maxAge = Convert.ToInt32(this.Settings["MaxAge"]);
+            this.virtualCachePath = this.Settings["VirtualCachePath"];
+            this.absoluteCachePath = HostingEnvironment.MapPath(this.virtualCachePath);
         }
 
         /// <summary>
@@ -59,7 +63,7 @@
         {
             get
             {
-                return ImageProcessorConfiguration.Instance.MaxCacheDays;
+                return this.maxAge;
             }
         }
 
@@ -68,15 +72,14 @@
             string cachedFileName = await this.CreateCachedFileName();
 
             // Collision rate of about 1 in 10000 for the folder structure.
-            // That gives us massive scope for files.
+            // That gives us massive scope to store millions of files.
             string pathFromKey = string.Join("\\", cachedFileName.ToCharArray().Take(6));
             string virtualPathFromKey = pathFromKey.Replace(@"\", "/");
-            this.physicalCachedPath = Path.Combine(AbsoluteCachePath, pathFromKey, cachedFileName);
-            this.virtualCachedPath = Path.Combine(VirtualCachePath, virtualPathFromKey, cachedFileName).Replace(@"\", "/");
-            this.CachedPath = this.physicalCachedPath;
+            this.CachedPath = Path.Combine(this.absoluteCachePath, pathFromKey, cachedFileName);
+            this.virtualCachedFilePath = Path.Combine(this.virtualCachePath, virtualPathFromKey, cachedFileName).Replace(@"\", "/");
 
             bool isUpdated = false;
-            CachedImage cachedImage = CacheIndexer.GetValue(this.physicalCachedPath);
+            CachedImage cachedImage = CacheIndexer.GetValue(this.CachedPath);
 
             if (cachedImage == null)
             {
@@ -88,7 +91,7 @@
                 // Check to see if the cached image is set to expire.
                 if (this.IsExpired(cachedImage.CreationTimeUtc))
                 {
-                    CacheIndexer.Remove(this.physicalCachedPath);
+                    CacheIndexer.Remove(this.CachedPath);
                     isUpdated = true;
                 }
             }
@@ -99,13 +102,13 @@
         public override async Task AddImageToCacheAsync(Stream stream)
         {
             // ReSharper disable once AssignNullToNotNullAttribute
-            DirectoryInfo directoryInfo = new DirectoryInfo(Path.GetDirectoryName(this.physicalCachedPath));
+            DirectoryInfo directoryInfo = new DirectoryInfo(Path.GetDirectoryName(this.CachedPath));
             if (!directoryInfo.Exists)
             {
                 directoryInfo.Create();
             }
 
-            using (FileStream fileStream = File.Create(this.physicalCachedPath))
+            using (FileStream fileStream = File.Create(this.CachedPath))
             {
                 await stream.CopyToAsync(fileStream);
             }
@@ -113,7 +116,7 @@
 
         public override async Task TrimCacheAsync()
         {
-            string directory = Path.GetDirectoryName(this.physicalCachedPath);
+            string directory = Path.GetDirectoryName(this.CachedPath);
 
             if (directory != null)
             {
@@ -159,22 +162,7 @@
         public override void RewritePath(HttpContext context)
         {
             // The cached file is valid so just rewrite the path.
-            context.RewritePath(this.virtualCachedPath, false);
-        }
-
-        /// <summary>
-        /// Gets a value indicating whether the given images creation date is out with
-        /// the prescribed limit.
-        /// </summary>
-        /// <param name="creationDate">
-        /// The creation date.
-        /// </param>
-        /// <returns>
-        /// The true if the date is out with the limit, otherwise; false.
-        /// </returns>
-        private bool IsExpired(DateTime creationDate)
-        {
-            return creationDate.AddDays(this.MaxAge) < DateTime.UtcNow.AddDays(-this.MaxAge);
+            context.RewritePath(this.virtualCachedFilePath, false);
         }
     }
 }

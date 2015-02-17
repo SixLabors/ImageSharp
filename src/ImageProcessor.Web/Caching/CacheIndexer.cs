@@ -10,6 +10,7 @@
 
 namespace ImageProcessor.Web.Caching
 {
+    using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Runtime.Caching;
@@ -64,11 +65,19 @@ namespace ImageProcessor.Web.Caching
         /// </returns>
         public static CachedImage Add(CachedImage cachedImage)
         {
-            // Add the CachedImage.
-            CacheItemPolicy policy = new CacheItemPolicy();
-            policy.ChangeMonitors.Add(new HostFileChangeMonitor(new List<string> { cachedImage.Path }));
+            if (new Uri(cachedImage.Path).IsFile)
+            {
+                // Add the CachedImage.
+                CacheItemPolicy policy = new CacheItemPolicy();
+                policy.ChangeMonitors.Add(new HostFileChangeMonitor(new List<string> { cachedImage.Path }));
 
-            MemCache.AddItem(Path.GetFileNameWithoutExtension(cachedImage.Key), cachedImage, policy);
+                MemCache.AddItem(Path.GetFileNameWithoutExtension(cachedImage.Key), cachedImage, policy);
+            }
+            else
+            {
+                MemCache.AddItem(Path.GetFileNameWithoutExtension(cachedImage.Key), cachedImage);
+            }
+
             return cachedImage;
         }
         #endregion

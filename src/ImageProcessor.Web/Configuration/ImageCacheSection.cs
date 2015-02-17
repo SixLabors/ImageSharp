@@ -59,7 +59,7 @@ namespace ImageProcessor.Web.Configuration
         /// <returns>The cache configuration section from the current application configuration.</returns>
         public static ImageCacheSection GetConfiguration()
         {
-            ImageCacheSection imageCacheSection = ConfigurationManager.GetSection("imageProcessor/cache") as ImageCacheSection;
+            ImageCacheSection imageCacheSection = ConfigurationManager.GetSection("imageProcessor/caching") as ImageCacheSection;
 
             if (imageCacheSection != null)
             {

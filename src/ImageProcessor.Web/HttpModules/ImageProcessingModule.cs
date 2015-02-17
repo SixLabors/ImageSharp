@@ -425,34 +425,6 @@ namespace ImageProcessor.Web.HttpModules
                     }
                 }
 
-                // Image is from the cache so the mime-type will need to be set.
-                // TODO: Is this bit needed? Is the static file handler doing stuff for the filecache 
-                // but not others.
-                if (context.Items[CachedResponseTypeKey] == null)
-                {
-                    string mimetype = ImageHelpers.GetMimeType(this.imageCache.CachedPath);
-
-                    if (!string.IsNullOrEmpty(mimetype))
-                    {
-                        context.Items[CachedResponseTypeKey] = mimetype;
-                    }
-                }
-
-                if (context.Items[CachedResponseFileDependency] == null)
-                {
-                    if (isFileLocal)
-                    {
-                        // Some services might only provide filename so we can't monitor for the browser.
-                        context.Items[CachedResponseFileDependency] = Path.GetFileName(requestPath) == requestPath
-                            ? new List<string> { this.imageCache.CachedPath }
-                            : new List<string> { requestPath, this.imageCache.CachedPath };
-                    }
-                    else
-                    {
-                        context.Items[CachedResponseFileDependency] = new List<string> { this.imageCache.CachedPath };
-                    }
-                }
-
                 // The cached file is valid so just rewrite the path.
                 this.imageCache.RewritePath(context);
             }

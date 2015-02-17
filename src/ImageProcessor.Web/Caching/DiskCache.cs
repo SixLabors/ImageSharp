@@ -1,39 +1,19 @@
-// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="DiskCache.cs" company="James South">
-//   Copyright (c) James South.
-//   Licensed under the Apache License, Version 2.0.
-// </copyright>
-// <summary>
-//   The disk cache.
-// </summary>
-// --------------------------------------------------------------------------------------------------------------------
-
-namespace ImageProcessor.Web.Caching
+﻿namespace ImageProcessor.Web.Caching
 {
-    #region Using
     using System;
     using System.Collections.Generic;
-    using System.Globalization;
+    using System.Configuration;
     using System.IO;
     using System.Linq;
+    using System.Threading.Tasks;
+    using System.Web;
     using System.Web.Hosting;
 
     using ImageProcessor.Web.Configuration;
     using ImageProcessor.Web.Extensions;
-    using ImageProcessor.Web.Helpers;
-    #endregion
 
-    /// <summary>
-    /// The disk cache.
-    /// </summary>
-    internal sealed class DiskCache
+    public class DiskCache : ImageCacheBase
     {
-        #region Fields
-        /// <summary>
-        /// The maximum number of days to cache files on the system for.
-        /// </summary>
-        internal static readonly int MaxFileCachedDuration = ImageProcessorConfiguration.Instance.MaxCacheDays;
-
         /// <summary>
         /// The maximum number of files allowed in the directory.
         /// </summary>
@@ -47,42 +27,25 @@ namespace ImageProcessor.Web.Caching
         private const int MaxFilesCount = 100;
 
         /// <summary>
+        /// The max age.
+        /// </summary>
+        private readonly int maxDays;
+
+        /// <summary>
         /// The virtual cache path.
         /// </summary>
-        private static readonly string VirtualCachePath = ImageProcessorConfiguration.Instance.VirtualCachePath;
+        private readonly string virtualCachePath;
 
         /// <summary>
         /// The absolute path to virtual cache path on the server.
         /// </summary>
-        private static readonly string AbsoluteCachePath = HostingEnvironment.MapPath(ImageProcessorConfiguration.Instance.VirtualCachePath);
+        private readonly string absoluteCachePath;
 
         /// <summary>
-        /// The request path for the image.
+        /// The virtual cached path to the cached file.
         /// </summary>
-        private readonly string requestPath;
+        private string virtualCachedFilePath;
 
-        /// <summary>
-        /// The full path for the image.
-        /// </summary>
-        private readonly string fullPath;
-
-        /// <summary>
-        /// The querystring containing processing instructions.
-        /// </summary>
-        private readonly string querystring;
-
-        /// <summary>
-        /// The physical cached path.
-        /// </summary>
-        private string physicalCachedPath;
-
-        /// <summary>
-        /// The virtual cached path.
-        /// </summary>
-        private string virtualCachedPath;
-        #endregion
-
-        #region Constructors
         /// <summary>
         /// Initializes a new instance of the <see cref="DiskCache"/> class.
         /// </summary>
@@ -96,49 +59,103 @@ namespace ImageProcessor.Web.Caching
         /// The querystring containing instructions.
         /// </param>
         public DiskCache(string requestPath, string fullPath, string querystring)
+            : base(requestPath, fullPath, querystring)
         {
-            this.requestPath = requestPath;
-            this.fullPath = fullPath;
-            this.querystring = querystring;
+            this.maxDays = Convert.ToInt32(this.Settings["MaxAge"]);
+            string virtualPath = this.Settings["VirtualCachePath"];
 
-            // Get the physical and virtual paths.
-            this.GetCachePaths();
+            if (!virtualPath.IsValidVirtualPathName())
+            {
+                throw new ConfigurationErrorsException("DiskCache 'VirtualCachePath' is not a valid virtual path.");
+            }
+
+            this.virtualCachePath = virtualPath;
+
+            this.absoluteCachePath = HostingEnvironment.MapPath(this.virtualCachePath);
         }
-        #endregion
 
         /// <summary>
-        /// Gets the cached path.
+        /// The maximum number of days to cache files on the system for.
+        /// TODO: Shift the getter source to proper config.
         /// </summary>
-        public string CachedPath
+        public override int MaxDays
         {
             get
             {
-                return this.physicalCachedPath;
+                return this.maxDays;
             }
         }
 
-        /// <summary>
-        /// Gets the cached path.
-        /// </summary>
-        public string VirtualCachedPath
+        public override async Task<bool> IsNewOrUpdatedAsync()
         {
-            get
+            string cachedFileName = await this.CreateCachedFileName();
+
+            // Collision rate of about 1 in 10000 for the folder structure.
+            // That gives us massive scope to store millions of files.
+            string pathFromKey = string.Join("\\", cachedFileName.ToCharArray().Take(6));
+            string virtualPathFromKey = pathFromKey.Replace(@"\", "/");
+            this.CachedPath = Path.Combine(this.absoluteCachePath, pathFromKey, cachedFileName);
+            this.virtualCachedFilePath = Path.Combine(this.virtualCachePath, virtualPathFromKey, cachedFileName).Replace(@"\", "/");
+
+            bool isUpdated = false;
+            CachedImage cachedImage = CacheIndexer.GetValue(this.CachedPath);
+
+            if (cachedImage == null)
             {
-                return this.virtualCachedPath;
+                FileInfo fileInfo = new FileInfo(this.CachedPath);
+
+                if (fileInfo.Exists)
+                {
+                    // Pull the latest info.
+                    fileInfo.Refresh();
+
+                    cachedImage = new CachedImage
+                    {
+                        Key = Path.GetFileNameWithoutExtension(this.CachedPath),
+                        Path = this.CachedPath,
+                        CreationTimeUtc = fileInfo.CreationTimeUtc
+                    };
+
+                    CacheIndexer.Add(cachedImage);
+                }
+            }
+
+            if (cachedImage == null)
+            {
+                // Nothing in the cache so we should return true.
+                isUpdated = true;
+            }
+            else
+            {
+                // Check to see if the cached image is set to expire.
+                if (this.IsExpired(cachedImage.CreationTimeUtc))
+                {
+                    CacheIndexer.Remove(this.CachedPath);
+                    isUpdated = true;
+                }
+            }
+
+            return isUpdated;
+        }
+
+        public override async Task AddImageToCacheAsync(Stream stream)
+        {
+            // ReSharper disable once AssignNullToNotNullAttribute
+            DirectoryInfo directoryInfo = new DirectoryInfo(Path.GetDirectoryName(this.CachedPath));
+            if (!directoryInfo.Exists)
+            {
+                directoryInfo.Create();
+            }
+
+            using (FileStream fileStream = File.Create(this.CachedPath))
+            {
+                await stream.CopyToAsync(fileStream);
             }
         }
 
-        #region Methods
-        #region Public
-        /// <summary>
-        /// Trims a cached folder ensuring that it does not exceed the maximum file count.
-        /// </summary>
-        /// <param name="path">
-        /// The path to the folder.
-        /// </param>
-        public static void TrimCachedFolders(string path)
+        public override async Task TrimCacheAsync()
         {
-            string directory = Path.GetDirectoryName(path);
+            string directory = Path.GetDirectoryName(this.CachedPath);
 
             if (directory != null)
             {
@@ -148,7 +165,7 @@ namespace ImageProcessor.Web.Caching
                 if (parentDirectoryInfo != null)
                 {
                     // UNC folders can throw exceptions if the file doesn't exist.
-                    foreach (DirectoryInfo enumerateDirectory in parentDirectoryInfo.SafeEnumerateDirectories())
+                    foreach (DirectoryInfo enumerateDirectory in await parentDirectoryInfo.SafeEnumerateDirectoriesAsync())
                     {
                         IEnumerable<FileInfo> files = enumerateDirectory.EnumerateFiles().OrderBy(f => f.CreationTimeUtc);
                         int count = files.Count();
@@ -160,7 +177,7 @@ namespace ImageProcessor.Web.Caching
                                 // If the group count is equal to the max count minus 1 then we know we
                                 // have reduced the number of items below the maximum allowed.
                                 // We'll cleanup any orphaned expired files though.
-                                if (!IsExpired(fileInfo.CreationTimeUtc) && count <= MaxFilesCount - 1)
+                                if (!this.IsExpired(fileInfo.CreationTimeUtc) && count <= MaxFilesCount - 1)
                                 {
                                     break;
                                 }
@@ -181,130 +198,10 @@ namespace ImageProcessor.Web.Caching
             }
         }
 
-        /// <summary>
-        /// Adds an image to the cache.
-        /// </summary>
-        /// <param name="cachedPath">
-        /// The path to the cached image.
-        /// </param>
-        public void AddImageToCache(string cachedPath)
+        public override void RewritePath(HttpContext context)
         {
-            string key = Path.GetFileNameWithoutExtension(cachedPath);
-            CachedImage cachedImage = new CachedImage
-            {
-                Key = key,
-                Path = cachedPath,
-                CreationTimeUtc = DateTime.UtcNow
-            };
-
-            CacheIndexer.Add(cachedImage);
+            // The cached file is valid so just rewrite the path.
+            context.RewritePath(this.virtualCachedFilePath, false);
         }
-
-        /// <summary>
-        /// Returns a value indicating whether the original file is new or has been updated.
-        /// </summary>
-        /// <param name="cachedPath">
-        /// The path to the cached image.
-        /// </param>
-        /// <returns>
-        /// True if The original file is new or has been updated; otherwise, false.
-        /// </returns>
-        public bool IsNewOrUpdatedFile(string cachedPath)
-        {
-            bool isUpdated = false;
-            CachedImage cachedImage = CacheIndexer.GetValue(cachedPath);
-
-            if (cachedImage == null)
-            {
-                // Nothing in the cache so we should return true.
-                isUpdated = true;
-            }
-            else
-            {
-                // Check to see if the cached image is set to expire.
-                if (IsExpired(cachedImage.CreationTimeUtc))
-                {
-                    CacheIndexer.Remove(cachedPath);
-                    isUpdated = true;
-                }
-            }
-
-            return isUpdated;
-        }
-        #endregion
-
-        #region Private
-        /// <summary>
-        /// Gets a value indicating whether the given images creation date is out with
-        /// the prescribed limit.
-        /// </summary>
-        /// <param name="creationDate">
-        /// The creation date.
-        /// </param>
-        /// <returns>
-        /// The true if the date is out with the limit, otherwise; false.
-        /// </returns>
-        private static bool IsExpired(DateTime creationDate)
-        {
-            return creationDate.AddDays(MaxFileCachedDuration) < DateTime.UtcNow.AddDays(-MaxFileCachedDuration);
-        }
-
-        /// <summary>
-        /// Gets the full transformed cached paths for the image.
-        /// The images are stored in paths that are based upon the SHA1 of their full request path
-        /// taking the individual characters of the hash to determine their location.
-        /// This allows us to store millions of images.
-        /// </summary>
-        private void GetCachePaths()
-        {
-            string streamHash = string.Empty;
-
-            if (AbsoluteCachePath != null)
-            {
-                try
-                {
-                    if (new Uri(this.requestPath).IsFile)
-                    {
-                        // Get the hash for the filestream. That way we can ensure that if the image is
-                        // updated but has the same name we will know.
-                        FileInfo imageFileInfo = new FileInfo(this.requestPath);
-                        if (imageFileInfo.Exists)
-                        {
-                            // Pull the latest info.
-                            imageFileInfo.Refresh();
-
-                            // Checking the stream itself is far too processor intensive so we make a best guess.
-                            string creation = imageFileInfo.CreationTimeUtc.ToString(CultureInfo.InvariantCulture);
-                            string length = imageFileInfo.Length.ToString(CultureInfo.InvariantCulture);
-                            streamHash = string.Format("{0}{1}", creation, length);
-                        }
-                    }
-                }
-                catch
-                {
-                    streamHash = string.Empty;
-                }
-
-                // Use an sha1 hash of the full path including the querystring to create the image name.
-                // That name can also be used as a key for the cached image and we should be able to use
-                // The characters of that hash as sub-folders.
-                string parsedExtension = ImageHelpers.GetExtension(this.fullPath, this.querystring);
-                string encryptedName = (streamHash + this.fullPath).ToSHA1Fingerprint();
-
-                // Collision rate of about 1 in 10000 for the folder structure.
-                string pathFromKey = string.Join("\\", encryptedName.ToCharArray().Take(6));
-                string virtualPathFromKey = pathFromKey.Replace(@"\", "/");
-
-                string cachedFileName = string.Format(
-                    "{0}.{1}",
-                    encryptedName,
-                    !string.IsNullOrWhiteSpace(parsedExtension) ? parsedExtension.Replace(".", string.Empty) : "jpg");
-
-                this.physicalCachedPath = Path.Combine(AbsoluteCachePath, pathFromKey, cachedFileName);
-                this.virtualCachedPath = Path.Combine(VirtualCachePath, virtualPathFromKey, cachedFileName).Replace(@"\", "/");
-            }
-        }
-        #endregion
-        #endregion
     }
 }

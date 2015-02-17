@@ -8,6 +8,7 @@
     using System.Threading.Tasks;
     using System.Web;
 
+    using ImageProcessor.Web.Configuration;
     using ImageProcessor.Web.Extensions;
     using ImageProcessor.Web.Helpers;
 
@@ -29,11 +30,6 @@
         protected readonly string Querystring;
 
         /// <summary>
-        /// The assembly version.
-        /// </summary>
-        private static readonly string AssemblyVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="ImageCacheBase"/> class.
         /// </summary>
         /// <param name="requestPath">
@@ -50,16 +46,17 @@
             this.RequestPath = requestPath;
             this.FullPath = fullPath;
             this.Querystring = querystring;
+            this.Settings = ImageProcessorConfiguration.Instance.ImageCacheSettings;
         }
 
         /// <summary>
-        /// Gets any additional settings required by the cache.
+        /// Gets or sets any additional settings required by the cache.
         /// </summary>
         public Dictionary<string, string> Settings { get; set; }
 
         public string CachedPath { get; protected set; }
 
-        public abstract int MaxAge { get; }
+        public abstract int MaxDays { get; }
 
         public abstract Task<bool> IsNewOrUpdatedAsync();
 
@@ -123,7 +120,7 @@
         /// </returns>
         protected virtual bool IsExpired(DateTime creationDate)
         {
-            return creationDate.AddDays(this.MaxAge) < DateTime.UtcNow.AddDays(-this.MaxAge);
+            return creationDate.AddDays(this.MaxDays) < DateTime.UtcNow.AddDays(-this.MaxDays);
         }
     }
 }

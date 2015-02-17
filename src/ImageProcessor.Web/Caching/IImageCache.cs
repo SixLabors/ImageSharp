@@ -11,11 +11,11 @@ namespace ImageProcessor.Web.Caching
         /// <summary>
         /// Gets or sets any additional settings required by the cache.
         /// </summary>
-        Dictionary<string, string> Settings { get; }
+        Dictionary<string, string> Settings { get; set; }
 
         string CachedPath { get; }
 
-        int MaxAge { get; }
+        int MaxDays { get; }
 
         Task<bool> IsNewOrUpdatedAsync();
 

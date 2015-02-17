@@ -3,34 +3,24 @@
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
-// <summary>
-//   Processes any image requests within the web application.
-// </summary>
 // --------------------------------------------------------------------------------------------------------------------
-
 namespace ImageProcessor.Web.HttpModules
 {
-    #region Using
     using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
-    using System.Net;
     using System.Reflection;
-    using System.Security;
-    using System.Security.Permissions;
-    using System.Security.Principal;
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
     using System.Web;
     using System.Web.Hosting;
-    using System.Web.Security;
 
     using ImageProcessor.Web.Caching;
     using ImageProcessor.Web.Configuration;
+    using ImageProcessor.Web.Extensions;
     using ImageProcessor.Web.Helpers;
     using ImageProcessor.Web.Services;
-    #endregion
 
     /// <summary>
     /// Processes any image requests within the web application.
@@ -38,6 +28,7 @@ namespace ImageProcessor.Web.HttpModules
     public sealed class ImageProcessingModule : IHttpModule
     {
         #region Fields
+
         /// <summary>
         /// The key for storing the response type of the current image.
         /// </summary>
@@ -86,10 +77,14 @@ namespace ImageProcessor.Web.HttpModules
         /// </remarks>
         private bool isDisposed;
 
+        /// <summary>
+        /// The image cache.
+        /// </summary>
         private IImageCache imageCache;
         #endregion
 
         #region Destructors
+
         /// <summary>
         /// Finalizes an instance of the <see cref="T:ImageProcessor.Web.HttpModules.ImageProcessingModule"/> class.
         /// </summary>
@@ -107,6 +102,7 @@ namespace ImageProcessor.Web.HttpModules
             // readability and maintainability.
             this.Dispose(false);
         }
+
         #endregion
 
         /// <summary>
@@ -132,6 +128,7 @@ namespace ImageProcessor.Web.HttpModules
         public static event ProcessQuerystringEventHandler OnProcessQuerystring;
 
         #region IHttpModule Members
+
         /// <summary>
         /// Initializes a module and prepares it to handle requests.
         /// </summary>
@@ -174,7 +171,9 @@ namespace ImageProcessor.Web.HttpModules
         /// <summary>
         /// Disposes the object and frees resources for the Garbage Collector.
         /// </summary>
-        /// <param name="disposing">If true, the object gets disposed.</param>
+        /// <param name="disposing">
+        /// If true, the object gets disposed.
+        /// </param>
         private void Dispose(bool disposing)
         {
             if (this.isDisposed)
@@ -192,6 +191,7 @@ namespace ImageProcessor.Web.HttpModules
             // Note disposing is done.
             this.isDisposed = true;
         }
+
         #endregion
 
         /// <summary>
@@ -249,8 +249,12 @@ namespace ImageProcessor.Web.HttpModules
         /// <summary>
         /// Occurs just before ASP.NET send HttpHeaders to the client.
         /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="e">An <see cref="T:System.EventArgs">EventArgs</see> that contains the event data.</param>
+        /// <param name="sender">
+        /// The source of the event.
+        /// </param>
+        /// <param name="e">
+        /// An <see cref="T:System.EventArgs">EventArgs</see> that contains the event data.
+        /// </param>
         private void ContextPreSendRequestHeaders(object sender, EventArgs e)
         {
             HttpContext context = ((HttpApplication)sender).Context;
@@ -373,7 +377,8 @@ namespace ImageProcessor.Web.HttpModules
                 }
 
                 // Create a new cache to help process and cache the request.
-                this.imageCache = new DiskCache2(requestPath, fullPath, queryString);
+                this.imageCache = (IImageCache)ImageProcessorConfiguration.Instance
+                    .ImageCache.GetInstance(requestPath, fullPath, queryString);
 
                 // Is the file new or updated?
                 bool isNewOrUpdated = await this.imageCache.IsNewOrUpdatedAsync();
@@ -493,7 +498,7 @@ namespace ImageProcessor.Web.HttpModules
                     cache.SetLastModifiedFromFileDependencies();
                 }
 
-                int maxDays = this.imageCache.MaxAge;
+                int maxDays = this.imageCache.MaxDays;
 
                 cache.SetExpires(DateTime.Now.ToUniversalTime().AddDays(maxDays));
                 cache.SetMaxAge(new TimeSpan(maxDays, 0, 0, 0));
@@ -587,6 +592,7 @@ namespace ImageProcessor.Web.HttpModules
             // Return the file based service
             return services.FirstOrDefault(s => string.IsNullOrWhiteSpace(s.Prefix) && s.IsValidRequest(path));
         }
+
         #endregion
     }
 }

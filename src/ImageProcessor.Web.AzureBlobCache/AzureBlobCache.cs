@@ -22,7 +22,7 @@
         /// <summary>
         /// The max age.
         /// </summary>
-        private readonly int maxAge;
+        private readonly int maxDays;
 
         private CloudStorageAccount cloudCachedStorageAccount;
 
@@ -46,10 +46,7 @@
         public AzureBlobCache(string requestPath, string fullPath, string querystring)
             : base(requestPath, fullPath, querystring)
         {
-            // TODO: Get from configuration.
-            this.Settings = new Dictionary<string, string>();
-
-            this.maxAge = Convert.ToInt32(this.Settings["MaxAge"]);
+            this.maxDays = Convert.ToInt32(this.Settings["MaxAge"]);
 
             // Retrieve storage accounts from connection string.
             this.cloudCachedStorageAccount = CloudStorageAccount.Parse(this.Settings["CachedStorageAccount"]);
@@ -66,11 +63,11 @@
             this.cachedContainerRoot = this.Settings["CachedContainerRoot"];
         }
 
-        public override int MaxAge
+        public override int MaxDays
         {
             get
             {
-                return this.maxAge;
+                return this.maxDays;
             }
         }
 
@@ -83,24 +80,44 @@
             string pathFromKey = string.Join("\\", cachedFileName.ToCharArray().Take(6));
             this.CachedPath = Path.Combine(this.cachedContainerRoot, pathFromKey, cachedFileName).Replace(@"\", "/");
 
-            ICloudBlob blockBlob = await this.cloudCachedBlobContainer
-                                             .GetBlobReferenceFromServerAsync(this.RequestPath);
-
             bool isUpdated = false;
-            if (!await blockBlob.ExistsAsync())
+            CachedImage cachedImage = CacheIndexer.GetValue(this.CachedPath);
+
+            if (cachedImage == null)
             {
-                // Nothing in the cache so we should return true.
-                isUpdated = true;
-            }
-            else
-            {
-                // Pull the latest info.
-                await blockBlob.FetchAttributesAsync();
-                if (blockBlob.Properties.LastModified.HasValue)
+                ICloudBlob blockBlob =
+                    await this.cloudCachedBlobContainer.GetBlobReferenceFromServerAsync(this.RequestPath);
+
+                if (await blockBlob.ExistsAsync())
+                {
+                    // Pull the latest info.
+                    await blockBlob.FetchAttributesAsync();
+
+                    if (blockBlob.Properties.LastModified.HasValue)
+                    {
+                        cachedImage = new CachedImage
+                        {
+                            Key = Path.GetFileNameWithoutExtension(this.CachedPath),
+                            Path = this.CachedPath,
+                            CreationTimeUtc =
+                                blockBlob.Properties.LastModified.Value.UtcDateTime
+                        };
+
+                        CacheIndexer.Add(cachedImage);
+                    }
+                }
+
+                if (cachedImage == null)
+                {
+                    // Nothing in the cache so we should return true.
+                    isUpdated = true;
+                }
+                else
                 {
                     // Check to see if the cached image is set to expire.
-                    if (this.IsExpired(blockBlob.Properties.LastModified.Value.UtcDateTime))
+                    if (this.IsExpired(cachedImage.CreationTimeUtc))
                     {
+                        CacheIndexer.Remove(this.CachedPath);
                         isUpdated = true;
                     }
                 }
@@ -141,8 +158,15 @@
                 .Cast<CloudBlockBlob>()
                 .OrderBy(b => b.Properties.LastModified != null ? b.Properties.LastModified.Value.UtcDateTime : new DateTime()))
             {
-                if (blob.Properties.LastModified.HasValue && !this.IsExpired(blob.Properties.LastModified.Value.UtcDateTime))
+                if (blob.Properties.LastModified.HasValue
+                    && !this.IsExpired(blob.Properties.LastModified.Value.UtcDateTime))
                 {
+                    break;
+                }
+                else
+                {
+                    // Remove from the cache and delete each CachedImage.
+                    CacheIndexer.Remove(blob.Name);
                     await blob.DeleteAsync();
                 }
             }

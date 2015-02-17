@@ -19,6 +19,7 @@ namespace ImageProcessor.Web.Configuration
 
     using ImageProcessor.Common.Extensions;
     using ImageProcessor.Processors;
+    using ImageProcessor.Web.Caching;
     using ImageProcessor.Web.Processors;
     using ImageProcessor.Web.Services;
 
@@ -67,6 +68,7 @@ namespace ImageProcessor.Web.Configuration
         {
             this.LoadGraphicsProcessors();
             this.LoadImageServices();
+            this.LoadImageCache();
         }
         #endregion
 
@@ -93,6 +95,16 @@ namespace ImageProcessor.Web.Configuration
         public IList<IImageService> ImageServices { get; private set; }
 
         /// <summary>
+        /// Gets the current image cache.
+        /// </summary>
+        public Type ImageCache { get; private set; }
+
+        /// <summary>
+        /// Gets the image cache settings.
+        /// </summary>
+        public Dictionary<string, string> ImageCacheSettings { get; private set; }
+
+        /// <summary>
         /// Gets a value indicating whether to preserve exif meta data.
         /// </summary>
         public bool PreserveExifMetaData
@@ -102,31 +114,6 @@ namespace ImageProcessor.Web.Configuration
                 return GetImageProcessingSection().PreserveExifMetaData;
             }
         }
-
-        #region Caching
-        /// <summary>
-        /// Gets the maximum number of days to store images in the cache.
-        /// </summary>
-        public int MaxCacheDays
-        {
-            get
-            {
-                return GetImageCacheSection().MaxDays;
-            }
-        }
-
-        /// <summary>
-        /// Gets or the virtual path of the cache folder.
-        /// </summary>
-        /// <value>The virtual path of the cache folder.</value>
-        public string VirtualCachePath
-        {
-            get
-            {
-                return GetImageCacheSection().VirtualPath;
-            }
-        }
-        #endregion
         #endregion
 
         #region Methods
@@ -271,7 +258,7 @@ namespace ImageProcessor.Web.Configuration
             if (pluginElement != null)
             {
                 settings = pluginElement.Settings
-                    .Cast<ImageProcessingSection.SettingElement>()
+                    .Cast<SettingElement>()
                     .ToDictionary(setting => setting.Key, setting => setting.Value);
             }
             else
@@ -367,13 +354,13 @@ namespace ImageProcessor.Web.Configuration
         }
 
         /// <summary>
-        /// Returns the <see cref="T:ImageProcessor.Web.Config.ImageSecuritySection.SettingElementCollection"/> for the given plugin.
+        /// Returns the <see cref="SettingElementCollection"/> for the given plugin.
         /// </summary>
         /// <param name="name">
         /// The name of the plugin to get the settings for.
         /// </param>
         /// <returns>
-        /// The <see cref="T:ImageProcessor.Web.Config.ImageSecuritySection.SettingElementCollection"/> for the given plugin.
+        /// The <see cref="SettingElementCollection"/> for the given plugin.
         /// </returns>
         private Dictionary<string, string> GetServiceSettings(string name)
         {
@@ -387,7 +374,7 @@ namespace ImageProcessor.Web.Configuration
             if (serviceElement != null)
             {
                 settings = serviceElement.Settings
-                    .Cast<ImageSecuritySection.SettingElement>()
+                    .Cast<SettingElement>()
                     .ToDictionary(setting => setting.Key, setting => setting.Value);
             }
             else
@@ -422,6 +409,39 @@ namespace ImageProcessor.Web.Configuration
             }
 
             return whitelist;
+        }
+        #endregion
+
+        #region ImageCaches
+        /// <summary>
+        /// Gets the currently assigned <see cref="IImageCache"/>.
+        /// </summary>
+        private void LoadImageCache()
+        {
+            if (this.ImageCache == null)
+            {
+                string curentCache = GetImageCacheSection().CurrentCache;
+                ImageCacheSection.CacheElementCollection caches = imageCacheSection.ImageCaches;
+
+                foreach (ImageCacheSection.CacheElement cache in caches)
+                {
+                    if (cache.Name == curentCache)
+                    {
+                        Type type = Type.GetType(cache.Type);
+
+                        if (type == null)
+                        {
+                            throw new TypeLoadException("Couldn't load IImageCache: " + cache.Type);
+                        }
+
+                        this.ImageCache = type;
+                        this.ImageCacheSettings = cache.Settings
+                                                       .Cast<SettingElement>()
+                                                       .ToDictionary(setting => setting.Key, setting => setting.Value);
+                        break;
+                    }
+                }
+            }
         }
         #endregion
         #endregion

@@ -34,6 +34,11 @@ namespace ImageProcessor.Web.PostProcessor
         /// </returns>
         public static async Task PostProcessImageAsync(string sourceFile)
         {
+            if (!new Uri(sourceFile).IsFile)
+            {
+                return;
+            }
+
             string targetFile = Path.GetTempFileName();
             PostProcessingResultEventArgs result = await RunProcess(sourceFile, targetFile);
 

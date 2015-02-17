@@ -1,19 +1,17 @@
-﻿namespace ImageProcessor.Web.AzureBlobCache
+﻿namespace ImageProcessor.Web.Caching
 {
     using System;
     using System.Collections.Generic;
-    using System.Configuration;
     using System.Globalization;
     using System.IO;
     using System.Linq;
+    using System.Net;
     using System.Threading.Tasks;
     using System.Web;
 
-    using ImageProcessor.Web.Caching;
     using ImageProcessor.Web.Extensions;
     using ImageProcessor.Web.Helpers;
 
-    using Microsoft.WindowsAzure;
     using Microsoft.WindowsAzure.Storage;
     using Microsoft.WindowsAzure.Storage.Blob;
 
@@ -36,7 +34,9 @@
 
         private CloudBlobContainer cloudSourceBlobContainer;
 
-        private string cachedContainerRoot;
+        private string cachedCDNRoot;
+
+        private string cachedRewritePath;
 
         /// <summary>
         /// The physical cached path.
@@ -60,7 +60,7 @@
             this.cloudCachedBlobContainer = this.cloudCachedBlobClient.GetContainerReference(this.Settings["CachedBlobContainer"]);
             this.cloudSourceBlobContainer = this.cloudSourceBlobClient.GetContainerReference(this.Settings["SourceBlobContainer"]);
 
-            this.cachedContainerRoot = this.Settings["CachedContainerRoot"];
+            this.cachedCDNRoot = this.Settings["CachedCDNRoot"];
         }
 
         public override int MaxDays
@@ -78,15 +78,36 @@
             // Collision rate of about 1 in 10000 for the folder structure.
             // That gives us massive scope to store millions of files.
             string pathFromKey = string.Join("\\", cachedFileName.ToCharArray().Take(6));
-            this.CachedPath = Path.Combine(this.cachedContainerRoot, pathFromKey, cachedFileName).Replace(@"\", "/");
+            this.CachedPath = Path.Combine(this.cloudCachedBlobContainer.Uri.ToString(), pathFromKey, cachedFileName).Replace(@"\", "/");
+            this.cachedRewritePath = Path.Combine(this.cachedCDNRoot, this.cloudCachedBlobContainer.Name, pathFromKey, cachedFileName).Replace(@"\", "/");
 
             bool isUpdated = false;
             CachedImage cachedImage = CacheIndexer.GetValue(this.CachedPath);
 
+            if (new Uri(this.CachedPath).IsFile)
+            {
+                FileInfo fileInfo = new FileInfo(this.CachedPath);
+
+                if (fileInfo.Exists)
+                {
+                    // Pull the latest info.
+                    fileInfo.Refresh();
+
+                    cachedImage = new CachedImage
+                    {
+                        Key = Path.GetFileNameWithoutExtension(this.CachedPath),
+                        Path = this.CachedPath,
+                        CreationTimeUtc = fileInfo.CreationTimeUtc
+                    };
+
+                    CacheIndexer.Add(cachedImage);
+                }
+            }
+
             if (cachedImage == null)
             {
-                ICloudBlob blockBlob =
-                    await this.cloudCachedBlobContainer.GetBlobReferenceFromServerAsync(this.RequestPath);
+                string blobPath = this.CachedPath.Substring(this.cloudCachedBlobContainer.Uri.ToString().Length + 1);
+                CloudBlockBlob blockBlob = this.cloudCachedBlobContainer.GetBlockBlobReference(blobPath);
 
                 if (await blockBlob.ExistsAsync())
                 {
@@ -106,20 +127,20 @@
                         CacheIndexer.Add(cachedImage);
                     }
                 }
+            }
 
-                if (cachedImage == null)
+            if (cachedImage == null)
+            {
+                // Nothing in the cache so we should return true.
+                isUpdated = true;
+            }
+            else
+            {
+                // Check to see if the cached image is set to expire.
+                if (this.IsExpired(cachedImage.CreationTimeUtc))
                 {
-                    // Nothing in the cache so we should return true.
+                    CacheIndexer.Remove(this.CachedPath);
                     isUpdated = true;
-                }
-                else
-                {
-                    // Check to see if the cached image is set to expire.
-                    if (this.IsExpired(cachedImage.CreationTimeUtc))
-                    {
-                        CacheIndexer.Remove(this.CachedPath);
-                        isUpdated = true;
-                    }
                 }
             }
 
@@ -128,7 +149,8 @@
 
         public override async Task AddImageToCacheAsync(Stream stream)
         {
-            CloudBlockBlob blockBlob = this.cloudCachedBlobContainer.GetBlockBlobReference(this.CachedPath);
+            string blobPath = this.CachedPath.Substring(this.cloudCachedBlobContainer.Uri.ToString().Length + 1);
+            CloudBlockBlob blockBlob = this.cloudCachedBlobContainer.GetBlockBlobReference(blobPath);
             await blockBlob.UploadFromStreamAsync(stream);
         }
 
@@ -137,7 +159,7 @@
             Uri uri = new Uri(this.CachedPath);
             string path = uri.GetLeftPart(UriPartial.Path);
             string directory = path.Substring(0, path.LastIndexOf('/'));
-            string parent = directory.Substring(0, path.LastIndexOf('/'));
+            string parent = directory.Substring(this.cloudCachedBlobContainer.Uri.ToString().Length + 1, path.LastIndexOf('/'));
 
             BlobContinuationToken continuationToken = null;
             CloudBlobDirectory directoryBlob = this.cloudCachedBlobContainer.GetDirectoryReference(parent);
@@ -163,12 +185,10 @@
                 {
                     break;
                 }
-                else
-                {
-                    // Remove from the cache and delete each CachedImage.
-                    CacheIndexer.Remove(blob.Name);
-                    await blob.DeleteAsync();
-                }
+
+                // Remove from the cache and delete each CachedImage.
+                CacheIndexer.Remove(blob.Name);
+                await blob.DeleteAsync();
             }
         }
 
@@ -180,8 +200,24 @@
             {
                 if (new Uri(this.RequestPath).IsFile)
                 {
-                    ICloudBlob blockBlob = await this.cloudSourceBlobContainer
-                                                     .GetBlobReferenceFromServerAsync(this.RequestPath);
+                    // Get the hash for the filestream. That way we can ensure that if the image is
+                    // updated but has the same name we will know.
+                    FileInfo imageFileInfo = new FileInfo(this.RequestPath);
+                    if (imageFileInfo.Exists)
+                    {
+                        // Pull the latest info.
+                        imageFileInfo.Refresh();
+
+                        // Checking the stream itself is far too processor intensive so we make a best guess.
+                        string creation = imageFileInfo.CreationTimeUtc.ToString(CultureInfo.InvariantCulture);
+                        string length = imageFileInfo.Length.ToString(CultureInfo.InvariantCulture);
+                        streamHash = string.Format("{0}{1}", creation, length);
+                    }
+                }
+                else
+                {
+                    string blobPath = this.CachedPath.Substring(this.cloudSourceBlobContainer.Uri.ToString().Length + 1);
+                    CloudBlockBlob blockBlob = this.cloudSourceBlobContainer.GetBlockBlobReference(blobPath);
 
                     if (await blockBlob.ExistsAsync())
                     {
@@ -190,24 +226,11 @@
 
                         if (blockBlob.Properties.LastModified.HasValue)
                         {
-                            string creation = blockBlob.Properties.LastModified.Value.UtcDateTime.ToString(CultureInfo.InvariantCulture);
-                            string length = blockBlob.Properties.Length.ToString(CultureInfo.InvariantCulture);
-                            streamHash = string.Format("{0}{1}", creation, length);
-                        }
-                    }
-                    else
-                    {
-                        // Get the hash for the filestream. That way we can ensure that if the image is
-                        // updated but has the same name we will know.
-                        FileInfo imageFileInfo = new FileInfo(this.RequestPath);
-                        if (imageFileInfo.Exists)
-                        {
-                            // Pull the latest info.
-                            imageFileInfo.Refresh();
+                            string creation = blockBlob.Properties
+                                                       .LastModified.Value.UtcDateTime
+                                                       .ToString(CultureInfo.InvariantCulture);
 
-                            // Checking the stream itself is far too processor intensive so we make a best guess.
-                            string creation = imageFileInfo.CreationTimeUtc.ToString(CultureInfo.InvariantCulture);
-                            string length = imageFileInfo.Length.ToString(CultureInfo.InvariantCulture);
+                            string length = blockBlob.Properties.Length.ToString(CultureInfo.InvariantCulture);
                             streamHash = string.Format("{0}{1}", creation, length);
                         }
                     }
@@ -234,8 +257,16 @@
 
         public override void RewritePath(HttpContext context)
         {
-            // The cached file is valid so just rewrite the path.
-            context.RewritePath(this.CachedPath, false);
+            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(this.cachedRewritePath);
+            request.Method = "HEAD";
+
+            using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
+            {
+                HttpStatusCode responseCode = response.StatusCode;
+                context.Response.Redirect(
+                    responseCode == HttpStatusCode.NotFound ? this.CachedPath : this.cachedRewritePath,
+                    false);
+            }
         }
     }
 }

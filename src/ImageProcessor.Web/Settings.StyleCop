@@ -1,6 +1,7 @@
 <StyleCopSettings Version="105">
   <GlobalSettings>
     <CollectionProperty Name="RecognizedWords">
+      <Value>cdn</Value>
       <Value>dllimport</Value>
     </CollectionProperty>
   </GlobalSettings>

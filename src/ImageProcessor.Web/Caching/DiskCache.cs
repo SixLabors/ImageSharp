@@ -1,4 +1,15 @@
-﻿namespace ImageProcessor.Web.Caching
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="DiskCache.cs" company="James South">
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
+// </copyright>
+// <summary>
+//   Provides an <see cref="IImageCache" /> implementation that is file system based.
+//   The cache is self healing and cleaning.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
+
+namespace ImageProcessor.Web.Caching
 {
     using System;
     using System.Collections.Generic;
@@ -9,9 +20,12 @@
     using System.Web;
     using System.Web.Hosting;
 
-    using ImageProcessor.Web.Configuration;
     using ImageProcessor.Web.Extensions;
 
+    /// <summary>
+    /// Provides an <see cref="IImageCache"/> implementation that is file system based.
+    /// The cache is self healing and cleaning.
+    /// </summary>
     public class DiskCache : ImageCacheBase
     {
         /// <summary>
@@ -27,7 +41,7 @@
         private const int MaxFilesCount = 100;
 
         /// <summary>
-        /// The max age.
+        /// The maximum number of days to store the image.
         /// </summary>
         private readonly int maxDays;
 
@@ -42,7 +56,7 @@
         private readonly string absoluteCachePath;
 
         /// <summary>
-        /// The virtual cached path to the cached file.
+        /// The virtual path to the cached file.
         /// </summary>
         private string virtualCachedFilePath;
 
@@ -75,8 +89,7 @@
         }
 
         /// <summary>
-        /// The maximum number of days to cache files on the system for.
-        /// TODO: Shift the getter source to proper config.
+        /// Gets the maximum number of days to store the image.
         /// </summary>
         public override int MaxDays
         {
@@ -86,6 +99,12 @@
             }
         }
 
+        /// <summary>
+        /// Gets a value indicating whether the image is new or updated in an asynchronous manner.
+        /// </summary>
+        /// <returns>
+        /// The <see cref="Task"/>.
+        /// </returns>
         public override async Task<bool> IsNewOrUpdatedAsync()
         {
             string cachedFileName = await this.CreateCachedFileName();
@@ -138,6 +157,18 @@
             return isUpdated;
         }
 
+        /// <summary>
+        /// Adds the image to the cache in an asynchronous manner.
+        /// </summary>
+        /// <param name="stream">
+        /// The stream containing the image data.
+        /// </param>
+        /// <param name="contentType">
+        /// The content type of the image.
+        /// </param>
+        /// <returns>
+        /// The <see cref="Task"/> representing an asynchronous operation.
+        /// </returns>
         public override async Task AddImageToCacheAsync(Stream stream, string contentType)
         {
             // ReSharper disable once AssignNullToNotNullAttribute
@@ -153,6 +184,12 @@
             }
         }
 
+        /// <summary>
+        /// Trims the cache of any expired items in an asynchronous manner.
+        /// </summary>
+        /// <returns>
+        /// The asynchronous <see cref="Task"/> representing an asynchronous operation.
+        /// </returns>
         public override async Task TrimCacheAsync()
         {
             string directory = Path.GetDirectoryName(this.CachedPath);
@@ -198,6 +235,12 @@
             }
         }
 
+        /// <summary>
+        /// Rewrites the path to point to the cached image.
+        /// </summary>
+        /// <param name="context">
+        /// The <see cref="HttpContext"/> encapsulating all information about the request.
+        /// </param>
         public override void RewritePath(HttpContext context)
         {
             // The cached file is valid so just rewrite the path.

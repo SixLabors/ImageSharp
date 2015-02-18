@@ -61,7 +61,7 @@
         public DiskCache(string requestPath, string fullPath, string querystring)
             : base(requestPath, fullPath, querystring)
         {
-            this.maxDays = Convert.ToInt32(this.Settings["MaxAge"]);
+            this.maxDays = Convert.ToInt32(this.Settings["MaxDays"]);
             string virtualPath = this.Settings["VirtualCachePath"];
 
             if (!virtualPath.IsValidVirtualPathName())
@@ -138,7 +138,7 @@
             return isUpdated;
         }
 
-        public override async Task AddImageToCacheAsync(Stream stream)
+        public override async Task AddImageToCacheAsync(Stream stream, string contentType)
         {
             // ReSharper disable once AssignNullToNotNullAttribute
             DirectoryInfo directoryInfo = new DirectoryInfo(Path.GetDirectoryName(this.CachedPath));

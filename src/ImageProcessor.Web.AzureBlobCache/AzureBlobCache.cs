@@ -46,7 +46,7 @@
         public AzureBlobCache(string requestPath, string fullPath, string querystring)
             : base(requestPath, fullPath, querystring)
         {
-            this.maxDays = Convert.ToInt32(this.Settings["MaxAge"]);
+            this.maxDays = Convert.ToInt32(this.Settings["MaxDays"]);
 
             // Retrieve storage accounts from connection string.
             this.cloudCachedStorageAccount = CloudStorageAccount.Parse(this.Settings["CachedStorageAccount"]);
@@ -147,19 +147,24 @@
             return isUpdated;
         }
 
-        public override async Task AddImageToCacheAsync(Stream stream)
+        public override async Task AddImageToCacheAsync(Stream stream, string contentType)
         {
             string blobPath = this.CachedPath.Substring(this.cloudCachedBlobContainer.Uri.ToString().Length + 1);
             CloudBlockBlob blockBlob = this.cloudCachedBlobContainer.GetBlockBlobReference(blobPath);
+
             await blockBlob.UploadFromStreamAsync(stream);
+            
+            blockBlob.Properties.ContentType = contentType;
+            blockBlob.Properties.CacheControl = string.Format("public, max-age={0}", this.MaxDays * 86400);
+            await blockBlob.SetPropertiesAsync();
         }
 
         public override async Task TrimCacheAsync()
         {
             Uri uri = new Uri(this.CachedPath);
-            string path = uri.GetLeftPart(UriPartial.Path);
+            string path = uri.GetLeftPart(UriPartial.Path).Substring(this.cloudCachedBlobContainer.Uri.ToString().Length + 1);
             string directory = path.Substring(0, path.LastIndexOf('/'));
-            string parent = directory.Substring(this.cloudCachedBlobContainer.Uri.ToString().Length + 1, path.LastIndexOf('/'));
+            string parent = directory.Substring(path.LastIndexOf('/'));
 
             BlobContinuationToken continuationToken = null;
             CloudBlobDirectory directoryBlob = this.cloudCachedBlobContainer.GetDirectoryReference(parent);

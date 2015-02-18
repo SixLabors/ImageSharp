@@ -1,10 +1,20 @@
-﻿namespace ImageProcessor.Web.Caching
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="ImageCacheBase.cs" company="James South">
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
+// </copyright>
+// <summary>
+//   The image cache base provides methods for implementing the <see cref="IImageCache" /> interface.
+//   It is recommended that any implementations inherit from this class.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
+
+namespace ImageProcessor.Web.Caching
 {
     using System;
     using System.Collections.Generic;
     using System.Globalization;
     using System.IO;
-    using System.Reflection;
     using System.Threading.Tasks;
     using System.Web;
 
@@ -12,6 +22,10 @@
     using ImageProcessor.Web.Extensions;
     using ImageProcessor.Web.Helpers;
 
+    /// <summary>
+    /// The image cache base provides methods for implementing the <see cref="IImageCache"/> interface.
+    /// It is recommended that any implementations inherit from this class.
+    /// </summary>
     public abstract class ImageCacheBase : IImageCache
     {
         /// <summary>
@@ -54,16 +68,52 @@
         /// </summary>
         public Dictionary<string, string> Settings { get; set; }
 
-        public string CachedPath { get; protected set; }
+        /// <summary>
+        /// Gets or sets the path to the cached image.
+        /// </summary>
+        public string CachedPath { get; set; }
 
+        /// <summary>
+        /// Gets the maximum number of days to store the image.
+        /// </summary>
         public abstract int MaxDays { get; }
 
+        /// <summary>
+        /// Gets a value indicating whether the image is new or updated in an asynchronous manner.
+        /// </summary>
+        /// <returns>
+        /// The <see cref="Task"/>.
+        /// </returns>
         public abstract Task<bool> IsNewOrUpdatedAsync();
 
+        /// <summary>
+        /// Adds the image to the cache in an asynchronous manner.
+        /// </summary>
+        /// <param name="stream">
+        /// The stream containing the image data.
+        /// </param>
+        /// <param name="contentType">
+        /// The content type of the image.
+        /// </param>
+        /// <returns>
+        /// The <see cref="Task"/> representing an asynchronous operation.
+        /// </returns>
         public abstract Task AddImageToCacheAsync(Stream stream, string contentType);
 
+        /// <summary>
+        /// Trims the cache of any expired items in an asynchronous manner.
+        /// </summary>
+        /// <returns>
+        /// The asynchronous <see cref="Task"/> representing an asynchronous operation.
+        /// </returns>
         public abstract Task TrimCacheAsync();
 
+        /// <summary>
+        /// Gets a string identifying the cached file name.
+        /// </summary>
+        /// <returns>
+        /// The asynchronous <see cref="Task"/> returning the value.
+        /// </returns>
         public virtual Task<string> CreateCachedFileName()
         {
             string streamHash = string.Empty;
@@ -106,6 +156,12 @@
             return Task.FromResult(cachedFileName);
         }
 
+        /// <summary>
+        /// Rewrites the path to point to the cached image.
+        /// </summary>
+        /// <param name="context">
+        /// The <see cref="HttpContext"/> encapsulating all information about the request.
+        /// </param>
         public abstract void RewritePath(HttpContext context);
 
         /// <summary>

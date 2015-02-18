@@ -60,7 +60,7 @@
 
         public abstract Task<bool> IsNewOrUpdatedAsync();
 
-        public abstract Task AddImageToCacheAsync(Stream stream);
+        public abstract Task AddImageToCacheAsync(Stream stream, string contentType);
 
         public abstract Task TrimCacheAsync();
 

@@ -404,19 +404,30 @@ namespace ImageProcessor.Web.HttpModules
                                 memoryStream.Position = 0;
 
                                 // Add to the cache.
-                                await this.imageCache.AddImageToCacheAsync(memoryStream);
+                                await this.imageCache.AddImageToCacheAsync(memoryStream, imageFactory.CurrentImageFormat.MimeType);
 
                                 // Store the cached path, response type, and cache dependency in the context for later retrieval.
                                 context.Items[CachedPathKey] = cachedPath;
                                 context.Items[CachedResponseTypeKey] = imageFactory.CurrentImageFormat.MimeType;
+                                bool isFileCached = new Uri(cachedPath).IsFile;
+
                                 if (isFileLocal)
                                 {
-                                    // Some services might only provide filename so we can't monitor for the browser.
-                                    context.Items[CachedResponseFileDependency] = Path.GetFileName(requestPath) == requestPath
-                                        ? new List<string> { cachedPath }
-                                        : new List<string> { requestPath, cachedPath };
+                                    if (isFileCached)
+                                    {
+                                        // Some services might only provide filename so we can't monitor for the browser.
+                                        context.Items[CachedResponseFileDependency] = Path.GetFileName(requestPath) == requestPath
+                                            ? new List<string> { cachedPath }
+                                            : new List<string> { requestPath, cachedPath };
+                                    }
+                                    else
+                                    {
+                                        context.Items[CachedResponseFileDependency] = Path.GetFileName(requestPath) == requestPath
+                                            ? null
+                                            : new List<string> { requestPath };
+                                    }
                                 }
-                                else
+                                else if (isFileCached)
                                 {
                                     context.Items[CachedResponseFileDependency] = new List<string> { cachedPath };
                                 }

@@ -1,4 +1,15 @@
-﻿namespace ImageProcessor.Web.Caching
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="AzureBlobCache.cs" company="James South">
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
+// </copyright>
+// <summary>
+//   Provides an <see cref="IImageCache" /> implementation that uses Azure blob storage.
+//   The cache is self healing and cleaning.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
+
+namespace ImageProcessor.Web.Caching
 {
     using System;
     using System.Collections.Generic;
@@ -15,54 +26,72 @@
     using Microsoft.WindowsAzure.Storage;
     using Microsoft.WindowsAzure.Storage.Blob;
 
+    /// <summary>
+    /// Provides an <see cref="IImageCache"/> implementation that uses Azure blob storage.
+    /// The cache is self healing and cleaning.
+    /// </summary>
     public class AzureBlobCache : ImageCacheBase
     {
         /// <summary>
-        /// The max age.
+        /// The maximum number of days to store the image.
         /// </summary>
         private readonly int maxDays;
 
-        private CloudStorageAccount cloudCachedStorageAccount;
+        /// <summary>
+        /// The cloud cached blob container.
+        /// </summary>
+        private readonly CloudBlobContainer cloudCachedBlobContainer;
 
-        private CloudStorageAccount cloudSourceStorageAccount;
+        /// <summary>
+        /// The cloud source blob container.
+        /// </summary>
+        private readonly CloudBlobContainer cloudSourceBlobContainer;
 
-        private CloudBlobClient cloudCachedBlobClient;
+        /// <summary>
+        /// The cached root url for a content delivery network.
+        /// </summary>
+        private readonly string cachedCdnRoot;
 
-        private CloudBlobClient cloudSourceBlobClient;
-
-        private CloudBlobContainer cloudCachedBlobContainer;
-
-        private CloudBlobContainer cloudSourceBlobContainer;
-
-        private string cachedCDNRoot;
-
+        /// <summary>
+        /// The cached rewrite path.
+        /// </summary>
         private string cachedRewritePath;
 
         /// <summary>
-        /// The physical cached path.
+        /// Initializes a new instance of the <see cref="AzureBlobCache"/> class.
         /// </summary>
-        private string physicalCachedPath;
-
+        /// <param name="requestPath">
+        /// The request path for the image.
+        /// </param>
+        /// <param name="fullPath">
+        /// The full path for the image.
+        /// </param>
+        /// <param name="querystring">
+        /// The querystring containing instructions.
+        /// </param>
         public AzureBlobCache(string requestPath, string fullPath, string querystring)
             : base(requestPath, fullPath, querystring)
         {
             this.maxDays = Convert.ToInt32(this.Settings["MaxDays"]);
 
             // Retrieve storage accounts from connection string.
-            this.cloudCachedStorageAccount = CloudStorageAccount.Parse(this.Settings["CachedStorageAccount"]);
-            this.cloudSourceStorageAccount = CloudStorageAccount.Parse(this.Settings["SourceStorageAccount"]);
+            CloudStorageAccount cloudCachedStorageAccount = CloudStorageAccount.Parse(this.Settings["CachedStorageAccount"]);
+            CloudStorageAccount cloudSourceStorageAccount = CloudStorageAccount.Parse(this.Settings["SourceStorageAccount"]);
 
             // Create the blob clients.
-            this.cloudCachedBlobClient = this.cloudCachedStorageAccount.CreateCloudBlobClient();
-            this.cloudSourceBlobClient = this.cloudSourceStorageAccount.CreateCloudBlobClient();
+            CloudBlobClient cloudCachedBlobClient = cloudCachedStorageAccount.CreateCloudBlobClient();
+            CloudBlobClient cloudSourceBlobClient = cloudSourceStorageAccount.CreateCloudBlobClient();
 
             // Retrieve references to a previously created containers.
-            this.cloudCachedBlobContainer = this.cloudCachedBlobClient.GetContainerReference(this.Settings["CachedBlobContainer"]);
-            this.cloudSourceBlobContainer = this.cloudSourceBlobClient.GetContainerReference(this.Settings["SourceBlobContainer"]);
+            this.cloudCachedBlobContainer = cloudCachedBlobClient.GetContainerReference(this.Settings["CachedBlobContainer"]);
+            this.cloudSourceBlobContainer = cloudSourceBlobClient.GetContainerReference(this.Settings["SourceBlobContainer"]);
 
-            this.cachedCDNRoot = this.Settings["CachedCDNRoot"];
+            this.cachedCdnRoot = this.Settings["CachedCDNRoot"];
         }
 
+        /// <summary>
+        /// Gets the maximum number of days to store the image.
+        /// </summary>
         public override int MaxDays
         {
             get
@@ -71,6 +100,12 @@
             }
         }
 
+        /// <summary>
+        /// Gets a value indicating whether the image is new or updated in an asynchronous manner.
+        /// </summary>
+        /// <returns>
+        /// The asynchronous <see cref="Task"/> returning the value.
+        /// </returns>
         public override async Task<bool> IsNewOrUpdatedAsync()
         {
             string cachedFileName = await this.CreateCachedFileName();
@@ -79,7 +114,7 @@
             // That gives us massive scope to store millions of files.
             string pathFromKey = string.Join("\\", cachedFileName.ToCharArray().Take(6));
             this.CachedPath = Path.Combine(this.cloudCachedBlobContainer.Uri.ToString(), pathFromKey, cachedFileName).Replace(@"\", "/");
-            this.cachedRewritePath = Path.Combine(this.cachedCDNRoot, this.cloudCachedBlobContainer.Name, pathFromKey, cachedFileName).Replace(@"\", "/");
+            this.cachedRewritePath = Path.Combine(this.cachedCdnRoot, this.cloudCachedBlobContainer.Name, pathFromKey, cachedFileName).Replace(@"\", "/");
 
             bool isUpdated = false;
             CachedImage cachedImage = CacheIndexer.GetValue(this.CachedPath);
@@ -147,18 +182,36 @@
             return isUpdated;
         }
 
+        /// <summary>
+        /// Adds the image to the cache in an asynchronous manner.
+        /// </summary>
+        /// <param name="stream">
+        /// The stream containing the image data.
+        /// </param>
+        /// <param name="contentType">
+        /// The content type of the image.
+        /// </param>
+        /// <returns>
+        /// The <see cref="Task"/> representing an asynchronous operation.
+        /// </returns>
         public override async Task AddImageToCacheAsync(Stream stream, string contentType)
         {
             string blobPath = this.CachedPath.Substring(this.cloudCachedBlobContainer.Uri.ToString().Length + 1);
             CloudBlockBlob blockBlob = this.cloudCachedBlobContainer.GetBlockBlobReference(blobPath);
 
             await blockBlob.UploadFromStreamAsync(stream);
-            
+
             blockBlob.Properties.ContentType = contentType;
             blockBlob.Properties.CacheControl = string.Format("public, max-age={0}", this.MaxDays * 86400);
             await blockBlob.SetPropertiesAsync();
         }
 
+        /// <summary>
+        /// Trims the cache of any expired items in an asynchronous manner.
+        /// </summary>
+        /// <returns>
+        /// The asynchronous <see cref="Task"/> representing an asynchronous operation.
+        /// </returns>
         public override async Task TrimCacheAsync()
         {
             Uri uri = new Uri(this.CachedPath);
@@ -197,6 +250,12 @@
             }
         }
 
+        /// <summary>
+        /// Gets a string identifying the cached file name.
+        /// </summary>
+        /// <returns>
+        /// The asynchronous <see cref="Task"/> returning the value.
+        /// </returns>
         public override async Task<string> CreateCachedFileName()
         {
             string streamHash = string.Empty;
@@ -260,6 +319,12 @@
             return cachedFileName;
         }
 
+        /// <summary>
+        /// Rewrites the path to point to the cached image.
+        /// </summary>
+        /// <param name="context">
+        /// The <see cref="HttpContext"/> encapsulating all information about the request.
+        /// </param>
         public override void RewritePath(HttpContext context)
         {
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(this.cachedRewritePath);

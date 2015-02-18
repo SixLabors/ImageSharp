@@ -19,7 +19,7 @@ namespace ImageProcessor.Web.Caching
 
         Task<bool> IsNewOrUpdatedAsync();
 
-        Task AddImageToCacheAsync(Stream stream);
+        Task AddImageToCacheAsync(Stream stream, string contentType);
 
         Task TrimCacheAsync();
 

@@ -27,6 +27,7 @@
         <setting key="MaxThreshold" value="100"/>
       </settings>
     </plugin>
+    <plugin name="Halftone" type="ImageProcessor.Web.Processors.Halftone, ImageProcessor.Web"/>
     <plugin name="Hue" type="ImageProcessor.Web.Processors.Hue, ImageProcessor.Web"/>
     <plugin name="Mask" type="ImageProcessor.Web.Processors.Mask, ImageProcessor.Web">
       <settings>

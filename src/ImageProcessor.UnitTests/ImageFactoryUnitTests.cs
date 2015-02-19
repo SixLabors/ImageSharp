@@ -128,25 +128,12 @@ namespace ImageProcessor.UnitTests
                 Image original = (Image)imageFactory.Image.Clone();
                 imageFactory.Alpha(50);
 
-                ISupportedImageFormat format = imageFactory.CurrentImageFormat;
+                AssertionHelpers.AssertImagesAreDifferent(
+                    original,
+                    imageFactory.Image,
+                    "because the alpha operation should have been applied on {0}",
+                    imageFactory.ImagePath);
 
-                // The Image class does not support alpha transparency in bitmaps. 
-                if (format.GetType() == typeof(BitmapFormat))
-                {
-                    AssertionHelpers.AssertImagesAreIdentical(
-                        original,
-                        imageFactory.Image,
-                        "because the alpha operation should not have been applied on {0}",
-                        imageFactory.ImagePath);
-                }
-                else
-                {
-                    AssertionHelpers.AssertImagesAreDifferent(
-                        original,
-                        imageFactory.Image,
-                        "because the alpha operation should have been applied on {0}",
-                        imageFactory.ImagePath);
-                }
             }
         }
 

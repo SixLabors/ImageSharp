@@ -13,8 +13,8 @@ namespace ImageProcessor.Web.Configuration
 {
     using System.Configuration;
     using System.IO;
-    using System.Linq;
     using System.Xml;
+
     using ImageProcessor.Web.Helpers;
 
     /// <summary>
@@ -24,6 +24,7 @@ namespace ImageProcessor.Web.Configuration
     public sealed class ImageProcessingSection : ConfigurationSection
     {
         #region Properties
+
         /// <summary>
         /// Gets or sets a value indicating whether to preserve exif meta data.
         /// </summary>
@@ -86,13 +87,14 @@ namespace ImageProcessor.Web.Configuration
                 return imageProcessingSection;
             }
 
-            string section = ResourceHelpers.ResourceAsString("ImageProcessor.Web.Configuration.Resources.processing.config");
+            string section = ResourceHelpers.ResourceAsString("ImageProcessor.Web.Configuration.Resources.processing.config.transform");
             XmlReader reader = new XmlTextReader(new StringReader(section));
             imageProcessingSection = new ImageProcessingSection();
             imageProcessingSection.DeserializeSection(reader);
             imageProcessingSection.AutoLoadPlugins = true;
             return imageProcessingSection;
         }
+
         #endregion
 
         /// <summary>
@@ -156,7 +158,9 @@ namespace ImageProcessor.Web.Configuration
             /// Gets or sets the <see cref="T:ImageProcessor.Web.Config.ImageProcessingSection.PresetElement"/>
             /// at the specified index within the collection.
             /// </summary>
-            /// <param name="index">The index at which to get the specified object.</param>
+            /// <param name="index">
+            /// The index at which to get the specified object.
+            /// </param>
             /// <returns>
             /// The <see cref="T:ImageProcessor.Web.Config.ImageProcessingSection.PresetElement"/>
             /// at the specified index within the collection.
@@ -197,7 +201,9 @@ namespace ImageProcessor.Web.Configuration
             /// The <see cref="ConfigurationElement">ConfigurationElement</see> 
             /// to return the key for.
             /// </param>
-            /// <returns>The element key for a specified PluginElement configuration element.</returns>
+            /// <returns>
+            /// The element key for a specified PluginElement configuration element.
+            /// </returns>
             protected override object GetElementKey(ConfigurationElement element)
             {
                 return ((PresetElement)element).Name;
@@ -280,7 +286,9 @@ namespace ImageProcessor.Web.Configuration
             /// Gets or sets the <see cref="T:ImageProcessor.Web.Config.ImageProcessingSection.PluginElement"/>
             /// at the specified index within the collection.
             /// </summary>
-            /// <param name="index">The index at which to get the specified object.</param>
+            /// <param name="index">
+            /// The index at which to get the specified object.
+            /// </param>
             /// <returns>
             /// The <see cref="T:ImageProcessor.Web.Config.ImageProcessingSection.PluginElement"/>
             /// at the specified index within the collection.
@@ -321,7 +329,9 @@ namespace ImageProcessor.Web.Configuration
             /// The <see cref="ConfigurationElement">ConfigurationElement</see> 
             /// to return the key for.
             /// </param>
-            /// <returns>The element key for a specified PluginElement configuration element.</returns>
+            /// <returns>
+            /// The element key for a specified PluginElement configuration element.
+            /// </returns>
             protected override object GetElementKey(ConfigurationElement element)
             {
                 return ((PluginElement)element).Name;

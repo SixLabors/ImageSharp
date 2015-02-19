@@ -37,7 +37,8 @@ namespace ImageProcessor.Web.Services
             this.Settings = new Dictionary<string, string>
             {
                 { "MaxBytes", "4194304" }, 
-                { "Timeout", "30000" }
+                { "Timeout", "30000" },
+                { "Protocol", "http" }
             };
 
             this.WhiteList = new Uri[] { };
@@ -105,7 +106,7 @@ namespace ImageProcessor.Web.Services
             {
                 if (!uri.IsAbsoluteUri)
                 {
-                    Uri rebaseUri = new Uri("http://" + uri.ToString().TrimStart(new[] { '.', '/' }));
+                    Uri rebaseUri = new Uri("http://" + uri.ToString().TrimStart('.', '/'));
                     validUrl = upper.StartsWith(rebaseUri.Host.ToUpperInvariant()) || upper.EndsWith(rebaseUri.Host.ToUpperInvariant());
                 }
                 else

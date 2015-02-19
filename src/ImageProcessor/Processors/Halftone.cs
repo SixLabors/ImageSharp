@@ -13,7 +13,6 @@ namespace ImageProcessor.Processors
     using System;
     using System.Collections.Generic;
     using System.Drawing;
-    using System.Drawing.Imaging;
     using System.Threading.Tasks;
 
     using ImageProcessor.Common.Exceptions;
@@ -70,43 +69,48 @@ namespace ImageProcessor.Processors
             int width = image.Width;
             int height = image.Height;
             Bitmap newImage = null;
-            //Bitmap edgeBitmap = null;
+            Bitmap edgeBitmap = null;
             try
             {
                 HalftoneFilter filter = new HalftoneFilter(5);
                 newImage = new Bitmap(image);
                 newImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
                 newImage = filter.ApplyFilter(newImage);
+                bool comicMode = this.DynamicParameter;
 
-                // Draw the edges.
-                //edgeBitmap = new Bitmap(width, height);
-                //edgeBitmap.SetResolution(image.HorizontalResolution, image.VerticalResolution);
-                //edgeBitmap = Trace(image, edgeBitmap, 120);
-
-                using (Graphics graphics = Graphics.FromImage(newImage))
+                if (comicMode)
                 {
-                    // Overlay the image.
-                    //graphics.DrawImage(edgeBitmap, 0, 0);
-                    Rectangle rectangle = new Rectangle(0, 0, width, height);
+                    // Draw the edges.
+                    edgeBitmap = new Bitmap(width, height);
+                    edgeBitmap.SetResolution(image.HorizontalResolution, image.VerticalResolution);
+                    edgeBitmap = Trace(image, edgeBitmap, 120);
 
-                    // Draw an edge around the image.
-                    //using (Pen blackPen = new Pen(Color.Black))
-                    //{
-                    //    blackPen.Width = 4;
-                    //    graphics.DrawRectangle(blackPen, rectangle);
-                    //}
+                    using (Graphics graphics = Graphics.FromImage(newImage))
+                    {
+                        // Overlay the image.
+                        graphics.DrawImage(edgeBitmap, 0, 0);
+                        Rectangle rectangle = new Rectangle(0, 0, width, height);
+
+                        // Draw an edge around the image.
+                        using (Pen blackPen = new Pen(Color.Black))
+                        {
+                            blackPen.Width = 4;
+                            graphics.DrawRectangle(blackPen, rectangle);
+                        }
+                    }
+
+                    edgeBitmap.Dispose();
                 }
 
-                //edgeBitmap.Dispose();
                 image.Dispose();
                 image = newImage;
             }
             catch (Exception ex)
             {
-                //if (edgeBitmap != null)
-                //{
-                //    edgeBitmap.Dispose();
-                //}
+                if (edgeBitmap != null)
+                {
+                    edgeBitmap.Dispose();
+                }
 
                 if (newImage != null)
                 {

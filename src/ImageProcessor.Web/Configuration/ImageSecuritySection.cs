@@ -55,7 +55,7 @@ namespace ImageProcessor.Web.Configuration
                 return imageSecuritySection;
             }
 
-            string section = ResourceHelpers.ResourceAsString("ImageProcessor.Web.Configuration.Resources.security.config");
+            string section = ResourceHelpers.ResourceAsString("ImageProcessor.Web.Configuration.Resources.security.config.transform");
             XmlReader reader = new XmlTextReader(new StringReader(section));
             imageSecuritySection = new ImageSecuritySection();
             imageSecuritySection.DeserializeSection(reader);

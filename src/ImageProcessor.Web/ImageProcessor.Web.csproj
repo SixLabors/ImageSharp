@@ -52,7 +52,6 @@
     <Compile Include="Configuration\Shared\SettingElement.cs" />
     <Compile Include="Configuration\Shared\SettingElementCollection.cs" />
     <Compile Include="Extensions\TypeInitializationExtensions.cs" />
-    <Compile Include="Helpers\TypePropertyHelpers.cs" />
     <Compile Include="Helpers\ProcessQueryStringEventArgs.cs" />
     <Compile Include="Processors\DetectEdges.cs" />
     <Compile Include="Processors\EntropyCrop.cs" />
@@ -111,13 +110,13 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Configuration\Resources\cache.config">
+    <None Include="Configuration\Resources\cache.config.transform">
       <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Configuration\Resources\processing.config">
+    </None>
+    <None Include="Configuration\Resources\processing.config.transform">
       <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Configuration\Resources\security.config" />
+    </None>
+    <None Include="Configuration\Resources\security.config.transform" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />

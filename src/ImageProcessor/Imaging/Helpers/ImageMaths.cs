@@ -36,7 +36,7 @@ namespace ImageProcessor.Imaging.Helpers
         /// The <see cref="System.Type"/> to clamp.
         /// </typeparam>
         /// <returns>
-        /// The <see cref="T"/> representing the clamped value.
+        /// The <see cref="IComparable{T}"/> representing the clamped value.
         /// </returns>
         public static T Clamp<T>(T value, T min, T max) where T : IComparable<T>
         {

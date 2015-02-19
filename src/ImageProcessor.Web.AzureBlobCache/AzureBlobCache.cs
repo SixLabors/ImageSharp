@@ -17,6 +17,7 @@ namespace ImageProcessor.Web.Caching
     using System.IO;
     using System.Linq;
     using System.Net;
+    using System.Text.RegularExpressions;
     using System.Threading.Tasks;
     using System.Web;
 
@@ -217,16 +218,16 @@ namespace ImageProcessor.Web.Caching
             Uri uri = new Uri(this.CachedPath);
             string path = uri.GetLeftPart(UriPartial.Path).Substring(this.cloudCachedBlobContainer.Uri.ToString().Length + 1);
             string directory = path.Substring(0, path.LastIndexOf('/'));
-            string parent = directory.Substring(path.LastIndexOf('/'));
+            string parent = directory.Substring(0, directory.LastIndexOf('/'));
 
             BlobContinuationToken continuationToken = null;
-            CloudBlobDirectory directoryBlob = this.cloudCachedBlobContainer.GetDirectoryReference(parent);
             List<IListBlobItem> results = new List<IListBlobItem>();
 
             // Loop through the all the files in a non blocking fashion.
             do
             {
-                BlobResultSegment response = await directoryBlob.ListBlobsSegmentedAsync(continuationToken);
+                BlobResultSegment response = await this.cloudCachedBlobContainer
+                    .ListBlobsSegmentedAsync(parent, true, BlobListingDetails.Metadata, 5000, continuationToken, null, null);
                 continuationToken = response.ContinuationToken;
                 results.AddRange(response.Results);
             }
@@ -280,7 +281,10 @@ namespace ImageProcessor.Web.Caching
                 }
                 else
                 {
-                    string blobPath = this.CachedPath.Substring(this.cloudSourceBlobContainer.Uri.ToString().Length + 1);
+                    Regex regex = new Regex("^http(s)?://");
+                    string container = regex.Replace(this.cloudSourceBlobContainer.Uri.ToString(), string.Empty);
+                    string blobPath = regex.Replace(this.RequestPath, string.Empty);
+                    blobPath = blobPath.Replace(container, string.Empty).TrimStart('/');
                     CloudBlockBlob blockBlob = this.cloudSourceBlobContainer.GetBlockBlobReference(blobPath);
 
                     if (await blockBlob.ExistsAsync())

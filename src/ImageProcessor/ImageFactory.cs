@@ -139,6 +139,9 @@ namespace ImageProcessor
         /// </returns>
         public ImageFactory Load(Stream stream)
         {
+            // Reset the position of the stream to ensure we're reading the correct part.
+            stream.Position = 0;
+
             ISupportedImageFormat format = FormatUtilities.GetFormat(stream);
 
             if (format == null)
@@ -1070,8 +1073,9 @@ namespace ImageProcessor
             if (this.ShouldProcess)
             {
                 // Allow the same stream to be used as for input.
-                stream.Position = 0;
+                stream.SetLength(0);
                 this.Image = this.CurrentImageFormat.Save(stream, this.Image);
+                stream.Position = 0;
             }
 
             return this;

@@ -148,7 +148,7 @@ namespace ImageProcessor.Web.HttpModules
             context.AddOnPostAuthorizeRequestAsync(postAuthorizeHelper.BeginEventHandler, postAuthorizeHelper.EndEventHandler);
 
             EventHandlerTaskAsyncHelper postProcessHelper = new EventHandlerTaskAsyncHelper(this.PostProcessImage);
-            context.AddOnPostRequestHandlerExecuteAsync(postProcessHelper.BeginEventHandler, postProcessHelper.EndEventHandler);
+            context.AddOnEndRequestAsync(postProcessHelper.BeginEventHandler, postProcessHelper.EndEventHandler);
 
             context.PreSendRequestHeaders += this.ContextPreSendRequestHeaders;
         }
@@ -231,10 +231,10 @@ namespace ImageProcessor.Web.HttpModules
 
             if (cachedPathObject != null)
             {
-                string cachedPath = cachedPathObject.ToString();
-
                 // Trim the cache.
                 await this.imageCache.TrimCacheAsync();
+
+                string cachedPath = cachedPathObject.ToString();
 
                 // Fire the post processing event.
                 EventHandler<PostProcessingEventArgs> handler = OnPostProcessing;
@@ -300,6 +300,7 @@ namespace ImageProcessor.Web.HttpModules
                 string queryString = string.Empty;
                 string urlParameters = string.Empty;
 
+                // Legacy support. I'd like to remove this asap.
                 if (hasMultiParams)
                 {
                     // We need to split the querystring to get the actual values we want.
@@ -338,7 +339,13 @@ namespace ImageProcessor.Web.HttpModules
                     }
                     else
                     {
-                        requestPath = HttpUtility.UrlDecode(request.QueryString.ToString());
+                        // Parse any protocol values from settings.
+                        string protocol = currentService.Settings["Protocol"] != null
+                                              ? currentService.Settings["Protocol"] + "://"
+                                              : string.Empty;
+
+                        requestPath = protocol + request.Path.Replace(currentService.Prefix, string.Empty).TrimStart('/');
+                        queryString = HttpUtility.UrlDecode(request.QueryString.ToString());
                     }
                 }
 
@@ -359,6 +366,7 @@ namespace ImageProcessor.Web.HttpModules
                 string fullPath = string.Format("{0}{1}?{2}", requestPath, parts, queryString);
                 object resourcePath;
 
+                // More legacy support code.
                 if (hasMultiParams)
                 {
                     resourcePath = string.IsNullOrWhiteSpace(urlParameters)
@@ -394,43 +402,42 @@ namespace ImageProcessor.Web.HttpModules
                         {
                             byte[] imageBuffer = await currentService.GetImage(resourcePath);
 
-                            using (MemoryStream memoryStream = new MemoryStream(imageBuffer))
+                            using (MemoryStream inStream = new MemoryStream(imageBuffer))
                             {
-                                // Reset the position of the stream to ensure we're reading the correct part.
-                                memoryStream.Position = 0;
-
                                 // Process the Image
-                                imageFactory.Load(memoryStream).AutoProcess(queryString).Save(memoryStream);
-                                memoryStream.Position = 0;
-
-                                // Add to the cache.
-                                await this.imageCache.AddImageToCacheAsync(memoryStream, imageFactory.CurrentImageFormat.MimeType);
-
-                                // Store the cached path, response type, and cache dependency in the context for later retrieval.
-                                context.Items[CachedPathKey] = cachedPath;
-                                context.Items[CachedResponseTypeKey] = imageFactory.CurrentImageFormat.MimeType;
-                                bool isFileCached = new Uri(cachedPath).IsFile;
-
-                                if (isFileLocal)
+                                using (MemoryStream outStream = new MemoryStream())
                                 {
-                                    if (isFileCached)
-                                    {
-                                        // Some services might only provide filename so we can't monitor for the browser.
-                                        context.Items[CachedResponseFileDependency] = Path.GetFileName(requestPath) == requestPath
-                                            ? new List<string> { cachedPath }
-                                            : new List<string> { requestPath, cachedPath };
-                                    }
-                                    else
-                                    {
-                                        context.Items[CachedResponseFileDependency] = Path.GetFileName(requestPath) == requestPath
-                                            ? null
-                                            : new List<string> { requestPath };
-                                    }
+                                    imageFactory.Load(inStream).AutoProcess(queryString).Save(outStream);
+
+                                    // Add to the cache.
+                                    await this.imageCache.AddImageToCacheAsync(outStream, imageFactory.CurrentImageFormat.MimeType);
                                 }
-                                else if (isFileCached)
+                            }
+
+                            // Store the cached path, response type, and cache dependency in the context for later retrieval.
+                            context.Items[CachedPathKey] = cachedPath;
+                            context.Items[CachedResponseTypeKey] = imageFactory.CurrentImageFormat.MimeType;
+                            bool isFileCached = new Uri(cachedPath).IsFile;
+
+                            if (isFileLocal)
+                            {
+                                if (isFileCached)
                                 {
-                                    context.Items[CachedResponseFileDependency] = new List<string> { cachedPath };
+                                    // Some services might only provide filename so we can't monitor for the browser.
+                                    context.Items[CachedResponseFileDependency] = Path.GetFileName(requestPath) == requestPath
+                                        ? new List<string> { cachedPath }
+                                        : new List<string> { requestPath, cachedPath };
                                 }
+                                else
+                                {
+                                    context.Items[CachedResponseFileDependency] = Path.GetFileName(requestPath) == requestPath
+                                        ? null
+                                        : new List<string> { requestPath };
+                                }
+                            }
+                            else if (isFileCached)
+                            {
+                                context.Items[CachedResponseFileDependency] = new List<string> { cachedPath };
                             }
                         }
                     }
@@ -438,6 +445,12 @@ namespace ImageProcessor.Web.HttpModules
 
                 // The cached file is valid so just rewrite the path.
                 this.imageCache.RewritePath(context);
+
+                // Redirect if not a locally store file.
+                if (!new Uri(cachedPath).IsFile)
+                {
+                    context.ApplicationInstance.CompleteRequest();
+                }
             }
         }
 
@@ -557,11 +570,11 @@ namespace ImageProcessor.Web.HttpModules
             IImageService imageService = null;
             IList<IImageService> services = ImageProcessorConfiguration.Instance.ImageServices;
 
-            string path = request.Path;
+            string path = request.Path.TrimStart('/');
             foreach (IImageService service in services)
             {
                 string key = service.Prefix;
-                if (!string.IsNullOrWhiteSpace(key) && path.EndsWith(key, StringComparison.InvariantCultureIgnoreCase))
+                if (!string.IsNullOrWhiteSpace(key) && path.StartsWith(key, StringComparison.InvariantCultureIgnoreCase))
                 {
                     imageService = service;
                 }
@@ -575,7 +588,6 @@ namespace ImageProcessor.Web.HttpModules
             // Return the file based service
             return services.FirstOrDefault(s => string.IsNullOrWhiteSpace(s.Prefix) && s.IsValidRequest(path));
         }
-
         #endregion
     }
 }

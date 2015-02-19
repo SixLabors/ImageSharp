@@ -108,7 +108,6 @@ namespace ImageProcessor.Imaging.Formats
         public virtual Image Save(Stream stream, Image image)
         {
             image.Save(stream, this.ImageFormat);
-            stream.Position = 0;
             return image;
         }
 

@@ -24,6 +24,7 @@ namespace ImageProcessor.PlayGround
     using ImageProcessor.Imaging.Filters.Photo;
     using ImageProcessor.Imaging.Formats;
     using ImageProcessor.Processors;
+    using ImageProcessor.Web.Caching;
 
     /// <summary>
     /// The program.
@@ -38,6 +39,10 @@ namespace ImageProcessor.PlayGround
         /// </param>
         public static void Main(string[] args)
         {
+            var x = typeof(AzureBlobCache);
+            Console.WriteLine(x.AssemblyQualifiedName);
+            Console.ReadLine();
+
             string path = new Uri(System.Reflection.Assembly.GetExecutingAssembly().CodeBase).LocalPath;
 
             // ReSharper disable once AssignNullToNotNullAttribute

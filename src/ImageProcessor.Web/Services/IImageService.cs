@@ -4,7 +4,7 @@
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   Defines properties and methods for allowing retrieval of image from different sources.
+//   Defines properties and methods for allowing retrieval of images from different sources.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -15,7 +15,7 @@ namespace ImageProcessor.Web.Services
     using System.Threading.Tasks;
 
     /// <summary>
-    ///  Defines properties and methods for allowing retrieval of image from different sources.
+    ///  Defines properties and methods for allowing retrieval of images from different sources.
     /// </summary>
     public interface IImageService
     {

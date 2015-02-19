@@ -46,6 +46,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Caching\CachedImage.cs" />
+    <Compile Include="Caching\DiskCache.cs" />
+    <Compile Include="Caching\IImageCache.cs" />
+    <Compile Include="Caching\ImageCacheBase.cs" />
+    <Compile Include="Configuration\Shared\SettingElement.cs" />
+    <Compile Include="Configuration\Shared\SettingElementCollection.cs" />
+    <Compile Include="Extensions\TypeInitializationExtensions.cs" />
+    <Compile Include="Helpers\TypePropertyHelpers.cs" />
     <Compile Include="Helpers\ProcessQueryStringEventArgs.cs" />
     <Compile Include="Processors\DetectEdges.cs" />
     <Compile Include="Processors\EntropyCrop.cs" />
@@ -56,7 +63,6 @@
     <Compile Include="Processors\ReplaceColor.cs" />
     <Compile Include="Services\IImageService.cs" />
     <Compile Include="Caching\MemCache.cs" />
-    <Compile Include="Caching\DiskCache.cs" />
     <Compile Include="Caching\CacheIndexer.cs" />
     <Compile Include="Configuration\ImageCacheSection.cs" />
     <Compile Include="Configuration\ImageProcessingSection.cs" />

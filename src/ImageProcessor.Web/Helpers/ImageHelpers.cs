@@ -105,30 +105,6 @@ namespace ImageProcessor.Web.Helpers
         }
 
         /// <summary>
-        /// Get the correct mime-type for the given string input.
-        /// </summary>
-        /// <param name="path">
-        /// The path to the cached image.
-        /// </param>
-        /// <returns>
-        /// The <see cref="string"/> matching the correct mime-type.
-        /// </returns>
-        public static string GetMimeType(string path)
-        {
-            using (FileStream file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, false))
-            {
-                ISupportedImageFormat format = FormatUtilities.GetFormat(file);
-
-                if (format != null)
-                {
-                    return format.MimeType;
-                }
-            }
-
-            return string.Empty;
-        }
-
-        /// <summary>
         /// Builds a regular expression from the <see cref="T:ImageProcessor.Imaging.Formats.ISupportedImageFormat"/> type, this allows extensibility.
         /// </summary>
         /// <returns>

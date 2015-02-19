@@ -3,34 +3,24 @@
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
-// <summary>
-//   Processes any image requests within the web application.
-// </summary>
 // --------------------------------------------------------------------------------------------------------------------
-
 namespace ImageProcessor.Web.HttpModules
 {
-    #region Using
     using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
-    using System.Net;
     using System.Reflection;
-    using System.Security;
-    using System.Security.Permissions;
-    using System.Security.Principal;
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
     using System.Web;
     using System.Web.Hosting;
-    using System.Web.Security;
 
     using ImageProcessor.Web.Caching;
     using ImageProcessor.Web.Configuration;
+    using ImageProcessor.Web.Extensions;
     using ImageProcessor.Web.Helpers;
     using ImageProcessor.Web.Services;
-    #endregion
 
     /// <summary>
     /// Processes any image requests within the web application.
@@ -38,6 +28,7 @@ namespace ImageProcessor.Web.HttpModules
     public sealed class ImageProcessingModule : IHttpModule
     {
         #region Fields
+
         /// <summary>
         /// The key for storing the response type of the current image.
         /// </summary>
@@ -85,9 +76,15 @@ namespace ImageProcessor.Web.HttpModules
         /// life in the Garbage Collector.
         /// </remarks>
         private bool isDisposed;
+
+        /// <summary>
+        /// The image cache.
+        /// </summary>
+        private IImageCache imageCache;
         #endregion
 
         #region Destructors
+
         /// <summary>
         /// Finalizes an instance of the <see cref="T:ImageProcessor.Web.HttpModules.ImageProcessingModule"/> class.
         /// </summary>
@@ -105,6 +102,7 @@ namespace ImageProcessor.Web.HttpModules
             // readability and maintainability.
             this.Dispose(false);
         }
+
         #endregion
 
         /// <summary>
@@ -130,6 +128,7 @@ namespace ImageProcessor.Web.HttpModules
         public static event ProcessQuerystringEventHandler OnProcessQuerystring;
 
         #region IHttpModule Members
+
         /// <summary>
         /// Initializes a module and prepares it to handle requests.
         /// </summary>
@@ -149,7 +148,7 @@ namespace ImageProcessor.Web.HttpModules
             context.AddOnPostAuthorizeRequestAsync(postAuthorizeHelper.BeginEventHandler, postAuthorizeHelper.EndEventHandler);
 
             EventHandlerTaskAsyncHelper postProcessHelper = new EventHandlerTaskAsyncHelper(this.PostProcessImage);
-            context.AddOnPostRequestHandlerExecuteAsync(postProcessHelper.BeginEventHandler, postProcessHelper.EndEventHandler);
+            context.AddOnEndRequestAsync(postProcessHelper.BeginEventHandler, postProcessHelper.EndEventHandler);
 
             context.PreSendRequestHeaders += this.ContextPreSendRequestHeaders;
         }
@@ -172,7 +171,9 @@ namespace ImageProcessor.Web.HttpModules
         /// <summary>
         /// Disposes the object and frees resources for the Garbage Collector.
         /// </summary>
-        /// <param name="disposing">If true, the object gets disposed.</param>
+        /// <param name="disposing">
+        /// If true, the object gets disposed.
+        /// </param>
         private void Dispose(bool disposing)
         {
             if (this.isDisposed)
@@ -190,6 +191,7 @@ namespace ImageProcessor.Web.HttpModules
             // Note disposing is done.
             this.isDisposed = true;
         }
+
         #endregion
 
         /// <summary>
@@ -222,35 +224,37 @@ namespace ImageProcessor.Web.HttpModules
         /// <returns>
         /// The <see cref="T:System.Threading.Tasks.Task"/>.
         /// </returns>
-        private Task PostProcessImage(object sender, EventArgs e)
+        private async Task PostProcessImage(object sender, EventArgs e)
         {
             HttpContext context = ((HttpApplication)sender).Context;
             object cachedPathObject = context.Items[CachedPathKey];
 
             if (cachedPathObject != null)
             {
-                string cachedPath = cachedPathObject.ToString();
-
                 // Trim the cache.
-                DiskCache.TrimCachedFolders(cachedPath);
+                await this.imageCache.TrimCacheAsync();
+
+                string cachedPath = cachedPathObject.ToString();
 
                 // Fire the post processing event.
                 EventHandler<PostProcessingEventArgs> handler = OnPostProcessing;
                 if (handler != null)
                 {
                     context.Items[CachedPathKey] = null;
-                    return Task.Run(() => handler(this, new PostProcessingEventArgs { CachedImagePath = cachedPath }));
+                    await Task.Run(() => handler(this, new PostProcessingEventArgs { CachedImagePath = cachedPath }));
                 }
             }
-
-            return Task.FromResult<object>(null);
         }
 
         /// <summary>
         /// Occurs just before ASP.NET send HttpHeaders to the client.
         /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="e">An <see cref="T:System.EventArgs">EventArgs</see> that contains the event data.</param>
+        /// <param name="sender">
+        /// The source of the event.
+        /// </param>
+        /// <param name="e">
+        /// An <see cref="T:System.EventArgs">EventArgs</see> that contains the event data.
+        /// </param>
         private void ContextPreSendRequestHeaders(object sender, EventArgs e)
         {
             HttpContext context = ((HttpApplication)sender).Context;
@@ -258,17 +262,11 @@ namespace ImageProcessor.Web.HttpModules
             object responseTypeObject = context.Items[CachedResponseTypeKey];
             object dependencyFileObject = context.Items[CachedResponseFileDependency];
 
-            if (responseTypeObject != null && dependencyFileObject != null)
-            {
-                string responseType = (string)responseTypeObject;
-                List<string> dependencyFiles = (List<string>)dependencyFileObject;
+            string responseType = responseTypeObject as string;
+            List<string> dependencyFiles = dependencyFileObject as List<string>;
 
-                // Set the headers
-                this.SetHeaders(context, responseType, dependencyFiles);
-
-                context.Items[CachedResponseTypeKey] = null;
-                context.Items[CachedResponseFileDependency] = null;
-            }
+            // Set the headers
+            this.SetHeaders(context, responseType, dependencyFiles);
         }
 
         #region Private
@@ -302,6 +300,7 @@ namespace ImageProcessor.Web.HttpModules
                 string queryString = string.Empty;
                 string urlParameters = string.Empty;
 
+                // Legacy support. I'd like to remove this asap.
                 if (hasMultiParams)
                 {
                     // We need to split the querystring to get the actual values we want.
@@ -340,7 +339,13 @@ namespace ImageProcessor.Web.HttpModules
                     }
                     else
                     {
-                        requestPath = HttpUtility.UrlDecode(request.QueryString.ToString());
+                        // Parse any protocol values from settings.
+                        string protocol = currentService.Settings["Protocol"] != null
+                                              ? currentService.Settings["Protocol"] + "://"
+                                              : string.Empty;
+
+                        requestPath = protocol + request.Path.Replace(currentService.Prefix, string.Empty).TrimStart('/');
+                        queryString = HttpUtility.UrlDecode(request.QueryString.ToString());
                     }
                 }
 
@@ -361,6 +366,7 @@ namespace ImageProcessor.Web.HttpModules
                 string fullPath = string.Format("{0}{1}?{2}", requestPath, parts, queryString);
                 object resourcePath;
 
+                // More legacy support code.
                 if (hasMultiParams)
                 {
                     resourcePath = string.IsNullOrWhiteSpace(urlParameters)
@@ -379,99 +385,71 @@ namespace ImageProcessor.Web.HttpModules
                 }
 
                 // Create a new cache to help process and cache the request.
-                DiskCache cache = new DiskCache(requestPath, fullPath, queryString);
-                string cachedPath = cache.CachedPath;
+                this.imageCache = (IImageCache)ImageProcessorConfiguration.Instance
+                    .ImageCache.GetInstance(requestPath, fullPath, queryString);
 
-                // Since we are now rewriting the path we need to check again that the current user has access
-                // to the rewritten path.
-                // Get the user for the current request
-                // If the user is anonymous or authentication doesn't work for this suffix avoid a NullReferenceException
-                // in the UrlAuthorizationModule by creating a generic identity.
-                string virtualCachedPath = cache.VirtualCachedPath;
+                // Is the file new or updated?
+                bool isNewOrUpdated = await this.imageCache.IsNewOrUpdatedAsync();
+                string cachedPath = this.imageCache.CachedPath;
 
-                IPrincipal user = context.User ?? new GenericPrincipal(new GenericIdentity(string.Empty, string.Empty), new string[0]);
-
-                // Do we have permission to call UrlAuthorizationModule.CheckUrlAccessForPrincipal?
-                PermissionSet permission = new PermissionSet(PermissionState.None);
-                permission.AddPermission(new AspNetHostingPermission(AspNetHostingPermissionLevel.Unrestricted));
-                bool hasPermission = permission.IsSubsetOf(AppDomain.CurrentDomain.PermissionSet);
-
-                bool isAllowed = true;
-
-                // Run the rewritten path past the authorization system again.
-                // We can then use the result as the default "AllowAccess" value
-                if (hasPermission && !context.SkipAuthorization)
+                // Only process if the file has been updated.
+                if (isNewOrUpdated)
                 {
-                    isAllowed = UrlAuthorizationModule.CheckUrlAccessForPrincipal(virtualCachedPath, user, "GET");
-                }
-
-                if (isAllowed)
-                {
-                    // Is the file new or updated?
-                    bool isNewOrUpdated = cache.IsNewOrUpdatedFile(cachedPath);
-
-                    // Only process if the file has been updated.
-                    if (isNewOrUpdated)
+                    // Process the image.
+                    using (ImageFactory imageFactory = new ImageFactory(preserveExifMetaData != null && preserveExifMetaData.Value))
                     {
-                        // Process the image.
-                        using (ImageFactory imageFactory = new ImageFactory(preserveExifMetaData != null && preserveExifMetaData.Value))
+                        using (await this.locker.LockAsync(cachedPath))
                         {
-                            using (await this.locker.LockAsync(cachedPath))
+                            byte[] imageBuffer = await currentService.GetImage(resourcePath);
+
+                            using (MemoryStream inStream = new MemoryStream(imageBuffer))
                             {
-                                byte[] imageBuffer = await currentService.GetImage(resourcePath);
-
-                                using (MemoryStream memoryStream = new MemoryStream(imageBuffer))
+                                // Process the Image
+                                using (MemoryStream outStream = new MemoryStream())
                                 {
-                                    // Reset the position of the stream to ensure we're reading the correct part.
-                                    memoryStream.Position = 0;
-
-                                    // Process the Image
-                                    imageFactory.Load(memoryStream).AutoProcess(queryString).Save(cachedPath);
+                                    imageFactory.Load(inStream).AutoProcess(queryString).Save(outStream);
 
                                     // Add to the cache.
-                                    cache.AddImageToCache(cachedPath);
-
-                                    // Store the cached path, response type, and cache dependency in the context for later retrieval.
-                                    context.Items[CachedPathKey] = cachedPath;
-                                    context.Items[CachedResponseTypeKey] = imageFactory.CurrentImageFormat.MimeType;
-                                    context.Items[CachedResponseFileDependency] = new List<string> { cachedPath };
+                                    await this.imageCache.AddImageToCacheAsync(outStream, imageFactory.CurrentImageFormat.MimeType);
                                 }
+                            }
+
+                            // Store the cached path, response type, and cache dependency in the context for later retrieval.
+                            context.Items[CachedPathKey] = cachedPath;
+                            context.Items[CachedResponseTypeKey] = imageFactory.CurrentImageFormat.MimeType;
+                            bool isFileCached = new Uri(cachedPath).IsFile;
+
+                            if (isFileLocal)
+                            {
+                                if (isFileCached)
+                                {
+                                    // Some services might only provide filename so we can't monitor for the browser.
+                                    context.Items[CachedResponseFileDependency] = Path.GetFileName(requestPath) == requestPath
+                                        ? new List<string> { cachedPath }
+                                        : new List<string> { requestPath, cachedPath };
+                                }
+                                else
+                                {
+                                    context.Items[CachedResponseFileDependency] = Path.GetFileName(requestPath) == requestPath
+                                        ? null
+                                        : new List<string> { requestPath };
+                                }
+                            }
+                            else if (isFileCached)
+                            {
+                                context.Items[CachedResponseFileDependency] = new List<string> { cachedPath };
                             }
                         }
                     }
-
-                    // Image is from the cache so the mime-type will need to be set.
-                    if (context.Items[CachedResponseTypeKey] == null)
-                    {
-                        string mimetype = ImageHelpers.GetMimeType(cachedPath);
-
-                        if (!string.IsNullOrEmpty(mimetype))
-                        {
-                            context.Items[CachedResponseTypeKey] = mimetype;
-                        }
-                    }
-
-                    if (context.Items[CachedResponseFileDependency] == null)
-                    {
-                        if (isFileLocal)
-                        {
-                            // Some services might only provide filename so we can't monitor for the browser.
-                            context.Items[CachedResponseFileDependency] = Path.GetFileName(requestPath) == requestPath
-                                ? new List<string> { cachedPath }
-                                : new List<string> { requestPath, cachedPath };
-                        }
-                        else
-                        {
-                            context.Items[CachedResponseFileDependency] = new List<string> { cachedPath };
-                        }
-                    }
-
-                    // The cached file is valid so just rewrite the path.
-                    context.RewritePath(virtualCachedPath, false);
                 }
-                else
+
+                // The cached file is valid so just rewrite the path.
+                this.imageCache.RewritePath(context);
+
+                // Redirect if not a locally store file.
+                if (!new Uri(cachedPath).IsFile)
                 {
-                    throw new HttpException(403, "Access denied");
+                    context.ApplicationInstance.CompleteRequest();
                 }
             }
         }
@@ -494,28 +472,34 @@ namespace ImageProcessor.Web.HttpModules
         {
             HttpResponse response = context.Response;
 
-            response.ContentType = responseType;
-
             if (response.Headers["Image-Served-By"] == null)
             {
                 response.AddHeader("Image-Served-By", "ImageProcessor.Web/" + AssemblyVersion);
             }
 
-            HttpCachePolicy cache = response.Cache;
-            cache.SetCacheability(HttpCacheability.Public);
-            cache.VaryByHeaders["Accept-Encoding"] = true;
+            if (this.imageCache != null)
+            {
+                HttpCachePolicy cache = response.Cache;
+                cache.SetCacheability(HttpCacheability.Public);
+                cache.VaryByHeaders["Accept-Encoding"] = true;
 
-            context.Response.AddFileDependencies(dependencyPaths.ToArray());
-            cache.SetLastModifiedFromFileDependencies();
+                if (!string.IsNullOrWhiteSpace(responseType))
+                {
+                    response.ContentType = responseType;
+                }
 
-            int maxDays = DiskCache.MaxFileCachedDuration;
+                if (dependencyPaths != null)
+                {
+                    context.Response.AddFileDependencies(dependencyPaths.ToArray());
+                    cache.SetLastModifiedFromFileDependencies();
+                }
 
-            cache.SetExpires(DateTime.Now.ToUniversalTime().AddDays(maxDays));
-            cache.SetMaxAge(new TimeSpan(maxDays, 0, 0, 0));
-            cache.SetRevalidation(HttpCacheRevalidation.AllCaches);
+                int maxDays = this.imageCache.MaxDays;
 
-            context.Items[CachedResponseTypeKey] = null;
-            context.Items[CachedResponseFileDependency] = null;
+                cache.SetExpires(DateTime.Now.ToUniversalTime().AddDays(maxDays));
+                cache.SetMaxAge(new TimeSpan(maxDays, 0, 0, 0));
+                cache.SetRevalidation(HttpCacheRevalidation.AllCaches);
+            }
         }
 
         /// <summary>
@@ -586,11 +570,11 @@ namespace ImageProcessor.Web.HttpModules
             IImageService imageService = null;
             IList<IImageService> services = ImageProcessorConfiguration.Instance.ImageServices;
 
-            string path = request.Path;
+            string path = request.Path.TrimStart('/');
             foreach (IImageService service in services)
             {
                 string key = service.Prefix;
-                if (!string.IsNullOrWhiteSpace(key) && path.EndsWith(key, StringComparison.InvariantCultureIgnoreCase))
+                if (!string.IsNullOrWhiteSpace(key) && path.StartsWith(key, StringComparison.InvariantCultureIgnoreCase))
                 {
                     imageService = service;
                 }

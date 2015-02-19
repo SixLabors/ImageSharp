@@ -67,7 +67,7 @@ namespace ImageProcessor.Web.Helpers
 
             // First check to see if the format processor is being used and test against that.
             IWebGraphicsProcessor format = ImageProcessorConfiguration.Instance.GraphicsProcessors
-                                           .First(p => typeof(Format) == p.GetType());
+                                           .FirstOrDefault(p => typeof(Format) == p.GetType());
 
             if (format != null)
             {
@@ -99,30 +99,6 @@ namespace ImageProcessor.Web.Helpers
                 }
 
                 return value;
-            }
-
-            return string.Empty;
-        }
-
-        /// <summary>
-        /// Get the correct mime-type for the given string input.
-        /// </summary>
-        /// <param name="path">
-        /// The path to the cached image.
-        /// </param>
-        /// <returns>
-        /// The <see cref="string"/> matching the correct mime-type.
-        /// </returns>
-        public static string GetMimeType(string path)
-        {
-            using (FileStream file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, false))
-            {
-                ISupportedImageFormat format = FormatUtilities.GetFormat(file);
-
-                if (format != null)
-                {
-                    return format.MimeType;
-                }
             }
 
             return string.Empty;

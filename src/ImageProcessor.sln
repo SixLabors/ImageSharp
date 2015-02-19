@@ -36,6 +36,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor.Playground",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor.Web.PostProcessor", "ImageProcessor.Web.PostProcessor\ImageProcessor.Web.PostProcessor.csproj", "{55D08737-7D7E-4995-8892-BD9F944329E6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor.Web.AzureBlobCache", "ImageProcessor.Web.AzureBlobCache\ImageProcessor.Web.AzureBlobCache.csproj", "{3C805E4C-D679-43F8-8C43-8909CDB4D4D7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		All|Any CPU = All|Any CPU
@@ -198,6 +200,21 @@ Global
 		{55D08737-7D7E-4995-8892-BD9F944329E6}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{55D08737-7D7E-4995-8892-BD9F944329E6}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{55D08737-7D7E-4995-8892-BD9F944329E6}.Release|x86.ActiveCfg = Release|Any CPU
+		{3C805E4C-D679-43F8-8C43-8909CDB4D4D7}.All|Any CPU.ActiveCfg = Release|Any CPU
+		{3C805E4C-D679-43F8-8C43-8909CDB4D4D7}.All|Any CPU.Build.0 = Release|Any CPU
+		{3C805E4C-D679-43F8-8C43-8909CDB4D4D7}.All|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{3C805E4C-D679-43F8-8C43-8909CDB4D4D7}.All|Mixed Platforms.Build.0 = Release|Any CPU
+		{3C805E4C-D679-43F8-8C43-8909CDB4D4D7}.All|x86.ActiveCfg = Release|Any CPU
+		{3C805E4C-D679-43F8-8C43-8909CDB4D4D7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3C805E4C-D679-43F8-8C43-8909CDB4D4D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3C805E4C-D679-43F8-8C43-8909CDB4D4D7}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{3C805E4C-D679-43F8-8C43-8909CDB4D4D7}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{3C805E4C-D679-43F8-8C43-8909CDB4D4D7}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{3C805E4C-D679-43F8-8C43-8909CDB4D4D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3C805E4C-D679-43F8-8C43-8909CDB4D4D7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3C805E4C-D679-43F8-8C43-8909CDB4D4D7}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{3C805E4C-D679-43F8-8C43-8909CDB4D4D7}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{3C805E4C-D679-43F8-8C43-8909CDB4D4D7}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

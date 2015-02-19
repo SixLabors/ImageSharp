@@ -681,11 +681,20 @@ namespace ImageProcessor
             return this;
         }
 
-        public ImageFactory Halftone()
+        /// <summary>
+        /// Converts the current image to a CMYK halftone representation of that image.
+        /// </summary>
+        /// <param name="comicMode">
+        /// Whether to trace over the current image and add borders to add a comic book effect.
+        /// </param>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory Halftone(bool comicMode = false)
         {
             if (this.ShouldProcess)
             {
-                Halftone halftone = new Halftone();
+                Halftone halftone = new Halftone { DynamicParameter = comicMode };
                 this.CurrentImageFormat.ApplyProcessor(halftone.ProcessImage, this);
             }
 

@@ -55,6 +55,7 @@
     <Compile Include="Helpers\ProcessQueryStringEventArgs.cs" />
     <Compile Include="Processors\DetectEdges.cs" />
     <Compile Include="Processors\EntropyCrop.cs" />
+    <Compile Include="Processors\Halftone.cs" />
     <Compile Include="Processors\Hue.cs" />
     <Compile Include="Processors\Mask.cs" />
     <Compile Include="Processors\Overlay.cs" />

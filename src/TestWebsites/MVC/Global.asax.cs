@@ -28,17 +28,17 @@ namespace Test_Website_NET45
             RouteConfig.RegisterRoutes(RouteTable.Routes);
 
             // Test the post processing event.
-            ImageProcessingModule.OnPostProcessing += (sender, args) => Debug.WriteLine(args.CachedImagePath);
+            //ImageProcessingModule.OnPostProcessing += (sender, args) => Debug.WriteLine(args.CachedImagePath);
 
-            ImageProcessingModule.OnProcessQuerystring += (sender, args) =>
-                {
-                    if (!args.RawUrl.Contains("penguins"))
-                    {
-                        return args.Querystring += "watermark=protected&color=fff&fontsize=36&fontopacity=70textshadow=true&fontfamily=arial";
-                    }
+            //ImageProcessingModule.OnProcessQuerystring += (sender, args) =>
+            //    {
+            //        if (!args.RawUrl.Contains("penguins"))
+            //        {
+            //            return args.Querystring += "watermark=protected&color=fff&fontsize=36&fontopacity=70textshadow=true&fontfamily=arial";
+            //        }
 
-                    return args.Querystring;
-                };
+            //        return args.Querystring;
+            //    };
         }
 
         private async void WritePath(object sender, PostProcessingEventArgs e)

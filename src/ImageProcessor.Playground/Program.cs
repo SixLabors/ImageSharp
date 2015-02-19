@@ -108,7 +108,7 @@ namespace ImageProcessor.PlayGround
                             //.DetectEdges(new Laplacian3X3EdgeFilter(), true)
                             //.DetectEdges(new LaplacianOfGaussianEdgeFilter())
                             //.EntropyCrop()
-                            .Halftone()
+                            .Halftone(true)
                             //.Filter(MatrixFilters.Invert)
                             //.Contrast(50)
                             //.Filter(MatrixFilters.Comic)

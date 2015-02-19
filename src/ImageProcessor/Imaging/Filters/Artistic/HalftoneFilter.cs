@@ -37,6 +37,7 @@ namespace ImageProcessor.Imaging.Filters.Artistic
         /// <summary>
         /// The angle of the yellow component in degrees.
         /// </summary>
+        // ReSharper disable once RedundantDefaultMemberInitializer
         private float yellowAngle = 0f;
 
         /// <summary>
@@ -184,7 +185,7 @@ namespace ImageProcessor.Imaging.Filters.Artistic
                 float max = this.distance;
 
                 // Bump up the keyline max so that black looks black.
-                float keylineMax = max + ((float)Math.Sqrt(2) * 1.5f);
+                float keylineMax = max + ((float)Math.Sqrt(2) * 1.44f);
 
                 // Color sampled process colours from Wikipedia pages. 
                 // Keyline brush is declared separately.
@@ -239,9 +240,11 @@ namespace ImageProcessor.Imaging.Filters.Artistic
                                 Color color;
                                 CmykColor cmykColor;
                                 float brushWidth;
+                                int offsetX = x - (d >> 1);
+                                int offsetY = y - (d >> 1);
 
                                 // Cyan
-                                Point rotatedPoint = ImageMaths.RotatePoint(new Point(x, y), this.cyanAngle, center);
+                                Point rotatedPoint = ImageMaths.RotatePoint(new Point(offsetX, offsetY), this.cyanAngle, center);
                                 int angledX = rotatedPoint.X;
                                 int angledY = rotatedPoint.Y;
                                 if (rectangle.Contains(new Point(angledX, angledY)))
@@ -253,7 +256,7 @@ namespace ImageProcessor.Imaging.Filters.Artistic
                                 }
 
                                 // Magenta
-                                rotatedPoint = ImageMaths.RotatePoint(new Point(x, y), this.magentaAngle, center);
+                                rotatedPoint = ImageMaths.RotatePoint(new Point(offsetX, offsetY), this.magentaAngle, center);
                                 angledX = rotatedPoint.X;
                                 angledY = rotatedPoint.Y;
                                 if (rectangle.Contains(new Point(angledX, angledY)))
@@ -265,7 +268,7 @@ namespace ImageProcessor.Imaging.Filters.Artistic
                                 }
 
                                 // Yellow
-                                rotatedPoint = ImageMaths.RotatePoint(new Point(x, y), this.yellowAngle, center);
+                                rotatedPoint = ImageMaths.RotatePoint(new Point(offsetX, offsetY), this.yellowAngle, center);
                                 angledX = rotatedPoint.X;
                                 angledY = rotatedPoint.Y;
                                 if (rectangle.Contains(new Point(angledX, angledY)))
@@ -277,7 +280,7 @@ namespace ImageProcessor.Imaging.Filters.Artistic
                                 }
 
                                 // Keyline 
-                                rotatedPoint = ImageMaths.RotatePoint(new Point(x, y), this.keylineAngle, center);
+                                rotatedPoint = ImageMaths.RotatePoint(new Point(offsetX, offsetY), this.keylineAngle, center);
                                 angledX = rotatedPoint.X;
                                 angledY = rotatedPoint.Y;
                                 if (rectangle.Contains(new Point(angledX, angledY)))
@@ -321,7 +324,10 @@ namespace ImageProcessor.Imaging.Filters.Artistic
                                     Color keylinePixel = keylineBitmap.GetPixel(x, y);
 
                                     CmykColor blended = cyanPixel.AddAsCmykColor(magentaPixel, yellowPixel, keylinePixel);
-                                    destinationBitmap.SetPixel(x, y, blended);
+                                    if (rectangle.Contains(new Point(x, y)))
+                                    {
+                                        destinationBitmap.SetPixel(x, y, blended);
+                                    }
                                     // ReSharper restore AccessToDisposedClosure
                                 }
                             });

@@ -10,14 +10,15 @@
 
 namespace ImageProcessor.Web.Caching
 {
+    using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Runtime.Caching;
 
     /// <summary>
-    /// Represents an in memory collection of keys and values whose operations are concurrent.
+    /// Represents an in memory collection of cached images whose operations are concurrent.
     /// </summary>
-    internal static class CacheIndexer
+    public static class CacheIndexer
     {
         #region Public
         /// <summary>
@@ -34,30 +35,6 @@ namespace ImageProcessor.Web.Caching
         {
             string key = Path.GetFileNameWithoutExtension(cachedPath);
             CachedImage cachedImage = (CachedImage)MemCache.GetItem(key);
-
-            if (cachedImage == null)
-            {
-                // FileInfo is thread safe.
-                FileInfo fileInfo = new FileInfo(cachedPath);
-
-                if (!fileInfo.Exists)
-                {
-                    return null;
-                }
-
-                // Pull the latest info.
-                fileInfo.Refresh();
-
-                cachedImage = new CachedImage
-                {
-                    Key = Path.GetFileNameWithoutExtension(cachedPath),
-                    Path = cachedPath,
-                    CreationTimeUtc = fileInfo.CreationTimeUtc
-                };
-
-                Add(cachedImage);
-            }
-
             return cachedImage;
         }
 
@@ -88,11 +65,19 @@ namespace ImageProcessor.Web.Caching
         /// </returns>
         public static CachedImage Add(CachedImage cachedImage)
         {
-            // Add the CachedImage.
-            CacheItemPolicy policy = new CacheItemPolicy();
-            policy.ChangeMonitors.Add(new HostFileChangeMonitor(new List<string> { cachedImage.Path }));
+            if (new Uri(cachedImage.Path).IsFile)
+            {
+                // Add the CachedImage.
+                CacheItemPolicy policy = new CacheItemPolicy();
+                policy.ChangeMonitors.Add(new HostFileChangeMonitor(new List<string> { cachedImage.Path }));
 
-            MemCache.AddItem(cachedImage.Key, cachedImage, policy);
+                MemCache.AddItem(Path.GetFileNameWithoutExtension(cachedImage.Key), cachedImage, policy);
+            }
+            else
+            {
+                MemCache.AddItem(Path.GetFileNameWithoutExtension(cachedImage.Key), cachedImage);
+            }
+
             return cachedImage;
         }
         #endregion

@@ -15,7 +15,7 @@ namespace ImageProcessor.Web.Caching
     /// <summary>
     /// Describes a cached image 
     /// </summary>
-    internal sealed class CachedImage
+    public sealed class CachedImage
     {
         /// <summary>
         /// Gets or sets the key identifying the cached image.

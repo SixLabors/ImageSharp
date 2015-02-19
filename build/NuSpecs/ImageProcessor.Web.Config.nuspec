@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
   <metadata>
     <id>ImageProcessor.Web.Config</id>
-    <version>2.1.0.0</version>
+    <version>2.2.0.0</version>
     <title>ImageProcessor.Web.Config</title>
     <authors>James South</authors>
     <owners>James South</owners>
@@ -11,7 +11,7 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Adds configuration to your ImageProcessor.Web solution to allow you to override the default settings.
 
-If you use ImageProcessor please get in touch via my twitter @james_m_south
+If you use ImageProcessor.Web please get in touch via my twitter @james_m_south
 
 Feedback is always welcome</description>
     <summary>ImageProcessor.Web configuration settings for ASP.NET websites.</summary>
@@ -21,15 +21,15 @@ Feedback is always welcome</description>
     <tags>Image Resize Crop Rotate Quality Watermark Gif Jpg Jpeg Bitmap Png Tiff ASP Cache EXIF</tags>
     <dependencies>
       <group targetFramework=".NETFramework4.5">
-        <dependency id="ImageProcessor" version="2.1.0.0" />
-        <dependency id="ImageProcessor.Web" version="4.1.0.0" />
+        <dependency id="ImageProcessor" version="2.2.0.0" />
+        <dependency id="ImageProcessor.Web" version="4.2.0.0" />
       </group>
     </dependencies>
   </metadata>
   <files>
-    <file src="..\..\src\ImageProcessor.Web\Configuration\Resources\cache.config" target="content\config\imageprocessor\cache.config" />
-    <file src="..\..\src\ImageProcessor.Web\Configuration\Resources\processing.config" target="content\config\imageprocessor\processing.config" />
-    <file src="..\..\src\ImageProcessor.Web\Configuration\Resources\security.config" target="content\config\imageprocessor\security.config" />
+    <file src="..\..\src\ImageProcessor.Web\Configuration\Resources\cache.config.transform" target="content\config\imageprocessor\cache.config.transform" />
+    <file src="..\..\src\ImageProcessor.Web\Configuration\Resources\processing.config.transform" target="content\config\imageprocessor\processing.config.transform" />
+    <file src="..\..\src\ImageProcessor.Web\Configuration\Resources\security.config.transform" target="content\config\imageprocessor\security.config.transform" />
     <file src="..\content\ImageProcessor.Web.Config\web.config.transform" target="content\web.config.transform" />
   </files>
 </package>

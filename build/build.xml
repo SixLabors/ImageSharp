@@ -1,7 +1,7 @@
 <projects>
   <project>
     <name>ImageProcessor</name>
-    <version>2.1.0.0</version>
+    <version>2.2.0.0</version>
     <folder>..\src\ImageProcessor</folder>
     <projfile>ImageProcessor.csproj</projfile>
     <outputs>
@@ -20,6 +20,17 @@
       <output folder="ImageProcessor.Web\lib\net45" />
     </outputs>
     <nuspec>ImageProcessor.Web.nuspec</nuspec>
+  </project>
+
+    <project>
+    <name>ImageProcessor Web Azure Blob Cache</name>
+    <version>1.0.0.0</version>
+    <folder>..\src\ImageProcessor.Web.AzureBlobCache</folder>
+    <projfile>ImageProcessor.Web.AzureBlobCache.csproj</projfile>
+    <outputs>
+      <output folder="ImageProcessor.Web.AzureBlobCache\lib\net45" />
+    </outputs>
+    <nuspec>ImageProcessor.Web.AzureBlobCache.nuspec</nuspec>
   </project>
 
   <project>

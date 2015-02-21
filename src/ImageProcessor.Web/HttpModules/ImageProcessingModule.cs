@@ -470,15 +470,15 @@ namespace ImageProcessor.Web.HttpModules
         /// </param>
         private void SetHeaders(HttpContext context, string responseType, IEnumerable<string> dependencyPaths)
         {
-            HttpResponse response = context.Response;
-
-            if (response.Headers["Image-Served-By"] == null)
-            {
-                response.AddHeader("Image-Served-By", "ImageProcessor.Web/" + AssemblyVersion);
-            }
-
             if (this.imageCache != null)
             {
+                HttpResponse response = context.Response;
+
+                if (response.Headers["ImageProcessedBy"] == null)
+                {
+                    response.AddHeader("ImageProcessedBy", "ImageProcessor.Web/" + AssemblyVersion);
+                }
+
                 HttpCachePolicy cache = response.Cache;
                 cache.SetCacheability(HttpCacheability.Public);
                 cache.VaryByHeaders["Accept-Encoding"] = true;
@@ -499,6 +499,8 @@ namespace ImageProcessor.Web.HttpModules
                 cache.SetExpires(DateTime.Now.ToUniversalTime().AddDays(maxDays));
                 cache.SetMaxAge(new TimeSpan(maxDays, 0, 0, 0));
                 cache.SetRevalidation(HttpCacheRevalidation.AllCaches);
+
+                this.imageCache = null;
             }
         }
 

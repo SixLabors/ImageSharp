@@ -61,6 +61,7 @@ namespace ImageProcessor.Web.Caching
             this.FullPath = fullPath;
             this.Querystring = querystring;
             this.Settings = ImageProcessorConfiguration.Instance.ImageCacheSettings;
+            this.MaxDays = ImageProcessorConfiguration.Instance.ImageCacheMaxDays;
         }
 
         /// <summary>
@@ -74,9 +75,9 @@ namespace ImageProcessor.Web.Caching
         public string CachedPath { get; set; }
 
         /// <summary>
-        /// Gets the maximum number of days to store the image.
+        /// Gets or sets the maximum number of days to store the image.
         /// </summary>
-        public abstract int MaxDays { get; }
+        public int MaxDays { get; set; }
 
         /// <summary>
         /// Gets a value indicating whether the image is new or updated in an asynchronous manner.
@@ -114,7 +115,7 @@ namespace ImageProcessor.Web.Caching
         /// <returns>
         /// The asynchronous <see cref="Task"/> returning the value.
         /// </returns>
-        public virtual Task<string> CreateCachedFileName()
+        public virtual async Task<string> CreateCachedFileNameAsync()
         {
             string streamHash = string.Empty;
 
@@ -153,7 +154,7 @@ namespace ImageProcessor.Web.Caching
                  encryptedName,
                  !string.IsNullOrWhiteSpace(parsedExtension) ? parsedExtension.Replace(".", string.Empty) : "jpg");
 
-            return Task.FromResult(cachedFileName);
+            return await Task.FromResult(cachedFileName);
         }
 
         /// <summary>

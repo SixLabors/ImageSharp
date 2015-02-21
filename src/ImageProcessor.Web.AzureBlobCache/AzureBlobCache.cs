@@ -23,6 +23,7 @@ namespace ImageProcessor.Web.Caching
 
     using ImageProcessor.Web.Extensions;
     using ImageProcessor.Web.Helpers;
+    using ImageProcessor.Web.HttpModules;
 
     using Microsoft.WindowsAzure.Storage;
     using Microsoft.WindowsAzure.Storage.Blob;
@@ -34,9 +35,14 @@ namespace ImageProcessor.Web.Caching
     public class AzureBlobCache : ImageCacheBase
     {
         /// <summary>
-        /// The maximum number of days to store the image.
+        /// The regular expression for parsing a remote uri.
         /// </summary>
-        private readonly int maxDays;
+        private static readonly Regex RemoteRegex = new Regex("^http(s)?://", RegexOptions.Compiled);
+
+        /// <summary>
+        /// The assembly version.
+        /// </summary>
+        private static readonly string AssemblyVersion = typeof(ImageProcessingModule).Assembly.GetName().Version.ToString();
 
         /// <summary>
         /// The cloud cached blob container.
@@ -73,32 +79,26 @@ namespace ImageProcessor.Web.Caching
         public AzureBlobCache(string requestPath, string fullPath, string querystring)
             : base(requestPath, fullPath, querystring)
         {
-            this.maxDays = Convert.ToInt32(this.Settings["MaxDays"]);
-
             // Retrieve storage accounts from connection string.
             CloudStorageAccount cloudCachedStorageAccount = CloudStorageAccount.Parse(this.Settings["CachedStorageAccount"]);
-            CloudStorageAccount cloudSourceStorageAccount = CloudStorageAccount.Parse(this.Settings["SourceStorageAccount"]);
 
             // Create the blob clients.
             CloudBlobClient cloudCachedBlobClient = cloudCachedStorageAccount.CreateCloudBlobClient();
-            CloudBlobClient cloudSourceBlobClient = cloudSourceStorageAccount.CreateCloudBlobClient();
 
             // Retrieve references to a previously created containers.
             this.cloudCachedBlobContainer = cloudCachedBlobClient.GetContainerReference(this.Settings["CachedBlobContainer"]);
-            this.cloudSourceBlobContainer = cloudSourceBlobClient.GetContainerReference(this.Settings["SourceBlobContainer"]);
 
-            this.cachedCdnRoot = this.Settings["CachedCDNRoot"];
-        }
+            string sourceAccount = this.Settings.ContainsKey("SourceStorageAccount") ? this.Settings["SourceStorageAccount"] : string.Empty;
 
-        /// <summary>
-        /// Gets the maximum number of days to store the image.
-        /// </summary>
-        public override int MaxDays
-        {
-            get
+            // Repeat for source if it exists
+            if (!string.IsNullOrWhiteSpace(sourceAccount))
             {
-                return this.maxDays;
+                CloudStorageAccount cloudSourceStorageAccount = CloudStorageAccount.Parse(this.Settings["SourceStorageAccount"]);
+                CloudBlobClient cloudSourceBlobClient = cloudSourceStorageAccount.CreateCloudBlobClient();
+                this.cloudSourceBlobContainer = cloudSourceBlobClient.GetContainerReference(this.Settings["SourceBlobContainer"]);
             }
+
+            this.cachedCdnRoot = this.Settings.ContainsKey("CachedCDNRoot") ? this.Settings["CachedCDNRoot"] : string.Empty;
         }
 
         /// <summary>
@@ -109,7 +109,7 @@ namespace ImageProcessor.Web.Caching
         /// </returns>
         public override async Task<bool> IsNewOrUpdatedAsync()
         {
-            string cachedFileName = await this.CreateCachedFileName();
+            string cachedFileName = await this.CreateCachedFileNameAsync();
 
             // Collision rate of about 1 in 10000 for the folder structure.
             // That gives us massive scope to store millions of files.
@@ -118,7 +118,7 @@ namespace ImageProcessor.Web.Caching
             this.cachedRewritePath = Path.Combine(this.cachedCdnRoot, this.cloudCachedBlobContainer.Name, pathFromKey, cachedFileName).Replace(@"\", "/");
 
             bool isUpdated = false;
-            CachedImage cachedImage = CacheIndexer.GetValue(this.CachedPath);
+            CachedImage cachedImage = CacheIndexer.Get(this.CachedPath);
 
             if (new Uri(this.CachedPath).IsFile)
             {
@@ -205,6 +205,9 @@ namespace ImageProcessor.Web.Caching
             blockBlob.Properties.ContentType = contentType;
             blockBlob.Properties.CacheControl = string.Format("public, max-age={0}", this.MaxDays * 86400);
             await blockBlob.SetPropertiesAsync();
+
+            blockBlob.Metadata.Add("ImageProcessedBy", "ImageProcessor.Web/" + AssemblyVersion);
+            await blockBlob.SetMetadataAsync();
         }
 
         /// <summary>
@@ -257,7 +260,7 @@ namespace ImageProcessor.Web.Caching
         /// <returns>
         /// The asynchronous <see cref="Task"/> returning the value.
         /// </returns>
-        public override async Task<string> CreateCachedFileName()
+        public override async Task<string> CreateCachedFileNameAsync()
         {
             string streamHash = string.Empty;
 
@@ -279,11 +282,10 @@ namespace ImageProcessor.Web.Caching
                         streamHash = string.Format("{0}{1}", creation, length);
                     }
                 }
-                else
+                else if (this.cloudSourceBlobContainer != null)
                 {
-                    Regex regex = new Regex("^http(s)?://");
-                    string container = regex.Replace(this.cloudSourceBlobContainer.Uri.ToString(), string.Empty);
-                    string blobPath = regex.Replace(this.RequestPath, string.Empty);
+                    string container = RemoteRegex.Replace(this.cloudSourceBlobContainer.Uri.ToString(), string.Empty);
+                    string blobPath = RemoteRegex.Replace(this.RequestPath, string.Empty);
                     blobPath = blobPath.Replace(container, string.Empty).TrimStart('/');
                     CloudBlockBlob blockBlob = this.cloudSourceBlobContainer.GetBlockBlobReference(blobPath);
 

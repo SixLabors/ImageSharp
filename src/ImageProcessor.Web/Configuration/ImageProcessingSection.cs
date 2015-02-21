@@ -23,8 +23,6 @@ namespace ImageProcessor.Web.Configuration
     /// </summary>
     public sealed class ImageProcessingSection : ConfigurationSection
     {
-        #region Properties
-
         /// <summary>
         /// Gets or sets a value indicating whether to preserve exif meta data.
         /// </summary>
@@ -69,9 +67,7 @@ namespace ImageProcessor.Web.Configuration
         /// Gets or sets a value indicating whether to auto load plugins.
         /// </summary>
         public bool AutoLoadPlugins { get; set; }
-        #endregion
 
-        #region Methods
         /// <summary>
         /// Retrieves the processing configuration section from the current application configuration. 
         /// </summary>
@@ -94,8 +90,6 @@ namespace ImageProcessor.Web.Configuration
             imageProcessingSection.AutoLoadPlugins = true;
             return imageProcessingSection;
         }
-
-        #endregion
 
         /// <summary>
         /// Represents a PresetElement configuration element within the configuration.

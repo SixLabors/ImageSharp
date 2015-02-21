@@ -39,10 +39,6 @@ namespace ImageProcessor.PlayGround
         /// </param>
         public static void Main(string[] args)
         {
-            var x = typeof(AzureBlobCache);
-            Console.WriteLine(x.AssemblyQualifiedName);
-            Console.ReadLine();
-
             string path = new Uri(System.Reflection.Assembly.GetExecutingAssembly().CodeBase).LocalPath;
 
             // ReSharper disable once AssignNullToNotNullAttribute

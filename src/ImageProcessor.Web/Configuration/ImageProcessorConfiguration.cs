@@ -60,7 +60,6 @@ namespace ImageProcessor.Web.Configuration
         #endregion
 
         #region Constructors
-
         /// <summary>
         /// Prevents a default instance of the <see cref="ImageProcessorConfiguration"/> class from being created.
         /// </summary>
@@ -98,6 +97,11 @@ namespace ImageProcessor.Web.Configuration
         /// Gets the current image cache.
         /// </summary>
         public Type ImageCache { get; private set; }
+
+        /// <summary>
+        /// Gets the image cache max days.
+        /// </summary>
+        public int ImageCacheMaxDays { get; private set; }
 
         /// <summary>
         /// Gets the image cache settings.
@@ -435,6 +439,7 @@ namespace ImageProcessor.Web.Configuration
                         }
 
                         this.ImageCache = type;
+                        this.ImageCacheMaxDays = cache.MaxDays;
                         this.ImageCacheSettings = cache.Settings
                                                        .Cast<SettingElement>()
                                                        .ToDictionary(setting => setting.Key, setting => setting.Value);

@@ -20,7 +20,6 @@ namespace ImageProcessor.Web.Caching
     /// </summary>
     public static class CacheIndexer
     {
-        #region Public
         /// <summary>
         /// Gets the <see cref="CachedImage"/> associated with the specified key.
         /// </summary>
@@ -31,7 +30,7 @@ namespace ImageProcessor.Web.Caching
         /// The <see cref="CachedImage"/> matching the given key if the <see cref="CacheIndexer"/> contains an element with 
         /// the specified key; otherwise, null.
         /// </returns>
-        public static CachedImage GetValue(string cachedPath)
+        public static CachedImage Get(string cachedPath)
         {
             string key = Path.GetFileNameWithoutExtension(cachedPath);
             CachedImage cachedImage = (CachedImage)MemCache.GetItem(key);
@@ -80,6 +79,5 @@ namespace ImageProcessor.Web.Caching
 
             return cachedImage;
         }
-        #endregion
     }
 }

@@ -11,7 +11,6 @@
 
 namespace ImageProcessor.Web.Caching
 {
-    using System;
     using System.Collections.Generic;
     using System.Configuration;
     using System.IO;
@@ -39,11 +38,6 @@ namespace ImageProcessor.Web.Caching
         /// <see href="http://stackoverflow.com/questions/1638219/millions-of-small-graphics-files-and-how-to-overcome-slow-file-system-access-on"/>
         /// </remarks>
         private const int MaxFilesCount = 100;
-
-        /// <summary>
-        /// The maximum number of days to store the image.
-        /// </summary>
-        private readonly int maxDays;
 
         /// <summary>
         /// The virtual cache path.
@@ -75,7 +69,6 @@ namespace ImageProcessor.Web.Caching
         public DiskCache(string requestPath, string fullPath, string querystring)
             : base(requestPath, fullPath, querystring)
         {
-            this.maxDays = Convert.ToInt32(this.Settings["MaxDays"]);
             string virtualPath = this.Settings["VirtualCachePath"];
 
             if (!virtualPath.IsValidVirtualPathName())
@@ -89,17 +82,6 @@ namespace ImageProcessor.Web.Caching
         }
 
         /// <summary>
-        /// Gets the maximum number of days to store the image.
-        /// </summary>
-        public override int MaxDays
-        {
-            get
-            {
-                return this.maxDays;
-            }
-        }
-
-        /// <summary>
         /// Gets a value indicating whether the image is new or updated in an asynchronous manner.
         /// </summary>
         /// <returns>
@@ -107,7 +89,7 @@ namespace ImageProcessor.Web.Caching
         /// </returns>
         public override async Task<bool> IsNewOrUpdatedAsync()
         {
-            string cachedFileName = await this.CreateCachedFileName();
+            string cachedFileName = await this.CreateCachedFileNameAsync();
 
             // Collision rate of about 1 in 10000 for the folder structure.
             // That gives us massive scope to store millions of files.
@@ -117,7 +99,7 @@ namespace ImageProcessor.Web.Caching
             this.virtualCachedFilePath = Path.Combine(this.virtualCachePath, virtualPathFromKey, cachedFileName).Replace(@"\", "/");
 
             bool isUpdated = false;
-            CachedImage cachedImage = CacheIndexer.GetValue(this.CachedPath);
+            CachedImage cachedImage = CacheIndexer.Get(this.CachedPath);
 
             if (cachedImage == null)
             {

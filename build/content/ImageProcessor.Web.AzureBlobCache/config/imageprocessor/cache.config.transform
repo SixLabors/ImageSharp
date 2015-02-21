@@ -1,13 +1,12 @@
 <caching currentCache="AzureBlobCache">
   <caches>
-    <cache name="AzureBlobCache" type="ImageProcessor.Web.Caching.AzureBlobCache, ImageProcessor.Web.Caching.AzureBlobCache">
+    <cache name="AzureBlobCache" type="ImageProcessor.Web.Caching.AzureBlobCache, ImageProcessor.Web.Caching.AzureBlobCache" maxDays="365">
       <settings>
-        <setting key="MaxDays" value="365"/>
         <setting key="CachedStorageAccount" value="DefaultEndpointsProtocol=https;AccountName=[CacheAccountName];AccountKey=[CacheAccountKey]"/>
-        <setting key="SourceStorageAccount" value="DefaultEndpointsProtocol=https;AccountName=[SourceAccountName];AccountKey=[SourceAccountKey]"/>
         <setting key="CachedBlobContainer" value="cache"/>
-        <setting key="SourceBlobContainer" value="source"/>
         <setting key="CachedCDNRoot" value="[CdnRootUrl]"/>
+        <setting key="SourceStorageAccount" value=""/>
+        <setting key="SourceBlobContainer" value=""/>
       </settings>
     </cache>
   </caches>

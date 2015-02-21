@@ -104,6 +104,26 @@ namespace ImageProcessor.Web.Configuration
             }
 
             /// <summary>
+            /// Gets or sets the maximum number of days to store an image in the cache.
+            /// </summary>
+            /// <value>The maximum number of days to store an image in the cache.</value>
+            /// <remarks>Defaults to 365 if not set.</remarks>
+            [ConfigurationProperty("maxDays", DefaultValue = "365", IsRequired = true)]
+            [IntegerValidator(ExcludeRange = false, MinValue = 0)]
+            public int MaxDays
+            {
+                get
+                {
+                    return (int)this["maxDays"];
+                }
+
+                set
+                {
+                    this["maxDays"] = value;
+                }
+            }
+
+            /// <summary>
             /// Gets the <see cref="SettingElementCollection"/>.
             /// </summary>
             /// <value>

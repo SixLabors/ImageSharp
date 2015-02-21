@@ -31,9 +31,9 @@ namespace ImageProcessor.Web.Caching
         string CachedPath { get; }
 
         /// <summary>
-        /// Gets the maximum number of days to store the image.
+        /// Gets or sets the maximum number of days to store the image.
         /// </summary>
-        int MaxDays { get; }
+        int MaxDays { get; set; }
 
         /// <summary>
         /// Gets a value indicating whether the image is new or updated in an asynchronous manner.
@@ -66,12 +66,12 @@ namespace ImageProcessor.Web.Caching
         Task TrimCacheAsync();
 
         /// <summary>
-        /// Gets a string identifying the cached file name.
+        /// Gets a string identifying the cached file name in an asynchronous manner.
         /// </summary>
         /// <returns>
         /// The asynchronous <see cref="Task"/> returning the value.
         /// </returns>
-        Task<string> CreateCachedFileName();
+        Task<string> CreateCachedFileNameAsync();
 
         /// <summary>
         /// Rewrites the path to point to the cached image.

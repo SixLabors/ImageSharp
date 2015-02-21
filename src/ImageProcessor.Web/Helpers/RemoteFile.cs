@@ -10,7 +10,6 @@
 
 namespace ImageProcessor.Web.Helpers
 {
-    #region Using
     using System;
     using System.Collections.Generic;
     using System.Globalization;
@@ -18,7 +17,6 @@ namespace ImageProcessor.Web.Helpers
     using System.Security;
     using System.Threading.Tasks;
     using System.Web;
-    #endregion
 
     /// <summary>
     /// Encapsulates methods used to download files from a website address.

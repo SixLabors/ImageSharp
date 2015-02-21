@@ -10,19 +10,16 @@
 
 namespace ImageProcessor.Web.Caching
 {
-    #region Using
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Runtime.Caching;
-    #endregion
 
     /// <summary>
     /// Encapsulates methods that allow the caching and retrieval of objects from the in memory cache.
     /// </summary>
     internal static class MemCache
     {
-        #region Fields
         /// <summary>
         /// The cache
         /// </summary>
@@ -32,9 +29,7 @@ namespace ImageProcessor.Web.Caching
         /// An internal list of cache keys to allow bulk removal.
         /// </summary>
         private static readonly ConcurrentDictionary<string, string> CacheItems = new ConcurrentDictionary<string, string>();
-        #endregion
 
-        #region Methods
         /// <summary>
         /// Adds an item to the cache.
         /// </summary>
@@ -105,7 +100,10 @@ namespace ImageProcessor.Web.Caching
         /// </returns>
         public static object GetItem(string key, string regionName = null)
         {
-            return Cache.Get(key, regionName);
+            lock (Cache)
+            {
+                return Cache.Get(key, regionName);
+            }
         }
 
         /// <summary>
@@ -131,7 +129,7 @@ namespace ImageProcessor.Web.Caching
         /// True if the update try succeeds, or false if there is an already an entry
         ///  in the cache with the same key as key.
         /// </returns>
-        public static bool UpdateItem(string key, object value, CacheItemPolicy policy = null, string regionName = null) 
+        public static bool UpdateItem(string key, object value, CacheItemPolicy policy = null, string regionName = null)
         {
             bool isUpDated = true;
 
@@ -237,6 +235,5 @@ namespace ImageProcessor.Web.Caching
 
             return isCleared;
         }
-        #endregion
     }
 }

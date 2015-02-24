@@ -64,6 +64,8 @@
     <Compile Include="Imaging\ColorUnitTests.cs" />
     <Compile Include="Imaging\CropLayerUnitTests.cs" />
     <Compile Include="Imaging\FastBitmapUnitTests.cs" />
+    <Compile Include="Imaging\RotationUnitTests.cs" />
+    <Compile Include="Processors\RotateInsideUnitTests.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

@@ -152,9 +152,9 @@
     <Content Include="Views\Home\Index.cshtml" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\ImageProcessor.Web.AzureBlobCache\ImageProcessor.Web.AzureBlobCache.csproj">
+    <ProjectReference Include="..\..\Plugins\ImageProcessor.Web\ImageProcessor.Web.Plugins.AzureBlobCache\ImageProcessor.Web.Plugins.AzureBlobCache.csproj">
       <Project>{3c805e4c-d679-43f8-8c43-8909cdb4d4d7}</Project>
-      <Name>ImageProcessor.Web.AzureBlobCache</Name>
+      <Name>ImageProcessor.Web.Plugins.AzureBlobCache</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\ImageProcessor.Web.PostProcessor\ImageProcessor.Web.PostProcessor.csproj">
       <Project>{55d08737-7d7e-4995-8892-bd9f944329e6}</Project>

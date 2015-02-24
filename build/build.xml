@@ -23,14 +23,14 @@
   </project>
 
     <project>
-    <name>ImageProcessor Web Azure Blob Cache</name>
+    <name>ImageProcessor Web Azure Blob Cache plugin</name>
     <version>1.0.0.0</version>
-    <folder>..\src\ImageProcessor.Web.AzureBlobCache</folder>
-    <projfile>ImageProcessor.Web.AzureBlobCache.csproj</projfile>
+    <folder>..\src\Plugins\ImageProcessor.Web\ImageProcessor.Web.Plugins.AzureBlobCache</folder>
+    <projfile>ImageProcessor.Web.Plugins.AzureBlobCache.csproj</projfile>
     <outputs>
-      <output folder="ImageProcessor.Web.AzureBlobCache\lib\net45" />
+      <output folder="ImageProcessor.Web.Plugins.AzureBlobCache\lib\net45" />
     </outputs>
-    <nuspec>ImageProcessor.Web.AzureBlobCache.nuspec</nuspec>
+    <nuspec>ImageProcessor.Web.Plugins.AzureBlobCache.nuspec</nuspec>
   </project>
 
   <project>

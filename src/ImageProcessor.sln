@@ -3,12 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
 VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{C427A497-74DC-49B1-8420-D6E68354F29B}"
-	ProjectSection(SolutionItems) = preProject
-		ImageProcessor.vsmdi = ImageProcessor.vsmdi
-		Local.testsettings = Local.testsettings
-	EndProjectSection
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{1E656CDE-124D-4FAF-837C-0EF1E192D418}"
 	ProjectSection(SolutionItems) = preProject
 		.nuget\NuGet.Config = .nuget\NuGet.Config
@@ -25,8 +19,6 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor.Web.UnitTests", "ImageProcessor.Web.UnitTests\ImageProcessor.Web.UnitTests.csproj", "{961340C8-8C93-401D-A0A2-FF9EC61E5260}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor.UnitTests", "ImageProcessor.UnitTests\ImageProcessor.UnitTests.csproj", "{633B1C4C-4823-47BE-9A01-A665F3118C8C}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Web.Tests", "Web.Test\Web.Tests.csproj", "{23CE0FC0-9E59-4C93-A604-A4A98A6284D1}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test_Website_MVC", "TestWebsites\MVC\Test_Website_MVC.csproj", "{F6A208E9-C18F-43E9-B051-3C6EED30FDAF}"
 EndProject
@@ -126,20 +118,6 @@ Global
 		{633B1C4C-4823-47BE-9A01-A665F3118C8C}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{633B1C4C-4823-47BE-9A01-A665F3118C8C}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{633B1C4C-4823-47BE-9A01-A665F3118C8C}.Release|x86.ActiveCfg = Release|Any CPU
-		{23CE0FC0-9E59-4C93-A604-A4A98A6284D1}.All|Any CPU.ActiveCfg = Release|Any CPU
-		{23CE0FC0-9E59-4C93-A604-A4A98A6284D1}.All|Any CPU.Build.0 = Release|Any CPU
-		{23CE0FC0-9E59-4C93-A604-A4A98A6284D1}.All|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{23CE0FC0-9E59-4C93-A604-A4A98A6284D1}.All|Mixed Platforms.Build.0 = Release|Any CPU
-		{23CE0FC0-9E59-4C93-A604-A4A98A6284D1}.All|x86.ActiveCfg = Release|Any CPU
-		{23CE0FC0-9E59-4C93-A604-A4A98A6284D1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{23CE0FC0-9E59-4C93-A604-A4A98A6284D1}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{23CE0FC0-9E59-4C93-A604-A4A98A6284D1}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
-		{23CE0FC0-9E59-4C93-A604-A4A98A6284D1}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{23CE0FC0-9E59-4C93-A604-A4A98A6284D1}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{23CE0FC0-9E59-4C93-A604-A4A98A6284D1}.Release|Any CPU.Build.0 = Release|Any CPU
-		{23CE0FC0-9E59-4C93-A604-A4A98A6284D1}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{23CE0FC0-9E59-4C93-A604-A4A98A6284D1}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{23CE0FC0-9E59-4C93-A604-A4A98A6284D1}.Release|x86.ActiveCfg = Release|Any CPU
 		{F6A208E9-C18F-43E9-B051-3C6EED30FDAF}.All|Any CPU.ActiveCfg = Release|Any CPU
 		{F6A208E9-C18F-43E9-B051-3C6EED30FDAF}.All|Any CPU.Build.0 = Release|Any CPU
 		{F6A208E9-C18F-43E9-B051-3C6EED30FDAF}.All|Mixed Platforms.ActiveCfg = Release|Any CPU

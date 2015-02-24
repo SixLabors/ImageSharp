@@ -15,6 +15,9 @@ namespace ImageProcessor.Imaging.Helpers
     using System.Drawing.Drawing2D;
     using System.Threading.Tasks;
 
+    using ImageProcessor.Imaging.Filters.EdgeDetection;
+    using ImageProcessor.Imaging.Filters.Photo;
+
     /// <summary>
     /// Provides reusable effect methods to apply to images.
     /// </summary>
@@ -175,6 +178,64 @@ namespace ImageProcessor.Imaging.Helpers
 
             toMask.Dispose();
             return clear;
+        }
+
+        /// <summary>
+        /// Traces the edges of a given <see cref="Image"/>.
+        /// </summary>
+        /// <param name="source">
+        /// The source <see cref="Image"/>.
+        /// </param>
+        /// <param name="destination">
+        /// The destination <see cref="Image"/>.
+        /// </param>
+        /// <param name="threshold">
+        /// The threshold (between 0 and 255).
+        /// </param>
+        /// <returns>
+        /// The a new instance of <see cref="Bitmap"/> traced.
+        /// </returns>
+        public static Bitmap Trace(Image source, Image destination, byte threshold = 0)
+        {
+            int width = source.Width;
+            int height = source.Height;
+
+            // Grab the edges converting to greyscale, and invert the colors.
+            ConvolutionFilter filter = new ConvolutionFilter(new SobelEdgeFilter(), true);
+
+            using (Bitmap temp = filter.Process2DFilter(source))
+            {
+                destination = new InvertMatrixFilter().TransformImage(temp, destination);
+
+                // Darken it slightly to aid detection
+                destination = Adjustments.Brightness(destination, -5);
+            }
+
+            // Loop through and replace any colors more white than the threshold
+            // with a transparent one. 
+            using (FastBitmap destinationBitmap = new FastBitmap(destination))
+            {
+                Parallel.For(
+                    0,
+                    height,
+                    y =>
+                    {
+                        for (int x = 0; x < width; x++)
+                        {
+                            // ReSharper disable AccessToDisposedClosure
+                            Color color = destinationBitmap.GetPixel(x, y);
+                            if (color.B >= threshold)
+                            {
+                                destinationBitmap.SetPixel(x, y, Color.Transparent);
+                            }
+                            // ReSharper restore AccessToDisposedClosure
+                        }
+                    });
+            }
+
+            // Darken it again to average out the color.
+            destination = Adjustments.Brightness(destination, -5);
+            return (Bitmap)destination;
         }
     }
 }

@@ -13,10 +13,8 @@ namespace ImageProcessor.Imaging.Filters.Photo
     using System.Drawing;
     using System.Drawing.Drawing2D;
     using System.Drawing.Imaging;
-    using System.Threading.Tasks;
 
     using ImageProcessor.Imaging.Filters.Artistic;
-    using ImageProcessor.Imaging.Filters.EdgeDetection;
     using ImageProcessor.Imaging.Helpers;
 
     /// <summary>
@@ -68,7 +66,7 @@ namespace ImageProcessor.Imaging.Filters.Photo
                     // Draw the edges.
                     edgeBitmap = new Bitmap(width, height);
                     edgeBitmap.SetResolution(image.HorizontalResolution, image.VerticalResolution);
-                    edgeBitmap = Trace(image, edgeBitmap, 120);
+                    edgeBitmap = Effects.Trace(image, edgeBitmap, 120);
 
                     using (Graphics graphics = Graphics.FromImage(highBitmap))
                     {
@@ -97,8 +95,7 @@ namespace ImageProcessor.Imaging.Filters.Photo
                     using (Graphics graphics = Graphics.FromImage(patternBitmap))
                     {
                         graphics.Clear(Color.Transparent);
-                        graphics.SmoothingMode = SmoothingMode.HighQuality;
-
+                   
                         for (int y = 0; y < height; y += 8)
                         {
                             for (int x = 0; x < width; x += 4)
@@ -169,65 +166,6 @@ namespace ImageProcessor.Imaging.Filters.Photo
             }
 
             return (Bitmap)image;
-        }
-
-        /// <summary>
-        /// Traces the edges of a given <see cref="Image"/>.
-        /// TODO: Move this to another class.
-        /// </summary>
-        /// <param name="source">
-        /// The source <see cref="Image"/>.
-        /// </param>
-        /// <param name="destination">
-        /// The destination <see cref="Image"/>.
-        /// </param>
-        /// <param name="threshold">
-        /// The threshold (between 0 and 255).
-        /// </param>
-        /// <returns>
-        /// The a new instance of <see cref="Bitmap"/> traced.
-        /// </returns>
-        private static Bitmap Trace(Image source, Image destination, byte threshold = 0)
-        {
-            int width = source.Width;
-            int height = source.Height;
-
-            // Grab the edges converting to greyscale, and invert the colors.
-            ConvolutionFilter filter = new ConvolutionFilter(new SobelEdgeFilter(), true);
-
-            using (Bitmap temp = filter.Process2DFilter(source))
-            {
-                destination = new InvertMatrixFilter().TransformImage(temp, destination);
-
-                // Darken it slightly to aid detection
-                destination = Adjustments.Brightness(destination, -5);
-            }
-
-            // Loop through and replace any colors more white than the threshold
-            // with a transparent one. 
-            using (FastBitmap destinationBitmap = new FastBitmap(destination))
-            {
-                Parallel.For(
-                    0,
-                    height,
-                    y =>
-                    {
-                        for (int x = 0; x < width; x++)
-                        {
-                            // ReSharper disable AccessToDisposedClosure
-                            Color color = destinationBitmap.GetPixel(x, y);
-                            if (color.B >= threshold)
-                            {
-                                destinationBitmap.SetPixel(x, y, Color.Transparent);
-                            }
-                            // ReSharper restore AccessToDisposedClosure
-                        }
-                    });
-            }
-
-            // Darken it again to average out the color.
-            destination = Adjustments.Brightness(destination, -5);
-            return (Bitmap)destination;
         }
     }
 }

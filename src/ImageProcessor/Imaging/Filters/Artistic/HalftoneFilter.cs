@@ -149,7 +149,7 @@ namespace ImageProcessor.Imaging.Filters.Artistic
         }
 
         /// <summary>
-        /// Applies the filter. TODO: Make this class implement an interface?
+        /// Applies the halftone filter. 
         /// </summary>
         /// <param name="source">
         /// The <see cref="Bitmap"/> to apply the filter to.
@@ -159,6 +159,7 @@ namespace ImageProcessor.Imaging.Filters.Artistic
         /// </returns>
         public Bitmap ApplyFilter(Bitmap source)
         {
+            // TODO: Make this class implement an interface?
             Bitmap cyan = null;
             Bitmap magenta = null;
             Bitmap yellow = null;

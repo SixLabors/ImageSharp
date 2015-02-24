@@ -85,7 +85,7 @@ namespace ImageProcessor.Imaging.Filters.Artistic
         }
 
         /// <summary>
-        /// Applies the filter. TODO: Make this class implement an interface?
+        /// Applies the oil painting filter. 
         /// </summary>
         /// <param name="source">
         /// The source.
@@ -95,6 +95,7 @@ namespace ImageProcessor.Imaging.Filters.Artistic
         /// </returns>
         public Bitmap ApplyFilter(Bitmap source)
         {
+            // TODO: Make this class implement an interface?
             int width = source.Width;
             int height = source.Height;
 

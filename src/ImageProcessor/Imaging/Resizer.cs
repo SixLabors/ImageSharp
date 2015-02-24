@@ -152,14 +152,38 @@ namespace ImageProcessor.Imaging
                     if (percentHeight < percentWidth)
                     {
                         ratio = percentHeight;
-                        destinationX = Convert.ToInt32((width - (sourceWidth * ratio)) / 2);
                         destinationWidth = Convert.ToInt32(sourceWidth * percentHeight);
+
+                        switch (anchorPosition)
+                        {
+                            case AnchorPosition.Left:
+                                destinationX = 0;
+                                break;
+                            case AnchorPosition.Right:
+                                destinationX = (int)(width - (sourceWidth * ratio));
+                                break;
+                            default:
+                                destinationX = Convert.ToInt32((width - (sourceWidth * ratio)) / 2);
+                                break;
+                        }
                     }
                     else
                     {
                         ratio = percentWidth;
-                        destinationY = Convert.ToInt32((height - (sourceHeight * ratio)) / 2);
                         destinationHeight = Convert.ToInt32(sourceHeight * percentWidth);
+
+                        switch (anchorPosition)
+                        {
+                            case AnchorPosition.Top:
+                                destinationY = 0;
+                                break;
+                            case AnchorPosition.Bottom:
+                                destinationY = (int)(height - (sourceHeight * ratio));
+                                break;
+                            default:
+                                destinationY = (int)((height - (sourceHeight * ratio)) / 2);
+                                break;
+                        }
                     }
                 }
 

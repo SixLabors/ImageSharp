@@ -28,7 +28,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor.Playground",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor.Web.PostProcessor", "ImageProcessor.Web.PostProcessor\ImageProcessor.Web.PostProcessor.csproj", "{55D08737-7D7E-4995-8892-BD9F944329E6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor.Web.AzureBlobCache", "ImageProcessor.Web.AzureBlobCache\ImageProcessor.Web.AzureBlobCache.csproj", "{3C805E4C-D679-43F8-8C43-8909CDB4D4D7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageProcessor.Web.Plugins.AzureBlobCache", "Plugins\ImageProcessor.Web\ImageProcessor.Web.Plugins.AzureBlobCache\ImageProcessor.Web.Plugins.AzureBlobCache.csproj", "{3C805E4C-D679-43F8-8C43-8909CDB4D4D7}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{B5217BED-B0B7-408E-81B7-877DE2BF9036}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Plugins", "Plugins", "{5D12E196-FB7A-4D97-B156-56901EF8084D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -196,6 +200,14 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{2CF69699-959A-44DC-A281-4E2596C25043} = {5D12E196-FB7A-4D97-B156-56901EF8084D}
+		{961340C8-8C93-401D-A0A2-FF9EC61E5260} = {B5217BED-B0B7-408E-81B7-877DE2BF9036}
+		{633B1C4C-4823-47BE-9A01-A665F3118C8C} = {B5217BED-B0B7-408E-81B7-877DE2BF9036}
+		{F6A208E9-C18F-43E9-B051-3C6EED30FDAF} = {B5217BED-B0B7-408E-81B7-877DE2BF9036}
+		{C7D1F0DD-CBD6-4127-82B4-51949EFF0BF5} = {5D12E196-FB7A-4D97-B156-56901EF8084D}
+		{3C805E4C-D679-43F8-8C43-8909CDB4D4D7} = {5D12E196-FB7A-4D97-B156-56901EF8084D}
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		StartupItem = ImageProcessorConsole\ImageProcessorConsole.csproj

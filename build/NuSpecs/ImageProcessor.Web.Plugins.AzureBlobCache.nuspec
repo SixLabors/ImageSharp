@@ -1,9 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
   <metadata>
-    <id>ImageProcessor.Web.AzureBlobCache</id>
+    <id>ImageProcessor.Web.Plugins.AzureBlobCache</id>
     <version>1.0.0.0</version>
-    <title>ImageProcessor.Web.AzureBlobCache</title>
+    <title>ImageProcessor.Web.Plugins.AzureBlobCache</title>
     <authors>James South</authors>
     <owners>James South</owners>
     <projectUrl>http://imageprocessor.org</projectUrl>
@@ -34,7 +34,7 @@ Feedback is always welcome</description>
     </dependencies>
   </metadata>
   <files>
-    <file src="..\content\ImageProcessor.Web.AzureBlobCache\config\imageprocessor\cache.config.transform" target="content\config\imageprocessor\cache.config.transform" />
-    <file src="..\_BuildOutput\ImageProcessor.Web.AzureBlobCache\lib\net45\ImageProcessor.Web.Caching.AzureBlobCache.dll" target="lib\net45\ImageProcessor.Web.Caching.AzureBlobCache.dll" />
+    <file src="..\content\ImageProcessor.Web.Plugins.AzureBlobCache\config\imageprocessor\cache.config.transform" target="content\config\imageprocessor\cache.config.transform" />
+    <file src="..\_BuildOutput\ImageProcessor.Web.Plugins.AzureBlobCache\lib\net45\ImageProcessor.Web.Plugins.AzureBlobCache.dll" target="lib\net45\ImageProcessor.Web.Plugins.AzureBlobCache.dll" />
   </files>
 </package>

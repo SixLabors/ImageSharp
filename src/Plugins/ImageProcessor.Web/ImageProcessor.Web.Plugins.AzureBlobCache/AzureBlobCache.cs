@@ -9,7 +9,7 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Web.Caching
+namespace ImageProcessor.Web.Plugins.AzureBlobCache
 {
     using System;
     using System.Collections.Generic;
@@ -21,6 +21,7 @@ namespace ImageProcessor.Web.Caching
     using System.Threading.Tasks;
     using System.Web;
 
+    using ImageProcessor.Web.Caching;
     using ImageProcessor.Web.Extensions;
     using ImageProcessor.Web.Helpers;
     using ImageProcessor.Web.HttpModules;

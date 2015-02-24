@@ -896,6 +896,23 @@ namespace ImageProcessor
         }
 
         /// <summary>
+        /// Rotates the image inside its area; keeps the area straight.
+        /// </summary>
+        /// <param name="degrees">The angle at which to rotate the image in degrees</param>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory RotateInside(float degrees)
+        {
+            if (this.ShouldProcess)
+            {
+                RotateInside rotate = new RotateInside { DynamicParameter = degrees };
+                this.CurrentImageFormat.ApplyProcessor(rotate.ProcessImage, this);
+            }
+
+            return this;
+        }
+
+        /// <summary>
         /// Adds rounded corners to the current image.
         /// </summary>
         /// <param name="radius">

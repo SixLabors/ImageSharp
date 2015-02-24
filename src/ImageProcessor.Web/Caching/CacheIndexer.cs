@@ -64,17 +64,18 @@ namespace ImageProcessor.Web.Caching
         /// </returns>
         public static CachedImage Add(CachedImage cachedImage)
         {
+            // Add the CachedImage with a sliding expiration of 10 minutes.
+            CacheItemPolicy policy = new CacheItemPolicy { SlidingExpiration = new TimeSpan(0, 10, 0) };
+
             if (new Uri(cachedImage.Path).IsFile)
             {
-                // Add the CachedImage.
-                CacheItemPolicy policy = new CacheItemPolicy();
                 policy.ChangeMonitors.Add(new HostFileChangeMonitor(new List<string> { cachedImage.Path }));
 
                 MemCache.AddItem(Path.GetFileNameWithoutExtension(cachedImage.Key), cachedImage, policy);
             }
             else
             {
-                MemCache.AddItem(Path.GetFileNameWithoutExtension(cachedImage.Key), cachedImage);
+                MemCache.AddItem(Path.GetFileNameWithoutExtension(cachedImage.Key), cachedImage, policy);
             }
 
             return cachedImage;

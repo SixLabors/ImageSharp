@@ -898,9 +898,9 @@ namespace ImageProcessor
         /// <summary>
         /// Rotates the image inside its area; keeps the area straight.
         /// </summary>
-        /// <param name="degrees">The angle at which to rotate the image in degrees</param>
+        /// <param name="rotateLayer">The rotation layer parameters.</param>
         /// <returns>
-        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory" /> class.
         /// </returns>
         public ImageFactory RotateInside(RotateInsideLayer rotateLayer)
         {

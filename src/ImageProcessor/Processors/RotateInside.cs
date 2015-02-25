@@ -74,32 +74,21 @@ namespace ImageProcessor.Processors
             return image;
         }
 
+        /// <summary>
+        /// Rotates the inside of an image to the given angle at the given position.
+        /// </summary>
+        /// <param name="image">The image to rotate</param>
+        /// <param name="rotateAtX">The horizontal pixel coordinate at which to rotate the image.</param>
+        /// <param name="rotateAtY">The vertical pixel coordinate at which to rotate the image.</param>
+        /// <param name="angle">The angle in degrees at which to rotate the image.</param>
+        /// <returns>The image rotated to the given angle at the given position.</returns>
+        /// <remarks> 
+        /// Based on <see cref="T:ImageProcessor.Processors.Rotate"/>
+        /// </remarks>
         private Bitmap RotateImage(Image image, float rotateAtX, float rotateAtY, float angle)
         {
-            double widthAsDouble = image.Width;
-            double heightAsDouble = image.Height;
-
-            double radians = angle * Math.PI / 180d;
-            double radiansSin = Math.Sin(radians);
-            double radiansCos = Math.Cos(radians);
-            double width1 = (heightAsDouble * radiansSin) + (widthAsDouble * radiansCos);
-            double height1 = (widthAsDouble * radiansSin) + (heightAsDouble * radiansCos);
-
-            // Find dimensions in the other direction
-            radiansSin = Math.Sin(-radians);
-            radiansCos = Math.Cos(-radians);
-            double width2 = (heightAsDouble * radiansSin) + (widthAsDouble * radiansCos);
-            double height2 = (widthAsDouble * radiansSin) + (heightAsDouble * radiansCos);
-
-            // Get the external vertex for the rotation
-            int width = Convert.ToInt32(Math.Max(Math.Abs(width1), Math.Abs(width2)));
-            int height = Convert.ToInt32(Math.Max(Math.Abs(height1), Math.Abs(height2)));
-
-            int x = (width - image.Width) / 2;
-            int y = (height - image.Height) / 2;
-
             // Create a new empty bitmap to hold rotated image
-            Bitmap newImage = new Bitmap(width, height);
+            Bitmap newImage = new Bitmap(image.Width, image.Height);
             newImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
 
             // Make a graphics object from the empty bitmap
@@ -112,16 +101,16 @@ namespace ImageProcessor.Processors
                 graphics.CompositingQuality = CompositingQuality.HighQuality;
 
                 // Put the rotation point in the "center" of the image
-                graphics.TranslateTransform(rotateAtX + x, rotateAtY + y);
+                graphics.TranslateTransform(rotateAtX, rotateAtY);
 
                 // Rotate the image
                 graphics.RotateTransform(angle);
 
                 // Move the image back
-                graphics.TranslateTransform(-rotateAtX - x, -rotateAtY - y);
+                graphics.TranslateTransform(-rotateAtX * 2, -rotateAtY * 2);
 
                 // Draw passed in image onto graphics object
-                graphics.DrawImage(image, new PointF(x, y));
+                graphics.DrawImage(image, new PointF(rotateAtX, rotateAtY));
             }
 
             return newImage;

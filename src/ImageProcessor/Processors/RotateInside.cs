@@ -83,13 +83,15 @@ namespace ImageProcessor.Processors
         /// <param name="angle">The angle in degrees at which to rotate the image.</param>
         /// <returns>The image rotated to the given angle at the given position.</returns>
         /// <remarks> 
-        /// Based on <see cref="T:ImageProcessor.Processors.Rotate"/>
+        /// Based on the Rotate effect
         /// </remarks>
         private Bitmap RotateImage(Image image, float rotateAtX, float rotateAtY, float angle)
         {
             // Create a new empty bitmap to hold rotated image
             Bitmap newImage = new Bitmap(image.Width, image.Height);
             newImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
+
+            float zoom = Imaging.Rotation.ZoomAfterRotation(image.Width, image.Height, angle);
 
             // Make a graphics object from the empty bitmap
             using (Graphics graphics = Graphics.FromImage(newImage))
@@ -105,6 +107,9 @@ namespace ImageProcessor.Processors
 
                 // Rotate the image
                 graphics.RotateTransform(angle);
+
+                // Zooms the image to fit the area
+                graphics.ScaleTransform(zoom, zoom);
 
                 // Move the image back
                 graphics.TranslateTransform(-rotateAtX * 2, -rotateAtY * 2);

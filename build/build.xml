@@ -22,17 +22,6 @@
     <nuspec>ImageProcessor.Web.nuspec</nuspec>
   </project>
 
-    <project>
-    <name>ImageProcessor Web Azure Blob Cache plugin</name>
-    <version>1.0.0.0</version>
-    <folder>..\src\Plugins\ImageProcessor.Web\ImageProcessor.Web.Plugins.AzureBlobCache</folder>
-    <projfile>ImageProcessor.Web.Plugins.AzureBlobCache.csproj</projfile>
-    <outputs>
-      <output folder="ImageProcessor.Web.Plugins.AzureBlobCache\lib\net45" />
-    </outputs>
-    <nuspec>ImageProcessor.Web.Plugins.AzureBlobCache.nuspec</nuspec>
-  </project>
-
   <project>
     <name>ImageProcessor Web PostProcessor</name>
     <version>1.0.2.0</version>
@@ -48,6 +37,17 @@
     <name>ImageProcessor Web.config sample</name>
     <version>2.2.0.0</version>
     <nuspec>ImageProcessor.Web.Config.nuspec</nuspec>
+  </project>
+
+  <project>
+    <name>ImageProcessor Web Azure Blob Cache plugin</name>
+    <version>1.0.0.0</version>
+    <folder>..\src\Plugins\ImageProcessor.Web\ImageProcessor.Web.Plugins.AzureBlobCache</folder>
+    <projfile>ImageProcessor.Web.Plugins.AzureBlobCache.csproj</projfile>
+    <outputs>
+      <output folder="ImageProcessor.Web.Plugins.AzureBlobCache\lib\net45" />
+    </outputs>
+    <nuspec>ImageProcessor.Web.Plugins.AzureBlobCache.nuspec</nuspec>
   </project>
 
   <project>

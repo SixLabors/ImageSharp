@@ -5,20 +5,38 @@
     using ImageProcessor.Imaging.Helpers;
     using NUnit.Framework;
 
+    /// <summary>
+    /// Test harness for the image math unit tests
+    /// </summary>
     public class ImageMathsUnitTests
     {
+        /// <summary>
+        /// Tests that the bounding rectangle of a rotated image is calculated
+        /// </summary>
+        /// <param name="width">The width of the image.</param>
+        /// <param name="height">The height of the image.</param>
+        /// <param name="angle">The rotation angle.</param>
+        /// <param name="expectedWidth">The expected width.</param>
+        /// <param name="expectedHeight">The expected height.</param>
         [Test]
         [TestCase(100, 100, 45, 141, 141)]
         [TestCase(100, 100, 30, 137, 137)]
         [TestCase(100, 200, 50, 217, 205)]
-        public void NewSizeAfterRotationIsCalculated(int width, int height, float angle, int expectedWidth, int expectedHeight)
+        public void BoundingRotatedRectangleIsCalculated(int width, int height, float angle, int expectedWidth, int expectedHeight)
         {
-            Size result = ImageMaths.GetBoundingRotatedRectangle(width, height, angle);
+            Rectangle result = ImageMaths.GetBoundingRotatedRectangle(width, height, angle);
 
             result.Width.Should().Be(expectedWidth, "because the rotated width should have been calculated");
             result.Height.Should().Be(expectedHeight, "because the rotated height should have been calculated");
         }
 
+        /// <summary>
+        /// Tests that the zoom needed for an "inside" rotation is calculated
+        /// </summary>
+        /// <param name="imageWidth">Width of the image.</param>
+        /// <param name="imageHeight">Height of the image.</param>
+        /// <param name="angle">The rotation angle.</param>
+        /// <param name="expected">The expected zoom.</param>
         [Test]
         [TestCase(100, 100, 45, 1.41f)]
         [TestCase(100, 100, 15, 1.22f)]

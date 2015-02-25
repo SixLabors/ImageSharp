@@ -134,16 +134,16 @@ namespace ImageProcessor.Processors
                     int diffY = (image.Height - newSize.Height) / 2;
 
                     // Put the rotation point in the "center" of the old image
-                    graphics.TranslateTransform(diffX, diffY);
+                    graphics.TranslateTransform(rotateAtX - diffX, rotateAtY - diffY);
 
                     // Rotate the image
                     graphics.RotateTransform(rotateLayer.Angle);
 
                     // Move the image back
-                    graphics.TranslateTransform(-diffX * 2, -diffY * 2);
+                    graphics.TranslateTransform(-(rotateAtX - diffX), -(rotateAtY - diffY));
 
                     // Draw passed in image onto graphics object
-                    graphics.DrawImage(image, new PointF(0, 0));
+                    graphics.DrawImage(image, new PointF(-diffX, -diffY));
                 }
             }
 

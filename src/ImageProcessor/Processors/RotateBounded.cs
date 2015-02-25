@@ -1,10 +1,10 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="Rotate.cs" company="James South">
+// <copyright file="RotateBounded.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   Encapsulates methods to rotate the inside of an image.
+//   Encapsulates the methods to rotate an image without expanding the canvas.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -15,12 +15,11 @@ namespace ImageProcessor.Processors
     using System.Drawing;
     using System.Drawing.Drawing2D;
     using ImageProcessor.Common.Exceptions;
-    using ImageProcessor.Imaging;
 
     /// <summary>
-    /// Encapsulates the methods to rotate the inside of an image
+    /// Encapsulates the methods to rotate an image without expanding the canvas.
     /// </summary>
-    public class RotateInside : IGraphicsProcessor
+    public class RotateBounded : IGraphicsProcessor
     {
         /// <summary>
         /// Gets or sets the DynamicParameter.
@@ -50,10 +49,10 @@ namespace ImageProcessor.Processors
 
             try
             {
-                RotateInsideLayer rotateLayer = this.DynamicParameter;
+                Tuple<float, bool> rotateParams = this.DynamicParameter;
 
                 // Create a rotated image.
-                newImage = this.RotateImage(image, rotateLayer);
+                newImage = this.RotateImage(image, rotateParams.Item1, rotateParams.Item2);
 
                 image.Dispose();
                 image = newImage;
@@ -74,20 +73,35 @@ namespace ImageProcessor.Processors
         /// <summary>
         /// Rotates the inside of an image to the given angle at the given position.
         /// </summary>
-        /// <param name="image">The image to rotate</param>
-        /// <param name="rotateLayer">The rotation layer.</param>
+        /// <param name="image">
+        /// The image to rotate
+        /// </param>
+        /// <param name="angleInDegrees">
+        /// The angle in degrees.
+        /// </param>
+        /// <param name="keepSize">
+        /// Whether to keep the image dimensions.
+        /// <para>
+        /// If set to true, the image is zoomed to fit the bounding area.
+        /// </para>
+        /// <para>
+        /// If set to false, the area is cropped to fit the rotated image.
+        /// </para>
+        /// </param>
         /// <remarks>
         /// Based on the Rotate effect
         /// </remarks>
-        /// <returns>The image rotated to the given angle at the given position.</returns>
-        private Bitmap RotateImage(Image image, RotateInsideLayer rotateLayer)
+        /// <returns>
+        /// The image rotated to the given angle at the given position.
+        /// </returns>
+        private Bitmap RotateImage(Image image, float angleInDegrees, bool keepSize)
         {
             Size newSize = new Size(image.Width, image.Height);
 
-            float zoom = Imaging.Helpers.ImageMaths.ZoomAfterRotation(image.Width, image.Height, rotateLayer.Angle);
+            float zoom = Imaging.Helpers.ImageMaths.ZoomAfterRotation(image.Width, image.Height, angleInDegrees);
 
             // if we don't keep the image dimensions, calculate the new ones
-            if (!rotateLayer.KeepImageDimensions)
+            if (!keepSize)
             {
                 newSize.Width = (int)(newSize.Width / zoom);
                 newSize.Height = (int)(newSize.Height / zoom);
@@ -110,13 +124,13 @@ namespace ImageProcessor.Processors
                 graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
                 graphics.CompositingQuality = CompositingQuality.HighQuality;
 
-                if (rotateLayer.KeepImageDimensions)
+                if (keepSize)
                 {
                     // Put the rotation point in the "center" of the image
                     graphics.TranslateTransform(rotateAtX, rotateAtY);
 
                     // Rotate the image
-                    graphics.RotateTransform(rotateLayer.Angle);
+                    graphics.RotateTransform(angleInDegrees);
 
                     // Zooms the image to fit the area
                     graphics.ScaleTransform(zoom, zoom);
@@ -129,21 +143,22 @@ namespace ImageProcessor.Processors
                 }
                 else
                 {
-                    // calculate the difference between the center of the original image and the center of the new image
-                    int diffX = (image.Width - newSize.Width) / 2;
-                    int diffY = (image.Height - newSize.Height) / 2;
+                    // Calculate the difference between the center of the original image and the center 
+                    // of the new image.
+                    int x = (image.Width - newSize.Width) / 2;
+                    int y = (image.Height - newSize.Height) / 2;
 
                     // Put the rotation point in the "center" of the old image
-                    graphics.TranslateTransform(rotateAtX - diffX, rotateAtY - diffY);
+                    graphics.TranslateTransform(rotateAtX - x, rotateAtY - y);
 
                     // Rotate the image
-                    graphics.RotateTransform(rotateLayer.Angle);
+                    graphics.RotateTransform(angleInDegrees);
 
                     // Move the image back
-                    graphics.TranslateTransform(-(rotateAtX - diffX), -(rotateAtY - diffY));
+                    graphics.TranslateTransform(-(rotateAtX - x), -(rotateAtY - y));
 
                     // Draw passed in image onto graphics object
-                    graphics.DrawImage(image, new PointF(-diffX, -diffY));
+                    graphics.DrawImage(image, new PointF(-x, -y));
                 }
             }
 

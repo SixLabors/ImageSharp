@@ -896,17 +896,28 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Rotates the image inside its area; keeps the area straight.
+        /// Rotates the image without expanding the canvas to fit the image.
         /// </summary>
-        /// <param name="rotateLayer">The rotation layer parameters.</param>
+        /// <param name="degrees">
+        /// The angle at which to rotate the image in degrees.
+        /// </param>
+        /// <param name="keepSize">
+        /// Whether to keep the original image dimensions.
+        /// <para>
+        /// If set to true, the image is zoomed to fit the bounding area.
+        /// </para>
+        /// <para>
+        /// If set to false, the area is cropped to fit the rotated image.
+        /// </para>
+        /// </param>
         /// <returns>
         /// The current instance of the <see cref="T:ImageProcessor.ImageFactory" /> class.
         /// </returns>
-        public ImageFactory RotateInside(RotateInsideLayer rotateLayer)
+        public ImageFactory RotateBounded(float degrees, bool keepSize = false)
         {
             if (this.ShouldProcess)
             {
-                RotateInside rotate = new RotateInside { DynamicParameter = rotateLayer };
+                RotateBounded rotate = new RotateBounded { DynamicParameter = new Tuple<float, bool>(degrees, keepSize) };
                 this.CurrentImageFormat.ApplyProcessor(rotate.ProcessImage, this);
             }
 

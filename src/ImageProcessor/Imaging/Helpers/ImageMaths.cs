@@ -109,24 +109,21 @@ namespace ImageProcessor.Imaging.Helpers
         /// </summary>
         /// <param name="width">The width of the image.</param>
         /// <param name="height">The height of the image.</param>
-        /// <param name="angle">The angle of rotation.</param>
+        /// <param name="angleInDegrees">The angle of rotation.</param>
         /// <returns>The new size of the image</returns>
-        public static Rectangle GetBoundingRotatedRectangle(int width, int height, float angle)
+        public static Rectangle GetBoundingRotatedRectangle(int width, int height, float angleInDegrees)
         {
-            double widthAsDouble = width;
-            double heightAsDouble = height;
-
-            double radians = DegreesToRadians(angle);
+            double radians = DegreesToRadians(angleInDegrees);
             double radiansSin = Math.Sin(radians);
             double radiansCos = Math.Cos(radians);
-            double width1 = (heightAsDouble * radiansSin) + (widthAsDouble * radiansCos);
-            double height1 = (widthAsDouble * radiansSin) + (heightAsDouble * radiansCos);
+            double width1 = (height * radiansSin) + (width * radiansCos);
+            double height1 = (width * radiansSin) + (height * radiansCos);
 
             // Find dimensions in the other direction
             radiansSin = Math.Sin(-radians);
             radiansCos = Math.Cos(-radians);
-            double width2 = (heightAsDouble * radiansSin) + (widthAsDouble * radiansCos);
-            double height2 = (widthAsDouble * radiansSin) + (heightAsDouble * radiansCos);
+            double width2 = (height * radiansSin) + (width * radiansCos);
+            double height2 = (width * radiansSin) + (height * radiansCos);
 
             // Get the external vertex for the rotation
             Rectangle result = new Rectangle(
@@ -307,18 +304,19 @@ namespace ImageProcessor.Imaging.Helpers
         }
 
         /// <summary>
-        /// Calculates the zoom needed after the rotation.
+        /// Calculates the zoom needed after the rotation to ensure the canvas is covered
+        /// by the rotated image.
         /// </summary>
         /// <param name="imageWidth">Width of the image.</param>
         /// <param name="imageHeight">Height of the image.</param>
-        /// <param name="angle">The angle.</param>
+        /// <param name="angleInDegrees">The angle in degrees.</param>
         /// <remarks>
         /// Based on <see href="http://math.stackexchange.com/questions/1070853/"/>
         /// </remarks>
         /// <returns>The zoom needed</returns>
-        public static float ZoomAfterRotation(int imageWidth, int imageHeight, float angle)
+        public static float ZoomAfterRotation(int imageWidth, int imageHeight, float angleInDegrees)
         {
-            double radians = angle * Math.PI / 180d;
+            double radians = DegreesToRadians(angleInDegrees);
             double radiansSin = Math.Sin(radians);
             double radiansCos = Math.Cos(radians);
 

@@ -56,7 +56,7 @@
             double widthRotated = (imageWidth * radiansCos) + (imageHeight * radiansSin);
             double heightRotated = (imageWidth * radiansSin) + (imageHeight * radiansCos);
 
-            return (float)(Math.Max(widthRotated, heightRotated) / 100);
+            return (float)Math.Max(widthRotated / imageWidth, heightRotated / imageHeight);
         }
     }
 }

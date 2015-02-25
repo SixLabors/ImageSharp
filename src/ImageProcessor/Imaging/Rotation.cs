@@ -46,6 +46,9 @@
         /// <param name="imageWidth">Width of the image.</param>
         /// <param name="imageHeight">Height of the image.</param>
         /// <param name="angle">The angle.</param>
+        /// <remarks>
+        /// Based on <see href="http://math.stackexchange.com/questions/1070853/"/>
+        /// </remarks>
         /// <returns>The zoom needed</returns>
         public static float ZoomAfterRotation(int imageWidth, int imageHeight, float angle)
         {

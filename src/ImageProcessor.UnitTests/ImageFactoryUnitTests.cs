@@ -488,7 +488,6 @@ namespace ImageProcessor.UnitTests
         [Test]
         public void ImageIsRotatedInsideAndResized()
         {
-            int i = 0;
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
@@ -496,8 +495,6 @@ namespace ImageProcessor.UnitTests
 
                 imageFactory.Image.Width.Should().NotBe(original.Width, "because the rotated image dimensions should have changed");
                 imageFactory.Image.Height.Should().NotBe(original.Height, "because the rotated image dimensions should have changed");
-
-                imageFactory.Format(new ImageProcessor.Imaging.Formats.JpegFormat()).Save("./output/rotateinsideresized-" + i++.ToString() + ".jpg");
             }
         }
 

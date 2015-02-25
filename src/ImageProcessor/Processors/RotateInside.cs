@@ -4,7 +4,7 @@
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   Encapsulates methods to rotate an image.
+//   Encapsulates methods to rotate the inside of an image.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -15,6 +15,7 @@ namespace ImageProcessor.Processors
     using System.Drawing;
     using System.Drawing.Drawing2D;
     using ImageProcessor.Common.Exceptions;
+    using ImageProcessor.Imaging;
 
     /// <summary>
     /// Encapsulates the methods to rotate the inside of an image
@@ -49,14 +50,14 @@ namespace ImageProcessor.Processors
 
             try
             {
-                float angle = this.DynamicParameter;
+                RotateInsideLayer rotateLayer = this.DynamicParameter;
 
                 // Center of the image
                 float rotateAtX = Math.Abs(image.Width / 2);
                 float rotateAtY = Math.Abs(image.Height / 2);
 
                 // Create a rotated image.
-                newImage = this.RotateImage(image, rotateAtX, rotateAtY, angle);
+                newImage = this.RotateImage(image, rotateAtX, rotateAtY, rotateLayer);
 
                 image.Dispose();
                 image = newImage;
@@ -85,13 +86,13 @@ namespace ImageProcessor.Processors
         /// <remarks> 
         /// Based on the Rotate effect
         /// </remarks>
-        private Bitmap RotateImage(Image image, float rotateAtX, float rotateAtY, float angle)
+        private Bitmap RotateImage(Image image, float rotateAtX, float rotateAtY, RotateInsideLayer rotateLayer)
         {
             // Create a new empty bitmap to hold rotated image
             Bitmap newImage = new Bitmap(image.Width, image.Height);
             newImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
 
-            float zoom = Imaging.Rotation.ZoomAfterRotation(image.Width, image.Height, angle);
+            float zoom = Imaging.Rotation.ZoomAfterRotation(image.Width, image.Height, rotateLayer.Angle);
 
             // Make a graphics object from the empty bitmap
             using (Graphics graphics = Graphics.FromImage(newImage))
@@ -106,7 +107,7 @@ namespace ImageProcessor.Processors
                 graphics.TranslateTransform(rotateAtX, rotateAtY);
 
                 // Rotate the image
-                graphics.RotateTransform(angle);
+                graphics.RotateTransform(rotateLayer.Angle);
 
                 // Zooms the image to fit the area
                 graphics.ScaleTransform(zoom, zoom);

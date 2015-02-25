@@ -39,5 +39,24 @@
 
             return result;
         }
+
+        /// <summary>
+        /// Calculates the zoom needed after the rotation.
+        /// </summary>
+        /// <param name="imageWidth">Width of the image.</param>
+        /// <param name="imageHeight">Height of the image.</param>
+        /// <param name="angle">The angle.</param>
+        /// <returns>The zoom needed</returns>
+        public static float ZoomAfterRotation(int imageWidth, int imageHeight, float angle)
+        {
+            double radians = angle * Math.PI / 180d;
+            double radiansSin = Math.Sin(radians);
+            double radiansCos = Math.Cos(radians);
+
+            double widthRotated = (imageWidth * radiansCos) + (imageHeight * radiansSin);
+            double heightRotated = (imageWidth * radiansSin) + (imageHeight * radiansCos);
+
+            return (float)(Math.Max(widthRotated, heightRotated) / 100);
+        }
     }
 }

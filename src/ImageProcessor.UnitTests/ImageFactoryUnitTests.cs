@@ -17,7 +17,6 @@ namespace ImageProcessor.UnitTests
     using ImageProcessor.Imaging;
     using ImageProcessor.Imaging.Filters.EdgeDetection;
     using ImageProcessor.Imaging.Filters.Photo;
-    using ImageProcessor.Imaging.Formats;
 
     using NUnit.Framework;
 
@@ -133,7 +132,6 @@ namespace ImageProcessor.UnitTests
                     imageFactory.Image,
                     "because the alpha operation should have been applied on {0}",
                     imageFactory.ImagePath);
-
             }
         }
 
@@ -475,7 +473,7 @@ namespace ImageProcessor.UnitTests
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
-                imageFactory.RotateInside(new RotateInsideLayer { Angle = 45, KeepImageDimensions = true });
+                imageFactory.RotateBounded(45, true);
 
                 imageFactory.Image.Width.Should().Be(original.Width, "because the rotated image dimensions should not have changed");
                 imageFactory.Image.Height.Should().Be(original.Height, "because the rotated image dimensions should not have changed");
@@ -491,7 +489,7 @@ namespace ImageProcessor.UnitTests
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
-                imageFactory.RotateInside(new RotateInsideLayer { Angle = 45, KeepImageDimensions = false });
+                imageFactory.RotateBounded(45);
 
                 imageFactory.Image.Width.Should().NotBe(original.Width, "because the rotated image dimensions should have changed");
                 imageFactory.Image.Height.Should().NotBe(original.Height, "because the rotated image dimensions should have changed");

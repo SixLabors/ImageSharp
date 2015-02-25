@@ -1,6 +1,6 @@
 <caching currentCache="AzureBlobCache">
   <caches>
-    <cache name="AzureBlobCache" type="ImageProcessor.Web.Caching.AzureBlobCache, ImageProcessor.Web.Caching.AzureBlobCache" maxDays="365">
+    <cache name="AzureBlobCache" type="ImageProcessor.Web.Plugins.AzureBlobCache.AzureBlobCache, ImageProcessor.Web.Plugins.AzureBlobCache" maxDays="365">
       <settings>
         <setting key="CachedStorageAccount" value="DefaultEndpointsProtocol=https;AccountName=[CacheAccountName];AccountKey=[CacheAccountKey]"/>
         <setting key="CachedBlobContainer" value="cache"/>

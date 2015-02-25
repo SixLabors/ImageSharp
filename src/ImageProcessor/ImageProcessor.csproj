@@ -214,6 +214,7 @@
     <Compile Include="Imaging\Filters\Photo\IMatrixFilter.cs" />
     <Compile Include="Imaging\ResizeMode.cs" />
     <Compile Include="Imaging\Resizer.cs" />
+    <Compile Include="Imaging\RotateInsideLayer.cs" />
     <Compile Include="Imaging\RoundedCornerLayer.cs" />
     <Compile Include="Imaging\TextLayer.cs" />
     <Compile Include="Processors\Alpha.cs" />
@@ -233,6 +234,7 @@
     <Compile Include="Processors\Overlay.cs" />
     <Compile Include="Processors\Pixelate.cs" />
     <Compile Include="Processors\ReplaceColor.cs" />
+    <Compile Include="Processors\RotateInside.cs" />
     <Compile Include="Processors\RoundedCorners.cs" />
     <Compile Include="Processors\Saturation.cs" />
     <Compile Include="Processors\Flip.cs" />

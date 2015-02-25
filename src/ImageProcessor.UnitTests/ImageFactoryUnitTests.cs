@@ -467,6 +467,38 @@ namespace ImageProcessor.UnitTests
         }
 
         /// <summary>
+        /// Tests that the image's inside is rotated
+        /// </summary>
+        [Test]
+        public void ImageIsRotatedInside()
+        {
+            foreach (ImageFactory imageFactory in this.ListInputImages())
+            {
+                Image original = (Image)imageFactory.Image.Clone();
+                imageFactory.RotateInside(new RotateInsideLayer { Angle = 45, KeepImageDimensions = true });
+
+                imageFactory.Image.Width.Should().Be(original.Width, "because the rotated image dimensions should not have changed");
+                imageFactory.Image.Height.Should().Be(original.Height, "because the rotated image dimensions should not have changed");
+            }
+        }
+
+        /// <summary>
+        /// Tests that the image's inside is rotated and resized
+        /// </summary>
+        [Test]
+        public void ImageIsRotatedInsideAndResized()
+        {
+            foreach (ImageFactory imageFactory in this.ListInputImages())
+            {
+                Image original = (Image)imageFactory.Image.Clone();
+                imageFactory.RotateInside(new RotateInsideLayer { Angle = 45, KeepImageDimensions = false });
+
+                imageFactory.Image.Width.Should().NotBe(original.Width, "because the rotated image dimensions should have changed");
+                imageFactory.Image.Height.Should().NotBe(original.Height, "because the rotated image dimensions should have changed");
+            }
+        }
+
+        /// <summary>
         /// Tests that the images hue has been altered.
         /// </summary>
         [Test]

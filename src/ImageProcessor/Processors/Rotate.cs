@@ -104,7 +104,7 @@ namespace ImageProcessor.Processors
         /// </remarks>
         private Bitmap RotateImage(Image image, float rotateAtX, float rotateAtY, float angle)
         {
-            Size newSize = Imaging.Rotation.NewSizeAfterRotation(image.Width, image.Height, angle);
+            Size newSize = Imaging.Helpers.ImageMaths.GetBoundingRotatedRectangle(image.Width, image.Height, angle);
 
             int x = (newSize.Width - image.Width) / 2;
             int y = (newSize.Height - image.Height) / 2;

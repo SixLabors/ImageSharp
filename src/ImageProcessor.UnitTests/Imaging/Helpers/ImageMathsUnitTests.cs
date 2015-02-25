@@ -1,11 +1,11 @@
-﻿namespace ImageProcessor.UnitTests.Imaging
+﻿namespace ImageProcessor.UnitTests.Imaging.Helpers
 {
     using System.Drawing;
     using FluentAssertions;
-    using ImageProcessor.Imaging;
+    using ImageProcessor.Imaging.Helpers;
     using NUnit.Framework;
 
-    public class RotationUnitTests
+    public class ImageMathsUnitTests
     {
         [Test]
         [TestCase(100, 100, 45, 141, 141)]
@@ -13,7 +13,7 @@
         [TestCase(100, 200, 50, 217, 205)]
         public void NewSizeAfterRotationIsCalculated(int width, int height, float angle, int expectedWidth, int expectedHeight)
         {
-            Size result = Rotation.NewSizeAfterRotation(width, height, angle);
+            Size result = ImageMaths.GetBoundingRotatedRectangle(width, height, angle);
 
             result.Width.Should().Be(expectedWidth, "because the rotated width should have been calculated");
             result.Height.Should().Be(expectedHeight, "because the rotated height should have been calculated");
@@ -28,7 +28,7 @@
         [TestCase(600, 450, 45, 1.64f)]
         public void RotationZoomIsCalculated(int imageWidth, int imageHeight, float angle, float expected)
         {
-            float result = Rotation.ZoomAfterRotation(imageWidth, imageHeight, angle);
+            float result = ImageMaths.ZoomAfterRotation(imageWidth, imageHeight, angle);
 
             result.Should().BeApproximately(expected, 0.01f, "because the zoom level after rotation should have been calculated");
         }

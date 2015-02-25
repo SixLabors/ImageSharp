@@ -84,7 +84,7 @@ namespace ImageProcessor.Processors
         {
             Size newSize = new Size(image.Width, image.Height);
 
-            float zoom = Imaging.Rotation.ZoomAfterRotation(image.Width, image.Height, rotateLayer.Angle);
+            float zoom = Imaging.Helpers.ImageMaths.ZoomAfterRotation(image.Width, image.Height, rotateLayer.Angle);
 
             // if we don't keep the image dimensions, calculate the new ones
             if (!rotateLayer.KeepImageDimensions)

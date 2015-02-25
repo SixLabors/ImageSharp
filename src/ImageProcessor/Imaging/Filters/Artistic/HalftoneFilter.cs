@@ -393,23 +393,9 @@ namespace ImageProcessor.Imaging.Filters.Artistic
 
             foreach (float angle in angles)
             {
-                double radians = ImageMaths.DegreesToRadians(angle);
-                double radiansSin = Math.Sin(radians);
-                double radiansCos = Math.Cos(radians);
-                double width1 = (height * radiansSin) + (width * radiansCos);
-                double height1 = (width * radiansSin) + (height * radiansCos);
-
-                // Find dimensions in the other direction
-                radiansSin = Math.Sin(-radians);
-                radiansCos = Math.Cos(-radians);
-                double width2 = (height * radiansSin) + (width * radiansCos);
-                double height2 = (width * radiansSin) + (height * radiansCos);
-
-                int maxW = Math.Max(maxWidth, Convert.ToInt32(Math.Max(Math.Abs(width1), Math.Abs(width2))));
-                int maxH = Math.Max(maxHeight, Convert.ToInt32(Math.Max(Math.Abs(height1), Math.Abs(height2))));
-
-                maxHeight = maxH;
-                maxWidth = maxW;
+                Size rotatedSize = ImageMaths.GetBoundingRotatedRectangle(width, height, angle).Size;
+                maxWidth = Math.Max(maxWidth, rotatedSize.Width);
+                maxHeight = Math.Max(maxHeight, rotatedSize.Height);
             }
 
             return new Rectangle(0, 0, maxWidth, maxHeight);

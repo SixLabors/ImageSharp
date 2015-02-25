@@ -902,11 +902,11 @@ namespace ImageProcessor
         /// <returns>
         /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
         /// </returns>
-        public ImageFactory RotateInside(float degrees)
+        public ImageFactory RotateInside(RotateInsideLayer rotateLayer)
         {
             if (this.ShouldProcess)
             {
-                RotateInside rotate = new RotateInside { DynamicParameter = degrees };
+                RotateInside rotate = new RotateInside { DynamicParameter = rotateLayer };
                 this.CurrentImageFormat.ApplyProcessor(rotate.ProcessImage, this);
             }
 

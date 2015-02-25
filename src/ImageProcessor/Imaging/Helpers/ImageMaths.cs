@@ -111,7 +111,7 @@ namespace ImageProcessor.Imaging.Helpers
         /// <param name="height">The height of the image.</param>
         /// <param name="angle">The angle of rotation.</param>
         /// <returns>The new size of the image</returns>
-        public static Size GetBoundingRotatedRectangle(int width, int height, float angle)
+        public static Rectangle GetBoundingRotatedRectangle(int width, int height, float angle)
         {
             double widthAsDouble = width;
             double heightAsDouble = height;
@@ -129,9 +129,11 @@ namespace ImageProcessor.Imaging.Helpers
             double height2 = (widthAsDouble * radiansSin) + (heightAsDouble * radiansCos);
 
             // Get the external vertex for the rotation
-            Size result = new Size();
-            result.Width = Convert.ToInt32(Math.Max(Math.Abs(width1), Math.Abs(width2)));
-            result.Height = Convert.ToInt32(Math.Max(Math.Abs(height1), Math.Abs(height2)));
+            Rectangle result = new Rectangle(
+                0,
+                0,
+                Convert.ToInt32(Math.Max(Math.Abs(width1), Math.Abs(width2))),
+                Convert.ToInt32(Math.Max(Math.Abs(height1), Math.Abs(height2))));
 
             return result;
         }

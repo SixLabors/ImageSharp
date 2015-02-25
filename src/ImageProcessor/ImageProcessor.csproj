@@ -215,7 +215,6 @@
     <Compile Include="Imaging\ResizeMode.cs" />
     <Compile Include="Imaging\Resizer.cs" />
     <Compile Include="Imaging\RotateInsideLayer.cs" />
-    <Compile Include="Imaging\Rotation.cs" />
     <Compile Include="Imaging\RoundedCornerLayer.cs" />
     <Compile Include="Imaging\TextLayer.cs" />
     <Compile Include="Processors\Alpha.cs" />

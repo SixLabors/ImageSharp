@@ -12,7 +12,6 @@ namespace ImageProcessor.Imaging.Helpers
 {
     using System;
     using System.Drawing;
-
     using ImageProcessor.Imaging.Colors;
 
     /// <summary>
@@ -20,6 +19,27 @@ namespace ImageProcessor.Imaging.Helpers
     /// </summary>
     public static class ImageMaths
     {
+        /// <summary>
+        /// Gets a <see cref="Rectangle"/> representing the child centered relative to the parent.
+        /// </summary>
+        /// <param name="parent">
+        /// The parent <see cref="Rectangle"/>.
+        /// </param>
+        /// <param name="child">
+        /// The child <see cref="Rectangle"/>.
+        /// </param>
+        /// <returns>
+        /// The centered <see cref="Rectangle"/>.
+        /// </returns>
+        public static RectangleF CenteredRectangle(Rectangle parent, Rectangle child)
+        {
+            float x = (parent.Width - child.Width) / 2.0F;
+            float y = (parent.Height - child.Height) / 2.0F;
+            int width = child.Width;
+            int height = child.Height;
+            return new RectangleF(x, y, width, height);
+        }
+
         /// <summary>
         /// Restricts a value to be within a specified range.
         /// </summary>
@@ -54,6 +74,20 @@ namespace ImageProcessor.Imaging.Helpers
         }
 
         /// <summary>
+        /// Returns the given degrees converted to radians.
+        /// </summary>
+        /// <param name="angleInDegrees">
+        /// The angle in degrees.
+        /// </param>
+        /// <returns>
+        /// The <see cref="double"/> representing the degree as radians.
+        /// </returns>
+        public static double DegreesToRadians(double angleInDegrees)
+        {
+            return angleInDegrees * (Math.PI / 180);
+        }
+
+        /// <summary>
         /// Gets the bounding <see cref="Rectangle"/> from the given points.
         /// </summary>
         /// <param name="topLeft">
@@ -68,6 +102,40 @@ namespace ImageProcessor.Imaging.Helpers
         public static Rectangle GetBoundingRectangle(Point topLeft, Point bottomRight)
         {
             return new Rectangle(topLeft.X, topLeft.Y, bottomRight.X - topLeft.X, bottomRight.Y - topLeft.Y);
+        }
+
+        /// <summary>
+        /// Calculates the new size after rotation.
+        /// </summary>
+        /// <param name="width">The width of the image.</param>
+        /// <param name="height">The height of the image.</param>
+        /// <param name="angle">The angle of rotation.</param>
+        /// <returns>The new size of the image</returns>
+        public static Rectangle GetBoundingRotatedRectangle(int width, int height, float angle)
+        {
+            double widthAsDouble = width;
+            double heightAsDouble = height;
+
+            double radians = DegreesToRadians(angle);
+            double radiansSin = Math.Sin(radians);
+            double radiansCos = Math.Cos(radians);
+            double width1 = (heightAsDouble * radiansSin) + (widthAsDouble * radiansCos);
+            double height1 = (widthAsDouble * radiansSin) + (heightAsDouble * radiansCos);
+
+            // Find dimensions in the other direction
+            radiansSin = Math.Sin(-radians);
+            radiansCos = Math.Cos(-radians);
+            double width2 = (heightAsDouble * radiansSin) + (widthAsDouble * radiansCos);
+            double height2 = (widthAsDouble * radiansSin) + (heightAsDouble * radiansCos);
+
+            // Get the external vertex for the rotation
+            Rectangle result = new Rectangle(
+                0,
+                0,
+                Convert.ToInt32(Math.Max(Math.Abs(width1), Math.Abs(width2))),
+                Convert.ToInt32(Math.Max(Math.Abs(height1), Math.Abs(height2))));
+
+            return result;
         }
 
         /// <summary>
@@ -101,12 +169,15 @@ namespace ImageProcessor.Imaging.Helpers
                 case RgbaComponent.R:
                     delegateFunc = (fastBitmap, x, y, b) => fastBitmap.GetPixel(x, y).R != b;
                     break;
+
                 case RgbaComponent.G:
                     delegateFunc = (fastBitmap, x, y, b) => fastBitmap.GetPixel(x, y).G != b;
                     break;
+
                 case RgbaComponent.A:
                     delegateFunc = (fastBitmap, x, y, b) => fastBitmap.GetPixel(x, y).A != b;
                     break;
+
                 default:
                     delegateFunc = (fastBitmap, x, y, b) => fastBitmap.GetPixel(x, y).B != b;
                     break;
@@ -188,61 +259,6 @@ namespace ImageProcessor.Imaging.Helpers
         }
 
         /// <summary>
-        /// Gets a <see cref="Rectangle"/> representing the child centered relative to the parent.
-        /// </summary>
-        /// <param name="parent">
-        /// The parent <see cref="Rectangle"/>.
-        /// </param>
-        /// <param name="child">
-        /// The child <see cref="Rectangle"/>.
-        /// </param>
-        /// <returns>
-        /// The centered <see cref="Rectangle"/>.
-        /// </returns>
-        public static RectangleF CenteredRectangle(Rectangle parent, Rectangle child)
-        {
-            float x = (parent.Width - child.Width) / 2.0F;
-            float y = (parent.Height - child.Height) / 2.0F;
-            int width = child.Width;
-            int height = child.Height;
-            return new RectangleF(x, y, width, height);
-        }
-
-        /// <summary>
-        /// Returns the array of <see cref="Point"/> matching the bounds of the given rectangle.
-        /// </summary>
-        /// <param name="rectangle">
-        /// The <see cref="Rectangle"/> to return the points from.
-        /// </param>
-        /// <returns>
-        /// The <see cref="Point"/> array.
-        /// </returns>
-        public static Point[] ToPoints(Rectangle rectangle)
-        {
-            return new[]
-            {
-                new Point(rectangle.Left, rectangle.Top), 
-                new Point(rectangle.Right, rectangle.Top), 
-                new Point(rectangle.Right, rectangle.Bottom), 
-                new Point(rectangle.Left, rectangle.Bottom)
-            };
-        }
-
-        /// <summary>
-        /// Returns the given degrees converted to radians.
-        /// </summary>
-        /// <param name="angleInDegrees">
-        /// The angle in degrees.
-        /// </param>
-        /// <returns>
-        /// The <see cref="double"/> representing the degree as radians.
-        /// </returns>
-        public static double DegreesToRadians(double angleInDegrees)
-        {
-            return angleInDegrees * (Math.PI / 180);
-        }
-
-        /// <summary>
         /// Rotates one point around another
         /// <see href="http://stackoverflow.com/questions/13695317/rotate-a-point-around-another-point"/>
         /// </summary>
@@ -262,14 +278,54 @@ namespace ImageProcessor.Imaging.Helpers
             return new Point
             {
                 X =
-                    (int)
-                    ((cosTheta * (pointToRotate.X - center.X)) -
-                    ((sinTheta * (pointToRotate.Y - center.Y)) + center.X)),
+                    (int)((cosTheta * (pointToRotate.X - center.X)) -
+                          ((sinTheta * (pointToRotate.Y - center.Y)) + center.X)),
                 Y =
-                    (int)
-                    ((sinTheta * (pointToRotate.X - center.X)) +
-                    ((cosTheta * (pointToRotate.Y - center.Y)) + center.Y))
+                    (int)((sinTheta * (pointToRotate.X - center.X)) +
+                          ((cosTheta * (pointToRotate.Y - center.Y)) + center.Y))
             };
+        }
+
+        /// <summary>
+        /// Returns the array of <see cref="Point"/> matching the bounds of the given rectangle.
+        /// </summary>
+        /// <param name="rectangle">
+        /// The <see cref="Rectangle"/> to return the points from.
+        /// </param>
+        /// <returns>
+        /// The <see cref="Point"/> array.
+        /// </returns>
+        public static Point[] ToPoints(Rectangle rectangle)
+        {
+            return new[]
+            {
+                new Point(rectangle.Left, rectangle.Top),
+                new Point(rectangle.Right, rectangle.Top),
+                new Point(rectangle.Right, rectangle.Bottom),
+                new Point(rectangle.Left, rectangle.Bottom)
+            };
+        }
+
+        /// <summary>
+        /// Calculates the zoom needed after the rotation.
+        /// </summary>
+        /// <param name="imageWidth">Width of the image.</param>
+        /// <param name="imageHeight">Height of the image.</param>
+        /// <param name="angle">The angle.</param>
+        /// <remarks>
+        /// Based on <see href="http://math.stackexchange.com/questions/1070853/"/>
+        /// </remarks>
+        /// <returns>The zoom needed</returns>
+        public static float ZoomAfterRotation(int imageWidth, int imageHeight, float angle)
+        {
+            double radians = angle * Math.PI / 180d;
+            double radiansSin = Math.Sin(radians);
+            double radiansCos = Math.Cos(radians);
+
+            double widthRotated = (imageWidth * radiansCos) + (imageHeight * radiansSin);
+            double heightRotated = (imageWidth * radiansSin) + (imageHeight * radiansCos);
+
+            return (float)Math.Max(widthRotated / imageWidth, heightRotated / imageHeight);
         }
     }
 }

@@ -81,6 +81,7 @@ namespace ImageProcessor.PlayGround
                     using (ImageFactory imageFactory = new ImageFactory(true))
                     {
                         Size size = new Size(1024, 0);
+                        CropLayer cropLayer = new CropLayer(20, 20, 20, 20, ImageProcessor.Imaging.CropMode.Percentage);
                         //ResizeLayer layer = new ResizeLayer(size, ResizeMode.Max, AnchorPosition.Center, false);
 
                         //ContentAwareResizeLayer layer = new ContentAwareResizeLayer(size)
@@ -110,7 +111,8 @@ namespace ImageProcessor.PlayGround
                             //.DetectEdges(new LaplacianOfGaussianEdgeFilter())
                             //.EntropyCrop()
                             //.Halftone(true)
-                            .RotateBounded(150, false)
+                            //.RotateBounded(150, false)
+                            .Crop(cropLayer)
                             //.Rotate(140)
                             //.Filter(MatrixFilters.Invert)
                             //.Contrast(50)

@@ -21,16 +21,16 @@ namespace ImageProcessor.Imaging
         /// Initializes a new instance of the <see cref="CropLayer"/> class.
         /// </summary>
         /// <param name="left">
-        /// The left coordinate of the crop layer.
+        /// The left coordinate of the crop layer. 
         /// </param>
         /// <param name="top">
-        /// The top coordinate of the crop layer.
+        /// The top coordinate of the crop layer. 
         /// </param>
         /// <param name="right">
-        /// The right coordinate of the crop layer.
+        /// The right coordinate of the crop layer. 
         /// </param>
         /// <param name="bottom">
-        /// The bottom coordinate of the crop layer.
+        /// The bottom coordinate of the crop layer. 
         /// </param>
         /// <param name="cropMode">
         /// The <see cref="CropMode"/>.

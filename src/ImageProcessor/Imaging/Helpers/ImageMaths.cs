@@ -316,7 +316,7 @@ namespace ImageProcessor.Imaging.Helpers
         /// <returns>The zoom needed</returns>
         public static float ZoomAfterRotation(int imageWidth, int imageHeight, float angleInDegrees)
         {
-            double radians = DegreesToRadians(angleInDegrees);
+            double radians = Math.Abs(DegreesToRadians(angleInDegrees));
             double radiansSin = Math.Sin(radians);
             double radiansCos = Math.Cos(radians);
 

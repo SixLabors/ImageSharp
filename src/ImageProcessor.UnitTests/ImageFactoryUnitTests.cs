@@ -122,16 +122,18 @@ namespace ImageProcessor.UnitTests
         [Test]
         public void AlphaIsModified()
         {
+            int i = 0;
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
                 imageFactory.Alpha(50);
-
                 AssertionHelpers.AssertImagesAreDifferent(
                     original,
                     imageFactory.Image,
                     "because the alpha operation should have been applied on {0}",
                     imageFactory.ImagePath);
+
+                imageFactory.Format(new ImageProcessor.Imaging.Formats.JpegFormat()).Save("./output/alpha-" + i++.ToString() + ".jpg");
             }
         }
 
@@ -141,11 +143,14 @@ namespace ImageProcessor.UnitTests
         [Test]
         public void BrightnessIsModified()
         {
+            int i = 0;
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
                 imageFactory.Brightness(50);
                 AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the brightness operation should have been applied on {0}", imageFactory.ImagePath);
+
+                imageFactory.Format(new ImageProcessor.Imaging.Formats.JpegFormat()).Save("./output/brightness-" + i++.ToString() + ".jpg");
             }
         }
 
@@ -168,11 +173,14 @@ namespace ImageProcessor.UnitTests
         [Test]
         public void ContrastIsModified()
         {
+            int i = 0;
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
                 imageFactory.Contrast(50);
                 AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the contrast operation should have been applied on {0}", imageFactory.ImagePath);
+
+                imageFactory.Format(new ImageProcessor.Imaging.Formats.JpegFormat()).Save("./output/contrast-" + i++.ToString() + ".jpg");
             }
         }
 
@@ -182,11 +190,14 @@ namespace ImageProcessor.UnitTests
         [Test]
         public void SaturationIsModified()
         {
+            int i = 0;
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
                 imageFactory.Saturation(50);
                 AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the saturation operation should have been applied on {0}", imageFactory.ImagePath);
+
+                imageFactory.Format(new ImageProcessor.Imaging.Formats.JpegFormat()).Save("./output/saturation-" + i++.ToString() + ".jpg");
             }
         }
 
@@ -196,11 +207,14 @@ namespace ImageProcessor.UnitTests
         [Test]
         public void TintIsModified()
         {
+            int i = 0;
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
                 imageFactory.Tint(Color.FromKnownColor(KnownColor.AliceBlue));
                 AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the tint operation should have been applied on {0}", imageFactory.ImagePath);
+
+                imageFactory.Format(new ImageProcessor.Imaging.Formats.JpegFormat()).Save("./output/tint-" + i++.ToString() + ".jpg");
             }
         }
 
@@ -210,11 +224,14 @@ namespace ImageProcessor.UnitTests
         [Test]
         public void VignetteEffectIsApplied()
         {
+            int i = 0;
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
                 imageFactory.Vignette(Color.FromKnownColor(KnownColor.AliceBlue));
                 AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the vignette operation should have been applied on {0}", imageFactory.ImagePath);
+
+                imageFactory.Format(new ImageProcessor.Imaging.Formats.JpegFormat()).Save("./output/vignette-" + i++.ToString() + ".jpg");
             }
         }
 
@@ -224,6 +241,7 @@ namespace ImageProcessor.UnitTests
         [Test]
         public void WatermarkIsApplied()
         {
+            int i = 0;
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
@@ -235,6 +253,8 @@ namespace ImageProcessor.UnitTests
                     Text = "Lorem ipsum dolor"
                 });
                 AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the watermark operation should have been applied on {0}", imageFactory.ImagePath);
+
+                imageFactory.Format(new ImageProcessor.Imaging.Formats.JpegFormat()).Save("./output/watermark-" + i++.ToString() + ".jpg");
             }
         }
 
@@ -244,11 +264,14 @@ namespace ImageProcessor.UnitTests
         [Test]
         public void BlurEffectIsApplied()
         {
+            int i = 0;
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
                 imageFactory.GaussianBlur(5);
                 AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the blur operation should have been applied on {0}", imageFactory.ImagePath);
+
+                imageFactory.Format(new ImageProcessor.Imaging.Formats.JpegFormat()).Save("./output/blur-" + i++.ToString() + ".jpg");
             }
         }
 
@@ -258,11 +281,14 @@ namespace ImageProcessor.UnitTests
         [Test]
         public void BlurWithLayerIsApplied()
         {
+            int i = 0;
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
                 imageFactory.GaussianBlur(new GaussianLayer { Sigma = 10, Size = 5, Threshold = 2 });
                 AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the layered blur operation should have been applied on {0}", imageFactory.ImagePath);
+
+                imageFactory.Format(new ImageProcessor.Imaging.Formats.JpegFormat()).Save("./output/blurlayer-" + i++.ToString() + ".jpg");
             }
         }
 
@@ -272,11 +298,14 @@ namespace ImageProcessor.UnitTests
         [Test]
         public void SharpenEffectIsApplied()
         {
+            int i = 0;
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
                 imageFactory.GaussianSharpen(5);
                 AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the sharpen operation should have been applied on {0}", imageFactory.ImagePath);
+
+                imageFactory.Format(new ImageProcessor.Imaging.Formats.JpegFormat()).Save("./output/sharpen-" + i++.ToString() + ".jpg");
             }
         }
 
@@ -286,11 +315,14 @@ namespace ImageProcessor.UnitTests
         [Test]
         public void SharpenWithLayerIsApplied()
         {
+            int i = 0;
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
                 imageFactory.GaussianSharpen(new GaussianLayer { Sigma = 10, Size = 5, Threshold = 2 });
                 AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the layered sharpen operation should have been applied on {0}", imageFactory.ImagePath);
+
+                imageFactory.Format(new ImageProcessor.Imaging.Formats.JpegFormat()).Save("./output/sharpenlayer-" + i++.ToString() + ".jpg");
             }
         }
 
@@ -300,6 +332,7 @@ namespace ImageProcessor.UnitTests
         [Test]
         public void FilterIsApplied()
         {
+            int i = 0;
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
@@ -318,13 +351,18 @@ namespace ImageProcessor.UnitTests
                     MatrixFilters.Sepia
                 };
 
+                int j = 0;
                 foreach (IMatrixFilter filter in filters)
                 {
                     imageFactory.Filter(filter);
                     AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the filter operation should have been applied on {0}", imageFactory.ImagePath);
                     imageFactory.Reset();
                     AssertionHelpers.AssertImagesAreIdentical(original, imageFactory.Image, "because the image should be reset");
+
+                    imageFactory.Format(new ImageProcessor.Imaging.Formats.JpegFormat()).Save("./output/filter-" + j++.ToString() + "-image-" + i.ToString() + ".jpg");
                 }
+
+                i++;
             }
         }
 
@@ -334,11 +372,14 @@ namespace ImageProcessor.UnitTests
         [Test]
         public void RoundedCornersAreApplied()
         {
+            int i = 0;
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
                 imageFactory.RoundedCorners(new RoundedCornerLayer(5));
                 AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the rounded corners operation should have been applied on {0}", imageFactory.ImagePath);
+
+                imageFactory.Format(new ImageProcessor.Imaging.Formats.JpegFormat()).Save("./output/roundedcorners-" + i++.ToString() + ".jpg");
             }
         }
 
@@ -348,12 +389,15 @@ namespace ImageProcessor.UnitTests
         [Test]
         public void ImageIsResizedWithinConstraints()
         {
+            int i = 0;
             const int MaxSize = 200;
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 imageFactory.Constrain(new Size(MaxSize, MaxSize));
                 imageFactory.Image.Width.Should().BeLessOrEqualTo(MaxSize, "because the image size should have been reduced");
                 imageFactory.Image.Height.Should().BeLessOrEqualTo(MaxSize, "because the image size should have been reduced");
+
+                imageFactory.Format(new ImageProcessor.Imaging.Formats.JpegFormat()).Save("./output/resizedcontraints-" + i++.ToString() + ".jpg");
             }
         }
 
@@ -363,6 +407,7 @@ namespace ImageProcessor.UnitTests
         [Test]
         public void ImageIsCropped()
         {
+            int i = 0;
             const int MaxSize = 20;
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
@@ -372,6 +417,8 @@ namespace ImageProcessor.UnitTests
 
                 imageFactory.Image.Width.Should().Be(MaxSize, "because the cropped image should be {0}x{0}", MaxSize);
                 imageFactory.Image.Height.Should().Be(MaxSize, "because the cropped image should be {0}x{0}", MaxSize);
+
+                imageFactory.Format(new ImageProcessor.Imaging.Formats.JpegFormat()).Save("./output/crop-" + i++.ToString() + ".jpg");
             }
         }
 
@@ -381,6 +428,7 @@ namespace ImageProcessor.UnitTests
         [Test]
         public void ImageIsCroppedWithLayer()
         {
+            int i = 0;
             const int MaxSize = 20;
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
@@ -390,6 +438,8 @@ namespace ImageProcessor.UnitTests
 
                 imageFactory.Image.Width.Should().Be(MaxSize, "because the cropped image should be {0}x{0}", MaxSize);
                 imageFactory.Image.Height.Should().Be(MaxSize, "because the cropped image should be {0}x{0}", MaxSize);
+
+                imageFactory.Format(new ImageProcessor.Imaging.Formats.JpegFormat()).Save("./output/croplayer-" + i++.ToString() + ".jpg");
             }
         }
 
@@ -399,6 +449,7 @@ namespace ImageProcessor.UnitTests
         [Test]
         public void ImageIsFlipped()
         {
+            int i = 0;
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
@@ -413,6 +464,8 @@ namespace ImageProcessor.UnitTests
                 AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the horizontal flip operation should have been applied on {0}", imageFactory.ImagePath);
                 imageFactory.Image.Width.Should().Be(original.Width, "because the dimensions should not have changed");
                 imageFactory.Image.Height.Should().Be(original.Height, "because the dimensions should not have changed");
+
+                imageFactory.Format(new ImageProcessor.Imaging.Formats.JpegFormat()).Save("./output/flip-" + i++.ToString() + ".jpg");
             }
         }
 
@@ -422,6 +475,7 @@ namespace ImageProcessor.UnitTests
         [Test]
         public void ImageIsResized()
         {
+            int i = 0;
             const int NewSize = 150;
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
@@ -429,6 +483,8 @@ namespace ImageProcessor.UnitTests
 
                 imageFactory.Image.Width.Should().Be(NewSize, "because the new image's size should be {0}x{0}", NewSize);
                 imageFactory.Image.Height.Should().Be(NewSize, "because the new image's size should be {0}x{0}", NewSize);
+
+                imageFactory.Format(new ImageProcessor.Imaging.Formats.JpegFormat()).Save("./output/resized-" + i++.ToString() + ".jpg");
             }
         }
 
@@ -438,6 +494,7 @@ namespace ImageProcessor.UnitTests
         [Test]
         public void ImageIsResizedWithLayer()
         {
+            int i = 0;
             const int NewSize = 150;
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
@@ -445,6 +502,8 @@ namespace ImageProcessor.UnitTests
 
                 imageFactory.Image.Width.Should().Be(NewSize, "because the new image's size should be {0}x{0}", NewSize);
                 imageFactory.Image.Height.Should().Be(NewSize, "because the new image's size should be {0}x{0}", NewSize);
+
+                imageFactory.Format(new ImageProcessor.Imaging.Formats.JpegFormat()).Save("./output/resizedlayer-" + i++.ToString() + ".jpg");
             }
         }
 
@@ -454,6 +513,7 @@ namespace ImageProcessor.UnitTests
         [Test]
         public void ImageIsRotated()
         {
+            int i = 0;
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
@@ -461,6 +521,8 @@ namespace ImageProcessor.UnitTests
 
                 imageFactory.Image.Width.Should().Be(original.Height, "because the rotated image dimensions should have been switched");
                 imageFactory.Image.Height.Should().Be(original.Width, "because the rotated image dimensions should have been switched");
+
+                imageFactory.Format(new ImageProcessor.Imaging.Formats.JpegFormat()).Save("./output/rotated-" + i++.ToString() + ".jpg");
             }
         }
 
@@ -470,6 +532,7 @@ namespace ImageProcessor.UnitTests
         [Test]
         public void ImageIsRotatedInside()
         {
+            int i = 0;
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
@@ -477,6 +540,31 @@ namespace ImageProcessor.UnitTests
 
                 imageFactory.Image.Width.Should().Be(original.Width, "because the rotated image dimensions should not have changed");
                 imageFactory.Image.Height.Should().Be(original.Height, "because the rotated image dimensions should not have changed");
+
+                AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the inside image should have been rotated on {0}", imageFactory.ImagePath);
+
+                imageFactory.Format(new ImageProcessor.Imaging.Formats.JpegFormat()).Save("./output/rotatebounded-" + i++.ToString() + ".jpg");
+            }
+        }
+
+        /// <summary>
+        /// Tests that the image's inside is rotated counter-clockwise
+        /// </summary>
+        [Test]
+        public void ImageIsRotatedInsideCounterClockwise()
+        {
+            int i = 0;
+            foreach (ImageFactory imageFactory in this.ListInputImages())
+            {
+                Image original = (Image)imageFactory.Image.Clone();
+                imageFactory.RotateBounded(-45, true);
+
+                imageFactory.Image.Width.Should().Be(original.Width, "because the rotated image dimensions should not have changed");
+                imageFactory.Image.Height.Should().Be(original.Height, "because the rotated image dimensions should not have changed");
+
+                AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the inside image should have been rotated on {0}", imageFactory.ImagePath);
+
+                imageFactory.Format(new ImageProcessor.Imaging.Formats.JpegFormat()).Save("./output/rotateboundedccw-" + i++.ToString() + ".jpg");
             }
         }
 
@@ -486,6 +574,7 @@ namespace ImageProcessor.UnitTests
         [Test]
         public void ImageIsRotatedInsideAndResized()
         {
+            int i = 0;
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
@@ -493,6 +582,10 @@ namespace ImageProcessor.UnitTests
 
                 imageFactory.Image.Width.Should().NotBe(original.Width, "because the rotated image dimensions should have changed");
                 imageFactory.Image.Height.Should().NotBe(original.Height, "because the rotated image dimensions should have changed");
+
+                AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the inside image should have been rotated on {0}", imageFactory.ImagePath);
+
+                imageFactory.Format(new ImageProcessor.Imaging.Formats.JpegFormat()).Save("./output/rotateboundedresized-" + i++.ToString() + ".jpg");
             }
         }
 
@@ -502,6 +595,7 @@ namespace ImageProcessor.UnitTests
         [Test]
         public void HueIsModified()
         {
+            int i = 0;
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
@@ -513,6 +607,8 @@ namespace ImageProcessor.UnitTests
 
                 imageFactory.Hue(116, true);
                 AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the hue+rotate operation should have been applied on {0}", imageFactory.ImagePath);
+
+                imageFactory.Format(new ImageProcessor.Imaging.Formats.JpegFormat()).Save("./output/hue-" + i++.ToString() + ".jpg");
             }
         }
 
@@ -522,11 +618,14 @@ namespace ImageProcessor.UnitTests
         [Test]
         public void PixelateEffectIsApplied()
         {
+            int i = 0;
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
                 imageFactory.Pixelate(8);
                 AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the pixelate operation should have been applied on {0}", imageFactory.ImagePath);
+
+                imageFactory.Format(new ImageProcessor.Imaging.Formats.JpegFormat()).Save("./output/pixelate-" + i++.ToString() + ".jpg");
             }
         }
 
@@ -552,11 +651,14 @@ namespace ImageProcessor.UnitTests
         [Test]
         public void ColorIsReplaced()
         {
+            int i = 0;
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
                 imageFactory.ReplaceColor(Color.White, Color.Black, 90);
                 AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the color replace operation should have been applied on {0}", imageFactory.ImagePath);
+
+                imageFactory.Format(new ImageProcessor.Imaging.Formats.JpegFormat()).Save("./output/colorreplace-" + i++.ToString() + ".jpg");
             }
         }
 
@@ -566,6 +668,7 @@ namespace ImageProcessor.UnitTests
         [Test]
         public void EdgeDetectionEffectIsApplied()
         {
+            int i = 0;
             foreach (ImageFactory imageFactory in this.ListInputImages())
             {
                 Image original = (Image)imageFactory.Image.Clone();
@@ -583,13 +686,18 @@ namespace ImageProcessor.UnitTests
                     new SobelEdgeFilter()
                 };
 
+                int j = 0;
                 foreach (IEdgeFilter filter in filters)
                 {
                     imageFactory.DetectEdges(filter);
                     AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the edge operation should have been applied on {0}", imageFactory.ImagePath);
                     imageFactory.Reset();
                     AssertionHelpers.AssertImagesAreIdentical(original, imageFactory.Image, "because the image should be reset");
+
+                    imageFactory.Format(new ImageProcessor.Imaging.Formats.JpegFormat()).Save("./output/edgefilter-" + j++.ToString() + "-image-" + i.ToString() + ".jpg");
                 }
+
+                i++;
             }
         }
 

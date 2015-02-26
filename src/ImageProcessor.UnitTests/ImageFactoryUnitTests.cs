@@ -548,6 +548,27 @@ namespace ImageProcessor.UnitTests
         }
 
         /// <summary>
+        /// Tests that the image's inside is rotated counter-clockwise
+        /// </summary>
+        [Test]
+        public void ImageIsRotatedInsideCounterClockwise()
+        {
+            int i = 0;
+            foreach (ImageFactory imageFactory in this.ListInputImages())
+            {
+                Image original = (Image)imageFactory.Image.Clone();
+                imageFactory.RotateBounded(-45, true);
+
+                imageFactory.Image.Width.Should().Be(original.Width, "because the rotated image dimensions should not have changed");
+                imageFactory.Image.Height.Should().Be(original.Height, "because the rotated image dimensions should not have changed");
+
+                AssertionHelpers.AssertImagesAreDifferent(original, imageFactory.Image, "because the inside image should have been rotated on {0}", imageFactory.ImagePath);
+
+                imageFactory.Format(new ImageProcessor.Imaging.Formats.JpegFormat()).Save("./output/rotateboundedccw-" + i++.ToString() + ".jpg");
+            }
+        }
+
+        /// <summary>
         /// Tests that the image's inside is rotated and resized
         /// </summary>
         [Test]

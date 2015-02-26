@@ -22,6 +22,7 @@
         [TestCase(100, 100, 45, 141, 141)]
         [TestCase(100, 100, 30, 137, 137)]
         [TestCase(100, 200, 50, 217, 205)]
+        [TestCase(100, 200, -50, 217, 205)]
         public void BoundingRotatedRectangleIsCalculated(int width, int height, float angle, int expectedWidth, int expectedHeight)
         {
             Rectangle result = ImageMaths.GetBoundingRotatedRectangle(width, height, angle);
@@ -44,11 +45,16 @@
         [TestCase(200, 100, 45, 2.12f)]
         [TestCase(600, 450, 20, 1.39f)]
         [TestCase(600, 450, 45, 1.64f)]
+        [TestCase(100, 200, -45, 1.22f)]
         public void RotationZoomIsCalculated(int imageWidth, int imageHeight, float angle, float expected)
         {
             float result = ImageMaths.ZoomAfterRotation(imageWidth, imageHeight, angle);
 
             result.Should().BeApproximately(expected, 0.01f, "because the zoom level after rotation should have been calculated");
+
+            result.Should().BePositive("because we're always zooming in so the zoom level should always be positive");
+
+            result.Should().BeGreaterOrEqualTo(1, "because the zoom should always increase the size and not reduce it");
         }
     }
 }

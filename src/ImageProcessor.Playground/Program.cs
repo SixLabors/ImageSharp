@@ -52,7 +52,7 @@ namespace ImageProcessor.PlayGround
             // Image mask = Image.FromFile(Path.Combine(resolvedPath, "mask.png"));
             // Image overlay = Image.FromFile(Path.Combine(resolvedPath, "imageprocessor.128.png"));
             //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "2008.jpg"));
-            //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "new-york.jpg"));
+            //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "stretched.jpg"));
             //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "mountain.jpg"));
             //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "Arc-de-Triomphe-France.jpg"));
             //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "Martin-Schoeller-Jack-Nicholson-Portrait.jpeg"));
@@ -110,19 +110,19 @@ namespace ImageProcessor.PlayGround
                             //.DetectEdges(new LaplacianOfGaussianEdgeFilter())
                             //.EntropyCrop()
                             //.Halftone(true)
-                            .RotateBounded(5, false)
+                            .RotateBounded(150, false)
+                            //.Rotate(140)
                             //.Filter(MatrixFilters.Invert)
                             //.Contrast(50)
                             //.Filter(MatrixFilters.Comic)
                             //.Flip()
                             //.Filter(MatrixFilters.HiSatch)
                             //.Pixelate(8)
-                            //.Rotate(45)
                             //.GaussianSharpen(10)
                             //.Format(new PngFormat() { IsIndexed = true })
-                            //.Format(new PngFormat() { IsIndexed = true })
+                            //.Format(new PngFormat() )
                             .Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", fileInfo.Name)));
-                        //.Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", Path.GetFileNameWithoutExtension(fileInfo.Name) + ".png")));
+                            //.Save(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), @"..\..\images\output", Path.GetFileNameWithoutExtension(fileInfo.Name) + ".png")));
 
                         stopwatch.Stop();
                     }

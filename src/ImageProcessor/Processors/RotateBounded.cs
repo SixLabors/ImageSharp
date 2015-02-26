@@ -15,6 +15,7 @@ namespace ImageProcessor.Processors
     using System.Drawing;
     using System.Drawing.Drawing2D;
     using ImageProcessor.Common.Exceptions;
+    using ImageProcessor.Imaging.Helpers;
 
     /// <summary>
     /// Encapsulates the methods to rotate an image without expanding the canvas.
@@ -98,13 +99,13 @@ namespace ImageProcessor.Processors
         {
             Size newSize = new Size(image.Width, image.Height);
 
-            float zoom = Imaging.Helpers.ImageMaths.ZoomAfterRotation(image.Width, image.Height, angleInDegrees);
+            float zoom = ImageMaths.ZoomAfterRotation(image.Width, image.Height, angleInDegrees);
 
             // if we don't keep the image dimensions, calculate the new ones
             if (!keepSize)
             {
-                newSize.Width = (int)(newSize.Width / zoom);
-                newSize.Height = (int)(newSize.Height / zoom);
+                newSize.Width = (int)Math.Floor(newSize.Width / zoom);
+                newSize.Height = (int)Math.Floor(newSize.Height / zoom);
             }
 
             // Center of the image
@@ -143,22 +144,22 @@ namespace ImageProcessor.Processors
                 }
                 else
                 {
-                    // Calculate the difference between the center of the original image and the center 
-                    // of the new image.
-                    int x = (image.Width - newSize.Width) / 2;
-                    int y = (image.Height - newSize.Height) / 2;
+                    float previousX = rotateAtX;
+                    float previousY = rotateAtY;
 
-                    // Put the rotation point in the "center" of the old image
-                    graphics.TranslateTransform(rotateAtX - x, rotateAtY - y);
+                    // Calculate the difference between the center of the original image 
+                    // and the center of the new image.
+                    rotateAtX = Math.Abs(newImage.Width / 2);
+                    rotateAtY = Math.Abs(newImage.Height / 2);
+
+                    // Put the rotation point in the "center" of the image
+                    graphics.TranslateTransform(rotateAtX, rotateAtY);
 
                     // Rotate the image
                     graphics.RotateTransform(angleInDegrees);
 
-                    // Move the image back
-                    graphics.TranslateTransform(-(rotateAtX - x), -(rotateAtY - y));
-
                     // Draw passed in image onto graphics object
-                    graphics.DrawImage(image, new PointF(-x, -y));
+                    graphics.DrawImage(image, new PointF(-previousX, -previousY));
                 }
             }
 

@@ -359,8 +359,10 @@ namespace ImageProcessor.UnitTests
                     imageFactory.Reset();
                     AssertionHelpers.AssertImagesAreIdentical(original, imageFactory.Image, "because the image should be reset");
 
-                    imageFactory.Format(new ImageProcessor.Imaging.Formats.JpegFormat()).Save("./output/filter-" + j++.ToString() + "-image-" + i++.ToString() + ".jpg");
+                    imageFactory.Format(new ImageProcessor.Imaging.Formats.JpegFormat()).Save("./output/filter-" + j++.ToString() + "-image-" + i.ToString() + ".jpg");
                 }
+
+                i++;
             }
         }
 
@@ -671,8 +673,10 @@ namespace ImageProcessor.UnitTests
                     imageFactory.Reset();
                     AssertionHelpers.AssertImagesAreIdentical(original, imageFactory.Image, "because the image should be reset");
 
-                    imageFactory.Format(new ImageProcessor.Imaging.Formats.JpegFormat()).Save("./output/edgefilter-" + j++.ToString() + "-image-" + i++.ToString() + ".jpg");
+                    imageFactory.Format(new ImageProcessor.Imaging.Formats.JpegFormat()).Save("./output/edgefilter-" + j++.ToString() + "-image-" + i.ToString() + ".jpg");
                 }
+
+                i++;
             }
         }
 

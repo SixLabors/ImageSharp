@@ -73,6 +73,12 @@ namespace ImageProcessor.Processors
 
                 if (cropLayer.CropMode == CropMode.Percentage)
                 {
+                    // Fix for whole numbers. 
+                    cropLayer.Left = cropLayer.Left > 1 ? cropLayer.Left / 100 : cropLayer.Left;
+                    cropLayer.Right = cropLayer.Right > 1 ? cropLayer.Right / 100 : cropLayer.Right;
+                    cropLayer.Top = cropLayer.Top > 1 ? cropLayer.Top / 100 : cropLayer.Top;
+                    cropLayer.Bottom = cropLayer.Bottom > 1 ? cropLayer.Bottom / 100 : cropLayer.Bottom;
+
                     // Work out the percentages.
                     float left = cropLayer.Left * sourceWidth;
                     float top = cropLayer.Top * sourceHeight;

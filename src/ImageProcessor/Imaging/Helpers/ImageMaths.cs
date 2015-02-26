@@ -113,6 +113,7 @@ namespace ImageProcessor.Imaging.Helpers
         /// <returns>The new size of the image</returns>
         public static Rectangle GetBoundingRotatedRectangle(int width, int height, float angleInDegrees)
         {
+            // Check first clockwise.
             double radians = DegreesToRadians(angleInDegrees);
             double radiansSin = Math.Sin(radians);
             double radiansCos = Math.Cos(radians);
@@ -316,14 +317,8 @@ namespace ImageProcessor.Imaging.Helpers
         /// <returns>The zoom needed</returns>
         public static float ZoomAfterRotation(int imageWidth, int imageHeight, float angleInDegrees)
         {
-            double radians = Math.Abs(DegreesToRadians(angleInDegrees));
-            double radiansSin = Math.Sin(radians);
-            double radiansCos = Math.Cos(radians);
-
-            double widthRotated = (imageWidth * radiansCos) + (imageHeight * radiansSin);
-            double heightRotated = (imageWidth * radiansSin) + (imageHeight * radiansCos);
-
-            return (float)Math.Max(widthRotated / imageWidth, heightRotated / imageHeight);
+            Rectangle rectangle = GetBoundingRotatedRectangle(imageWidth, imageHeight, angleInDegrees);
+            return Math.Max((float)rectangle.Width / imageWidth, (float)rectangle.Height / imageHeight);
         }
     }
 }

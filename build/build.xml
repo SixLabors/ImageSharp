@@ -13,7 +13,7 @@
 
   <project>
     <name>ImageProcessor Web</name>
-    <version>4.2.0.0</version>
+    <version>4.2.1.0</version>
     <folder>..\src\ImageProcessor.Web</folder>
     <projfile>ImageProcessor.Web.csproj</projfile>
     <outputs>

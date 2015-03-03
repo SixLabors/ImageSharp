@@ -112,13 +112,13 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Configuration\Resources\cache.config.transform">
+    <EmbeddedResource Include="Configuration\Resources\cache.config.transform">
       <SubType>Designer</SubType>
-    </None>
-    <None Include="Configuration\Resources\processing.config.transform">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Configuration\Resources\processing.config.transform">
       <SubType>Designer</SubType>
-    </None>
-    <None Include="Configuration\Resources\security.config.transform" />
+    </EmbeddedResource>
+    <EmbeddedResource Include="Configuration\Resources\security.config.transform" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />

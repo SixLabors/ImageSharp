@@ -1,10 +1,10 @@
-// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="Resize.cs" company="James South">
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="Gamma.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   Resizes an image to the given dimensions.
+//   Encapsulates methods to change the alpha component of the image to effect its luminance.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -13,27 +13,25 @@ namespace ImageProcessor.Processors
     using System;
     using System.Collections.Generic;
     using System.Drawing;
-    using System.Globalization;
 
     using ImageProcessor.Common.Exceptions;
-    using ImageProcessor.Imaging;
+    using ImageProcessor.Imaging.Helpers;
 
     /// <summary>
-    /// Resizes an image to the given dimensions.
+    /// Encapsulates methods to change the gamma component of the image to effect its luminance.
     /// </summary>
-    public class Resize : IGraphicsProcessor
+    public class Gamma : IGraphicsProcessor
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="Resize"/> class.
+        /// Initializes a new instance of the <see cref="Gamma"/> class.
         /// </summary>
-        public Resize()
+        public Gamma()
         {
-            this.RestrictedSizes = new List<Size>();
             this.Settings = new Dictionary<string, string>();
         }
 
         /// <summary>
-        /// Gets or sets DynamicParameter.
+        /// Gets or sets the dynamic parameter.
         /// </summary>
         public dynamic DynamicParameter
         {
@@ -49,11 +47,6 @@ namespace ImageProcessor.Processors
             get;
             set;
         }
-
-        /// <summary>
-        /// Gets or sets the list of sizes to restrict resizing methods to.
-        /// </summary>
-        public List<Size> RestrictedSizes { get; set; }
 
         /// <summary>
         /// Processes the image.
@@ -72,32 +65,14 @@ namespace ImageProcessor.Processors
 
             try
             {
-                ResizeLayer resizeLayer = this.DynamicParameter;
+                float value = this.DynamicParameter;
 
-                // Augment the layer with the extra information.
-                resizeLayer.RestrictedSizes = this.RestrictedSizes;
-                Size maxSize = new Size();
+                newImage = new Bitmap(image);
+                newImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
+                newImage = Adjustments.Gamma(newImage, value);
 
-                int maxWidth;
-                int maxHeight;
-                int.TryParse(this.Settings["MaxWidth"], NumberStyles.Any, CultureInfo.InvariantCulture, out maxWidth);
-                int.TryParse(this.Settings["MaxHeight"], NumberStyles.Any, CultureInfo.InvariantCulture, out maxHeight);
-
-                maxSize.Width = maxWidth;
-                maxSize.Height = maxHeight;
-
-                resizeLayer.MaxSize = maxSize;
-
-                Resizer resizer = new Resizer(resizeLayer);
-                newImage = resizer.ResizeImage(image);
-
-                // Check that the original image has not been returned.
-                if (newImage != image)
-                {
-                    // Reassign the image.
-                    image.Dispose();
-                    image = newImage;
-                }
+                image.Dispose();
+                image = newImage;
             }
             catch (Exception ex)
             {

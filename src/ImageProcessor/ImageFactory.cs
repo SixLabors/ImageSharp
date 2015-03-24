@@ -63,10 +63,14 @@ namespace ImageProcessor
         /// <param name="preserveExifData">
         /// Whether to preserve exif metadata. Defaults to false.
         /// </param>
-        public ImageFactory(bool preserveExifData = false)
+        /// <param name="fixGamma">
+        /// Whether to fix the gamma component of the image. Defaults to true.
+        /// </param>
+        public ImageFactory(bool preserveExifData = false, bool fixGamma = true)
         {
             this.PreserveExifData = preserveExifData;
             this.ExifPropertyItems = new ConcurrentDictionary<int, PropertyItem>();
+            this.FixGamma = fixGamma;
         }
         #endregion
 
@@ -110,6 +114,11 @@ namespace ImageProcessor
         /// Gets or sets a value indicating whether to preserve exif metadata.
         /// </summary>
         public bool PreserveExifData { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to fix the gamma component of the current image.
+        /// </summary>
+        public bool FixGamma { get; set; }
 
         /// <summary>
         /// Gets or sets the exif property items.
@@ -179,6 +188,12 @@ namespace ImageProcessor
 
             this.ShouldProcess = true;
 
+            // Normalize the gamma component of the image.
+            if (this.FixGamma)
+            {
+                this.Gamma(2.2F);
+            }
+
             return this;
         }
 
@@ -233,6 +248,12 @@ namespace ImageProcessor
                     }
 
                     this.ShouldProcess = true;
+
+                    // Normalize the gamma component of the image.
+                    if (this.FixGamma)
+                    {
+                        this.Gamma(2.2F);
+                    }
                 }
             }
             else
@@ -555,6 +576,32 @@ namespace ImageProcessor
             if (this.ShouldProcess)
             {
                 this.CurrentImageFormat = format;
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Adjust the gamma (intensity of the light) component of the given image.
+        /// </summary>
+        /// <param name="value">
+        /// The value to adjust the gamma by (typically between .2 and 5).
+        /// </param>
+        /// <returns>
+        /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
+        /// </returns>
+        public ImageFactory Gamma(float value)
+        {
+            if (this.ShouldProcess)
+            {
+                // Sanitize the input.
+                if (value > 5 || value < .1)
+                {
+                    value = 2.2F;
+                }
+
+                Gamma gamma = new Gamma { DynamicParameter = value };
+                this.CurrentImageFormat.ApplyProcessor(gamma.ProcessImage, this);
             }
 
             return this;
@@ -1091,6 +1138,12 @@ namespace ImageProcessor
                     directoryInfo.Create();
                 }
 
+                // Normalize the gamma component of the image.
+                if (this.FixGamma)
+                {
+                    this.Gamma(1 / 2.2F);
+                }
+
                 this.Image = this.CurrentImageFormat.Save(filePath, this.Image);
             }
 
@@ -1112,6 +1165,13 @@ namespace ImageProcessor
             {
                 // Allow the same stream to be used as for input.
                 stream.SetLength(0);
+
+                // Normalize the gamma component of the image.
+                if (this.FixGamma)
+                {
+                    this.Gamma(1 / 2.2F);
+                }
+
                 this.Image = this.CurrentImageFormat.Save(stream, this.Image);
                 stream.Position = 0;
             }

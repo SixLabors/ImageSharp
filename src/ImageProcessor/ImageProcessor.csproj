@@ -216,6 +216,7 @@
     <Compile Include="Imaging\Resizer.cs" />
     <Compile Include="Imaging\RoundedCornerLayer.cs" />
     <Compile Include="Imaging\TextLayer.cs" />
+    <Compile Include="Processors\Gamma.cs" />
     <Compile Include="Processors\Alpha.cs" />
     <Compile Include="Processors\EntropyCrop.cs" />
     <Compile Include="Processors\BackgroundColor.cs" />

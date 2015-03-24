@@ -16,6 +16,7 @@ namespace ImageProcessor.Imaging.Quantizers
     using System.Drawing;
     using System.Drawing.Imaging;
 
+    using ImageProcessor.Common.Extensions;
     using ImageProcessor.Imaging.Colors;
 
     /// <summary>
@@ -505,9 +506,15 @@ namespace ImageProcessor.Imaging.Quantizers
                     {
                         // Consume the next palette index
                         this.paletteIndex = index++;
+                        //int r = Math.Abs(this.red / this.pixelCount);
+                        //int g = Math.Abs(this.green / this.pixelCount);
+                        //int b = Math.Abs(this.blue / this.pixelCount);
+                        int r = (this.red / this.pixelCount).ToByte();
+                        int g = (this.green / this.pixelCount).ToByte();
+                        int b = (this.blue / this.pixelCount).ToByte();
 
                         // And set the color of the palette entry
-                        palette.Add(Color.FromArgb(this.red / this.pixelCount, this.green / this.pixelCount, this.blue / this.pixelCount));
+                        palette.Add(Color.FromArgb(r, g, b));
                     }
                     else
                     {

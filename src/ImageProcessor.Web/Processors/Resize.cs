@@ -115,7 +115,7 @@ namespace ImageProcessor.Web.Processors
                     // TODO: This is hacky and awful and should go.
                     if (match.Value.ToUpperInvariant().Contains("CARVE") || match.Value.ToUpperInvariant().Contains("PERCENT"))
                     {
-                        break;
+                        continue;
                     }
 
                     if (index == 0)

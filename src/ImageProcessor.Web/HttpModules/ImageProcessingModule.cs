@@ -340,7 +340,7 @@ namespace ImageProcessor.Web.HttpModules
                     else
                     {
                         // Parse any protocol values from settings.
-                        string protocol = currentService.Settings["Protocol"] != null
+                        string protocol = currentService.Settings.ContainsKey("Protocol")
                                               ? currentService.Settings["Protocol"] + "://"
                                               : string.Empty;
 

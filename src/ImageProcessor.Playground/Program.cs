@@ -54,8 +54,8 @@ namespace ImageProcessor.PlayGround
             //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "2008.jpg"));
             //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "stretched.jpg"));
             //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "mountain.jpg"));
-            FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "blur-test.png"));
-
+            //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "blur-test.png"));
+            FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "earth_lights_4800.tif"));
             //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "gamma-1.0-or-2.2.png"));
             //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "gamma_dalai_lama_gray.jpg"));
             //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "Arc-de-Triomphe-France.jpg"));

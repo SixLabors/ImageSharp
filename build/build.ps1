@@ -22,6 +22,7 @@ Properties {
 	# External binaries paths
 	$NUGET_EXE = Join-Path $SRC_PATH ".nuget\NuGet.exe"
 	$NUNIT_EXE = Join-Path $SRC_PATH "packages\NUnit.Runners.2.6.3\tools\nunit-console.exe"
+	$COVERALLS_EXE = Join-Path $SRC_PATH "packages\coveralls.io.1.3.2\tools\coveralls.net.exe"
 	$OPENCOVER_EXE = Join-Path $SRC_PATH "packages\OpenCover.4.5.3207\OpenCover.Console.exe"
 	$REPORTGEN_EXE = Join-Path $SRC_PATH "packages\ReportGenerator.1.9.1.0\ReportGenerator.exe"
 	$NUNITREPORT_EXE = Join-Path $BUILD_PATH "tools\NUnitHTMLReportGenerator.exe"
@@ -39,7 +40,7 @@ Properties {
 Framework "4.0x86"
 FormatTaskName "-------- {0} --------"
 
-task default -depends Cleanup-Binaries, Set-VersionNumber, Build-Solution, Run-Tests, Generate-APIDoc, Generate-Nuget
+task default -depends Cleanup-Binaries, Set-VersionNumber, Build-Solution, Run-Tests, Run-Coverage, Generate-APIDoc, Generate-Nuget
 
 # cleans up the binaries output folder
 task Cleanup-Binaries {
@@ -157,6 +158,9 @@ task Run-Coverage -depends Build-Tests {
 		
 		Write-Host "Transforming coverage results file to HTML"
 		& $REPORTGEN_EXE -reports:$CoverageOutputPath -targetdir:(Join-Path $TEST_RESULTS "Coverage\$_")
+
+		Write-Host "Uploading coverage report to Coveralls.io"
+        Exec { . $COVERALLS_EXE --opencover $CoverageOutputPath }
 	}
 }
 

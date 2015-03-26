@@ -78,7 +78,12 @@ namespace ImageProcessor.Web.Helpers
             {
                 // Test against the path minus the querystring so any other
                 // processors don't interere.
-                string trimmed = fullPath.Replace(queryString, string.Empty);
+                string trimmed = fullPath;
+                if (queryString != null)
+                {
+                    trimmed = trimmed.Replace(queryString, string.Empty);
+                }
+                
                 match = FormatRegex.Match(trimmed);
             }
 

@@ -22,13 +22,19 @@ os: Windows Server 2012
 matrix:
   fast_finish: true     # set this flag to immediately finish build once one of the jobs fails.
 
+environment:
+  COVERALLS_REPO_TOKEN:
+  secure: UQiSUNs39uWy45YG1iS9hatwF5ouX0Q2c
+
 #---------------------------------#
 #       build configuration       #
 #---------------------------------#
 
 # to run your custom scripts instead of automatic MSBuild
-build_script:
+before_build:
   - ps: Import-Module .\build\psake.psm1
+
+build_script:
   - ps: Invoke-Psake .\build\build.ps1 -properties @{"BuildNumber"=$env:APPVEYOR_BUILD_NUMBER}
 
 #---------------------------------#

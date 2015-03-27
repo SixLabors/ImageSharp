@@ -24,7 +24,7 @@ matrix:
 
 environment:
   COVERALLS_REPO_TOKEN:
-  secure: UQiSUNs39uWy45YG1iS9hatwF5ouX0Q2c
+  secure: 1hvfHFO3qtGTcwB+AnCGYsn0az0j9MzAux5hee5CFeyRJ+lWut0LjnyqvsI/5Pfa
 
 #---------------------------------#
 #       build configuration       #
@@ -35,7 +35,6 @@ before_build:
   - ps: Import-Module .\build\psake.psm1
 
 build_script:
-  - ps: Invoke-Psake .\build\build.ps1 -properties @{"BuildNumber"=$env:APPVEYOR_BUILD_NUMBER}
 
 #---------------------------------#
 #       tests configuration       #

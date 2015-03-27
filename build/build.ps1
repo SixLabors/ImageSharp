@@ -177,7 +177,7 @@ task Run-Coverage -depends Build-Tests {
 	}
 }
 
-# generates the API documentation
+# generates the API documentation. Disabled for now.
 task Generate-APIDoc -depends Build-Solution {
 	Write-Host "Generating API docs"
 
@@ -187,7 +187,7 @@ task Generate-APIDoc -depends Build-Solution {
 }
 
 # generates a Nuget package
-task Generate-Nuget -depends Set-VersionNumber, Build-Solution, Generate-APIDoc {
+task Generate-Nuget -depends Set-VersionNumber, Build-Solution {
 	Write-Host "Generating Nuget packages for each project"
 	
 	# Nuget doesn't create the output dir automatically...

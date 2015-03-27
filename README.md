@@ -1,13 +1,13 @@
 # ImageProcessor
 
-|   |Status|
-|:-:|:-:|
+### Build Status
+
 |**Debug**|[![Build status](https://ci.appveyor.com/api/projects/status/8ypr7527dnao04yr?svg=true)](https://ci.appveyor.com/project/JamesSouth/imageprocessor)|
 |**Release**|[![Build status](https://ci.appveyor.com/api/projects/status/8ypr7527dnao04yr/branch/Master?svg=true)](https://ci.appveyor.com/project/JamesSouth/imageprocessor/branch/Master)|
 |**Coverage Report**|[![Coverage Status](https://coveralls.io/repos/JimBobSquarePants/ImageProcessor/badge.svg)](https://coveralls.io/r/JimBobSquarePants/ImageProcessor?branch=v2)|
 
-|   |Releases||
-|:-:|:-:|:-:|
+### Latest Releases
+
 |**ImageProcessor**|[![Nuget count](http://img.shields.io/nuget/v/ImageProcessor.svg)](https://www.nuget.org/packages/ImageProcessor/)|[![Nuget downloads](http://img.shields.io/nuget/dt/ImageProcessor.svg)](https://www.nuget.org/packages/ImageProcessor/)|
 |**ImageProcessor.Web**|[![Nuget count](http://img.shields.io/nuget/v/ImageProcessor.Web.svg)](https://www.nuget.org/packages/ImageProcessor.Web/)|[![Nuget downloads](http://img.shields.io/nuget/dt/ImageProcessor.Web.svg)](https://www.nuget.org/packages/ImageProcessor.Web/)|
 

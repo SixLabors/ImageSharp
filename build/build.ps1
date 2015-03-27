@@ -42,7 +42,7 @@ Properties {
 Framework "4.0x86"
 FormatTaskName "-------- {0} --------"
 
-task default -depends Cleanup-Binaries, Set-VersionNumber, Build-Solution, Run-Tests, Run-Coverage, Generate-APIDoc, Generate-Nuget
+task default -depends Cleanup-Binaries, Set-VersionNumber, Build-Solution, Run-Tests, Run-Coverage, Generate-Nuget
 
 # cleans up the binaries output folder
 task Cleanup-Binaries {
@@ -154,6 +154,8 @@ task Run-Coverage -depends Build-Tests {
 		$TestDdlPath = Join-Path $TestDllFolder "$_.dll"
 		$CoverageOutputPath = Join-Path $TEST_RESULTS "$($_)_Coverage.xml"
 		
+		Write-Host "AppVeyor $AppVeyor"
+
 	    $appVeyor = ""
 	    if ($AppVeyor -ne $null -and $AppVeyor -ne "") {
 	        $appVeyor = " -appveyor"
@@ -165,6 +167,8 @@ task Run-Coverage -depends Build-Tests {
 		
 		Write-Host "Transforming coverage results file to HTML"
 		& $REPORTGEN_EXE -verbosity:Info -reports:$CoverageOutputPath -targetdir:(Join-Path $TEST_RESULTS "Coverage\$_")
+
+        Write-Host "CoverallsRepoToken $CoverallsRepoToken"
 
 	    if ($CoverallsRepoToken -ne $null -and $CoverallsRepoToken -ne "") {
 			Write-Host "Uploading coverage report to Coveralls.io"

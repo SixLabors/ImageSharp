@@ -35,6 +35,7 @@ before_build:
   - ps: Import-Module .\build\psake.psm1
 
 build_script:
+  - ps: Invoke-Psake .\build\build.ps1 -properties @{"BuildNumber"=$env:APPVEYOR_BUILD_NUMBER;"IsAppVeyor"=$env:APPVEYOR}
 
 #---------------------------------#
 #       tests configuration       #

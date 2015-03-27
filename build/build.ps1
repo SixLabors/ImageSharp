@@ -5,7 +5,8 @@ Properties {
 	
 	# see appveyor.yml for usage
 	$BuildNumber = $null
-	$IsAppVeyor = $null
+	$CoverallsRepoToken = $null
+	$AppVeyor = $null
 	
 	# Input and output paths
 	$BUILD_PATH = Resolve-Path "."
@@ -154,7 +155,7 @@ task Run-Coverage -depends Build-Tests {
 		$CoverageOutputPath = Join-Path $TEST_RESULTS "$($_)_Coverage.xml"
 		
 	    $appVeyor = ""
-	    if ($IsAppVeyor) {
+	    if ($AppVeyor -ne $null -and $AppVeyor -ne "") {
 	        $appVeyor = " -appveyor"
 	    }
 
@@ -165,7 +166,7 @@ task Run-Coverage -depends Build-Tests {
 		Write-Host "Transforming coverage results file to HTML"
 		& $REPORTGEN_EXE -verbosity:Info -reports:$CoverageOutputPath -targetdir:(Join-Path $TEST_RESULTS "Coverage\$_")
 
-	    if ($env:COVERALLS_REPO_TOKEN -ne $null) {
+	    if ($CoverallsRepoToken -ne $null -and $CoverallsRepoToken -ne "") {
 			Write-Host "Uploading coverage report to Coveralls.io"
 	        Exec { . $COVERALLS_EXE --opencover $CoverageOutputPath }
 	    }

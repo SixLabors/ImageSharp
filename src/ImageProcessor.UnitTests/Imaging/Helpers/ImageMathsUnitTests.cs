@@ -45,7 +45,7 @@
         [TestCase(200, 100, 45, 2.12f)]
         [TestCase(600, 450, 20, 1.39f)]
         [TestCase(600, 450, 45, 1.64f)]
-        [TestCase(100, 200, -45, 1.22f)]
+        [TestCase(100, 200, -45, 2.12f)]
         public void RotationZoomIsCalculated(int imageWidth, int imageHeight, float angle, float expected)
         {
             float result = ImageMaths.ZoomAfterRotation(imageWidth, imageHeight, angle);

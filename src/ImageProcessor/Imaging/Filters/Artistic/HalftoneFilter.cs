@@ -160,6 +160,7 @@ namespace ImageProcessor.Imaging.Filters.Artistic
         public Bitmap ApplyFilter(Bitmap source)
         {
             // TODO: Make this class implement an interface?
+            Bitmap padded = null;
             Bitmap cyan = null;
             Bitmap magenta = null;
             Bitmap yellow = null;
@@ -168,8 +169,26 @@ namespace ImageProcessor.Imaging.Filters.Artistic
 
             try
             {
-                int width = source.Width;
-                int height = source.Height;
+                int sourceWidth = source.Width;
+                int sourceHeight = source.Height;
+                int width = source.Width + this.distance;
+                int height = source.Height + this.distance;
+
+                // Draw a slightly larger image, flipping the top/left pixels to prevent
+                // jagged edge of output.
+                padded = new Bitmap(width, height);
+                padded.SetResolution(source.HorizontalResolution, source.VerticalResolution);
+                using (Graphics graphicsPadded = Graphics.FromImage(padded))
+                {
+                    graphicsPadded.Clear(Color.White);
+                    Rectangle destinationRectangle = new Rectangle(0, 0, sourceWidth + this.distance, source.Height + this.distance);
+                    using (TextureBrush tb = new TextureBrush(source))
+                    {
+                        tb.WrapMode = WrapMode.TileFlipXY;
+                        tb.TranslateTransform(this.distance, this.distance);
+                        graphicsPadded.FillRectangle(tb, destinationRectangle);
+                    }
+                }
 
                 // Calculate min and max widths/heights.
                 Rectangle rotatedBounds = this.GetBoundingRectangle(width, height);
@@ -180,13 +199,13 @@ namespace ImageProcessor.Imaging.Filters.Artistic
                 Point center = Point.Empty;
 
                 // Yellow oversaturates the output.
-                const float YellowMultiplier = 4;
-                float multiplier = YellowMultiplier * (float)Math.Sqrt(2);
-
-                float max = this.distance;
+                int offset = this.distance;
+                float yellowMultiplier = this.distance * 1.667f;
+                float multiplier = this.distance * 2.2f;
+                float max = this.distance * (float)Math.Sqrt(2);
 
                 // Bump up the keyline max so that black looks black.
-                float keylineMax = max + ((float)Math.Sqrt(2) * 1.44f);
+                float keylineMax = max * (float)Math.Sqrt(2);
 
                 // Color sampled process colours from Wikipedia pages. 
                 // Keyline brush is declared separately.
@@ -199,7 +218,7 @@ namespace ImageProcessor.Imaging.Filters.Artistic
                 magenta = new Bitmap(width, height);
                 yellow = new Bitmap(width, height);
                 keyline = new Bitmap(width, height);
-                newImage = new Bitmap(width, height);
+                newImage = new Bitmap(sourceWidth, sourceHeight);
 
                 // Ensure the correct resolution is set.
                 cyan.SetResolution(source.HorizontalResolution, source.VerticalResolution);
@@ -222,73 +241,79 @@ namespace ImageProcessor.Imaging.Filters.Artistic
                     graphicsYellow.PixelOffsetMode = PixelOffsetMode.HighQuality;
                     graphicsKeyline.PixelOffsetMode = PixelOffsetMode.HighQuality;
 
-                    // Set up the canvas.
-                    graphicsCyan.Clear(Color.Transparent);
-                    graphicsMagenta.Clear(Color.Transparent);
-                    graphicsYellow.Clear(Color.Transparent);
-                    graphicsKeyline.Clear(Color.Transparent);
+                    graphicsCyan.SmoothingMode = SmoothingMode.AntiAlias;
+                    graphicsMagenta.SmoothingMode = SmoothingMode.AntiAlias;
+                    graphicsYellow.SmoothingMode = SmoothingMode.AntiAlias;
+                    graphicsKeyline.SmoothingMode = SmoothingMode.AntiAlias;
 
-                    int d = this.distance;
+                    graphicsCyan.CompositingQuality = CompositingQuality.HighQuality;
+                    graphicsMagenta.CompositingQuality = CompositingQuality.HighQuality;
+                    graphicsYellow.CompositingQuality = CompositingQuality.HighQuality;
+                    graphicsKeyline.CompositingQuality = CompositingQuality.HighQuality;
+
+                    // Set up the canvas.
+                    graphicsCyan.Clear(Color.White);
+                    graphicsMagenta.Clear(Color.White);
+                    graphicsYellow.Clear(Color.White);
+                    graphicsKeyline.Clear(Color.White);
 
                     // This is too slow. The graphics object can't be called within a parallel 
                     // loop so we have to do it old school. :(
-                    using (FastBitmap sourceBitmap = new FastBitmap(source))
+                    using (FastBitmap sourceBitmap = new FastBitmap(padded))
                     {
-                        for (int y = minY; y < maxY; y += d)
+                        for (int y = minY; y < maxY; y += offset)
                         {
-                            for (int x = minX; x < maxX; x += d)
+                            for (int x = minX; x < maxX; x += offset)
                             {
                                 Color color;
                                 CmykColor cmykColor;
                                 float brushWidth;
-                                int offsetX = x - (d >> 1);
-                                int offsetY = y - (d >> 1);
 
                                 // Cyan
-                                Point rotatedPoint = ImageMaths.RotatePoint(new Point(offsetX, offsetY), this.cyanAngle, center);
+                                Point rotatedPoint = ImageMaths.RotatePoint(new Point(x, y), this.cyanAngle, center);
                                 int angledX = rotatedPoint.X;
                                 int angledY = rotatedPoint.Y;
                                 if (rectangle.Contains(new Point(angledX, angledY)))
                                 {
                                     color = sourceBitmap.GetPixel(angledX, angledY);
                                     cmykColor = color;
-                                    brushWidth = ImageMaths.Clamp(d * (cmykColor.C / 255f) * multiplier, 0, max);
+                                    brushWidth = Math.Min((cmykColor.C / 100f) * multiplier, max);
                                     graphicsCyan.FillEllipse(cyanBrush, angledX, angledY, brushWidth, brushWidth);
                                 }
 
                                 // Magenta
-                                rotatedPoint = ImageMaths.RotatePoint(new Point(offsetX, offsetY), this.magentaAngle, center);
+                                rotatedPoint = ImageMaths.RotatePoint(new Point(x, y), this.magentaAngle, center);
                                 angledX = rotatedPoint.X;
                                 angledY = rotatedPoint.Y;
                                 if (rectangle.Contains(new Point(angledX, angledY)))
                                 {
                                     color = sourceBitmap.GetPixel(angledX, angledY);
                                     cmykColor = color;
-                                    brushWidth = ImageMaths.Clamp(d * (cmykColor.M / 255f) * multiplier, 0, max);
+                                    brushWidth = Math.Min((cmykColor.M / 100f) * multiplier, max);
                                     graphicsMagenta.FillEllipse(magentaBrush, angledX, angledY, brushWidth, brushWidth);
                                 }
 
                                 // Yellow
-                                rotatedPoint = ImageMaths.RotatePoint(new Point(offsetX, offsetY), this.yellowAngle, center);
+                                rotatedPoint = ImageMaths.RotatePoint(new Point(x, y), this.yellowAngle, center);
                                 angledX = rotatedPoint.X;
                                 angledY = rotatedPoint.Y;
                                 if (rectangle.Contains(new Point(angledX, angledY)))
                                 {
                                     color = sourceBitmap.GetPixel(angledX, angledY);
                                     cmykColor = color;
-                                    brushWidth = ImageMaths.Clamp(d * (cmykColor.Y / 255f) * YellowMultiplier, 0, max);
+                                    brushWidth = Math.Min((cmykColor.Y / 100f) * yellowMultiplier, max);
                                     graphicsYellow.FillEllipse(yellowBrush, angledX, angledY, brushWidth, brushWidth);
                                 }
 
                                 // Keyline 
-                                rotatedPoint = ImageMaths.RotatePoint(new Point(offsetX, offsetY), this.keylineAngle, center);
+                                rotatedPoint = ImageMaths.RotatePoint(new Point(x, y), this.keylineAngle, center);
                                 angledX = rotatedPoint.X;
                                 angledY = rotatedPoint.Y;
                                 if (rectangle.Contains(new Point(angledX, angledY)))
                                 {
                                     color = sourceBitmap.GetPixel(angledX, angledY);
                                     cmykColor = color;
-                                    brushWidth = ImageMaths.Clamp(d * (cmykColor.K / 255f) * multiplier, 0, keylineMax);
+                                    brushWidth = Math.Min((cmykColor.K / 100f) * multiplier, keylineMax);
 
                                     // Just using black is too dark. 
                                     Brush keylineBrush = new SolidBrush(CmykColor.FromCmykColor(0, 0, 0, cmykColor.K));
@@ -312,11 +337,11 @@ namespace ImageProcessor.Imaging.Filters.Artistic
                     using (FastBitmap destinationBitmap = new FastBitmap(newImage))
                     {
                         Parallel.For(
-                            0,
+                            offset,
                             height,
                             y =>
                             {
-                                for (int x = 0; x < width; x++)
+                                for (int x = offset; x < width; x++)
                                 {
                                     // ReSharper disable AccessToDisposedClosure
                                     Color cyanPixel = cyanBitmap.GetPixel(x, y);
@@ -324,10 +349,14 @@ namespace ImageProcessor.Imaging.Filters.Artistic
                                     Color yellowPixel = yellowBitmap.GetPixel(x, y);
                                     Color keylinePixel = keylineBitmap.GetPixel(x, y);
 
+                                    // Negate the offset.
+                                    int xBack = x - offset;
+                                    int yBack = y - offset;
+
                                     CmykColor blended = cyanPixel.AddAsCmykColor(magentaPixel, yellowPixel, keylinePixel);
-                                    if (rectangle.Contains(new Point(x, y)))
+                                    if (rectangle.Contains(new Point(xBack, yBack)))
                                     {
-                                        destinationBitmap.SetPixel(x, y, blended);
+                                        destinationBitmap.SetPixel(xBack, yBack, blended);
                                     }
                                     // ReSharper restore AccessToDisposedClosure
                                 }
@@ -335,6 +364,7 @@ namespace ImageProcessor.Imaging.Filters.Artistic
                     }
                 }
 
+                padded.Dispose();
                 cyan.Dispose();
                 magenta.Dispose();
                 yellow.Dispose();
@@ -344,6 +374,11 @@ namespace ImageProcessor.Imaging.Filters.Artistic
             }
             catch
             {
+                if (padded != null)
+                {
+                    padded.Dispose();
+                }
+
                 if (cyan != null)
                 {
                     cyan.Dispose();

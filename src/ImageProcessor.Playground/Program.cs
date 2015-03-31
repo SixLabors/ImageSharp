@@ -63,9 +63,9 @@ namespace ImageProcessor.PlayGround
             ////FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "crop-base-300x200.jpg"));
             //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "cmyk.png"));
             //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif");
-            //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".png");
+            IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".png", ".jpg", ".jpeg");
             //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".jpg", ".jpeg", ".jfif");
-            IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif", ".webp", ".bmp", ".jpg", ".png");
+            //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif", ".webp", ".bmp", ".jpg", ".png");
 
             foreach (FileInfo fileInfo in files)
             {
@@ -83,7 +83,7 @@ namespace ImageProcessor.PlayGround
                 // ImageProcessor
                 using (MemoryStream inStream = new MemoryStream(photoBytes))
                 {
-                    using (ImageFactory imageFactory = new ImageFactory(true, true))
+                    using (ImageFactory imageFactory = new ImageFactory(true, false))
                     {
                         Size size = new Size(500, 0);
                         //CropLayer cropLayer = new CropLayer(20, 20, 20, 20, ImageProcessor.Imaging.CropMode.Percentage);
@@ -109,14 +109,14 @@ namespace ImageProcessor.PlayGround
                             //.Format(new PngFormat())
                             //.BackgroundColor(Color.Cyan)
                             //.ReplaceColor(Color.FromArgb(255, 223, 224), Color.FromArgb(121, 188, 255), 128)
-                            .Resize(size)
+                            //.Resize(size)
                             //.Resize(new ResizeLayer(size, ResizeMode.Max))
                             // .Resize(new ResizeLayer(size, ResizeMode.Stretch))
                             //.DetectEdges(new Laplacian3X3EdgeFilter(), true)
                             //.DetectEdges(new LaplacianOfGaussianEdgeFilter())
                             //.GaussianBlur(new GaussianLayer(10, 11))
                             //.EntropyCrop()
-                            //.Halftone(false)
+                            .Halftone()
                             //.RotateBounded(150, false)
                             //.Crop(cropLayer)
                             //.Rotate(140)

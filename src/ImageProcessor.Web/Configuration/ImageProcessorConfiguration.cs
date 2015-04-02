@@ -31,7 +31,7 @@ namespace ImageProcessor.Web.Configuration
     {
         #region Fields
         /// <summary>
-        /// A new instance Initializes a new instance of the <see cref="T:ImageProcessor.Web.Config.ImageProcessorConfig"/> class.
+        /// A new instance of the <see cref="T:ImageProcessor.Web.Config.ImageProcessorConfig"/> class.
         /// with lazy initialization.
         /// </summary>
         private static readonly Lazy<ImageProcessorConfiguration> Lazy =

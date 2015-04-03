@@ -53,6 +53,10 @@
     <Compile Include="Configuration\Shared\SettingElementCollection.cs" />
     <Compile Include="Extensions\TypeInitializationExtensions.cs" />
     <Compile Include="Helpers\ProcessQueryStringEventArgs.cs" />
+    <Compile Include="Helpers\QuerystringParser\ExtendedColorTypeConverter.cs" />
+    <Compile Include="Helpers\QuerystringParser\QueryParamParser.cs" />
+    <Compile Include="Helpers\QuerystringParser\GenericArrayTypeConverter.cs" />
+    <Compile Include="Helpers\QuerystringParser\GenericListTypeConverter.cs" />
     <Compile Include="Processors\DetectEdges.cs" />
     <Compile Include="Processors\EntropyCrop.cs" />
     <Compile Include="Processors\Halftone.cs" />

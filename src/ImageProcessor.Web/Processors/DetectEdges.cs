@@ -12,15 +12,18 @@ namespace ImageProcessor.Web.Processors
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.Specialized;
     using System.Linq;
     using System.Reflection;
     using System.Text;
     using System.Text.RegularExpressions;
+    using System.Web;
     using System.Web.Compilation;
 
     using ImageProcessor.Common.Extensions;
     using ImageProcessor.Imaging.Filters.EdgeDetection;
     using ImageProcessor.Processors;
+    using ImageProcessor.Web.Helpers;
 
     /// <summary>
     /// Produces an image with the detected edges highlighted.
@@ -31,11 +34,6 @@ namespace ImageProcessor.Web.Processors
         /// The regular expression to search strings for.
         /// </summary>
         private static readonly Regex QueryRegex = BuildRegex();
-
-        /// <summary>
-        /// The regular expression to search strings for the greyscale attribute.
-        /// </summary>
-        private static readonly Regex GreyscaleRegex = new Regex(@"greyscale=false", RegexOptions.Compiled);
 
         /// <summary>
         /// The edge detectors.
@@ -85,36 +83,15 @@ namespace ImageProcessor.Web.Processors
         /// </returns>
         public int MatchRegexIndex(string queryString)
         {
-            int index = 0;
-
-            // Set the sort order to max to allow filtering.
             this.SortOrder = int.MaxValue;
+            Match match = this.RegexPattern.Match(queryString);
 
-            // First merge the matches so we can parse .
-            StringBuilder stringBuilder = new StringBuilder();
-
-            foreach (Match match in this.RegexPattern.Matches(queryString))
+            if (match.Success)
             {
-                if (match.Success)
-                {
-                    if (index == 0)
-                    {
-                        // Set the index on the first instance only.
-                        this.SortOrder = match.Index;
-                        stringBuilder.Append(queryString);
-                    }
-
-                    index += 1;
-                }
-            }
-
-            if (this.SortOrder < int.MaxValue)
-            {
-                // Match syntax
-                string toParse = stringBuilder.ToString();
-                IEdgeFilter filter = this.ParseFilter(toParse);
-                bool greyscale = !GreyscaleRegex.IsMatch(toParse);
-
+                this.SortOrder = match.Index;
+                NameValueCollection queryCollection = HttpUtility.ParseQueryString(queryString);
+                IEdgeFilter filter = (IEdgeFilter)detectors[queryCollection["detectedges"]];
+                bool greyscale = QueryParamParser.Instance.ParseValue<bool>(queryCollection["greyscale"]);
                 this.Processor.DynamicParameter = new Tuple<IEdgeFilter, bool>(filter, greyscale);
             }
 
@@ -147,20 +124,6 @@ namespace ImageProcessor.Web.Processors
             stringBuilder.Append(")");
 
             return new Regex(stringBuilder.ToString(), RegexOptions.IgnoreCase);
-        }
-
-        /// <summary>
-        /// Parses the input string to return the correct <see cref="IEdgeFilter"/>.
-        /// </summary>
-        /// <param name="identifier">
-        /// The identifier.
-        /// </param>
-        /// <returns>
-        /// The <see cref="IEdgeFilter"/>.
-        /// </returns>
-        private IEdgeFilter ParseFilter(string identifier)
-        {
-            return (IEdgeFilter)detectors[this.RegexPattern.Match(identifier).Value.Split('=')[1]];
         }
     }
 }

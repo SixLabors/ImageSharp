@@ -70,28 +70,16 @@ namespace ImageProcessor.Web.Processors
         /// </returns>
         public int MatchRegexIndex(string queryString)
         {
-            int index = 0;
-
-            // Set the sort order to max to allow filtering.
             this.SortOrder = int.MaxValue;
+            Match match = this.RegexPattern.Match(queryString);
 
-            foreach (Match match in this.RegexPattern.Matches(queryString))
+            if (match.Success)
             {
-                if (match.Success)
+                ISupportedImageFormat format = this.ParseFormat(match.Value.Split('=')[1]);
+                if (format != null)
                 {
-                    if (index == 0)
-                    {
-                        // Set the index on the first instance only.
-                        this.SortOrder = match.Index;
-
-                        ISupportedImageFormat format = this.ParseFormat(match.Value.Split('=')[1]);
-                        if (format != null)
-                        {
-                            this.Processor.DynamicParameter = format;
-                        }
-                    }
-
-                    index += 1;
+                    this.SortOrder = match.Index;
+                    this.Processor.DynamicParameter = format;
                 }
             }
 
@@ -108,7 +96,7 @@ namespace ImageProcessor.Web.Processors
         {
             StringBuilder stringBuilder = new StringBuilder();
 
-            // png8 is a special case for determining indexed pngs.
+            // png8 is a special case for determining indexed png's.
             stringBuilder.Append("format=(png8");
             foreach (ISupportedImageFormat imageFormat in ImageProcessorBootstrapper.Instance.SupportedImageFormats)
             {

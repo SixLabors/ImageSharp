@@ -12,6 +12,7 @@ namespace ImageProcessor.Common.Extensions
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
     using System.Reflection;
 
@@ -45,6 +46,36 @@ namespace ImageProcessor.Common.Extensions
             {
                 return ex.Types.Where(t => t != null);
             }
+        }
+
+        /// <summary>
+        /// Returns the <see cref="FileInfo"/> identifying the file used to load the assembly
+        /// </summary>
+        /// <param name="assembly">
+        /// The <see cref="Assembly"/> to get the name from.
+        /// </param>
+        /// <returns>The <see cref="FileInfo"/></returns>
+        public static FileInfo GetAssemblyFile(this Assembly assembly)
+        {
+            string codeBase = assembly.CodeBase;
+            Uri uri = new Uri(codeBase);
+            string path = uri.LocalPath;
+            return new FileInfo(path);
+        }
+
+        /// <summary>
+        /// Returns the <see cref="FileInfo"/> identifying the file used to load the assembly
+        /// </summary>
+        /// <param name="assemblyName">
+        /// The <see cref="AssemblyName"/> to get the name from.
+        /// </param>
+        /// <returns>The <see cref="FileInfo"/></returns>
+        public static FileInfo GetAssemblyFile(this AssemblyName assemblyName)
+        {
+            var codeBase = assemblyName.CodeBase;
+            var uri = new Uri(codeBase);
+            var path = uri.LocalPath;
+            return new FileInfo(path);
         }
     }
 }

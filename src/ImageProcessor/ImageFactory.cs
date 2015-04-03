@@ -23,6 +23,7 @@ namespace ImageProcessor
     using ImageProcessor.Imaging.Filters.EdgeDetection;
     using ImageProcessor.Imaging.Filters.Photo;
     using ImageProcessor.Imaging.Formats;
+    using ImageProcessor.Imaging.Helpers;
     using ImageProcessor.Processors;
     #endregion
 
@@ -311,10 +312,7 @@ namespace ImageProcessor
             if (this.ShouldProcess)
             {
                 // Sanitize the input.
-                if (percentage > 100 || percentage < 0)
-                {
-                    percentage = 0;
-                }
+                percentage = ImageMaths.Clamp(percentage, 0, 100);
 
                 Alpha alpha = new Alpha { DynamicParameter = percentage };
                 this.CurrentImageFormat.ApplyProcessor(alpha.ProcessImage, this);
@@ -546,16 +544,27 @@ namespace ImageProcessor
         /// <param name="flipVertically">
         /// Whether to flip the image vertically.
         /// </param>
+        /// <param name="flipBoth">
+        /// Whether to flip the image both vertically and horizontally.
+        /// </param>
         /// <returns>
         /// The current instance of the <see cref="T:ImageProcessor.ImageFactory"/> class.
         /// </returns>
-        public ImageFactory Flip(bool flipVertically = false)
+        public ImageFactory Flip(bool flipVertically = false, bool flipBoth = false)
         {
             if (this.ShouldProcess)
             {
-                RotateFlipType rotateFlipType = flipVertically
-                    ? RotateFlipType.RotateNoneFlipY
-                    : RotateFlipType.RotateNoneFlipX;
+                RotateFlipType rotateFlipType;
+                if (flipBoth)
+                {
+                    rotateFlipType = RotateFlipType.RotateNoneFlipXY;
+                }
+                else
+                {
+                    rotateFlipType = flipVertically
+                        ? RotateFlipType.RotateNoneFlipY
+                        : RotateFlipType.RotateNoneFlipX;
+                }
 
                 Flip flip = new Flip { DynamicParameter = rotateFlipType };
                 this.CurrentImageFormat.ApplyProcessor(flip.ProcessImage, this);

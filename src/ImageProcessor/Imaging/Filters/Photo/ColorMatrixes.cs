@@ -219,7 +219,7 @@ namespace ImageProcessor.Imaging.Filters.Photo
                                 new float[] { 0, 1, 0, 0, 0 },  
                                 new float[] { 0, 0, 1, 0, 0 }, 
                                 new float[] { 0, 0, 0, 1, 0 },
-                                new[] { .25f, .25f, .25f, 0, 1 }
+                                new[] { .10f, .10f, .10f, 0, 1 }
                             }));
             }
         }

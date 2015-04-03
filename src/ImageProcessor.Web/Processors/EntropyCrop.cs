@@ -10,11 +10,13 @@
 
 namespace ImageProcessor.Web.Processors
 {
-    using System.Globalization;
+    using System.Collections.Specialized;
     using System.Text.RegularExpressions;
+    using System.Web;
 
     using ImageProcessor.Common.Extensions;
     using ImageProcessor.Processors;
+    using ImageProcessor.Web.Helpers;
 
     /// <summary>
     /// Performs a crop on an image to the area of greatest entropy.
@@ -24,7 +26,7 @@ namespace ImageProcessor.Web.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"entropycrop=(\d+)[^&]+|entropycrop", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"entropycrop(=)?[^&]*", RegexOptions.Compiled);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EntropyCrop"/> class.
@@ -64,56 +66,21 @@ namespace ImageProcessor.Web.Processors
         /// </returns>
         public int MatchRegexIndex(string queryString)
         {
-            int index = 0;
-
             // Set the sort order to max to allow filtering.
             this.SortOrder = int.MaxValue;
+            Match match = this.RegexPattern.Match(queryString);
 
-            foreach (Match match in this.RegexPattern.Matches(queryString))
+            if (match.Success)
             {
-                if (match.Success)
-                {
-                    if (index == 0)
-                    {
-                        // Set the index on the first instance only.
-                        this.SortOrder = match.Index;
-                        byte threshold = this.ParseThreshold(match.Value);
-                        this.Processor.DynamicParameter = threshold;
-                    }
+                this.SortOrder = match.Index;
+                NameValueCollection queryCollection = HttpUtility.ParseQueryString(queryString);
+                byte threshold = QueryParamParser.Instance.ParseValue<byte>(queryCollection["entropycrop"]);
 
-                    index += 1;
-                }
+                // Fallback to the default if 0.
+                this.Processor.DynamicParameter = threshold > 0 ? threshold : (byte)128;
             }
 
             return this.SortOrder;
-        }
-
-        /// <summary>
-        /// Returns the correct <see cref="T:System.Int32"/> containing the radius for the given string.
-        /// </summary>
-        /// <param name="input">
-        /// The input string containing the value to parse.
-        /// </param>
-        /// <returns>
-        /// The correct <see cref="T:System.Int32"/> containing the radius for the given string.
-        /// </returns>
-        private byte ParseThreshold(string input)
-        {
-            foreach (Match match in QueryRegex.Matches(input))
-            {
-                if (!match.Value.Contains("="))
-                {
-                    continue;
-                }
-
-                // Split on threshold
-                int threshold;
-                int.TryParse(match.Value.Split('=')[1], NumberStyles.Any, CultureInfo.InvariantCulture, out threshold);
-                return threshold.ToByte();
-            }
-
-            // No threshold - matches the EntropyCrop default.
-            return 128;
         }
     }
 }

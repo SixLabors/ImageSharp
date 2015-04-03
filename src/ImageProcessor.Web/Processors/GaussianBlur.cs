@@ -10,8 +10,13 @@
 
 namespace ImageProcessor.Web.Processors
 {
+    using System.Collections.Specialized;
     using System.Globalization;
     using System.Text.RegularExpressions;
+    using System.Web;
+
+    using ImageProcessor.Imaging;
+    using ImageProcessor.Imaging.Helpers;
     using ImageProcessor.Processors;
     using ImageProcessor.Web.Helpers;
 
@@ -23,7 +28,7 @@ namespace ImageProcessor.Web.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"blur=[^&]+", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"blur=[^&]", RegexOptions.Compiled);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GaussianBlur"/> class.
@@ -65,34 +70,33 @@ namespace ImageProcessor.Web.Processors
         /// </returns>
         public int MatchRegexIndex(string queryString)
         {
-            int index = 0;
-
-            // Set the sort order to max to allow filtering.
             this.SortOrder = int.MaxValue;
-
-            foreach (Match match in this.RegexPattern.Matches(queryString))
+            Match match = this.RegexPattern.Match(queryString);
+            if (match.Success)
             {
-                if (match.Success)
-                {
-                    if (index == 0)
-                    {
-                        // Set the index on the first instance only.
-                        this.SortOrder = match.Index;
+                this.SortOrder = match.Index;
 
-                        // Normalise and set the variables.
-                        int maxSize;
-                        double maxSigma;
-                        int maxThreshold;
+                int maxSize;
+                double maxSigma;
+                int maxThreshold;
 
-                        int.TryParse(this.Processor.Settings["MaxSize"], NumberStyles.Any, CultureInfo.InvariantCulture, out maxSize);
-                        double.TryParse(this.Processor.Settings["MaxSigma"], NumberStyles.Any, CultureInfo.InvariantCulture, out maxSigma);
-                        int.TryParse(this.Processor.Settings["MaxThreshold"], NumberStyles.Any, CultureInfo.InvariantCulture, out maxThreshold);
-                        
-                        this.Processor.DynamicParameter = CommonParameterParserUtility.ParseGaussianLayer(queryString, maxSize, maxSigma, maxThreshold);
-                    }
+                int.TryParse(this.Processor.Settings["MaxSize"], NumberStyles.Any, CultureInfo.InvariantCulture, out maxSize);
+                double.TryParse(this.Processor.Settings["MaxSigma"], NumberStyles.Any, CultureInfo.InvariantCulture, out maxSigma);
+                int.TryParse(this.Processor.Settings["MaxThreshold"], NumberStyles.Any, CultureInfo.InvariantCulture, out maxThreshold);
 
-                    index += 1;
-                }
+                NameValueCollection queryCollection = HttpUtility.ParseQueryString(queryString);
+                int size = QueryParamParser.Instance.ParseValue<int>(queryCollection["blur"]);
+
+                // Fall back to default sigma.
+                double sigma = queryCollection["sigma"] != null ? QueryParamParser.Instance.ParseValue<double>(queryCollection["sigma"]) : 1.4d;
+                int threshold = QueryParamParser.Instance.ParseValue<int>(queryCollection["threshold"]);
+
+                // Normalize and set the variables.
+                size = ImageMaths.Clamp(size, 0, maxSize);
+                sigma = ImageMaths.Clamp(sigma, 0, maxSigma);
+                threshold = ImageMaths.Clamp(threshold, 0, maxThreshold);
+
+                this.Processor.DynamicParameter = new GaussianLayer(size, sigma, threshold);
             }
 
             return this.SortOrder;

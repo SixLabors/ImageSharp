@@ -64,36 +64,27 @@ namespace ImageProcessor.Web.Processors
         /// </returns>
         public int MatchRegexIndex(string queryString)
         {
-            int index = 0;
-
-            // Set the sort order to max to allow filtering.
             this.SortOrder = int.MaxValue;
+            Match match = this.RegexPattern.Match(queryString);
 
-            foreach (Match match in this.RegexPattern.Matches(queryString))
+            if (match.Success)
             {
-                if (match.Success)
+                this.SortOrder = match.Index;
+
+                // We do not use the full enum so use switch.
+                string direction = match.Value.Split('=')[1];
+
+                switch (direction)
                 {
-                    if (index == 0)
-                    {
-                        // Set the index on the first instance only.
-                        this.SortOrder = match.Index;
-                        string direction = match.Value.Split('=')[1];
-
-                        switch (direction)
-                        {
-                            case "horizontal":
-                                this.Processor.DynamicParameter = RotateFlipType.RotateNoneFlipX;
-                                break;
-                            case "vertical":
-                                this.Processor.DynamicParameter = RotateFlipType.RotateNoneFlipY;
-                                break;
-                            default:
-                                this.Processor.DynamicParameter = RotateFlipType.RotateNoneFlipXY;
-                                break;
-                        }
-                    }
-
-                    index += 1;
+                    case "horizontal":
+                        this.Processor.DynamicParameter = RotateFlipType.RotateNoneFlipX;
+                        break;
+                    case "vertical":
+                        this.Processor.DynamicParameter = RotateFlipType.RotateNoneFlipY;
+                        break;
+                    default:
+                        this.Processor.DynamicParameter = RotateFlipType.RotateNoneFlipXY;
+                        break;
                 }
             }
 

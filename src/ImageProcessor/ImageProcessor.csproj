@@ -126,9 +126,13 @@
   <ItemGroup>
     <Compile Include="Common\Extensions\AssemblyExtensions.cs" />
     <Compile Include="Common\Extensions\EnumerableExtensions.cs" />
+    <Compile Include="Common\Helpers\WriteLock.cs" />
+    <Compile Include="Common\Helpers\UpgradeableReadLock.cs" />
+    <Compile Include="Common\Helpers\TypeFinder.cs" />
     <Compile Include="Configuration\ImageProcessorBootstrapper.cs" />
     <Compile Include="Common\Exceptions\ImageProcessingException.cs" />
     <Compile Include="Common\Extensions\DoubleExtensions.cs" />
+    <Compile Include="Common\Helpers\IOHelper.cs" />
     <Compile Include="Configuration\NativeBinaryFactory.cs" />
     <Compile Include="Configuration\NativeMethods.cs" />
     <Compile Include="Imaging\Colors\CmykColor.cs" />

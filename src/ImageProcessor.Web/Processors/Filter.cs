@@ -11,6 +11,7 @@
 namespace ImageProcessor.Web.Processors
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
     using System.Reflection;
@@ -28,6 +29,12 @@ namespace ImageProcessor.Web.Processors
         /// The regular expression to search strings for.
         /// </summary>
         private static readonly Regex QueryRegex = BuildRegex();
+
+        /// <summary>
+        /// The filter cache.
+        /// </summary>
+        private static readonly ConcurrentDictionary<string, IMatrixFilter> FilterCache
+            = new ConcurrentDictionary<string, IMatrixFilter>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Filter"/> class.
@@ -72,24 +79,13 @@ namespace ImageProcessor.Web.Processors
         /// </returns>
         public int MatchRegexIndex(string queryString)
         {
-            int index = 0;
-
-            // Set the sort order to max to allow filtering.
             this.SortOrder = int.MaxValue;
+            Match match = this.RegexPattern.Match(queryString);
 
-            foreach (Match match in this.RegexPattern.Matches(queryString))
+            if (match.Success)
             {
-                if (match.Success)
-                {
-                    if (index == 0)
-                    {
-                        // Set the index on the first instance only.
-                        this.SortOrder = match.Index;
-                        this.Processor.DynamicParameter = this.ParseFilter(match.Value.Split('=')[1]);
-                    }
-
-                    index += 1;
-                }
+                this.SortOrder = match.Index;
+                this.Processor.DynamicParameter = this.ParseFilter(match.Value.Split('=')[1]);
             }
 
             return this.SortOrder;
@@ -144,14 +140,18 @@ namespace ImageProcessor.Web.Processors
         private IMatrixFilter ParseFilter(string identifier)
         {
             const BindingFlags Flags = BindingFlags.Public | BindingFlags.Static;
+            return FilterCache.GetOrAdd(
+                identifier,
+                f =>
+                {
+                    Type type = typeof(MatrixFilters);
+                    PropertyInfo filter =
+                        type.GetProperties(Flags)
+                            .Where(p => p.PropertyType.IsAssignableFrom(typeof(IMatrixFilter)))
+                            .First(p => p.Name.Equals(identifier, StringComparison.InvariantCultureIgnoreCase));
 
-            Type type = typeof(MatrixFilters);
-            PropertyInfo filter =
-                type.GetProperties(Flags)
-                    .Where(p => p.PropertyType.IsAssignableFrom(typeof(IMatrixFilter)))
-                    .First(p => p.Name.Equals(identifier, StringComparison.InvariantCultureIgnoreCase));
-
-            return filter.GetValue(null, null) as IMatrixFilter;
+                    return filter.GetValue(null, null) as IMatrixFilter;
+                });
         }
     }
 }

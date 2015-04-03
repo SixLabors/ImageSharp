@@ -11,11 +11,15 @@
 namespace ImageProcessor.Web.Processors
 {
     using System;
+    using System.Collections.Specialized;
     using System.Globalization;
     using System.Text;
     using System.Text.RegularExpressions;
+    using System.Web;
 
+    using ImageProcessor.Imaging.Helpers;
     using ImageProcessor.Processors;
+    using ImageProcessor.Web.Helpers;
 
     /// <summary>
     /// Encapsulates methods to adjust the hue component of an image.
@@ -25,17 +29,7 @@ namespace ImageProcessor.Web.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"(hue=|hue.\w+=)[^&]+", RegexOptions.Compiled);
-
-        /// <summary>
-        /// The hue regex.
-        /// </summary>
-        private static readonly Regex HueRegex = new Regex(@"hue=\d+", RegexOptions.Compiled);
-
-        /// <summary>
-        /// The rotate regex.
-        /// </summary>
-        private static readonly Regex RotateRegex = new Regex(@"hue.rotate=true", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"hue=[^&]", RegexOptions.Compiled);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Hue"/> class.
@@ -75,61 +69,22 @@ namespace ImageProcessor.Web.Processors
         /// </returns>
         public int MatchRegexIndex(string queryString)
         {
-            int index = 0;
-
-            // Set the sort order to max to allow filtering.
             this.SortOrder = int.MaxValue;
+            Match match = this.RegexPattern.Match(queryString);
 
-            // First merge the matches so we can parse .
-            StringBuilder stringBuilder = new StringBuilder();
-
-            foreach (Match match in this.RegexPattern.Matches(queryString))
+            if (match.Success)
             {
-                if (match.Success)
-                {
-                    if (index == 0)
-                    {
-                        // Set the index on the first instance only.
-                        this.SortOrder = match.Index;
-                    }
+                this.SortOrder = match.Index;
+                NameValueCollection queryCollection = HttpUtility.ParseQueryString(queryString);
 
-                    stringBuilder.Append(match.Value);
+                int degrees = QueryParamParser.Instance.ParseValue<int>(queryCollection["hue"]);
+                bool rotate = QueryParamParser.Instance.ParseValue<bool>(queryCollection["hue.rotate"]);
+                degrees = ImageMaths.Clamp(degrees, 0, 360);
 
-                    index += 1;
-                }
-            }
-
-            if (this.SortOrder < int.MaxValue)
-            {
-                // Match syntax
-                string toParse = stringBuilder.ToString();
-                int degrees = this.ParseDegrees(toParse);
-                bool rotate = RotateRegex.Match(toParse).Success;
                 this.Processor.DynamicParameter = new Tuple<int, bool>(degrees, rotate);
             }
 
             return this.SortOrder;
-        }
-
-        /// <summary>
-        /// Returns the angle to alter the hue.
-        /// </summary>
-        /// <param name="input">
-        /// The input containing the value to parse.
-        /// </param>
-        /// <returns>
-        /// The <see cref="int"/> representing the angle.
-        /// </returns>
-        public int ParseDegrees(string input)
-        {
-            int degrees = 0;
-
-            foreach (Match match in HueRegex.Matches(input))
-            {
-                degrees = int.Parse(match.Value.Split('=')[1], CultureInfo.InvariantCulture);
-            }
-
-            return Math.Max(0, Math.Min(360, degrees));
         }
     }
 }

@@ -11,7 +11,11 @@
 namespace ImageProcessor.Web.Processors
 {
     using System;
+    using System.Collections.Specialized;
     using System.Text.RegularExpressions;
+    using System.Web;
+
+    using ImageProcessor.Imaging.Helpers;
     using ImageProcessor.Processors;
     using ImageProcessor.Web.Helpers;
 
@@ -23,7 +27,7 @@ namespace ImageProcessor.Web.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"alpha=[^&|,]+", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"alpha=[^&]", RegexOptions.Compiled);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Alpha"/> class.
@@ -63,25 +67,16 @@ namespace ImageProcessor.Web.Processors
         /// </returns>
         public int MatchRegexIndex(string queryString)
         {
-            int index = 0;
-
-            // Set the sort order to max to allow filtering.
             this.SortOrder = int.MaxValue;
+            Match match = this.RegexPattern.Match(queryString);
 
-            foreach (Match match in this.RegexPattern.Matches(queryString))
+            if (match.Success)
             {
-                if (match.Success)
-                {
-                    if (index == 0)
-                    {
-                        // Set the index on the first instance only.
-                        this.SortOrder = match.Index;
-                        int percentage = Math.Abs(CommonParameterParserUtility.ParseIn100Range(match.Value));
-                        this.Processor.DynamicParameter = percentage;
-                    }
-
-                    index += 1;
-                }
+                this.SortOrder = match.Index;
+                NameValueCollection queryCollection = HttpUtility.ParseQueryString(queryString);
+                int percentage = QueryParamParser.Instance.ParseValue<int>(queryCollection["alpha"]);
+                percentage = ImageMaths.Clamp(percentage, 0, 100);
+                this.Processor.DynamicParameter = percentage;
             }
 
             return this.SortOrder;

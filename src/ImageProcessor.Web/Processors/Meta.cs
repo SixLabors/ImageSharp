@@ -63,27 +63,13 @@ namespace ImageProcessor.Web.Processors
         /// </returns>
         public int MatchRegexIndex(string queryString)
         {
-            int index = 0;
-
-            // Set the sort order to max to allow filtering.
             this.SortOrder = int.MaxValue;
-
-            foreach (Match match in this.RegexPattern.Matches(queryString))
+            Match match = this.RegexPattern.Match(queryString);
+            if (match.Success)
             {
-                if (match.Success)
-                {
-                    if (index == 0)
-                    {
-                        // Set the index on the first instance only.
-                        this.SortOrder = match.Index;
-
-                        bool preserve = bool.Parse(match.Value.Split('=')[1]);
-
-                        this.Processor.DynamicParameter = preserve;
-                    }
-
-                    index += 1;
-                }
+                this.SortOrder = match.Index;
+                bool preserve = bool.Parse(match.Value.Split('=')[1]);
+                this.Processor.DynamicParameter = preserve;
             }
 
             return this.SortOrder;

@@ -11,13 +11,12 @@
 namespace ImageProcessor.Web.Processors
 {
     using System;
-    using System.Collections.Generic;
+    using System.Collections.Specialized;
     using System.Drawing;
-    using System.Globalization;
-    using System.Linq;
-    using System.Text;
     using System.Text.RegularExpressions;
+    using System.Web;
 
+    using ImageProcessor.Imaging.Helpers;
     using ImageProcessor.Processors;
     using ImageProcessor.Web.Helpers;
 
@@ -29,17 +28,7 @@ namespace ImageProcessor.Web.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"(replace=|fuzziness=)[^&]+", RegexOptions.Compiled);
-
-        /// <summary>
-        /// The replace regex.
-        /// </summary>
-        private static readonly Regex ReplaceRegex = new Regex(@"replace=[^&]+", RegexOptions.Compiled);
-
-        /// <summary>
-        /// The fuzz regex.
-        /// </summary>
-        private static readonly Regex FuzzRegex = new Regex(@"fuzziness=\d+", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"replace=[^&]", RegexOptions.Compiled);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ReplaceColor"/> class.
@@ -79,84 +68,21 @@ namespace ImageProcessor.Web.Processors
         /// </returns>
         public int MatchRegexIndex(string queryString)
         {
-            int index = 0;
-
-            // Set the sort order to max to allow filtering.
             this.SortOrder = int.MaxValue;
+            Match match = this.RegexPattern.Match(queryString);
 
-            // First merge the matches so we can parse .
-            StringBuilder stringBuilder = new StringBuilder();
-
-            foreach (Match match in this.RegexPattern.Matches(queryString))
+            if (match.Success)
             {
-                if (match.Success)
-                {
-                    if (index == 0)
-                    {
-                        // Set the index on the first instance only.
-                        this.SortOrder = match.Index;
-                    }
+                this.SortOrder = match.Index;
+                NameValueCollection queryCollection = HttpUtility.ParseQueryString(queryString);
+                Color[] colors = QueryParamParser.Instance.ParseValue<Color[]>(queryCollection["replace"]);
+                int fuzziness = QueryParamParser.Instance.ParseValue<int>(queryCollection["fuzziness"]);
 
-                    stringBuilder.Append(match.Value);
-
-                    index += 1;
-                }
-            }
-
-            if (this.SortOrder < int.MaxValue)
-            {
-                // Match syntax
-                string toParse = stringBuilder.ToString();
-                Color[] colors = this.ParseColor(toParse);
-                int fuzziness = this.ParseFuzziness(toParse);
+                fuzziness = ImageMaths.Clamp(fuzziness, 0, 128);
                 this.Processor.DynamicParameter = new Tuple<Color, Color, int>(colors[0], colors[1], fuzziness);
             }
 
             return this.SortOrder;
-        }
-
-        /// <summary>
-        /// Returns the angle to alter the hue.
-        /// </summary>
-        /// <param name="input">
-        /// The input containing the value to parse.
-        /// </param>
-        /// <returns>
-        /// The <see cref="int"/> representing the angle.
-        /// </returns>
-        public Color[] ParseColor(string input)
-        {
-            IEnumerable<Color> colors = Enumerable.Empty<Color>();
-            Match match = ReplaceRegex.Match(input);
-            if (match.Success)
-            {
-                string[] colorQuery = match.Value.Split('=')[1].Split(new[] { "],[" }, StringSplitOptions.None);
-                colors = colorQuery.Select(s => CommonParameterParserUtility.ParseColor(s.Replace("[", string.Empty).Replace("]", string.Empty)));
-            }
-
-            return colors.ToArray();
-        }
-
-        /// <summary>
-        /// Returns the angle to alter the hue.
-        /// </summary>
-        /// <param name="input">
-        /// The input containing the value to parse.
-        /// </param>
-        /// <returns>
-        /// The <see cref="int"/> representing the angle.
-        /// </returns>
-        public int ParseFuzziness(string input)
-        {
-            int fuzziness = 0;
-
-            Match match = FuzzRegex.Match(input);
-            if (match.Success)
-            {
-                fuzziness = int.Parse(match.Value.Split('=')[1], CultureInfo.InvariantCulture);
-            }
-
-            return Math.Max(0, Math.Min(128, fuzziness));
         }
     }
 }

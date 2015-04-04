@@ -26,7 +26,7 @@ namespace ImageProcessor.Web.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"brightness=[^&]", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"brightness=\d+", RegexOptions.Compiled);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Brightness"/> class.

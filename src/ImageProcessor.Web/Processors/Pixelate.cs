@@ -11,13 +11,16 @@
 namespace ImageProcessor.Web.Processors
 {
     using System;
+    using System.Collections.Specialized;
     using System.Drawing;
     using System.Globalization;
     using System.Text;
     using System.Text.RegularExpressions;
+    using System.Web;
 
     using ImageProcessor.Processors;
     using ImageProcessor.Web.Extensions;
+    using ImageProcessor.Web.Helpers;
 
     /// <summary>
     /// Encapsulates methods to pixelate an image.
@@ -27,7 +30,7 @@ namespace ImageProcessor.Web.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"(pixelate=|pixelrect=)[^&]+", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"pixelate=[^&]", RegexOptions.Compiled);
 
         /// <summary>
         /// The pixel regex.
@@ -77,36 +80,19 @@ namespace ImageProcessor.Web.Processors
         /// </returns>
         public int MatchRegexIndex(string queryString)
         {
-            int index = 0;
-
-            // Set the sort order to max to allow filtering.
             this.SortOrder = int.MaxValue;
+            Match match = this.RegexPattern.Match(queryString);
 
-            // First merge the matches so we can parse .
-            StringBuilder stringBuilder = new StringBuilder();
-
-            foreach (Match match in this.RegexPattern.Matches(queryString))
+            if (match.Success)
             {
-                if (match.Success)
-                {
-                    if (index == 0)
-                    {
-                        // Set the index on the first instance only.
-                        this.SortOrder = match.Index;
-                    }
+                this.SortOrder = match.Index;
+                NameValueCollection queryCollection = HttpUtility.ParseQueryString(queryString);
+                int size = QueryParamParser.Instance.ParseValue<int>(queryCollection["pixelate"]);
 
-                    stringBuilder.Append(match.Value);
+                Rectangle? rectangle = queryCollection["pixelrect"] != null
+                      ? QueryParamParser.Instance.ParseValue<Rectangle>(queryCollection["pixelrect"])
+                      : (Rectangle?)null; 
 
-                    index += 1;
-                }
-            }
-
-            if (this.SortOrder < int.MaxValue)
-            {
-                // Match syntax
-                string toParse = stringBuilder.ToString();
-                int size = this.ParseSize(toParse);
-                Rectangle? rectangle = this.ParseRectangle(toParse);
                 this.Processor.DynamicParameter = new Tuple<int, Rectangle?>(size, rectangle);
             }
 

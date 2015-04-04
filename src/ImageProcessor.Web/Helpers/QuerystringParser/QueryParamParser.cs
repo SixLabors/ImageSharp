@@ -17,6 +17,7 @@ namespace ImageProcessor.Web.Helpers
     using System.Drawing;
     using System.Globalization;
     using System.Linq.Expressions;
+    using System.Web;
 
     /// <summary>
     /// The query parameter parser that converts string values to different types.
@@ -103,7 +104,7 @@ namespace ImageProcessor.Web.Helpers
             try
             {
                 // ReSharper disable once AssignNullToNotNullAttribute
-                return converter.ConvertFrom(null, culture, value);
+                return converter.ConvertFrom(null, culture, HttpUtility.UrlDecode(value));
             }
             catch
             {
@@ -159,6 +160,8 @@ namespace ImageProcessor.Web.Helpers
             this.AddTypeConverter(typeof(List<double>), typeof(GenericListTypeConverter<double>));
 
             this.AddTypeConverter(typeof(List<string>), typeof(GenericListTypeConverter<string>));
+
+            this.AddTypeConverter(typeof(List<Color>), typeof(GenericListTypeConverter<Color>));
         }
 
         /// <summary>
@@ -183,6 +186,8 @@ namespace ImageProcessor.Web.Helpers
             this.AddTypeConverter(typeof(double[]), typeof(GenericArrayTypeConverter<double>));
 
             this.AddTypeConverter(typeof(string[]), typeof(GenericArrayTypeConverter<string>));
+
+            this.AddTypeConverter(typeof(Color[]), typeof(GenericArrayTypeConverter<Color>));
         }
 
         /// <summary>

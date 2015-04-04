@@ -62,8 +62,7 @@ namespace ImageProcessor.Web.Helpers
         {
             if (sourceType == typeof(string))
             {
-                string[] items = this.GetStringArray(sourceType.ToString());
-                return items.Any();
+                return true;
             }
 
             return base.CanConvertFrom(context, sourceType);
@@ -89,7 +88,7 @@ namespace ImageProcessor.Web.Helpers
             string input = value as string;
             if (input != null)
             {
-                string[] items = this.GetStringArray(input);
+                string[] items = this.GetStringArray(input, culture);
 
                 List<T> result = new List<T>();
 
@@ -136,7 +135,13 @@ namespace ImageProcessor.Web.Helpers
         {
             if (destinationType == typeof(string))
             {
-                return string.Join(",", (IList<T>)value);
+                if (culture == null)
+                {
+                    culture = CultureInfo.CurrentCulture;
+                }
+
+                string separator = culture.TextInfo.ListSeparator;
+                return string.Join(separator, (IList<T>)value);
             }
 
             return base.ConvertTo(context, culture, value, destinationType);
@@ -148,12 +153,21 @@ namespace ImageProcessor.Web.Helpers
         /// <param name="input">
         /// The input string to split.
         /// </param>
+        /// <param name="culture">
+        /// A <see cref="T:System.Globalization.CultureInfo"/>. The current culture to split string by. 
+        /// </param>
         /// <returns>
         /// The <see cref="string"/> array from the comma separated values.
         /// </returns>
-        protected string[] GetStringArray(string input)
+        protected string[] GetStringArray(string input, CultureInfo culture)
         {
-            string[] result = input.Split(',').Select(s => s.Trim()).ToArray();
+            if (culture == null)
+            {
+                culture = CultureInfo.CurrentCulture;
+            }
+
+            char separator = culture.TextInfo.ListSeparator[0];
+            string[] result = input.Split(separator).Select(s => s.Trim()).ToArray();
 
             return result;
         }

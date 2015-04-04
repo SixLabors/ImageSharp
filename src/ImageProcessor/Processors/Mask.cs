@@ -74,7 +74,7 @@ namespace ImageProcessor.Processors
                 int height = image.Height;
                 Tuple<Image, Point?> parameters = this.DynamicParameter;
                 mask = new Bitmap(parameters.Item1);
-                Point? position = parameters.Item2.HasValue ? parameters.Item2 : null;
+                Point? position = parameters.Item2;
 
                 if (mask.Size != image.Size)
                 {

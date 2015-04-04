@@ -16,14 +16,14 @@ namespace ImageProcessor.Imaging
     public enum AnchorPosition
     {
         /// <summary>
-        /// Anchors the position of the image to the top of it's bounding container.
-        /// </summary>
-        Top,
-
-        /// <summary>
         /// Anchors the position of the image to the center of it's bounding container.
         /// </summary>
         Center,
+
+        /// <summary>
+        /// Anchors the position of the image to the top of it's bounding container.
+        /// </summary>
+        Top,
 
         /// <summary>
         /// Anchors the position of the image to the bottom of it's bounding container.

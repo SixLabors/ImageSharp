@@ -10,7 +10,6 @@
 
 namespace ImageProcessor.Web.Helpers
 {
-    using System.IO;
     using System.Linq;
     using System.Text;
     using System.Text.RegularExpressions;
@@ -83,7 +82,7 @@ namespace ImageProcessor.Web.Helpers
                 {
                     trimmed = trimmed.Replace(queryString, string.Empty);
                 }
-                
+
                 match = FormatRegex.Match(trimmed);
             }
 

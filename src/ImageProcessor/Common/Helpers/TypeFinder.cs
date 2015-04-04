@@ -59,21 +59,18 @@ namespace ImageProcessor.Common.Helpers
             {
                 "mscorlib,", "System.", "Antlr3.", "Autofac.",
                 "Autofac,", "Castle.", "ClientDependency.",
-                "DataAnnotationsExtensions.",
-                "DataAnnotationsExtensions,", "Dynamic,",
+                "DataAnnotationsExtensions.", "Dynamic,",
                 "HtmlDiff,", "Iesi.Collections,", "log4net,",
                 "Microsoft.", "Newtonsoft.", "NHibernate.",
                 "NHibernate,", "NuGet.", "RouteDebugger,",
-                "SqlCE4Umbraco,", "umbraco.datalayer,",
-                "umbraco.interfaces,",
-                "umbraco.webservices", "Lucene.", "Examine,",
+                "SqlCE4Umbraco,", "umbraco.",
+                "Lucene.", "Examine,", "AutoMapper.",
                 "Examine.", "ServiceStack.", "MySql.",
                 "HtmlAgilityPack.", "TidyNet.",
                 "ICSharpCode.", "CookComputing.",
-                "AutoMapper,", "AutoMapper.",
                 "AzureDirectory,", "itextsharp,",
                 "UrlRewritingNet.", "HtmlAgilityPack,",
-                "MiniProfiler,", "Moq,", "nunit.framework,",
+                "MiniProfiler,", "Moq,", "nunit.",
                 "TidyNet,", "WebDriver,"
             };
 
@@ -97,8 +94,8 @@ namespace ImageProcessor.Common.Helpers
         /// loaded in the CLR, not all assemblies.
         /// See these threads:
         /// <see href="http://issues.umbraco.org/issue/U5-198"/>
-        /// <see cref="http://stackoverflow.com/questions/3552223/asp-net-appdomain-currentdomain-getassemblies-assemblies-missing-after-app"/>
-        /// <see cref="http://stackoverflow.com/questions/2477787/difference-between-appdomain-getassemblies-and-buildmanager-getreferencedassembl"/>
+        /// <see href="http://stackoverflow.com/questions/3552223/asp-net-appdomain-currentdomain-getassemblies-assemblies-missing-after-app"/>
+        /// <see href="http://stackoverflow.com/questions/2477787/difference-between-appdomain-getassemblies-and-buildmanager-getreferencedassembl"/>
         /// </remarks>
         /// <returns>
         /// The <see cref="HashSet{Assembly}"/>.
@@ -282,7 +279,7 @@ namespace ImageProcessor.Common.Helpers
             return GetAllAssemblies()
                 .Where(x => !excludeFromResults.Contains(x)
                             && !x.GlobalAssemblyCache
-                            && !exclusionFilter.Any(f => x.FullName.StartsWith(f)));
+                            && !exclusionFilter.Any(f => x.FullName.StartsWith(f, StringComparison.OrdinalIgnoreCase)));
         }
     }
 }

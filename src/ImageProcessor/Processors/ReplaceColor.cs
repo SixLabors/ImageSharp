@@ -87,13 +87,11 @@ namespace ImageProcessor.Processors
 
                 using (FastBitmap fastBitmap = new FastBitmap(newImage))
                 {
-                    //Parallel.For(
-                    //    0,
-                    //    height,
-                    //    y =>
-                    //    {
-                     for (int y = 0; y < height; y++)
-                            {
+                    Parallel.For(
+                        0,
+                        height,
+                        y =>
+                        {
                             for (int x = 0; x < width; x++)
                             {
                                 // Get the pixel color.
@@ -126,7 +124,7 @@ namespace ImageProcessor.Processors
                                     }
                                 }
                             }
-                        }//);
+                        });
                 }
 
                 image.Dispose();

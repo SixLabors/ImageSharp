@@ -29,7 +29,7 @@ namespace ImageProcessor.Web.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"hue=[^&]", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"hue=\d+", RegexOptions.Compiled);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Hue"/> class.

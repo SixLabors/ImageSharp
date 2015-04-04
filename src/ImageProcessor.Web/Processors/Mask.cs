@@ -12,14 +12,14 @@
 namespace ImageProcessor.Web.Processors
 {
     using System;
+    using System.Collections.Specialized;
     using System.Drawing;
     using System.IO;
-    using System.Text;
     using System.Text.RegularExpressions;
+    using System.Web;
     using System.Web.Hosting;
 
     using ImageProcessor.Processors;
-    using ImageProcessor.Web.Extensions;
     using ImageProcessor.Web.Helpers;
 
     /// <summary>
@@ -31,17 +31,7 @@ namespace ImageProcessor.Web.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"(mask=|mask.\w+=)[^&]+", RegexOptions.Compiled);
-
-        /// <summary>
-        /// The mask image regex.
-        /// </summary>
-        private static readonly Regex ImageRegex = new Regex(@"mask=[\w+-]+." + ImageHelpers.ExtensionRegexPattern);
-
-        /// <summary>
-        /// The point regex.
-        /// </summary>
-        private static readonly Regex PointRegex = new Regex(@"mask.position=\d+,\d+", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"mask=[\w+-]+." + ImageHelpers.ExtensionRegexPattern);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Mask"/> class.
@@ -81,36 +71,18 @@ namespace ImageProcessor.Web.Processors
         /// </returns>
         public int MatchRegexIndex(string queryString)
         {
-            int index = 0;
-
-            // Set the sort order to max to allow filtering.
             this.SortOrder = int.MaxValue;
+            Match match = this.RegexPattern.Match(queryString);
 
-            // First merge the matches so we can parse .
-            StringBuilder stringBuilder = new StringBuilder();
-
-            foreach (Match match in this.RegexPattern.Matches(queryString))
+            if (match.Success)
             {
-                if (match.Success)
-                {
-                    if (index == 0)
-                    {
-                        // Set the index on the first instance only.
-                        this.SortOrder = match.Index;
-                    }
+                this.SortOrder = match.Index;
+                NameValueCollection queryCollection = HttpUtility.ParseQueryString(queryString);
+                Image image = this.ParseImage(queryCollection["mask"]);
+                Point? position = queryCollection["mask.position"] != null
+                                      ? QueryParamParser.Instance.ParseValue<Point>(queryCollection["mask.position"])
+                                      : (Point?)null;
 
-                    stringBuilder.Append(match.Value);
-
-                    index += 1;
-                }
-            }
-
-            if (this.SortOrder < int.MaxValue)
-            {
-                // Match syntax
-                string toParse = stringBuilder.ToString();
-                Image image = this.ParseImage(toParse);
-                Point? position = this.ParsePoint(toParse);
                 this.Processor.DynamicParameter = new Tuple<Image, Point?>(image, position);
             }
 
@@ -118,13 +90,13 @@ namespace ImageProcessor.Web.Processors
         }
 
         /// <summary>
-        /// Returns the correct size of pixels.
+        /// Returns an image from the given input path.
         /// </summary>
         /// <param name="input">
         /// The input containing the value to parse.
         /// </param>
         /// <returns>
-        /// The <see cref="int"/> representing the pixel size.
+        /// The <see cref="Image"/> representing the given image path.
         /// </returns>
         public Image ParseImage(string input)
         {
@@ -136,50 +108,19 @@ namespace ImageProcessor.Web.Processors
 
             if (!string.IsNullOrWhiteSpace(path) && path.StartsWith("~/"))
             {
-                Match match = ImageRegex.Match(input);
-
-                if (match.Success)
+                string imagePath = HostingEnvironment.MapPath(path);
+                if (imagePath != null)
                 {
-                    string imagePath = HostingEnvironment.MapPath(path);
-                    if (imagePath != null)
+                    imagePath = Path.Combine(imagePath, input);
+                    using (ImageFactory factory = new ImageFactory())
                     {
-                        imagePath = Path.Combine(imagePath, match.Value.Split('=')[1]);
-                        using (ImageFactory factory = new ImageFactory())
-                        {
-                            factory.Load(imagePath);
-                            image = new Bitmap(factory.Image);
-                        }
+                        factory.Load(imagePath);
+                        image = new Bitmap(factory.Image);
                     }
                 }
             }
 
             return image;
-        }
-
-        /// <summary>
-        /// Returns the correct <see cref="Nullable{Point}"/> for the given string.
-        /// </summary>
-        /// <param name="input">
-        /// The input string containing the value to parse.
-        /// </param>
-        /// <returns>
-        /// The correct <see cref="Nullable{Point}"/>
-        /// </returns>
-        private Point? ParsePoint(string input)
-        {
-            int[] dimensions = { };
-            Match match = PointRegex.Match(input);
-            if (match.Success)
-            {
-                dimensions = match.Value.ToPositiveIntegerArray();
-            }
-
-            if (dimensions.Length == 2)
-            {
-                return new Point(dimensions[0], dimensions[1]);
-            }
-
-            return null;
         }
     }
 }

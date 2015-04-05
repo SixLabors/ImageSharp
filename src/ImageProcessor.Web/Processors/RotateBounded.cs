@@ -11,7 +11,10 @@
 namespace ImageProcessor.Web.Processors
 {
     using System;
+    using System.Collections.Specialized;
     using System.Text.RegularExpressions;
+    using System.Web;
+
     using ImageProcessor.Processors;
     using ImageProcessor.Web.Helpers;
 
@@ -23,7 +26,7 @@ namespace ImageProcessor.Web.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"rotatebounded=[^&]+", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"rotatebounded=[^&]", RegexOptions.Compiled);
 
         /// <summary>
         /// The regular expression to search for.
@@ -75,28 +78,17 @@ namespace ImageProcessor.Web.Processors
         /// </returns>
         public int MatchRegexIndex(string queryString)
         {
-            int index = 0;
-
-            // Set the sort order to max to allow filtering.
             this.SortOrder = int.MaxValue;
+            Match match = this.RegexPattern.Match(queryString);
 
-            foreach (Match match in this.RegexPattern.Matches(queryString))
+            if (match.Success)
             {
-                if (match.Success)
-                {
-                    if (index == 0)
-                    {
-                        // Set the index on the first instance only.
-                        this.SortOrder = match.Index;
-                        float angle = CommonParameterParserUtility.ParseAngle(match.Value);
-                        bool keepSize = BoundRegex.Match(queryString).Success;
-                        Tuple<float, bool> rotateParams = new Tuple<float, bool>(angle, keepSize);
+                this.SortOrder = match.Index;
+                NameValueCollection queryCollection = HttpUtility.ParseQueryString(queryString);
+                float angle = QueryParamParser.Instance.ParseValue<float>(queryCollection["rotatebounded"]);
+                bool keepSize = BoundRegex.Match(queryString).Success;
 
-                        this.Processor.DynamicParameter = rotateParams;
-                    }
-
-                    index += 1;
-                }
+                this.Processor.DynamicParameter = new Tuple<float, bool>(angle, keepSize);
             }
 
             return this.SortOrder;

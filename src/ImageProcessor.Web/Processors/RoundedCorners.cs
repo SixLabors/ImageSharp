@@ -10,10 +10,13 @@
 
 namespace ImageProcessor.Web.Processors
 {
-    using System.Globalization;
+    using System.Collections.Specialized;
     using System.Text.RegularExpressions;
+    using System.Web;
+
     using ImageProcessor.Imaging;
     using ImageProcessor.Processors;
+    using ImageProcessor.Web.Helpers;
 
     /// <summary>
     /// Encapsulates methods to add rounded corners to an image.
@@ -23,32 +26,7 @@ namespace ImageProcessor.Web.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"roundedcorners=[^&]+", RegexOptions.Compiled);
-
-        /// <summary>
-        /// The regular expression to search strings for the angle attribute.
-        /// </summary>
-        private static readonly Regex RadiusRegex = new Regex(@"(roundedcorners|radius)(=|-)(\d+)", RegexOptions.Compiled);
-
-        /// <summary>
-        /// The regular expression to search strings for the top left attribute.
-        /// </summary>
-        private static readonly Regex TopLeftRegex = new Regex(@"tl(=|-)(true|false)", RegexOptions.Compiled);
-
-        /// <summary>
-        /// The regular expression to search strings for the top right attribute.
-        /// </summary>
-        private static readonly Regex TopRightRegex = new Regex(@"tr(=|-)(true|false)", RegexOptions.Compiled);
-
-        /// <summary>
-        /// The regular expression to search strings for the bottom left attribute.
-        /// </summary>
-        private static readonly Regex BottomLeftRegex = new Regex(@"bl(=|-)(true|false)", RegexOptions.Compiled);
-
-        /// <summary>
-        /// The regular expression to search strings for the bottom right attribute.
-        /// </summary>
-        private static readonly Regex BottomRightRegex = new Regex(@"br(=|-)(true|false)", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"roundedcorners=\d+", RegexOptions.Compiled);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RoundedCorners"/> class.
@@ -88,86 +66,42 @@ namespace ImageProcessor.Web.Processors
         /// </returns>
         public int MatchRegexIndex(string queryString)
         {
-            int index = 0;
-
-            // Set the sort order to max to allow filtering.
             this.SortOrder = int.MaxValue;
+            Match match = this.RegexPattern.Match(queryString);
 
-            foreach (Match match in this.RegexPattern.Matches(queryString))
+            if (match.Success)
             {
-                if (match.Success)
-                {
-                    if (index == 0)
-                    {
-                        // Set the index on the first instance only.
-                        this.SortOrder = match.Index;
+                this.SortOrder = match.Index;
+                NameValueCollection queryCollection = HttpUtility.ParseQueryString(queryString);
 
-                        RoundedCornerLayer roundedCornerLayer = new RoundedCornerLayer(
-                            this.ParseRadius(queryString),
-                            this.ParseCorner(TopLeftRegex, queryString),
-                            this.ParseCorner(TopRightRegex, queryString),
-                            this.ParseCorner(BottomLeftRegex, queryString),
-                            this.ParseCorner(BottomRightRegex, queryString));
+                RoundedCornerLayer roundedCornerLayer = new RoundedCornerLayer(
+                    QueryParamParser.Instance.ParseValue<int>(queryCollection["roundedcorners"]),
+                    this.ParseCorner(queryCollection, "tl"),
+                    this.ParseCorner(queryCollection, "tr"),
+                    this.ParseCorner(queryCollection, "bl"),
+                    this.ParseCorner(queryCollection, "br"));
 
-                        this.Processor.DynamicParameter = roundedCornerLayer;
-                    }
-
-                    index += 1;
-                }
+                this.Processor.DynamicParameter = roundedCornerLayer;
             }
 
             return this.SortOrder;
         }
 
-        #region Private Methods
         /// <summary>
-        /// Returns the correct <see cref="T:System.Int32"/> containing the radius for the given string.
+        /// Returns a value indicating whether to round the given corner.
         /// </summary>
-        /// <param name="input">
-        /// The input string containing the value to parse.
+        /// <param name="queryCollection">
+        /// The collection of query parameters.
         /// </param>
-        /// <returns>
-        /// The correct <see cref="T:System.Int32"/> containing the radius for the given string.
-        /// </returns>
-        private int ParseRadius(string input)
-        {
-            foreach (Match match in RadiusRegex.Matches(input))
-            {
-                // Split on radius-
-                int radius;
-                int.TryParse(match.Value.Split(new[] { '=', '-' })[1], NumberStyles.Any, CultureInfo.InvariantCulture, out radius);
-                return radius;
-            }
-
-            // No corners - matches the RoundedCorner default.
-            return 0;
-        }
-
-        /// <summary>
-        /// Returns a <see cref="T:System.Boolean"/> either true or false.
-        /// </summary>
-        /// <param name="corner">
-        /// The corner.
-        /// </param>
-        /// <param name="input">
-        /// The input string containing the value to parse.
+        /// <param name="key">
+        /// The parameter key.
         /// </param>
         /// <returns>
         /// The correct <see cref="T:System.Boolean"/> true or false.
         /// </returns>
-        private bool ParseCorner(Regex corner, string input)
+        private bool ParseCorner(NameValueCollection queryCollection, string key)
         {
-            foreach (Match match in corner.Matches(input))
-            {
-                // Split on corner-
-                bool cornerRound;
-                bool.TryParse(match.Value.Split(new[] { '=', '-' })[1], out cornerRound);
-                return cornerRound;
-            }
-
-            // No corners - matches the RoundedCorner default.
-            return true;
+            return queryCollection[key] == null || QueryParamParser.Instance.ParseValue<bool>(queryCollection[key]);
         }
-        #endregion
     }
 }

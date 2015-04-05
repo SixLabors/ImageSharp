@@ -14,7 +14,6 @@ namespace ImageProcessor.Web.Processors
     using System.Text.RegularExpressions;
     using System.Web;
 
-    using ImageProcessor.Common.Extensions;
     using ImageProcessor.Processors;
     using ImageProcessor.Web.Helpers;
 

@@ -10,7 +10,10 @@
 
 namespace ImageProcessor.Web.Processors
 {
+    using System.Collections.Specialized;
     using System.Text.RegularExpressions;
+    using System.Web;
+
     using ImageProcessor.Processors;
     using ImageProcessor.Web.Helpers;
 
@@ -22,7 +25,7 @@ namespace ImageProcessor.Web.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"(^(rotate|angle)|[^.](&,)?rotate|angle)(=|-)[^&|,]+", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"rotate=[^&]", RegexOptions.Compiled);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Rotate"/> class.
@@ -32,7 +35,6 @@ namespace ImageProcessor.Web.Processors
             this.Processor = new ImageProcessor.Processors.Rotate();
         }
 
-        #region IGraphicsProcessor Members
         /// <summary>
         /// Gets the regular expression to search strings for.
         /// </summary>
@@ -69,28 +71,17 @@ namespace ImageProcessor.Web.Processors
         /// </returns>
         public int MatchRegexIndex(string queryString)
         {
-            int index = 0;
-
-            // Set the sort order to max to allow filtering.
             this.SortOrder = int.MaxValue;
+            Match match = this.RegexPattern.Match(queryString);
 
-            foreach (Match match in this.RegexPattern.Matches(queryString))
+            if (match.Success)
             {
-                if (match.Success)
-                {
-                    if (index == 0)
-                    {
-                        // Set the index on the first instance only.
-                        this.SortOrder = match.Index;
-                        this.Processor.DynamicParameter = CommonParameterParserUtility.ParseAngle(match.Value);
-                    }
-
-                    index += 1;
-                }
+                this.SortOrder = match.Index;
+                NameValueCollection queryCollection = HttpUtility.ParseQueryString(queryString);
+                this.Processor.DynamicParameter = QueryParamParser.Instance.ParseValue<float>(queryCollection["rotate"]);
             }
 
             return this.SortOrder;
         }
-        #endregion
     }
 }

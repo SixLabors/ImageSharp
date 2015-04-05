@@ -3,7 +3,11 @@
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
+// <summary>
+//   Processes any image requests within the web application.
+// </summary>
 // --------------------------------------------------------------------------------------------------------------------
+
 namespace ImageProcessor.Web.HttpModules
 {
     using System;
@@ -45,9 +49,14 @@ namespace ImageProcessor.Web.HttpModules
         private const string CachedResponseFileDependency = "CACHED_IMAGE_DEPENDENCY_054F217C-11CF-49FF-8D2F-698E8E6EB58F";
 
         /// <summary>
-        /// The regular expression to search strings for.
+        /// The regular expression to search strings for presets with.
         /// </summary>
         private static readonly Regex PresetRegex = new Regex(@"preset=[^&]+", RegexOptions.Compiled);
+
+        /// <summary>
+        /// The regular expression to search strings for protocols with.
+        /// </summary>
+        private static readonly Regex ProtocolRegex = new Regex("http(s)?://", RegexOptions.Compiled);
 
         /// <summary>
         /// The assembly version.
@@ -295,26 +304,28 @@ namespace ImageProcessor.Web.HttpModules
             if (currentService != null)
             {
                 bool isFileLocal = currentService.IsFileLocalService;
-                bool hasMultiParams = request.Url.ToString().Count(f => f == '?') > 1;
+                string url = request.Url.ToString();
+                bool isLegacy = ProtocolRegex.Matches(url).Count > 1;
+                bool hasMultiParams = url.Count(f => f == '?') > 1;
                 string requestPath = string.Empty;
                 string queryString = string.Empty;
                 string urlParameters = string.Empty;
 
                 // Legacy support. I'd like to remove this asap.
-                if (hasMultiParams)
+                if (isLegacy && hasMultiParams)
                 {
                     // We need to split the querystring to get the actual values we want.
-                    string urlDecode = HttpUtility.UrlDecode(request.QueryString.ToString());
+                    string multiQuery = request.QueryString.ToString();
 
-                    if (!string.IsNullOrWhiteSpace(urlDecode))
+                    if (!string.IsNullOrWhiteSpace(multiQuery))
                     {
                         // UrlDecode seems to mess up in some circumstance.
-                        if (urlDecode.IndexOf("://", StringComparison.OrdinalIgnoreCase) == -1)
+                        if (multiQuery.IndexOf("://", StringComparison.OrdinalIgnoreCase) == -1)
                         {
-                            urlDecode = urlDecode.Replace(":/", "://");
+                            multiQuery = multiQuery.Replace(":/", "://");
                         }
 
-                        string[] paths = urlDecode.Split('?');
+                        string[] paths = multiQuery.Split('?');
 
                         requestPath = paths[0];
 
@@ -335,7 +346,7 @@ namespace ImageProcessor.Web.HttpModules
                     if (string.IsNullOrWhiteSpace(currentService.Prefix))
                     {
                         requestPath = HostingEnvironment.MapPath(request.Path);
-                        queryString = HttpUtility.UrlDecode(request.QueryString.ToString());
+                        queryString = request.QueryString.ToString();
                     }
                     else
                     {
@@ -344,8 +355,20 @@ namespace ImageProcessor.Web.HttpModules
                                               ? currentService.Settings["Protocol"] + "://"
                                               : string.Empty;
 
-                        requestPath = protocol + request.Path.Replace(currentService.Prefix, string.Empty).TrimStart('/');
-                        queryString = HttpUtility.UrlDecode(request.QueryString.ToString());
+                        // Handle requests that require parameters.
+                        if (hasMultiParams)
+                        {
+                            string[] paths = url.Split('?');
+                            requestPath = protocol
+                                          + request.Path.Replace(currentService.Prefix, string.Empty).TrimStart('/')
+                                          + "?" + paths[1];
+                            queryString = paths[2];
+                        }
+                        else
+                        {
+                            requestPath = protocol + request.Path.Replace(currentService.Prefix, string.Empty).TrimStart('/');
+                            queryString = request.QueryString.ToString();
+                        }
                     }
                 }
 

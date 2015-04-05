@@ -10,7 +10,11 @@
 
 namespace ImageProcessor.Web.Processors
 {
+    using System.Collections.Specialized;
+    using System.Drawing;
     using System.Text.RegularExpressions;
+    using System.Web;
+
     using ImageProcessor.Processors;
     using ImageProcessor.Web.Helpers;
 
@@ -22,7 +26,7 @@ namespace ImageProcessor.Web.Processors
         /// <summary>
         /// The regular expression to search strings for.
         /// </summary>
-        private static readonly Regex QueryRegex = new Regex(@"tint=[^&]+", RegexOptions.Compiled);
+        private static readonly Regex QueryRegex = new Regex(@"tint=[^&]", RegexOptions.Compiled);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Tint"/> class.
@@ -59,24 +63,14 @@ namespace ImageProcessor.Web.Processors
         /// </returns>
         public int MatchRegexIndex(string queryString)
         {
-            int index = 0;
-
-            // Set the sort order to max to allow filtering.
             this.SortOrder = int.MaxValue;
+            Match match = this.RegexPattern.Match(queryString);
 
-            foreach (Match match in this.RegexPattern.Matches(queryString))
+            if (match.Success)
             {
-                if (match.Success)
-                {
-                    if (index == 0)
-                    {
-                        // Set the index on the first instance only.
-                        this.SortOrder = match.Index;
-                        this.Processor.DynamicParameter = CommonParameterParserUtility.ParseColor(match.Value.Split('=')[1]);
-                    }
-
-                    index += 1;
-                }
+                this.SortOrder = match.Index;
+                NameValueCollection queryCollection = HttpUtility.ParseQueryString(queryString);
+                this.Processor.DynamicParameter = QueryParamParser.Instance.ParseValue<Color>(queryCollection["tint"]);
             }
 
             return this.SortOrder;

@@ -26,7 +26,12 @@ namespace ImageProcessor.Web.Helpers
         /// <summary>
         /// The web color regex.
         /// </summary>
-        private static readonly Regex WebColorRegex = new Regex("([0-9a-fA-F]{3}){1,2}", RegexOptions.Compiled);
+        private static readonly Regex HexColorRegex = new Regex("([0-9a-fA-F]{3}){1,2}", RegexOptions.Compiled);
+
+        /// <summary>
+        /// The number color regex.
+        /// </summary>
+        private static readonly Regex NumberRegex = new Regex(@"\d+", RegexOptions.Compiled);
 
         /// <summary>
         /// The html system color table map.
@@ -68,9 +73,42 @@ namespace ImageProcessor.Web.Helpers
                     return Color.LightGray;
                 }
 
+                // Handle a,r,g,b
+                char separator = culture.TextInfo.ListSeparator[0];
+                if (colorText.Contains(separator.ToString()))
+                {
+                    string[] components = colorText.Split(separator);
+
+                    bool convert = true;
+                    foreach (string component in components)
+                    {
+                        if (!NumberRegex.IsMatch(component))
+                        {
+                            convert = false;
+                        }
+                    }
+
+                    if (convert)
+                    {
+                        if (components.Length == 4)
+                        {
+                            return Color.FromArgb(
+                                    Convert.ToInt32(components[0]),
+                                    Convert.ToInt32(components[1]),
+                                    Convert.ToInt32(components[2]),
+                                    Convert.ToInt32(components[3]));
+                        }
+
+                        return Color.FromArgb(
+                            Convert.ToInt32(components[0]),
+                            Convert.ToInt32(components[1]),
+                            Convert.ToInt32(components[2]));
+                    }
+                }
+
                 // Hex based color values.
                 char hash = colorText[0];
-                if (hash == '#' || WebColorRegex.IsMatch(colorText))
+                if (hash == '#' || HexColorRegex.IsMatch(colorText))
                 {
                     if (hash != '#')
                     {

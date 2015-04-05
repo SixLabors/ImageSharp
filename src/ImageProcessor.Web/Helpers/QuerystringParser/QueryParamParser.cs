@@ -41,6 +41,7 @@ namespace ImageProcessor.Web.Helpers
         private QueryParamParser()
         {
             this.AddColorConverters();
+            this.AddFontFamilyConverters();
             this.AddListConverters();
             this.AddArrayConverters();
         }
@@ -136,6 +137,14 @@ namespace ImageProcessor.Web.Helpers
         private void AddColorConverters()
         {
             this.AddTypeConverter(typeof(Color), typeof(ExtendedColorTypeConverter));
+        }
+
+        /// <summary>
+        /// Adds font family converters.
+        /// </summary>
+        private void AddFontFamilyConverters()
+        {
+            this.AddTypeConverter(typeof(FontFamily), typeof(FontFamilyConverter));
         }
 
         /// <summary>

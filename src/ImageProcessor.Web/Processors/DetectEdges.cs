@@ -90,7 +90,7 @@ namespace ImageProcessor.Web.Processors
             {
                 this.SortOrder = match.Index;
                 NameValueCollection queryCollection = HttpUtility.ParseQueryString(queryString);
-                IEdgeFilter filter = (IEdgeFilter)detectors[queryCollection["detectedges"]];
+                IEdgeFilter filter = (IEdgeFilter)detectors[QueryParamParser.Instance.ParseValue<string>(queryCollection["detectedges"])];
                 bool greyscale = QueryParamParser.Instance.ParseValue<bool>(queryCollection["greyscale"]);
                 this.Processor.DynamicParameter = new Tuple<IEdgeFilter, bool>(filter, greyscale);
             }

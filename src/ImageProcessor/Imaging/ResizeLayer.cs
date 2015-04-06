@@ -132,9 +132,15 @@ namespace ImageProcessor.Imaging
                 && this.ResizeMode == resizeLayer.ResizeMode
                 && this.AnchorPosition == resizeLayer.AnchorPosition
                 && this.Upscale == resizeLayer.Upscale
-                && this.CenterCoordinates.SequenceEqual(resizeLayer.CenterCoordinates)
+                && ((this.CenterCoordinates != null
+                    && resizeLayer.CenterCoordinates != null
+                    && this.CenterCoordinates.SequenceEqual(resizeLayer.CenterCoordinates))
+                    || (this.CenterCoordinates == resizeLayer.CenterCoordinates))
                 && this.MaxSize == resizeLayer.MaxSize
-                && this.RestrictedSizes.SequenceEqual(resizeLayer.RestrictedSizes);
+                && ((this.RestrictedSizes != null
+                    && resizeLayer.RestrictedSizes != null
+                    && this.RestrictedSizes.SequenceEqual(resizeLayer.RestrictedSizes))
+                    || (this.RestrictedSizes == resizeLayer.RestrictedSizes));
         }
 
         /// <summary>

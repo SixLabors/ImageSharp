@@ -315,31 +315,29 @@ namespace ImageProcessor.Web.HttpModules
                 if (isLegacy && hasMultiParams)
                 {
                     // We need to split the querystring to get the actual values we want.
-                    string multiQuery = request.QueryString.ToString();
+                    string[] paths = url.Split('?');
 
-                    if (!string.IsNullOrWhiteSpace(multiQuery))
-                    {
-                        // UrlDecode seems to mess up in some circumstance.
-                        if (multiQuery.IndexOf("://", StringComparison.OrdinalIgnoreCase) == -1)
-                        {
-                            multiQuery = multiQuery.Replace(":/", "://");
-                        }
+                    //if (!string.IsNullOrWhiteSpace(multiQuery))
+                    //{
+                        //// UrlDecode seems to mess up in some circumstance.
+                        //if (multiQuery.IndexOf("://", StringComparison.OrdinalIgnoreCase) == -1)
+                        //{
+                        //    multiQuery = multiQuery.Replace(":/", "://");
+                        //}
 
-                        string[] paths = multiQuery.Split('?');
-
-                        requestPath = paths[0];
+                        requestPath = paths[1];
 
                         // Handle extension-less urls.
-                        if (paths.Length > 2)
+                        if (paths.Length > 3)
                         {
-                            queryString = paths[2];
-                            urlParameters = paths[1];
+                            queryString = paths[3];
+                            urlParameters = paths[2];
                         }
                         else if (paths.Length > 1)
                         {
-                            queryString = paths[1];
+                            queryString = paths[2];
                         }
-                    }
+                    //}
                 }
                 else
                 {

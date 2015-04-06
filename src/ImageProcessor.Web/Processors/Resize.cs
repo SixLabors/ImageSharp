@@ -83,13 +83,15 @@ namespace ImageProcessor.Web.Processors
                 ResizeMode mode = QueryParamParser.Instance.ParseValue<ResizeMode>(queryCollection["mode"]);
                 AnchorPosition position = QueryParamParser.Instance.ParseValue<AnchorPosition>(queryCollection["anchor"]);
                 bool upscale = queryCollection["upscale"] == null || QueryParamParser.Instance.ParseValue<bool>(queryCollection["upscale"]);
-                float[] center = QueryParamParser.Instance.ParseValue<float[]>(queryCollection["center"]);
+                float[] center = queryCollection["center"] != null
+                                    ? QueryParamParser.Instance.ParseValue<float[]>(queryCollection["center"]) :
+                                    new float[] { };
 
                 ResizeLayer resizeLayer = new ResizeLayer(size)
                 {
-                    ResizeMode = mode, 
-                    AnchorPosition = position, 
-                    Upscale = upscale, 
+                    ResizeMode = mode,
+                    AnchorPosition = position,
+                    Upscale = upscale,
                     CenterCoordinates = center
                 };
 
@@ -101,7 +103,7 @@ namespace ImageProcessor.Web.Processors
                 ((ImageProcessor.Processors.Resize)this.Processor).RestrictedSizes = this.ParseRestrictions(
                     restrictions);
             }
-            
+
             return this.SortOrder;
         }
 
@@ -137,7 +139,7 @@ namespace ImageProcessor.Web.Processors
             if (width != null && height != null)
             {
                 size = new Size(
-                    QueryParamParser.Instance.ParseValue<int>(width), 
+                    QueryParamParser.Instance.ParseValue<int>(width),
                     QueryParamParser.Instance.ParseValue<int>(height));
             }
 

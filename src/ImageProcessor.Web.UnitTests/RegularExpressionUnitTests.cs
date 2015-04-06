@@ -37,9 +37,7 @@ namespace ImageProcessor.Web.UnitTests
         /// </param>
         [Test]
         [TestCase("alpha=66", 66)]
-        [TestCase("alpha=-66", 66)]
-        [TestCase("alpha=101", 1)]
-        [TestCase("alpha=-101", 1)]
+        [TestCase("alpha=101", 100)]
         [TestCase("alpha=000053", 53)]
         public void TestAlphaRegex(string input, int expected)
         {
@@ -63,7 +61,7 @@ namespace ImageProcessor.Web.UnitTests
         [TestCase("brightness=56", 56)]
         [TestCase("brightness=84", 84)]
         [TestCase("brightness=66", 66)]
-        [TestCase("brightness=101", 1)]
+        [TestCase("brightness=101", 100)]
         [TestCase("brightness=00001", 1)]
         [TestCase("brightness=-50", -50)]
         [TestCase("brightness=0", 0)]
@@ -89,7 +87,7 @@ namespace ImageProcessor.Web.UnitTests
         [TestCase("contrast=56", 56)]
         [TestCase("contrast=84", 84)]
         [TestCase("contrast=66", 66)]
-        [TestCase("contrast=101", 1)]
+        [TestCase("contrast=101", 100)]
         [TestCase("contrast=00001", 1)]
         [TestCase("contrast=-50", -50)]
         [TestCase("contrast=0", 0)]
@@ -207,9 +205,8 @@ namespace ImageProcessor.Web.UnitTests
         [TestCase("quality=56", 56)]
         [TestCase("quality=84", 84)]
         [TestCase("quality=66", 66)]
-        [TestCase("quality=101", 1)]
+        [TestCase("quality=101", 100)]
         [TestCase("quality=00001", 1)]
-        [TestCase("quality=-50", 50)]
         [TestCase("quality=0", 0)]
         public void TestQualityRegex(string input, int expected)
         {
@@ -291,7 +288,7 @@ namespace ImageProcessor.Web.UnitTests
         [TestCase("rotate=0", 0F)]
         [TestCase("rotate=270", 270F)]
         [TestCase("rotate=-270", -270F)]
-        [TestCase("rotate=angle-28", 28F)]
+        [TestCase("rotate=28", 28F)]
         public void TestRotateRegex(string input, float expected)
         {
             Processors.Rotate rotate = new Processors.Rotate();
@@ -314,10 +311,7 @@ namespace ImageProcessor.Web.UnitTests
                     "roundedcorners=30", new RoundedCornerLayer(30)
                 },
                 {
-                    "roundedcorners=radius-26|tl-true|tr-false|bl-true|br-false", new RoundedCornerLayer(26, true, false, true, false)
-                },
-                {
-                    "roundedcorners=26,tl=true,tr=false,bl=true,br=false", new RoundedCornerLayer(26, true, false, true, false)
+                    "roundedcorners=26&tl=true&tr=false&bl=true&br=false", new RoundedCornerLayer(26, true, false, true, false)
                 }
             };
 
@@ -343,7 +337,7 @@ namespace ImageProcessor.Web.UnitTests
         [TestCase("saturation=56", 56)]
         [TestCase("saturation=84", 84)]
         [TestCase("saturation=66", 66)]
-        [TestCase("saturation=101", 1)]
+        [TestCase("saturation=101", 100)]
         [TestCase("saturation=00001", 1)]
         [TestCase("saturation=-50", -50)]
         [TestCase("saturation=0", 0)]
@@ -383,7 +377,7 @@ namespace ImageProcessor.Web.UnitTests
             {
                 tint.MatchRegexIndex(item.Key);
                 Color result = tint.Processor.DynamicParameter;
-                Assert.AreEqual(item.Value, result);
+                Assert.AreEqual(item.Value.ToArgb(), result.ToArgb());
             }
         }
 
@@ -433,35 +427,7 @@ namespace ImageProcessor.Web.UnitTests
             Dictionary<string, TextLayer> data = new Dictionary<string, TextLayer>
             {
                 {
-                    "watermark=text-watermark goodness,color-fff,size-36,style-italic,opacity-80,position-30,150,shadow-true,font-arial", 
-                    new TextLayer
-                        {
-                            Text = "watermark goodness", 
-                            FontColor = ColorTranslator.FromHtml("#" + "ffffff"), 
-                            FontSize = 36,
-                            Style = FontStyle.Italic,
-                            Opacity = 80, 
-                            Position = new Point(30, 150),
-                            DropShadow = true, 
-                            FontFamily = new FontFamily("arial") 
-                        }
-                },
-                {
-                    "watermark=watermark goodness&color=fff&fontsize=36&fontstyle=italic&fontopacity=80&textposition=30,150&textshadow=true&fontfamily=arial", 
-                    new TextLayer
-                        {
-                            Text = "watermark goodness", 
-                            FontColor = ColorTranslator.FromHtml("#" + "ffffff"), 
-                            FontSize = 36,
-                            Style = FontStyle.Italic,
-                            Opacity = 80, 
-                            Position = new Point(30, 150),
-                            DropShadow = true, 
-                            FontFamily = new FontFamily("arial") 
-                        }
-                },
-                {
-                    "watermark=watermark goodness&color=fff&fontsize=36&fontstyle=italic&fontopacity=80&watermark.position=30,150&textshadow=true&fontfamily=arial", 
+                    "watermark=watermark goodness&color=fff&fontsize=36&fontstyle=italic&fontopacity=80&textposition=30,150&dropshadow=true&fontfamily=arial", 
                     new TextLayer
                         {
                             Text = "watermark goodness", 

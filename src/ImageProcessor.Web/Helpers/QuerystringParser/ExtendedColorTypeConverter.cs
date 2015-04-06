@@ -93,10 +93,10 @@ namespace ImageProcessor.Web.Helpers
                         if (components.Length == 4)
                         {
                             return Color.FromArgb(
+                                    Convert.ToInt32(components[3]),
                                     Convert.ToInt32(components[0]),
                                     Convert.ToInt32(components[1]),
-                                    Convert.ToInt32(components[2]),
-                                    Convert.ToInt32(components[3]));
+                                    Convert.ToInt32(components[2]));
                         }
 
                         return Color.FromArgb(

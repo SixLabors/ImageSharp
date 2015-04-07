@@ -21,6 +21,7 @@ namespace ImageProcessor
     using ImageProcessor.Common.Exceptions;
     using ImageProcessor.Imaging;
     using ImageProcessor.Imaging.Filters.EdgeDetection;
+    using ImageProcessor.Imaging.Filters.ObjectDetection;
     using ImageProcessor.Imaging.Filters.Photo;
     using ImageProcessor.Imaging.Formats;
     using ImageProcessor.Imaging.Helpers;
@@ -492,6 +493,17 @@ namespace ImageProcessor
             {
                 DetectEdges detectEdges = new DetectEdges { DynamicParameter = new Tuple<IEdgeFilter, bool>(filter, greyscale) };
                 this.CurrentImageFormat.ApplyProcessor(detectEdges.ProcessImage, this);
+            }
+
+            return this;
+        }
+
+        public ImageFactory DetectObjects(HaarCascade cascade, bool drawRectangles = true, Color color = default(Color))
+        {
+            if (this.ShouldProcess)
+            {
+                DetectObjects detectObjects = new DetectObjects { DynamicParameter = cascade };
+                this.CurrentImageFormat.ApplyProcessor(detectObjects.ProcessImage, this);
             }
 
             return this;

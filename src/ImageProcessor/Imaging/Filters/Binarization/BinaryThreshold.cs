@@ -1,9 +1,13 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="BinaryThreshold.cs" company="James South">
 //   Copyright (c) James South.
-//   //   Licensed under the Apache License, Version 2.0.
+//   Licensed under the Apache License, Version 2.0.
 // </copyright>
+// <summary>
+//   Performs binary threshold filtering against a given greyscale image.
+// </summary>
 // --------------------------------------------------------------------------------------------------------------------
+
 namespace ImageProcessor.Imaging.Filters.Binarization
 {
     using System.Drawing;

@@ -13,6 +13,7 @@ namespace ImageProcessor.Imaging
     using System;
     using System.Drawing;
     using System.Drawing.Imaging;
+    using System.Runtime.InteropServices;
 
     using ImageProcessor.Imaging.Colors;
 
@@ -47,6 +48,34 @@ namespace ImageProcessor.Imaging
         private int color32Size;
 
         /// <summary>
+        /// The color channel - blue, green, red, alpha.
+        /// </summary>
+        private int channel;
+
+        /// <summary>
+        /// Whether to compute tilted integral rectangles.
+        /// </summary>
+        private bool computeTilted;
+
+        private long[,] nSumImage; // normal integral image
+        private long[,] sSumImage; // squared integral image
+        private long[,] tSumImage; // tilted integral image
+
+        private long* nSum; // normal  integral image
+        private long* sSum; // squared integral image
+        private long* tSum; // tilted  integral image
+
+        private GCHandle nSumHandle;
+        private GCHandle sSumHandle;
+        private GCHandle tSumHandle;
+
+        private int nWidth;
+        private int nHeight;
+
+        private int tWidth;
+        private int tHeight;
+
+        /// <summary>
         /// The bitmap data.
         /// </summary>
         private BitmapData bitmapData;
@@ -74,11 +103,51 @@ namespace ImageProcessor.Imaging
         /// </summary>
         /// <param name="bitmap">The input bitmap.</param>
         public FastBitmap(Image bitmap)
+            : this(bitmap, 2, false)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FastBitmap"/> class.
+        /// </summary>
+        /// <param name="bitmap">The input bitmap.</param>
+        /// <param name="integralColorChannel">
+        /// The integral color channel. Blue, Green, Red, or Alpha.
+        /// </param>
+        /// <param name="computeTilted">
+        /// Whether to compute tilted integral rectangles.
+        /// </param>
+        public FastBitmap(Image bitmap, int integralColorChannel, bool computeTilted)
         {
             this.bitmap = (Bitmap)bitmap;
             this.width = this.bitmap.Width;
             this.height = this.bitmap.Height;
+            this.channel = integralColorChannel;
+            this.computeTilted = computeTilted;
+
+            this.nWidth = this.width + 1;
+            this.nHeight = this.height + 1;
+
+            this.tWidth = this.width + 2;
+            this.tHeight = this.height + 2;
+
+            this.nSumImage = new long[this.nHeight, this.nWidth];
+            this.nSumHandle = GCHandle.Alloc(this.nSumImage, GCHandleType.Pinned);
+            this.nSum = (long*)this.nSumHandle.AddrOfPinnedObject().ToPointer();
+
+            this.sSumImage = new long[this.nHeight, this.nWidth];
+            this.sSumHandle = GCHandle.Alloc(this.sSumImage, GCHandleType.Pinned);
+            this.sSum = (long*)this.sSumHandle.AddrOfPinnedObject().ToPointer();
+
+            if (this.computeTilted)
+            {
+                this.tSumImage = new long[this.tHeight, this.tWidth];
+                this.tSumHandle = GCHandle.Alloc(this.tSumImage, GCHandleType.Pinned);
+                this.tSum = (long*)this.tSumHandle.AddrOfPinnedObject().ToPointer();
+            }
+
             this.LockBitmap();
+            this.CalculateIntegrals();
         }
 
         /// <summary>
@@ -203,6 +272,69 @@ namespace ImageProcessor.Imaging
         }
 
         /// <summary>
+        /// Gets the sum of the pixels in a rectangle of the Integral image.
+        /// </summary>
+        /// <param name="x">The horizontal position of the rectangle <c>x</c>.</param>
+        /// <param name="y">The vertical position of the rectangle <c>y</c>.</param>
+        /// <param name="rectangleWidth">The rectangle's width <c>w</c>.</param>
+        /// <param name="rectangleHeight">The rectangle's height <c>h</c>.</param>
+        /// <returns>
+        /// The sum of all pixels contained in the rectangle, computed
+        /// as I[y, x] + I[y + h, x + w] - I[y + h, x] - I[y, x + w].
+        /// </returns>
+        public long GetSum(int x, int y, int rectangleWidth, int rectangleHeight)
+        {
+            int a = (this.nWidth * y) + x;
+            int b = (this.nWidth * (y + rectangleHeight)) + (x + rectangleWidth);
+            int c = (this.nWidth * (y + rectangleHeight)) + x;
+            int d = (this.nWidth * y) + (x + rectangleWidth);
+
+            return this.nSum[a] + this.nSum[b] - this.nSum[c] - this.nSum[d];
+        }
+
+        /// <summary>
+        /// Gets the sum of the squared pixels in a rectangle of the Integral image.
+        /// </summary>
+        /// <param name="x">The horizontal position of the rectangle <c>x</c>.</param>
+        /// <param name="y">The vertical position of the rectangle <c>y</c>.</param>
+        /// <param name="rectangleWidth">The rectangle's width <c>w</c>.</param>
+        /// <param name="rectangleHeight">The rectangle's height <c>h</c>.</param>
+        /// <returns>
+        /// The sum of all pixels contained in the rectangle, computed
+        /// as I²[y, x] + I²[y + h, x + w] - I²[y + h, x] - I²[y, x + w].
+        /// </returns>
+        public long GetSum2(int x, int y, int rectangleWidth, int rectangleHeight)
+        {
+            int a = (this.nWidth * y) + x;
+            int b = (this.nWidth * (y + rectangleHeight)) + (x + rectangleWidth);
+            int c = (this.nWidth * (y + rectangleHeight)) + x;
+            int d = (this.nWidth * y) + (x + rectangleWidth);
+
+            return this.sSum[a] + this.sSum[b] - this.sSum[c] - this.sSum[d];
+        }
+
+        /// <summary>
+        /// Gets the sum of the pixels in a tilted rectangle of the Integral image.
+        /// </summary>
+        /// <param name="x">The horizontal position of the rectangle <c>x</c>.</param>
+        /// <param name="y">The vertical position of the rectangle <c>y</c>.</param>
+        /// <param name="rectangleWidth">The rectangle's width <c>w</c>.</param>
+        /// <param name="rectangleHeight">The rectangle's height <c>h</c>.</param>
+        /// <returns>
+        /// The sum of all pixels contained in the rectangle, computed
+        /// as T[y + w, x + w + 1] + T[y + h, x - h + 1] - T[y, x + 1] - T[y + w + h, x + w - h + 1].
+        /// </returns>
+        public long GetSumT(int x, int y, int rectangleWidth, int rectangleHeight)
+        {
+            int a = (this.tWidth * (y + rectangleWidth)) + (x + rectangleWidth + 1);
+            int b = (this.tWidth * (y + rectangleHeight)) + (x - rectangleHeight + 1);
+            int c = (this.tWidth * y) + (x + 1);
+            int d = (this.tWidth * (y + rectangleWidth + rectangleHeight)) + (x + rectangleWidth - rectangleHeight + 1);
+
+            return this.tSum[a] + this.tSum[b] - this.tSum[c] - this.tSum[d];
+        }
+
+        /// <summary>
         /// Disposes the object and frees resources for the Garbage Collector.
         /// </summary>
         public void Dispose()
@@ -266,6 +398,24 @@ namespace ImageProcessor.Imaging
 
             // Call the appropriate methods to clean up
             // unmanaged resources here.
+            if (this.nSumHandle.IsAllocated)
+            {
+                this.nSumHandle.Free();
+                this.nSum = null;
+            }
+
+            if (this.sSumHandle.IsAllocated)
+            {
+                this.sSumHandle.Free();
+                this.sSum = null;
+            }
+
+            if (this.tSumHandle.IsAllocated)
+            {
+                this.tSumHandle.Free();
+                this.tSum = null;
+            }
+
             // Note disposing is done.
             this.isDisposed = true;
         }
@@ -292,6 +442,111 @@ namespace ImageProcessor.Imaging
 
             // Set the value to the first scan line
             this.pixelBase = (byte*)this.bitmapData.Scan0.ToPointer();
+        }
+
+        /// <summary>
+        /// Computes all possible rectangular areas in the image.
+        /// </summary>
+        private void CalculateIntegrals()
+        {
+            // Calculate integral and integral squared values.
+            int stride = this.bitmapData.Stride;
+            int offset = stride - this.bytesInARow;
+
+            byte* srcStart = this.pixelBase + this.channel;
+
+            // Do the job
+            byte* src = srcStart;
+
+            // For each line
+            // TODO. Make this parallel
+            for (int y = 1; y <= this.height; y++)
+            {
+                int yy = this.nWidth * y;
+                int y1 = this.nWidth * (y - 1);
+
+                // For each pixel
+                for (int x = 1; x <= this.width; x++, src += this.color32Size)
+                {
+                    int pixel = *src;
+                    int pixelSquared = pixel * pixel;
+
+                    int r = yy + x;
+                    int a = yy + (x - 1);
+                    int b = y1 + x;
+                    int c = y1 + (x - 1);
+
+                    this.nSum[r] = pixel + this.nSum[a] + this.nSum[b] - this.nSum[c];
+                    this.sSum[r] = pixelSquared + this.sSum[a] + this.sSum[b] - this.sSum[c];
+                }
+
+                src += offset;
+            }
+
+            if (this.computeTilted)
+            {
+                src = srcStart;
+
+                // Left-to-right, top-to-bottom pass
+                for (int y = 1; y <= this.height; y++, src += offset)
+                {
+                    int yy = this.tWidth * y;
+                    int y1 = this.tWidth * (y - 1);
+
+                    for (int x = 2; x < this.width + 2; x++, src += this.color32Size)
+                    {
+                        int a = y1 + (x - 1);
+                        int b = yy + (x - 1);
+                        int c = y1 + (x - 2);
+                        int r = yy + x;
+
+                        this.tSum[r] = *src + this.tSum[a] + this.tSum[b] - this.tSum[c];
+                    }
+                }
+
+                {
+                    int yy = this.tWidth * this.height;
+                    int y1 = this.tWidth * (this.height + 1);
+
+                    for (int x = 2; x < this.width + 2; x++, src += this.color32Size)
+                    {
+                        int a = yy + (x - 1);
+                        int c = yy + (x - 2);
+                        int b = y1 + (x - 1);
+                        int r = y1 + x;
+
+                        this.tSum[r] = this.tSum[a] + this.tSum[b] - this.tSum[c];
+                    }
+                }
+
+                // Right-to-left, bottom-to-top pass
+                for (int y = this.height; y >= 0; y--)
+                {
+                    int yy = this.tWidth * y;
+                    int y1 = this.tWidth * (y + 1);
+
+                    for (int x = this.width + 1; x >= 1; x--)
+                    {
+                        int r = yy + x;
+                        int b = y1 + (x - 1);
+
+                        this.tSum[r] += this.tSum[b];
+                    }
+                }
+
+                for (int y = this.height + 1; y >= 0; y--)
+                {
+                    int yy = this.tWidth * y;
+
+                    for (int x = this.width + 1; x >= 2; x--)
+                    {
+                        int r = yy + x;
+                        int b = yy + (x - 2);
+
+                        this.tSum[r] -= this.tSum[b];
+                    }
+                }
+            }
         }
 
         /// <summary>

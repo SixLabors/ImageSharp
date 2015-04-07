@@ -126,6 +126,7 @@
   <ItemGroup>
     <Compile Include="Common\Extensions\AssemblyExtensions.cs" />
     <Compile Include="Common\Extensions\EnumerableExtensions.cs" />
+    <Compile Include="Common\Extensions\RectangleExtensions.cs" />
     <Compile Include="Common\Helpers\WriteLock.cs" />
     <Compile Include="Common\Helpers\UpgradeableReadLock.cs" />
     <Compile Include="Common\Helpers\TypeFinder.cs" />
@@ -161,6 +162,21 @@
     <Compile Include="Imaging\FastBitmap.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Imaging\Filters\ObjectDetection\Class1.cs" />
+    <Compile Include="Imaging\Filters\ObjectDetection\EmbeddedHaarCascades.cs" />
+    <Compile Include="Imaging\Filters\ObjectDetection\GroupMatching.cs" />
+    <Compile Include="Imaging\Filters\ObjectDetection\HaarCascade\HaarCascade.cs" />
+    <Compile Include="Imaging\Filters\ObjectDetection\HaarCascade\HaarCascadeSerializationObject.cs" />
+    <Compile Include="Imaging\Filters\ObjectDetection\HaarCascade\HaarCascadeStage.cs" />
+    <Compile Include="Imaging\Filters\ObjectDetection\HaarCascade\HaarCascadeWriter.cs" />
+    <Compile Include="Imaging\Filters\ObjectDetection\HaarCascade\HaarClassifier.cs" />
+    <Compile Include="Imaging\Filters\ObjectDetection\HaarCascade\HaarFeature.cs" />
+    <Compile Include="Imaging\Filters\ObjectDetection\HaarCascade\HaarFeatureNode.cs" />
+    <Compile Include="Imaging\Filters\ObjectDetection\HaarCascade\HaarRectangle.cs" />
+    <Compile Include="Imaging\Filters\ObjectDetection\HaarObjectDetector.cs" />
+    <Compile Include="Imaging\Filters\ObjectDetection\ObjectDetectorScalingMode.cs" />
+    <Compile Include="Imaging\Filters\ObjectDetection\ObjectDetectorSearchMode.cs" />
+    <Compile Include="Imaging\Filters\ObjectDetection\RectangleGroupMatching.cs" />
     <Compile Include="Imaging\Formats\GifDecoder.cs" />
     <Compile Include="Common\Extensions\IntegerExtensions.cs" />
     <Compile Include="Common\Exceptions\ImageFormatException.cs" />
@@ -220,6 +236,7 @@
     <Compile Include="Imaging\Resizer.cs" />
     <Compile Include="Imaging\RoundedCornerLayer.cs" />
     <Compile Include="Imaging\TextLayer.cs" />
+    <Compile Include="Processors\DetectObjects.cs" />
     <Compile Include="Processors\Gamma.cs" />
     <Compile Include="Processors\Alpha.cs" />
     <Compile Include="Processors\EntropyCrop.cs" />
@@ -256,6 +273,12 @@
   </ItemGroup>
   <ItemGroup>
     <WCFMetadata Include="Service References\" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Imaging\Filters\ObjectDetection\Resources\haarcascade_frontalface_default.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Imaging\Filters\ObjectDetection\Resources\haarcascade_frontalface_legacy.xml" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />

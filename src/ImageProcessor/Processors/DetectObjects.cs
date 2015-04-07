@@ -1,10 +1,10 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="Alpha.cs" company="James South">
+// <copyright file="DetectObjects.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   Encapsulates methods to change the alpha component of the image to effect its transparency.
+//   Encapsulates methods to change the DetectObjects component of the image to effect its transparency.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -15,17 +15,19 @@ namespace ImageProcessor.Processors
     using System.Drawing;
 
     using ImageProcessor.Common.Exceptions;
+    using ImageProcessor.Imaging.Filters.ObjectDetection;
+    using ImageProcessor.Imaging.Filters.Photo;
     using ImageProcessor.Imaging.Helpers;
 
     /// <summary>
-    /// Encapsulates methods to change the alpha component of the image to effect its transparency.
+    /// Encapsulates methods to change the DetectObjects component of the image to effect its transparency.
     /// </summary>
-    public class Alpha : IGraphicsProcessor
+    public class DetectObjects : IGraphicsProcessor
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="Alpha"/> class.
+        /// Initializes a new instance of the <see cref="DetectObjects"/> class.
         /// </summary>
-        public Alpha()
+        public DetectObjects()
         {
             this.Settings = new Dictionary<string, string>();
         }
@@ -61,21 +63,48 @@ namespace ImageProcessor.Processors
         public Image ProcessImage(ImageFactory factory)
         {
             Bitmap newImage = null;
+            Bitmap grey = null;
             Image image = factory.Image;
 
             try
             {
-                int percentage = this.DynamicParameter;
+                HaarCascade cascade = this.DynamicParameter;
+                grey = new Bitmap(image.Width, image.Height);
+                grey.SetResolution(image.HorizontalResolution, image.VerticalResolution);
+                grey = MatrixFilters.GreyScale.TransformImage(image, grey);
+
+                HaarObjectDetector detector = new HaarObjectDetector(cascade)
+                {
+                    SearchMode = ObjectDetectorSearchMode.NoOverlap,
+                    ScalingMode = ObjectDetectorScalingMode.GreaterToSmaller,
+                    ScalingFactor = 1.5f
+                };
+
+                // Process frame to detect objects
+                Rectangle[] rectangles = detector.ProcessFrame(grey);
+                grey.Dispose();
 
                 newImage = new Bitmap(image);
                 newImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
-                newImage = Adjustments.Alpha(newImage, percentage);
+                using (Graphics graphics = Graphics.FromImage(newImage))
+                {
+                    using (Pen blackPen = new Pen(Color.White))
+                    {
+                        blackPen.Width = 4;
+                        graphics.DrawRectangles(blackPen, rectangles);
+                    }
+                }
 
                 image.Dispose();
                 image = newImage;
             }
             catch (Exception ex)
             {
+                if (grey != null)
+                {
+                    grey.Dispose();
+                }
+
                 if (newImage != null)
                 {
                     newImage.Dispose();

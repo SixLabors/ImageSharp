@@ -15,6 +15,7 @@ namespace ImageProcessor.Common.Extensions
     using System.IO;
     using System.Linq;
     using System.Reflection;
+    using System.Text;
 
     /// <summary>
     /// Encapsulates a series of time saving extension methods to the <see cref="T:System.Reflection.Assembly"/> class.
@@ -45,6 +46,39 @@ namespace ImageProcessor.Common.Extensions
             catch (ReflectionTypeLoadException ex)
             {
                 return ex.Types.Where(t => t != null);
+            }
+        }
+
+        /// <summary>
+        /// Converts an assembly resource into a string.
+        /// </summary>
+        /// <param name="assembly">
+        /// The <see cref="System.Reflection.Assembly"/> to load the strings from.
+        /// </param>
+        /// <param name="resource">
+        /// The resource.
+        /// </param>
+        /// <param name="encoding">
+        /// The character encoding to return the resource in.
+        /// </param>
+        /// <returns>
+        /// The <see cref="string"/>.
+        /// </returns>
+        public static string GetResourceAsString(this Assembly assembly, string resource, Encoding encoding = null)
+        {
+            encoding = encoding ?? Encoding.UTF8;
+
+            using (MemoryStream ms = new MemoryStream())
+            {
+                using (Stream manifestResourceStream = assembly.GetManifestResourceStream(resource))
+                {
+                    if (manifestResourceStream != null)
+                    {
+                        manifestResourceStream.CopyTo(ms);
+                    }
+                }
+
+                return encoding.GetString(ms.GetBuffer()).Replace('\0', ' ').Trim();
             }
         }
 

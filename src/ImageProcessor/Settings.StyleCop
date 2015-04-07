@@ -1,11 +1,13 @@
 <StyleCopSettings Version="105">
   <GlobalSettings>
     <CollectionProperty Name="RecognizedWords">
+      <Value>Accord</Value>
       <Value>bitstream</Value>
       <Value>dd</Value>
       <Value>ddd</Value>
       <Value>dllimport</Value>
       <Value>gps</Value>
+      <Value>Haar</Value>
       <Value>Kayyali</Value>
       <Value>Laplacian</Value>
       <Value>mmmm</Value>

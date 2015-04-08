@@ -92,7 +92,7 @@ namespace ImageProcessor.Imaging.Filters.ObjectDetection
         private Size minSize = new Size(15, 15);
         private Size maxSize = new Size(500, 500);
         private float factor = 1.2f;
-        private int channel = new Color32().R;
+       // private int channel = new Color32().R;
 
         private Rectangle[] lastObjects;
         private int steadyThreshold = 2;
@@ -238,11 +238,11 @@ namespace ImageProcessor.Imaging.Filters.ObjectDetection
         ///   Gets or sets the color channel to use when processing color images. 
         /// </summary>
         /// 
-        public int Channel
-        {
-            get { return channel; }
-            set { channel = value; }
-        }
+        //public int Channel
+        //{
+        //    get { return channel; }
+        //    set { channel = value; }
+        //}
 
         /// <summary>
         ///   Gets or sets the scaling factor to rescale the window during search.
@@ -361,13 +361,13 @@ namespace ImageProcessor.Imaging.Filters.ObjectDetection
         /// 
         public Rectangle[] ProcessFrame(Bitmap image)
         {
-            int colorChannel =
-              image.PixelFormat == PixelFormat.Format8bppIndexed ? 0 : channel;
+          //  int colorChannel =
+           //   image.PixelFormat == PixelFormat.Format8bppIndexed ? 0 : channel;
 
             Rectangle[] objects;
 
             // Creates an integral image representation of the frame
-            using (FastBitmap fastBitmap = new FastBitmap(image, colorChannel, this.classifier.Cascade.HasTiltedFeatures))
+            using (FastBitmap fastBitmap = new FastBitmap(image, this.classifier.Cascade.HasTiltedFeatures))
             {
                 // Creates a new list of detected objects.
                 this.detectedObjects.Clear();

@@ -16,6 +16,7 @@ namespace ImageProcessor.Imaging.Formats
     using System.IO;
     using System.Text;
 
+    using ImageProcessor.Imaging.Helpers;
     using ImageProcessor.Imaging.Quantizers;
 
     /// <summary>
@@ -27,6 +28,11 @@ namespace ImageProcessor.Imaging.Formats
         /// The quantizer for reducing the image palette.
         /// </summary>
         private IQuantizer quantizer = new OctreeQuantizer(255, 8);
+
+        /// <summary>
+        /// The color count.
+        /// </summary>
+        private int colorCount;
 
         /// <summary>
         /// Gets the file headers.
@@ -85,6 +91,24 @@ namespace ImageProcessor.Imaging.Formats
             set
             {
                 this.quantizer = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the color count.
+        /// </summary>
+        public int ColorCount
+        {
+            get
+            {
+                return this.colorCount;
+            }
+
+            set
+            {
+                int count = ImageMaths.Clamp(value, 0, 255);
+                this.colorCount = count;
+                this.quantizer = new OctreeQuantizer(count, 8);
             }
         }
 

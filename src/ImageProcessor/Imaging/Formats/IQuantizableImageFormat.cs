@@ -1,10 +1,10 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="IIndexedImageFormat.cs" company="James South">
+// <copyright file="IQuantizableImageFormat.cs" company="James South">
 //   Copyright (c) James South.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   The IQuantizableImageFormat interface for identifying quantizable image formats.
+//   The IndexedImageFormat interface for identifying quantizable image formats.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 

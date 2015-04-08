@@ -88,6 +88,11 @@ namespace ImageProcessor.Imaging.Formats
         }
 
         /// <summary>
+        /// Gets or sets the color count.
+        /// </summary>
+        public int ColorCount { get; set; }
+
+        /// <summary>
         /// Saves the current image to the specified output stream.
         /// </summary>
         /// <param name="stream">The <see cref="T:System.IO.Stream" /> to save the image information to.</param>

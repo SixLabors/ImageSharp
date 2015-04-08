@@ -109,7 +109,7 @@ namespace ImageProcessor.Imaging.Quantizers
         /// </returns>
         protected override byte QuantizePixel(Color32* pixel)
         {
-            // The color at [_maxColors] is set to transparent
+            // The color at [maxColors] is set to transparent
             byte paletteIndex = (byte)this.maxColors;
 
             // Get the palette index if this non-transparent

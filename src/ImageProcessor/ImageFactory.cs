@@ -178,6 +178,13 @@ namespace ImageProcessor
             // Set the other properties.
             format.Quality = DefaultQuality;
             format.IsIndexed = FormatUtilities.IsIndexed(this.Image);
+
+            IQuantizableImageFormat imageFormat = format as IQuantizableImageFormat;
+            if (imageFormat != null)
+            {
+                imageFormat.ColorCount = FormatUtilities.GetColorCount(this.Image);
+            }
+
             this.backupFormat = format;
             this.CurrentImageFormat = format;
 
@@ -240,6 +247,13 @@ namespace ImageProcessor
                     // Set the other properties.
                     format.Quality = DefaultQuality;
                     format.IsIndexed = FormatUtilities.IsIndexed(this.Image);
+
+                    IQuantizableImageFormat imageFormat = format as IQuantizableImageFormat;
+                    if (imageFormat != null)
+                    {
+                        imageFormat.ColorCount = FormatUtilities.GetColorCount(this.Image);
+                    }
+
                     this.backupFormat = format;
                     this.CurrentImageFormat = format;
 

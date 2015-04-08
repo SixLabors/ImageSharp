@@ -21,5 +21,10 @@ namespace ImageProcessor.Imaging.Formats
         /// Gets or sets the quantizer for reducing the image palette.
         /// </summary>
         IQuantizer Quantizer { get; set; }
+
+        /// <summary>
+        /// Gets or sets the color count.
+        /// </summary>
+        int ColorCount { get; set; }
     }
 }

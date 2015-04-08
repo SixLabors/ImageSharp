@@ -38,42 +38,79 @@ namespace ImageProcessor.Imaging
         private readonly int height;
 
         /// <summary>
+        /// The size of the a single pixel.
+        /// </summary>
+        private readonly int pixelSize;
+
+        /// <summary>
+        /// The color channel - blue, green, red, alpha.
+        /// </summary>
+        private readonly int channel;
+
+        /// <summary>
+        /// Whether to compute tilted integral rectangles.
+        /// </summary>
+        private readonly bool computeTilted;
+
+        /// <summary>
+        /// The normal integral image.
+        /// </summary>
+        private readonly long[,] normalSumImage;
+
+        /// <summary>
+        /// The squared integral image.
+        /// </summary>
+        private readonly long[,] squaredSumImage;
+
+        /// <summary>
+        /// The tilted sum image.
+        /// </summary>
+        private readonly long[,] tiltedSumImage;
+
+        /// <summary>
+        /// The normal width.
+        /// </summary>
+        private readonly int normalWidth;
+
+        /// <summary>
+        /// The tilted width.
+        /// </summary>
+        private readonly int tiltedWidth;
+
+        /// <summary>
         /// The number of bytes in a row.
         /// </summary>
         private int bytesInARow;
 
         /// <summary>
-        /// The size of the color32 structure.
+        /// The normal integral sum.
         /// </summary>
-        private int color32Size;
+        private long* normalSum;
 
         /// <summary>
-        /// The color channel - blue, green, red, alpha.
+        /// The squared integral sum.
         /// </summary>
-        private int channel;
+        private long* squaredSum;
 
         /// <summary>
-        /// Whether to compute tilted integral rectangles.
+        /// The tilted integral sum.
         /// </summary>
-        private bool computeTilted;
+        private long* tiltedSum;
 
-        private long[,] nSumImage; // normal integral image
-        private long[,] sSumImage; // squared integral image
-        private long[,] tSumImage; // tilted integral image
+        /// <summary>
+        /// The normal sum handle.
+        /// </summary>
+        private GCHandle normalSumHandle;
 
-        private long* nSum; // normal  integral image
-        private long* sSum; // squared integral image
-        private long* tSum; // tilted  integral image
+        /// <summary>
+        /// The squared sum handle.
+        /// </summary>
+        private GCHandle squaredSumHandle;
 
-        private GCHandle nSumHandle;
-        private GCHandle sSumHandle;
-        private GCHandle tSumHandle;
-
-        private int nWidth;
-        private int nHeight;
-
-        private int tWidth;
-        private int tHeight;
+        /// <summary>
+        /// The tilted sum handle.
+        /// </summary>
+        private GCHandle tiltedSumHandle;
 
         /// <summary>
         /// The bitmap data.
@@ -103,7 +140,7 @@ namespace ImageProcessor.Imaging
         /// </summary>
         /// <param name="bitmap">The input bitmap.</param>
         public FastBitmap(Image bitmap)
-            : this(bitmap, 2, false)
+            : this(bitmap, false)
         {
         }
 
@@ -111,39 +148,47 @@ namespace ImageProcessor.Imaging
         /// Initializes a new instance of the <see cref="FastBitmap"/> class.
         /// </summary>
         /// <param name="bitmap">The input bitmap.</param>
-        /// <param name="integralColorChannel">
-        /// The integral color channel. Blue, Green, Red, or Alpha.
-        /// </param>
         /// <param name="computeTilted">
         /// Whether to compute tilted integral rectangles.
         /// </param>
-        public FastBitmap(Image bitmap, int integralColorChannel, bool computeTilted)
+        public FastBitmap(Image bitmap, bool computeTilted)
         {
+            // Check image format
+            if (!(bitmap.PixelFormat == PixelFormat.Format8bppIndexed ||
+                bitmap.PixelFormat == PixelFormat.Format24bppRgb ||
+                bitmap.PixelFormat == PixelFormat.Format32bppArgb ||
+                bitmap.PixelFormat == PixelFormat.Format32bppPArgb))
+            {
+                throw new ArgumentException("Only 8bpp, 24bpp and 32bpp images are supported.");
+            }
+
+            this.pixelSize = Image.GetPixelFormatSize(bitmap.PixelFormat) / 8;
+
             this.bitmap = (Bitmap)bitmap;
             this.width = this.bitmap.Width;
             this.height = this.bitmap.Height;
-            this.channel = integralColorChannel;
+            this.channel = this.bitmap.PixelFormat == PixelFormat.Format8bppIndexed ? 0 : 2;
             this.computeTilted = computeTilted;
 
-            this.nWidth = this.width + 1;
-            this.nHeight = this.height + 1;
+            this.normalWidth = this.width + 1;
+            int normalHeight = this.height + 1;
 
-            this.tWidth = this.width + 2;
-            this.tHeight = this.height + 2;
+            this.tiltedWidth = this.width + 2;
+            int tiltedHeight = this.height + 2;
 
-            this.nSumImage = new long[this.nHeight, this.nWidth];
-            this.nSumHandle = GCHandle.Alloc(this.nSumImage, GCHandleType.Pinned);
-            this.nSum = (long*)this.nSumHandle.AddrOfPinnedObject().ToPointer();
+            this.normalSumImage = new long[normalHeight, this.normalWidth];
+            this.normalSumHandle = GCHandle.Alloc(this.normalSumImage, GCHandleType.Pinned);
+            this.normalSum = (long*)this.normalSumHandle.AddrOfPinnedObject().ToPointer();
 
-            this.sSumImage = new long[this.nHeight, this.nWidth];
-            this.sSumHandle = GCHandle.Alloc(this.sSumImage, GCHandleType.Pinned);
-            this.sSum = (long*)this.sSumHandle.AddrOfPinnedObject().ToPointer();
+            this.squaredSumImage = new long[normalHeight, this.normalWidth];
+            this.squaredSumHandle = GCHandle.Alloc(this.squaredSumImage, GCHandleType.Pinned);
+            this.squaredSum = (long*)this.squaredSumHandle.AddrOfPinnedObject().ToPointer();
 
             if (this.computeTilted)
             {
-                this.tSumImage = new long[this.tHeight, this.tWidth];
-                this.tSumHandle = GCHandle.Alloc(this.tSumImage, GCHandleType.Pinned);
-                this.tSum = (long*)this.tSumHandle.AddrOfPinnedObject().ToPointer();
+                this.tiltedSumImage = new long[tiltedHeight, this.tiltedWidth];
+                this.tiltedSumHandle = GCHandle.Alloc(this.tiltedSumImage, GCHandleType.Pinned);
+                this.tiltedSum = (long*)this.tiltedSumHandle.AddrOfPinnedObject().ToPointer();
             }
 
             this.LockBitmap();
@@ -173,6 +218,30 @@ namespace ImageProcessor.Imaging
         }
 
         /// <summary>
+        /// Gets the Integral Image for values' sum.
+        /// </summary>
+        public long[,] NormalImage
+        {
+            get { return this.normalSumImage; }
+        }
+
+        /// <summary>
+        /// Gets the Integral Image for values' squared sum.
+        /// </summary>
+        public long[,] SquaredImage
+        {
+            get { return this.squaredSumImage; }
+        }
+
+        /// <summary>
+        /// Gets the Integral Image for tilted values' sum.
+        /// </summary>
+        public long[,] RotatedImage
+        {
+            get { return this.tiltedSumImage; }
+        }
+
+        /// <summary>
         /// Gets the pixel data for the given position.
         /// </summary>
         /// <param name="x">
@@ -186,18 +255,18 @@ namespace ImageProcessor.Imaging
         /// </returns>
         private Color32* this[int x, int y]
         {
-            get { return (Color32*)(this.pixelBase + (y * this.bytesInARow) + (x * this.color32Size)); }
+            get { return (Color32*)(this.pixelBase + (y * this.bytesInARow) + (x * this.pixelSize)); }
         }
 
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="FastBitmap"/> to a 
-        /// <see cref="System.Drawing.Image"/>.
+        /// <see cref="Image"/>.
         /// </summary>
         /// <param name="fastBitmap">
         /// The instance of <see cref="FastBitmap"/> to convert.
         /// </param>
         /// <returns>
-        /// An instance of <see cref="System.Drawing.Image"/>.
+        /// An instance of <see cref="Image"/>.
         /// </returns>
         public static implicit operator Image(FastBitmap fastBitmap)
         {
@@ -239,7 +308,14 @@ namespace ImageProcessor.Imaging
             }
 #endif
             Color32* data = this[x, y];
-            return Color.FromArgb(data->A, data->R, data->G, data->B);
+
+            if (this.bitmap.PixelFormat == PixelFormat.Format32bppArgb ||
+                this.bitmap.PixelFormat == PixelFormat.Format32bppPArgb)
+            {
+                return Color.FromArgb(data->A, data->R, data->G, data->B);
+            }
+
+            return Color.FromArgb(data->R, data->G, data->B);
         }
 
         /// <summary>
@@ -268,7 +344,12 @@ namespace ImageProcessor.Imaging
             data->R = color.R;
             data->G = color.G;
             data->B = color.B;
-            data->A = color.A;
+
+            if (this.bitmap.PixelFormat == PixelFormat.Format32bppArgb ||
+                this.bitmap.PixelFormat == PixelFormat.Format32bppPArgb)
+            {
+                data->A = color.A;
+            }
         }
 
         /// <summary>
@@ -284,12 +365,12 @@ namespace ImageProcessor.Imaging
         /// </returns>
         public long GetSum(int x, int y, int rectangleWidth, int rectangleHeight)
         {
-            int a = (this.nWidth * y) + x;
-            int b = (this.nWidth * (y + rectangleHeight)) + (x + rectangleWidth);
-            int c = (this.nWidth * (y + rectangleHeight)) + x;
-            int d = (this.nWidth * y) + (x + rectangleWidth);
+            int a = (this.normalWidth * y) + x;
+            int b = (this.normalWidth * (y + rectangleHeight)) + (x + rectangleWidth);
+            int c = (this.normalWidth * (y + rectangleHeight)) + x;
+            int d = (this.normalWidth * y) + (x + rectangleWidth);
 
-            return this.nSum[a] + this.nSum[b] - this.nSum[c] - this.nSum[d];
+            return this.normalSum[a] + this.normalSum[b] - this.normalSum[c] - this.normalSum[d];
         }
 
         /// <summary>
@@ -305,12 +386,12 @@ namespace ImageProcessor.Imaging
         /// </returns>
         public long GetSum2(int x, int y, int rectangleWidth, int rectangleHeight)
         {
-            int a = (this.nWidth * y) + x;
-            int b = (this.nWidth * (y + rectangleHeight)) + (x + rectangleWidth);
-            int c = (this.nWidth * (y + rectangleHeight)) + x;
-            int d = (this.nWidth * y) + (x + rectangleWidth);
+            int a = (this.normalWidth * y) + x;
+            int b = (this.normalWidth * (y + rectangleHeight)) + (x + rectangleWidth);
+            int c = (this.normalWidth * (y + rectangleHeight)) + x;
+            int d = (this.normalWidth * y) + (x + rectangleWidth);
 
-            return this.sSum[a] + this.sSum[b] - this.sSum[c] - this.sSum[d];
+            return this.squaredSum[a] + this.squaredSum[b] - this.squaredSum[c] - this.squaredSum[d];
         }
 
         /// <summary>
@@ -326,12 +407,12 @@ namespace ImageProcessor.Imaging
         /// </returns>
         public long GetSumT(int x, int y, int rectangleWidth, int rectangleHeight)
         {
-            int a = (this.tWidth * (y + rectangleWidth)) + (x + rectangleWidth + 1);
-            int b = (this.tWidth * (y + rectangleHeight)) + (x - rectangleHeight + 1);
-            int c = (this.tWidth * y) + (x + 1);
-            int d = (this.tWidth * (y + rectangleWidth + rectangleHeight)) + (x + rectangleWidth - rectangleHeight + 1);
+            int a = (this.tiltedWidth * (y + rectangleWidth)) + (x + rectangleWidth + 1);
+            int b = (this.tiltedWidth * (y + rectangleHeight)) + (x - rectangleHeight + 1);
+            int c = (this.tiltedWidth * y) + (x + 1);
+            int d = (this.tiltedWidth * (y + rectangleWidth + rectangleHeight)) + (x + rectangleWidth - rectangleHeight + 1);
 
-            return this.tSum[a] + this.tSum[b] - this.tSum[c] - this.tSum[d];
+            return this.tiltedSum[a] + this.tiltedSum[b] - this.tiltedSum[c] - this.tiltedSum[d];
         }
 
         /// <summary>
@@ -398,22 +479,22 @@ namespace ImageProcessor.Imaging
 
             // Call the appropriate methods to clean up
             // unmanaged resources here.
-            if (this.nSumHandle.IsAllocated)
+            if (this.normalSumHandle.IsAllocated)
             {
-                this.nSumHandle.Free();
-                this.nSum = null;
+                this.normalSumHandle.Free();
+                this.normalSum = null;
             }
 
-            if (this.sSumHandle.IsAllocated)
+            if (this.squaredSumHandle.IsAllocated)
             {
-                this.sSumHandle.Free();
-                this.sSum = null;
+                this.squaredSumHandle.Free();
+                this.squaredSum = null;
             }
 
-            if (this.tSumHandle.IsAllocated)
+            if (this.tiltedSumHandle.IsAllocated)
             {
-                this.tSumHandle.Free();
-                this.tSum = null;
+                this.tiltedSumHandle.Free();
+                this.tiltedSum = null;
             }
 
             // Note disposing is done.
@@ -430,15 +511,14 @@ namespace ImageProcessor.Imaging
             // Figure out the number of bytes in a row. This is rounded up to be a multiple
             // of 4 bytes, since a scan line in an image must always be a multiple of 4 bytes
             // in length.
-            this.color32Size = sizeof(Color32);
-            this.bytesInARow = bounds.Width * this.color32Size;
+            this.bytesInARow = bounds.Width * this.pixelSize;
             if (this.bytesInARow % 4 != 0)
             {
                 this.bytesInARow = 4 * ((this.bytesInARow / 4) + 1);
             }
 
             // Lock the bitmap
-            this.bitmapData = this.bitmap.LockBits(bounds, ImageLockMode.ReadWrite, PixelFormat.Format32bppPArgb);
+            this.bitmapData = this.bitmap.LockBits(bounds, ImageLockMode.ReadWrite, this.bitmap.PixelFormat);
 
             // Set the value to the first scan line
             this.pixelBase = (byte*)this.bitmapData.Scan0.ToPointer();
@@ -452,21 +532,19 @@ namespace ImageProcessor.Imaging
             // Calculate integral and integral squared values.
             int stride = this.bitmapData.Stride;
             int offset = stride - this.bytesInARow;
-
             byte* srcStart = this.pixelBase + this.channel;
 
             // Do the job
             byte* src = srcStart;
 
             // For each line
-            // TODO. Make this parallel
             for (int y = 1; y <= this.height; y++)
             {
-                int yy = this.nWidth * y;
-                int y1 = this.nWidth * (y - 1);
+                int yy = this.normalWidth * y;
+                int y1 = this.normalWidth * (y - 1);
 
                 // For each pixel
-                for (int x = 1; x <= this.width; x++, src += this.color32Size)
+                for (int x = 1; x <= this.width; x++, src += this.pixelSize)
                 {
                     int pixel = *src;
                     int pixelSquared = pixel * pixel;
@@ -474,10 +552,10 @@ namespace ImageProcessor.Imaging
                     int r = yy + x;
                     int a = yy + (x - 1);
                     int b = y1 + x;
-                    int c = y1 + (x - 1);
+                    int g = y1 + (x - 1);
 
-                    this.nSum[r] = pixel + this.nSum[a] + this.nSum[b] - this.nSum[c];
-                    this.sSum[r] = pixelSquared + this.sSum[a] + this.sSum[b] - this.sSum[c];
+                    this.normalSum[r] = pixel + this.normalSum[a] + this.normalSum[b] - this.normalSum[g];
+                    this.squaredSum[r] = pixelSquared + this.squaredSum[a] + this.squaredSum[b] - this.squaredSum[g];
                 }
 
                 src += offset;
@@ -490,60 +568,60 @@ namespace ImageProcessor.Imaging
                 // Left-to-right, top-to-bottom pass
                 for (int y = 1; y <= this.height; y++, src += offset)
                 {
-                    int yy = this.tWidth * y;
-                    int y1 = this.tWidth * (y - 1);
+                    int yy = this.tiltedWidth * y;
+                    int y1 = this.tiltedWidth * (y - 1);
 
-                    for (int x = 2; x < this.width + 2; x++, src += this.color32Size)
+                    for (int x = 2; x < this.width + 2; x++, src += this.pixelSize)
                     {
                         int a = y1 + (x - 1);
                         int b = yy + (x - 1);
-                        int c = y1 + (x - 2);
+                        int g = y1 + (x - 2);
                         int r = yy + x;
 
-                        this.tSum[r] = *src + this.tSum[a] + this.tSum[b] - this.tSum[c];
+                        this.tiltedSum[r] = *src + this.tiltedSum[a] + this.tiltedSum[b] - this.tiltedSum[g];
                     }
                 }
 
                 {
-                    int yy = this.tWidth * this.height;
-                    int y1 = this.tWidth * (this.height + 1);
+                    int yy = this.tiltedWidth * this.height;
+                    int y1 = this.tiltedWidth * (this.height + 1);
 
-                    for (int x = 2; x < this.width + 2; x++, src += this.color32Size)
+                    for (int x = 2; x < this.width + 2; x++, src += this.pixelSize)
                     {
                         int a = yy + (x - 1);
                         int c = yy + (x - 2);
                         int b = y1 + (x - 1);
                         int r = y1 + x;
 
-                        this.tSum[r] = this.tSum[a] + this.tSum[b] - this.tSum[c];
+                        this.tiltedSum[r] = this.tiltedSum[a] + this.tiltedSum[b] - this.tiltedSum[c];
                     }
                 }
 
                 // Right-to-left, bottom-to-top pass
                 for (int y = this.height; y >= 0; y--)
                 {
-                    int yy = this.tWidth * y;
-                    int y1 = this.tWidth * (y + 1);
+                    int yy = this.tiltedWidth * y;
+                    int y1 = this.tiltedWidth * (y + 1);
 
                     for (int x = this.width + 1; x >= 1; x--)
                     {
                         int r = yy + x;
                         int b = y1 + (x - 1);
 
-                        this.tSum[r] += this.tSum[b];
+                        this.tiltedSum[r] += this.tiltedSum[b];
                     }
                 }
 
                 for (int y = this.height + 1; y >= 0; y--)
                 {
-                    int yy = this.tWidth * y;
+                    int yy = this.tiltedWidth * y;
 
                     for (int x = this.width + 1; x >= 2; x--)
                     {
                         int r = yy + x;
                         int b = yy + (x - 2);
 
-                        this.tSum[r] -= this.tSum[b];
+                        this.tiltedSum[r] -= this.tiltedSum[b];
                     }
                 }
             }

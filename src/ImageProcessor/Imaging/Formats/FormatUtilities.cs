@@ -11,12 +11,14 @@
 namespace ImageProcessor.Imaging.Formats
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Drawing;
     using System.Drawing.Imaging;
     using System.IO;
     using System.Linq;
     using System.Reflection;
+    using System.Threading.Tasks;
 
     using ImageProcessor.Configuration;
 
@@ -81,6 +83,42 @@ namespace ImageProcessor.Imaging.Formats
             // Test value of flags using bitwise AND.
             // ReSharper disable once BitwiseOperatorOnEnumWithoutFlags
             return (image.PixelFormat & PixelFormat.Indexed) != 0;
+        }
+
+        /// <summary>
+        /// Returns the color count from the palette of the given image.
+        /// </summary>
+        /// <param name="image">
+        /// The <see cref="System.Drawing.Image"/> to get the colors from.
+        /// </param>
+        /// <returns>
+        /// The <see cref="int"/> representing the color count.
+        /// </returns>
+        public static int GetColorCount(Image image)
+        {
+            ConcurrentDictionary<Color, Color> colors = new ConcurrentDictionary<Color, Color>();
+            int width = image.Width;
+            int height = image.Height;
+
+            using (FastBitmap fastBitmap = new FastBitmap(image))
+            {
+                Parallel.For(
+                    0,
+                    height,
+                    y =>
+                    {
+                        for (int x = 0; x < width; x++)
+                        {
+                            // ReSharper disable once AccessToDisposedClosure
+                            Color color = fastBitmap.GetPixel(x, y);
+                            colors.TryAdd(color, color);
+                        }
+                    });
+            }
+
+            int count = colors.Count;
+            colors.Clear();
+            return count;
         }
 
         /// <summary>

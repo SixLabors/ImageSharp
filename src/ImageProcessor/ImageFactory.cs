@@ -21,7 +21,7 @@ namespace ImageProcessor
     using ImageProcessor.Common.Exceptions;
     using ImageProcessor.Imaging;
     using ImageProcessor.Imaging.Filters.EdgeDetection;
-    using ImageProcessor.Imaging.Filters.ObjectDetection;
+    //using ImageProcessor.Imaging.Filters.ObjectDetection;
     using ImageProcessor.Imaging.Filters.Photo;
     using ImageProcessor.Imaging.Formats;
     using ImageProcessor.Imaging.Helpers;
@@ -512,16 +512,16 @@ namespace ImageProcessor
             return this;
         }
 
-        public ImageFactory DetectObjects(HaarCascade cascade, bool drawRectangles = true, Color color = default(Color))
-        {
-            if (this.ShouldProcess)
-            {
-                DetectObjects detectObjects = new DetectObjects { DynamicParameter = cascade };
-                this.CurrentImageFormat.ApplyProcessor(detectObjects.ProcessImage, this);
-            }
+        //public ImageFactory DetectObjects(HaarCascade cascade, bool drawRectangles = true, Color color = default(Color))
+        //{
+        //    if (this.ShouldProcess)
+        //    {
+        //        DetectObjects detectObjects = new DetectObjects { DynamicParameter = cascade };
+        //        this.CurrentImageFormat.ApplyProcessor(detectObjects.ProcessImage, this);
+        //    }
 
-            return this;
-        }
+        //    return this;
+        //}
 
         /// <summary>
         /// Crops an image to the area of greatest entropy.

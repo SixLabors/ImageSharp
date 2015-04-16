@@ -236,7 +236,7 @@ namespace ImageProcessor.Imaging
         /// <summary>
         /// Gets the Integral Image for tilted values' sum.
         /// </summary>
-        public long[,] RotatedImage
+        public long[,] TiltedImage
         {
             get { return this.tiltedSumImage; }
         }

@@ -21,7 +21,7 @@ namespace ImageProcessor.PlayGround
     using ImageProcessor.Configuration;
     using ImageProcessor.Imaging;
     using ImageProcessor.Imaging.Filters.EdgeDetection;
-    using ImageProcessor.Imaging.Filters.ObjectDetection;
+    //using ImageProcessor.Imaging.Filters.ObjectDetection;
     using ImageProcessor.Imaging.Filters.Photo;
     using ImageProcessor.Imaging.Formats;
     using ImageProcessor.Processors;
@@ -60,13 +60,15 @@ namespace ImageProcessor.PlayGround
             //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "gamma-1.0-or-2.2.png"));
             //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "gamma_dalai_lama_gray.jpg"));
             //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "Arc-de-Triomphe-France.jpg"));
-            //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "Martin-Schoeller-Jack-Nicholson-Portrait.jpeg"));
-            FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "test2.png"));
-           
+            FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "Martin-Schoeller-Jack-Nicholson-Portrait.jpeg"));
+            //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "test2.png"));
+            //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "120430.gif"));
+            //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "rickroll.original.gif"));
+
             //////FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "crop-base-300x200.jpg"));
             //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "cmyk.png"));
             //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif");
-            IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".png", ".jpg", ".jpeg");
+            //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".png", ".jpg", ".jpeg");
             //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".jpg", ".jpeg", ".jfif");
             //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif", ".webp", ".bmp", ".jpg", ".png");
 
@@ -88,7 +90,7 @@ namespace ImageProcessor.PlayGround
             {
                 using (ImageFactory imageFactory = new ImageFactory(true, false))
                 {
-                    Size size = new Size(500, 0);
+                    Size size = new Size(600, 0);
                     //CropLayer cropLayer = new CropLayer(20, 20, 20, 20, ImageProcessor.Imaging.CropMode.Percentage);
                     //ResizeLayer layer = new ResizeLayer(size, ResizeMode.Max, AnchorPosition.Center, false);
 
@@ -98,7 +100,7 @@ namespace ImageProcessor.PlayGround
                     //};
                     // Load, resize, set the format and quality and save an image.
                     imageFactory.Load(inStream)
-                        .DetectObjects(EmbeddedHaarCascades.FrontFaceDefault)
+                        //.DetectObjects(EmbeddedHaarCascades.FrontFaceDefault)
                         //.Overlay(new ImageLayer
                         //            {
                         //                Image = overlay,
@@ -113,7 +115,9 @@ namespace ImageProcessor.PlayGround
                         //.Format(new PngFormat())
                         //.BackgroundColor(Color.Cyan)
                         //.ReplaceColor(Color.FromArgb(255, 223, 224), Color.FromArgb(121, 188, 255), 128)
-                        //.Resize(size)
+                        //.GaussianSharpen(3)
+                        //.Saturation(20)
+                        .Resize(size)
                         //.Resize(new ResizeLayer(size, ResizeMode.Max))
                         // .Resize(new ResizeLayer(size, ResizeMode.Stretch))
                         //.DetectEdges(new Laplacian3X3EdgeFilter(), true)

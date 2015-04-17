@@ -15,8 +15,6 @@ namespace ImageProcessor.Imaging.Helpers
     using System.Drawing.Imaging;
     using System.Threading.Tasks;
 
-    using ImageProcessor.Common.Extensions;
-
     /// <summary>
     /// Provides reusable adjustment methods to apply to images.
     /// </summary>
@@ -97,7 +95,7 @@ namespace ImageProcessor.Imaging.Helpers
             }
 
             float brightnessFactor = (float)threshold / 100;
-            Rectangle bounds = rectangle.HasValue ? rectangle.Value : new Rectangle(0, 0, source.Width, source.Height);
+            Rectangle bounds = rectangle ?? new Rectangle(0, 0, source.Width, source.Height);
 
             ColorMatrix colorMatrix =
                 new ColorMatrix(

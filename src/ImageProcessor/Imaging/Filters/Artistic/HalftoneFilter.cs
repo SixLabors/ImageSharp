@@ -200,7 +200,8 @@ namespace ImageProcessor.Imaging.Filters.Artistic
 
                 // Yellow oversaturates the output.
                 int offset = this.distance;
-                float yellowMultiplier = this.distance * 1.667f;
+                float yellowMultiplier = this.distance * 1.334f;
+                float magentaMultiplier = this.distance * 1.667f;
                 float multiplier = this.distance * 2.2f;
                 float max = this.distance * (float)Math.Sqrt(2);
 
@@ -289,7 +290,7 @@ namespace ImageProcessor.Imaging.Filters.Artistic
                                 {
                                     color = sourceBitmap.GetPixel(angledX, angledY);
                                     cmykColor = color;
-                                    brushWidth = Math.Min((cmykColor.M / 100f) * multiplier, max);
+                                    brushWidth = Math.Min((cmykColor.M / 100f) * magentaMultiplier, max);
                                     graphicsMagenta.FillEllipse(magentaBrush, angledX, angledY, brushWidth, brushWidth);
                                 }
 

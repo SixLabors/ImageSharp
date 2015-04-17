@@ -235,6 +235,7 @@ namespace ImageProcessor.Imaging.Helpers
 
             // Darken it again to average out the color.
             destination = Adjustments.Brightness(destination, -5);
+
             return (Bitmap)destination;
         }
     }

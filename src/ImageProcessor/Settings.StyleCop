@@ -2,7 +2,9 @@
   <GlobalSettings>
     <CollectionProperty Name="RecognizedWords">
       <Value>Accord</Value>
+      <Value>argb</Value>
       <Value>bitstream</Value>
+      <Value>bpp</Value>
       <Value>dd</Value>
       <Value>ddd</Value>
       <Value>dllimport</Value>
@@ -13,6 +15,7 @@
       <Value>mmmm</Value>
       <Value>orig</Value>
       <Value>quantizable</Value>
+      <Value>rgb</Value>
       <Value>Scharr</Value>
       <Value>Sobel</Value>
       <Value>specifier</Value>

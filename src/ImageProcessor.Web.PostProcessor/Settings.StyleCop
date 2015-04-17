@@ -1,1 +1,7 @@
-<StyleCopSettings Version="105" />
+<StyleCopSettings Version="105">
+  <GlobalSettings>
+    <CollectionProperty Name="RecognizedWords">
+      <Value>executables</Value>
+    </CollectionProperty>
+  </GlobalSettings>
+</StyleCopSettings>

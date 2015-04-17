@@ -335,10 +335,6 @@ namespace ImageProcessor.Imaging
                                             green += k * color.G;
                                             blue += k * color.B;
                                             alpha += k * color.A;
-                                            //red += k * (color.R * color.R);
-                                            //green += k * (color.G * color.G);
-                                            //blue += k * (color.B * color.B);
-                                            //alpha += k * (color.A * color.A);
 
                                             processedKernelSize++;
                                         }
@@ -364,11 +360,6 @@ namespace ImageProcessor.Imaging
                                 // Check and apply the divider
                                 if ((long)divider != 0)
                                 {
-                                    //red = Math.Sqrt(red / divider);
-                                    //green = Math.Sqrt(green / divider);
-                                    //blue = Math.Sqrt(blue / divider);
-                                    //alpha = Math.Sqrt(alpha / divider);
-
                                     red /= divider;
                                     green /= divider;
                                     blue /= divider;

@@ -58,11 +58,11 @@ namespace ImageProcessor.Web.PostProcessor
             // Get the resources and copy them across.
             Dictionary<string, string> resources = new Dictionary<string, string>
             {
-                {"gifsicle.exe","ImageProcessor.Web.PostProcessor.Resources.Unmanaged." + folder + ".gifsicle.exe"},
-                {"jpegtran.exe","ImageProcessor.Web.PostProcessor.Resources.Unmanaged.x86.jpegtran.exe"},
-                {"optipng.exe","ImageProcessor.Web.PostProcessor.Resources.Unmanaged.x86.optipng.exe"},
-                {"pngout.exe","ImageProcessor.Web.PostProcessor.Resources.Unmanaged.x86.pngout.exe"},
-                {"png.cmd","ImageProcessor.Web.PostProcessor.Resources.Unmanaged.x86.png.cmd" }
+                { "gifsicle.exe", "ImageProcessor.Web.PostProcessor.Resources.Unmanaged." + folder + ".gifsicle.exe" },
+                { "jpegtran.exe", "ImageProcessor.Web.PostProcessor.Resources.Unmanaged.x86.jpegtran.exe" },
+                { "optipng.exe", "ImageProcessor.Web.PostProcessor.Resources.Unmanaged.x86.optipng.exe" },
+                { "pngout.exe", "ImageProcessor.Web.PostProcessor.Resources.Unmanaged.x86.pngout.exe" },
+                { "png.cmd", "ImageProcessor.Web.PostProcessor.Resources.Unmanaged.x86.png.cmd" }
             };
 
             // Write the files out to the bin folder.

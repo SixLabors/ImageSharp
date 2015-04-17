@@ -23,6 +23,30 @@ namespace ImageProcessor.Imaging
     public unsafe class FastBitmap : IDisposable
     {
         /// <summary>
+        /// The integral representation of the 8bppIndexed pixel format.
+        /// </summary>
+        // ReSharper disable once InconsistentNaming
+        private const int Format8bppIndexed = (int)PixelFormat.Format8bppIndexed;
+
+        /// <summary>
+        /// The integral representation of the 24bppRgb pixel format.
+        /// </summary>
+        // ReSharper disable once InconsistentNaming
+        private const int Format24bppRgb = (int)PixelFormat.Format24bppRgb;
+
+        /// <summary>
+        /// The integral representation of the 32bppArgb pixel format.
+        /// </summary>
+        // ReSharper disable once InconsistentNaming
+        private const int Format32bppArgb = (int)PixelFormat.Format32bppArgb;
+
+        /// <summary>
+        /// The integral representation of the 32bppPArgb pixel format.
+        /// </summary>
+        // ReSharper disable once InconsistentNaming
+        private const int Format32bppPArgb = (int)PixelFormat.Format32bppPArgb;
+
+        /// <summary>
         /// The bitmap.
         /// </summary>
         private readonly Bitmap bitmap;
@@ -38,11 +62,6 @@ namespace ImageProcessor.Imaging
         private readonly int height;
 
         /// <summary>
-        /// The size of the a single pixel.
-        /// </summary>
-        private readonly int pixelSize;
-
-        /// <summary>
         /// The color channel - blue, green, red, alpha.
         /// </summary>
         private readonly int channel;
@@ -55,27 +74,27 @@ namespace ImageProcessor.Imaging
         /// <summary>
         /// The normal integral image.
         /// </summary>
-        private readonly long[,] normalSumImage;
+        private long[,] normalSumImage;
 
         /// <summary>
         /// The squared integral image.
         /// </summary>
-        private readonly long[,] squaredSumImage;
+        private long[,] squaredSumImage;
 
         /// <summary>
         /// The tilted sum image.
         /// </summary>
-        private readonly long[,] tiltedSumImage;
+        private long[,] tiltedSumImage;
 
         /// <summary>
         /// The normal width.
         /// </summary>
-        private readonly int normalWidth;
+        private int normalWidth;
 
         /// <summary>
         /// The tilted width.
         /// </summary>
-        private readonly int tiltedWidth;
+        private int tiltedWidth;
 
         /// <summary>
         /// The number of bytes in a row.
@@ -111,6 +130,11 @@ namespace ImageProcessor.Imaging
         /// The tilted sum handle.
         /// </summary>
         private GCHandle tiltedSumHandle;
+
+        /// <summary>
+        /// The size of the color32 structure.
+        /// </summary>
+        private int pixelSize;
 
         /// <summary>
         /// The bitmap data.
@@ -153,46 +177,25 @@ namespace ImageProcessor.Imaging
         /// </param>
         public FastBitmap(Image bitmap, bool computeTilted)
         {
+            int pixelFormat = (int)bitmap.PixelFormat;
+
             // Check image format
-            if (!(bitmap.PixelFormat == PixelFormat.Format8bppIndexed ||
-                bitmap.PixelFormat == PixelFormat.Format24bppRgb ||
-                bitmap.PixelFormat == PixelFormat.Format32bppArgb ||
-                bitmap.PixelFormat == PixelFormat.Format32bppPArgb))
+            if (!(pixelFormat == Format8bppIndexed ||
+                  pixelFormat == Format24bppRgb ||
+                  pixelFormat == Format32bppArgb ||
+                  pixelFormat == Format32bppPArgb))
             {
                 throw new ArgumentException("Only 8bpp, 24bpp and 32bpp images are supported.");
             }
 
-            this.pixelSize = Image.GetPixelFormatSize(bitmap.PixelFormat) / 8;
-
             this.bitmap = (Bitmap)bitmap;
             this.width = this.bitmap.Width;
             this.height = this.bitmap.Height;
-            this.channel = this.bitmap.PixelFormat == PixelFormat.Format8bppIndexed ? 0 : 2;
+
+            this.channel = pixelFormat == Format8bppIndexed ? 0 : 2;
             this.computeTilted = computeTilted;
 
-            this.normalWidth = this.width + 1;
-            int normalHeight = this.height + 1;
-
-            this.tiltedWidth = this.width + 2;
-            int tiltedHeight = this.height + 2;
-
-            this.normalSumImage = new long[normalHeight, this.normalWidth];
-            this.normalSumHandle = GCHandle.Alloc(this.normalSumImage, GCHandleType.Pinned);
-            this.normalSum = (long*)this.normalSumHandle.AddrOfPinnedObject().ToPointer();
-
-            this.squaredSumImage = new long[normalHeight, this.normalWidth];
-            this.squaredSumHandle = GCHandle.Alloc(this.squaredSumImage, GCHandleType.Pinned);
-            this.squaredSum = (long*)this.squaredSumHandle.AddrOfPinnedObject().ToPointer();
-
-            if (this.computeTilted)
-            {
-                this.tiltedSumImage = new long[tiltedHeight, this.tiltedWidth];
-                this.tiltedSumHandle = GCHandle.Alloc(this.tiltedSumImage, GCHandleType.Pinned);
-                this.tiltedSum = (long*)this.tiltedSumHandle.AddrOfPinnedObject().ToPointer();
-            }
-
             this.LockBitmap();
-            this.CalculateIntegrals();
         }
 
         /// <summary>
@@ -260,13 +263,13 @@ namespace ImageProcessor.Imaging
 
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="FastBitmap"/> to a 
-        /// <see cref="Image"/>.
+        /// <see cref="System.Drawing.Image"/>.
         /// </summary>
         /// <param name="fastBitmap">
         /// The instance of <see cref="FastBitmap"/> to convert.
         /// </param>
         /// <returns>
-        /// An instance of <see cref="Image"/>.
+        /// An instance of <see cref="System.Drawing.Image"/>.
         /// </returns>
         public static implicit operator Image(FastBitmap fastBitmap)
         {
@@ -308,14 +311,7 @@ namespace ImageProcessor.Imaging
             }
 #endif
             Color32* data = this[x, y];
-
-            if (this.bitmap.PixelFormat == PixelFormat.Format32bppArgb ||
-                this.bitmap.PixelFormat == PixelFormat.Format32bppPArgb)
-            {
-                return Color.FromArgb(data->A, data->R, data->G, data->B);
-            }
-
-            return Color.FromArgb(data->R, data->G, data->B);
+            return Color.FromArgb(data->A, data->R, data->G, data->B);
         }
 
         /// <summary>
@@ -344,12 +340,7 @@ namespace ImageProcessor.Imaging
             data->R = color.R;
             data->G = color.G;
             data->B = color.B;
-
-            if (this.bitmap.PixelFormat == PixelFormat.Format32bppArgb ||
-                this.bitmap.PixelFormat == PixelFormat.Format32bppPArgb)
-            {
-                data->A = color.A;
-            }
+            data->A = color.A;
         }
 
         /// <summary>
@@ -511,6 +502,7 @@ namespace ImageProcessor.Imaging
             // Figure out the number of bytes in a row. This is rounded up to be a multiple
             // of 4 bytes, since a scan line in an image must always be a multiple of 4 bytes
             // in length.
+            this.pixelSize = Image.GetPixelFormatSize(this.bitmap.PixelFormat) / 8;
             this.bytesInARow = bounds.Width * this.pixelSize;
             if (this.bytesInARow % 4 != 0)
             {
@@ -518,10 +510,34 @@ namespace ImageProcessor.Imaging
             }
 
             // Lock the bitmap
-            this.bitmapData = this.bitmap.LockBits(bounds, ImageLockMode.ReadWrite, this.bitmap.PixelFormat);
+            this.bitmapData = this.bitmap.LockBits(bounds, ImageLockMode.ReadWrite, PixelFormat.Format32bppPArgb);
 
             // Set the value to the first scan line
             this.pixelBase = (byte*)this.bitmapData.Scan0.ToPointer();
+
+            // Allocate values for integral image calculation.
+            this.normalWidth = this.width + 1;
+            int normalHeight = this.height + 1;
+
+            this.tiltedWidth = this.width + 2;
+            int tiltedHeight = this.height + 2;
+
+            this.normalSumImage = new long[normalHeight, this.normalWidth];
+            this.normalSumHandle = GCHandle.Alloc(this.normalSumImage, GCHandleType.Pinned);
+            this.normalSum = (long*)this.normalSumHandle.AddrOfPinnedObject().ToPointer();
+
+            this.squaredSumImage = new long[normalHeight, this.normalWidth];
+            this.squaredSumHandle = GCHandle.Alloc(this.squaredSumImage, GCHandleType.Pinned);
+            this.squaredSum = (long*)this.squaredSumHandle.AddrOfPinnedObject().ToPointer();
+
+            if (this.computeTilted)
+            {
+                this.tiltedSumImage = new long[tiltedHeight, this.tiltedWidth];
+                this.tiltedSumHandle = GCHandle.Alloc(this.tiltedSumImage, GCHandleType.Pinned);
+                this.tiltedSum = (long*)this.tiltedSumHandle.AddrOfPinnedObject().ToPointer();
+            }
+
+            this.CalculateIntegrals();
         }
 
         /// <summary>

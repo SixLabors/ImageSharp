@@ -117,6 +117,16 @@ namespace ImageProcessor.Imaging
         /// Gets or sets a value indicating whether a DropShadow should be drawn.
         /// </summary>
         public bool DropShadow { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the text should be rendered vertically.
+        /// </summary>
+        public bool Vertical { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the text should be rendered right to left.
+        /// </summary>
+        public bool RightToLeft { get; set; }
         #endregion
 
         /// <summary>
@@ -147,7 +157,9 @@ namespace ImageProcessor.Imaging
                 && this.Style == textLayer.Style
                 && this.DropShadow == textLayer.DropShadow
                 && this.Opacity == textLayer.Opacity
-                && this.Position == textLayer.Position;
+                && this.Position == textLayer.Position
+                && this.Vertical == textLayer.Vertical
+                && this.RightToLeft == textLayer.RightToLeft;
         }
 
         /// <summary>
@@ -168,6 +180,8 @@ namespace ImageProcessor.Imaging
                 hashCode = (hashCode * 397) ^ this.Opacity;
                 hashCode = (hashCode * 397) ^ this.FontSize;
                 hashCode = (hashCode * 397) ^ this.Position.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.Vertical.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.RightToLeft.GetHashCode();
                 return hashCode;
             }
         }

@@ -18,6 +18,7 @@ namespace ImageProcessor.Processors
     using ImageProcessor.Common.Exceptions;
     using ImageProcessor.Common.Extensions;
     using ImageProcessor.Imaging;
+    using ImageProcessor.Imaging.Helpers;
 
     /// <summary>
     /// Encapsulates methods allowing the replacement of a color within an image.
@@ -69,17 +70,34 @@ namespace ImageProcessor.Processors
             {
                 Tuple<Color, Color, int> parameters = this.DynamicParameter;
                 Color original = parameters.Item1;
+                Color replacement = parameters.Item2;
+
+                // Ensure that color comparison takes any gamma adjustments into consideration.
+                if (factory.FixGamma || Math.Abs(factory.CurrentGamma) > 0)
+                {
+                    original = PixelOperations.Gamma(original, factory.CurrentGamma);
+                    replacement = PixelOperations.Gamma(replacement, factory.CurrentGamma);
+                }
+
                 byte originalR = original.R;
                 byte originalG = original.G;
                 byte originalB = original.B;
+                byte originalA = original.A;
 
-                Color replacement = parameters.Item2;
                 byte replacementR = replacement.R;
                 byte replacementG = replacement.G;
                 byte replacementB = replacement.B;
                 byte replacementA = replacement.A;
 
                 int fuzziness = parameters.Item3;
+
+                byte minR = (originalR - fuzziness).ToByte();
+                byte minG = (originalG - fuzziness).ToByte();
+                byte minB = (originalB - fuzziness).ToByte();
+
+                byte maxR = (originalR + fuzziness).ToByte();
+                byte maxG = (originalG + fuzziness).ToByte();
+                byte maxB = (originalB + fuzziness).ToByte();
 
                 newImage = new Bitmap(image);
                 int width = image.Width;
@@ -103,11 +121,11 @@ namespace ImageProcessor.Processors
                                 byte currentA = currentColor.A;
 
                                 // Test whether it is in the expected range.
-                                if (currentR <= originalR + fuzziness && currentR >= originalR - fuzziness)
+                                if (ImageMaths.InRange(currentR, minR, maxR))
                                 {
-                                    if (currentG <= originalG + fuzziness && currentG >= originalG - fuzziness)
+                                    if (ImageMaths.InRange(currentG, minG, maxG))
                                     {
-                                        if (currentB <= originalB + fuzziness && currentB >= originalB - fuzziness)
+                                        if (ImageMaths.InRange(currentB, minB, maxB))
                                         {
                                             // Ensure the values are within an acceptable byte range
                                             // and set the new value.
@@ -116,7 +134,11 @@ namespace ImageProcessor.Processors
                                             byte b = (originalB - currentB + replacementB).ToByte();
 
                                             // Allow replacement with transparent color.
-                                            byte a = currentA != replacementA ? replacementA : currentA;
+                                            byte a = currentA;
+                                            if (originalA != replacementA)
+                                            {
+                                                a = replacementA;
+                                            }
 
                                             // ReSharper disable once AccessToDisposedClosure
                                             fastBitmap.SetPixel(x, y, Color.FromArgb(a, r, g, b));

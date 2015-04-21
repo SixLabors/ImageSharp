@@ -1,4 +1,14 @@
-﻿namespace ImageProcessor.UnitTests.Imaging.Helpers
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="ImageMathsUnitTests.cs" company="James South">
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
+// </copyright>
+// <summary>
+//   Test harness for the image math unit tests
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
+
+namespace ImageProcessor.UnitTests.Imaging.Helpers
 {
     using System.Drawing;
     using FluentAssertions;

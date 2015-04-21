@@ -23,6 +23,20 @@ namespace ImageProcessor.Web.Configuration
     public sealed class ImageSecuritySection : ConfigurationSection
     {
         /// <summary>
+        /// Gets the <see cref="CORSOriginElement"/>
+        /// </summary>
+        /// <value>The <see cref="CORSOriginElement"/></value>
+        [ConfigurationProperty("cors", IsRequired = false)]
+        public CORSOriginElement CORSOrigin
+        {
+            get
+            {
+                object o = this["cors"];
+                return o as CORSOriginElement;
+            }
+        }
+
+        /// <summary>
         /// Gets the <see cref="ServiceElementCollection"/>
         /// </summary>
         /// <value>The <see cref="ServiceElementCollection"/></value>
@@ -214,6 +228,27 @@ namespace ImageProcessor.Web.Configuration
         }
 
         /// <summary>
+        /// Represents a CORSOriginsElement configuration element within the configuration.
+        /// </summary>
+        public class CORSOriginElement : ConfigurationElement
+        {
+            /// <summary>
+            /// Gets the <see cref="T:ImageProcessor.Web.Config.ImageSecuritySection.WhiteListElementCollection"/>.
+            /// </summary>
+            /// <value>
+            /// The <see cref="T:ImageProcessor.Web.Config.ImageSecuritySection.WhiteListElementCollection"/>.
+            /// </value>
+            [ConfigurationProperty("whitelist", IsRequired = false)]
+            public WhiteListElementCollection WhiteList
+            {
+                get
+                {
+                    return this["whitelist"] as WhiteListElementCollection;
+                }
+            }
+        }
+
+        /// <summary>
         /// Represents a whitelist collection configuration element within the configuration.
         /// </summary>
         public class WhiteListElementCollection : ConfigurationElementCollection
@@ -275,7 +310,7 @@ namespace ImageProcessor.Web.Configuration
             [ConfigurationProperty("url", DefaultValue = "", IsRequired = true)]
             public Uri Url
             {
-                get { return (Uri)this["url"]; }
+                get { return new Uri(this["url"].ToString(), UriKind.RelativeOrAbsolute); }
 
                 set { this["url"] = value; }
             }

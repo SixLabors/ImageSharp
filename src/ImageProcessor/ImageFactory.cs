@@ -65,10 +65,21 @@ namespace ImageProcessor
         /// <param name="preserveExifData">
         /// Whether to preserve exif metadata. Defaults to false.
         /// </param>
+        public ImageFactory(bool preserveExifData = false)
+            : this(preserveExifData, true)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ImageFactory"/> class.
+        /// </summary>
+        /// <param name="preserveExifData">
+        /// Whether to preserve exif metadata. Defaults to false.
+        /// </param>
         /// <param name="fixGamma">
         /// Whether to fix the gamma component of the image. Defaults to true.
         /// </param>
-        public ImageFactory(bool preserveExifData = false, bool fixGamma = true)
+        public ImageFactory(bool preserveExifData, bool fixGamma)
         {
             this.PreserveExifData = preserveExifData;
             this.ExifPropertyItems = new ConcurrentDictionary<int, PropertyItem>();
@@ -121,6 +132,11 @@ namespace ImageProcessor
         /// Gets or sets a value indicating whether to fix the gamma component of the current image.
         /// </summary>
         public bool FixGamma { get; set; }
+
+        /// <summary>
+        /// Gets or the current gamma value.
+        /// </summary>
+        public float CurrentGamma { get; private set; }
 
         /// <summary>
         /// Gets or sets the exif property items.
@@ -635,6 +651,7 @@ namespace ImageProcessor
                     value = 2.2F;
                 }
 
+                this.CurrentGamma = value;
                 Gamma gamma = new Gamma { DynamicParameter = value };
                 this.CurrentImageFormat.ApplyProcessor(gamma.ProcessImage, this);
             }

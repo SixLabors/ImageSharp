@@ -51,8 +51,8 @@ namespace ImageProcessor.Imaging.Colors
         private YCbCrColor(float y, float cb, float cr)
         {
             this.y = ImageMaths.Clamp(y, 0, 255);
-            this.cb = ImageMaths.Clamp(cb, -255, 255);
-            this.cr = ImageMaths.Clamp(cr, -255, 255);
+            this.cb = ImageMaths.Clamp(cb, 0, 255);
+            this.cr = ImageMaths.Clamp(cr, 0, 255);
         }
 
         /// <summary>
@@ -69,7 +69,7 @@ namespace ImageProcessor.Imaging.Colors
 
         /// <summary>
         /// Gets the U chroma component.
-        /// <remarks>A value ranging between -255 and 255.</remarks>
+        /// <remarks>A value ranging between 0 and 255.</remarks>
         /// </summary>
         public float Cb
         {
@@ -81,7 +81,7 @@ namespace ImageProcessor.Imaging.Colors
 
         /// <summary>
         /// Gets the V chroma component.
-        /// <remarks>A value ranging between -255 and 255.</remarks>
+        /// <remarks>A value ranging between 0 and 255.</remarks>
         /// </summary>
         public float Cr
         {
@@ -189,9 +189,13 @@ namespace ImageProcessor.Imaging.Colors
             float cb = ycbcrColor.Cb - 128;
             float cr = ycbcrColor.Cr - 128;
 
-            byte r = Convert.ToByte(Math.Max(0.0f, Math.Min(255f, y + (1.402 * cr))));
-            byte g = Convert.ToByte(Math.Max(0.0f, Math.Min(255f, y - (0.34414 * cb) - (0.71414 * cr))));
-            byte b = Convert.ToByte(Math.Max(0.0f, Math.Min(255f, y + (1.772 * cb))));
+            //byte r = Convert.ToByte(Math.Max(0.0f, Math.Min(255f, y + (1.402 * cr))));
+            //byte g = Convert.ToByte(Math.Max(0.0f, Math.Min(255f, y - (0.34414 * cb) - (0.71414 * cr))));
+            //byte b = Convert.ToByte(Math.Max(0.0f, Math.Min(255f, y + (1.772 * cb))));
+
+            byte r = Convert.ToByte(ImageMaths.Clamp(y + (1.402 * cr), 0, 255));
+            byte g = Convert.ToByte(ImageMaths.Clamp(y - (0.34414 * cb) - (0.71414 * cr), 0, 255));
+            byte b = Convert.ToByte(ImageMaths.Clamp(y + (1.772 * cb), 0, 255));
 
             return Color.FromArgb(255, r, g, b);
         }
@@ -225,7 +229,6 @@ namespace ImageProcessor.Imaging.Colors
         {
             return HslaColor.FromColor(ycbcrColor);
         }
-
 
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="YCbCrColor"/> to a 

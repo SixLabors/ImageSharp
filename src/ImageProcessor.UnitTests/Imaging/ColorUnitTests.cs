@@ -132,7 +132,6 @@ namespace ImageProcessor.UnitTests.Imaging
 
             Debug.Print(cmykColor.ToString());
 
-
             string result = ColorTranslator.ToHtml(cmykColor);
 
             result.Should().Be(expected);

@@ -72,6 +72,7 @@ namespace ImageProcessor.Processors
                 int opacity = Math.Min((int)Math.Ceiling((textLayer.Opacity / 100f) * 255), 255);
                 int fontSize = textLayer.FontSize;
                 FontStyle fontStyle = textLayer.Style;
+                bool fallbackUsed = false;
 
                 using (Graphics graphics = Graphics.FromImage(newImage))
                 {
@@ -79,6 +80,12 @@ namespace ImageProcessor.Processors
                     {
                         using (StringFormat drawFormat = new StringFormat())
                         {
+                            StringFormatFlags? formatFlags = this.GetFlags(textLayer);
+                            if (formatFlags != null)
+                            {
+                                drawFormat.FormatFlags = formatFlags.Value;
+                            }
+
                             using (Brush brush = new SolidBrush(Color.FromArgb(opacity, textLayer.FontColor)))
                             {
                                 Point? origin = textLayer.Position;
@@ -89,9 +96,13 @@ namespace ImageProcessor.Processors
                                 // We need to ensure that there is a position set for the watermark
                                 if (origin == null)
                                 {
-                                    int x = (int)(image.Width - textSize.Width) / 2;
+                                    int x = textLayer.RightToLeft
+                                        ? 0
+                                        : (int)(image.Width - textSize.Width) / 2;
                                     int y = (int)(image.Height - textSize.Height) / 2;
                                     origin = new Point(x, y);
+
+                                    fallbackUsed = true;
                                 }
 
                                 // Set the hinting and draw the text.
@@ -114,14 +125,28 @@ namespace ImageProcessor.Processors
                                         Point shadowPoint = new Point(origin.Value.X + shadowDiff, origin.Value.Y + shadowDiff);
 
                                         // Set the bounds so any overlapping text will wrap.
-                                        bounds = new RectangleF(shadowPoint, new SizeF(image.Width - shadowPoint.X, image.Height - shadowPoint.Y));
+                                        if (textLayer.RightToLeft && fallbackUsed)
+                                        {
+                                            bounds = new RectangleF(shadowPoint, new SizeF(image.Width - ((int)(image.Width - textSize.Width) / 2) - shadowPoint.X, image.Height - shadowPoint.Y));
+                                        }
+                                        else
+                                        {
+                                            bounds = new RectangleF(shadowPoint, new SizeF(image.Width - shadowPoint.X, image.Height - shadowPoint.Y));
+                                        }
 
                                         graphics.DrawString(text, font, shadowBrush, bounds, drawFormat);
                                     }
                                 }
 
                                 // Set the bounds so any overlapping text will wrap.
-                                bounds = new RectangleF(origin.Value, new SizeF(image.Width - origin.Value.X, image.Height - origin.Value.Y));
+                                if (textLayer.RightToLeft && fallbackUsed)
+                                {
+                                    bounds = new RectangleF(origin.Value, new SizeF(image.Width - ((int)(image.Width - textSize.Width) / 2), image.Height - origin.Value.Y));
+                                }
+                                else
+                                {
+                                    bounds = new RectangleF(origin.Value, new SizeF(image.Width - origin.Value.X, image.Height - origin.Value.Y));
+                                }
 
                                 graphics.DrawString(text, font, brush, bounds, drawFormat);
                             }
@@ -176,6 +201,35 @@ namespace ImageProcessor.Processors
                     return new Font(genericFontFamily, fontSize, fontStyle, GraphicsUnit.Pixel);
                 }
             }
+        }
+
+        /// <summary>
+        /// Returns the correct flags for the given text layer.
+        /// </summary>
+        /// <param name="textLayer">
+        /// The <see cref="TextLayer"/> to return the flags for.
+        /// </param>
+        /// <returns>
+        /// The <see cref="StringFormatFlags"/>.
+        /// </returns>
+        private StringFormatFlags? GetFlags(TextLayer textLayer)
+        {
+            if (textLayer.Vertical && textLayer.RightToLeft)
+            {
+                return StringFormatFlags.DirectionVertical | StringFormatFlags.DirectionRightToLeft;
+            }
+
+            if (textLayer.Vertical)
+            {
+                return StringFormatFlags.DirectionVertical;
+            }
+
+            if (textLayer.RightToLeft)
+            {
+                return StringFormatFlags.DirectionRightToLeft;
+            }
+
+            return null;
         }
     }
 }

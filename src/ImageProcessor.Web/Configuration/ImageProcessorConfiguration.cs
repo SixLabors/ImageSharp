@@ -145,6 +145,15 @@ namespace ImageProcessor.Web.Configuration
         }
 
         /// <summary>
+        /// Retrieves the security configuration section from the current application configuration. 
+        /// </summary>
+        /// <returns>The security configuration section from the current application configuration. </returns>
+        internal ImageSecuritySection GetImageSecuritySection()
+        {
+            return imageSecuritySection ?? (imageSecuritySection = ImageSecuritySection.GetConfiguration());
+        }
+
+        /// <summary>
         /// Retrieves the processing configuration section from the current application configuration. 
         /// </summary>
         /// <returns>The processing configuration section from the current application configuration. </returns>
@@ -160,15 +169,6 @@ namespace ImageProcessor.Web.Configuration
         private static ImageCacheSection GetImageCacheSection()
         {
             return imageCacheSection ?? (imageCacheSection = ImageCacheSection.GetConfiguration());
-        }
-
-        /// <summary>
-        /// Retrieves the security configuration section from the current application configuration. 
-        /// </summary>
-        /// <returns>The security configuration section from the current application configuration. </returns>
-        private static ImageSecuritySection GetImageSecuritySection()
-        {
-            return imageSecuritySection ?? (imageSecuritySection = ImageSecuritySection.GetConfiguration());
         }
 
         #region GraphicesProcessors
@@ -282,7 +282,7 @@ namespace ImageProcessor.Web.Configuration
         {
             if (this.ImageServices == null)
             {
-                if (GetImageSecuritySection().AutoLoadServices)
+                if (this.GetImageSecuritySection().AutoLoadServices)
                 {
                     Type type = typeof(IImageService);
                     try
@@ -368,7 +368,7 @@ namespace ImageProcessor.Web.Configuration
         /// </returns>
         private Dictionary<string, string> GetServiceSettings(string name)
         {
-            ImageSecuritySection.ServiceElement serviceElement = GetImageSecuritySection()
+            ImageSecuritySection.ServiceElement serviceElement = this.GetImageSecuritySection()
                 .ImageServices
                 .Cast<ImageSecuritySection.ServiceElement>()
                 .FirstOrDefault(x => x.Name == name);
@@ -400,7 +400,7 @@ namespace ImageProcessor.Web.Configuration
         /// </returns>
         private Uri[] GetServiceWhitelist(string name)
         {
-            ImageSecuritySection.ServiceElement serviceElement = GetImageSecuritySection()
+            ImageSecuritySection.ServiceElement serviceElement = this.GetImageSecuritySection()
                .ImageServices
                .Cast<ImageSecuritySection.ServiceElement>()
                .FirstOrDefault(x => x.Name == name);

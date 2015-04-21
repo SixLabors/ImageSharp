@@ -169,6 +169,7 @@
     <Compile Include="Imaging\AnchorPosition.cs" />
     <Compile Include="Imaging\Formats\IQuantizableImageFormat.cs" />
     <Compile Include="Imaging\Helpers\ImageMaths.cs" />
+    <Compile Include="Imaging\Helpers\PixelOperations.cs" />
     <Compile Include="Imaging\ImageLayer.cs" />
     <Compile Include="Imaging\MetaData\ExifPropertyTagType.cs" />
     <Compile Include="Imaging\Convolution.cs" />

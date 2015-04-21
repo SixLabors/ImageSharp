@@ -23,6 +23,7 @@ Feedback is always welcome</description>
       <group targetFramework=".NETFramework4.5">
         <dependency id="ImageProcessor" version="2.2.0.0" />
         <dependency id="ImageProcessor.Web" version="4.2.0.0" />
+		<dependency id="ImageProcessor.Web.Config" version="2.2.0.0" />
         <dependency id="Microsoft.Data.Edm" version="5.6.2" />
         <dependency id="Microsoft.Data.OData" version="5.6.2" />
         <dependency id="Microsoft.Data.Services.Client" version="5.6.2" />

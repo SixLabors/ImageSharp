@@ -1,5 +1,16 @@
-﻿namespace ImageProcessor.Web.UnitTests
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="QueryParamParserUnitTests.cs" company="James South">
+//   Copyright (c) James South.
+//   Licensed under the Apache License, Version 2.0.
+// </copyright>
+// <summary>
+//   The query parameter parser unit tests.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
+
+namespace ImageProcessor.Web.UnitTests
 {
+    using System;
     using System.Collections.Specialized;
     using System.Drawing;
     using System.Web;
@@ -10,7 +21,7 @@
     using NUnit.Framework;
 
     /// <summary>
-    /// The query param parser unit tests.
+    /// The query parameter parser unit tests.
     /// </summary>
     [TestFixture]
     public class QueryParamParserUnitTests
@@ -42,6 +53,18 @@
             NameValueCollection query = HttpUtility.ParseQueryString(queryString);
             int result = QueryParamParser.Instance.ParseValue<int>(query[parameter]);
             Assert.IsNotNull(result);
+        }
+
+        [TestCase("", "entropycrop", 0)]
+        [TestCase("entropycrop=0", "entropycrop", 0)]
+        [TestCase("entropycrop=128", "entropycrop", 128)]
+        [TestCase("entropycrop=128.4", "entropycrop", 128)]
+        [TestCase("entropycrop=128.5", "entropycrop", 129)]
+        public void IntRounded(string queryString, string parameter, int expected)
+        {
+            NameValueCollection query = HttpUtility.ParseQueryString(queryString);
+            int result = (int)Math.Round(QueryParamParser.Instance.ParseValue<float>(query[parameter]), MidpointRounding.AwayFromZero);
+            Assert.AreEqual(result, expected);
         }
 
         [TestCase("", "entropycrop")]

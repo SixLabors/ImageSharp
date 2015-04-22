@@ -85,7 +85,9 @@ namespace ImageProcessor.Web.Processors
                     FontSize = this.ParseFontSize(queryCollection),
                     FontFamily = this.ParseFontFamily(queryCollection),
                     Style = this.ParseFontStyle(queryCollection),
-                    DropShadow = this.ParseDropShadow(queryCollection)
+                    DropShadow = this.ParseDropShadow(queryCollection),
+                    Vertical = this.ParseVertical(queryCollection),
+                    RightToLeft = this.ParseRightToLeft(queryCollection)
                 };
 
                 textLayer.Opacity = this.ParseOpacity(queryCollection, textLayer.FontColor);
@@ -198,7 +200,7 @@ namespace ImageProcessor.Web.Processors
         /// The <see cref="NameValueCollection"/> of query parameters.
         /// </param>
         /// <returns>
-        /// The true if the watermark is to have a shadow; otherwise false.
+        /// True if the watermark is to have a shadow; otherwise false.
         /// </returns>
         private bool ParseDropShadow(NameValueCollection queryCollection)
         {
@@ -229,6 +231,33 @@ namespace ImageProcessor.Web.Processors
                   : 100;
         }
 
+        /// <summary>
+        /// Returns a value indicating whether the watermark is to be written right to left.
+        /// </summary>
+        /// <param name="queryCollection">
+        /// The <see cref="NameValueCollection"/> of query parameters.
+        /// </param>
+        /// <returns>
+        /// True if the watermark is to be written right to left; otherwise false.
+        /// </returns>
+        private bool ParseRightToLeft(NameValueCollection queryCollection)
+        {
+            return QueryParamParser.Instance.ParseValue<bool>(queryCollection["rtl"]);
+        }
+
+        /// <summary>
+        /// Returns a value indicating whether the watermark is to be written vertically.
+        /// </summary>
+        /// <param name="queryCollection">
+        /// The <see cref="NameValueCollection"/> of query parameters.
+        /// </param>
+        /// <returns>
+        /// True if the watermark is to be written vertically; otherwise false.
+        /// </returns>
+        private bool ParseVertical(NameValueCollection queryCollection)
+        {
+            return QueryParamParser.Instance.ParseValue<bool>(queryCollection["vertical"]);
+        }
         #endregion
     }
 }

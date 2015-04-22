@@ -106,14 +106,24 @@ namespace ImageProcessor.Web.UnitTests
         [Test]
         public void TestCropRegex()
         {
-            const string Querystring = "crop=0,0,150,300";
-            CropLayer expected = new CropLayer(0, 0, 150, 300, CropMode.Pixels);
+            Dictionary<string, CropLayer> data = new Dictionary<string, CropLayer>
+            {
+                {
+                    "crop=0,0,150,300", new CropLayer(0, 0, 150, 300, CropMode.Pixels)
+                },
+                {
+                    "crop=0.1,0.1,.2,.2&cropmode=percentage", new CropLayer(0.1f, 0.1f, 0.2f, 0.2f, CropMode.Percentage)
+                }
+            };
 
             Processors.Crop crop = new Processors.Crop();
-            crop.MatchRegexIndex(Querystring);
 
-            CropLayer actual = crop.Processor.DynamicParameter;
-            Assert.AreEqual(expected, actual);
+            foreach (KeyValuePair<string, CropLayer> item in data)
+            {
+                crop.MatchRegexIndex(item.Key);
+                CropLayer result = crop.Processor.DynamicParameter;
+                Assert.AreEqual(item.Value, result);
+            }
         }
 
         /// <summary>
@@ -253,10 +263,16 @@ namespace ImageProcessor.Web.UnitTests
                     "height=300", new ResizeLayer(new Size(0, 300))
                 },
                 {
+                    "height=300.6", new ResizeLayer(new Size(0, 301))
+                },
+                {
                     "height=300&mode=crop", new ResizeLayer(new Size(0, 300), ResizeMode.Crop)
                 },
                 {
                     "width=300&mode=crop", new ResizeLayer(new Size(300, 0), ResizeMode.Crop)
+                },
+                {
+                    "width=300.2&mode=crop", new ResizeLayer(new Size(300, 0), ResizeMode.Crop)
                 },
                 {
                     "width=600&heightratio=0.416", new ResizeLayer(new Size(600, 250))
@@ -289,6 +305,7 @@ namespace ImageProcessor.Web.UnitTests
         [TestCase("rotate=270", 270F)]
         [TestCase("rotate=-270", -270F)]
         [TestCase("rotate=28", 28F)]
+        [TestCase("rotate=28.7", 28.7F)]
         public void TestRotateRegex(string input, float expected)
         {
             Processors.Rotate rotate = new Processors.Rotate();
@@ -438,6 +455,22 @@ namespace ImageProcessor.Web.UnitTests
                             Position = new Point(30, 150),
                             DropShadow = true, 
                             FontFamily = new FontFamily("arial") 
+                        }
+                },
+                {
+                    "watermark=لا أحد يحب الألم بذاته، يسعى ورائه أو يبتغيه، ببساطة لأنه الألم&color=fff&fontsize=36&fontstyle=italic&fontopacity=80&textposition=30,150&dropshadow=true&fontfamily=arial&vertical=true&rtl=true", 
+                    new TextLayer
+                        {
+                            Text = "لا أحد يحب الألم بذاته، يسعى ورائه أو يبتغيه، ببساطة لأنه الألم", 
+                            FontColor = ColorTranslator.FromHtml("#" + "ffffff"), 
+                            FontSize = 36,
+                            Style = FontStyle.Italic,
+                            Opacity = 80, 
+                            Position = new Point(30, 150),
+                            DropShadow = true, 
+                            FontFamily = new FontFamily("arial"),
+                            Vertical = true,
+                            RightToLeft = true
                         }
                 }
             };

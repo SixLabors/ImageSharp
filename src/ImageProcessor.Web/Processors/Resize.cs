@@ -124,23 +124,27 @@ namespace ImageProcessor.Web.Processors
             string heightRatio = queryCollection["heightratio"];
             Size size = new Size();
 
+            // Umbraco calls the API incorrectly so we have to deal with floats.
+            // We round up so that single pixel lines are not produced.
+            const MidpointRounding Rounding = MidpointRounding.AwayFromZero;
+
             // First cater for single dimensions.
             if (width != null && height == null)
             {
-                size = new Size(QueryParamParser.Instance.ParseValue<int>(width), 0);
+                size = new Size((int)Math.Round(QueryParamParser.Instance.ParseValue<float>(width), Rounding), 0);
             }
 
             if (width == null && height != null)
             {
-                size = new Size(0, QueryParamParser.Instance.ParseValue<int>(height));
+                size = new Size(0, (int)Math.Round(QueryParamParser.Instance.ParseValue<float>(height), Rounding));
             }
 
             // Both supplied
             if (width != null && height != null)
             {
                 size = new Size(
-                    QueryParamParser.Instance.ParseValue<int>(width),
-                    QueryParamParser.Instance.ParseValue<int>(height));
+                    (int)Math.Round(QueryParamParser.Instance.ParseValue<float>(width), Rounding),
+                    (int)Math.Round(QueryParamParser.Instance.ParseValue<float>(height), Rounding));
             }
 
             // Calculate any ratio driven sizes.
@@ -149,13 +153,13 @@ namespace ImageProcessor.Web.Processors
                 // Replace 0 width
                 if (size.Width == 0 && size.Height > 0 && widthRatio != null && heightRatio == null)
                 {
-                    size.Width = Convert.ToInt32(QueryParamParser.Instance.ParseValue<float>(widthRatio) * size.Height);
+                    size.Width = (int)Math.Round(QueryParamParser.Instance.ParseValue<float>(widthRatio) * size.Height, Rounding);
                 }
 
                 // Replace 0 height
                 if (size.Width > 0 && size.Height == 0 && widthRatio == null && heightRatio != null)
                 {
-                    size.Height = Convert.ToInt32(QueryParamParser.Instance.ParseValue<float>(heightRatio) * size.Width);
+                    size.Height = (int)Math.Round(QueryParamParser.Instance.ParseValue<float>(heightRatio) * size.Width, Rounding);
                 }
             }
 

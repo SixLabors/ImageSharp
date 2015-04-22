@@ -522,7 +522,7 @@ namespace ImageProcessor.Web.HttpModules
                 {
                     string origin = context.Request.Headers["Origin"];
 
-                    if (this.IsValidOriginRequest(origin))
+                    if (this.IsValidCorsRequest(origin))
                     {
                         response.AddHeader("Access-Control-Allow-Origin", origin);
                     }
@@ -626,7 +626,7 @@ namespace ImageProcessor.Web.HttpModules
         /// <returns>
         /// <c>True</c> if the request is valid; otherwise, <c>False</c>.
         /// </returns>
-        private bool IsValidOriginRequest(string path)
+        private bool IsValidCorsRequest(string path)
         {
             ImageSecuritySection.CORSOriginElement origins =
                 ImageProcessorConfiguration.Instance.GetImageSecuritySection().CORSOrigin;

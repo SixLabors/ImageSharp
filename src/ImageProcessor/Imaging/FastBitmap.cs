@@ -67,6 +67,11 @@ namespace ImageProcessor.Imaging
         private readonly int channel;
 
         /// <summary>
+        /// Whether to compute integral rectangles.
+        /// </summary>
+        private readonly bool computeIntegrals;
+
+        /// <summary>
         /// Whether to compute tilted integral rectangles.
         /// </summary>
         private readonly bool computeTilted;
@@ -172,10 +177,25 @@ namespace ImageProcessor.Imaging
         /// Initializes a new instance of the <see cref="FastBitmap"/> class.
         /// </summary>
         /// <param name="bitmap">The input bitmap.</param>
+        /// <param name="computeIntegrals">
+        /// Whether to compute integral rectangles.
+        /// </param>
+        public FastBitmap(Image bitmap, bool computeIntegrals)
+            : this(bitmap, computeIntegrals, false)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FastBitmap"/> class.
+        /// </summary>
+        /// <param name="bitmap">The input bitmap.</param>
+        /// <param name="computeIntegrals">
+        /// Whether to compute integral rectangles.
+        /// </param>
         /// <param name="computeTilted">
         /// Whether to compute tilted integral rectangles.
         /// </param>
-        public FastBitmap(Image bitmap, bool computeTilted)
+        public FastBitmap(Image bitmap, bool computeIntegrals, bool computeTilted)
         {
             int pixelFormat = (int)bitmap.PixelFormat;
 
@@ -193,6 +213,7 @@ namespace ImageProcessor.Imaging
             this.height = this.bitmap.Height;
 
             this.channel = pixelFormat == Format8bppIndexed ? 0 : 2;
+            this.computeIntegrals = computeIntegrals;
             this.computeTilted = computeTilted;
 
             this.LockBitmap();
@@ -515,29 +536,32 @@ namespace ImageProcessor.Imaging
             // Set the value to the first scan line
             this.pixelBase = (byte*)this.bitmapData.Scan0.ToPointer();
 
-            // Allocate values for integral image calculation.
-            this.normalWidth = this.width + 1;
-            int normalHeight = this.height + 1;
-
-            this.tiltedWidth = this.width + 2;
-            int tiltedHeight = this.height + 2;
-
-            this.normalSumImage = new long[normalHeight, this.normalWidth];
-            this.normalSumHandle = GCHandle.Alloc(this.normalSumImage, GCHandleType.Pinned);
-            this.normalSum = (long*)this.normalSumHandle.AddrOfPinnedObject().ToPointer();
-
-            this.squaredSumImage = new long[normalHeight, this.normalWidth];
-            this.squaredSumHandle = GCHandle.Alloc(this.squaredSumImage, GCHandleType.Pinned);
-            this.squaredSum = (long*)this.squaredSumHandle.AddrOfPinnedObject().ToPointer();
-
-            if (this.computeTilted)
+            if (this.computeIntegrals)
             {
-                this.tiltedSumImage = new long[tiltedHeight, this.tiltedWidth];
-                this.tiltedSumHandle = GCHandle.Alloc(this.tiltedSumImage, GCHandleType.Pinned);
-                this.tiltedSum = (long*)this.tiltedSumHandle.AddrOfPinnedObject().ToPointer();
-            }
+                // Allocate values for integral image calculation.
+                this.normalWidth = this.width + 1;
+                int normalHeight = this.height + 1;
 
-            this.CalculateIntegrals();
+                this.tiltedWidth = this.width + 2;
+                int tiltedHeight = this.height + 2;
+
+                this.normalSumImage = new long[normalHeight, this.normalWidth];
+                this.normalSumHandle = GCHandle.Alloc(this.normalSumImage, GCHandleType.Pinned);
+                this.normalSum = (long*)this.normalSumHandle.AddrOfPinnedObject().ToPointer();
+
+                this.squaredSumImage = new long[normalHeight, this.normalWidth];
+                this.squaredSumHandle = GCHandle.Alloc(this.squaredSumImage, GCHandleType.Pinned);
+                this.squaredSum = (long*)this.squaredSumHandle.AddrOfPinnedObject().ToPointer();
+
+                if (this.computeTilted)
+                {
+                    this.tiltedSumImage = new long[tiltedHeight, this.tiltedWidth];
+                    this.tiltedSumHandle = GCHandle.Alloc(this.tiltedSumImage, GCHandleType.Pinned);
+                    this.tiltedSum = (long*)this.tiltedSumHandle.AddrOfPinnedObject().ToPointer();
+                }
+
+                this.CalculateIntegrals();
+            }
         }
 
         /// <summary>

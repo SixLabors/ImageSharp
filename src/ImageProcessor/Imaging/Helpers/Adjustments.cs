@@ -204,46 +204,15 @@ namespace ImageProcessor.Imaging.Helpers
             Bitmap destination = new Bitmap(width, height);
             destination.SetResolution(source.HorizontalResolution, source.VerticalResolution);
 
-            byte[] ramp = new byte[256];
-            for (int x = 0; x < 256; ++x)
+            Rectangle rectangle = new Rectangle(0, 0, width, height);
+            using (Graphics graphics = Graphics.FromImage(destination))
             {
-                byte val = ((255.0 * Math.Pow(x / 255.0, value)) + 0.5).ToByte();
-                ramp[x] = val;
-            }
-
-            using (FastBitmap fastSource = new FastBitmap(source))
-            {
-                using (FastBitmap fastDestination = new FastBitmap(destination))
+                using (ImageAttributes attributes = new ImageAttributes())
                 {
-                    Parallel.For(
-                        0,
-                        height,
-                        y =>
-                        {
-                            for (int x = 0; x < width; x++)
-                            {
-                                // ReSharper disable once AccessToDisposedClosure
-                                Color color = fastSource.GetPixel(x, y);
-                                byte r = ramp[color.R];
-                                byte g = ramp[color.G];
-                                byte b = ramp[color.B];
-
-                                // ReSharper disable once AccessToDisposedClosure
-                                fastDestination.SetPixel(x, y, Color.FromArgb(color.A, r, g, b));
-                            }
-                        });
+                    attributes.SetGamma(value);
+                    graphics.DrawImage(source, rectangle, 0, 0, width, height, GraphicsUnit.Pixel, attributes);
                 }
             }
-
-            //Rectangle rectangle = new Rectangle(0, 0, width, height);
-            //using (Graphics graphics = Graphics.FromImage(destination))
-            //{
-            //    using (ImageAttributes attributes = new ImageAttributes())
-            //    {
-            //        attributes.SetGamma(value);
-            //        graphics.DrawImage(source, rectangle, 0, 0, width, height, GraphicsUnit.Pixel, attributes);
-            //    }
-            //}
 
             source.Dispose();
             return destination;

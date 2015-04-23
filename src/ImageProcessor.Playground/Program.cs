@@ -72,8 +72,8 @@ namespace ImageProcessor.PlayGround
             //FileInfo fileInfo = new FileInfo(Path.Combine(resolvedPath, "cmyk.png"));
             //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif");
             //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".png", ".jpg", ".jpeg");
-            IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".jpg", ".jpeg", ".jfif");
-            //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".png");
+           // IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".jpg", ".jpeg", ".jfif");
+            IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".png");
             //IEnumerable<FileInfo> files = GetFilesByExtensions(di, ".gif", ".webp", ".bmp", ".jpg", ".png");
 
             foreach (FileInfo fileInfo in files)
@@ -94,9 +94,9 @@ namespace ImageProcessor.PlayGround
             {
                 using (ImageFactory imageFactory = new ImageFactory(true, true))
                 {
-                    Size size = new Size(600, 0);
+                    Size size = new Size(1920, 1920);
                     //CropLayer cropLayer = new CropLayer(20, 20, 20, 20, ImageProcessor.Imaging.CropMode.Percentage);
-                    //ResizeLayer layer = new ResizeLayer(size, ResizeMode.Max, AnchorPosition.Center, false);
+                    ResizeLayer layer = new ResizeLayer(size, ResizeMode.Max, AnchorPosition.Center, false);
                     // TextLayer textLayer = new TextLayer()
                     //{
                     //    Text = "هناك حقيقة مثبتة منذ زمن",
@@ -133,7 +133,7 @@ namespace ImageProcessor.PlayGround
                         //.GaussianSharpen(3)
                         //.Saturation(20)
                         //.Resize(size)
-                        //.Resize(new ResizeLayer(size, ResizeMode.Max))
+                        .Resize(layer)
                         // .Resize(new ResizeLayer(size, ResizeMode.Stretch))
                         //.DetectEdges(new SobelEdgeFilter(), true)
                         //.DetectEdges(new LaplacianOfGaussianEdgeFilter())
@@ -147,7 +147,7 @@ namespace ImageProcessor.PlayGround
                         //.Filter(MatrixFilters.Invert)
                         //.Brightness(-5)
                         //.Contrast(50)
-                        .Filter(MatrixFilters.Comic)
+                        //.Filter(MatrixFilters.Comic)
                         //.Flip()
                         //.Filter(MatrixFilters.HiSatch)
                         //.Pixelate(8)

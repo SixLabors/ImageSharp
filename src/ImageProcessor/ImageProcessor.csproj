@@ -38,8 +38,11 @@
     <Folder Include="Common\Exceptions\" />
     <Folder Include="Common\Extensions\" />
     <Folder Include="Common\Helpers\" />
+    <Folder Include="Encoders\" />
+    <Folder Include="Filters\" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Point.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />

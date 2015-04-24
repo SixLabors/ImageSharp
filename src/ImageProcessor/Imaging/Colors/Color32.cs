@@ -76,9 +76,6 @@ namespace ImageProcessor.Imaging.Colors
             this.R = red;
             this.G = green;
             this.B = blue;
-
-            // Stolen from Color.
-            this.Argb = (int)(((uint)((((red << 0x10) | (green << 8)) | blue) | (alpha << 0x18))) & 0xffffffffL);
         }
 
         /// <summary>
@@ -114,7 +111,7 @@ namespace ImageProcessor.Imaging.Colors
             {
                 Color32 color32 = (Color32)obj;
 
-                return this.B == color32.B && this.G == color32.G & this.R == color32.R & this.A == color32.A;
+                return this.Argb == color32.Argb;
             }
 
             return false;

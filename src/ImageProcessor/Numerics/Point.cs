@@ -13,6 +13,7 @@ namespace ImageProcessor
 {
     using System;
     using System.ComponentModel;
+    using System.Globalization;
 
     /// <summary>
     /// Represents an ordered pair of integer x- and y-coordinates that defines a point in 
@@ -21,17 +22,17 @@ namespace ImageProcessor
     public struct Point : IEquatable<Point>
     {
         /// <summary>
-        /// Represents a Point that has X and Y values set to zero.
+        /// Represents a <see cref="Point"/> that has X and Y values set to zero.
         /// </summary>
         public static readonly Point Empty = new Point();
 
         /// <summary>
-        /// The x-coordinate of this Point.
+        /// The x-coordinate of this <see cref="Point"/>.
         /// </summary>
         public int X;
 
         /// <summary>
-        /// The y-coordinate of this Point.
+        /// The y-coordinate of this <see cref="Point"/>.
         /// </summary>
         public int Y;
 
@@ -51,7 +52,7 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Gets a value indicating whether this Point is empty.
+        /// Gets a value indicating whether this <see cref="Point"/> is empty.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public bool IsEmpty
@@ -60,6 +61,44 @@ namespace ImageProcessor
             {
                 return this.X == 0 && this.Y == 0;
             }
+        }
+
+        /// <summary>
+        /// Compares two <see cref="Point"/> objects. The result specifies whether the values
+        /// of the <see cref="Point.X"/> or <see cref="Point.Y"/> properties of the two
+        /// <see cref="Point"/> objects are equal.
+        /// </summary>
+        /// <param name="left">
+        /// The <see cref="Point"/> on the left side of the operand.
+        /// </param>
+        /// <param name="right">
+        /// The <see cref="Point"/> on the right side of the operand.
+        /// </param>
+        /// <returns>
+        /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
+        /// </returns>
+        public static bool operator ==(Point left, Point right)
+        {
+            return left.Equals(right);
+        }
+
+        /// <summary>
+        /// Compares two <see cref="Point"/> objects. The result specifies whether the values
+        /// of the <see cref="Point.X"/> or <see cref="Point.Y"/> properties of the two
+        /// <see cref="Point"/> objects are unequal.
+        /// </summary>
+        /// <param name="left">
+        /// The <see cref="Point"/> on the left side of the operand.
+        /// </param>
+        /// <param name="right">
+        /// The <see cref="Point"/> on the right side of the operand.
+        /// </param>
+        /// <returns>
+        /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
+        /// </returns>
+        public static bool operator !=(Point left, Point right)
+        {
+            return !left.Equals(right);
         }
 
         /// <summary>
@@ -96,10 +135,21 @@ namespace ImageProcessor
         }
 
         /// <summary>
+        /// Returns the fully qualified type name of this instance.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="T:System.String"/> containing a fully qualified type name.
+        /// </returns>
+        public override string ToString()
+        {
+            return "{X=" + this.X.ToString(CultureInfo.CurrentCulture) + ",Y=" + this.Y.ToString(CultureInfo.CurrentCulture) + "}";
+        }
+
+        /// <summary>
         /// Indicates whether the current object is equal to another object of the same type.
         /// </summary>
         /// <returns>
-        /// true if the current object is equal to the <paramref name="other"/> parameter; otherwise, false.
+        /// True if the current object is equal to the <paramref name="other"/> parameter; otherwise, false.
         /// </returns>
         /// <param name="other">An object to compare with this object.</param>
         public bool Equals(Point other)
@@ -110,18 +160,18 @@ namespace ImageProcessor
         /// <summary>
         /// Returns the hash code for this instance.
         /// </summary>
-        /// <param name="obj">
+        /// <param name="point">
         /// The instance of <see cref="Point"/> to return the hash code for.
         /// </param>
         /// <returns>
         /// A 32-bit signed integer that is the hash code for this instance.
         /// </returns>
-        private int GetHashCode(Point obj)
+        private int GetHashCode(Point point)
         {
             unchecked
             {
-                int hashCode = obj.X.GetHashCode();
-                hashCode = (hashCode * 397) ^ obj.Y.GetHashCode();
+                int hashCode = point.X.GetHashCode();
+                hashCode = (hashCode * 397) ^ point.Y.GetHashCode();
                 return hashCode;
             }
         }

@@ -35,13 +35,16 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- A reference to the entire .NET Framework is automatically included -->
-    <Folder Include="Common\Exceptions\" />
     <Folder Include="Common\Extensions\" />
     <Folder Include="Common\Helpers\" />
     <Folder Include="Encoders\" />
     <Folder Include="Filters\" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Colors\Color.cs" />
+    <Compile Include="Common\Exceptions\ImageFormatException.cs" />
+    <Compile Include="IImageBase.cs" />
+    <Compile Include="ImageBase.cs" />
     <Compile Include="Numerics\Point.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Numerics\Rectangle.cs" />

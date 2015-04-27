@@ -35,20 +35,51 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- A reference to the entire .NET Framework is automatically included -->
-    <Folder Include="Common\Extensions\" />
-    <Folder Include="Common\Helpers\" />
-    <Folder Include="Encoders\" />
     <Folder Include="Filters\" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Common\Extensions\ByteExtensions.cs" />
+    <Compile Include="Common\Extensions\ComparableExtensions.cs" />
+    <Compile Include="Common\Helpers\Utils.cs" />
+    <Compile Include="Formats\Png\PngDecoder.cs" />
+    <Compile Include="Formats\Png\PngDecoderCore.cs" />
+    <Compile Include="Formats\Png\PngEncoder.cs" />
+    <Compile Include="Formats\Png\PngColorTypeInformation.cs" />
+    <Compile Include="Formats\Png\PngChunk.cs" />
+    <Compile Include="Formats\Png\PngChunkTypes.cs" />
+    <Compile Include="Formats\Png\TrueColorReader.cs" />
+    <Compile Include="Formats\Png\PaletteIndexReader.cs" />
+    <Compile Include="Formats\Png\GrayscaleReader.cs" />
+    <Compile Include="Formats\Png\IColorReader.cs" />
+    <Compile Include="Formats\Png\PngHeader.cs" />
+    <Compile Include="ImageProperty.cs" />
+    <Compile Include="ImageFrame.cs" />
     <Compile Include="Colors\Color.cs" />
     <Compile Include="Common\Exceptions\ImageFormatException.cs" />
-    <Compile Include="IImageBase.cs" />
+    <Compile Include="Common\Helpers\Guard.cs" />
+    <Compile Include="Formats\Gif\GifDecoder.cs" />
+    <Compile Include="Formats\Gif\LzwDecoder.cs" />
+    <Compile Include="Formats\Gif\GifLogicalScreenDescriptor.cs" />
+    <Compile Include="Formats\Gif\GifImageDescriptor.cs" />
+    <Compile Include="Formats\Gif\GifGraphicsControlExtension.cs" />
+    <Compile Include="Formats\Gif\DisposalMethod.cs" />
+    <Compile Include="Formats\IImageDecoder.cs" />
+    <Compile Include="Formats\IImageEncoder.cs" />
+    <Compile Include="Image.cs" />
     <Compile Include="ImageBase.cs" />
     <Compile Include="Numerics\Point.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Numerics\Rectangle.cs" />
     <Compile Include="Numerics\Size.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="ICSharpCode.SharpZipLib.Portable, Version=0.86.0.51802, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\SharpZipLib.Portable.0.86.0.0002\lib\portable-net45+netcore45+wp8+win8+wpa81+MonoTouch+MonoAndroid\ICSharpCode.SharpZipLib.Portable.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

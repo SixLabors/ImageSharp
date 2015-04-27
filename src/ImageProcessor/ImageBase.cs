@@ -14,11 +14,28 @@ namespace ImageProcessor
     using System;
 
     /// <summary>
-    /// The base class of all images. Encapsulates all the properties and methods 
+    /// The base class of all images. Encapsulates the basic properties and methods 
     /// required to manipulate images.
     /// </summary>
-    public abstract class ImageBase : IImageBase
+    public abstract class ImageBase 
     {
+        /// <summary>
+        /// The maximum allowable width in pixels.
+        /// </summary>
+        private static int maxWidth = int.MaxValue;
+
+        /// <summary>
+        /// The maximum allowable height in pixels.
+        /// </summary>
+        private static int maxHeight = int.MaxValue;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ImageBase"/> class.
+        /// </summary>
+        protected ImageBase()
+        {
+        }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageBase"/> class.
         /// </summary>
@@ -71,6 +88,38 @@ namespace ImageProcessor
             this.Height = other.Height;
             this.Pixels = new byte[pixels.Length];
             Array.Copy(pixels, this.Pixels, pixels.Length);
+        }
+
+        /// <summary>
+        /// Gets or sets the maximum allowable width in pixels.
+        /// </summary>
+        public static int MaxWidth
+        {
+            get
+            {
+                return maxWidth;
+            }
+
+            set
+            {
+                maxWidth = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the maximum allowable height in pixels.
+        /// </summary>
+        public static int MaxHeight
+        {
+            get
+            {
+                return maxHeight;
+            }
+
+            set
+            {
+                maxHeight = value;
+            }
         }
 
         /// <summary>

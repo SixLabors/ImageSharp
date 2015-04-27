@@ -129,6 +129,50 @@ namespace ImageProcessor
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="Color"/> struct.
+        /// </summary>
+        /// <param name="hex">
+        /// The hexadecimal representation of the combined color components arranged 
+        /// in r,g,b or a,r,g,b format to match web syntax.
+        /// </param>
+        public Color(string hex)
+            : this()
+        {
+            hex = hex.StartsWith("#") ? hex.Substring(1) : hex;
+
+            if (hex.Length != 8 && hex.Length != 6 && hex.Length != 3)
+            {
+                throw new ArgumentException("Hexadecimal string is not in the correct format.", "hex");
+            }
+
+            if (hex.Length == 8)
+            {
+                this.R = Convert.ToByte(hex.Substring(2, 2), 16);
+                this.G = Convert.ToByte(hex.Substring(4, 2), 16);
+                this.B = Convert.ToByte(hex.Substring(6, 2), 16);
+                this.A = Convert.ToByte(hex.Substring(0, 2), 16);
+            }
+            else if (hex.Length == 6)
+            {
+                this.R = Convert.ToByte(hex.Substring(0, 2), 16);
+                this.G = Convert.ToByte(hex.Substring(2, 2), 16);
+                this.B = Convert.ToByte(hex.Substring(4, 2), 16);
+                this.A = 255;
+            }
+            else
+            {
+                string r = char.ToString(hex[0]);
+                string g = char.ToString(hex[1]);
+                string b = char.ToString(hex[2]);
+
+                this.R = Convert.ToByte(r + r, 16);
+                this.G = Convert.ToByte(g + g, 16);
+                this.B = Convert.ToByte(b + b, 16);
+                this.A = 255;
+            }
+        }
+
+        /// <summary>
         /// Gets a value indicating whether this <see cref="Color"/> is empty.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
@@ -138,6 +182,44 @@ namespace ImageProcessor
             {
                 return this.B == 0 && this.G == 0 && this.R == 0 && this.A == 0;
             }
+        }
+
+        /// <summary>
+        /// Compares two <see cref="Color"/> objects. The result specifies whether the values
+        /// of the <see cref="Color.B"/>, <see cref="Color.G"/>, <see cref="Color.R"/>, and <see cref="Color.A"/>
+        /// properties of the two <see cref="Color"/> objects are equal.
+        /// </summary>
+        /// <param name="left">
+        /// The <see cref="Color"/> on the left side of the operand.
+        /// </param>
+        /// <param name="right">
+        /// The <see cref="Color"/> on the right side of the operand.
+        /// </param>
+        /// <returns>
+        /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
+        /// </returns>
+        public static bool operator ==(Color left, Color right)
+        {
+            return left.Equals(right);
+        }
+
+        /// <summary>
+        /// Compares two <see cref="Color"/> objects. The result specifies whether the values
+        /// of the <see cref="Color.B"/>, <see cref="Color.G"/>, <see cref="Color.R"/>, and <see cref="Color.A"/>
+        /// properties of the two <see cref="Color"/> objects are unequal.
+        /// </summary>
+        /// <param name="left">
+        /// The <see cref="Color"/> on the left side of the operand.
+        /// </param>
+        /// <param name="right">
+        /// The <see cref="Color"/> on the right side of the operand.
+        /// </param>
+        /// <returns>
+        /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
+        /// </returns>
+        public static bool operator !=(Color left, Color right)
+        {
+            return !left.Equals(right);
         }
 
         /// <summary>
@@ -200,20 +282,20 @@ namespace ImageProcessor
         /// <summary>
         /// Returns the hash code for the given instance.
         /// </summary>
-        /// <param name="obj">
+        /// <param name="color">
         /// The instance of <see cref="Color"/> to return the hash code for.
         /// </param>
         /// <returns>
         /// A 32-bit signed integer that is the hash code for this instance.
         /// </returns>
-        private int GetHashCode(Color obj)
+        private int GetHashCode(Color color)
         {
             unchecked
             {
-                int hashCode = obj.B.GetHashCode();
-                hashCode = (hashCode * 397) ^ obj.G.GetHashCode();
-                hashCode = (hashCode * 397) ^ obj.R.GetHashCode();
-                hashCode = (hashCode * 397) ^ obj.A.GetHashCode();
+                int hashCode = color.B.GetHashCode();
+                hashCode = (hashCode * 397) ^ color.G.GetHashCode();
+                hashCode = (hashCode * 397) ^ color.R.GetHashCode();
+                hashCode = (hashCode * 397) ^ color.A.GetHashCode();
                 return hashCode;
             }
         }

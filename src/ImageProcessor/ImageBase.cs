@@ -4,7 +4,7 @@
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   The base class of all image. Encapsulates all the properties and methods
+//   The base class of all images. Encapsulates all the properties and methods
 //   required to manipulate images.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
@@ -14,7 +14,7 @@ namespace ImageProcessor
     using System;
 
     /// <summary>
-    /// The base class of all image. Encapsulates all the properties and methods 
+    /// The base class of all images. Encapsulates all the properties and methods 
     /// required to manipulate images.
     /// </summary>
     public abstract class ImageBase : IImageBase

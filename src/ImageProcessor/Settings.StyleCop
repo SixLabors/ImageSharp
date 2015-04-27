@@ -1,0 +1,12 @@
+<StyleCopSettings Version="105">
+  <GlobalSettings>
+    <CollectionProperty Name="RecognizedWords">
+      <Value>EX</Value>
+      <Value>png</Value>
+      <Value>scanline</Value>
+      <Value>scanlines</Value>
+      <Value>tEXt</Value>
+      <Value>xt</Value>
+    </CollectionProperty>
+  </GlobalSettings>
+</StyleCopSettings>

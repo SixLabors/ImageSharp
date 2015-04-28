@@ -1,6 +1,8 @@
 <StyleCopSettings Version="105">
   <GlobalSettings>
     <CollectionProperty Name="RecognizedWords">
+      <Value>cb</Value>
+      <Value>cr</Value>
       <Value>EX</Value>
       <Value>png</Value>
       <Value>scanline</Value>

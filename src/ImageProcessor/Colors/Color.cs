@@ -12,7 +12,6 @@ namespace ImageProcessor
 {
     using System;
     using System.ComponentModel;
-    using System.Globalization;
     using System.Runtime.InteropServices;
 
     /// <summary>
@@ -223,6 +222,29 @@ namespace ImageProcessor
         }
 
         /// <summary>
+        /// Allows the implicit conversion of an instance of <see cref="YCbCrColor"/> to a 
+        /// <see cref="Color"/>.
+        /// </summary>
+        /// <param name="color">
+        /// The instance of <see cref="YCbCrColor"/> to convert.
+        /// </param>
+        /// <returns>
+        /// An instance of <see cref="Color"/>.
+        /// </returns>
+        public static implicit operator Color(YCbCrColor color)
+        {
+            float y = color.Y;
+            float cb = color.Cb - 128;
+            float cr = color.Cr - 128;
+
+            byte r = Convert.ToByte((y + (1.402 * cr)).Clamp(0, 255));
+            byte g = Convert.ToByte((y - (0.34414 * cb) - (0.71414 * cr)).Clamp(0, 255));
+            byte b = Convert.ToByte((y + (1.772 * cb)).Clamp(0, 255));
+
+            return new Color(b, g, r, 255);
+        }
+
+        /// <summary>
         /// Indicates whether this instance and a specified object are equal.
         /// </summary>
         /// <returns>
@@ -260,10 +282,12 @@ namespace ImageProcessor
         /// </returns>
         public override string ToString()
         {
-            return "{B=" + this.B.ToString(CultureInfo.CurrentCulture)
-            + ",G=" + this.G.ToString(CultureInfo.CurrentCulture)
-            + ",R=" + this.R.ToString(CultureInfo.CurrentCulture)
-            + ",A=" + this.A.ToString(CultureInfo.CurrentCulture) + "}";
+            if (this.IsEmpty)
+            {
+                return "Color [Empty]";
+            }
+
+            return string.Format("Color [ B={0}, G={1}, R={2}, A={3} ]", this.B, this.G, this.R, this.A);
         }
 
         /// <summary>

@@ -1,4 +1,15 @@
-﻿namespace ImageProcessor
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="Image.cs" company="James South">
+//   Copyright © James South and contributors.
+//   Licensed under the Apache License, Version 2.0.
+// </copyright>
+// <summary>
+//   Image class which stores the pixels and provides common functionality
+//   such as loading images from files and streams or operation like resizing or cropping.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
+
+namespace ImageProcessor
 {
     using System;
     using System.Collections.Generic;
@@ -10,46 +21,140 @@
     using ImageProcessor.Formats;
 
     /// <summary>
-    /// Image class with stores the pixels and provides common functionality
-    /// such as loading images from files and streams or operation like resizing or cutting.
+    /// Image class which stores the pixels and provides common functionality
+    /// such as loading images from files and streams or operation like resizing or cropping.
     /// </summary>
-    /// <remarks>The image data is alway stored in RGBA format, where the red, the blue, the
-    /// alpha values are simple bytes.</remarks>
-    [DebuggerDisplay("Image: {PixelWidth}x{PixelHeight}")]
+    /// <remarks>
+    /// The image data is always stored in BGRA format, where the blue, green, red, and 
+    /// alpha values are simple bytes.
+    /// </remarks>
+    [DebuggerDisplay("Image: {Width}x{Height}")]
     public class Image : ImageBase
     {
-        #region Constants
+        /// <summary>
+        /// The default horizontal resolution value (dots per inch) in x direction. 
+        /// The default value is 96 dots per inch.
+        /// </summary>
+        public const double DefaultHorizontalResolution = 96;
 
         /// <summary>
-        /// The default density value (dots per inch) in x direction. The default value is 75 dots per inch.
+        /// The default vertical resolution value (dots per inch) in y direction. 
+        /// The default value is 96 dots per inch.
         /// </summary>
-        public const double DefaultDensityX = 75;
+        public const double DefaultVerticalResolution = 96;
+
         /// <summary>
-        /// The default density value (dots per inch) in y direction. The default value is 75 dots per inch.
+        /// The default collection of <see cref="IImageDecoder"/>.
         /// </summary>
-        public const double DefaultDensityY = 75;
-
-        private static readonly Lazy<List<IImageDecoder>> defaultDecoders = new Lazy<List<IImageDecoder>>(() => new List<IImageDecoder>
+        private static readonly Lazy<List<IImageDecoder>> DefaultDecoders =
+            new Lazy<List<IImageDecoder>>(() => new List<IImageDecoder>
         {
-            //new BmpDecoder(),
-            //new JpegDecoder(),
-            //new PngDecoder(),
-            new GifDecoder(),
+            // new BmpDecoder(),
+            // new JpegDecoder(),
+            new PngDecoder(),
+            // new GifDecoder(),
         });
 
-        private static readonly Lazy<List<IImageEncoder>> defaultEncoders = new Lazy<List<IImageEncoder>>(() => new List<IImageEncoder>
+        /// <summary>
+        /// The default collection of <see cref="IImageEncoder"/>.
+        /// </summary>
+        private static readonly Lazy<List<IImageEncoder>> DefaultEncoders =
+            new Lazy<List<IImageEncoder>>(() => new List<IImageEncoder>
         {
-            //new BmpEncoder(),
-            //new JpegEncoder(),
-            //new PngEncoder(),
+            // new BmpEncoder(),
+            // new JpegEncoder(),
+            new PngEncoder(),
         });
+
+        /// <summary>
+        /// The collection of image frames.
+        /// </summary>
+        private readonly IList<ImageFrame> frames = new List<ImageFrame>();
+
+        /// <summary>
+        /// The collection of image properties.
+        /// </summary>
+        private readonly IList<ImageProperty> properties = new List<ImageProperty>();
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image"/> class.
+        /// </summary>
+        public Image()
+        {
+            this.HorizontalResolution = DefaultHorizontalResolution;
+            this.VerticalResolution = DefaultVerticalResolution;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image"/> class
+        /// with the height and the width of the image.
+        /// </summary>
+        /// <param name="width">The width of the image in pixels.</param>
+        /// <param name="height">The height of the image in pixels.</param>
+        public Image(int width, int height)
+            : base(width, height)
+        {
+            this.HorizontalResolution = DefaultHorizontalResolution;
+            this.VerticalResolution = DefaultVerticalResolution;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image"/> class
+        /// by making a copy from another image.
+        /// </summary>
+        /// <param name="other">The other image, where the clone should be made from.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="other"/> is null
+        /// (Nothing in Visual Basic).</exception>
+        public Image(Image other)
+            : base(other)
+        {
+            Guard.NotNull(other, "other", "Other image cannot be null.");
+
+            foreach (ImageFrame frame in other.Frames)
+            {
+                if (frame != null)
+                {
+                    this.Frames.Add(new ImageFrame(frame));
+                }
+            }
+
+            this.HorizontalResolution = DefaultHorizontalResolution;
+            this.VerticalResolution = DefaultVerticalResolution;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image"/> class.
+        /// </summary>
+        /// <param name="stream">
+        /// The stream containing image information.
+        /// </param>
+        public Image(Stream stream)
+        {
+            Guard.NotNull(stream, "stream");
+            this.Load(stream, Decoders);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image"/> class.
+        /// </summary>
+        /// <param name="stream">
+        /// The stream containing image information.
+        /// </param>
+        /// <param name="decoders">
+        /// The collection of <see cref="IImageDecoder"/>.
+        /// </param>
+        public Image(Stream stream, params IImageDecoder[] decoders)
+        {
+            Guard.NotNull(stream, "stream");
+            this.Load(stream, decoders);
+        }
 
         /// <summary>
         /// Gets a list of default decoders.
         /// </summary>
         public static IList<IImageDecoder> Decoders
         {
-            get { return defaultDecoders.Value; }
+            get { return DefaultDecoders.Value; }
         }
 
         /// <summary>
@@ -57,40 +162,31 @@
         /// </summary>
         public static IList<IImageEncoder> Encoders
         {
-            get { return defaultEncoders.Value; }
+            get { return DefaultEncoders.Value; }
         }
 
-        #endregion
-
-        #region Fields
-
-        private readonly object _lockObject = new object();
-
-        #endregion
-
         /// <summary>
+        /// Gets or sets the frame delay.
         /// If not 0, this field specifies the number of hundredths (1/100) of a second to 
         /// wait before continuing with the processing of the Data Stream. 
         /// The clock starts ticking immediately after the graphic is rendered. 
         /// This field may be used in conjunction with the User Input Flag field. 
         /// </summary>
-        public int? DelayTime { get; set; }
-
-        #region Properties
+        public int? FrameDelay { get; set; }
 
         /// <summary>
-        /// Gets or sets the resolution of the image in x direction. It is defined as 
+        /// Gets or sets the resolution of the image in x- direction. It is defined as 
         /// number of dots per inch and should be an positive value.
         /// </summary>
-        /// <value>The density of the image in x direction.</value>
-        public double DensityX { get; set; }
+        /// <value>The density of the image in x- direction.</value>
+        public double HorizontalResolution { get; set; }
 
         /// <summary>
-        /// Gets or sets the resolution of the image in y direction. It is defined as 
+        /// Gets or sets the resolution of the image in y- direction. It is defined as 
         /// number of dots per inch and should be an positive value.
         /// </summary>
-        /// <value>The density of the image in y direction.</value>
-        public double DensityY { get; set; }
+        /// <value>The density of the image in y- direction.</value>
+        public double VerticalResolution { get; set; }
 
         /// <summary>
         /// Gets the width of the image in inches. It is calculated as the width of the image 
@@ -102,14 +198,14 @@
         {
             get
             {
-                double densityX = DensityX;
+                double resolution = this.HorizontalResolution;
 
-                if (densityX <= 0)
+                if (resolution <= 0)
                 {
-                    densityX = DefaultDensityX;
+                    resolution = DefaultHorizontalResolution;
                 }
 
-                return Width / densityX;
+                return this.Width / resolution;
             }
         }
 
@@ -123,14 +219,14 @@
         {
             get
             {
-                double densityY = DensityY;
+                double resolution = this.VerticalResolution;
 
-                if (densityY <= 0)
+                if (resolution <= 0)
                 {
-                    densityY = DefaultDensityY;
+                    resolution = DefaultVerticalResolution;
                 }
 
-                return Height / densityY;
+                return this.Height / resolution;
             }
         }
 
@@ -142,109 +238,39 @@
         /// </value>
         public bool IsAnimated
         {
-            get { return _frames.Count > 0; }
+            get { return this.frames.Count > 0; }
         }
 
-        private IList<ImageFrame> _frames = new List<ImageFrame>();
         /// <summary>
-        /// Get the other frames for the animation.
+        /// Gets the other frames for the animation.
         /// </summary>
         /// <value>The list of frame images.</value>
         public IList<ImageFrame> Frames
         {
-            get { return _frames; }
+            get { return this.frames; }
         }
 
-        private IList<ImageProperty> _properties = new List<ImageProperty>();
         /// <summary>
         /// Gets the list of properties for storing meta information about this image.
         /// </summary>
         /// <value>A list of image properties.</value>
         public IList<ImageProperty> Properties
         {
-            get { return _properties; }
-        }
-
-        #endregion
-
-        #region Constructors
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Image"/> class
-        /// with the height and the width of the image.
-        /// </summary>
-        /// <param name="width">The width of the image in pixels.</param>
-        /// <param name="height">The height of the image in pixels.</param>
-        public Image(int width, int height)
-            : base(width, height)
-        {
-            DensityX = DefaultDensityX;
-            DensityY = DefaultDensityY;
+            get { return this.properties; }
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Image"/> class
-        /// by making a copy from another image.
+        /// Loads the image from the given stream.
         /// </summary>
-        /// <param name="other">The other image, where the clone should be made from.</param>
-        /// <exception cref="ArgumentNullException"><paramref name="other"/> is null
-        /// (Nothing in Visual Basic).</exception>
-        public Image(Image other)
-            : base(other)
-        {
-            if (other == null) throw new ArgumentNullException("Other image cannot be null.");
-
-            foreach (ImageFrame frame in other.Frames)
-            {
-                if (frame != null)
-                {
-                    Frames.Add(new ImageFrame(frame));
-                }
-            }
-
-            DensityX = DefaultDensityX;
-            DensityY = DefaultDensityY;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Image"/> class.
-        /// </summary>
-        public Image()
-        {
-            DensityX = DefaultDensityX;
-            DensityY = DefaultDensityY;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Image"/> class.
-        /// </summary>
-        public Image(Stream stream)
-        {
-            if (stream == null)
-            {
-                throw new ArgumentNullException("stream");
-            }
-
-            Load(stream, Decoders);
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Image"/> class.
-        /// </summary>
-        public Image(Stream stream, params IImageDecoder[] decoders)
-        {
-            if (stream == null)
-            {
-                throw new ArgumentNullException("stream");
-            }
-
-            Load(stream, decoders);
-        }
-
-        #endregion Constructors
-
-        #region Methods
-
+        /// <param name="stream">
+        /// The stream containing image information.
+        /// </param>
+        /// <param name="decoders">
+        /// The collection of <see cref="IImageDecoder"/>.
+        /// </param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown if the stream is not readable nor seekable.
+        /// </exception>
         private void Load(Stream stream, IList<IImageDecoder> decoders)
         {
             try
@@ -269,7 +295,7 @@
                         stream.Read(header, 0, maxHeaderSize);
                         stream.Position = 0;
 
-                        var decoder = decoders.FirstOrDefault(x => x.IsSupportedFileFormat(header));
+                        IImageDecoder decoder = decoders.FirstOrDefault(x => x.IsSupportedFileFormat(header));
                         if (decoder != null)
                         {
                             decoder.Decode(this, stream);
@@ -293,7 +319,5 @@
                 stream.Dispose();
             }
         }
-
-        #endregion Methods
     }
 }

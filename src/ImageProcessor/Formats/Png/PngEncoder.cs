@@ -203,10 +203,10 @@ namespace ImageProcessor.Formats
         private void WritePhysicalChunk(Stream stream, ImageBase imageBase)
         {
             Image image = imageBase as Image;
-            if (image != null && image.DensityX > 0 && image.DensityY > 0)
+            if (image != null && image.HorizontalResolution > 0 && image.VerticalResolution > 0)
             {
-                int dpmX = (int)Math.Round(image.DensityX * 39.3700787d);
-                int dpmY = (int)Math.Round(image.DensityY * 39.3700787d);
+                int dpmX = (int)Math.Round(image.HorizontalResolution * 39.3700787d);
+                int dpmY = (int)Math.Round(image.VerticalResolution * 39.3700787d);
 
                 byte[] chunkData = new byte[9];
 

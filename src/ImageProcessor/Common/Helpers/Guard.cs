@@ -96,6 +96,27 @@ namespace ImageProcessor
         }
 
         /// <summary>
+        /// Verifies that the specified value is less than or equal to a maximum value
+        /// and throws an exception if it is not.
+        /// </summary>
+        /// <param name="value">The target value, which should be validated.</param>
+        /// <param name="max">The maximum value.</param>
+        /// <param name="parameterName">The name of the parameter that is to be checked.</param>
+        /// <typeparam name="TValue">The type of the value.</typeparam>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="value"/> is greater than the maximum value.
+        /// </exception>
+        public static void LessEquals<TValue>(TValue value, TValue max, string parameterName) where TValue : IComparable<TValue>
+        {
+            if (value.CompareTo(max) > 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    parameterName,
+                    string.Format(CultureInfo.CurrentCulture, "Value must be less than or equal to {0}", max));
+            }
+        }
+
+        /// <summary>
         /// Verifies that the specified value is greater than a minimum value
         /// and throws an exception if it is not.
         /// </summary>
@@ -113,6 +134,27 @@ namespace ImageProcessor
                 throw new ArgumentOutOfRangeException(
                     parameterName,
                     string.Format(CultureInfo.CurrentCulture, "Value must be greater than {0}", min));
+            }
+        }
+
+        /// <summary>
+        /// Verifies that the specified value is greater than or equal to a minimum value
+        /// and throws an exception if it is not.
+        /// </summary>
+        /// <param name="value">The target value, which should be validated.</param>
+        /// <param name="min">The minimum value.</param>
+        /// <param name="parameterName">The name of the parameter that is to be checked.</param>
+        /// <typeparam name="TValue">The type of the value.</typeparam>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="value"/> is less than the minimum value.
+        /// </exception>
+        public static void GreaterEquals<TValue>(TValue value, TValue min, string parameterName) where TValue : IComparable<TValue>
+        {
+            if (value.CompareTo(min) < 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    parameterName,
+                    string.Format(CultureInfo.CurrentCulture, "Value must be greater than or equal to {0}", min));
             }
         }
     }

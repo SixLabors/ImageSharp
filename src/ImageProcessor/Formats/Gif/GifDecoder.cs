@@ -165,11 +165,12 @@
                 if (_descriptor.Width > ImageBase.MaxWidth || _descriptor.Height > ImageBase.MaxHeight)
                 {
                     throw new ArgumentOutOfRangeException(
-                        string.Format("The input gif '{0}x{1}' is bigger then the max allowed size '{2}x{3}'",
-                         _descriptor.Width,
-                          _descriptor.Height,
-                          ImageBase.MaxWidth,
-                           ImageBase.MaxHeight));
+                        string.Format(
+                            "The input gif '{0}x{1}' is bigger then the max allowed size '{2}x{3}'",
+                            _descriptor.Width,
+                            _descriptor.Height,
+                            ImageBase.MaxWidth,
+                            ImageBase.MaxHeight));
                 }
             }
 
@@ -341,7 +342,7 @@
 
                     if (_graphicsControl != null && _graphicsControl.DelayTime > 0)
                     {
-                        _image.DelayTime = _graphicsControl.DelayTime;
+                        _image.FrameDelay = _graphicsControl.DelayTime;
                     }
                 }
                 else

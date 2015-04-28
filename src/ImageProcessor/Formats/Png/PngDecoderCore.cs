@@ -188,8 +188,8 @@ namespace ImageProcessor.Formats
             Array.Reverse(data, 0, 4);
             Array.Reverse(data, 4, 4);
 
-            this.currentImage.DensityX = BitConverter.ToInt32(data, 0) / 39.3700787d;
-            this.currentImage.DensityY = BitConverter.ToInt32(data, 4) / 39.3700787d;
+            this.currentImage.HorizontalResolution = BitConverter.ToInt32(data, 0) / 39.3700787d;
+            this.currentImage.VerticalResolution = BitConverter.ToInt32(data, 4) / 39.3700787d;
         }
 
         /// <summary>

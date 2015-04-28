@@ -15,6 +15,7 @@
         //[InlineData("TestImages/Portrait.png")]
         //[InlineData("TestImages/Backdrop.jpg")]
         //[InlineData("TestImages/Windmill.gif")]
+        [InlineData("../../TestImages/Formats/Bmp/Car.bmp")]
         [InlineData("../../TestImages/Formats/Png/cmyk.png")]
         public void DecodeThenEncodeImageFromStreamShouldSucceed(string filename)
         {

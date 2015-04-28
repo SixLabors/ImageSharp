@@ -45,6 +45,12 @@
     <Compile Include="Common\Extensions\ByteExtensions.cs" />
     <Compile Include="Common\Extensions\ComparableExtensions.cs" />
     <Compile Include="Common\Helpers\Utils.cs" />
+    <Compile Include="Formats\Bmp\BmpCompression.cs" />
+    <Compile Include="Formats\Bmp\BmpFileHeader.cs" />
+    <Compile Include="Formats\Bmp\BmpInfoHeader.cs" />
+    <Compile Include="Formats\Bmp\BmpDecoder.cs" />
+    <Compile Include="Formats\Bmp\BmpDecoderCore.cs" />
+    <Compile Include="Formats\Bmp\BmpEncoder.cs" />
     <Compile Include="Formats\Png\PngDecoder.cs" />
     <Compile Include="Formats\Png\PngDecoderCore.cs" />
     <Compile Include="Formats\Png\PngEncoder.cs" />

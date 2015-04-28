@@ -49,7 +49,7 @@ namespace ImageProcessor
         private static readonly Lazy<List<IImageDecoder>> DefaultDecoders =
             new Lazy<List<IImageDecoder>>(() => new List<IImageDecoder>
         {
-            // new BmpDecoder(),
+             new BmpDecoder(),
             // new JpegDecoder(),
             new PngDecoder(),
             // new GifDecoder(),
@@ -61,7 +61,7 @@ namespace ImageProcessor
         private static readonly Lazy<List<IImageEncoder>> DefaultEncoders =
             new Lazy<List<IImageEncoder>>(() => new List<IImageEncoder>
         {
-            // new BmpEncoder(),
+             new BmpEncoder(),
             // new JpegEncoder(),
             new PngEncoder(),
         });

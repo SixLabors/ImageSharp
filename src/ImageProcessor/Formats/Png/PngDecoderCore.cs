@@ -14,6 +14,7 @@ namespace ImageProcessor.Formats
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
+    using System.Text;
 
     using ICSharpCode.SharpZipLib.Checksums;
     using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
@@ -40,7 +41,7 @@ namespace ImageProcessor.Formats
         private Image currentImage;
 
         /// <summary>
-        /// The stream to decode to.
+        /// The stream to decode from.
         /// </summary>
         private Stream currentStream;
 
@@ -360,8 +361,8 @@ namespace ImageProcessor.Formats
                 }
             }
 
-            string name = System.Text.Encoding.Unicode.GetString(data, 0, zeroIndex);
-            string value = System.Text.Encoding.Unicode.GetString(data, zeroIndex + 1, data.Length - zeroIndex - 1);
+            string name = Encoding.Unicode.GetString(data, 0, zeroIndex);
+            string value = Encoding.Unicode.GetString(data, zeroIndex + 1, data.Length - zeroIndex - 1);
 
             this.currentImage.Properties.Add(new ImageProperty(name, value));
         }

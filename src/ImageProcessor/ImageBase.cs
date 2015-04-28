@@ -17,7 +17,7 @@ namespace ImageProcessor
     /// The base class of all images. Encapsulates the basic properties and methods 
     /// required to manipulate images.
     /// </summary>
-    public abstract class ImageBase 
+    public abstract class ImageBase
     {
         /// <summary>
         /// The maximum allowable width in pixels.
@@ -50,15 +50,8 @@ namespace ImageProcessor
         /// </exception>
         protected ImageBase(int width, int height)
         {
-            if (width <= 0)
-            {
-                throw new ArgumentOutOfRangeException("width", "Width must be greater than or equals than zero.");
-            }
-
-            if (height <= 0)
-            {
-                throw new ArgumentOutOfRangeException("height", "Height must be greater than or equal than zero.");
-            }
+            Guard.GreaterThan(width, 0, "width");
+            Guard.GreaterThan(height, 0, "height");
 
             this.Width = width;
             this.Height = height;
@@ -77,10 +70,7 @@ namespace ImageProcessor
         /// </exception>
         protected ImageBase(ImageBase other)
         {
-            if (other == null)
-            {
-                throw new ArgumentNullException("other", "Other image cannot be null.");
-            }
+            Guard.NotNull(other, "other", "Other image cannot be null.");
 
             byte[] pixels = other.Pixels;
 

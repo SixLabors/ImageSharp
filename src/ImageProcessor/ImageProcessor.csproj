@@ -38,7 +38,6 @@
   <ItemGroup>
     <!-- A reference to the entire .NET Framework is automatically included -->
     <Folder Include="Filters\" />
-    <Folder Include="Formats\Jpg\" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Colors\YCbCrColor.cs" />
@@ -90,6 +89,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Formats\Bmp\README.md" />
+    <None Include="Formats\Png\README.md" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />

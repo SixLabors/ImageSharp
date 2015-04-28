@@ -73,10 +73,11 @@ namespace ImageProcessor.Formats
 
             BmpFileHeader fileHeader = new BmpFileHeader
             {
-                Type = 19778,
+                Type = 19778, // BM
                 Offset = 54,
                 FileSize = 54 + (image.Height * rowWidth * 3)
             };
+
             WriteHeader(writer, fileHeader);
 
             BmpInfoHeader infoHeader = new BmpInfoHeader

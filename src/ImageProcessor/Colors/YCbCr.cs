@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="YCbCrColor.cs" company="James South">
+// <copyright file="YCbCr.cs" company="James South">
 //   Copyright © James South and contributors.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -20,12 +20,12 @@ namespace ImageProcessor
     /// ITU-R BT.601 standard used in digital imaging systems.
     /// <see href="http://en.wikipedia.org/wiki/YCbCr"/>
     /// </summary>
-    public struct YCbCrColor : IEquatable<YCbCrColor>
+    public struct YCbCr : IEquatable<YCbCr>
     {
         /// <summary>
-        /// Represents a <see cref="YCbCrColor"/> that has Y, Cb, and Cr values set to zero.
+        /// Represents a <see cref="YCbCr"/> that has Y, Cb, and Cr values set to zero.
         /// </summary>
-        public static readonly YCbCrColor Empty = new YCbCrColor();
+        public static readonly YCbCr Empty = new YCbCr();
 
         /// <summary>
         /// Holds the Y luminance component.
@@ -51,12 +51,12 @@ namespace ImageProcessor
         private const float Epsilon = 0.0001f;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="YCbCrColor"/> struct.
+        /// Initializes a new instance of the <see cref="YCbCr"/> struct.
         /// </summary>
         /// <param name="y">The y luminance component.</param>
         /// <param name="cb">The cb chroma component.</param>
         /// <param name="cr">The cr chroma component.</param> 
-        public YCbCrColor(float y, float cb, float cr)
+        public YCbCr(float y, float cb, float cr)
         {
             this.Y = y.Clamp(0, 255);
             this.Cb = cb.Clamp(0, 255);
@@ -64,7 +64,7 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Gets a value indicating whether this <see cref="YCbCrColor"/> is empty.
+        /// Gets a value indicating whether this <see cref="YCbCr"/> is empty.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public bool IsEmpty
@@ -78,64 +78,87 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Compares two <see cref="YCbCrColor"/> objects. The result specifies whether the values
-        /// of the <see cref="YCbCrColor.Y"/>, <see cref="YCbCrColor.Cb"/>, and <see cref="YCbCrColor.Cr"/>
-        /// properties of the two <see cref="YCbCrColor"/> objects are equal.
+        /// Compares two <see cref="YCbCr"/> objects. The result specifies whether the values
+        /// of the <see cref="YCbCr.Y"/>, <see cref="YCbCr.Cb"/>, and <see cref="YCbCr.Cr"/>
+        /// properties of the two <see cref="YCbCr"/> objects are equal.
         /// </summary>
         /// <param name="left">
-        /// The <see cref="YCbCrColor"/> on the left side of the operand.
+        /// The <see cref="YCbCr"/> on the left side of the operand.
         /// </param>
         /// <param name="right">
-        /// The <see cref="YCbCrColor"/> on the right side of the operand.
+        /// The <see cref="YCbCr"/> on the right side of the operand.
         /// </param>
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        public static bool operator ==(YCbCrColor left, YCbCrColor right)
+        public static bool operator ==(YCbCr left, YCbCr right)
         {
             return left.Equals(right);
         }
 
         /// <summary>
-        /// Compares two <see cref="YCbCrColor"/> objects. The result specifies whether the values
-        /// of the <see cref="YCbCrColor.Y"/>, <see cref="YCbCrColor.Cb"/>, and <see cref="YCbCrColor.Cr"/>
-        /// properties of the two <see cref="YCbCrColor"/> objects are unequal.
+        /// Compares two <see cref="YCbCr"/> objects. The result specifies whether the values
+        /// of the <see cref="YCbCr.Y"/>, <see cref="YCbCr.Cb"/>, and <see cref="YCbCr.Cr"/>
+        /// properties of the two <see cref="YCbCr"/> objects are unequal.
         /// </summary>
         /// <param name="left">
-        /// The <see cref="YCbCrColor"/> on the left side of the operand.
+        /// The <see cref="YCbCr"/> on the left side of the operand.
         /// </param>
         /// <param name="right">
-        /// The <see cref="YCbCrColor"/> on the right side of the operand.
+        /// The <see cref="YCbCr"/> on the right side of the operand.
         /// </param>
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        public static bool operator !=(YCbCrColor left, YCbCrColor right)
+        public static bool operator !=(YCbCr left, YCbCr right)
         {
             return !left.Equals(right);
         }
 
         /// <summary>
-        /// Allows the implicit conversion of an instance of <see cref="Color"/> to a 
-        /// <see cref="YCbCrColor"/>.
+        /// Allows the implicit conversion of an instance of <see cref="Bgra"/> to a 
+        /// <see cref="YCbCr"/>.
         /// </summary>
         /// <param name="color">
-        /// The instance of <see cref="Color"/> to convert.
+        /// The instance of <see cref="Bgra"/> to convert.
         /// </param>
         /// <returns>
-        /// An instance of <see cref="YCbCrColor"/>.
+        /// An instance of <see cref="YCbCr"/>.
         /// </returns>
-        public static implicit operator YCbCrColor(Color color)
+        public static implicit operator YCbCr(Bgra color)
         {
-            byte r = color.R;
-            byte g = color.G;
             byte b = color.B;
+            byte g = color.G;
+            byte r = color.R;
 
             float y = (float)((0.299 * r) + (0.587 * g) + (0.114 * b));
             float cb = 128 + (float)((-0.168736 * r) - (0.331264 * g) + (0.5 * b));
             float cr = 128 + (float)((0.5 * r) - (0.418688 * g) - (0.081312 * b));
 
-            return new YCbCrColor(y, cb, cr);
+            return new YCbCr(y, cb, cr);
+        }
+
+        /// <summary>
+        /// Allows the implicit conversion of an instance of <see cref="YCbCr"/> to a 
+        /// <see cref="Bgra"/>.
+        /// </summary>
+        /// <param name="color">
+        /// The instance of <see cref="YCbCr"/> to convert.
+        /// </param>
+        /// <returns>
+        /// An instance of <see cref="Bgra"/>.
+        /// </returns>
+        public static implicit operator Bgra(YCbCr color)
+        {
+            float y = color.Y;
+            float cb = color.Cb - 128;
+            float cr = color.Cr - 128;
+
+            byte b = Convert.ToByte((y + (1.772 * cb)).Clamp(0, 255));
+            byte g = Convert.ToByte((y - (0.34414 * cb) - (0.71414 * cr)).Clamp(0, 255));
+            byte r = Convert.ToByte((y + (1.402 * cr)).Clamp(0, 255));
+
+            return new Bgra(b, g, r, 255);
         }
 
         /// <summary>
@@ -147,9 +170,9 @@ namespace ImageProcessor
         /// <param name="obj">Another object to compare to. </param>
         public override bool Equals(object obj)
         {
-            if (obj is YCbCrColor)
+            if (obj is YCbCr)
             {
-                YCbCrColor color = (YCbCrColor)obj;
+                YCbCr color = (YCbCr)obj;
 
                 return Math.Abs(this.Y - color.Y) < Epsilon
                     && Math.Abs(this.Cb - color.Cb) < Epsilon
@@ -180,10 +203,10 @@ namespace ImageProcessor
         {
             if (this.IsEmpty)
             {
-                return "YCbCrColor [Empty]";
+                return "YCbCrColor [ Empty ]";
             }
 
-            return string.Format("YCbCrColor [ Y={0:#0.##}, Cb={1:#0.##}, Cr={2:#0.##}]", this.Y, this.Cb, this.Cr);
+            return string.Format("YCbCrColor [ Y={0:#0.##}, Cb={1:#0.##}, Cr={2:#0.##} ]", this.Y, this.Cb, this.Cr);
         }
 
         /// <summary>
@@ -193,7 +216,7 @@ namespace ImageProcessor
         /// True if the current object is equal to the <paramref name="other"/> parameter; otherwise, false.
         /// </returns>
         /// <param name="other">An object to compare with this object.</param>
-        public bool Equals(YCbCrColor other)
+        public bool Equals(YCbCr other)
         {
             return this.Y.Equals(other.Y)
                 && this.Cb.Equals(other.Cb)
@@ -204,12 +227,12 @@ namespace ImageProcessor
         /// Returns the hash code for the given instance.
         /// </summary>
         /// <param name="color">
-        /// The instance of <see cref="Color"/> to return the hash code for.
+        /// The instance of <see cref="Bgra"/> to return the hash code for.
         /// </param>
         /// <returns>
         /// A 32-bit signed integer that is the hash code for this instance.
         /// </returns>
-        private int GetHashCode(YCbCrColor color)
+        private int GetHashCode(YCbCr color)
         {
             unchecked
             {

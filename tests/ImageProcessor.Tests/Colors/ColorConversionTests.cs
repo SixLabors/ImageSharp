@@ -21,46 +21,45 @@ namespace ImageProcessor.Tests
     public class ColorConversionTests
     {
         /// <summary>
-        /// Tests the implicit conversion from <see cref="Color"/> to <see cref="YCbCrColor"/>.
+        /// Tests the implicit conversion from <see cref="Bgra"/> to <see cref="YCbCr"/>.
         /// </summary>
         [Fact]
         [SuppressMessage("StyleCop.CSharp.NamingRules", "SA1305:FieldNamesMustNotUseHungarianNotation", Justification = "Reviewed. Suppression is OK here.")]
         public void ColorToYCbCrColor()
         {
             // White
-            Color color = new Color(255, 255, 255, 255);
-            YCbCrColor yCbCrColor = color;
+            Bgra color = new Bgra(255, 255, 255, 255);
+            YCbCr yCbCrColor = color;
 
             Assert.Equal(255, yCbCrColor.Y);
             Assert.Equal(128, yCbCrColor.Cb);
             Assert.Equal(128, yCbCrColor.Cr);
 
             // Black
-            Color color2 = new Color(0, 0, 0, 255);
-            YCbCrColor yCbCrColor2 = color2;
+            Bgra color2 = new Bgra(0, 0, 0, 255);
+            YCbCr yCbCrColor2 = color2;
             Assert.Equal(0, yCbCrColor2.Y);
             Assert.Equal(128, yCbCrColor2.Cb);
             Assert.Equal(128, yCbCrColor2.Cr);
 
-
             // Grey
-            Color color3 = new Color(128, 128, 128, 255);
-            YCbCrColor yCbCrColor3 = color3;
+            Bgra color3 = new Bgra(128, 128, 128, 255);
+            YCbCr yCbCrColor3 = color3;
             Assert.Equal(128, yCbCrColor3.Y);
             Assert.Equal(128, yCbCrColor3.Cb);
             Assert.Equal(128, yCbCrColor3.Cr);
         }
 
         /// <summary>
-        /// Tests the implicit conversion from <see cref="YCbCrColor"/> to <see cref="Color"/>.
+        /// Tests the implicit conversion from <see cref="YCbCr"/> to <see cref="Bgra"/>.
         /// </summary>
         [Fact]
         [SuppressMessage("StyleCop.CSharp.NamingRules", "SA1305:FieldNamesMustNotUseHungarianNotation", Justification = "Reviewed. Suppression is OK here.")]
         public void YCbCrColorToColor()
         {
             // White
-            YCbCrColor yCbCrColor = new YCbCrColor(255, 128, 128);
-            Color color = yCbCrColor;
+            YCbCr yCbCrColor = new YCbCr(255, 128, 128);
+            Bgra color = yCbCrColor;
 
             Assert.Equal(255, color.B);
             Assert.Equal(255, color.G);
@@ -68,8 +67,8 @@ namespace ImageProcessor.Tests
             Assert.Equal(255, color.A);
 
             // Black
-            YCbCrColor yCbCrColor2 = new YCbCrColor(0, 128, 128);
-            Color color2 = yCbCrColor2;
+            YCbCr yCbCrColor2 = new YCbCr(0, 128, 128);
+            Bgra color2 = yCbCrColor2;
 
             Assert.Equal(0, color2.B);
             Assert.Equal(0, color2.G);
@@ -77,8 +76,8 @@ namespace ImageProcessor.Tests
             Assert.Equal(255, color2.A);
 
             // Grey
-            YCbCrColor yCbCrColor3 = new YCbCrColor(128, 128, 128);
-            Color color3 = yCbCrColor3;
+            YCbCr yCbCrColor3 = new YCbCr(128, 128, 128);
+            Bgra color3 = yCbCrColor3;
 
             Assert.Equal(128, color3.B);
             Assert.Equal(128, color3.G);

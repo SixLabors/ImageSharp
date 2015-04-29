@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="Color.cs" company="James South">
+// <copyright file="Bgra.cs" company="James South">
 //   Copyright © James South and contributors.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -18,27 +18,27 @@ namespace ImageProcessor
     /// Represents an BGRA (blue, green, red, alpha) color.
     /// </summary>
     [StructLayout(LayoutKind.Explicit)]
-    public struct Color : IEquatable<Color>
+    public struct Bgra : IEquatable<Bgra>
     {
         /// <summary>
-        /// Represents a <see cref="Color"/> that has B, G, R, and A values set to zero.
+        /// Represents a <see cref="Bgra"/> that has B, G, R, and A values set to zero.
         /// </summary>
-        public static readonly Color Empty;
+        public static readonly Bgra Empty;
 
         /// <summary>
-        /// Represents a transparent <see cref="Color"/> that has B, G, R, and A values set to 255, 255, 255, 0.
+        /// Represents a transparent <see cref="Bgra"/> that has B, G, R, and A values set to 255, 255, 255, 0.
         /// </summary>
-        public static readonly Color Transparent = new Color(255, 255, 255, 0);
+        public static readonly Bgra Transparent = new Bgra(255, 255, 255, 0);
 
         /// <summary>
-        /// Represents a black <see cref="Color"/> that has B, G, R, and A values set to 0, 0, 0, 0.
+        /// Represents a black <see cref="Bgra"/> that has B, G, R, and A values set to 0, 0, 0, 0.
         /// </summary>
-        public static readonly Color Black = new Color(0, 0, 0, 255);
+        public static readonly Bgra Black = new Bgra(0, 0, 0, 255);
 
         /// <summary>
-        /// Represents a white <see cref="Color"/> that has B, G, R, and A values set to 255, 255, 255, 255.
+        /// Represents a white <see cref="Bgra"/> that has B, G, R, and A values set to 255, 255, 255, 255.
         /// </summary>
-        public static readonly Color White = new Color(255, 255, 255, 255);
+        public static readonly Bgra White = new Bgra(255, 255, 255, 255);
 
         /// <summary>
         /// Holds the blue component of the color
@@ -65,24 +65,24 @@ namespace ImageProcessor
         public byte A;
 
         /// <summary>
-        /// Permits the <see cref="Color"/> to be treated as a 32 bit integer.
+        /// Permits the <see cref="Bgra"/> to be treated as a 32 bit integer.
         /// </summary>
         [FieldOffset(0)]
-        public int Bgra;
+        public int BGRA;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Color"/> struct.
+        /// Initializes a new instance of the <see cref="Bgra"/> struct.
         /// </summary>
         /// <param name="b">
-        /// The blue component of this <see cref="Color"/>.
+        /// The blue component of this <see cref="Bgra"/>.
         /// </param>
         /// <param name="g">
-        /// The green component of this <see cref="Color"/>.
+        /// The green component of this <see cref="Bgra"/>.
         /// </param>
         /// <param name="r">
-        /// The red component of this <see cref="Color"/>.
+        /// The red component of this <see cref="Bgra"/>.
         /// </param>
-        public Color(byte b, byte g, byte r)
+        public Bgra(byte b, byte g, byte r)
             : this()
         {
             this.B = b;
@@ -92,21 +92,21 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Color"/> struct.
+        /// Initializes a new instance of the <see cref="Bgra"/> struct.
         /// </summary>
         /// <param name="b">
-        /// The blue component of this <see cref="Color"/>.
+        /// The blue component of this <see cref="Bgra"/>.
         /// </param>
         /// <param name="g">
-        /// The green component of this <see cref="Color"/>.
+        /// The green component of this <see cref="Bgra"/>.
         /// </param>
         /// <param name="r">
-        /// The red component of this <see cref="Color"/>.
+        /// The red component of this <see cref="Bgra"/>.
         /// </param>
         /// <param name="a">
-        /// The alpha component of this <see cref="Color"/>.
+        /// The alpha component of this <see cref="Bgra"/>.
         /// </param>
-        public Color(byte b, byte g, byte r, byte a)
+        public Bgra(byte b, byte g, byte r, byte a)
             : this()
         {
             this.B = b;
@@ -116,27 +116,28 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Color"/> struct.
+        /// Initializes a new instance of the <see cref="Bgra"/> struct.
         /// </summary>
         /// <param name="bgra">
         /// The combined color components.
         /// </param>
-        public Color(int bgra)
+        public Bgra(int bgra)
             : this()
         {
-            this.Bgra = bgra;
+            this.BGRA = bgra;
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Color"/> struct.
+        /// Initializes a new instance of the <see cref="Bgra"/> struct.
         /// </summary>
         /// <param name="hex">
         /// The hexadecimal representation of the combined color components arranged 
-        /// in r,g,b or a,r,g,b format to match web syntax.
+        /// in rgb, rrggbb, or aarrggbb format to match web syntax.
         /// </param>
-        public Color(string hex)
+        public Bgra(string hex)
             : this()
         {
+            // Hexadecimal representations are layed out AARRGGBB to we need to do some reordering.
             hex = hex.StartsWith("#") ? hex.Substring(1) : hex;
 
             if (hex.Length != 8 && hex.Length != 6 && hex.Length != 3)
@@ -146,33 +147,33 @@ namespace ImageProcessor
 
             if (hex.Length == 8)
             {
-                this.R = Convert.ToByte(hex.Substring(2, 2), 16);
-                this.G = Convert.ToByte(hex.Substring(4, 2), 16);
                 this.B = Convert.ToByte(hex.Substring(6, 2), 16);
+                this.G = Convert.ToByte(hex.Substring(4, 2), 16);
+                this.R = Convert.ToByte(hex.Substring(2, 2), 16);
                 this.A = Convert.ToByte(hex.Substring(0, 2), 16);
             }
             else if (hex.Length == 6)
             {
-                this.R = Convert.ToByte(hex.Substring(0, 2), 16);
-                this.G = Convert.ToByte(hex.Substring(2, 2), 16);
                 this.B = Convert.ToByte(hex.Substring(4, 2), 16);
+                this.G = Convert.ToByte(hex.Substring(2, 2), 16);
+                this.R = Convert.ToByte(hex.Substring(0, 2), 16);
                 this.A = 255;
             }
             else
             {
-                string r = char.ToString(hex[0]);
-                string g = char.ToString(hex[1]);
                 string b = char.ToString(hex[2]);
+                string g = char.ToString(hex[1]);
+                string r = char.ToString(hex[0]);
 
-                this.R = Convert.ToByte(r + r, 16);
-                this.G = Convert.ToByte(g + g, 16);
                 this.B = Convert.ToByte(b + b, 16);
+                this.G = Convert.ToByte(g + g, 16);
+                this.R = Convert.ToByte(r + r, 16);
                 this.A = 255;
             }
         }
 
         /// <summary>
-        /// Gets a value indicating whether this <see cref="Color"/> is empty.
+        /// Gets a value indicating whether this <see cref="Bgra"/> is empty.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public bool IsEmpty
@@ -184,64 +185,41 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Compares two <see cref="Color"/> objects. The result specifies whether the values
-        /// of the <see cref="Color.B"/>, <see cref="Color.G"/>, <see cref="Color.R"/>, and <see cref="Color.A"/>
-        /// properties of the two <see cref="Color"/> objects are equal.
+        /// Compares two <see cref="Bgra"/> objects. The result specifies whether the values
+        /// of the <see cref="Bgra.B"/>, <see cref="Bgra.G"/>, <see cref="Bgra.R"/>, and <see cref="Bgra.A"/>
+        /// properties of the two <see cref="Bgra"/> objects are equal.
         /// </summary>
         /// <param name="left">
-        /// The <see cref="Color"/> on the left side of the operand.
+        /// The <see cref="Bgra"/> on the left side of the operand.
         /// </param>
         /// <param name="right">
-        /// The <see cref="Color"/> on the right side of the operand.
+        /// The <see cref="Bgra"/> on the right side of the operand.
         /// </param>
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        public static bool operator ==(Color left, Color right)
+        public static bool operator ==(Bgra left, Bgra right)
         {
             return left.Equals(right);
         }
 
         /// <summary>
-        /// Compares two <see cref="Color"/> objects. The result specifies whether the values
-        /// of the <see cref="Color.B"/>, <see cref="Color.G"/>, <see cref="Color.R"/>, and <see cref="Color.A"/>
-        /// properties of the two <see cref="Color"/> objects are unequal.
+        /// Compares two <see cref="Bgra"/> objects. The result specifies whether the values
+        /// of the <see cref="Bgra.B"/>, <see cref="Bgra.G"/>, <see cref="Bgra.R"/>, and <see cref="Bgra.A"/>
+        /// properties of the two <see cref="Bgra"/> objects are unequal.
         /// </summary>
         /// <param name="left">
-        /// The <see cref="Color"/> on the left side of the operand.
+        /// The <see cref="Bgra"/> on the left side of the operand.
         /// </param>
         /// <param name="right">
-        /// The <see cref="Color"/> on the right side of the operand.
+        /// The <see cref="Bgra"/> on the right side of the operand.
         /// </param>
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        public static bool operator !=(Color left, Color right)
+        public static bool operator !=(Bgra left, Bgra right)
         {
             return !left.Equals(right);
-        }
-
-        /// <summary>
-        /// Allows the implicit conversion of an instance of <see cref="YCbCrColor"/> to a 
-        /// <see cref="Color"/>.
-        /// </summary>
-        /// <param name="color">
-        /// The instance of <see cref="YCbCrColor"/> to convert.
-        /// </param>
-        /// <returns>
-        /// An instance of <see cref="Color"/>.
-        /// </returns>
-        public static implicit operator Color(YCbCrColor color)
-        {
-            float y = color.Y;
-            float cb = color.Cb - 128;
-            float cr = color.Cr - 128;
-
-            byte r = Convert.ToByte((y + (1.402 * cr)).Clamp(0, 255));
-            byte g = Convert.ToByte((y - (0.34414 * cb) - (0.71414 * cr)).Clamp(0, 255));
-            byte b = Convert.ToByte((y + (1.772 * cb)).Clamp(0, 255));
-
-            return new Color(b, g, r, 255);
         }
 
         /// <summary>
@@ -253,11 +231,11 @@ namespace ImageProcessor
         /// <param name="obj">Another object to compare to. </param>
         public override bool Equals(object obj)
         {
-            if (obj is Color)
+            if (obj is Bgra)
             {
-                Color color = (Color)obj;
+                Bgra color = (Bgra)obj;
 
-                return this.Bgra == color.Bgra;
+                return this.BGRA == color.BGRA;
             }
 
             return false;
@@ -284,7 +262,7 @@ namespace ImageProcessor
         {
             if (this.IsEmpty)
             {
-                return "Color [Empty]";
+                return "Color [ Empty ]";
             }
 
             return string.Format("Color [ B={0}, G={1}, R={2}, A={3} ]", this.B, this.G, this.R, this.A);
@@ -297,7 +275,7 @@ namespace ImageProcessor
         /// True if the current object is equal to the <paramref name="other"/> parameter; otherwise, false.
         /// </returns>
         /// <param name="other">An object to compare with this object.</param>
-        public bool Equals(Color other)
+        public bool Equals(Bgra other)
         {
             return this.B.Equals(other.B) && this.G.Equals(other.G)
                 && this.R.Equals(other.R) && this.A.Equals(other.A);
@@ -307,12 +285,12 @@ namespace ImageProcessor
         /// Returns the hash code for the given instance.
         /// </summary>
         /// <param name="color">
-        /// The instance of <see cref="Color"/> to return the hash code for.
+        /// The instance of <see cref="Bgra"/> to return the hash code for.
         /// </param>
         /// <returns>
         /// A 32-bit signed integer that is the hash code for this instance.
         /// </returns>
-        private int GetHashCode(Color color)
+        private int GetHashCode(Bgra color)
         {
             unchecked
             {

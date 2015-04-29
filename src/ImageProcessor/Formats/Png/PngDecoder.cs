@@ -4,7 +4,7 @@
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   Encoder for generating a image out of a png stream.
+//   Encoder for generating an image out of a png encoded stream.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -14,7 +14,7 @@ namespace ImageProcessor.Formats
     using System.IO;
 
     /// <summary>
-    /// Encoder for generating a image out of a png stream.
+    /// Encoder for generating an image out of a png encoded stream.
     /// </summary>
     /// <remarks>
     /// At the moment the following features are supported:

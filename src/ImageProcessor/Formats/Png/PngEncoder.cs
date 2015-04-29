@@ -120,7 +120,14 @@ namespace ImageProcessor.Formats
             stream.Write(
                 new byte[]
                     { 
-                    0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A
+                    0x89, // Set the high bit.
+                    0x50, // P
+                    0x4E, // N
+                    0x47, // G
+                    0x0D, // Line ending CRLF
+                    0x0A, // Line ending CRLF
+                    0x1A, // EOF
+                    0x0A  // LF
                     },
                 0,
                 8);

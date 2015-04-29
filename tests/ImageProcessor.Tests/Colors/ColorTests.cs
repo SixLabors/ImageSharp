@@ -13,7 +13,7 @@ namespace ImageProcessor.Tests
     using Xunit;
 
     /// <summary>
-    /// Tests the <see cref="Color"/> struct.
+    /// Tests the <see cref="Bgra"/> struct.
     /// </summary>
     public class ColorTests
     {
@@ -23,12 +23,12 @@ namespace ImageProcessor.Tests
         [Fact]
         public void AreEqual()
         {
-            Color color1 = new Color(0, 0, 0, 255);
-            Color color2 = new Color(0, 0, 0, 255);
-            Color color3 = new Color("#000");
-            Color color4 = new Color("#000000");
-            Color color5 = new Color("#FF000000");
-            Color color6 = new Color(-16777216);
+            Bgra color1 = new Bgra(0, 0, 0, 255);
+            Bgra color2 = new Bgra(0, 0, 0, 255);
+            Bgra color3 = new Bgra("#000");
+            Bgra color4 = new Bgra("#000000");
+            Bgra color5 = new Bgra("#FF000000");
+            Bgra color6 = new Bgra(-16777216);
 
             Assert.Equal(color1, color2);
             Assert.Equal(color1, color3);
@@ -43,12 +43,12 @@ namespace ImageProcessor.Tests
         [Fact]
         public void AreNotEqual()
         {
-            Color color1 = new Color(255, 0, 0, 255);
-            Color color2 = new Color(0, 0, 0, 255);
-            Color color3 = new Color("#000");
-            Color color4 = new Color("#000000");
-            Color color5 = new Color("#FF000000");
-            Color color6 = new Color(-16777216);
+            Bgra color1 = new Bgra(255, 0, 0, 255);
+            Bgra color2 = new Bgra(0, 0, 0, 255);
+            Bgra color3 = new Bgra("#000");
+            Bgra color4 = new Bgra("#000000");
+            Bgra color5 = new Bgra("#FF000000");
+            Bgra color6 = new Bgra(-16777216);
 
             Assert.NotEqual(color1, color2);
             Assert.NotEqual(color1, color3);
@@ -63,25 +63,25 @@ namespace ImageProcessor.Tests
         [Fact]
         public void ConstructorAssignsProperties()
         {
-            Color color1 = new Color(255, 10, 34, 220);
+            Bgra color1 = new Bgra(255, 10, 34, 220);
             Assert.Equal(255, color1.B);
             Assert.Equal(10, color1.G);
             Assert.Equal(34, color1.R);
             Assert.Equal(220, color1.A);
 
-            Color color2 = new Color(255, 10, 34);
+            Bgra color2 = new Bgra(255, 10, 34);
             Assert.Equal(255, color2.B);
             Assert.Equal(10, color2.G);
             Assert.Equal(34, color2.R);
             Assert.Equal(255, color2.A);
 
-            Color color3 = new Color(-1);
+            Bgra color3 = new Bgra(-1);
             Assert.Equal(255, color3.B);
             Assert.Equal(255, color3.G);
             Assert.Equal(255, color3.R);
             Assert.Equal(255, color3.A);
 
-            Color color4 = new Color("#FF0000");
+            Bgra color4 = new Bgra("#FF0000");
             Assert.Equal(0, color4.B);
             Assert.Equal(0, color4.G);
             Assert.Equal(255, color4.R);
@@ -95,7 +95,7 @@ namespace ImageProcessor.Tests
         public void ConvertHex()
         {
             const string First = "FF000000";
-            string second = new Color(0, 0, 0, 255).Bgra.ToString("X");
+            string second = new Bgra(0, 0, 0, 255).BGRA.ToString("X");
             Assert.Equal(First, second);
         }
     }

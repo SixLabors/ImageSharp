@@ -40,7 +40,7 @@
     <Folder Include="Filters\" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Colors\YCbCrColor.cs" />
+    <Compile Include="Colors\YCbCr.cs" />
     <Compile Include="Common\Extensions\ByteExtensions.cs" />
     <Compile Include="Common\Extensions\ComparableExtensions.cs" />
     <Compile Include="Common\Helpers\Utils.cs" />
@@ -50,6 +50,8 @@
     <Compile Include="Formats\Bmp\BmpDecoder.cs" />
     <Compile Include="Formats\Bmp\BmpDecoderCore.cs" />
     <Compile Include="Formats\Bmp\BmpEncoder.cs" />
+    <Compile Include="Formats\Gif\GifDecoderCore.cs" />
+    <Compile Include="Formats\Gif\GifEncoder.cs" />
     <Compile Include="Formats\Png\PngDecoder.cs" />
     <Compile Include="Formats\Png\PngDecoderCore.cs" />
     <Compile Include="Formats\Png\PngEncoder.cs" />
@@ -63,7 +65,7 @@
     <Compile Include="Formats\Png\PngHeader.cs" />
     <Compile Include="ImageProperty.cs" />
     <Compile Include="ImageFrame.cs" />
-    <Compile Include="Colors\Color.cs" />
+    <Compile Include="Colors\Bgra.cs" />
     <Compile Include="Common\Exceptions\ImageFormatException.cs" />
     <Compile Include="Common\Helpers\Guard.cs" />
     <Compile Include="Formats\Gif\GifDecoder.cs" />

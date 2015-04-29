@@ -36,7 +36,12 @@ namespace ImageProcessor.Formats
         /// The Background Color is the color used for those 
         /// pixels on the screen that are not covered by an image.
         /// </summary>
-        public byte Background { get; set; }
+        public byte BackgroundColorIndex { get; set; }
+
+        /// <summary>
+        /// Gets or sets the pixel aspect ratio. Default to 0.
+        /// </summary>
+        public byte PixelAspectRatio { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether a flag denoting the presence of a Global Color Table

@@ -25,14 +25,14 @@
                 result = new byte[bytes.Length * 8 / bits];
 
                 int factor = (int)Math.Pow(2, bits) - 1;
-                int mask = (0xFF >> (8 - bits));
+                int mask = 0xFF >> (8 - bits);
                 int resultOffset = 0;
 
                 foreach (byte b in bytes)
                 {
                     for (int shift = 0; shift < 8; shift += bits)
                     {
-                        int colorIndex = (((b) >> (8 - bits - shift)) & mask) * (255 / factor);
+                        int colorIndex = ((b >> (8 - bits - shift)) & mask) * (255 / factor);
 
                         result[resultOffset] = (byte)colorIndex;
 

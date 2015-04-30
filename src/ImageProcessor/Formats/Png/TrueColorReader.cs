@@ -41,7 +41,7 @@ namespace ImageProcessor.Formats
         /// Reads the specified scanline.
         /// </summary>
         /// <param name="scanline">The scanline.</param>
-        /// <param name="pixels">The pixels, where the colors should be stored in RGBA format.</param>
+        /// <param name="pixels">The pixels, where the colors should be stored in BGRA format.</param>
         /// <param name="header">The header, which contains information about the png file, like
         /// the width of the image and the height.</param>
         public void ReadScanline(byte[] scanline, byte[] pixels, PngHeader header)

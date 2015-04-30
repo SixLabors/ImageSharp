@@ -2,6 +2,8 @@
   <GlobalSettings>
     <CollectionProperty Name="RecognizedWords">
       <Value>cb</Value>
+      <Value>octree</Value>
+      <Value>quantizer</Value>
       <Value>cr</Value>
       <Value>EX</Value>
       <Value>png</Value>

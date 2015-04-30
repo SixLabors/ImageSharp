@@ -2,7 +2,6 @@
 namespace ImageProcessor.Formats
 {
     using System;
-    using System.Diagnostics.CodeAnalysis;
     using System.IO;
 
     public class GifEncoder : IImageEncoder
@@ -32,10 +31,7 @@ namespace ImageProcessor.Formats
         /// <summary>
         /// Gets the default file extension for this encoder.
         /// </summary>
-        public string Extension
-        {
-            get { return "GIF"; }
-        }
+        public string Extension => "GIF";
 
         /// <summary>
         /// Returns a value indicating whether the <see cref="IImageDecoder"/> supports the specified
@@ -53,6 +49,11 @@ namespace ImageProcessor.Formats
             return extension.Equals("GIF", StringComparison.OrdinalIgnoreCase);
         }
 
+        /// <summary>
+        /// Encodes the image to the specified stream from the <see cref="ImageBase"/>.
+        /// </summary>
+        /// <param name="image">The <see cref="ImageBase"/> to encode from.</param>
+        /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
         public void Encode(ImageBase image, Stream stream)
         {
             Guard.NotNull(image, "image");
@@ -73,6 +74,8 @@ namespace ImageProcessor.Formats
 
             this.WriteGlobalLogicalScreenDescriptor(stream, descriptor);
 
+
+
             throw new System.NotImplementedException();
         }
 
@@ -80,15 +83,24 @@ namespace ImageProcessor.Formats
         {
             this.WriteShort(stream, descriptor.Width);
             this.WriteShort(stream, descriptor.Width);
-            int bitdepth = this.GetBitsNeededForColorDepth(descriptor.GlobalColorTableSize) - 1;
-            int packed = 0x80 | // 1   : global color table flag = 1 (gct used)
+            int size = descriptor.GlobalColorTableSize;
+            int bitdepth = this.GetBitsNeededForColorDepth(size) - 1;
+            int packed = 0x80 | // 1   : global color table flag = 1 (GCT used)
                          0x70 | // 2-4 : color resolution
-                         0x00 | // 5   : gct sort flag = 0
-                         bitdepth; // 6-8 : gct size`
+                         0x00 | // 5   : GCT sort flag = 0
+                         bitdepth; // 6-8 : GCT size assume 1:1
 
             this.WriteByte(stream, packed);
             this.WriteByte(stream, descriptor.BackgroundColorIndex); // Background Color Index
             this.WriteByte(stream, descriptor.PixelAspectRatio); // Pixel aspect ratio
+
+            // Write the global color table.
+            this.WriteColorTable(stream, size);
+        }
+
+        private void WriteColorTable(Stream stream, int size)
+        {
+
         }
 
         /// <summary>

@@ -32,6 +32,8 @@
             this.image = image;
 
             this.currentStream = stream;
+
+            // Skip the identifier
             this.currentStream.Seek(6, SeekOrigin.Current);
             this.ReadLogicalScreenDescriptor();
 

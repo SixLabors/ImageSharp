@@ -18,7 +18,7 @@ namespace ImageProcessor
     using System.Linq;
     using System.Text;
 
-    using ImageProcessor.Formats;
+    using Formats;
 
     /// <summary>
     /// Image class which stores the pixels and provides common functionality
@@ -65,16 +65,6 @@ namespace ImageProcessor
             // new JpegEncoder(),
             new PngEncoder(),
         });
-
-        /// <summary>
-        /// The collection of image frames.
-        /// </summary>
-        private readonly IList<ImageFrame> frames = new List<ImageFrame>();
-
-        /// <summary>
-        /// The collection of image properties.
-        /// </summary>
-        private readonly IList<ImageProperty> properties = new List<ImageProperty>();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Image"/> class.
@@ -152,18 +142,12 @@ namespace ImageProcessor
         /// <summary>
         /// Gets a list of default decoders.
         /// </summary>
-        public static IList<IImageDecoder> Decoders
-        {
-            get { return DefaultDecoders.Value; }
-        }
+        public static IList<IImageDecoder> Decoders => DefaultDecoders.Value;
 
         /// <summary>
         /// Gets a list of default encoders.
         /// </summary>
-        public static IList<IImageEncoder> Encoders
-        {
-            get { return DefaultEncoders.Value; }
-        }
+        public static IList<IImageEncoder> Encoders => DefaultEncoders.Value;
 
         /// <summary>
         /// Gets or sets the frame delay.
@@ -236,28 +220,19 @@ namespace ImageProcessor
         /// <value>
         /// <c>true</c> if this image is animated; otherwise, <c>false</c>.
         /// </value>
-        public bool IsAnimated
-        {
-            get { return this.frames.Count > 0; }
-        }
+        public bool IsAnimated => this.Frames.Count > 0;
 
         /// <summary>
         /// Gets the other frames for the animation.
         /// </summary>
         /// <value>The list of frame images.</value>
-        public IList<ImageFrame> Frames
-        {
-            get { return this.frames; }
-        }
+        public IList<ImageFrame> Frames { get; } = new List<ImageFrame>();
 
         /// <summary>
         /// Gets the list of properties for storing meta information about this image.
         /// </summary>
         /// <value>A list of image properties.</value>
-        public IList<ImageProperty> Properties
-        {
-            get { return this.properties; }
-        }
+        public IList<ImageProperty> Properties { get; } = new List<ImageProperty>();
 
         /// <summary>
         /// Loads the image from the given stream.

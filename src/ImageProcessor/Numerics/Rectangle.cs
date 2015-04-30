@@ -17,48 +17,19 @@ namespace ImageProcessor
     /// <summary>
     /// Stores a set of four integers that represent the location and size of a rectangle.
     /// </summary>
+    /// <remarks>
+    /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance, 
+    /// as it avoids the need to create new values for modification operations.
+    /// </remarks>
     public struct Rectangle : IEquatable<Rectangle>
     {
         /// <summary>
-        /// Represents a <see cref="Rectangle"/> that has X, Y, Width, and Height values set to zero.
-        /// </summary>
-        public static readonly Rectangle Empty = new Rectangle();
-
-        /// <summary>
-        /// The x-coordinate of this <see cref="Rectangle"/>.
-        /// </summary>
-        public int X;
-
-        /// <summary>
-        /// The y-coordinate of this <see cref="Rectangle"/>.
-        /// </summary>
-        public int Y;
-
-        /// <summary>
-        /// The width of this <see cref="Rectangle"/>.
-        /// </summary>
-        public int Width;
-
-        /// <summary>
-        /// The height of this <see cref="Rectangle"/>.
-        /// </summary>
-        public int Height;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="Rectangle"/> struct.
         /// </summary>
-        /// <param name="x">
-        /// The horizontal position of the rectangle. 
-        /// </param>
-        /// <param name="y">
-        /// The vertical position of the rectangle. 
-        /// </param>
-        /// <param name="width">
-        /// The width of the rectangle. 
-        /// </param>
-        /// <param name="height">
-        /// The height of the rectangle. 
-        /// </param>
+        /// <param name="x">The horizontal position of the rectangle.</param>
+        /// <param name="y">The vertical position of the rectangle.</param>
+        /// <param name="width">The width of the rectangle.</param>
+        /// <param name="height">The height of the rectangle.</param>
         public Rectangle(int x, int y, int width, int height)
         {
             this.X = x;
@@ -85,60 +56,55 @@ namespace ImageProcessor
         }
 
         /// <summary>
+        /// Represents a <see cref="Rectangle"/> that has X, Y, Width, and Height values set to zero.
+        /// </summary>
+        public static readonly Rectangle Empty = new Rectangle();
+
+        /// <summary>
+        /// The x-coordinate of this <see cref="Rectangle"/>.
+        /// </summary>
+        public int X { get; set; }
+
+        /// <summary>
+        /// The y-coordinate of this <see cref="Rectangle"/>.
+        /// </summary>
+        public int Y { get; set; }
+
+        /// <summary>
+        /// The width of this <see cref="Rectangle"/>.
+        /// </summary>
+        public int Width { get; set; }
+
+        /// <summary>
+        /// The height of this <see cref="Rectangle"/>.
+        /// </summary>
+        public int Height { get; set; }
+
+        /// <summary>
         /// Gets a value indicating whether this <see cref="Rectangle"/> is empty.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty
-        {
-            get
-            {
-                return this.X == 0 && this.Y == 0 && this.Width == 0 && this.Height == 0;
-            }
-        }
+        public bool IsEmpty => this.X == 0 && this.Y == 0 && this.Width == 0 && this.Height == 0;
 
         /// <summary>
         /// Gets the y-coordinate of the top edge of this <see cref="Rectangle"/>.
         /// </summary>
-        public int Top
-        {
-            get
-            {
-                return this.Y;
-            }
-        }
+        public int Top => this.Y;
 
         /// <summary>
         /// Gets the x-coordinate of the right edge of this <see cref="Rectangle"/>.
         /// </summary>
-        public int Right
-        {
-            get
-            {
-                return this.X + this.Width;
-            }
-        }
+        public int Right => this.X + this.Width;
 
         /// <summary>
         /// Gets the y-coordinate of the bottom edge of this <see cref="Rectangle"/>.
         /// </summary>
-        public int Bottom
-        {
-            get
-            {
-                return this.Y + this.Height;
-            }
-        }
+        public int Bottom => this.Y + this.Height;
 
         /// <summary>
         /// Gets the x-coordinate of the left edge of this <see cref="Rectangle"/>.
         /// </summary>
-        public int Left
-        {
-            get
-            {
-                return this.X;
-            }
-        }
+        public int Left => this.X;
 
         /// <summary>
         /// Compares two <see cref="Rectangle"/> objects. The result specifies whether the values
@@ -219,10 +185,14 @@ namespace ImageProcessor
         /// </returns>
         public override string ToString()
         {
-            return "{X=" + this.X.ToString(CultureInfo.CurrentCulture)
-                   + ",Y=" + this.Y.ToString(CultureInfo.CurrentCulture)
-                   + ",Width=" + this.Width.ToString(CultureInfo.CurrentCulture)
-                   + ",Height=" + this.Height.ToString(CultureInfo.CurrentCulture) + "}";
+            if (this.IsEmpty)
+            {
+                return "Rectangle [ Empty ]";
+            }
+
+            return
+                $"Rectangle [ X={this.X.ToString(CultureInfo.CurrentCulture)}, Y={this.Y.ToString(CultureInfo.CurrentCulture)}, "
+                + $"Width={this.Width.ToString(CultureInfo.CurrentCulture)}, Height={this.Height.ToString(CultureInfo.CurrentCulture)}]";
         }
 
         /// <summary>

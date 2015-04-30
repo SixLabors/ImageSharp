@@ -91,7 +91,7 @@ namespace ImageProcessor
             {
                 throw new ArgumentOutOfRangeException(
                     parameterName,
-                    string.Format(CultureInfo.CurrentCulture, "Value must be less than {0}.", max));
+                    $"Value must be less than {max}.");
             }
         }
 
@@ -112,7 +112,7 @@ namespace ImageProcessor
             {
                 throw new ArgumentOutOfRangeException(
                     parameterName,
-                    string.Format(CultureInfo.CurrentCulture, "Value must be less than or equal to {0}.", max));
+                    $"Value must be less than or equal to {max}.");
             }
         }
 
@@ -133,7 +133,7 @@ namespace ImageProcessor
             {
                 throw new ArgumentOutOfRangeException(
                     parameterName,
-                    string.Format(CultureInfo.CurrentCulture, "Value must be greater than {0}.", min));
+                    $"Value must be greater than {min}.");
             }
         }
 
@@ -154,7 +154,7 @@ namespace ImageProcessor
             {
                 throw new ArgumentOutOfRangeException(
                     parameterName,
-                    string.Format(CultureInfo.CurrentCulture, "Value must be greater than or equal to {0}.", min));
+                    $"Value must be greater than or equal to {min}.");
             }
         }
 
@@ -176,7 +176,7 @@ namespace ImageProcessor
             {
                 throw new ArgumentOutOfRangeException(
                     parameterName,
-                    string.Format(CultureInfo.CurrentCulture, "Value must be greater than or equal to {0} and less than or equal to {1}.", min, max));
+                    $"Value must be greater than or equal to {min} and less than or equal to {max}.");
             }
         }
     }

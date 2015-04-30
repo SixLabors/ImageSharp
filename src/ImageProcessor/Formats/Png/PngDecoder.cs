@@ -39,13 +39,7 @@ namespace ImageProcessor.Formats
         /// Gets the size of the header for this image type.
         /// </summary>
         /// <value>The size of the header.</value>
-        public int HeaderSize
-        {
-            get
-            {
-                return 8;
-            }
-        }
+        public int HeaderSize => 8;
 
         /// <summary>
         /// Returns a value indicating whether the <see cref="IImageDecoder"/> supports the specified

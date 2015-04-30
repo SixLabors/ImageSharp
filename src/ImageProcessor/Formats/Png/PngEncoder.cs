@@ -72,10 +72,7 @@ namespace ImageProcessor.Formats
         /// Gets the default file extension for this encoder.
         /// </summary>
         /// <value>The default file extension for this encoder.</value>
-        public string Extension
-        {
-            get { return "PNG"; }
-        }
+        public string Extension => "PNG";
 
         /// <summary>
         /// Indicates if the image encoder supports the specified
@@ -389,10 +386,7 @@ namespace ImageProcessor.Formats
             }
             finally
             {
-                if (memoryStream != null)
-                {
-                    memoryStream.Dispose();
-                }
+                memoryStream?.Dispose();
             }
 
             int numChunks = bufferLength / MaxBlockSize;
@@ -453,7 +447,7 @@ namespace ImageProcessor.Formats
         /// <param name="data">The <see cref="T:byte[]"/> containing data.</param>
         private void WriteChunk(Stream stream, string type, byte[] data)
         {
-            this.WriteChunk(stream, type, data, 0, data != null ? data.Length : 0);
+            this.WriteChunk(stream, type, data, 0, data?.Length ?? 0);
         }
 
         /// <summary>

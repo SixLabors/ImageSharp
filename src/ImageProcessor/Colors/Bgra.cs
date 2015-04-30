@@ -44,31 +44,31 @@ namespace ImageProcessor
         /// Holds the blue component of the color
         /// </summary>
         [FieldOffset(0)]
-        public byte B;
+        public readonly byte B;
 
         /// <summary>
         /// Holds the green component of the color
         /// </summary>
         [FieldOffset(1)]
-        public byte G;
+        public readonly byte G;
 
         /// <summary>
         /// Holds the red component of the color
         /// </summary>
         [FieldOffset(2)]
-        public byte R;
+        public readonly byte R;
 
         /// <summary>
         /// Holds the alpha component of the color
         /// </summary>
         [FieldOffset(3)]
-        public byte A;
+        public readonly byte A;
 
         /// <summary>
         /// Permits the <see cref="Bgra"/> to be treated as a 32 bit integer.
         /// </summary>
         [FieldOffset(0)]
-        public int BGRA;
+        public readonly int BGRA;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Bgra"/> struct.
@@ -142,7 +142,7 @@ namespace ImageProcessor
 
             if (hex.Length != 8 && hex.Length != 6 && hex.Length != 3)
             {
-                throw new ArgumentException("Hexadecimal string is not in the correct format.", "hex");
+                throw new ArgumentException("Hexadecimal string is not in the correct format.", nameof(hex));
             }
 
             if (hex.Length == 8)
@@ -176,13 +176,7 @@ namespace ImageProcessor
         /// Gets a value indicating whether this <see cref="Bgra"/> is empty.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty
-        {
-            get
-            {
-                return this.B == 0 && this.G == 0 && this.R == 0 && this.A == 0;
-            }
-        }
+        public bool IsEmpty => this.B == 0 && this.G == 0 && this.R == 0 && this.A == 0;
 
         /// <summary>
         /// Compares two <see cref="Bgra"/> objects. The result specifies whether the values
@@ -249,7 +243,14 @@ namespace ImageProcessor
         /// </returns>
         public override int GetHashCode()
         {
-            return this.GetHashCode(this);
+            unchecked
+            {
+                int hashCode = this.B.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.G.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.R.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.A.GetHashCode();
+                return hashCode;
+            }
         }
 
         /// <summary>
@@ -265,7 +266,7 @@ namespace ImageProcessor
                 return "Color [ Empty ]";
             }
 
-            return string.Format("Color [ B={0}, G={1}, R={2}, A={3} ]", this.B, this.G, this.R, this.A);
+            return $"Color [ B={this.B}, G={this.G}, R={this.R}, A={this.A} ]";
         }
 
         /// <summary>
@@ -277,29 +278,7 @@ namespace ImageProcessor
         /// <param name="other">An object to compare with this object.</param>
         public bool Equals(Bgra other)
         {
-            return this.B.Equals(other.B) && this.G.Equals(other.G)
-                && this.R.Equals(other.R) && this.A.Equals(other.A);
-        }
-
-        /// <summary>
-        /// Returns the hash code for the given instance.
-        /// </summary>
-        /// <param name="color">
-        /// The instance of <see cref="Bgra"/> to return the hash code for.
-        /// </param>
-        /// <returns>
-        /// A 32-bit signed integer that is the hash code for this instance.
-        /// </returns>
-        private int GetHashCode(Bgra color)
-        {
-            unchecked
-            {
-                int hashCode = color.B.GetHashCode();
-                hashCode = (hashCode * 397) ^ color.G.GetHashCode();
-                hashCode = (hashCode * 397) ^ color.R.GetHashCode();
-                hashCode = (hashCode * 397) ^ color.A.GetHashCode();
-                return hashCode;
-            }
+            return this.BGRA == other.BGRA;
         }
     }
 }

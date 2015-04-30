@@ -20,16 +20,6 @@ namespace ImageProcessor
     public abstract class ImageBase
     {
         /// <summary>
-        /// The maximum allowable width in pixels.
-        /// </summary>
-        private static int maxWidth = int.MaxValue;
-
-        /// <summary>
-        /// The maximum allowable height in pixels.
-        /// </summary>
-        private static int maxHeight = int.MaxValue;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="ImageBase"/> class.
         /// </summary>
         protected ImageBase()
@@ -83,34 +73,12 @@ namespace ImageProcessor
         /// <summary>
         /// Gets or sets the maximum allowable width in pixels.
         /// </summary>
-        public static int MaxWidth
-        {
-            get
-            {
-                return maxWidth;
-            }
-
-            set
-            {
-                maxWidth = value;
-            }
-        }
+        public static int MaxWidth { get; set; } = int.MaxValue;
 
         /// <summary>
         /// Gets or sets the maximum allowable height in pixels.
         /// </summary>
-        public static int MaxHeight
-        {
-            get
-            {
-                return maxHeight;
-            }
-
-            set
-            {
-                maxHeight = value;
-            }
-        }
+        public static int MaxHeight { get; set; } = int.MaxValue;
 
         /// <summary>
         /// Gets the image pixels as byte array.
@@ -135,21 +103,12 @@ namespace ImageProcessor
         /// <summary>
         /// Gets the pixel ratio made up of the width and height.
         /// </summary>
-        public double PixelRatio
-        {
-            get { return (double)this.Width / this.Height; }
-        }
+        public double PixelRatio => (double)this.Width / this.Height;
 
         /// <summary>
         /// Gets the <see cref="Rectangle"/> representing the bounds of the image.
         /// </summary>
-        public Rectangle Bounds
-        {
-            get
-            {
-                return new Rectangle(0, 0, this.Width, this.Height);
-            }
-        }
+        public Rectangle Bounds => new Rectangle(0, 0, this.Width, this.Height);
 
         /// <summary>
         /// Gets or sets the color of a pixel at the specified position.
@@ -170,12 +129,12 @@ namespace ImageProcessor
 #if DEBUG
                 if ((x < 0) || (x >= this.Width))
                 {
-                    throw new ArgumentOutOfRangeException("x", "Value cannot be less than zero or greater than the bitmap width.");
+                    throw new ArgumentOutOfRangeException(nameof(x), "Value cannot be less than zero or greater than the bitmap width.");
                 }
 
                 if ((y < 0) || (y >= this.Width))
                 {
-                    throw new ArgumentOutOfRangeException("y", "Value cannot be less than zero or greater than the bitmap height.");
+                    throw new ArgumentOutOfRangeException(nameof(y), "Value cannot be less than zero or greater than the bitmap height.");
                 }
 #endif
 
@@ -188,12 +147,12 @@ namespace ImageProcessor
 #if DEBUG
                 if ((x < 0) || (x >= this.Width))
                 {
-                    throw new ArgumentOutOfRangeException("x", "Value cannot be less than zero or greater than the bitmap width.");
+                    throw new ArgumentOutOfRangeException(nameof(x), "Value cannot be less than zero or greater than the bitmap width.");
                 }
 
                 if ((y < 0) || (y >= this.Width))
                 {
-                    throw new ArgumentOutOfRangeException("y", "Value cannot be less than zero or greater than the bitmap height.");
+                    throw new ArgumentOutOfRangeException(nameof(y), "Value cannot be less than zero or greater than the bitmap height.");
                 }
 #endif
 
@@ -226,12 +185,12 @@ namespace ImageProcessor
         {
             if (width <= 0)
             {
-                throw new ArgumentOutOfRangeException("width", "Width must be greater than or equals than zero.");
+                throw new ArgumentOutOfRangeException(nameof(width), "Width must be greater than or equals than zero.");
             }
 
             if (height <= 0)
             {
-                throw new ArgumentOutOfRangeException("height", "Height must be greater than or equal than zero.");
+                throw new ArgumentOutOfRangeException(nameof(height), "Height must be greater than or equal than zero.");
             }
 
             if (pixels.Length != width * height * 4)

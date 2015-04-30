@@ -157,12 +157,8 @@ namespace ImageProcessor.Formats
                 if (this.header.Width > ImageBase.MaxWidth || this.header.Height > ImageBase.MaxHeight)
                 {
                     throw new ArgumentOutOfRangeException(
-                        string.Format(
-                            "The input png '{0}x{1}' is bigger then the max allowed size '{2}x{3}'",
-                            this.header.Width,
-                            this.header.Height,
-                            ImageBase.MaxWidth,
-                            ImageBase.MaxHeight));
+                        $"The input png '{this.header.Width}x{this.header.Height}' is bigger thean the "
+                        + $"max allowed size '{ImageBase.MaxWidth}x{ImageBase.MaxHeight}'");
                 }
 
                 byte[] pixels = new byte[this.header.Width * this.header.Height * 4];
@@ -483,11 +479,7 @@ namespace ImageProcessor.Formats
         {
             if (chunk.Length > MaxChunkSize)
             {
-                throw new ArgumentOutOfRangeException(
-                    string.Format(
-                    "Png chunk size '{0}' exceeds the '{1}'",
-                    chunk.Length,
-                    MaxChunkSize));
+                throw new ArgumentOutOfRangeException($"Png chunk size '{chunk.Length}' exceeds the maximum '{MaxChunkSize}'");
             }
 
             chunk.Data = new byte[chunk.Length];

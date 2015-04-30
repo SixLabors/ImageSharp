@@ -17,10 +17,25 @@ namespace ImageProcessor
 
     /// <summary>
     /// Represents an ordered pair of integer x- and y-coordinates that defines a point in 
-    /// a two-dimensional plane.
+    /// a two-dimensional plane. 
     /// </summary>
+    /// <remarks>
+    /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance, 
+    /// as it avoids the need to create new values for modification operations.
+    /// </remarks>
     public struct Point : IEquatable<Point>
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Point"/> struct.
+        /// </summary>
+        /// <param name="x">The horizontal position of the point.</param>
+        /// <param name="y">The vertical position of the point.</param>
+        public Point(int x, int y)
+        {
+            this.X = x;
+            this.Y = y;
+        }
+
         /// <summary>
         /// Represents a <see cref="Point"/> that has X and Y values set to zero.
         /// </summary>
@@ -29,39 +44,18 @@ namespace ImageProcessor
         /// <summary>
         /// The x-coordinate of this <see cref="Point"/>.
         /// </summary>
-        public int X;
+        public int X { get; set; }
 
         /// <summary>
         /// The y-coordinate of this <see cref="Point"/>.
         /// </summary>
-        public int Y;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Point"/> struct.
-        /// </summary>
-        /// <param name="x">
-        /// The horizontal position of the point. 
-        /// </param>
-        /// <param name="y">
-        /// The vertical position of the point. 
-        /// </param>
-        public Point(int x, int y)
-        {
-            this.X = x;
-            this.Y = y;
-        }
+        public int Y { get; set; }
 
         /// <summary>
         /// Gets a value indicating whether this <see cref="Point"/> is empty.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty
-        {
-            get
-            {
-                return this.X == 0 && this.Y == 0;
-            }
-        }
+        public bool IsEmpty => this.X == 0 && this.Y == 0;
 
         /// <summary>
         /// Compares two <see cref="Point"/> objects. The result specifies whether the values
@@ -142,7 +136,13 @@ namespace ImageProcessor
         /// </returns>
         public override string ToString()
         {
-            return "{X=" + this.X.ToString(CultureInfo.CurrentCulture) + ",Y=" + this.Y.ToString(CultureInfo.CurrentCulture) + "}";
+            if (this.IsEmpty)
+            {
+                return "Point [ Empty ]";
+            }
+
+            return
+                $"Point [ X={this.X.ToString(CultureInfo.CurrentCulture)}, Y={this.Y.ToString(CultureInfo.CurrentCulture)} ]";
         }
 
         /// <summary>

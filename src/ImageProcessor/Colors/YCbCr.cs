@@ -31,19 +31,19 @@ namespace ImageProcessor
         /// Holds the Y luminance component.
         /// <remarks>A value ranging between 0 and 255.</remarks>
         /// </summary>
-        public float Y;
+        public float Y { get; }
 
         /// <summary>
         /// Holds the Cb chroma component.
         /// <remarks>A value ranging between 0 and 255.</remarks>
         /// </summary>
-        public float Cb;
+        public float Cb { get; }
 
         /// <summary>
         /// Holds the Cr chroma component.
         /// <remarks>A value ranging between 0 and 255.</remarks>
         /// </summary>
-        public float Cr;
+        public float Cr { get; }
 
         /// <summary>
         /// The epsilon for comparing floating point numbers.
@@ -67,15 +67,9 @@ namespace ImageProcessor
         /// Gets a value indicating whether this <see cref="YCbCr"/> is empty.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty
-        {
-            get
-            {
-                return Math.Abs(this.Y) < Epsilon
-                    && Math.Abs(this.Cb) < Epsilon
-                    && Math.Abs(this.Cr) < Epsilon;
-            }
-        }
+        public bool IsEmpty => Math.Abs(this.Y) < Epsilon
+                               && Math.Abs(this.Cb) < Epsilon
+                               && Math.Abs(this.Cr) < Epsilon;
 
         /// <summary>
         /// Compares two <see cref="YCbCr"/> objects. The result specifies whether the values
@@ -190,7 +184,13 @@ namespace ImageProcessor
         /// </returns>
         public override int GetHashCode()
         {
-            return this.GetHashCode(this);
+            unchecked
+            {
+                int hashCode = this.Y.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.Cb.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.Cr.GetHashCode();
+                return hashCode;
+            }
         }
 
         /// <summary>
@@ -206,7 +206,7 @@ namespace ImageProcessor
                 return "YCbCrColor [ Empty ]";
             }
 
-            return string.Format("YCbCrColor [ Y={0:#0.##}, Cb={1:#0.##}, Cr={2:#0.##} ]", this.Y, this.Cb, this.Cr);
+            return $"YCbCrColor [ Y={this.Y:#0.##}, Cb={this.Cb:#0.##}, Cr={this.Cr:#0.##} ]";
         }
 
         /// <summary>
@@ -221,26 +221,6 @@ namespace ImageProcessor
             return this.Y.Equals(other.Y)
                 && this.Cb.Equals(other.Cb)
                 && this.Cr.Equals(other.Cr);
-        }
-
-        /// <summary>
-        /// Returns the hash code for the given instance.
-        /// </summary>
-        /// <param name="color">
-        /// The instance of <see cref="Bgra"/> to return the hash code for.
-        /// </param>
-        /// <returns>
-        /// A 32-bit signed integer that is the hash code for this instance.
-        /// </returns>
-        private int GetHashCode(YCbCr color)
-        {
-            unchecked
-            {
-                int hashCode = color.Y.GetHashCode();
-                hashCode = (hashCode * 397) ^ color.Cb.GetHashCode();
-                hashCode = (hashCode * 397) ^ color.Cr.GetHashCode();
-                return hashCode;
-            }
         }
     }
 }

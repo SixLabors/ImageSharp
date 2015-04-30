@@ -33,8 +33,6 @@ namespace ImageProcessor.Formats
         /// </summary>
         private const int Rgb16BMask = 0x0000001F;
 
-        #region Fields
-
         /// <summary>
         /// The stream to decode from.
         /// </summary>
@@ -50,10 +48,6 @@ namespace ImageProcessor.Formats
         /// The info header containing detailed information about the bitmap.
         /// </summary>
         private BmpInfoHeader infoHeader;
-
-        #endregion
-
-        #region IImageDecoder Members
 
         /// <summary>
         /// Decodes the image from the specified this._stream and sets
@@ -99,8 +93,7 @@ namespace ImageProcessor.Formats
                 {
                     if (colorMapSize > 255 * 4)
                     {
-                        throw new ImageFormatException(
-                            string.Format("Invalid bmp colormap size '{0}'", colorMapSize));
+                        throw new ImageFormatException($"Invalid bmp colormap size '{colorMapSize}'");
                     }
 
                     palette = new byte[colorMapSize];
@@ -111,12 +104,8 @@ namespace ImageProcessor.Formats
                 if (this.infoHeader.Width > ImageBase.MaxWidth || this.infoHeader.Height > ImageBase.MaxHeight)
                 {
                     throw new ArgumentOutOfRangeException(
-                        string.Format(
-                            "The input bitmap '{0}x{1}' is bigger then the max allowed size '{2}x{3}'",
-                            this.infoHeader.Width,
-                            this.infoHeader.Height,
-                            ImageBase.MaxWidth,
-                            ImageBase.MaxHeight));
+                        $"The input bitmap '{this.infoHeader.Width}x{this.infoHeader.Height}' is "
+                        + $"bigger then the max allowed size '{ImageBase.MaxWidth}x{ImageBase.MaxHeight}'");
                 }
 
                 byte[] imageData = new byte[this.infoHeader.Width * this.infoHeader.Height * 4];
@@ -127,7 +116,7 @@ namespace ImageProcessor.Formats
                         if (this.infoHeader.HeaderSize != 40)
                         {
                             throw new ImageFormatException(
-                                string.Format("Header Size value '{0}' is not valid.", this.infoHeader.HeaderSize));
+                                $"Header Size value '{this.infoHeader.HeaderSize}' is not valid.");
                         }
 
                         if (this.infoHeader.BitsPerPixel == 32)
@@ -416,7 +405,5 @@ namespace ImageProcessor.Formats
                 Offset = BitConverter.ToInt32(data, 10)
             };
         }
-
-        #endregion
     }
 }

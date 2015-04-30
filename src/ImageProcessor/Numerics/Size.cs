@@ -17,23 +17,12 @@ namespace ImageProcessor
     /// <summary>
     /// Stores an ordered pair of integers, which specify a height and width.
     /// </summary>
+    /// <remarks>
+    /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance, 
+    /// as it avoids the need to create new values for modification operations.
+    /// </remarks>
     public struct Size : IEquatable<Size>
     {
-        /// <summary>
-        /// Represents a <see cref="Size"/> that has Width and Height values set to zero.
-        /// </summary>
-        public static readonly Size Empty = new Size();
-
-        /// <summary>
-        /// The width of this <see cref="Size"/>.
-        /// </summary>
-        public int Width;
-
-        /// <summary>
-        /// The height of this <see cref="Size"/>.
-        /// </summary>
-        public int Height;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="Size"/> struct.
         /// </summary>
@@ -50,16 +39,25 @@ namespace ImageProcessor
         }
 
         /// <summary>
+        /// Represents a <see cref="Size"/> that has Width and Height values set to zero.
+        /// </summary>
+        public static readonly Size Empty = new Size();
+
+        /// <summary>
+        /// The width of this <see cref="Size"/>.
+        /// </summary>
+        public int Width { get; set; }
+
+        /// <summary>
+        /// The height of this <see cref="Size"/>.
+        /// </summary>
+        public int Height { get; set; }
+
+        /// <summary>
         /// Gets a value indicating whether this <see cref="Size"/> is empty.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty
-        {
-            get
-            {
-                return this.Width == 0 && this.Height == 0;
-            }
-        }
+        public bool IsEmpty => this.Width == 0 && this.Height == 0;
 
         /// <summary>
         /// Compares two <see cref="Size"/> objects. The result specifies whether the values
@@ -137,8 +135,13 @@ namespace ImageProcessor
         /// </returns>
         public override string ToString()
         {
-            return "{Width=" + this.Width.ToString(CultureInfo.CurrentCulture)
-                   + ",Height=" + this.Height.ToString(CultureInfo.CurrentCulture) + "}";
+            if (this.IsEmpty)
+            {
+                return "Size [ Empty ]";
+            }
+
+            return
+                $"Size [ Width={this.Width.ToString(CultureInfo.CurrentCulture)}, Height={this.Height.ToString(CultureInfo.CurrentCulture)} ]";
         }
 
         /// <summary>

@@ -22,19 +22,19 @@ namespace ImageProcessor
     public struct ImageProperty : IEquatable<ImageProperty>
     {
         /// <summary>
-        /// The name of this <see cref="ImageProperty"/> indicating which kind of 
+        /// Gets the name of this <see cref="ImageProperty"/> indicating which kind of 
         /// information this property stores.
         /// </summary>
         /// <example>
         /// Typical properties are the author, copyright
         /// information or other meta information.
         /// </example>
-        public string Name;
+        public string Name { get; }
 
         /// <summary>
         /// The value of this <see cref="ImageProperty"/>.
         /// </summary>
-        public string Value;
+        public string Value { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageProperty"/> struct.
@@ -119,7 +119,12 @@ namespace ImageProcessor
         /// </returns>
         public override int GetHashCode()
         {
-            return this.GetHashCode(this);
+            unchecked
+            {
+                int hashCode = this.Name.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.Value.GetHashCode();
+                return hashCode;
+            }
         }
 
         /// <summary>
@@ -130,7 +135,7 @@ namespace ImageProcessor
         /// </returns>
         public override string ToString()
         {
-            return "{Name=" + this.Name + ",Value=" + this.Value + "}";
+            return $"ImageProperty [ Name={this.Name}, Value={this.Value} ]";
         }
 
         /// <summary>
@@ -143,25 +148,6 @@ namespace ImageProcessor
         public bool Equals(ImageProperty other)
         {
             return this.Name.Equals(other.Name) && this.Value.Equals(other.Value);
-        }
-
-        /// <summary>
-        /// Returns the hash code for this instance.
-        /// </summary>
-        /// <param name="imageProperty">
-        /// The instance of <see cref="ImageProperty"/> to return the hash code for.
-        /// </param>
-        /// <returns>
-        /// A 32-bit signed integer that is the hash code for this instance.
-        /// </returns>
-        private int GetHashCode(ImageProperty imageProperty)
-        {
-            unchecked
-            {
-                int hashCode = imageProperty.Name.GetHashCode();
-                hashCode = (hashCode * 397) ^ imageProperty.Value.GetHashCode();
-                return hashCode;
-            }
         }
     }
 }

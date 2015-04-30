@@ -28,10 +28,7 @@ namespace ImageProcessor.Formats
         /// <summary>
         /// Gets the default file extension for this encoder.
         /// </summary>
-        public string Extension
-        {
-            get { return "BMP"; }
-        }
+        public string Extension => "BMP";
 
         /// <summary>
         /// Returns a value indicating whether the <see cref="IImageEncoder"/> supports the specified

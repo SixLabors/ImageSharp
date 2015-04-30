@@ -1,31 +1,27 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="IQuantizer.cs" company="James South">
-//   Copyright (c) James South.
+//   Copyright © James South and contributors.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>
-//   Encapsulates methods to calculate the color palette of an image.
+//   Provides methods for allowing quantization of images pixels.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessor.Imaging.Quantizers
+namespace ImageProcessor.Formats
 {
-    using System.Drawing;
-
     /// <summary>
-    /// Encapsulates methods to calculate the color palette of an image.
+    /// Provides methods for allowing quantization of images pixels.
     /// </summary>
     public interface IQuantizer
     {
         /// <summary>
-        /// Quantize an image and return the resulting output bitmap.
+        /// Quantize an image and return the resulting output pixels.
         /// </summary>
-        /// <param name="source">
-        /// The image to quantize.
-        /// </param>
+        /// <param name="image">The image to quantize.</param>
         /// <returns>
-        /// A quantized version of the image.
+        /// A <see cref="T:byte[]"/> representing a quantized version of the image pixels.
         /// </returns>
-        Bitmap Quantize(Image source);
+        byte[] Quantize(ImageBase image);
     }
 }

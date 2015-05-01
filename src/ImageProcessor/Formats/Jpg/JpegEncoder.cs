@@ -87,8 +87,8 @@ namespace ImageProcessor.Formats
             Guard.NotNull(image, "image");
             Guard.NotNull(stream, "stream");
 
-            int pixelWidth = image.PixelWidth;
-            int pixelHeight = image.PixelHeight;
+            int pixelWidth = image.Width;
+            int pixelHeight = image.Height;
 
             byte[] sourcePixels = image.Pixels;
 
@@ -101,7 +101,7 @@ namespace ImageProcessor.Formats
                 for (int x = 0; x < pixelWidth; x++)
                 {
                     int start = x * 3;
-                    int source = (y * pixelWidth + x) * 4;
+                    int source = ((y * pixelWidth) + x) * 4;
 
                     samples[start] = sourcePixels[source + 2];
                     samples[start + 1] = sourcePixels[source + 1];
@@ -112,7 +112,7 @@ namespace ImageProcessor.Formats
             }
 
             JpegImage jpg = new JpegImage(rows, Colorspace.RGB);
-            jpg.WriteJpeg(stream, new CompressionParameters { Quality = Quality });
+            jpg.WriteJpeg(stream, new CompressionParameters { Quality = this.Quality });
         }
 
         #endregion

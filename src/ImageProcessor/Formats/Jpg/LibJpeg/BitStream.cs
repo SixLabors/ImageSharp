@@ -91,13 +91,7 @@ namespace ImageProcessor.Formats
         /// <summary>
         /// Gets the underlying stream.
         /// </summary>
-        public Stream UnderlyingStream
-        {
-            get
-            {
-                return this.stream;
-            }
-        }
+        public Stream UnderlyingStream => this.stream;
 
         /// <summary>
         /// Disposes the object and frees resources for the Garbage Collector.

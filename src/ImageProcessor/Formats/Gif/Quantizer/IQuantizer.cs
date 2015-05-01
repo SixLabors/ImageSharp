@@ -18,10 +18,10 @@ namespace ImageProcessor.Formats
         /// <summary>
         /// Quantize an image and return the resulting output pixels.
         /// </summary>
-        /// <param name="image">The image to quantize.</param>
+        /// <param name="imageBase">The image to quantize.</param>
         /// <returns>
         /// A <see cref="T:byte[]"/> representing a quantized version of the image pixels.
         /// </returns>
-        byte[] Quantize(ImageBase image);
+        byte[] Quantize(ImageBase imageBase);
     }
 }

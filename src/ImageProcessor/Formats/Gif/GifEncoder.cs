@@ -85,7 +85,7 @@ namespace ImageProcessor.Formats
             this.WriteShort(stream, descriptor.Width);
             int size = descriptor.GlobalColorTableSize;
             int bitdepth = this.GetBitsNeededForColorDepth(size) - 1;
-            int packed = 0x80 | // 1   : global color table flag = 1 (GCT used)
+            int packed = 0x80 | // 1   : Global color table flag = 1 (GCT used)
                          0x70 | // 2-4 : color resolution
                          0x00 | // 5   : GCT sort flag = 0
                          bitdepth; // 6-8 : GCT size assume 1:1

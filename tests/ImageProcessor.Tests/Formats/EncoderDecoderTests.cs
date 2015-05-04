@@ -57,5 +57,25 @@
 
             Trace.WriteLine(string.Format("{0} : {1}ms", filename, watch.ElapsedMilliseconds));
         }
+
+        [Theory]
+        [InlineData("../../TestImages/Formats/Bmp/Car.bmp")]
+        public void QuantizedImageShouldPreserveMaximumColorPrecision(string filename)
+        {
+            if (!Directory.Exists("Quantized"))
+            {
+                Directory.CreateDirectory("Quantized");
+            }
+
+            Image image = new Image(File.OpenRead(filename));
+            IQuantizer quantizer = new OctreeQuantizer();
+            QuantizedImage quantizedImage = quantizer.Quantize(image);
+
+            using (FileStream output = File.OpenWrite($"Quantized/{ Path.GetFileName(filename) }"))
+            {
+                IImageEncoder encoder = Image.Encoders.First(e => e.IsSupportedFileExtension(Path.GetExtension(filename)));
+                encoder.Encode(quantizedImage.ToImage(), output);
+            }
+        }
     }
 }

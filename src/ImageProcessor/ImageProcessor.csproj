@@ -37,9 +37,10 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- A reference to the entire .NET Framework is automatically included -->
-    <Folder Include="Filters\" />
+    <Folder Include="Filters\Transforms\" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Colors\Hsv.cs" />
     <Compile Include="Colors\YCbCr.cs" />
     <Compile Include="Common\Extensions\ByteExtensions.cs" />
     <Compile Include="Common\Extensions\ComparableExtensions.cs" />

@@ -1,10 +1,12 @@
-﻿// ===============================================================================
-// JpegDecoder.cs
-// .NET Image Tools
-// ===============================================================================
-// Copyright (c) .NET Image Tools Development Group. 
-// All rights reserved.
-// ===============================================================================
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="JpegEncoder.cs" company="James South">
+//   Copyright © James South and contributors.
+//   Licensed under the Apache License, Version 2.0.
+// </copyright>
+// <summary>
+//   Image decoder for generating an image out of a jpg stream.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Formats
 {
@@ -13,20 +15,15 @@ namespace ImageProcessor.Formats
     using BitMiracle.LibJpeg;
 
     /// <summary>
-    /// Image decoder for generating an image out of an jpg stream.
+    /// Image decoder for generating an image out of a jpg stream.
     /// </summary>
     public class JpegDecoder : IImageDecoder
     {
-        #region IImageDecoder Members
-
         /// <summary>
         /// Gets the size of the header for this image type.
         /// </summary>
         /// <value>The size of the header.</value>
-        public int HeaderSize
-        {
-            get { return 11; }
-        }
+        public int HeaderSize => 11;
 
         /// <summary>
         /// Indicates if the image decoder supports the specified
@@ -145,13 +142,11 @@ namespace ImageProcessor.Formats
                     pixels[offset + 0] = (byte)sample[2];
                     pixels[offset + 1] = (byte)sample[1];
                     pixels[offset + 2] = (byte)sample[0];
-                    pixels[offset + 3] = (byte)255;
+                    pixels[offset + 3] = 255;
                 }
             }
 
             image.SetPixels(pixelWidth, pixelHeight, pixels);
         }
-
-        #endregion
     }
 }

@@ -1,30 +1,54 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
-using Nine.Imaging;
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="DecompressorToJpegImage.cs" company="James South">
+//   Copyright © James South and contributors.
+//   Licensed under the Apache License, Version 2.0.
+// </copyright>
+// <summary>
+// Decompresses a jpeg image.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
 
 namespace BitMiracle.LibJpeg
 {
+    using System;
+    using System.IO;
+
     using ImageProcessor;
 
-    class DecompressorToJpegImage : IDecompressDestination
+    /// <summary>
+    /// Decompresses a jpeg image.
+    /// </summary>
+    internal class DecompressorToJpegImage : IDecompressDestination
     {
-        private JpegImage m_jpegImage;
+        /// <summary>
+        /// The jpeg image.
+        /// </summary>
+        private readonly JpegImage jpegImage;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DecompressorToJpegImage"/> class.
+        /// </summary>
+        /// <param name="jpegImage">
+        /// The jpeg image.
+        /// </param>
         internal DecompressorToJpegImage(JpegImage jpegImage)
         {
-            m_jpegImage = jpegImage;
+            this.jpegImage = jpegImage;
         }
 
-        public Stream Output
-        {
-            get
-            {
-                return null;
-            }
-        }
+        /// <summary>
+        /// Gets the stream with decompressed data.
+        /// </summary>
+        public Stream Output => null;
 
+        /// <summary>
+        /// Sets the image attributes.
+        /// </summary>
+        /// <param name="parameters">
+        /// The <see cref="LoadedImageAttributes"/> containing attributes.
+        /// </param>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// </exception>
         public void SetImageAttributes(LoadedImageAttributes parameters)
         {
             if (parameters.Width > ImageBase.MaxWidth || parameters.Height > ImageBase.MaxHeight)
@@ -33,23 +57,37 @@ namespace BitMiracle.LibJpeg
                     $"The input jpg '{ parameters.Width }x{ parameters.Height }' is bigger then the max allowed size '{ ImageBase.MaxWidth }x{ ImageBase.MaxHeight }'");
             }
 
-            m_jpegImage.Width = parameters.Width;
-            m_jpegImage.Height = parameters.Height;
-            m_jpegImage.BitsPerComponent = 8;
-            m_jpegImage.ComponentsPerSample = (byte)parameters.ComponentsPerSample;
-            m_jpegImage.Colorspace = parameters.Colorspace;
+            this.jpegImage.Width = parameters.Width;
+            this.jpegImage.Height = parameters.Height;
+            this.jpegImage.BitsPerComponent = 8;
+            this.jpegImage.ComponentsPerSample = (byte)parameters.ComponentsPerSample;
+            this.jpegImage.Colorspace = parameters.Colorspace;
         }
 
+        /// <summary>
+        /// Begins writing.
+        /// </summary>
+        /// <remarks>Not implemented.</remarks>
         public void BeginWrite()
         {
         }
 
+        /// <summary>
+        /// Processes the given row of pixels.
+        /// </summary>
+        /// <param name="row">
+        /// The <see cref="T:byte[]"/> representing the row.
+        /// </param>
         public void ProcessPixelsRow(byte[] row)
         {
-            SampleRow samplesRow = new SampleRow(row, m_jpegImage.Width, m_jpegImage.BitsPerComponent, m_jpegImage.ComponentsPerSample);
-            m_jpegImage.addSampleRow(samplesRow);
+            SampleRow samplesRow = new SampleRow(row, this.jpegImage.Width, this.jpegImage.BitsPerComponent, this.jpegImage.ComponentsPerSample);
+            this.jpegImage.addSampleRow(samplesRow);
         }
 
+        /// <summary>
+        /// Ends write.
+        /// </summary>
+        /// <remarks>Not implemented.</remarks>
         public void EndWrite()
         {
         }

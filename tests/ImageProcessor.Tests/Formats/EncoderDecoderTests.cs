@@ -13,10 +13,10 @@
         [Theory]
         //[InlineData("TestImages/Car.bmp")]
         //[InlineData("TestImages/Portrait.png")]
-        //[InlineData("TestImages/Backdrop.jpg")]
+        [InlineData("../../TestImages/Formats/Jpg/Backdrop.jpg")]
         //[InlineData("TestImages/Windmill.gif")]
-        [InlineData("../../TestImages/Formats/Bmp/Car.bmp")]
-        [InlineData("../../TestImages/Formats/Png/cmyk.png")]
+        //[InlineData("../../TestImages/Formats/Bmp/Car.bmp")]
+        //[InlineData("../../TestImages/Formats/Png/cmyk.png")]
         public void DecodeThenEncodeImageFromStreamShouldSucceed(string filename)
         {
             if (!Directory.Exists("Encoded"))

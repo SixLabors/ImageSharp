@@ -11,6 +11,7 @@
 namespace ImageProcessor.Formats
 {
     using System.Collections.Generic;
+    using System.Linq;
 
     /// <summary>
     /// Encapsulates methods to calculate the color palette of an image.
@@ -45,22 +46,25 @@ namespace ImageProcessor.Formats
         /// <returns>
         /// A <see cref="T:byte[]"/> representing a quantized version of the image pixels.
         /// </returns>
-        public byte[] Quantize(ImageBase imageBase)
+        public QuantizedImage Quantize(ImageBase imageBase)
         {
             // Get the size of the source image
             int height = imageBase.Height;
             int width = imageBase.Width;
-            ImageBase copy = new ImageFrame((ImageFrame)imageBase);
 
             // Call the FirstPass function if not a single pass algorithm.
             // For something like an Octree quantizer, this will run through
             // all image pixels, build a data structure, and create a palette.
-            if (!this.singlePass)
+            if (!singlePass)
             {
-                this.FirstPass(copy, width, height);
+                FirstPass(imageBase, width, height);
             }
 
-            throw new System.NotImplementedException();
+            byte[] quantizedPixels = new byte[width * height];
+
+            SecondPass(imageBase, quantizedPixels, width, height);
+
+            return new QuantizedImage(width, height, GetPalette().ToArray(), quantizedPixels);
         }
 
         /// <summary>
@@ -92,18 +96,34 @@ namespace ImageProcessor.Formats
         /// <param name="height">The height in pixels of the image</param>
         protected virtual void SecondPass(ImageBase source, byte[] output, int width, int height)
         {
-            Bgra sourcePixel = source[0, 0];
+            int i = 0;
 
-            // And convert the first pixel, so that I have values going into the loop
-            byte pixelValue = this.QuantizePixel(sourcePixel);
+            // Convert the first pixel, so that I have values going into the loop
+            Bgra previousPixel = source[0, 0];
+            byte pixelValue = QuantizePixel(previousPixel);
 
             output[0] = pixelValue;
 
             for (int y = 0; y < height; y++)
             {
-                // TODO: Translate this from the old method.
-            }
+                for (int x = 0; x < width; x++)
+                {
+                    Bgra sourcePixel = source[x, y];
 
+                    // Check if this is the same as the last pixel. If so use that value
+                    // rather than calculating it again. This is an inexpensive optimization.
+                    if (sourcePixel != previousPixel)
+                    {
+                        // Quantize the pixel
+                        pixelValue = QuantizePixel(sourcePixel);
+
+                        // And setup the previous pointer
+                        previousPixel = sourcePixel;
+                    }
+
+                    output[i++] = pixelValue;
+                }
+            }
         }
 
         /// <summary>

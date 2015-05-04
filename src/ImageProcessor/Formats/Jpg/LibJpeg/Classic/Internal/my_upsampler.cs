@@ -347,7 +347,7 @@ namespace BitMiracle.LibJpeg.Classic.Internal
                 int row = m_upsampleRowOffset + inrow;
                 int outIndex = 0;
 
-                for (int col = 0; col < m_cinfo.m_output_width; col++)
+                for (int col = 0; outIndex < m_cinfo.m_output_width; col++)
                 {
                     byte invalue = input_data[row][col]; /* don't need GETJSAMPLE() here */
                     output_data[inrow][outIndex] = invalue;

@@ -1,11 +1,12 @@
-﻿// ===============================================================================
-// JpegEncoder.cs
-// .NET Image Tools
-// ===============================================================================
-// Copyright (c) .NET Image Tools Development Group. 
-// All rights reserved.
-// ===============================================================================
-
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="JpegEncoder.cs" company="James South">
+//   Copyright © James South and contributors.
+//   Licensed under the Apache License, Version 2.0.
+// </copyright>
+// <summary>
+//   Encoder for writing the data image to a stream in jpg format.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Formats
 {
@@ -19,9 +20,7 @@ namespace ImageProcessor.Formats
     /// </summary>
     public class JpegEncoder : IImageEncoder
     {
-        #region Properties
-
-        private int _quality = 100;
+        private int quality = 100;
         /// <summary>
         /// Gets or sets the quality, that will be used to encode the image. Quality 
         /// index must be between 0 and 100 (compression from max to min). 
@@ -29,22 +28,15 @@ namespace ImageProcessor.Formats
         /// <value>The quality of the jpg image from 0 to 100.</value>
         public int Quality
         {
-            get { return _quality; }
-            set { _quality = value; }
+            get { return this.quality; }
+            set { this.quality = value.Clamp(1, 100); }
         }
-
-        #endregion
-
-        #region IImageEncoder Members
 
         /// <summary>
         /// Gets the default file extension for this encoder.
         /// </summary>
         /// <value>The default file extension for this encoder.</value>
-        public string Extension
-        {
-            get { return "JPG"; }
-        }
+        public string Extension => "JPG";
 
         /// <summary>
         /// Indicates if the image encoder supports the specified
@@ -114,7 +106,5 @@ namespace ImageProcessor.Formats
             JpegImage jpg = new JpegImage(rows, Colorspace.RGB);
             jpg.WriteJpeg(stream, new CompressionParameters { Quality = this.Quality });
         }
-
-        #endregion
     }
 }

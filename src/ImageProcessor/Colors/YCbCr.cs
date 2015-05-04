@@ -28,24 +28,6 @@ namespace ImageProcessor
         public static readonly YCbCr Empty = new YCbCr();
 
         /// <summary>
-        /// Holds the Y luminance component.
-        /// <remarks>A value ranging between 0 and 255.</remarks>
-        /// </summary>
-        public float Y { get; }
-
-        /// <summary>
-        /// Holds the Cb chroma component.
-        /// <remarks>A value ranging between 0 and 255.</remarks>
-        /// </summary>
-        public float Cb { get; }
-
-        /// <summary>
-        /// Holds the Cr chroma component.
-        /// <remarks>A value ranging between 0 and 255.</remarks>
-        /// </summary>
-        public float Cr { get; }
-
-        /// <summary>
         /// The epsilon for comparing floating point numbers.
         /// </summary>
         private const float Epsilon = 0.0001f;
@@ -62,6 +44,24 @@ namespace ImageProcessor
             this.Cb = cb.Clamp(0, 255);
             this.Cr = cr.Clamp(0, 255);
         }
+
+        /// <summary>
+        /// Gets the Y luminance component.
+        /// <remarks>A value ranging between 0 and 255.</remarks>
+        /// </summary>
+        public float Y { get; }
+
+        /// <summary>
+        /// Gets the Cb chroma component.
+        /// <remarks>A value ranging between 0 and 255.</remarks>
+        /// </summary>
+        public float Cb { get; }
+
+        /// <summary>
+        /// Gets the Cr chroma component.
+        /// <remarks>A value ranging between 0 and 255.</remarks>
+        /// </summary>
+        public float Cr { get; }
 
         /// <summary>
         /// Gets a value indicating whether this <see cref="YCbCr"/> is empty.
@@ -203,10 +203,10 @@ namespace ImageProcessor
         {
             if (this.IsEmpty)
             {
-                return "YCbCrColor [ Empty ]";
+                return "YCbCr [ Empty ]";
             }
 
-            return $"YCbCrColor [ Y={this.Y:#0.##}, Cb={this.Cb:#0.##}, Cr={this.Cr:#0.##} ]";
+            return $"YCbCr [ Y={this.Y:#0.##}, Cb={this.Cb:#0.##}, Cr={this.Cr:#0.##} ]";
         }
 
         /// <summary>

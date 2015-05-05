@@ -49,27 +49,27 @@ namespace ImageProcessor
         /// Gets the Y luminance component.
         /// <remarks>A value ranging between 0 and 255.</remarks>
         /// </summary>
-        public float Y { get; }
+        public readonly float Y;
 
         /// <summary>
         /// Gets the Cb chroma component.
         /// <remarks>A value ranging between 0 and 255.</remarks>
         /// </summary>
-        public float Cb { get; }
+        public readonly float Cb;
 
         /// <summary>
         /// Gets the Cr chroma component.
         /// <remarks>A value ranging between 0 and 255.</remarks>
         /// </summary>
-        public float Cr { get; }
+        public readonly float Cr;
 
         /// <summary>
         /// Gets a value indicating whether this <see cref="YCbCr"/> is empty.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public bool IsEmpty => Math.Abs(this.Y) < Epsilon
-                               && Math.Abs(this.Cb) < Epsilon
-                               && Math.Abs(this.Cr) < Epsilon;
+                            && Math.Abs(this.Cb) < Epsilon
+                            && Math.Abs(this.Cr) < Epsilon;
 
         /// <summary>
         /// Compares two <see cref="YCbCr"/> objects. The result specifies whether the values

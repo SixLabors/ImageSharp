@@ -45,28 +45,27 @@ namespace ImageProcessor
         /// Gets the H hue component.
         /// <remarks>A value ranging between 0 and 360.</remarks>
         /// </summary>
-        public float H { get; }
+        public readonly float H;
 
         /// <summary>
         /// Gets the S saturation component.
         /// <remarks>A value ranging between 0 and 100.</remarks>
         /// </summary>
-        public float S { get; }
-
-
+        public readonly float S;
+        
         /// <summary>
         /// Gets the V value (brightness) component.
         /// <remarks>A value ranging between 0 and 100.</remarks>
         /// </summary>
-        public float V { get; }
+        public readonly float V;
 
         /// <summary>
         /// Gets a value indicating whether this <see cref="Hsv"/> is empty.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public bool IsEmpty => Math.Abs(this.H) < Epsilon
-                               && Math.Abs(this.S) < Epsilon
-                               && Math.Abs(this.V) < Epsilon;
+                            && Math.Abs(this.S) < Epsilon
+                            && Math.Abs(this.V) < Epsilon;
 
         /// <summary>
         /// Compares two <see cref="Hsv"/> objects. The result specifies whether the values

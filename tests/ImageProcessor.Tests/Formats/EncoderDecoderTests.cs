@@ -59,7 +59,9 @@
         }
 
         [Theory]
+        [InlineData("../../TestImages/Formats/Jpg/Backdrop.jpg")]
         [InlineData("../../TestImages/Formats/Bmp/Car.bmp")]
+        [InlineData("../../TestImages/Formats/Png/cmyk.png")]
         public void QuantizedImageShouldPreserveMaximumColorPrecision(string filename)
         {
             if (!Directory.Exists("Quantized"))

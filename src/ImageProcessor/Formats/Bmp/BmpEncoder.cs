@@ -108,6 +108,7 @@ namespace ImageProcessor.Formats
         /// </param>
         private static void WriteImage(BinaryWriter writer, ImageBase image)
         {
+            // TODO: Check this as Bitmaps can have an alpha channel.
             int amount = (image.Width * 3) % 4;
             if (amount != 0)
             {

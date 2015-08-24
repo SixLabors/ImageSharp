@@ -60,11 +60,12 @@ namespace ImageProcessor.Formats
         /// <returns></returns>
         public Image ToImage()
         {
+            // TODO: Something is going wrong here. We have a palette.
             Image image = new Image();
             int pixelCount = Pixels.Length;
             byte[] bgraPixels = new byte[pixelCount * 4];
 
-            for (int i = 0; i < pixelCount; i++)
+            for (int i = 0; i < pixelCount; i += 4)
             {
                 Bgra color = Palette[Pixels[i]];
                 bgraPixels[i + 0] = color.B;

@@ -25,7 +25,7 @@
         private byte[] globalColorTable;
         private byte[] _currentFrame;
         private GifLogicalScreenDescriptor logicalScreenDescriptor;
-        private GifGraphicsControlExtension _graphicsControl;
+        private GifGraphicsControlExtension graphicsControlExtension;
 
         public void Decode(Image image, Stream stream)
         {
@@ -64,6 +64,7 @@
                             this.ReadComments();
                             break;
                         case ApplicationExtensionLabel:
+                            // TODO: Read Application extension
                             this.Skip(12);
                             break;
                         case PlainTextLabel:
@@ -88,13 +89,19 @@
 
             byte packed = buffer[1];
 
-            _graphicsControl = new GifGraphicsControlExtension
+            this.graphicsControlExtension = new GifGraphicsControlExtension
             {
                 DelayTime = BitConverter.ToInt16(buffer, 2),
                 TransparencyIndex = buffer[4],
                 TransparencyFlag = (packed & 0x01) == 1,
                 DisposalMethod = (DisposalMethod)((packed & 0x1C) >> 2)
             };
+        }
+
+        private void ReadApplicationBlockExtension()
+        {
+            // TODO: Implement
+            throw new NotImplementedException();
         }
 
         private GifImageDescriptor ReadImageDescriptor()
@@ -105,14 +112,16 @@
 
             byte packed = buffer[8];
 
-            GifImageDescriptor imageDescriptor = new GifImageDescriptor();
-            imageDescriptor.Left = BitConverter.ToInt16(buffer, 0);
-            imageDescriptor.Top = BitConverter.ToInt16(buffer, 2);
-            imageDescriptor.Width = BitConverter.ToInt16(buffer, 4);
-            imageDescriptor.Height = BitConverter.ToInt16(buffer, 6);
-            imageDescriptor.LocalColorTableFlag = ((packed & 0x80) >> 7) == 1;
-            imageDescriptor.LocalColorTableSize = 2 << (packed & 0x07);
-            imageDescriptor.InterlaceFlag = ((packed & 0x40) >> 6) == 1;
+            GifImageDescriptor imageDescriptor = new GifImageDescriptor
+            {
+                Left = BitConverter.ToInt16(buffer, 0),
+                Top = BitConverter.ToInt16(buffer, 2),
+                Width = BitConverter.ToInt16(buffer, 4),
+                Height = BitConverter.ToInt16(buffer, 6),
+                LocalColorTableFlag = ((packed & 0x80) >> 7) == 1,
+                LocalColorTableSize = 2 << (packed & 0x07),
+                InterlaceFlag = ((packed & 0x40) >> 6) == 1
+            };
 
             return imageDescriptor;
         }
@@ -137,18 +146,14 @@
 
             if (this.logicalScreenDescriptor.GlobalColorTableSize > 255 * 4)
             {
-                throw new ImageFormatException(string.Format("Invalid gif colormap size '{0}'", this.logicalScreenDescriptor.GlobalColorTableSize));
+                throw new ImageFormatException(
+                    $"Invalid gif colormap size '{this.logicalScreenDescriptor.GlobalColorTableSize}'");
             }
 
             if (this.logicalScreenDescriptor.Width > ImageBase.MaxWidth || this.logicalScreenDescriptor.Height > ImageBase.MaxHeight)
             {
                 throw new ArgumentOutOfRangeException(
-                    string.Format(
-                        "The input gif '{0}x{1}' is bigger then the max allowed size '{2}x{3}'",
-                        this.logicalScreenDescriptor.Width,
-                        this.logicalScreenDescriptor.Height,
-                        ImageBase.MaxWidth,
-                        ImageBase.MaxHeight));
+                    $"The input gif '{this.logicalScreenDescriptor.Width}x{this.logicalScreenDescriptor.Height}' is bigger then the max allowed size '{ImageBase.MaxWidth}x{ImageBase.MaxHeight}'");
             }
         }
 
@@ -156,7 +161,7 @@
         {
             this.currentStream.Seek(length, SeekOrigin.Current);
 
-            int flag = 0;
+            int flag;
 
             while ((flag = this.currentStream.ReadByte()) != 0)
             {
@@ -166,13 +171,13 @@
 
         private void ReadComments()
         {
-            int flag = 0;
+            int flag;
 
             while ((flag = this.currentStream.ReadByte()) != 0)
             {
                 if (flag > MaxCommentLength)
                 {
-                    throw new ImageFormatException(string.Format("Gif comment length '{0}' exceeds max '{1}'", flag, MaxCommentLength));
+                    throw new ImageFormatException($"Gif comment length '{flag}' exceeds max '{MaxCommentLength}'");
                 }
 
                 byte[] buffer = new byte[flag];
@@ -230,19 +235,19 @@
             int imageWidth = this.logicalScreenDescriptor.Width;
             int imageHeight = this.logicalScreenDescriptor.Height;
 
-            if (_currentFrame == null)
+            if (this._currentFrame == null)
             {
-                _currentFrame = new byte[imageWidth * imageHeight * 4];
+                this._currentFrame = new byte[imageWidth * imageHeight * 4];
             }
 
             byte[] lastFrame = null;
 
-            if (_graphicsControl != null &&
-                _graphicsControl.DisposalMethod == DisposalMethod.RestoreToPrevious)
+            if (this.graphicsControlExtension != null &&
+                this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToPrevious)
             {
                 lastFrame = new byte[imageWidth * imageHeight * 4];
 
-                Array.Copy(_currentFrame, lastFrame, lastFrame.Length);
+                Array.Copy(this._currentFrame, lastFrame, lastFrame.Length);
             }
 
             int offset = 0, i = 0, index = -1;
@@ -294,9 +299,9 @@
 
                     index = indices[i];
 
-                    if (_graphicsControl == null ||
-                        _graphicsControl.TransparencyFlag == false ||
-                        _graphicsControl.TransparencyIndex != index)
+                    if (this.graphicsControlExtension == null ||
+                        this.graphicsControlExtension.TransparencyFlag == false ||
+                        this.graphicsControlExtension.TransparencyIndex != index)
                     {
                         _currentFrame[offset * 4 + 0] = colorTable[index * 3 + 2];
                         _currentFrame[offset * 4 + 1] = colorTable[index * 3 + 1];
@@ -319,9 +324,9 @@
                 currentImage = this.image;
                 currentImage.SetPixels(imageWidth, imageHeight, pixels);
 
-                if (_graphicsControl != null && _graphicsControl.DelayTime > 0)
+                if (this.graphicsControlExtension != null && this.graphicsControlExtension.DelayTime > 0)
                 {
-                    this.image.FrameDelay = _graphicsControl.DelayTime;
+                    this.image.FrameDelay = this.graphicsControlExtension.DelayTime;
                 }
             }
             else
@@ -334,9 +339,9 @@
                 this.image.Frames.Add(frame);
             }
 
-            if (_graphicsControl != null)
+            if (this.graphicsControlExtension != null)
             {
-                if (_graphicsControl.DisposalMethod == DisposalMethod.RestoreToBackground)
+                if (this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToBackground)
                 {
                     for (int y = descriptor.Top; y < descriptor.Top + descriptor.Height; y++)
                     {
@@ -351,7 +356,7 @@
                         }
                     }
                 }
-                else if (_graphicsControl.DisposalMethod == DisposalMethod.RestoreToPrevious)
+                else if (this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToPrevious)
                 {
                     _currentFrame = lastFrame;
                 }

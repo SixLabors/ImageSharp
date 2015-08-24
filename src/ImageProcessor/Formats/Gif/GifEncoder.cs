@@ -11,6 +11,8 @@ namespace ImageProcessor.Formats
         /// </summary>
         private int quality = 256;
 
+        private ImageBase image;
+
         /// <summary>
         /// Gets or sets the quality of output for images.
         /// </summary>
@@ -59,6 +61,8 @@ namespace ImageProcessor.Formats
             Guard.NotNull(image, "image");
             Guard.NotNull(stream, "stream");
 
+            this.image = image;
+
             // Write the header.
             // File Header signature and version.
             this.WriteString(stream, "GIF");
@@ -95,12 +99,38 @@ namespace ImageProcessor.Formats
             this.WriteByte(stream, descriptor.PixelAspectRatio); // Pixel aspect ratio
 
             // Write the global color table.
-            this.WriteColorTable(stream, size);
+            this.WriteColorTable(stream, bitdepth);
         }
 
-        private void WriteColorTable(Stream stream, int size)
+        private void WriteColorTable(Stream stream, int bitDepth)
         {
+            // Quantize the image returning a pallete.
+            IQuantizer quantizer = new OctreeQuantizer(Math.Max(1, this.quality - 1), bitDepth);
+            QuantizedImage quantizedImage = quantizer.Quantize(this.image);
+            this.image = quantizedImage.ToImage();
 
+            // Grab the pallete and write it to the stream.
+            Bgra[] pallete = quantizedImage.Palette;
+            int pixelCount = pallete.Length;
+            int colorTableLength = pixelCount * 3;
+            byte[] colorTable = new byte[colorTableLength];
+
+            for (int i = 0; i < pixelCount; i++)
+            {
+                int offset = i * 4;
+                Bgra color = pallete[i];
+                colorTable[offset + 0] = color.B;
+                colorTable[offset + 1] = color.G;
+                colorTable[offset + 2] = color.R;
+            }
+
+            stream.Write(colorTable, 0, colorTableLength);
+        }
+
+        private void WriteApplicationExtension(Stream stream)
+        {
+            // TODO: Implement
+            throw new NotImplementedException();
         }
 
         /// <summary>

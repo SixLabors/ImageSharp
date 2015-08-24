@@ -223,6 +223,12 @@ namespace ImageProcessor
         public bool IsAnimated => this.Frames.Count > 0;
 
         /// <summary>
+        /// Gets or sets the number of times any animation is repeated.
+        /// <remarks>0 means to repeat indefinitely.</remarks>
+        /// </summary>
+        public ushort RepeatCount { get; set; }
+
+        /// <summary>
         /// Gets the other frames for the animation.
         /// </summary>
         /// <value>The list of frame images.</value>

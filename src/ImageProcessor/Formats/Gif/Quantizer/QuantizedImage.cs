@@ -42,11 +42,16 @@ namespace ImageProcessor.Formats
         /// </summary>
         public QuantizedImage(int width, int height, Bgra[] palette, byte[] pixels)
         {
-            if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
-            if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
-            if (palette == null) throw new ArgumentNullException(nameof(palette));
-            if (pixels == null) throw new ArgumentNullException(nameof(pixels));
-            if (pixels.Length != width * height) throw new ArgumentException("Pixel array size must be width * height", nameof(pixels));
+            Guard.GreaterThan(width, 0, nameof(width));
+            Guard.GreaterThan(height, 0, nameof(height));
+            Guard.NotNull(palette, nameof(palette));
+            Guard.NotNull(pixels, nameof(pixels));
+
+            if (pixels.Length != width * height)
+            {
+                throw new ArgumentException(
+                    $"Pixel array size must be {nameof(width)} * {nameof(height)}", nameof(pixels));
+            }
 
             this.Width = width;
             this.Height = height;
@@ -61,20 +66,20 @@ namespace ImageProcessor.Formats
         public Image ToImage()
         {
             Image image = new Image();
-            int pixelCount = Pixels.Length;
+            int pixelCount = this.Pixels.Length;
             byte[] bgraPixels = new byte[pixelCount * 4];
 
             for (int i = 0; i < pixelCount; i++)
             {
-                int j = i * 4;
-                Bgra color = Palette[Pixels[i]];
-                bgraPixels[j + 0] = color.B;
-                bgraPixels[j + 1] = color.G;
-                bgraPixels[j + 2] = color.R;
-                bgraPixels[j + 3] = color.A;
+                int offset = i * 4;
+                Bgra color = this.Palette[this.Pixels[i]];
+                bgraPixels[offset + 0] = color.B;
+                bgraPixels[offset + 1] = color.G;
+                bgraPixels[offset + 2] = color.R;
+                bgraPixels[offset + 3] = color.A;
             }
 
-            image.SetPixels(Width, Height, bgraPixels);
+            image.SetPixels(this.Width, this.Height, bgraPixels);
             return image;
         }
     }

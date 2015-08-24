@@ -11,7 +11,6 @@
 namespace ImageProcessor.Formats
 {
     using System.Collections.Generic;
-    using System.Linq;
 
     /// <summary>
     /// Encapsulates methods to calculate the color palette of an image.
@@ -55,16 +54,16 @@ namespace ImageProcessor.Formats
             // Call the FirstPass function if not a single pass algorithm.
             // For something like an Octree quantizer, this will run through
             // all image pixels, build a data structure, and create a palette.
-            if (!singlePass)
+            if (!this.singlePass)
             {
-                FirstPass(imageBase, width, height);
+                this.FirstPass(imageBase, width, height);
             }
 
             byte[] quantizedPixels = new byte[width * height];
 
-            SecondPass(imageBase, quantizedPixels, width, height);
+            this.SecondPass(imageBase, quantizedPixels, width, height);
 
-            return new QuantizedImage(width, height, GetPalette().ToArray(), quantizedPixels);
+            return new QuantizedImage(width, height, this.GetPalette().ToArray(), quantizedPixels);
         }
 
         /// <summary>
@@ -100,7 +99,7 @@ namespace ImageProcessor.Formats
 
             // Convert the first pixel, so that I have values going into the loop
             Bgra previousPixel = source[0, 0];
-            byte pixelValue = QuantizePixel(previousPixel);
+            byte pixelValue = this.QuantizePixel(previousPixel);
 
             output[0] = pixelValue;
 
@@ -115,7 +114,7 @@ namespace ImageProcessor.Formats
                     if (sourcePixel != previousPixel)
                     {
                         // Quantize the pixel
-                        pixelValue = QuantizePixel(sourcePixel);
+                        pixelValue = this.QuantizePixel(sourcePixel);
 
                         // And setup the previous pointer
                         previousPixel = sourcePixel;

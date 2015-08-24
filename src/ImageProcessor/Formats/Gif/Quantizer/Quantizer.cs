@@ -61,9 +61,11 @@ namespace ImageProcessor.Formats
 
             byte[] quantizedPixels = new byte[width * height];
 
+            List<Bgra> palette = GetPalette();
+
             this.SecondPass(imageBase, quantizedPixels, width, height);
 
-            return new QuantizedImage(width, height, this.GetPalette().ToArray(), quantizedPixels);
+            return new QuantizedImage(width, height, palette.ToArray(), quantizedPixels);
         }
 
         /// <summary>

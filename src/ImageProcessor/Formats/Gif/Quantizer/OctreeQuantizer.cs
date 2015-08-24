@@ -114,7 +114,7 @@ namespace ImageProcessor.Formats
         protected override List<Bgra> GetPalette()
         {
             // First off convert the Octree to maxColors colors
-            List<Bgra> palette = this.octree.Palletize(this.maxColors - 1);
+            List<Bgra> palette = this.octree.Palletize(Math.Max(this.maxColors - 1, 1));
 
             // Add empty color for transparency
             palette.Add(Bgra.Empty);

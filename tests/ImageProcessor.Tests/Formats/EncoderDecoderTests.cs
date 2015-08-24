@@ -55,7 +55,7 @@
             //    }
             //}
 
-            Trace.WriteLine(string.Format("{0} : {1}ms", filename, watch.ElapsedMilliseconds));
+            Trace.WriteLine($"{filename} : {watch.ElapsedMilliseconds}ms");
         }
 
         [Theory]

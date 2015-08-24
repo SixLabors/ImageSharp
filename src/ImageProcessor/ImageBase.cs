@@ -60,7 +60,7 @@ namespace ImageProcessor
         /// </exception>
         protected ImageBase(ImageBase other)
         {
-            Guard.NotNull(other, "other", "Other image cannot be null.");
+            Guard.NotNull(other, nameof(other), "Other image cannot be null.");
 
             byte[] pixels = other.Pixels;
 

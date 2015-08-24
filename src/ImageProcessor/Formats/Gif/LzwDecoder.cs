@@ -56,7 +56,7 @@ namespace ImageProcessor.Formats
         /// <returns>The decoded and uncompressed array.</returns>
         public byte[] DecodePixels(int width, int height, int dataSize)
         {
-            Guard.LessThan(dataSize, int.MaxValue, "dataSize");
+            Guard.LessThan(dataSize, int.MaxValue, nameof(dataSize));
 
             // The resulting index table.
             byte[] pixels = new byte[width * height];

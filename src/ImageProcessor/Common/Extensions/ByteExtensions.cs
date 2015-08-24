@@ -1,7 +1,20 @@
-﻿namespace ImageProcessor
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="ByteExtensions.cs" company="James South">
+//   Copyright © James South and contributors.
+//   Licensed under the Apache License, Version 2.0.
+// </copyright>
+// <summary>
+//   Extension methods for the <see cref="byte" /> struct.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
+
+namespace ImageProcessor
 {
     using System;
 
+    /// <summary>
+    /// Extension methods for the <see cref="byte"/> struct.
+    /// </summary>
     internal static class ByteExtensions
     {
         /// <summary>

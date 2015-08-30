@@ -51,6 +51,7 @@
     <Compile Include="Formats\Bmp\BmpDecoder.cs" />
     <Compile Include="Formats\Bmp\BmpDecoderCore.cs" />
     <Compile Include="Formats\Bmp\BmpEncoder.cs" />
+    <Compile Include="Formats\Gif\LzwEncoder.cs" />
     <Compile Include="Formats\Gif\GifDecoderCore.cs" />
     <Compile Include="Formats\Gif\GifEncoder.cs" />
     <Compile Include="Formats\Gif\Quantizer\QuantizedImage.cs" />

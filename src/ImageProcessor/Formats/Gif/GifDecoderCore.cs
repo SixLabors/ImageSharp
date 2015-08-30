@@ -23,7 +23,7 @@
         private Image image;
         private Stream currentStream;
         private byte[] globalColorTable;
-        private byte[] _currentFrame;
+        private byte[] currentFrame;
         private GifLogicalScreenDescriptor logicalScreenDescriptor;
         private GifGraphicsControlExtension graphicsControlExtension;
 
@@ -235,9 +235,9 @@
             int imageWidth = this.logicalScreenDescriptor.Width;
             int imageHeight = this.logicalScreenDescriptor.Height;
 
-            if (this._currentFrame == null)
+            if (this.currentFrame == null)
             {
-                this._currentFrame = new byte[imageWidth * imageHeight * 4];
+                this.currentFrame = new byte[imageWidth * imageHeight * 4];
             }
 
             byte[] lastFrame = null;
@@ -247,7 +247,7 @@
             {
                 lastFrame = new byte[imageWidth * imageHeight * 4];
 
-                Array.Copy(this._currentFrame, lastFrame, lastFrame.Length);
+                Array.Copy(this.currentFrame, lastFrame, lastFrame.Length);
             }
 
             int offset = 0, i = 0, index = -1;
@@ -303,10 +303,10 @@
                         this.graphicsControlExtension.TransparencyFlag == false ||
                         this.graphicsControlExtension.TransparencyIndex != index)
                     {
-                        _currentFrame[offset * 4 + 0] = colorTable[index * 3 + 2];
-                        _currentFrame[offset * 4 + 1] = colorTable[index * 3 + 1];
-                        _currentFrame[offset * 4 + 2] = colorTable[index * 3 + 0];
-                        _currentFrame[offset * 4 + 3] = (byte)255;
+                        this.currentFrame[offset * 4 + 0] = colorTable[index * 3 + 2];
+                        this.currentFrame[offset * 4 + 1] = colorTable[index * 3 + 1];
+                        this.currentFrame[offset * 4 + 2] = colorTable[index * 3 + 0];
+                        this.currentFrame[offset * 4 + 3] = (byte)255;
                     }
 
                     i++;
@@ -315,7 +315,7 @@
 
             byte[] pixels = new byte[imageWidth * imageHeight * 4];
 
-            Array.Copy(_currentFrame, pixels, pixels.Length);
+            Array.Copy(this.currentFrame, pixels, pixels.Length);
 
             ImageBase currentImage;
 
@@ -349,16 +349,16 @@
                         {
                             offset = y * imageWidth + x;
 
-                            _currentFrame[offset * 4 + 0] = 0;
-                            _currentFrame[offset * 4 + 1] = 0;
-                            _currentFrame[offset * 4 + 2] = 0;
-                            _currentFrame[offset * 4 + 3] = 0;
+                            this.currentFrame[offset * 4 + 0] = 0;
+                            this.currentFrame[offset * 4 + 1] = 0;
+                            this.currentFrame[offset * 4 + 2] = 0;
+                            this.currentFrame[offset * 4 + 3] = 0;
                         }
                     }
                 }
                 else if (this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToPrevious)
                 {
-                    _currentFrame = lastFrame;
+                    this.currentFrame = lastFrame;
                 }
             }
         }

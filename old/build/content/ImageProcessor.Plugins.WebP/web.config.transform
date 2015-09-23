@@ -1,9 +1,0 @@
-﻿<?xml version="1.0"?>
-<configuration>
-  <system.webServer>
-    <staticContent>
-      <remove fileExtension=".webp"/>
-      <mimeMap fileExtension=".webp" mimeType="image/webp" />
-    </staticContent>
-  </system.webServer>
-</configuration>

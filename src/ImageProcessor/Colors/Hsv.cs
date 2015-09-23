@@ -52,7 +52,7 @@ namespace ImageProcessor
         /// <remarks>A value ranging between 0 and 100.</remarks>
         /// </summary>
         public readonly float S;
-        
+
         /// <summary>
         /// Gets the V value (brightness) component.
         /// <remarks>A value ranging between 0 and 100.</remarks>
@@ -117,30 +117,33 @@ namespace ImageProcessor
         /// </returns>
         public static implicit operator Hsv(Bgra color)
         {
-            float max = Math.Max(color.R, Math.Max(color.G, color.B));
-            float min = Math.Min(color.R, Math.Min(color.G, color.B));
-            float delta = max - min;
+            float r = color.R / 255f;
+            float g = color.G / 255f;
+            float b = color.B / 255f;
 
-            if (Math.Abs(max) < Epsilon)
+            float max = Math.Max(r, Math.Max(g, b));
+            float min = Math.Min(r, Math.Min(g, b));
+            float chroma = max - min;
+            float h = 0;
+            float s = 0;
+            float v = max;
+
+            if (Math.Abs(chroma) < Epsilon)
             {
-                return new Hsv(0, 0, 0);
+                return new Hsv(0, s * 100, v * 100);
             }
 
-            float h = 0.0F;
-            float s;
-            float v;
-
-            if (Math.Abs(delta) < Epsilon) { h = 0; }
-            else if (Math.Abs(color.R - max) < Epsilon) { h = (color.G - color.B) / delta; }
-            else if (Math.Abs(color.G - max) < Epsilon) { h = 2 + (color.B - color.R) / delta; }
-            else if (Math.Abs(color.B - max) < Epsilon) { h = 4 + (color.R - color.G) / delta; }
+            if (Math.Abs(chroma) < Epsilon) { h = 0; }
+            else if (Math.Abs(r - max) < Epsilon) { h = (g - b) / chroma; }
+            else if (Math.Abs(g - max) < Epsilon) { h = 2 + (b - r) / chroma; }
+            else if (Math.Abs(b - max) < Epsilon) { h = 4 + (r - g) / chroma; }
 
             h *= 60;
             if (h < 0.0) { h += 360; }
 
-            s = delta / max;
-            v = max / 255F;
-            return new Hsv(h, s, v);
+            s = (chroma / v);
+
+            return new Hsv(h, s * 100, v * 100);
         }
 
         /// <summary>
@@ -155,9 +158,12 @@ namespace ImageProcessor
         /// </returns>
         public static implicit operator Bgra(Hsv color)
         {
-            if (Math.Abs(color.S) < Epsilon)
+            float s = color.S / 100;
+            float v = color.V / 100;
+
+            if (Math.Abs(s) < Epsilon)
             {
-                byte component = (byte)(color.V * 255);
+                byte component = (byte)(v * 255);
                 return new Bgra(component, component, component, 255);
             }
 
@@ -165,51 +171,51 @@ namespace ImageProcessor
             int i = (int)(Math.Truncate(h));
             float f = h - i;
 
-            float p = color.V * (1.0f - color.S);
-            float q = color.V * (1.0f - (color.S * f));
-            float t = color.V * (1.0f - (color.S * (1.0f - f)));
+            float p = v * (1.0f - s);
+            float q = v * (1.0f - (s * f));
+            float t = v * (1.0f - (s * (1.0f - f)));
 
             float r, g, b;
             switch (i)
             {
                 case 0:
-                    r = color.V;
+                    r = v;
                     g = t;
                     b = p;
                     break;
 
                 case 1:
                     r = q;
-                    g = color.V;
+                    g = v;
                     b = p;
                     break;
 
                 case 2:
                     r = p;
-                    g = color.V;
+                    g = v;
                     b = t;
                     break;
 
                 case 3:
                     r = p;
                     g = q;
-                    b = color.V;
+                    b = v;
                     break;
 
                 case 4:
                     r = t;
                     g = p;
-                    b = color.V;
+                    b = v;
                     break;
 
                 default:
-                    r = color.V;
+                    r = v;
                     g = p;
                     b = q;
                     break;
             }
 
-            return new Bgra((byte)b, (byte)g, (byte)r);
+            return new Bgra((byte)(Math.Round(b * 255)), (byte)(Math.Round(g * 255)), (byte)(Math.Round(r * 255)));
         }
 
         /// <summary>

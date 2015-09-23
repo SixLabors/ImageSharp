@@ -1,3 +1,0 @@
-﻿<blockquote class="remarks" if="content != null && content.Children.Count() > 0">
-  ${Format(content)}
-</blockquote>

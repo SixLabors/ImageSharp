@@ -1,9 +1,0 @@
-<StyleCopSettings Version="105">
-  <GlobalSettings>
-    <CollectionProperty Name="RecognizedWords">
-      <Value>cair</Value>
-      <Value>laplacian</Value>
-      <Value>sobel</Value>
-    </CollectionProperty>
-  </GlobalSettings>
-</StyleCopSettings>

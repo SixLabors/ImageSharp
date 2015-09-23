@@ -1,3 +1,0 @@
-﻿<blockquote class="value" if="content.Children.Count() > 0">
-  <strong>Value: </strong>${Format(content)}
-</blockquote>

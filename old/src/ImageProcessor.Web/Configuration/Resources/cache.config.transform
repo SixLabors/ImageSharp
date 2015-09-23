@@ -1,9 +1,0 @@
-<caching currentCache="DiskCache">
-  <caches>
-    <cache name="DiskCache" type="ImageProcessor.Web.Caching.DiskCache, ImageProcessor.Web" maxDays="365">
-      <settings>
-        <setting key="VirtualCachePath" value="~/app_data/cache"/>
-      </settings>
-    </cache>
-  </caches>
-</caching>

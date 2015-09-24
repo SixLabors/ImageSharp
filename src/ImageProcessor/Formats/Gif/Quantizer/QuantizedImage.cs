@@ -42,8 +42,8 @@ namespace ImageProcessor.Formats
         /// </summary>
         public QuantizedImage(int width, int height, Bgra[] palette, byte[] pixels)
         {
-            Guard.GreaterThan(width, 0, nameof(width));
-            Guard.GreaterThan(height, 0, nameof(height));
+            Guard.MustBeGreaterThan(width, 0, nameof(width));
+            Guard.MustBeGreaterThan(height, 0, nameof(height));
             Guard.NotNull(palette, nameof(palette));
             Guard.NotNull(pixels, nameof(pixels));
 

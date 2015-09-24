@@ -98,7 +98,7 @@ namespace ImageProcessor
         public Image(Image other)
             : base(other)
         {
-            Guard.NotNull(other, "other", "Other image cannot be null.");
+            Guard.NotNull(other, nameof(other), "Other image cannot be null.");
 
             foreach (ImageFrame frame in other.Frames)
             {
@@ -120,7 +120,7 @@ namespace ImageProcessor
         /// </param>
         public Image(Stream stream)
         {
-            Guard.NotNull(stream, "stream");
+            Guard.NotNull(stream, nameof(stream));
             this.Load(stream, Decoders);
         }
 
@@ -154,9 +154,8 @@ namespace ImageProcessor
         /// If not 0, this field specifies the number of hundredths (1/100) of a second to 
         /// wait before continuing with the processing of the Data Stream. 
         /// The clock starts ticking immediately after the graphic is rendered. 
-        /// This field may be used in conjunction with the User Input Flag field. 
         /// </summary>
-        public int? FrameDelay { get; set; }
+        public int FrameDelay { get; set; }
 
         /// <summary>
         /// Gets or sets the resolution of the image in x- direction. It is defined as 
@@ -240,6 +239,8 @@ namespace ImageProcessor
         /// <value>A list of image properties.</value>
         public IList<ImageProperty> Properties { get; } = new List<ImageProperty>();
 
+        internal IImageDecoder Decoder { get; set; }
+
         /// <summary>
         /// Loads the image from the given stream.
         /// </summary>
@@ -279,7 +280,8 @@ namespace ImageProcessor
                         IImageDecoder decoder = decoders.FirstOrDefault(x => x.IsSupportedFileFormat(header));
                         if (decoder != null)
                         {
-                            decoder.Decode(this, stream);
+                            this.Decoder = decoder;
+                            this.Decoder.Decode(this, stream);
                             return;
                         }
                     }

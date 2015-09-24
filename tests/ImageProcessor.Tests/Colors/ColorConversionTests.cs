@@ -88,7 +88,7 @@ namespace ImageProcessor.Tests
         }
 
         /// <summary>
-        /// Tests the implicit conversion from <see cref="YCbCr"/> to <see cref="Bgra"/>.
+        /// Tests the implicit conversion from <see cref="Bgra"/> to <see cref="Hsv"/>.
         /// </summary>
         [Fact]
         [SuppressMessage("StyleCop.CSharp.NamingRules", "SA1305:FieldNamesMustNotUseHungarianNotation",
@@ -128,6 +128,9 @@ namespace ImageProcessor.Tests
             Assert.Equal(80, hsv3.V, 1);
         }
 
+        /// <summary>
+        /// Tests the implicit conversion from <see cref="Hsv"/> to <see cref="Bgra"/>.
+        /// </summary>
         [Fact]
         public void HsvToBgr()
         {

@@ -40,8 +40,8 @@ namespace ImageProcessor
         /// </exception>
         protected ImageBase(int width, int height)
         {
-            Guard.MustBeGreaterThan(width, 0, "width");
-            Guard.MustBeGreaterThan(height, 0, "height");
+            Guard.MustBeGreaterThan(width, 0, nameof(width));
+            Guard.MustBeGreaterThan(height, 0, nameof(height));
 
             this.Width = width;
             this.Height = height;

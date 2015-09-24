@@ -57,8 +57,8 @@ namespace ImageProcessor.Formats
         public OctreeQuantizer(int maxColors, int maxColorBits)
             : base(false)
         {
-            Guard.LessEquals(maxColors, 255, "maxColors");
-            Guard.BetweenEquals(maxColorBits, 1, 8, "maxColorBits");
+            Guard.MustBeLessThanOrEqualTo(maxColors, 255, "maxColors");
+            Guard.MustBeBetweenOrEqualTo(maxColorBits, 1, 8, "maxColorBits");
 
             // Construct the Octree
             this.octree = new Octree(maxColorBits);

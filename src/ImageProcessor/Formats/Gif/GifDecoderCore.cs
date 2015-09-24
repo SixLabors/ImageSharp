@@ -24,8 +24,9 @@
         private Stream currentStream;
         private byte[] globalColorTable;
         private byte[] currentFrame;
-        private GifLogicalScreenDescriptor logicalScreenDescriptor;
-        private GifGraphicsControlExtension graphicsControlExtension;
+
+        internal GifLogicalScreenDescriptor LogicalScreenDescriptor { get; set; }
+        internal GifGraphicsControlExtension GraphicsControlExtension { get; set; }
 
         public void Decode(Image image, Stream stream)
         {
@@ -37,16 +38,16 @@
             this.currentStream.Seek(6, SeekOrigin.Current);
             this.ReadLogicalScreenDescriptor();
 
-            if (this.logicalScreenDescriptor.GlobalColorTableFlag)
+            if (this.LogicalScreenDescriptor.GlobalColorTableFlag)
             {
-                this.globalColorTable = new byte[this.logicalScreenDescriptor.GlobalColorTableSize * 3];
+                this.globalColorTable = new byte[this.LogicalScreenDescriptor.GlobalColorTableSize * 3];
 
                 // Read the global color table from the stream
                 stream.Read(this.globalColorTable, 0, this.globalColorTable.Length);
             }
 
             int nextFlag = stream.ReadByte();
-            while (nextFlag != 0)
+            while (nextFlag != Terminator)
             {
                 if (nextFlag == ImageLabel)
                 {
@@ -89,7 +90,7 @@
 
             byte packed = buffer[1];
 
-            this.graphicsControlExtension = new GifGraphicsControlExtension
+            this.GraphicsControlExtension = new GifGraphicsControlExtension
             {
                 DelayTime = BitConverter.ToInt16(buffer, 2),
                 TransparencyIndex = buffer[4],
@@ -134,7 +135,7 @@
 
             byte packed = buffer[4];
 
-            this.logicalScreenDescriptor = new GifLogicalScreenDescriptor
+            this.LogicalScreenDescriptor = new GifLogicalScreenDescriptor
             {
                 Width = BitConverter.ToInt16(buffer, 0),
                 Height = BitConverter.ToInt16(buffer, 2),
@@ -144,16 +145,16 @@
                 GlobalColorTableSize = 2 << (packed & 0x07)
             };
 
-            if (this.logicalScreenDescriptor.GlobalColorTableSize > 255 * 4)
+            if (this.LogicalScreenDescriptor.GlobalColorTableSize > 255 * 4)
             {
                 throw new ImageFormatException(
-                    $"Invalid gif colormap size '{this.logicalScreenDescriptor.GlobalColorTableSize}'");
+                    $"Invalid gif colormap size '{this.LogicalScreenDescriptor.GlobalColorTableSize}'");
             }
 
-            if (this.logicalScreenDescriptor.Width > ImageBase.MaxWidth || this.logicalScreenDescriptor.Height > ImageBase.MaxHeight)
+            if (this.LogicalScreenDescriptor.Width > ImageBase.MaxWidth || this.LogicalScreenDescriptor.Height > ImageBase.MaxHeight)
             {
                 throw new ArgumentOutOfRangeException(
-                    $"The input gif '{this.logicalScreenDescriptor.Width}x{this.logicalScreenDescriptor.Height}' is bigger then the max allowed size '{ImageBase.MaxWidth}x{ImageBase.MaxHeight}'");
+                    $"The input gif '{this.LogicalScreenDescriptor.Width}x{this.LogicalScreenDescriptor.Height}' is bigger then the max allowed size '{ImageBase.MaxWidth}x{ImageBase.MaxHeight}'");
             }
         }
 
@@ -232,8 +233,8 @@
 
         private void ReadFrameColors(byte[] indices, byte[] colorTable, GifImageDescriptor descriptor)
         {
-            int imageWidth = this.logicalScreenDescriptor.Width;
-            int imageHeight = this.logicalScreenDescriptor.Height;
+            int imageWidth = this.LogicalScreenDescriptor.Width;
+            int imageHeight = this.LogicalScreenDescriptor.Height;
 
             if (this.currentFrame == null)
             {
@@ -242,8 +243,8 @@
 
             byte[] lastFrame = null;
 
-            if (this.graphicsControlExtension != null &&
-                this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToPrevious)
+            if (this.GraphicsControlExtension != null &&
+                this.GraphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToPrevious)
             {
                 lastFrame = new byte[imageWidth * imageHeight * 4];
 
@@ -299,9 +300,9 @@
 
                     index = indices[i];
 
-                    if (this.graphicsControlExtension == null ||
-                        this.graphicsControlExtension.TransparencyFlag == false ||
-                        this.graphicsControlExtension.TransparencyIndex != index)
+                    if (this.GraphicsControlExtension == null ||
+                        this.GraphicsControlExtension.TransparencyFlag == false ||
+                        this.GraphicsControlExtension.TransparencyIndex != index)
                     {
                         this.currentFrame[offset * 4 + 0] = colorTable[index * 3 + 2];
                         this.currentFrame[offset * 4 + 1] = colorTable[index * 3 + 1];
@@ -324,9 +325,9 @@
                 currentImage = this.image;
                 currentImage.SetPixels(imageWidth, imageHeight, pixels);
 
-                if (this.graphicsControlExtension != null && this.graphicsControlExtension.DelayTime > 0)
+                if (this.GraphicsControlExtension != null && this.GraphicsControlExtension.DelayTime > 0)
                 {
-                    this.image.FrameDelay = this.graphicsControlExtension.DelayTime;
+                    this.image.FrameDelay = this.GraphicsControlExtension.DelayTime;
                 }
             }
             else
@@ -339,9 +340,9 @@
                 this.image.Frames.Add(frame);
             }
 
-            if (this.graphicsControlExtension != null)
+            if (this.GraphicsControlExtension != null)
             {
-                if (this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToBackground)
+                if (this.GraphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToBackground)
                 {
                     for (int y = descriptor.Top; y < descriptor.Top + descriptor.Height; y++)
                     {
@@ -356,7 +357,7 @@
                         }
                     }
                 }
-                else if (this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToPrevious)
+                else if (this.GraphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToPrevious)
                 {
                     this.currentFrame = lastFrame;
                 }

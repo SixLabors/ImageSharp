@@ -24,6 +24,9 @@ namespace ImageProcessor.Formats
         /// <value>The size of the header.</value>
         public int HeaderSize => 6;
 
+        internal GifDecoderCore CoreDecoder { get; private set; }
+
+
         /// <summary>
         /// Returns a value indicating whether the <see cref="IImageDecoder"/> supports the specified
         /// file header.
@@ -34,7 +37,7 @@ namespace ImageProcessor.Formats
         /// </returns>
         public bool IsSupportedFileExtension(string extension)
         {
-            Guard.NotNullOrEmpty(extension, "extension");
+            Guard.NotNullOrEmpty(extension, nameof(extension));
 
             extension = extension.StartsWith(".") ? extension.Substring(1) : extension;
             return extension.Equals("GIF", StringComparison.OrdinalIgnoreCase);
@@ -66,7 +69,8 @@ namespace ImageProcessor.Formats
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         public void Decode(Image image, Stream stream)
         {
-            new GifDecoderCore().Decode(image, stream);
+            this.CoreDecoder = new GifDecoderCore();
+            this.CoreDecoder.Decode(image, stream);
         }
     }
 }

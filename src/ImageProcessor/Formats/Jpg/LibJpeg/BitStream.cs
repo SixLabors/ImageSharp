@@ -129,7 +129,7 @@ namespace ImageProcessor.Formats
         /// </returns>
         public virtual int Read(int bitCount)
         {
-            Guard.LessEquals(this.Tell() + bitCount, this.BitsAllocated(), "bitCount");
+            Guard.MustBeLessThanOrEqualTo(this.Tell() + bitCount, this.BitsAllocated(), "bitCount");
             return this.ReadBits(bitCount);
         }
 
@@ -150,7 +150,7 @@ namespace ImageProcessor.Formats
 
             const int MaxBitsInStorage = sizeof(int) * BitsInByte;
 
-            Guard.LessEquals(bitCount, MaxBitsInStorage, "bitCount");
+            Guard.MustBeLessThanOrEqualTo(bitCount, MaxBitsInStorage, "bitCount");
 
             for (int i = 0; i < bitCount; ++i)
             {
@@ -251,7 +251,7 @@ namespace ImageProcessor.Formats
             // This stream is then divided into 8-bit bytes, high-order bit first. 
             // Thus, codes can straddle byte boundaries arbitrarily. After the EOD marker (code value 257), 
             // any leftover bits in the final byte are set to 0.
-            Guard.BetweenEquals(bitsCount, 0, 32, "bitsCount");
+            Guard.MustBeBetweenOrEqualTo(bitsCount, 0, 32, "bitsCount");
 
             if (bitsCount == 0)
             {
@@ -338,7 +338,7 @@ namespace ImageProcessor.Formats
         /// </param>
         private void SeekSet(int position)
         {
-            Guard.GreaterEquals(position, 0, "position");
+            Guard.MustBeGreaterThanOrEqualTo(position, 0, "position");
 
             int byteDisplacement = position / BitsInByte;
             this.stream.Seek(byteDisplacement, SeekOrigin.Begin);
@@ -356,7 +356,7 @@ namespace ImageProcessor.Formats
         private void SeekCurrent(int position)
         {
             int result = this.Tell() + position;
-            Guard.BetweenEquals(position, 0, this.BitsAllocated(), "position");
+            Guard.MustBeBetweenOrEqualTo(position, 0, this.BitsAllocated(), "position");
 
             this.SeekSet(result);
         }

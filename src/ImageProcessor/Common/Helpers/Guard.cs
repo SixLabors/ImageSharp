@@ -11,11 +11,12 @@
 namespace ImageProcessor
 {
     using System;
-    using System.Globalization;
+    using System.Diagnostics;
 
     /// <summary>
     /// Provides methods to protect against invalid parameters.
     /// </summary>
+    [DebuggerStepThrough]
     internal static class Guard
     {
         /// <summary>
@@ -70,7 +71,7 @@ namespace ImageProcessor
 
             if (string.IsNullOrWhiteSpace(target))
             {
-                throw new ArgumentException("String parameter cannot be null or empty and cannot contain only blanks.", parameterName);
+                throw new ArgumentException("Value cannot be null or empty and cannot contain only blanks.", parameterName);
             }
         }
 
@@ -85,7 +86,7 @@ namespace ImageProcessor
         /// <exception cref="ArgumentException">
         /// <paramref name="value"/> is greater than the maximum value.
         /// </exception>
-        public static void LessThan<TValue>(TValue value, TValue max, string parameterName) where TValue : IComparable<TValue>
+        public static void MustBeLessThan<TValue>(TValue value, TValue max, string parameterName) where TValue : IComparable<TValue>
         {
             if (value.CompareTo(max) >= 0)
             {
@@ -106,7 +107,7 @@ namespace ImageProcessor
         /// <exception cref="ArgumentException">
         /// <paramref name="value"/> is greater than the maximum value.
         /// </exception>
-        public static void LessEquals<TValue>(TValue value, TValue max, string parameterName) where TValue : IComparable<TValue>
+        public static void MustBeLessThanOrEqualTo<TValue>(TValue value, TValue max, string parameterName) where TValue : IComparable<TValue>
         {
             if (value.CompareTo(max) > 0)
             {
@@ -127,7 +128,7 @@ namespace ImageProcessor
         /// <exception cref="ArgumentException">
         /// <paramref name="value"/> is less than the minimum value.
         /// </exception>
-        public static void GreaterThan<TValue>(TValue value, TValue min, string parameterName) where TValue : IComparable<TValue>
+        public static void MustBeGreaterThan<TValue>(TValue value, TValue min, string parameterName) where TValue : IComparable<TValue>
         {
             if (value.CompareTo(min) <= 0)
             {
@@ -148,7 +149,7 @@ namespace ImageProcessor
         /// <exception cref="ArgumentException">
         /// <paramref name="value"/> is less than the minimum value.
         /// </exception>
-        public static void GreaterEquals<TValue>(TValue value, TValue min, string parameterName) where TValue : IComparable<TValue>
+        public static void MustBeGreaterThanOrEqualTo<TValue>(TValue value, TValue min, string parameterName) where TValue : IComparable<TValue>
         {
             if (value.CompareTo(min) < 0)
             {
@@ -170,7 +171,7 @@ namespace ImageProcessor
         /// <exception cref="ArgumentException">
         /// <paramref name="value"/> is less than the minimum value of greater than the maximum value.
         /// </exception>
-        public static void BetweenEquals<TValue>(TValue value, TValue min, TValue max, string parameterName) where TValue : IComparable<TValue>
+        public static void MustBeBetweenOrEqualTo<TValue>(TValue value, TValue min, TValue max, string parameterName) where TValue : IComparable<TValue>
         {
             if (value.CompareTo(min) < 0 || value.CompareTo(max) > 0)
             {

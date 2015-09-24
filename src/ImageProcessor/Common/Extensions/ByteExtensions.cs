@@ -29,7 +29,7 @@ namespace ImageProcessor
         public static byte[] ToArrayByBitsLength(this byte[] bytes, int bits)
         {
             Guard.NotNull(bytes, "bytes");
-            Guard.GreaterThan(bits, 0, "bits");
+            Guard.MustBeGreaterThan(bits, 0, "bits");
 
             byte[] result;
 

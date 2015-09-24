@@ -54,6 +54,7 @@
     <Compile Include="Colors\ColorConversionTests.cs" />
     <Compile Include="Colors\ColorTests.cs" />
     <Compile Include="Formats\EncoderDecoderTests.cs" />
+    <Compile Include="Helpers\GuardTests.cs" />
     <Compile Include="Numerics\RectangleTests.cs" />
     <Compile Include="Numerics\PointTests.cs" />
     <Compile Include="Numerics\SizeTests.cs" />

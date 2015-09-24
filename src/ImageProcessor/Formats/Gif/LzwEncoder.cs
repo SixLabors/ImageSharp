@@ -63,7 +63,7 @@
 
         // General DEFINEs
 
-        private const int BITS = 12;
+        private const int Bits = 12;
 
         private const int HSIZE = 5003; // 80% occupancy
 
@@ -79,12 +79,12 @@
         //              Joe Orost              (decvax!vax135!petsd!joe)
 
         private int numberOfBits; // number of bits/code
-        private int maxbits = BITS; // user settable max # bits/code
+        private int maxbits = Bits; // user settable max # bits/code
         private int maxcode; // maximum code, given n_bits
-        private int maxmaxcode = 1 << BITS; // should NEVER generate this code
+        private int maxmaxcode = 1 << Bits; // should NEVER generate this code
 
-        private int[] htab = new int[HSIZE];
-        private int[] codetab = new int[HSIZE];
+        private readonly int[] hashTable = new int[HSIZE];
+        private readonly int[] codeTable = new int[HSIZE];
 
         private int hsize = HSIZE; // for dynamic table sizing
 
@@ -168,7 +168,7 @@
         {
             for (int i = 0; i < hsize; ++i)
             {
-                this.htab[i] = -1;
+                this.hashTable[i] = -1;
             }
         }
 
@@ -210,21 +210,21 @@
 
             this.Output(this.ClearCode, outs);
 
-        // TODO: Refactor this. Goto is baaaaaaad!
-        outer_loop:
+            // TODO: Refactor this. Goto is baaaaaaad!
+            //  outer_loop:
             while ((c = this.NextPixel()) != EOF)
             {
                 fcode = (c << this.maxbits) + ent;
                 int i = c << hshift ^ ent;
 
-                if (this.htab[i] == fcode)
+                if (this.hashTable[i] == fcode)
                 {
-                    ent = this.codetab[i];
+                    ent = this.codeTable[i];
                     continue;
                 }
 
                 // non-empty slot
-                if (this.htab[i] >= 0)
+                if (this.hashTable[i] >= 0)
                 {
                     disp = hsize_reg - i; // secondary hash (after G. Knott)
                     if (i == 0)
@@ -239,13 +239,14 @@
                             i += hsize_reg;
                         }
 
-                        if (this.htab[i] == fcode)
+                        if (this.hashTable[i] == fcode)
                         {
-                            ent = this.codetab[i];
-                            goto outer_loop;
+                            ent = this.codeTable[i];
+                            // goto outer_loop;
+                            break;
                         }
                     }
-                    while (this.htab[i] >= 0);
+                    while (this.hashTable[i] >= 0);
                 }
 
                 this.Output(ent, outs);
@@ -253,8 +254,8 @@
 
                 if (this.freeEntry < this.maxmaxcode)
                 {
-                    this.codetab[i] = this.freeEntry++; // code -> hashtable
-                    this.htab[i] = fcode;
+                    this.codeTable[i] = this.freeEntry++; // code -> hashtable
+                    this.hashTable[i] = fcode;
                 }
                 else
                 {

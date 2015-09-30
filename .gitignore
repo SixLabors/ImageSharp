@@ -171,3 +171,4 @@ build/TestResult.xml
 *.db
 
 _site/
+.vs/config/applicationhost.config

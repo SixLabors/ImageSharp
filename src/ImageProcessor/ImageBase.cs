@@ -111,6 +111,14 @@ namespace ImageProcessor
         public Rectangle Bounds => new Rectangle(0, 0, this.Width, this.Height);
 
         /// <summary>
+        /// Gets or sets the frame delay for animated images.
+        /// If not 0, this field specifies the number of hundredths (1/100) of a second to
+        /// wait before continuing with the processing of the Data Stream.
+        /// The clock starts ticking immediately after the graphic is rendered.
+        /// </summary>
+        public int FrameDelay { get; set; }
+
+        /// <summary>
         /// Gets or sets the color of a pixel at the specified position.
         /// </summary>
         /// <param name="x">

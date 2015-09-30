@@ -52,7 +52,7 @@ namespace ImageProcessor
                  new BmpDecoder(),
                  new JpegDecoder(),
                  new PngDecoder(),
-                // new GifDecoder(),
+                 new GifDecoder(),
             });
 
         /// <summary>
@@ -150,22 +150,14 @@ namespace ImageProcessor
         public static IList<IImageEncoder> Encoders => DefaultEncoders.Value;
 
         /// <summary>
-        /// Gets or sets the frame delay.
-        /// If not 0, this field specifies the number of hundredths (1/100) of a second to 
-        /// wait before continuing with the processing of the Data Stream. 
-        /// The clock starts ticking immediately after the graphic is rendered. 
-        /// </summary>
-        public int FrameDelay { get; set; }
-
-        /// <summary>
-        /// Gets or sets the resolution of the image in x- direction. It is defined as 
-        /// number of dots per inch and should be an positive value.
+        /// Gets or sets the resolution of the image in x- direction. It is defined as
+        ///  number of dots per inch and should be an positive value.
         /// </summary>
         /// <value>The density of the image in x- direction.</value>
         public double HorizontalResolution { get; set; }
 
         /// <summary>
-        /// Gets or sets the resolution of the image in y- direction. It is defined as 
+        /// Gets or sets the resolution of the image in y- direction. It is defined as
         /// number of dots per inch and should be an positive value.
         /// </summary>
         /// <value>The density of the image in y- direction.</value>
@@ -239,7 +231,10 @@ namespace ImageProcessor
         /// <value>A list of image properties.</value>
         public IList<ImageProperty> Properties { get; } = new List<ImageProperty>();
 
-        internal IImageDecoder Decoder { get; set; }
+        /// <summary>
+        /// The current decoder
+        /// </summary>
+        internal IImageDecoder CurrentDecoder { get; set; }
 
         /// <summary>
         /// Loads the image from the given stream.
@@ -280,8 +275,8 @@ namespace ImageProcessor
                         IImageDecoder decoder = decoders.FirstOrDefault(x => x.IsSupportedFileFormat(header));
                         if (decoder != null)
                         {
-                            this.Decoder = decoder;
-                            this.Decoder.Decode(this, stream);
+                            this.CurrentDecoder = decoder;
+                            this.CurrentDecoder.Decode(this, stream);
                             return;
                         }
                     }

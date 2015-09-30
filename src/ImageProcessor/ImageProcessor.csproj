@@ -26,6 +26,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <DocumentationFile>bin\Debug\ImageProcessor.XML</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -51,7 +52,9 @@
     <Compile Include="Formats\Bmp\BmpDecoder.cs" />
     <Compile Include="Formats\Bmp\BmpDecoderCore.cs" />
     <Compile Include="Formats\Bmp\BmpEncoder.cs" />
+    <Compile Include="Formats\Gif\BitEncoder.cs" />
     <Compile Include="Formats\Gif\LzwEncoder.cs" />
+    <Compile Include="Formats\Gif\GifConstants.cs" />
     <Compile Include="Formats\Gif\GifDecoderCore.cs" />
     <Compile Include="Formats\Gif\GifEncoder.cs" />
     <Compile Include="Formats\Gif\Quantizer\QuantizedImage.cs" />
@@ -153,9 +156,9 @@
     <Compile Include="Common\Helpers\Guard.cs" />
     <Compile Include="Formats\Gif\GifDecoder.cs" />
     <Compile Include="Formats\Gif\LzwDecoder.cs" />
-    <Compile Include="Formats\Gif\GifLogicalScreenDescriptor.cs" />
-    <Compile Include="Formats\Gif\GifImageDescriptor.cs" />
-    <Compile Include="Formats\Gif\GifGraphicsControlExtension.cs" />
+    <Compile Include="Formats\Gif\Sections\GifLogicalScreenDescriptor.cs" />
+    <Compile Include="Formats\Gif\Sections\GifImageDescriptor.cs" />
+    <Compile Include="Formats\Gif\Sections\GifGraphicsControlExtension.cs" />
     <Compile Include="Formats\Gif\DisposalMethod.cs" />
     <Compile Include="Formats\IImageDecoder.cs" />
     <Compile Include="Formats\IImageEncoder.cs" />
@@ -175,10 +178,15 @@
   <ItemGroup>
     <None Include="Formats\Jpg\README.md" />
     <None Include="packages.config" />
+    <AdditionalFiles Include="stylecop.json" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Formats\Bmp\README.md" />
     <None Include="Formats\Png\README.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <Analyzer Include="..\..\packages\StyleCop.Analyzers.1.0.0-beta013\analyzers\dotnet\cs\Newtonsoft.Json.dll" />
+    <Analyzer Include="..\..\packages\StyleCop.Analyzers.1.0.0-beta013\analyzers\dotnet\cs\StyleCop.Analyzers.dll" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

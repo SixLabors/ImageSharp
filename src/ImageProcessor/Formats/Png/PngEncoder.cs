@@ -116,7 +116,7 @@ namespace ImageProcessor.Formats
             // Write the png header.
             stream.Write(
                 new byte[]
-                    { 
+                    {
                     0x89, // Set the high bit.
                     0x50, // P
                     0x4E, // N
@@ -124,7 +124,7 @@ namespace ImageProcessor.Formats
                     0x0D, // Line ending CRLF
                     0x0A, // Line ending CRLF
                     0x1A, // EOF
-                    0x0A  // LF
+                    0x0A // LF
                     },
                 0,
                 8);

@@ -375,7 +375,7 @@ namespace BitMiracle.LibJpeg.Classic.Internal
                             s = HUFF_EXTEND(r, s);
 
                             /* Scale and output coefficient in natural (dezigzagged) order */
-                            MCU_data[0][JpegUtils.jpeg_natural_order[k]] = (short) (s << m_cinfo.m_Al);
+                            MCU_data[0][JpegUtils.jpeg_natural_order[k]] = (short)(s << m_cinfo.m_Al);
                         }
                         else
                         {
@@ -455,7 +455,7 @@ namespace BitMiracle.LibJpeg.Classic.Internal
                 if (GET_BITS(1, get_buffer, ref bits_left) != 0)
                 {
                     /* 1 in the bit position being coded */
-                    MCU_data[blkn][0] |= (short)(1 << m_cinfo.m_Al);
+                    MCU_data[blkn][0] = (short)((ushort)MCU_data[blkn][0] | (ushort)(1 << m_cinfo.m_Al));
                 }
 
                 /* Note: since we use |=, repeating the assignment later is safe */
@@ -542,7 +542,7 @@ namespace BitMiracle.LibJpeg.Classic.Internal
                                 s = p1;
                             }
                             else
-                            {   
+                            {
                                 /* newly nonzero coef is negative */
                                 s = m1;
                             }
@@ -608,9 +608,9 @@ namespace BitMiracle.LibJpeg.Classic.Internal
                         if (s != 0)
                         {
                             int pos = JpegUtils.jpeg_natural_order[k];
-                            
+
                             /* Output newly nonzero coefficient */
-                            MCU_data[0][pos] = (short) s;
+                            MCU_data[0][pos] = (short)s;
 
                             /* Remember its position in case we have to suspend */
                             newnz_pos[num_newnz++] = pos;

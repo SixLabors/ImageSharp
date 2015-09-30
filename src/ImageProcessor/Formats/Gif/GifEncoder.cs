@@ -1,9 +1,16 @@
-﻿
+﻿// <copyright file="GifEncoder.cs" company="James South">
+// Copyright © James South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
 namespace ImageProcessor.Formats
 {
     using System;
     using System.IO;
 
+    /// <summary>
+    /// The Gif encoder
+    /// </summary>
     public class GifEncoder : IImageEncoder
     {
         /// <summary>
@@ -11,7 +18,10 @@ namespace ImageProcessor.Formats
         /// </summary>
         private int quality = 256;
 
-        private Image image;
+        /// <summary>
+        /// The gif decoder if any used to decode the original image.
+        /// </summary>
+        private GifDecoder gifDecoder;
 
         /// <summary>
         /// Gets or sets the quality of output for images.
@@ -54,53 +64,77 @@ namespace ImageProcessor.Formats
         /// <summary>
         /// Encodes the image to the specified stream from the <see cref="ImageBase"/>.
         /// </summary>
-        /// <param name="image">The <see cref="ImageBase"/> to encode from.</param>
+        /// <param name="imageBase">The <see cref="ImageBase"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
-        public void Encode(ImageBase image, Stream stream)
+        public void Encode(ImageBase imageBase, Stream stream)
         {
-            Guard.NotNull(image, nameof(image));
+            Guard.NotNull(imageBase, nameof(imageBase));
             Guard.NotNull(stream, nameof(stream));
 
-            this.image = (Image)image;
+            Image image = (Image)imageBase;
+
+            // Try to grab and assign an image decoder.
+            IImageDecoder decoder = image.CurrentDecoder;
+            if (decoder.GetType() == typeof(GifDecoder))
+            {
+                this.gifDecoder = (GifDecoder)decoder;
+            }
 
             // Write the header.
             // File Header signature and version.
-            this.WriteString(stream, "GIF");
-            this.WriteString(stream, "89a");
+            this.WriteString(stream, GifConstants.FileType);
+            this.WriteString(stream, GifConstants.FileVersion);
 
             int bitdepth = this.GetBitsNeededForColorDepth(this.Quality) - 1;
 
-            this.WriteGlobalLogicalScreenDescriptor(stream, bitdepth);
-           
-            foreach (ImageFrame frame in this.image.Frames)
+            // Write the LSD and check to see if we need a global color table.
+            bool globalColor = this.WriteGlobalLogicalScreenDescriptor(image, stream, bitdepth);
+
+            if (globalColor)
             {
-                this.WriteColorTable(stream, bitdepth);
-                this.WriteGraphicalControlExtension(stream);
+                this.WriteColorTable(imageBase, stream, bitdepth);
+            }
+
+            this.WriteGraphicalControlExtension(imageBase, stream);
+
+            // TODO: Write Comments
+            this.WriteApplicationExtension(stream, image.RepeatCount);
+
+            // TODO: Write Image Info
+
+            foreach (ImageFrame frame in image.Frames)
+            {
+                this.WriteColorTable(frame, stream, bitdepth);
+                this.WriteGraphicalControlExtension(frame, stream);
+                // TODO: Write Image Info
             }
 
             throw new System.NotImplementedException();
+
+            // Cleanup
+            this.Quality = 256;
+            this.gifDecoder = null;
         }
 
-        private void WriteGlobalLogicalScreenDescriptor(Stream stream, int bitDepth)
+        private bool WriteGlobalLogicalScreenDescriptor(Image image, Stream stream, int bitDepth)
         {
-            IImageDecoder decoder = ((Image)this.image).Decoder;
             GifLogicalScreenDescriptor descriptor;
 
             // Try and grab an existing descriptor.
-            if (decoder.GetType() == typeof(GifDecoder))
+            if (this.gifDecoder != null)
             {
                 // Ensure the dimensions etc are up to date.
-                descriptor = ((GifDecoder)decoder).CoreDecoder.LogicalScreenDescriptor;
-                descriptor.Width = (short)this.image.Width;
-                descriptor.Height = (short)this.image.Height;
+                descriptor = this.gifDecoder.CoreDecoder.LogicalScreenDescriptor;
+                descriptor.Width = (short)image.Width;
+                descriptor.Height = (short)image.Height;
                 descriptor.GlobalColorTableSize = this.Quality;
             }
             else
             {
                 descriptor = new GifLogicalScreenDescriptor
                 {
-                    Width = (short)this.image.Width,
-                    Height = (short)this.image.Height,
+                    Width = (short)image.Width,
+                    Height = (short)image.Height,
                     GlobalColorTableFlag = true,
                     GlobalColorTableSize = this.Quality
                 };
@@ -117,14 +151,15 @@ namespace ImageProcessor.Formats
             this.WriteByte(stream, packed);
             this.WriteByte(stream, descriptor.BackgroundColorIndex); // Background Color Index
             this.WriteByte(stream, descriptor.PixelAspectRatio); // Pixel aspect ratio
+
+            return descriptor.GlobalColorTableFlag;
         }
 
-        private void WriteColorTable(Stream stream, int bitDepth)
+        private void WriteColorTable(ImageBase image, Stream stream, int bitDepth)
         {
             // Quantize the image returning a pallete.
             IQuantizer quantizer = new OctreeQuantizer(Math.Max(1, this.quality - 1), bitDepth);
-            QuantizedImage quantizedImage = quantizer.Quantize(this.image);
-            this.image = quantizedImage.ToImage();
+            QuantizedImage quantizedImage = quantizer.Quantize(image);
 
             // Grab the pallete and write it to the stream.
             Bgra[] pallete = quantizedImage.Palette;
@@ -144,24 +179,23 @@ namespace ImageProcessor.Formats
             stream.Write(colorTable, 0, colorTableLength);
         }
 
-        private void WriteGraphicalControlExtension(Stream stream)
+        private void WriteGraphicalControlExtension(ImageBase image, Stream stream)
         {
-            Image i = ((Image)this.image);
-            IImageDecoder decoder = i.Decoder;
             GifGraphicsControlExtension extension;
 
             // Try and grab an existing descriptor.
             // TODO: Check whether we need to.
-            if (decoder.GetType() == typeof(GifDecoder))
+            if (this.gifDecoder != null)
             {
                 // Ensure the dimensions etc are up to date.
-                extension = ((GifDecoder)decoder).CoreDecoder.GraphicsControlExtension;
+                extension = this.gifDecoder.CoreDecoder.GraphicsControlExtension;
                 extension.TransparencyFlag = this.Quality > 1;
-                extension.TransparencyIndex = this.Quality - 1;
-                extension.DelayTime = i.FrameDelay;
+                extension.TransparencyIndex = this.Quality - 1; // Quantizer set last as transparent.
+                extension.DelayTime = image.FrameDelay;
             }
             else
             {
+                // TODO: Check transparency logic.
                 bool hasTransparent = this.Quality > 1;
                 DisposalMethod disposalMethod = hasTransparent
                     ? DisposalMethod.RestoreToBackground
@@ -171,8 +205,8 @@ namespace ImageProcessor.Formats
                 {
                     DisposalMethod = disposalMethod,
                     TransparencyFlag = hasTransparent,
-                    TransparencyIndex = this.Quality - 1, // Quantizer set last as transparent.
-                    DelayTime = i.FrameDelay
+                    TransparencyIndex = this.Quality - 1,
+                    DelayTime = image.FrameDelay
                 };
             }
 
@@ -190,12 +224,25 @@ namespace ImageProcessor.Formats
             this.WriteByte(stream, GifConstants.Terminator);
         }
 
-
-
-        private void WriteApplicationExtension(Stream stream)
+        private void WriteApplicationExtension(Stream stream, ushort repeatCount)
         {
-            // TODO: Implement
-            throw new NotImplementedException();
+            // Application Extension Header
+            if (repeatCount != 1)
+            {
+                // 0 means loop indefinitely. count is set as play n + 1 times.
+                // TODO: Check this as the correct value might be pulled from the decoder.
+                repeatCount = (ushort)Math.Max(0, repeatCount - 1);
+                this.WriteByte(stream, GifConstants.ExtensionIntroducer); // NETSCAPE2.0
+                this.WriteByte(stream, GifConstants.ApplicationExtensionLabel);
+                this.WriteByte(stream, GifConstants.ApplicationBlockSize);
+
+                this.WriteString(stream, GifConstants.ApplicationIdentification);
+                this.WriteByte(stream, 3); // Application block length
+                this.WriteByte(stream, 1); // Data sub-block index (always 1)
+                this.WriteShort(stream, repeatCount); // Repeat count for images.
+
+                this.WriteByte(stream, GifConstants.Terminator); // Terminator
+            }
         }
 
         /// <summary>
@@ -235,9 +282,13 @@ namespace ImageProcessor.Formats
         }
 
         /// <summary>
-        /// Returns how many bits are required to store the specified number of colors. 
+        /// Returns how many bits are required to store the specified number of colors.
         /// Performs a Log2() on the value.
         /// </summary>
+        /// <para>The number of colors.</para>
+        /// <returns>
+        /// The <see cref="int"/>
+        /// </returns>
         private int GetBitsNeededForColorDepth(int colors)
         {
             return (int)Math.Ceiling(Math.Log(colors, 2));

@@ -63,6 +63,25 @@ namespace ImageProcessor.Formats
         /// Initializes a new instance of the <see cref="BitStream"/> class based on the 
         /// specified byte array.
         /// </summary>
+        /// <param name="stream">
+        /// The <see cref="T:Stream"/> from which to create the current stream.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown if the given stream is null.
+        /// </exception>
+        public BitStream(Stream stream)
+        {
+            Guard.NotNull(stream, nameof(stream));
+
+            this.stream = new MemoryStream();
+            stream.CopyTo(this.stream);
+            this.size = this.BitsAllocated();
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BitStream"/> class based on the 
+        /// specified byte array.
+        /// </summary>
         /// <param name="buffer">
         /// The <see cref="T:byte[]"/> from which to create the current stream.
         /// </param>
@@ -71,7 +90,7 @@ namespace ImageProcessor.Formats
         /// </exception>
         public BitStream(byte[] buffer)
         {
-            Guard.NotNull(buffer, "buffer");
+            Guard.NotNull(buffer, nameof(buffer));
 
             this.stream = new MemoryStream(buffer);
             this.size = this.BitsAllocated();
@@ -129,7 +148,7 @@ namespace ImageProcessor.Formats
         /// </returns>
         public virtual int Read(int bitCount)
         {
-            Guard.MustBeLessThanOrEqualTo(this.Tell() + bitCount, this.BitsAllocated(), "bitCount");
+            Guard.MustBeLessThanOrEqualTo(this.Tell() + bitCount, this.BitsAllocated(), nameof(bitCount));
             return this.ReadBits(bitCount);
         }
 
@@ -150,7 +169,7 @@ namespace ImageProcessor.Formats
 
             const int MaxBitsInStorage = sizeof(int) * BitsInByte;
 
-            Guard.MustBeLessThanOrEqualTo(bitCount, MaxBitsInStorage, "bitCount");
+            Guard.MustBeLessThanOrEqualTo(bitCount, MaxBitsInStorage, nameof(bitCount));
 
             for (int i = 0; i < bitCount; ++i)
             {

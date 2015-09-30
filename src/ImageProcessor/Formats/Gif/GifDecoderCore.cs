@@ -210,10 +210,10 @@
         private byte[] ReadFrameIndices(GifImageDescriptor imageDescriptor)
         {
             int dataSize = this.currentStream.ReadByte();
-
             LzwDecoder lzwDecoder = new LzwDecoder(this.currentStream);
 
             byte[] indices = lzwDecoder.DecodePixels(imageDescriptor.Width, imageDescriptor.Height, dataSize);
+
             return indices;
         }
 
@@ -296,7 +296,7 @@
 
                 for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width; x++)
                 {
-                    offset = writeY * imageWidth + x;
+                    offset = (writeY * imageWidth) + x;
 
                     index = indices[i];
 
@@ -337,6 +337,11 @@
                 currentImage = frame;
                 currentImage.SetPixels(imageWidth, imageHeight, pixels);
 
+                if (this.GraphicsControlExtension != null && this.GraphicsControlExtension.DelayTime > 0)
+                {
+                    currentImage.FrameDelay = this.GraphicsControlExtension.DelayTime;
+                }
+
                 this.image.Frames.Add(frame);
             }
 
@@ -348,7 +353,7 @@
                     {
                         for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width; x++)
                         {
-                            offset = y * imageWidth + x;
+                            offset = (y * imageWidth) + x;
 
                             this.currentFrame[offset * 4 + 0] = 0;
                             this.currentFrame[offset * 4 + 1] = 0;

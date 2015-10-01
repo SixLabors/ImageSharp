@@ -14,31 +14,20 @@ namespace ImageProcessor.Formats
     public class GifEncoder : IImageEncoder
     {
         /// <summary>
-        /// The quality.
-        /// </summary>
-        private int quality = 256;
-
-        /// <summary>
         /// The gif decoder if any used to decode the original image.
         /// </summary>
         private GifDecoder gifDecoder;
 
         /// <summary>
+        /// The currently processed image.
+        /// </summary>
+        private ImageBase currentImage;
+
+        /// <summary>
         /// Gets or sets the quality of output for images.
         /// </summary>
         /// <remarks>For gifs the value ranges from 1 to 256.</remarks>
-        public int Quality
-        {
-            get
-            {
-                return this.quality;
-            }
-
-            set
-            {
-                this.quality = value.Clamp(1, 256);
-            }
-        }
+        public int Quality { get; set; }
 
         /// <summary>
         /// Gets the default file extension for this encoder.
@@ -85,34 +74,46 @@ namespace ImageProcessor.Formats
             this.WriteString(stream, GifConstants.FileType);
             this.WriteString(stream, GifConstants.FileVersion);
 
-            int bitdepth = this.GetBitsNeededForColorDepth(this.Quality) - 1;
+            // Calculate the quality.
+            int quality = this.Quality > 0 ? this.Quality : imageBase.Quality;
+            quality = quality > 0 ? quality.Clamp(1, 256) : 256;
+
+            // Get the number of bits.
+            int bitdepth = this.GetBitsNeededForColorDepth(quality);
 
             // Write the LSD and check to see if we need a global color table.
+            // Always true just now.
             bool globalColor = this.WriteGlobalLogicalScreenDescriptor(image, stream, bitdepth);
 
+            QuantizedImage quantized;
+
+            // Should always be true.
             if (globalColor)
             {
-                this.WriteColorTable(imageBase, stream, bitdepth);
+                quantized = this.WriteColorTable(imageBase, stream, quality, bitdepth);
+            }
+            else
+            {
+                // Quantize the image returning a pallete.
+                IQuantizer quantizer = new OctreeQuantizer(quality.Clamp(1, 255), bitdepth + 1);
+                quantized = quantizer.Quantize(image);
             }
 
             this.WriteGraphicalControlExtension(imageBase, stream);
 
             // TODO: Write Comments
-            this.WriteApplicationExtension(stream, image.RepeatCount);
+            this.WriteApplicationExtension(stream, image.RepeatCount, image.Frames.Count);
+            this.WriteImageDescriptor(quantized.ToImage(), quality, stream, true);
 
             // TODO: Write Image Info
 
             foreach (ImageFrame frame in image.Frames)
             {
-                this.WriteColorTable(frame, stream, bitdepth);
                 this.WriteGraphicalControlExtension(frame, stream);
-                // TODO: Write Image Info
+                this.WriteImageDescriptor(imageBase, quality, stream, false);
             }
 
-            throw new System.NotImplementedException();
-
             // Cleanup
-            this.Quality = 256;
             this.gifDecoder = null;
         }
 
@@ -127,7 +128,8 @@ namespace ImageProcessor.Formats
                 descriptor = this.gifDecoder.CoreDecoder.LogicalScreenDescriptor;
                 descriptor.Width = (short)image.Width;
                 descriptor.Height = (short)image.Height;
-                descriptor.GlobalColorTableSize = this.Quality;
+                descriptor.GlobalColorTableFlag = true;
+                descriptor.GlobalColorTableSize = bitDepth;
             }
             else
             {
@@ -136,29 +138,29 @@ namespace ImageProcessor.Formats
                     Width = (short)image.Width,
                     Height = (short)image.Height,
                     GlobalColorTableFlag = true,
-                    GlobalColorTableSize = this.Quality
+                    GlobalColorTableSize = bitDepth
                 };
             }
 
             this.WriteShort(stream, descriptor.Width);
-            this.WriteShort(stream, descriptor.Width);
+            this.WriteShort(stream, descriptor.Height);
 
             int packed = 0x80 | // 1   : Global color table flag = 1 (GCT used)
-                         0x70 | // 2-4 : color resolution
+                         bitDepth - 1 | // 2-4 : color resolution
                          0x00 | // 5   : GCT sort flag = 0
-                         bitDepth; // 6-8 : GCT size assume 1:1
+                         bitDepth - 1; // 6-8 : GCT size TODO: Check this.
 
             this.WriteByte(stream, packed);
             this.WriteByte(stream, descriptor.BackgroundColorIndex); // Background Color Index
-            this.WriteByte(stream, descriptor.PixelAspectRatio); // Pixel aspect ratio
+            this.WriteByte(stream, descriptor.PixelAspectRatio); // Pixel aspect ratio. Assume 1:1
 
             return descriptor.GlobalColorTableFlag;
         }
 
-        private void WriteColorTable(ImageBase image, Stream stream, int bitDepth)
+        private QuantizedImage WriteColorTable(ImageBase image, Stream stream, int quality, int bitDepth)
         {
             // Quantize the image returning a pallete.
-            IQuantizer quantizer = new OctreeQuantizer(Math.Max(1, this.quality - 1), bitDepth);
+            IQuantizer quantizer = new OctreeQuantizer(quality.Clamp(1, 255), bitDepth);
             QuantizedImage quantizedImage = quantizer.Quantize(image);
 
             // Grab the pallete and write it to the stream.
@@ -169,19 +171,25 @@ namespace ImageProcessor.Formats
 
             for (int i = 0; i < pixelCount; i++)
             {
-                int offset = i * 4;
+                int offset = i * 3;
                 Bgra color = pallete[i];
-                colorTable[offset + 0] = color.B;
+                colorTable[offset + 2] = color.B;
                 colorTable[offset + 1] = color.G;
-                colorTable[offset + 2] = color.R;
+                colorTable[offset + 0] = color.R;
             }
 
             stream.Write(colorTable, 0, colorTableLength);
+
+            return quantizedImage;
         }
 
         private void WriteGraphicalControlExtension(ImageBase image, Stream stream)
         {
             GifGraphicsControlExtension extension;
+
+            // Calculate the quality.
+            int quality = this.Quality > 0 ? this.Quality : image.Quality;
+            quality = quality > 0 ? quality.Clamp(1, 256) : 256;
 
             // Try and grab an existing descriptor.
             // TODO: Check whether we need to.
@@ -189,14 +197,14 @@ namespace ImageProcessor.Formats
             {
                 // Ensure the dimensions etc are up to date.
                 extension = this.gifDecoder.CoreDecoder.GraphicsControlExtension;
-                extension.TransparencyFlag = this.Quality > 1;
-                extension.TransparencyIndex = this.Quality - 1; // Quantizer set last as transparent.
+                extension.TransparencyFlag = quality > 1;
+                extension.TransparencyIndex = quality - 1; // Quantizer set last as transparent.
                 extension.DelayTime = image.FrameDelay;
             }
             else
             {
                 // TODO: Check transparency logic.
-                bool hasTransparent = this.Quality > 1;
+                bool hasTransparent = quality > 1;
                 DisposalMethod disposalMethod = hasTransparent
                     ? DisposalMethod.RestoreToBackground
                     : DisposalMethod.Unspecified;
@@ -205,7 +213,7 @@ namespace ImageProcessor.Formats
                 {
                     DisposalMethod = disposalMethod,
                     TransparencyFlag = hasTransparent,
-                    TransparencyIndex = this.Quality - 1,
+                    TransparencyIndex = quality - 1,
                     DelayTime = image.FrameDelay
                 };
             }
@@ -215,19 +223,20 @@ namespace ImageProcessor.Formats
             this.WriteByte(stream, 4); // Size
 
             int packed = 0 | // 1-3 : Reserved
-                         (int)extension.DisposalMethod | // 4-6 : Disposal
+                         (int)extension.DisposalMethod << 2 | // 4-6 : Disposal
                          0 | // 7 : User input - 0 = none
-                         extension.TransparencyIndex;
+                         (extension.TransparencyFlag ? 1 : 0); // 8: Has transparent.
 
             this.WriteByte(stream, packed);
             this.WriteShort(stream, extension.DelayTime);
+            this.WriteByte(stream, extension.TransparencyIndex);
             this.WriteByte(stream, GifConstants.Terminator);
         }
 
-        private void WriteApplicationExtension(Stream stream, ushort repeatCount)
+        private void WriteApplicationExtension(Stream stream, ushort repeatCount, int frames)
         {
             // Application Extension Header
-            if (repeatCount != 1)
+            if (repeatCount != 1 && frames > 0)
             {
                 // 0 means loop indefinitely. count is set as play n + 1 times.
                 // TODO: Check this as the correct value might be pulled from the decoder.
@@ -243,6 +252,57 @@ namespace ImageProcessor.Formats
 
                 this.WriteByte(stream, GifConstants.Terminator); // Terminator
             }
+        }
+
+        private void WriteImageDescriptor(ImageBase image, int quality, Stream stream, bool first)
+        {
+            this.WriteByte(stream, GifConstants.ImageDescriptorLabel); // 2c
+            // TODO: Can we capture this?
+            this.WriteShort(stream, 0); // Left position
+            this.WriteShort(stream, 0); // Top position
+            this.WriteShort(stream, image.Width);
+            this.WriteShort(stream, image.Height);
+
+            if (first)
+            {
+                // Calculate the quality.
+                int bitdepth = this.GetBitsNeededForColorDepth(quality);
+
+                // No LCT use GCT.
+                this.WriteByte(stream, 0);
+
+                // Write the image data. Pixels have already been quantized.
+                this.WriteImageData(image, stream, bitdepth);
+            }
+            else
+            {
+                // Calculate the quality.
+                quality = this.Quality > 0 ? this.Quality : image.Quality;
+                quality = quality > 0 ? quality.Clamp(1, 256) : 256;
+                int bitdepth = this.GetBitsNeededForColorDepth(quality);
+
+                int packed = 0x80 | // 1: Local color table flag = 1 (LCT used)
+                             0x00 | // 2: Interlace flag 0
+                             0x00 | // 3: Sort flag 0
+                             0 | // 4-5: Reserved
+                             bitdepth - 1;
+
+                this.WriteByte(stream, packed);
+
+                // Now immediately follow with the color table.
+                QuantizedImage quantized = this.WriteColorTable(image, stream, quality, bitdepth);
+                this.WriteImageData(quantized.ToImage(), stream, bitdepth);
+            }
+
+            this.WriteByte(stream, GifConstants.EndIntroducer);
+        }
+
+        private void WriteImageData(ImageBase image, Stream stream, int bitDepth)
+        {
+            LzwEncoder encoder = new LzwEncoder(image.Pixels, (byte)bitDepth);
+            encoder.Encode(stream);
+
+            this.WriteByte(stream, GifConstants.Terminator);
         }
 
         /// <summary>

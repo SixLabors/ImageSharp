@@ -26,7 +26,10 @@
         private byte[] currentFrame;
 
         internal GifLogicalScreenDescriptor LogicalScreenDescriptor { get; set; }
+
         internal GifGraphicsControlExtension GraphicsControlExtension { get; set; }
+
+        internal byte Quality { get; set; }
 
         public void Decode(Image image, Stream stream)
         {
@@ -324,6 +327,7 @@
             {
                 currentImage = this.image;
                 currentImage.SetPixels(imageWidth, imageHeight, pixels);
+                currentImage.Quality = colorTable.Length / 3;
 
                 if (this.GraphicsControlExtension != null && this.GraphicsControlExtension.DelayTime > 0)
                 {
@@ -336,6 +340,7 @@
 
                 currentImage = frame;
                 currentImage.SetPixels(imageWidth, imageHeight, pixels);
+                currentImage.Quality = colorTable.Length / 3;
 
                 if (this.GraphicsControlExtension != null && this.GraphicsControlExtension.DelayTime > 0)
                 {

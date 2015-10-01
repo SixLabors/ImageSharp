@@ -111,6 +111,11 @@ namespace ImageProcessor
         public Rectangle Bounds => new Rectangle(0, 0, this.Width, this.Height);
 
         /// <summary>
+        /// Gets or sets th quality of the image. This affects the output quality of lossy image formats.
+        /// </summary>
+        public int Quality { get; set; }
+
+        /// <summary>
         /// Gets or sets the frame delay for animated images.
         /// If not 0, this field specifies the number of hundredths (1/100) of a second to
         /// wait before continuing with the processing of the Data Stream.

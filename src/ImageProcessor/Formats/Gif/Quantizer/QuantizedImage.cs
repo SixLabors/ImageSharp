@@ -17,7 +17,6 @@ namespace ImageProcessor.Formats
     /// </summary>
     public class QuantizedImage
     {
-
         /// <summary>
         /// Initializes a new instance of the <see cref="QuantizedImage"/> class.
         /// </summary>
@@ -73,6 +72,7 @@ namespace ImageProcessor.Formats
         public Image ToImage()
         {
             Image image = new Image();
+
             int pixelCount = this.Pixels.Length;
             byte[] bgraPixels = new byte[pixelCount * 4];
 

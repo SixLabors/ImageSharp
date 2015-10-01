@@ -63,7 +63,8 @@ namespace ImageProcessor
             {
                 new BmpEncoder(),
                 new JpegEncoder(),
-                new PngEncoder()
+                new PngEncoder(),
+                new GifEncoder(),
             });
 
         /// <summary>

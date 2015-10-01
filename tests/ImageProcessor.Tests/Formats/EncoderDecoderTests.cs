@@ -13,8 +13,9 @@
         [Theory]
         //[InlineData("TestImages/Car.bmp")]
         //[InlineData("TestImages/Portrait.png")]
-        [InlineData("../../TestImages/Formats/Jpg/Backdrop.jpg")]
-        [InlineData("../../TestImages/Formats/Gif/leaf.gif")]
+        //[InlineData("../../TestImages/Formats/Jpg/Backdrop.jpg")]
+        [InlineData("../../TestImages/Formats/Gif/a.gif")]
+        //[InlineData("../../TestImages/Formats/Gif/leaf.gif")]
         //[InlineData("TestImages/Windmill.gif")]
         //[InlineData("../../TestImages/Formats/Bmp/Car.bmp")]
         //[InlineData("../../TestImages/Formats/Png/cmyk.png")]
@@ -29,35 +30,13 @@
             Stopwatch watch = Stopwatch.StartNew();
             Image image = new Image(stream);
 
-            OctreeQuantizer quantizer = new OctreeQuantizer();
-            var o = quantizer.Quantize(image);
-
-            using (MemoryStream s2 = new MemoryStream())
-            {
-                LzwEncoder2 enc2 = new LzwEncoder2(image.Width, image.Height, o.Pixels, 8);
-                enc2.Encode(s2);
-                using (MemoryStream s = new MemoryStream())
-                {
-                    LzwEncoder enc = new LzwEncoder(o.Pixels, 8);
-                    enc.Encode(s);
-
-                    var x = s.ToArray();
-                    var y = s2.ToArray();
-
-                    var a = x.Skip(1080);
-                    var b = y.Skip(1080);
-
-                    Assert.Equal(s.ToArray(), s2.ToArray());
-                }
-            }
-
-            string encodedFilename = "Encoded/" + Path.GetFileNameWithoutExtension(filename) + ".jpg";
+            string encodedFilename = "Encoded/" + Path.GetFileName(filename);
 
             //if (!image.IsAnimated)
             //{
             using (FileStream output = File.OpenWrite(encodedFilename))
             {
-                IImageEncoder encoder = Image.Encoders.First(e => e.IsSupportedFileExtension(".jpg"));
+                IImageEncoder encoder = Image.Encoders.First(e => e.IsSupportedFileExtension(Path.GetExtension(filename)));
                 encoder.Encode(image, output);
             }
             //}

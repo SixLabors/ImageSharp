@@ -145,7 +145,7 @@ namespace ImageProcessor
                     throw new ArgumentOutOfRangeException(nameof(x), "Value cannot be less than zero or greater than the bitmap width.");
                 }
 
-                if ((y < 0) || (y >= this.Width))
+                if ((y < 0) || (y >= this.Height))
                 {
                     throw new ArgumentOutOfRangeException(nameof(y), "Value cannot be less than zero or greater than the bitmap height.");
                 }
@@ -163,7 +163,7 @@ namespace ImageProcessor
                     throw new ArgumentOutOfRangeException(nameof(x), "Value cannot be less than zero or greater than the bitmap width.");
                 }
 
-                if ((y < 0) || (y >= this.Width))
+                if ((y < 0) || (y >= this.Height))
                 {
                     throw new ArgumentOutOfRangeException(nameof(y), "Value cannot be less than zero or greater than the bitmap height.");
                 }

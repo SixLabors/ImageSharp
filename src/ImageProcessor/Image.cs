@@ -233,11 +233,6 @@ namespace ImageProcessor
         public IList<ImageProperty> Properties { get; } = new List<ImageProperty>();
 
         /// <summary>
-        /// The current decoder
-        /// </summary>
-        internal IImageDecoder CurrentDecoder { get; set; }
-
-        /// <summary>
         /// Loads the image from the given stream.
         /// </summary>
         /// <param name="stream">
@@ -276,8 +271,7 @@ namespace ImageProcessor
                         IImageDecoder decoder = decoders.FirstOrDefault(x => x.IsSupportedFileFormat(header));
                         if (decoder != null)
                         {
-                            this.CurrentDecoder = decoder;
-                            this.CurrentDecoder.Decode(this, stream);
+                            decoder.Decode(this, stream);
                             return;
                         }
                     }

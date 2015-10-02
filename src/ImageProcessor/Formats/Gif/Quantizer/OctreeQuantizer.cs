@@ -338,7 +338,7 @@ namespace ImageProcessor.Formats
                 private int paletteIndex;
 
                 /// <summary>
-                /// Initializes a new instance of the <see cref="OctreeNode"/> class. 
+                /// Initializes a new instance of the <see cref="OctreeNode"/> class.
                 /// </summary>
                 /// <param name="level">
                 /// The level in the tree = 0 - 7
@@ -415,7 +415,7 @@ namespace ImageProcessor.Formats
 
                         if (null == child)
                         {
-                            // Create a new child node & store in the array
+                            // Create a new child node and store it in the array
                             child = new OctreeNode(level + 1, colorBits, octree);
                             this.children[index] = child;
                         }
@@ -511,8 +511,8 @@ namespace ImageProcessor.Formats
                     {
                         int shift = 7 - level;
                         int pixelIndex = ((pixel.R & Mask[level]) >> (shift - 2)) |
-                                    ((pixel.G & Mask[level]) >> (shift - 1)) |
-                                    ((pixel.B & Mask[level]) >> shift);
+                                         ((pixel.G & Mask[level]) >> (shift - 1)) |
+                                         ((pixel.B & Mask[level]) >> shift);
 
                         if (null != this.children[pixelIndex])
                         {

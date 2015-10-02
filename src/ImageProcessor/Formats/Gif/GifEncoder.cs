@@ -7,22 +7,13 @@ namespace ImageProcessor.Formats
 {
     using System;
     using System.IO;
+    using System.Linq;
 
     /// <summary>
     /// The Gif encoder
     /// </summary>
     public class GifEncoder : IImageEncoder
     {
-        /// <summary>
-        /// The gif decoder if any used to decode the original image.
-        /// </summary>
-        private GifDecoder gifDecoder;
-
-        /// <summary>
-        /// The currently processed image.
-        /// </summary>
-        private ImageBase currentImage;
-
         /// <summary>
         /// Gets or sets the quality of output for images.
         /// </summary>
@@ -62,13 +53,6 @@ namespace ImageProcessor.Formats
 
             Image image = (Image)imageBase;
 
-            // Try to grab and assign an image decoder.
-            IImageDecoder decoder = image.CurrentDecoder;
-            if (decoder.GetType() == typeof(GifDecoder))
-            {
-                this.gifDecoder = (GifDecoder)decoder;
-            }
-
             // Write the header.
             // File Header signature and version.
             this.WriteString(stream, GifConstants.FileType);
@@ -84,63 +68,41 @@ namespace ImageProcessor.Formats
             // Write the LSD and check to see if we need a global color table.
             // Always true just now.
             bool globalColor = this.WriteGlobalLogicalScreenDescriptor(image, stream, bitdepth);
-
-            QuantizedImage quantized;
-
-            // Should always be true.
-            if (globalColor)
-            {
-                quantized = this.WriteColorTable(imageBase, stream, quality, bitdepth);
-            }
-            else
-            {
-                // Quantize the image returning a pallete.
-                IQuantizer quantizer = new OctreeQuantizer(quality.Clamp(1, 255), bitdepth + 1);
-                quantized = quantizer.Quantize(image);
-            }
+            QuantizedImage quantized = this.WriteColorTable(imageBase, stream, quality, bitdepth);
 
             this.WriteGraphicalControlExtension(imageBase, stream);
+            this.WriteImageDescriptor(quantized, quality, stream);
 
-            // TODO: Write Comments
-            this.WriteApplicationExtension(stream, image.RepeatCount, image.Frames.Count);
-            this.WriteImageDescriptor(quantized.ToImage(), quality, stream, true);
-
-            // TODO: Write Image Info
-
-            foreach (ImageFrame frame in image.Frames)
+            if (image.Frames.Any())
             {
-                this.WriteGraphicalControlExtension(frame, stream);
-                this.WriteImageDescriptor(imageBase, quality, stream, false);
+                this.WriteApplicationExtension(stream, image.RepeatCount, image.Frames.Count);
+                foreach (ImageFrame frame in image.Frames)
+                {
+                    this.WriteGraphicalControlExtension(frame, stream);
+                    this.WriteFrameImageDescriptor(frame, stream);
+                }
             }
 
-            // Cleanup
-            this.gifDecoder = null;
+            // TODO: Write Comments extension etc
+            this.WriteByte(stream, GifConstants.EndIntroducer);
         }
 
+        /// <summary>
+        /// Writes the logical screen descriptor to the stream.
+        /// </summary>
+        /// <param name="image">The image to encode.</param>
+        /// <param name="stream">The stream to write to.</param>
+        /// <param name="bitDepth">The bit depth.</param>
+        /// <returns>The <see cref="GifLogicalScreenDescriptor"/></returns>
         private bool WriteGlobalLogicalScreenDescriptor(Image image, Stream stream, int bitDepth)
         {
-            GifLogicalScreenDescriptor descriptor;
-
-            // Try and grab an existing descriptor.
-            if (this.gifDecoder != null)
+            GifLogicalScreenDescriptor descriptor = new GifLogicalScreenDescriptor
             {
-                // Ensure the dimensions etc are up to date.
-                descriptor = this.gifDecoder.CoreDecoder.LogicalScreenDescriptor;
-                descriptor.Width = (short)image.Width;
-                descriptor.Height = (short)image.Height;
-                descriptor.GlobalColorTableFlag = true;
-                descriptor.GlobalColorTableSize = bitDepth;
-            }
-            else
-            {
-                descriptor = new GifLogicalScreenDescriptor
-                {
-                    Width = (short)image.Width,
-                    Height = (short)image.Height,
-                    GlobalColorTableFlag = true,
-                    GlobalColorTableSize = bitDepth
-                };
-            }
+                Width = (short)image.Width,
+                Height = (short)image.Height,
+                GlobalColorTableFlag = true,
+                GlobalColorTableSize = bitDepth
+            };
 
             this.WriteShort(stream, descriptor.Width);
             this.WriteShort(stream, descriptor.Height);
@@ -157,6 +119,14 @@ namespace ImageProcessor.Formats
             return descriptor.GlobalColorTableFlag;
         }
 
+        /// <summary>
+        /// Writes the color table to the stream.
+        /// </summary>
+        /// <param name="image">The <see cref="ImageBase"/> to encode.</param>
+        /// <param name="stream">The stream to write to.</param>
+        /// <param name="quality">The quality (number of colors) to encode the image to.</param>
+        /// <param name="bitDepth">The bit depth.</param>
+        /// <returns>The <see cref="QuantizedImage"/></returns>
         private QuantizedImage WriteColorTable(ImageBase image, Stream stream, int quality, int bitDepth)
         {
             // Quantize the image returning a pallete.
@@ -166,7 +136,9 @@ namespace ImageProcessor.Formats
             // Grab the pallete and write it to the stream.
             Bgra[] pallete = quantizedImage.Palette;
             int pixelCount = pallete.Length;
-            int colorTableLength = pixelCount * 3;
+
+            // Get max colors for bit depth.
+            int colorTableLength = (int)Math.Pow(2, bitDepth) * 3;
             byte[] colorTable = new byte[colorTableLength];
 
             for (int i = 0; i < pixelCount; i++)
@@ -183,40 +155,30 @@ namespace ImageProcessor.Formats
             return quantizedImage;
         }
 
+        /// <summary>
+        /// Writes the graphics control extension to the stream.
+        /// </summary>
+        /// <param name="image">The <see cref="ImageBase"/> to encode.</param>
+        /// <param name="stream">The stream to write to.</param>
         private void WriteGraphicalControlExtension(ImageBase image, Stream stream)
         {
-            GifGraphicsControlExtension extension;
-
             // Calculate the quality.
             int quality = this.Quality > 0 ? this.Quality : image.Quality;
             quality = quality > 0 ? quality.Clamp(1, 256) : 256;
 
-            // Try and grab an existing descriptor.
-            // TODO: Check whether we need to.
-            if (this.gifDecoder != null)
-            {
-                // Ensure the dimensions etc are up to date.
-                extension = this.gifDecoder.CoreDecoder.GraphicsControlExtension;
-                extension.TransparencyFlag = quality > 1;
-                extension.TransparencyIndex = quality - 1; // Quantizer set last as transparent.
-                extension.DelayTime = image.FrameDelay;
-            }
-            else
-            {
-                // TODO: Check transparency logic.
-                bool hasTransparent = quality > 1;
-                DisposalMethod disposalMethod = hasTransparent
-                    ? DisposalMethod.RestoreToBackground
-                    : DisposalMethod.Unspecified;
+            // TODO: Check transparency logic.
+            bool hasTransparent = quality > 1;
+            DisposalMethod disposalMethod = hasTransparent
+                ? DisposalMethod.RestoreToBackground
+                : DisposalMethod.Unspecified;
 
-                extension = new GifGraphicsControlExtension()
-                {
-                    DisposalMethod = disposalMethod,
-                    TransparencyFlag = hasTransparent,
-                    TransparencyIndex = quality - 1,
-                    DelayTime = image.FrameDelay
-                };
-            }
+            GifGraphicsControlExtension extension = new GifGraphicsControlExtension()
+            {
+                DisposalMethod = disposalMethod,
+                TransparencyFlag = hasTransparent,
+                TransparencyIndex = quality - 1, // Quantizer sets last index as transparent.
+                DelayTime = image.FrameDelay
+            };
 
             this.WriteByte(stream, GifConstants.ExtensionIntroducer);
             this.WriteByte(stream, GifConstants.GraphicControlLabel);
@@ -233,6 +195,12 @@ namespace ImageProcessor.Formats
             this.WriteByte(stream, GifConstants.Terminator);
         }
 
+        /// <summary>
+        /// Writes the application exstension to the stream.
+        /// </summary>
+        /// <param name="stream">The stream to write to.</param>
+        /// <param name="repeatCount">The animated image repeat count.</param>
+        /// <param name="frames">Th number of image frames.</param>
         private void WriteApplicationExtension(Stream stream, ushort repeatCount, int frames)
         {
             // Application Extension Header
@@ -254,7 +222,13 @@ namespace ImageProcessor.Formats
             }
         }
 
-        private void WriteImageDescriptor(ImageBase image, int quality, Stream stream, bool first)
+        /// <summary>
+        /// Writes the image descriptor to the stream.
+        /// </summary>
+        /// <param name="image">The <see cref="QuantizedImage"/> containing indexed pixels.</param>
+        /// <param name="quality">The quality (number of colors) to encode the image to.</param>
+        /// <param name="stream">The stream to write to.</param>
+        private void WriteImageDescriptor(QuantizedImage image, int quality, Stream stream)
         {
             this.WriteByte(stream, GifConstants.ImageDescriptorLabel); // 2c
             // TODO: Can we capture this?
@@ -263,43 +237,59 @@ namespace ImageProcessor.Formats
             this.WriteShort(stream, image.Width);
             this.WriteShort(stream, image.Height);
 
-            if (first)
-            {
-                // Calculate the quality.
-                int bitdepth = this.GetBitsNeededForColorDepth(quality);
+            // Calculate the quality.
+            int bitdepth = this.GetBitsNeededForColorDepth(quality);
 
-                // No LCT use GCT.
-                this.WriteByte(stream, 0);
+            // No LCT use GCT.
+            this.WriteByte(stream, 0);
 
-                // Write the image data. Pixels have already been quantized.
-                this.WriteImageData(image, stream, bitdepth);
-            }
-            else
-            {
-                // Calculate the quality.
-                quality = this.Quality > 0 ? this.Quality : image.Quality;
-                quality = quality > 0 ? quality.Clamp(1, 256) : 256;
-                int bitdepth = this.GetBitsNeededForColorDepth(quality);
-
-                int packed = 0x80 | // 1: Local color table flag = 1 (LCT used)
-                             0x00 | // 2: Interlace flag 0
-                             0x00 | // 3: Sort flag 0
-                             0 | // 4-5: Reserved
-                             bitdepth - 1;
-
-                this.WriteByte(stream, packed);
-
-                // Now immediately follow with the color table.
-                QuantizedImage quantized = this.WriteColorTable(image, stream, quality, bitdepth);
-                this.WriteImageData(quantized.ToImage(), stream, bitdepth);
-            }
-
-            this.WriteByte(stream, GifConstants.EndIntroducer);
+            // Write the image data..
+            this.WriteImageData(image, stream, bitdepth);
         }
 
-        private void WriteImageData(ImageBase image, Stream stream, int bitDepth)
+        /// <summary>
+        /// Writes the image descriptor to the stream.
+        /// </summary>
+        /// <param name="image">The <see cref="ImageBase"/> to be encoded.</param>
+        /// <param name="stream">The stream to write to.</param>
+        private void WriteFrameImageDescriptor(ImageBase image, Stream stream)
         {
-            LzwEncoder encoder = new LzwEncoder(image.Pixels, (byte)bitDepth);
+            this.WriteByte(stream, GifConstants.ImageDescriptorLabel); // 2c
+            // TODO: Can we capture this?
+            this.WriteShort(stream, 0); // Left position
+            this.WriteShort(stream, 0); // Top position
+            this.WriteShort(stream, image.Width);
+            this.WriteShort(stream, image.Height);
+
+            // Calculate the quality.
+            int quality = this.Quality > 0 ? this.Quality : image.Quality;
+            quality = quality > 0 ? quality.Clamp(1, 256) : 256;
+            int bitdepth = this.GetBitsNeededForColorDepth(quality);
+
+            int packed = 0x80 | // 1: Local color table flag = 1 (LCT used)
+                         0x00 | // 2: Interlace flag 0
+                         0x00 | // 3: Sort flag 0
+                         0 | // 4-5: Reserved
+                         bitdepth - 1;
+
+            this.WriteByte(stream, packed);
+
+            // Now immediately follow with the color table.
+            QuantizedImage quantized = this.WriteColorTable(image, stream, quality, bitdepth);
+            this.WriteImageData(quantized, stream, bitdepth);
+        }
+
+        /// <summary>
+        /// Writes the image pixel data to the stream.
+        /// </summary>
+        /// <param name="image">The <see cref="QuantizedImage"/> containing indexed pixels.</param>
+        /// <param name="stream">The stream to write to.</param>
+        /// <param name="bitDepth">The bit depth of the image.</param>
+        private void WriteImageData(QuantizedImage image, Stream stream, int bitDepth)
+        {
+            byte[] indexedPixels = image.Pixels;
+
+            LzwEncoder encoder = new LzwEncoder(indexedPixels, (byte)bitDepth);
             encoder.Encode(stream);
 
             this.WriteByte(stream, GifConstants.Terminator);

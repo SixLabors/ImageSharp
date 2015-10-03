@@ -1,16 +1,11 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="LzwEncoder.cs" company="James South">
-//   Copyright © James South and contributors.
-//   Licensed under the Apache License, Version 2.0.
+﻿// <copyright file="LzwEncoder.cs" company="James South">
+// Copyright © James South and contributors.
+// Licensed under the Apache License, Version 2.0.
 // </copyright>
-// <summary>
-//   Encodes an image pixels used on a method based on LZW compression.
-//   <see href="http://matthewflickinger.com/lab/whatsinagif/lzw_image_data.asp"/>
-// </summary>
-// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Formats
 {
+    using System;
     using System.Collections.Generic;
     using System.IO;
 
@@ -52,8 +47,15 @@ namespace ImageProcessor.Formats
             this.initDataSize = this.colorDepth;
         }
 
+        /// <summary>
+        /// Encodes the compressed indexed pixel data to the given stream.
+        /// </summary>
+        /// <param name="stream">The stream to add the data to.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="stream"/> is null.</exception>
         public void Encode(Stream stream)
         {
+            Guard.NotNull(stream, nameof(stream));
+
             // Whether it is a first step.
             bool first = true;
 

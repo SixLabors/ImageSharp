@@ -1,12 +1,7 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="GifDecoder.cs" company="James South">
-//   Copyright © James South and contributors.
-//   Licensed under the Apache License, Version 2.0.
+﻿// <copyright file="GifDecoder.cs" company="James South">
+// Copyright © James South and contributors.
+// Licensed under the Apache License, Version 2.0.
 // </copyright>
-// <summary>
-//   Encoder for generating an image out of a gif encoded stream.
-// </summary>
-// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Formats
 {
@@ -14,7 +9,7 @@ namespace ImageProcessor.Formats
     using System.IO;
 
     /// <summary>
-    /// Encoder for generating an image out of a gif encoded stream.
+    /// Decoder for generating an image out of a gif encoded stream.
     /// </summary>
     public class GifDecoder : IImageDecoder
     {
@@ -23,9 +18,6 @@ namespace ImageProcessor.Formats
         /// </summary>
         /// <value>The size of the header.</value>
         public int HeaderSize => 6;
-
-        internal GifDecoderCore CoreDecoder { get; private set; }
-
 
         /// <summary>
         /// Returns a value indicating whether the <see cref="IImageDecoder"/> supports the specified
@@ -69,8 +61,7 @@ namespace ImageProcessor.Formats
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         public void Decode(Image image, Stream stream)
         {
-            this.CoreDecoder = new GifDecoderCore();
-            this.CoreDecoder.Decode(image, stream);
+            new GifDecoderCore().Decode(image, stream);
         }
     }
 }

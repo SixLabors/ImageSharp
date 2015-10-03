@@ -1,12 +1,7 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="BmpEncoder.cs" company="James South">
-//   Copyright © James South and contributors.
-//   Licensed under the Apache License, Version 2.0.
+﻿// <copyright file="BmpEncoder.cs" company="James South">
+// Copyright © James South and contributors.
+// Licensed under the Apache License, Version 2.0.
 // </copyright>
-// <summary>
-//   Image encoder for writing an image to a stream as a Windows bitmap.
-// </summary>
-// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Formats
 {
@@ -22,41 +17,31 @@ namespace ImageProcessor.Formats
         /// <summary>
         /// Gets or sets the quality of output for images.
         /// </summary>
-        /// <remarks>Png is a lossless format so this is not used in this encoder.</remarks>
+        /// <remarks>Bitmap is a lossless format so this is not used in this encoder.</remarks>
         public int Quality { get; set; }
 
-        /// <summary>
-        /// Gets the default file extension for this encoder.
-        /// </summary>
-        public string Extension => "BMP";
+        /// <inheritdoc/>
+        public string MimeType => "image/bmp";
 
-        /// <summary>
-        /// Returns a value indicating whether the <see cref="IImageEncoder"/> supports the specified
-        /// file header.
-        /// </summary>
-        /// <param name="extension">The <see cref="string"/> containing the file extension.</param>
-        /// <returns>
-        /// True if the decoder supports the file extension; otherwise, false.
-        /// </returns>
+        /// <inheritdoc/>
+        public string Extension => "bmp";
+
+        /// <inheritdoc/>
         public bool IsSupportedFileExtension(string extension)
         {
-            Guard.NotNullOrEmpty(extension, "extension");
+            Guard.NotNullOrEmpty(extension, nameof(extension));
 
             extension = extension.StartsWith(".") ? extension.Substring(1) : extension;
 
-            return extension.Equals("BMP", StringComparison.OrdinalIgnoreCase)
-                || extension.Equals("DIP", StringComparison.OrdinalIgnoreCase);
+            return extension.Equals(this.Extension, StringComparison.OrdinalIgnoreCase)
+                || extension.Equals("dip", StringComparison.OrdinalIgnoreCase);
         }
 
-        /// <summary>
-        /// Encodes the image to the specified stream from the <see cref="ImageBase"/>.
-        /// </summary>
-        /// <param name="image">The <see cref="ImageBase"/> to encode from.</param>
-        /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
+        /// <inheritdoc/>
         public void Encode(ImageBase image, Stream stream)
         {
-            Guard.NotNull(image, "image");
-            Guard.NotNull(stream, "stream");
+            Guard.NotNull(image, nameof(image));
+            Guard.NotNull(stream, nameof(stream));
 
             int rowWidth = image.Width;
 
@@ -108,7 +93,7 @@ namespace ImageProcessor.Formats
         /// </param>
         private static void WriteImage(BinaryWriter writer, ImageBase image)
         {
-            // TODO: Check this as Bitmaps can have an alpha channel.
+            // TODO: Add more compression formats.
             int amount = (image.Width * 3) % 4;
             if (amount != 0)
             {

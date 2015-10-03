@@ -1,12 +1,7 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="PngEncoder.cs" company="James South">
-//   Copyright © James South and contributors.
-//   Licensed under the Apache License, Version 2.0.
+﻿// <copyright file="PngEncoder.cs" company="James South">
+// Copyright © James South and contributors.
+// Licensed under the Apache License, Version 2.0.
 // </copyright>
-// <summary>
-//   Image encoder for writing image data to a stream in png format.
-// </summary>
-// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Formats
 {
@@ -40,6 +35,12 @@ namespace ImageProcessor.Formats
         /// <remarks>Png is a lossless format so this is not used in this encoder.</remarks>
         public int Quality { get; set; }
 
+        /// <inheritdoc/>
+        public string MimeType => "image/jpepngg";
+
+        /// <inheritdoc/>
+        public string Extension => "png";
+
         /// <summary>
         /// Gets or sets a value indicating whether this encoder
         /// will write the image uncompressed the stream.
@@ -55,7 +56,7 @@ namespace ImageProcessor.Formats
         /// gamma information to the stream. The default value is false.
         /// </summary>
         /// <value>
-        /// <c>true</c> if this instance is writing gamma 
+        /// <c>True</c> if this instance is writing gamma
         /// information to the stream.; otherwise, <c>false</c>.
         /// </value>
         public bool IsWritingGamma { get; set; }
@@ -68,50 +69,21 @@ namespace ImageProcessor.Formats
         /// <value>The gamma value of the image.</value>
         public double Gamma { get; set; }
 
-        /// <summary>
-        /// Gets the default file extension for this encoder.
-        /// </summary>
-        /// <value>The default file extension for this encoder.</value>
-        public string Extension => "PNG";
-
-        /// <summary>
-        /// Indicates if the image encoder supports the specified
-        /// file extension.
-        /// </summary>
-        /// <param name="extension">The file extension.</param>
-        /// <returns><c>true</c>, if the encoder supports the specified
-        /// extensions; otherwise <c>false</c>.
-        /// </returns>
-        /// <exception cref="ArgumentNullException"><paramref name="extension"/>
-        /// is null (Nothing in Visual Basic).</exception>
-        /// <exception cref="ArgumentException"><paramref name="extension"/> is a string
-        /// of length zero or contains only blanks.</exception>
+        /// <inheritdoc/>
         public bool IsSupportedFileExtension(string extension)
         {
-            Guard.NotNullOrEmpty(extension, "extension");
+            Guard.NotNullOrEmpty(extension, nameof(extension));
 
             extension = extension.StartsWith(".") ? extension.Substring(1) : extension;
 
-            return extension.Equals("PNG", StringComparison.OrdinalIgnoreCase);
+            return extension.Equals(this.Extension, StringComparison.OrdinalIgnoreCase);
         }
 
-        /// <summary>
-        /// Encodes the data of the specified image and writes the result to
-        /// the specified stream.
-        /// </summary>
-        /// <param name="image">The image, where the data should be get from.
-        /// Cannot be null (Nothing in Visual Basic).</param>
-        /// <param name="stream">The stream, where the image data should be written to.
-        /// Cannot be null (Nothing in Visual Basic).</param>
-        /// <exception cref="ArgumentNullException">
-        /// <para><paramref name="image"/> is null (Nothing in Visual Basic).</para>
-        /// <para>- or -</para>
-        /// <para><paramref name="stream"/> is null (Nothing in Visual Basic).</para>
-        /// </exception>
+        /// <inheritdoc/>
         public void Encode(ImageBase image, Stream stream)
         {
-            Guard.NotNull(image, "image");
-            Guard.NotNull(stream, "stream");
+            Guard.NotNull(image, nameof(image));
+            Guard.NotNull(stream, nameof(stream));
 
             // Write the png header.
             stream.Write(

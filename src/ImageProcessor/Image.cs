@@ -21,50 +21,37 @@ namespace ImageProcessor
     using Formats;
 
     /// <summary>
-    /// Image class which stores the pixels and provides common functionality
-    /// such as loading images from files and streams or operation like resizing or cropping.
+    /// Encapsulates an image, which consists of the pixel data for a graphics image and its attributes.
     /// </summary>
     /// <remarks>
-    /// The image data is always stored in BGRA format, where the blue, green, red, and 
+    /// The image data is always stored in BGRA format, where the blue, green, red, and
     /// alpha values are simple bytes.
     /// </remarks>
     [DebuggerDisplay("Image: {Width}x{Height}")]
-    public class Image : ImageBase
+    public class Image : ImageBase, IImage
     {
         /// <summary>
-        /// The default horizontal resolution value (dots per inch) in x direction. 
-        /// The default value is 96 dots per inch.
+        /// The default horizontal resolution value (dots per inch) in x direction.
+        /// <remarks>The default value is 96 dots per inch.</remarks>
         /// </summary>
         public const double DefaultHorizontalResolution = 96;
 
         /// <summary>
-        /// The default vertical resolution value (dots per inch) in y direction. 
-        /// The default value is 96 dots per inch.
+        /// The default vertical resolution value (dots per inch) in y direction.
+        /// <remarks>The default value is 96 dots per inch.</remarks>
         /// </summary>
         public const double DefaultVerticalResolution = 96;
 
         /// <summary>
-        /// The default collection of <see cref="IImageDecoder"/>.
+        /// The default collection of <see cref="IImageFormat"/>.
         /// </summary>
-        private static readonly Lazy<List<IImageDecoder>> DefaultDecoders =
-            new Lazy<List<IImageDecoder>>(() => new List<IImageDecoder>
+        private static readonly Lazy<List<IImageFormat>> DefaultFormats =
+            new Lazy<List<IImageFormat>>(() => new List<IImageFormat>
             {
-                 new BmpDecoder(),
-                 new JpegDecoder(),
-                 new PngDecoder(),
-                 new GifDecoder(),
-            });
-
-        /// <summary>
-        /// The default collection of <see cref="IImageEncoder"/>.
-        /// </summary>
-        private static readonly Lazy<List<IImageEncoder>> DefaultEncoders =
-            new Lazy<List<IImageEncoder>>(() => new List<IImageEncoder>
-            {
-                new BmpEncoder(),
-                new JpegEncoder(),
-                new PngEncoder(),
-                new GifEncoder(),
+                 new BmpFormat(),
+                 new JpegFormat(),
+                 new PngFormat(),
+                 new GifFormat(),
             });
 
         /// <summary>
@@ -94,8 +81,7 @@ namespace ImageProcessor
         /// by making a copy from another image.
         /// </summary>
         /// <param name="other">The other image, where the clone should be made from.</param>
-        /// <exception cref="ArgumentNullException"><paramref name="other"/> is null
-        /// (Nothing in Visual Basic).</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="other"/> is null.</exception>
         public Image(Image other)
             : base(other)
         {
@@ -119,10 +105,11 @@ namespace ImageProcessor
         /// <param name="stream">
         /// The stream containing image information.
         /// </param>
+        /// <exception cref="ArgumentNullException">Thrown if the <paramref name="stream"/> is null.</exception>
         public Image(Stream stream)
         {
             Guard.NotNull(stream, nameof(stream));
-            this.Load(stream, Decoders);
+            this.Load(stream, Formats);
         }
 
         /// <summary>
@@ -131,45 +118,28 @@ namespace ImageProcessor
         /// <param name="stream">
         /// The stream containing image information.
         /// </param>
-        /// <param name="decoders">
-        /// The collection of <see cref="IImageDecoder"/>.
+        /// <param name="formats">
+        /// The collection of <see cref="IImageFormat"/>.
         /// </param>
-        public Image(Stream stream, params IImageDecoder[] decoders)
+        /// <exception cref="ArgumentNullException">Thrown if the stream is null.</exception>
+        public Image(Stream stream, params IImageFormat[] formats)
         {
-            Guard.NotNull(stream, "stream");
-            this.Load(stream, decoders);
+            Guard.NotNull(stream, nameof(stream));
+            this.Load(stream, formats);
         }
 
         /// <summary>
-        /// Gets a list of default decoders.
+        /// Gets a list of supported image formats.
         /// </summary>
-        public static IList<IImageDecoder> Decoders => DefaultDecoders.Value;
+        public static IList<IImageFormat> Formats => DefaultFormats.Value;
 
-        /// <summary>
-        /// Gets a list of default encoders.
-        /// </summary>
-        public static IList<IImageEncoder> Encoders => DefaultEncoders.Value;
-
-        /// <summary>
-        /// Gets or sets the resolution of the image in x- direction. It is defined as
-        ///  number of dots per inch and should be an positive value.
-        /// </summary>
-        /// <value>The density of the image in x- direction.</value>
+        /// <inheritdoc/>
         public double HorizontalResolution { get; set; }
 
-        /// <summary>
-        /// Gets or sets the resolution of the image in y- direction. It is defined as
-        /// number of dots per inch and should be an positive value.
-        /// </summary>
-        /// <value>The density of the image in y- direction.</value>
+        /// <inheritdoc/>
         public double VerticalResolution { get; set; }
 
-        /// <summary>
-        /// Gets the width of the image in inches. It is calculated as the width of the image 
-        /// in pixels multiplied with the density. When the density is equals or less than zero 
-        /// the default value is used.
-        /// </summary>
-        /// <value>The width of the image in inches.</value>
+        /// <inheritdoc/>
         public double InchWidth
         {
             get
@@ -185,12 +155,7 @@ namespace ImageProcessor
             }
         }
 
-        /// <summary>
-        /// Gets the height of the image in inches. It is calculated as the height of the image 
-        /// in pixels multiplied with the density. When the density is equals or less than zero 
-        /// the default value is used.
-        /// </summary>
-        /// <value>The height of the image in inches.</value>
+        /// <inheritdoc/>
         public double InchHeight
         {
             get
@@ -206,31 +171,34 @@ namespace ImageProcessor
             }
         }
 
-        /// <summary>
-        /// Gets a value indicating whether this image is animated.
-        /// </summary>
-        /// <value>
-        /// <c>true</c> if this image is animated; otherwise, <c>false</c>.
-        /// </value>
+        /// <inheritdoc/>
         public bool IsAnimated => this.Frames.Count > 0;
 
-        /// <summary>
-        /// Gets or sets the number of times any animation is repeated.
-        /// <remarks>0 means to repeat indefinitely.</remarks>
-        /// </summary>
+        /// <inheritdoc/>
         public ushort RepeatCount { get; set; }
 
-        /// <summary>
-        /// Gets the other frames for the animation.
-        /// </summary>
-        /// <value>The list of frame images.</value>
+        /// <inheritdoc/>
         public IList<ImageFrame> Frames { get; } = new List<ImageFrame>();
 
-        /// <summary>
-        /// Gets the list of properties for storing meta information about this image.
-        /// </summary>
-        /// <value>A list of image properties.</value>
+        /// <inheritdoc/>
         public IList<ImageProperty> Properties { get; } = new List<ImageProperty>();
+
+        /// <inheritdoc/>
+        public IImageFormat CurrentImageFormat { get; private set; }
+
+        /// <inheritdoc/>
+        public void Save(Stream stream)
+        {
+            Guard.NotNull(stream, nameof(stream));
+            this.CurrentImageFormat.Encoder.Encode(this, stream);
+        }
+
+        /// <inheritdoc/>
+        public void Save(Stream stream, IImageFormat format)
+        {
+            Guard.NotNull(stream, nameof(stream));
+            format.Encoder.Encode(this, stream);
+        }
 
         /// <summary>
         /// Loads the image from the given stream.
@@ -238,13 +206,13 @@ namespace ImageProcessor
         /// <param name="stream">
         /// The stream containing image information.
         /// </param>
-        /// <param name="decoders">
-        /// The collection of <see cref="IImageDecoder"/>.
+        /// <param name="formats">
+        /// The collection of <see cref="IImageFormat"/>.
         /// </param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
-        private void Load(Stream stream, IList<IImageDecoder> decoders)
+        private void Load(Stream stream, IList<IImageFormat> formats)
         {
             try
             {
@@ -258,9 +226,9 @@ namespace ImageProcessor
                     throw new NotSupportedException("The stream does not support seeking.");
                 }
 
-                if (decoders.Count > 0)
+                if (formats.Count > 0)
                 {
-                    int maxHeaderSize = decoders.Max(x => x.HeaderSize);
+                    int maxHeaderSize = formats.Max(x => x.Decoder.HeaderSize);
                     if (maxHeaderSize > 0)
                     {
                         byte[] header = new byte[maxHeaderSize];
@@ -268,21 +236,22 @@ namespace ImageProcessor
                         stream.Read(header, 0, maxHeaderSize);
                         stream.Position = 0;
 
-                        IImageDecoder decoder = decoders.FirstOrDefault(x => x.IsSupportedFileFormat(header));
-                        if (decoder != null)
+                        IImageFormat format = formats.FirstOrDefault(x => x.Decoder.IsSupportedFileFormat(header));
+                        if (format != null)
                         {
-                            decoder.Decode(this, stream);
+                            format.Decoder.Decode(this, stream);
+                            this.CurrentImageFormat = format;
                             return;
                         }
                     }
                 }
 
                 StringBuilder stringBuilder = new StringBuilder();
-                stringBuilder.AppendLine("Image cannot be loaded. Available decoders:");
+                stringBuilder.AppendLine("Image cannot be loaded. Available formats:");
 
-                foreach (IImageDecoder decoder in decoders)
+                foreach (IImageFormat format in formats)
                 {
-                    stringBuilder.AppendLine("-" + decoder);
+                    stringBuilder.AppendLine("-" + format);
                 }
 
                 throw new NotSupportedException(stringBuilder.ToString());

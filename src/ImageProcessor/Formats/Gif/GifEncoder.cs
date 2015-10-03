@@ -20,32 +20,22 @@ namespace ImageProcessor.Formats
         /// <remarks>For gifs the value ranges from 1 to 256.</remarks>
         public int Quality { get; set; }
 
-        /// <summary>
-        /// Gets the default file extension for this encoder.
-        /// </summary>
-        public string Extension => "GIF";
+        /// <inheritdoc/>
+        public string Extension => "gif";
 
-        /// <summary>
-        /// Returns a value indicating whether the <see cref="IImageDecoder"/> supports the specified
-        /// file header.
-        /// </summary>
-        /// <param name="extension">The <see cref="string"/> containing the file extension.</param>
-        /// <returns>
-        /// True if the decoder supports the file extension; otherwise, false.
-        /// </returns>
+        /// <inheritdoc/>
+        public string MimeType => "image/gif";
+
+        /// <inheritdoc/>
         public bool IsSupportedFileExtension(string extension)
         {
-            Guard.NotNullOrEmpty(extension, "extension");
+            Guard.NotNullOrEmpty(extension, nameof(extension));
 
             extension = extension.StartsWith(".") ? extension.Substring(1) : extension;
-            return extension.Equals("GIF", StringComparison.OrdinalIgnoreCase);
+            return extension.Equals(this.Extension, StringComparison.OrdinalIgnoreCase);
         }
 
-        /// <summary>
-        /// Encodes the image to the specified stream from the <see cref="ImageBase"/>.
-        /// </summary>
-        /// <param name="imageBase">The <see cref="ImageBase"/> to encode from.</param>
-        /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
+        /// <inheritdoc/>
         public void Encode(ImageBase imageBase, Stream stream)
         {
             Guard.NotNull(imageBase, nameof(imageBase));
@@ -96,6 +86,9 @@ namespace ImageProcessor.Formats
         /// <returns>The <see cref="GifLogicalScreenDescriptor"/></returns>
         private bool WriteGlobalLogicalScreenDescriptor(Image image, Stream stream, int bitDepth)
         {
+            Guard.NotNull(image, nameof(image));
+            Guard.NotNull(stream, nameof(stream));
+
             GifLogicalScreenDescriptor descriptor = new GifLogicalScreenDescriptor
             {
                 Width = (short)image.Width,

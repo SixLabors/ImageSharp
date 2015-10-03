@@ -14,10 +14,10 @@ namespace ImageProcessor
     using System;
 
     /// <summary>
-    /// The base class of all images. Encapsulates the basic properties and methods 
+    /// The base class of all images. Encapsulates the basic properties and methods
     /// required to manipulate images.
     /// </summary>
-    public abstract class ImageBase
+    public abstract class ImageBase : IImageBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageBase"/> class.

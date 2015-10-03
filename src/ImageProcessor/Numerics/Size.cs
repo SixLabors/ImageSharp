@@ -1,47 +1,41 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="Size.cs" company="James South">
-//   Copyright © James South and contributors.
-//   Licensed under the Apache License, Version 2.0.
+﻿// <copyright file="Size.cs" company="James South">
+// Copyright © James South and contributors.
+// Licensed under the Apache License, Version 2.0.
 // </copyright>
-// <summary>
-//   Stores an ordered pair of integers, which specify a height and width.
-// </summary>
-// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor
 {
     using System;
     using System.ComponentModel;
-    using System.Globalization;
 
     /// <summary>
     /// Stores an ordered pair of integers, which specify a height and width.
     /// </summary>
     /// <remarks>
-    /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance, 
+    /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
     /// as it avoids the need to create new values for modification operations.
     /// </remarks>
     public struct Size : IEquatable<Size>
     {
         /// <summary>
+        /// Represents a <see cref="Size"/> that has Width and Height values set to zero.
+        /// </summary>
+        public static readonly Size Empty = default(Size);
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="Size"/> struct.
         /// </summary>
         /// <param name="width">
-        /// The width of the size. 
+        /// The width of the size.
         /// </param>
         /// <param name="height">
-        /// The height of the size. 
+        /// The height of the size.
         /// </param>
         public Size(int width, int height)
         {
             this.Width = width;
             this.Height = height;
         }
-
-        /// <summary>
-        /// Represents a <see cref="Size"/> that has Width and Height values set to zero.
-        /// </summary>
-        public static readonly Size Empty = new Size();
 
         /// <summary>
         /// The width of this <see cref="Size"/>.
@@ -101,7 +95,7 @@ namespace ImageProcessor
         /// Indicates whether this instance and a specified object are equal.
         /// </summary>
         /// <returns>
-        /// True if <paramref name="obj"/> and this instance are the same type and represent the same value; otherwise, false. 
+        /// True if <paramref name="obj"/> and this instance are the same type and represent the same value; otherwise, false.
         /// </returns>
         /// <param name="obj">The object to compare with the current instance. </param>
         public override bool Equals(object obj)
@@ -141,7 +135,7 @@ namespace ImageProcessor
             }
 
             return
-                $"Size [ Width={this.Width.ToString(CultureInfo.CurrentCulture)}, Height={this.Height.ToString(CultureInfo.CurrentCulture)} ]";
+                $"Size [ Width={this.Width}, Height={this.Height} ]";
         }
 
         /// <summary>

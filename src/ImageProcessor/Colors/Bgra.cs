@@ -1,12 +1,7 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="Bgra.cs" company="James South">
-//   Copyright © James South and contributors.
-//   Licensed under the Apache License, Version 2.0.
+﻿// <copyright file="Bgra.cs" company="James South">
+// Copyright © James South and contributors.
+// Licensed under the Apache License, Version 2.0.
 // </copyright>
-// <summary>
-//   Represents an BGRA (blue, green, red, alpha) color.
-// </summary>
-// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor
 {
@@ -131,7 +126,7 @@ namespace ImageProcessor
         /// Initializes a new instance of the <see cref="Bgra"/> struct.
         /// </summary>
         /// <param name="hex">
-        /// The hexadecimal representation of the combined color components arranged 
+        /// The hexadecimal representation of the combined color components arranged
         /// in rgb, rrggbb, or aarrggbb format to match web syntax.
         /// </param>
         public Bgra(string hex)

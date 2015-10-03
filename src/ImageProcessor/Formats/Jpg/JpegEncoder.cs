@@ -1,12 +1,7 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="JpegEncoder.cs" company="James South">
-//   Copyright © James South and contributors.
-//   Licensed under the Apache License, Version 2.0.
+﻿// <copyright file="JpegEncoder.cs" company="James South">
+// Copyright © James South and contributors.
+// Licensed under the Apache License, Version 2.0.
 // </copyright>
-// <summary>
-//   Encoder for writing the data image to a stream in jpg format.
-// </summary>
-// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Formats
 {
@@ -16,14 +11,18 @@ namespace ImageProcessor.Formats
     using BitMiracle.LibJpeg;
 
     /// <summary>
-    /// Encoder for writing the data image to a stream in jpg format.
+    /// Encoder for writing the data image to a stream in jpeg format.
     /// </summary>
     public class JpegEncoder : IImageEncoder
     {
-        private int quality = 100;
         /// <summary>
-        /// Gets or sets the quality, that will be used to encode the image. Quality 
-        /// index must be between 0 and 100 (compression from max to min). 
+        /// The jpeg quality.
+        /// </summary>
+        private int quality = 100;
+
+        /// <summary>
+        /// Gets or sets the quality, that will be used to encode the image. Quality
+        /// index must be between 0 and 100 (compression from max to min).
         /// </summary>
         /// <value>The quality of the jpg image from 0 to 100.</value>
         public int Quality
@@ -32,11 +31,14 @@ namespace ImageProcessor.Formats
             set { this.quality = value.Clamp(1, 100); }
         }
 
+        /// <inheritdoc/>
+        public string MimeType => "image/jpeg";
+
         /// <summary>
         /// Gets the default file extension for this encoder.
         /// </summary>
         /// <value>The default file extension for this encoder.</value>
-        public string Extension => "JPG";
+        public string Extension => "jpg";
 
         /// <summary>
         /// Indicates if the image encoder supports the specified
@@ -55,10 +57,14 @@ namespace ImageProcessor.Formats
         {
             Guard.NotNullOrEmpty(extension, "extension");
 
-            if (extension.StartsWith(".")) extension = extension.Substring(1);
-            return extension.Equals("JPG", StringComparison.OrdinalIgnoreCase) ||
-                   extension.Equals("JPEG", StringComparison.OrdinalIgnoreCase) ||
-                   extension.Equals("JFIF", StringComparison.OrdinalIgnoreCase);
+            if (extension.StartsWith("."))
+            {
+                extension = extension.Substring(1);
+            }
+
+            return extension.Equals(this.Extension, StringComparison.OrdinalIgnoreCase) ||
+                   extension.Equals("jpeg", StringComparison.OrdinalIgnoreCase) ||
+                   extension.Equals("jfif", StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
@@ -76,8 +82,8 @@ namespace ImageProcessor.Formats
         /// </exception>
         public void Encode(ImageBase image, Stream stream)
         {
-            Guard.NotNull(image, "image");
-            Guard.NotNull(stream, "stream");
+            Guard.NotNull(image, nameof(image));
+            Guard.NotNull(stream, nameof(stream));
 
             int pixelWidth = image.Width;
             int pixelHeight = image.Height;

@@ -47,11 +47,13 @@
     <Compile Include="Common\Extensions\ComparableExtensions.cs" />
     <Compile Include="Formats\Bmp\BmpCompression.cs" />
     <Compile Include="Formats\Bmp\BmpFileHeader.cs" />
+    <Compile Include="Formats\Bmp\BmpFormat.cs" />
     <Compile Include="Formats\Bmp\BmpInfoHeader.cs" />
     <Compile Include="Formats\Bmp\BmpDecoder.cs" />
     <Compile Include="Formats\Bmp\BmpDecoderCore.cs" />
     <Compile Include="Formats\Bmp\BmpEncoder.cs" />
     <Compile Include="Formats\Gif\BitEncoder.cs" />
+    <Compile Include="Formats\Gif\GifFormat.cs" />
     <Compile Include="Formats\Gif\LzwEncoder.cs" />
     <Compile Include="Formats\Gif\GifConstants.cs" />
     <Compile Include="Formats\Gif\GifDecoderCore.cs" />
@@ -60,6 +62,8 @@
     <Compile Include="Formats\Gif\Quantizer\IQuantizer.cs" />
     <Compile Include="Formats\Gif\Quantizer\OctreeQuantizer.cs" />
     <Compile Include="Formats\Gif\Quantizer\Quantizer.cs" />
+    <Compile Include="Formats\IImageFormat.cs" />
+    <Compile Include="Formats\Jpg\JpegFormat.cs" />
     <Compile Include="Formats\Jpg\JpegDecoder.cs" />
     <Compile Include="Formats\Jpg\JpegEncoder.cs" />
     <Compile Include="Formats\Jpg\LibJpeg\BitmapDestination.cs" />
@@ -137,6 +141,7 @@
     <Compile Include="Formats\Jpg\LibJpeg\Sample.cs" />
     <Compile Include="Formats\Jpg\LibJpeg\SampleRow.cs" />
     <Compile Include="Formats\Jpg\LibJpeg\Utils.cs" />
+    <Compile Include="Formats\Png\PngFormat.cs" />
     <Compile Include="Formats\Png\PngDecoder.cs" />
     <Compile Include="Formats\Png\PngDecoderCore.cs" />
     <Compile Include="Formats\Png\PngEncoder.cs" />
@@ -148,6 +153,8 @@
     <Compile Include="Formats\Png\GrayscaleReader.cs" />
     <Compile Include="Formats\Png\IColorReader.cs" />
     <Compile Include="Formats\Png\PngHeader.cs" />
+    <Compile Include="IImage.cs" />
+    <Compile Include="IImageBase.cs" />
     <Compile Include="ImageProperty.cs" />
     <Compile Include="ImageFrame.cs" />
     <Compile Include="Colors\Bgra.cs" />

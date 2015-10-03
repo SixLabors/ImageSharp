@@ -1,30 +1,28 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="Point.cs" company="James South">
-//   Copyright © James South and contributors.
-//   Licensed under the Apache License, Version 2.0.
+﻿// <copyright file="Point.cs" company="James South">
+// Copyright © James South and contributors.
+// Licensed under the Apache License, Version 2.0.
 // </copyright>
-// <summary>
-//   Represents an ordered pair of integer x- and y-coordinates that defines a point in
-//   a two-dimensional plane.
-// </summary>
-// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor
 {
     using System;
     using System.ComponentModel;
-    using System.Globalization;
 
     /// <summary>
-    /// Represents an ordered pair of integer x- and y-coordinates that defines a point in 
-    /// a two-dimensional plane. 
+    /// Represents an ordered pair of integer x- and y-coordinates that defines a point in
+    /// a two-dimensional plane.
     /// </summary>
     /// <remarks>
-    /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance, 
+    /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
     /// as it avoids the need to create new values for modification operations.
     /// </remarks>
     public struct Point : IEquatable<Point>
     {
+        /// <summary>
+        /// Represents a <see cref="Point"/> that has X and Y values set to zero.
+        /// </summary>
+        public static readonly Point Empty = default(Point);
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Point"/> struct.
         /// </summary>
@@ -35,11 +33,6 @@ namespace ImageProcessor
             this.X = x;
             this.Y = y;
         }
-
-        /// <summary>
-        /// Represents a <see cref="Point"/> that has X and Y values set to zero.
-        /// </summary>
-        public static readonly Point Empty = new Point();
 
         /// <summary>
         /// The x-coordinate of this <see cref="Point"/>.
@@ -99,11 +92,11 @@ namespace ImageProcessor
         /// Indicates whether this instance and a specified object are equal.
         /// </summary>
         /// <param name="obj">
-        /// The object to compare with the current instance. 
+        /// The object to compare with the current instance.
         /// </param>
         /// <returns>
-        /// true if <paramref name="obj"/> and this instance are the same type and represent the 
-        /// same value; otherwise, false. 
+        /// true if <paramref name="obj"/> and this instance are the same type and represent the
+        /// same value; otherwise, false.
         /// </returns>
         public override bool Equals(object obj)
         {
@@ -142,7 +135,7 @@ namespace ImageProcessor
             }
 
             return
-                $"Point [ X={this.X.ToString(CultureInfo.CurrentCulture)}, Y={this.Y.ToString(CultureInfo.CurrentCulture)} ]";
+                $"Point [ X={this.X}, Y={this.Y} ]";
         }
 
         /// <summary>

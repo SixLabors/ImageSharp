@@ -23,6 +23,11 @@ namespace ImageProcessor.Formats
         int Quality { get; set; }
 
         /// <summary>
+        /// Gets the standard identifier used on the Internet to indicate the type of data that a file contains.
+        /// </summary>
+        string MimeType { get; }
+
+        /// <summary>
         /// Gets the default file extension for this encoder.
         /// </summary>
         string Extension { get; }
@@ -33,7 +38,7 @@ namespace ImageProcessor.Formats
         /// </summary>
         /// <param name="extension">The <see cref="string"/> containing the file extension.</param>
         /// <returns>
-        /// True if the decoder supports the file extension; otherwise, false.
+        /// <c>True</c> if the decoder supports the file extension; otherwise, <c>false</c>.
         /// </returns>
         bool IsSupportedFileExtension(string extension);
 

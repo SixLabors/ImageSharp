@@ -1,14 +1,7 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="YCbCr.cs" company="James South">
-//   Copyright © James South and contributors.
-//   Licensed under the Apache License, Version 2.0.
+﻿// <copyright file="YCbCr.cs" company="James South">
+// Copyright © James South and contributors.
+// Licensed under the Apache License, Version 2.0.
 // </copyright>
-// <summary>
-//   Represents an YCbCr (luminance, chroma, chroma) color conforming to the
-//   ITU-R BT.601 standard used in digital imaging systems.
-//   <see href="http://en.wikipedia.org/wiki/YCbCr" />
-// </summary>
-// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor
 {
@@ -16,7 +9,7 @@ namespace ImageProcessor
     using System.ComponentModel;
 
     /// <summary>
-    /// Represents an YCbCr (luminance, chroma, chroma) color conforming to the 
+    /// Represents an YCbCr (luminance, chroma, chroma) color conforming to the
     /// ITU-R BT.601 standard used in digital imaging systems.
     /// <see href="http://en.wikipedia.org/wiki/YCbCr"/>
     /// </summary>
@@ -25,25 +18,7 @@ namespace ImageProcessor
         /// <summary>
         /// Represents a <see cref="YCbCr"/> that has Y, Cb, and Cr values set to zero.
         /// </summary>
-        public static readonly YCbCr Empty = new YCbCr();
-
-        /// <summary>
-        /// The epsilon for comparing floating point numbers.
-        /// </summary>
-        private const float Epsilon = 0.0001f;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="YCbCr"/> struct.
-        /// </summary>
-        /// <param name="y">The y luminance component.</param>
-        /// <param name="cb">The cb chroma component.</param>
-        /// <param name="cr">The cr chroma component.</param> 
-        public YCbCr(float y, float cb, float cr)
-        {
-            this.Y = y.Clamp(0, 255);
-            this.Cb = cb.Clamp(0, 255);
-            this.Cr = cr.Clamp(0, 255);
-        }
+        public static readonly YCbCr Empty = default(YCbCr);
 
         /// <summary>
         /// Gets the Y luminance component.
@@ -64,12 +39,76 @@ namespace ImageProcessor
         public readonly float Cr;
 
         /// <summary>
+        /// The epsilon for comparing floating point numbers.
+        /// </summary>
+        private const float Epsilon = 0.0001f;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="YCbCr"/> struct.
+        /// </summary>
+        /// <param name="y">The y luminance component.</param>
+        /// <param name="cb">The cb chroma component.</param>
+        /// <param name="cr">The cr chroma component.</param>
+        public YCbCr(float y, float cb, float cr)
+        {
+            this.Y = y.Clamp(0, 255);
+            this.Cb = cb.Clamp(0, 255);
+            this.Cr = cr.Clamp(0, 255);
+        }
+
+        /// <summary>
         /// Gets a value indicating whether this <see cref="YCbCr"/> is empty.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public bool IsEmpty => Math.Abs(this.Y) < Epsilon
                             && Math.Abs(this.Cb) < Epsilon
                             && Math.Abs(this.Cr) < Epsilon;
+
+        /// <summary>
+        /// Allows the implicit conversion of an instance of <see cref="Bgra"/> to a
+        /// <see cref="YCbCr"/>.
+        /// </summary>
+        /// <param name="color">
+        /// The instance of <see cref="Bgra"/> to convert.
+        /// </param>
+        /// <returns>
+        /// An instance of <see cref="YCbCr"/>.
+        /// </returns>
+        public static implicit operator YCbCr(Bgra color)
+        {
+            byte b = color.B;
+            byte g = color.G;
+            byte r = color.R;
+
+            float y = (float)((0.299 * r) + (0.587 * g) + (0.114 * b));
+            float cb = 128 + (float)((-0.168736 * r) - (0.331264 * g) + (0.5 * b));
+            float cr = 128 + (float)((0.5 * r) - (0.418688 * g) - (0.081312 * b));
+
+            return new YCbCr(y, cb, cr);
+        }
+
+        /// <summary>
+        /// Allows the implicit conversion of an instance of <see cref="YCbCr"/> to a
+        /// <see cref="Bgra"/>.
+        /// </summary>
+        /// <param name="color">
+        /// The instance of <see cref="YCbCr"/> to convert.
+        /// </param>
+        /// <returns>
+        /// An instance of <see cref="Bgra"/>.
+        /// </returns>
+        public static implicit operator Bgra(YCbCr color)
+        {
+            float y = color.Y;
+            float cb = color.Cb - 128;
+            float cr = color.Cr - 128;
+
+            byte b = Convert.ToByte((y + (1.772 * cb)).Clamp(0, 255));
+            byte g = Convert.ToByte((y - (0.34414 * cb) - (0.71414 * cr)).Clamp(0, 255));
+            byte r = Convert.ToByte((y + (1.402 * cr)).Clamp(0, 255));
+
+            return new Bgra(b, g, r, 255);
+        }
 
         /// <summary>
         /// Compares two <see cref="YCbCr"/> objects. The result specifies whether the values
@@ -107,52 +146,6 @@ namespace ImageProcessor
         public static bool operator !=(YCbCr left, YCbCr right)
         {
             return !left.Equals(right);
-        }
-
-        /// <summary>
-        /// Allows the implicit conversion of an instance of <see cref="Bgra"/> to a 
-        /// <see cref="YCbCr"/>.
-        /// </summary>
-        /// <param name="color">
-        /// The instance of <see cref="Bgra"/> to convert.
-        /// </param>
-        /// <returns>
-        /// An instance of <see cref="YCbCr"/>.
-        /// </returns>
-        public static implicit operator YCbCr(Bgra color)
-        {
-            byte b = color.B;
-            byte g = color.G;
-            byte r = color.R;
-
-            float y = (float)((0.299 * r) + (0.587 * g) + (0.114 * b));
-            float cb = 128 + (float)((-0.168736 * r) - (0.331264 * g) + (0.5 * b));
-            float cr = 128 + (float)((0.5 * r) - (0.418688 * g) - (0.081312 * b));
-
-            return new YCbCr(y, cb, cr);
-        }
-
-        /// <summary>
-        /// Allows the implicit conversion of an instance of <see cref="YCbCr"/> to a 
-        /// <see cref="Bgra"/>.
-        /// </summary>
-        /// <param name="color">
-        /// The instance of <see cref="YCbCr"/> to convert.
-        /// </param>
-        /// <returns>
-        /// An instance of <see cref="Bgra"/>.
-        /// </returns>
-        public static implicit operator Bgra(YCbCr color)
-        {
-            float y = color.Y;
-            float cb = color.Cb - 128;
-            float cr = color.Cr - 128;
-
-            byte b = Convert.ToByte((y + (1.772 * cb)).Clamp(0, 255));
-            byte g = Convert.ToByte((y - (0.34414 * cb) - (0.71414 * cr)).Clamp(0, 255));
-            byte r = Convert.ToByte((y + (1.402 * cr)).Clamp(0, 255));
-
-            return new Bgra(b, g, r, 255);
         }
 
         /// <summary>
@@ -218,9 +211,9 @@ namespace ImageProcessor
         /// <param name="other">An object to compare with this object.</param>
         public bool Equals(YCbCr other)
         {
-            return this.Y.Equals(other.Y)
-                && this.Cb.Equals(other.Cb)
-                && this.Cr.Equals(other.Cr);
+            return Math.Abs(this.Y - other.Y) < Epsilon
+                && Math.Abs(this.Cb - other.Cb) < Epsilon
+                && Math.Abs(this.Cr - other.Cr) < Epsilon;
         }
     }
 }

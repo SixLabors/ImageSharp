@@ -449,7 +449,7 @@ namespace ImageProcessor.Formats
             byte[] crcBuffer = new byte[4];
 
             int numBytes = this.currentStream.Read(crcBuffer, 0, 4);
-            if (numBytes.IsBetween(1, 3))
+            if (numBytes >= 1 && numBytes <= 3)
             {
                 throw new ImageFormatException("Image stream is not valid!");
             }
@@ -501,7 +501,7 @@ namespace ImageProcessor.Formats
             byte[] typeBuffer = new byte[4];
 
             int numBytes = this.currentStream.Read(typeBuffer, 0, 4);
-            if (numBytes.IsBetween(1, 3))
+            if (numBytes >= 1 && numBytes <= 3)
             {
                 throw new ImageFormatException("Image stream is not valid!");
             }
@@ -532,7 +532,7 @@ namespace ImageProcessor.Formats
             byte[] lengthBuffer = new byte[4];
 
             int numBytes = this.currentStream.Read(lengthBuffer, 0, 4);
-            if (numBytes.IsBetween(1, 3))
+            if (numBytes >= 1 && numBytes <= 3)
             {
                 throw new ImageFormatException("Image stream is not valid!");
             }

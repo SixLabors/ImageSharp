@@ -1,12 +1,7 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="BitEncoder.cs" company="James South">
-//   Copyright © James South and contributors.
-//   Licensed under the Apache License, Version 2.0.
+﻿// <copyright file="BitEncoder.cs" company="James South">
+// Copyright © James South and contributors.
+// Licensed under the Apache License, Version 2.0.
 // </copyright>
-// <summary>
-//   Handles the encoding of bits for compression.
-// </summary>
-// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Formats
 {
@@ -18,6 +13,11 @@ namespace ImageProcessor.Formats
     internal class BitEncoder
     {
         /// <summary>
+        /// The inner list for collecting the bits.
+        /// </summary>
+        private readonly List<byte> list = new List<byte>();
+
+        /// <summary>
         /// The current working bit.
         /// </summary>
         private int currentBit;
@@ -26,21 +26,6 @@ namespace ImageProcessor.Formats
         /// The current value.
         /// </summary>
         private int currentValue;
-
-        /// <summary>
-        /// The inner list for collecting the bits. 
-        /// </summary>
-        private readonly List<byte> list = new List<byte>();
-
-        /// <summary>
-        /// The number of bytes in the encoder.
-        /// </summary>
-        internal int Length => this.list.Count;
-
-        /// <summary>
-        /// Gets or sets the intitial bit.
-        /// </summary>
-        public int IntitialBit { get; set; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BitEncoder"/> class.
@@ -52,6 +37,16 @@ namespace ImageProcessor.Formats
         {
             this.IntitialBit = initial;
         }
+
+        /// <summary>
+        /// Gets or sets the intitial bit.
+        /// </summary>
+        public int IntitialBit { get; set; }
+
+        /// <summary>
+        /// The number of bytes in the encoder.
+        /// </summary>
+        public int Length => this.list.Count;
 
         /// <summary>
         /// Adds the current byte to the end of the encoder.
@@ -78,7 +73,7 @@ namespace ImageProcessor.Formats
         /// Adds the collection of bytes to the end of the encoder.
         /// </summary>
         /// <param name="collection">
-        /// The collection of bytes to add. 
+        /// The collection of bytes to add.
         /// The collection itself cannot be null but can contain elements that are null.</param>
         public void AddRange(byte[] collection)
         {

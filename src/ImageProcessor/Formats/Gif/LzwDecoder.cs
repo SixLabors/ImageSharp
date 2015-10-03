@@ -1,12 +1,7 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="LzwDecoder.cs" company="James South">
-//   Copyright © James South and contributors.
-//   Licensed under the Apache License, Version 2.0.
+﻿// <copyright file="LzwDecoder.cs" company="James South">
+// Copyright © James South and contributors.
+// Licensed under the Apache License, Version 2.0.
 // </copyright>
-// <summary>
-//   Decompresses data using the LZW algorithms.
-// </summary>
-// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Formats
 {
@@ -19,9 +14,9 @@ namespace ImageProcessor.Formats
     internal sealed class LzwDecoder
     {
         /// <summary>
-        /// The stack size.
+        /// One more than the maximum value 12 bit integer.
         /// </summary>
-        private const int StackSize = 4096;
+        private const int MaxStackSize = 4096;
 
         /// <summary>
         /// The null code.
@@ -37,18 +32,19 @@ namespace ImageProcessor.Formats
         /// Initializes a new instance of the <see cref="LzwDecoder"/> class
         /// and sets the stream, where the compressed data should be read from.
         /// </summary>
-        /// <param name="stream">The stream. where to read from.</param>
-        /// <exception cref="ArgumentNullException"><paramref name="stream"/> is null
-        /// (Nothing in Visual Basic).</exception>
+        /// <param name="stream">The stream to read from.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="stream"/> is null.</exception>
         public LzwDecoder(Stream stream)
         {
-            Guard.NotNull(stream, "stream");
+            Guard.NotNull(stream, nameof(stream));
 
             this.stream = stream;
         }
 
         /// <summary>
         /// Decodes and decompresses all pixel indices from the stream.
+        /// <remarks>
+        /// </remarks>
         /// </summary>
         /// <param name="width">The width of the pixel index array.</param>
         /// <param name="height">The height of the pixel index array.</param>
@@ -72,7 +68,7 @@ namespace ImageProcessor.Formats
             // Calculate the available code.
             int availableCode = clearCode + 2;
 
-            #region Jillzhangs Code (Not From Me) see: http://giflib.codeplex.com/
+            // Jillzhangs Code (Not From Me) see: http://giflib.codeplex.com/
             // TODO: It's imperative that this close is cleaned up and commented properly.
             // TODO: Unfortunately I can't figure out the character encoding to translate from the original Chinese. 
             int code; // ÓÃÓÚ´æ´¢µ±Ç°µÄ±àÂëÖµ
@@ -80,10 +76,9 @@ namespace ImageProcessor.Formats
             int codeMask = (1 << codeSize) - 1; // ±íÊ¾±àÂëµÄ×î´óÖµ£¬Èç¹ûcodeSize=5,Ôòcode_mask=31
             int bits = 0; // ÔÚ±àÂëÁ÷ÖÐÊý¾ÝµÄ±£´æÐÎÊ½Îªbyte£¬¶øÊµ¼Ê±àÂë¹ý³ÌÖÐÊÇÕÒÊµ¼Ê±àÂëÎ»À´´æ´¢µÄ£¬±ÈÈçµ±codeSize=5µÄÊ±ºò£¬ÄÇÃ´Êµ¼ÊÉÏ5bitµÄÊý¾Ý¾ÍÓ¦¸Ã¿ÉÒÔ±íÊ¾Ò»¸ö±àÂë£¬ÕâÑùÈ¡³öÀ´µÄ1¸ö×Ö½Ú¾Í¸»ÓàÁË3¸öbit£¬Õâ3¸öbitÓÃÓÚºÍµÚ¶þ¸ö×Ö½ÚµÄºóÁ½¸öbit½øÐÐ×éºÏ£¬ÔÙ´ÎÐÎ³É±àÂëÖµ£¬Èç´ËÀàÍÆ
 
-
-            int[] prefix = new int[StackSize]; // ÓÃÓÚ±£´æÇ°×ºµÄ¼¯ºÏ
-            int[] suffix = new int[StackSize]; // ÓÃÓÚ±£´æºó×º
-            int[] pixelStatck = new int[StackSize + 1]; // ÓÃÓÚÁÙÊ±±£´æÊý¾ÝÁ÷
+            int[] prefix = new int[MaxStackSize]; // ÓÃÓÚ±£´æÇ°×ºµÄ¼¯ºÏ
+            int[] suffix = new int[MaxStackSize]; // ÓÃÓÚ±£´æºó×º
+            int[] pixelStatck = new int[MaxStackSize + 1]; // ÓÃÓÚÁÙÊ±±£´æÊý¾ÝÁ÷
 
             int top = 0;
             int count = 0; // ÔÚÏÂÃæµÄÑ­»·ÖÐ£¬Ã¿´Î»á»ñÈ¡Ò»¶¨Á¿µÄ±àÂëµÄ×Ö½ÚÊý×é£¬¶ø´¦ÀíÕâÐ©Êý×éµÄÊ±ºòÐèÒª1¸ö¸ö×Ö½ÚÀ´´¦Àí£¬count¾ÍÊÇ±íÊ¾»¹Òª´¦ÀíµÄ×Ö½ÚÊýÄ¿
@@ -92,7 +87,6 @@ namespace ImageProcessor.Formats
 
             int data = 0; // ±íÊ¾µ±Ç°´¦ÀíµÄÊý¾ÝµÄÖµ
             int first = 0; // Ò»¸ö×Ö·û´®ÖØµÄµÚÒ»¸ö×Ö½Ú
-            int inCode; // ÔÚlzwÖÐ£¬Èç¹ûÈÏÊ¶ÁËÒ»¸ö±àÂëËù´ú±íµÄÊý¾Ýentry£¬Ôò½«±àÂë×÷ÎªÏÂÒ»´ÎµÄprefix£¬´Ë´¦inCode´ú±í´«µÝ¸øÏÂÒ»´Î×÷ÎªÇ°×ºµÄ±àÂëÖµ
 
             // ÏÈÉú³ÉÔªÊý¾ÝµÄÇ°×º¼¯ºÏºÍºó×º¼¯ºÏ£¬ÔªÊý¾ÝµÄÇ°×º¾ùÎª0£¬¶øºó×ºÓëÔªÊý¾ÝÏàµÈ£¬Í¬Ê±±àÂëÒ²ÓëÔªÊý¾ÝÏàµÈ
             for (code = 0; code < clearCode; code++)
@@ -129,8 +123,12 @@ namespace ImageProcessor.Formats
                         }
 
                         // »ñÈ¡±¾´ÎÒª´¦ÀíµÄÊý¾ÝµÄÖµ
-                        data += buffer[bi] << bits; // ´Ë´¦ÎªºÎÒªÒÆÎ»ÄØ£¬±ÈÈçµÚÒ»´Î´¦ÀíÁË1¸ö×Ö½ÚÎª176£¬µÚÒ»´ÎÖ»Òª´¦Àí5bit¾Í¹»ÁË£¬Ê£ÏÂ3bitÁô¸øÏÂ¸ö×Ö½Ú½øÐÐ×éºÏ¡£Ò²¾ÍÊÇµÚ¶þ¸ö×Ö½ÚµÄºóÁ½Î»+µÚÒ»¸ö×Ö½ÚµÄÇ°ÈýÎ»×é³ÉµÚ¶þ´ÎÊä³öÖµ
-                        bits += 8; // ±¾´ÎÓÖ´¦ÀíÁËÒ»¸ö×Ö½Ú£¬ËùÒÔÐèÒª+8                    
+                        if (buffer != null)
+                        {
+                            data += buffer[bi] << bits; // ´Ë´¦ÎªºÎÒªÒÆÎ»ÄØ£¬±ÈÈçµÚÒ»´Î´¦ÀíÁË1¸ö×Ö½ÚÎª176£¬µÚÒ»´ÎÖ»Òª´¦Àí5bit¾Í¹»ÁË£¬Ê£ÏÂ3bitÁô¸øÏÂ¸ö×Ö½Ú½øÐÐ×éºÏ¡£Ò²¾ÍÊÇµÚ¶þ¸ö×Ö½ÚµÄºóÁ½Î»+µÚÒ»¸ö×Ö½ÚµÄÇ°ÈýÎ»×é³ÉµÚ¶þ´ÎÊä³öÖµ
+                        }
+
+                        bits += 8; // ±¾´ÎÓÖ´¦ÀíÁËÒ»¸ö×Ö½Ú£¬ËùÒÔÐèÒª+8
                         bi++; // ½«´¦ÀíÏÂÒ»¸ö×Ö½Ú
                         count--; // ÒÑ¾­´¦Àí¹ýµÄ×Ö½ÚÊý+1
                         continue;
@@ -145,7 +143,7 @@ namespace ImageProcessor.Formats
                     // ÏÂÃæ¸ù¾Ý»ñÈ¡µÄcodeÖµÀ´½øÐÐ´¦Àí
                     if (code > availableCode || code == endCode)
                     {
-                        // µ±±àÂëÖµ´óÓÚ×î´ó±àÂëÖµ»òÕßÎª½áÊø±ê¼ÇµÄÊ±ºò£¬Í£Ö¹´¦Àí                     
+                        // µ±±àÂëÖµ´óÓÚ×î´ó±àÂëÖµ»òÕßÎª½áÊø±ê¼ÇµÄÊ±ºò£¬Í£Ö¹´¦Àí
                         break;
                     }
 
@@ -179,7 +177,7 @@ namespace ImageProcessor.Formats
                         continue;
                     }
 
-                    inCode = code;
+                    int inCode = code; // ÔÚlzwÖÐ£¬Èç¹ûÈÏÊ¶ÁËÒ»¸ö±àÂëËù´ú±íµÄÊý¾Ýentry£¬Ôò½«±àÂë×÷ÎªÏÂÒ»´ÎµÄprefix£¬´Ë´¦inCode´ú±í´«µÝ¸øÏÂÒ»´Î×÷ÎªÇ°×ºµÄ±àÂëÖµ
                     if (code == availableCode)
                     {
                         // Èç¹ûµ±Ç°±àÂëºÍ±¾´ÎÓ¦¸ÃÉú³ÉµÄ±àÂëÏàÍ¬
@@ -201,8 +199,9 @@ namespace ImageProcessor.Formats
                     // »ñÈ¡ÏÂÒ»¸öÊý¾Ý
                     pixelStatck[top++] = suffix[code];
 
-                    // Fix for Gifs that have "deferred clear code" as per here : https://bugzilla.mozilla.org/show_bug.cgi?id=55918
-                    if (availableCode < StackSize)
+                    // Fix for Gifs that have "deferred clear code" as per here : 
+                    // https://bugzilla.mozilla.org/show_bug.cgi?id=55918
+                    if (availableCode < MaxStackSize)
                     {
                         // ÉèÖÃµ±Ç°Ó¦¸Ã±àÂëÎ»ÖÃµÄÇ°×º
                         prefix[availableCode] = oldCode;
@@ -212,7 +211,7 @@ namespace ImageProcessor.Formats
 
                         // ÏÂ´ÎÓ¦¸ÃµÃµ½µÄ±àÂëÖµ
                         availableCode++;
-                        if (availableCode == codeMask + 1 && availableCode < StackSize)
+                        if (availableCode == codeMask + 1 && availableCode < MaxStackSize)
                         {
                             // Ôö¼Ó±àÂëÎ»Êý
                             codeSize++;
@@ -229,11 +228,9 @@ namespace ImageProcessor.Formats
                 // »ØËÝµ½ÉÏÒ»¸ö´¦ÀíÎ»ÖÃ
                 top--;
 
-                // »ñÈ¡ÔªÊý¾Ý              
+                // »ñÈ¡ÔªÊý¾Ý
                 pixels[xyz++] = (byte)pixelStatck[top];
             }
-
-            #endregion
 
             return pixels;
         }

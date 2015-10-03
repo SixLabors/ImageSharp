@@ -45,7 +45,6 @@
     <Compile Include="Colors\YCbCr.cs" />
     <Compile Include="Common\Extensions\ByteExtensions.cs" />
     <Compile Include="Common\Extensions\ComparableExtensions.cs" />
-    <Compile Include="Common\Helpers\Utils.cs" />
     <Compile Include="Formats\Bmp\BmpCompression.cs" />
     <Compile Include="Formats\Bmp\BmpFileHeader.cs" />
     <Compile Include="Formats\Bmp\BmpInfoHeader.cs" />
@@ -176,6 +175,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <None Include="Formats\Gif\README.md" />
     <None Include="Formats\Jpg\README.md" />
     <None Include="packages.config" />
     <AdditionalFiles Include="stylecop.json" />

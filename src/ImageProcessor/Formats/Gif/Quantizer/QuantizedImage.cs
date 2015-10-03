@@ -1,12 +1,7 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="QuantizedImage.cs" company="James South">
-//   Copyright © James South and contributors.
-//   Licensed under the Apache License, Version 2.0.
+﻿// <copyright file="QuantizedImage.cs" company="James South">
+// Copyright © James South and contributors.
+// Licensed under the Apache License, Version 2.0.
 // </copyright>
-// <summary>
-//   Provides methods for allowing quantization of images pixels.
-// </summary>
-// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Formats
 {

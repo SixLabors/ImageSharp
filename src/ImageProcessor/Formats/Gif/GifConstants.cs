@@ -1,12 +1,7 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="GifConstants.cs" company="James South">
-//   Copyright © James South and contributors.
-//   Licensed under the Apache License, Version 2.0.
+﻿// <copyright file="GifConstants.cs" company="James South">
+// Copyright © James South and contributors.
+// Licensed under the Apache License, Version 2.0.
 // </copyright>
-// <summary>
-//   Constants that define specific points within a gif.
-// </summary>
-// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Formats
 {
@@ -29,11 +24,6 @@ namespace ImageProcessor.Formats
         /// The extension block introducer <value>!</value>.
         /// </summary>
         public const byte ExtensionIntroducer = 0x21;
-
-        /// <summary>
-        /// The end introducer trailer <value>;</value>.
-        /// </summary>
-        public const byte EndIntroducer = 0x3B;
 
         /// <summary>
         /// The graphic control label.
@@ -85,5 +75,9 @@ namespace ImageProcessor.Formats
         /// </summary>
         public const byte Terminator = 0;
 
+        /// <summary>
+        /// The end introducer trailer <value>;</value>.
+        /// </summary>
+        public const byte EndIntroducer = 0x3B;
     }
 }

@@ -1,12 +1,7 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="Hsv.cs" company="James South">
-//   Copyright © James South and contributors.
-//   Licensed under the Apache License, Version 2.0.
+﻿// <copyright file="Hsv.cs" company="James South">
+// Copyright © James South and contributors.
+// Licensed under the Apache License, Version 2.0.
 // </copyright>
-// <summary>
-//   Represents a HSV (hue, saturation, value) color. Also known as HSB (hue, saturation, brightness).
-// </summary>
-// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor
 {
@@ -21,25 +16,7 @@ namespace ImageProcessor
         /// <summary>
         /// Represents a <see cref="Hsv"/> that has H, S, and V values set to zero.
         /// </summary>
-        public static readonly Hsv Empty = new Hsv();
-
-        /// <summary>
-        /// The epsilon for comparing floating point numbers.
-        /// </summary>
-        private const float Epsilon = 0.0001f;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Hsv"/> struct.
-        /// </summary>
-        /// <param name="h">The h hue component.</param>
-        /// <param name="s">The s saturation component.</param>
-        /// <param name="v">The v value (brightness) component.</param> 
-        public Hsv(float h, float s, float v)
-        {
-            this.H = h.Clamp(0, 360);
-            this.S = s.Clamp(0, 100);
-            this.V = v.Clamp(0, 100);
-        }
+        public static readonly Hsv Empty = default(Hsv);
 
         /// <summary>
         /// Gets the H hue component.
@@ -60,6 +37,24 @@ namespace ImageProcessor
         public readonly float V;
 
         /// <summary>
+        /// The epsilon for comparing floating point numbers.
+        /// </summary>
+        private const float Epsilon = 0.0001f;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Hsv"/> struct.
+        /// </summary>
+        /// <param name="h">The h hue component.</param>
+        /// <param name="s">The s saturation component.</param>
+        /// <param name="v">The v value (brightness) component.</param>
+        public Hsv(float h, float s, float v)
+        {
+            this.H = h.Clamp(0, 360);
+            this.S = s.Clamp(0, 100);
+            this.V = v.Clamp(0, 100);
+        }
+
+        /// <summary>
         /// Gets a value indicating whether this <see cref="Hsv"/> is empty.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
@@ -68,45 +63,7 @@ namespace ImageProcessor
                             && Math.Abs(this.V) < Epsilon;
 
         /// <summary>
-        /// Compares two <see cref="Hsv"/> objects. The result specifies whether the values
-        /// of the <see cref="Hsv.H"/>, <see cref="Hsv.S"/>, and <see cref="Hsv.V"/>
-        /// properties of the two <see cref="Hsv"/> objects are equal.
-        /// </summary>
-        /// <param name="left">
-        /// The <see cref="Hsv"/> on the left side of the operand.
-        /// </param>
-        /// <param name="right">
-        /// The <see cref="Hsv"/> on the right side of the operand.
-        /// </param>
-        /// <returns>
-        /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
-        /// </returns>
-        public static bool operator ==(Hsv left, Hsv right)
-        {
-            return left.Equals(right);
-        }
-
-        /// <summary>
-        /// Compares two <see cref="Hsv"/> objects. The result specifies whether the values
-        /// of the <see cref="Hsv.H"/>, <see cref="Hsv.S"/>, and <see cref="Hsv.V"/>
-        /// properties of the two <see cref="Hsv"/> objects are unequal.
-        /// </summary>
-        /// <param name="left">
-        /// The <see cref="Hsv"/> on the left side of the operand.
-        /// </param>
-        /// <param name="right">
-        /// The <see cref="Hsv"/> on the right side of the operand.
-        /// </param>
-        /// <returns>
-        /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
-        /// </returns>
-        public static bool operator !=(Hsv left, Hsv right)
-        {
-            return !left.Equals(right);
-        }
-
-        /// <summary>
-        /// Allows the implicit conversion of an instance of <see cref="Bgra"/> to a 
+        /// Allows the implicit conversion of an instance of <see cref="Bgra"/> to a
         /// <see cref="Hsv"/>.
         /// </summary>
         /// <param name="color">
@@ -133,21 +90,36 @@ namespace ImageProcessor
                 return new Hsv(0, s * 100, v * 100);
             }
 
-            if (Math.Abs(chroma) < Epsilon) { h = 0; }
-            else if (Math.Abs(r - max) < Epsilon) { h = (g - b) / chroma; }
-            else if (Math.Abs(g - max) < Epsilon) { h = 2 + (b - r) / chroma; }
-            else if (Math.Abs(b - max) < Epsilon) { h = 4 + (r - g) / chroma; }
+            if (Math.Abs(chroma) < Epsilon)
+            {
+                h = 0;
+            }
+            else if (Math.Abs(r - max) < Epsilon)
+            {
+                h = (g - b) / chroma;
+            }
+            else if (Math.Abs(g - max) < Epsilon)
+            {
+                h = 2 + ((b - r) / chroma);
+            }
+            else if (Math.Abs(b - max) < Epsilon)
+            {
+                h = 4 + ((r - g) / chroma);
+            }
 
             h *= 60;
-            if (h < 0.0) { h += 360; }
+            if (h < 0.0)
+            {
+                h += 360;
+            }
 
-            s = (chroma / v);
+            s = chroma / v;
 
             return new Hsv(h, s * 100, v * 100);
         }
 
         /// <summary>
-        /// Allows the implicit conversion of an instance of <see cref="Hsv"/> to a 
+        /// Allows the implicit conversion of an instance of <see cref="Hsv"/> to a
         /// <see cref="Bgra"/>.
         /// </summary>
         /// <param name="color">
@@ -168,7 +140,7 @@ namespace ImageProcessor
             }
 
             float h = (Math.Abs(color.H - 360) < Epsilon) ? 0 : color.H / 60;
-            int i = (int)(Math.Truncate(h));
+            int i = (int)Math.Truncate(h);
             float f = h - i;
 
             float p = v * (1.0f - s);
@@ -215,7 +187,45 @@ namespace ImageProcessor
                     break;
             }
 
-            return new Bgra((byte)(Math.Round(b * 255)), (byte)(Math.Round(g * 255)), (byte)(Math.Round(r * 255)));
+            return new Bgra((byte)Math.Round(b * 255), (byte)Math.Round(g * 255), (byte)Math.Round(r * 255));
+        }
+
+        /// <summary>
+        /// Compares two <see cref="Hsv"/> objects. The result specifies whether the values
+        /// of the <see cref="Hsv.H"/>, <see cref="Hsv.S"/>, and <see cref="Hsv.V"/>
+        /// properties of the two <see cref="Hsv"/> objects are equal.
+        /// </summary>
+        /// <param name="left">
+        /// The <see cref="Hsv"/> on the left side of the operand.
+        /// </param>
+        /// <param name="right">
+        /// The <see cref="Hsv"/> on the right side of the operand.
+        /// </param>
+        /// <returns>
+        /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
+        /// </returns>
+        public static bool operator ==(Hsv left, Hsv right)
+        {
+            return left.Equals(right);
+        }
+
+        /// <summary>
+        /// Compares two <see cref="Hsv"/> objects. The result specifies whether the values
+        /// of the <see cref="Hsv.H"/>, <see cref="Hsv.S"/>, and <see cref="Hsv.V"/>
+        /// properties of the two <see cref="Hsv"/> objects are unequal.
+        /// </summary>
+        /// <param name="left">
+        /// The <see cref="Hsv"/> on the left side of the operand.
+        /// </param>
+        /// <param name="right">
+        /// The <see cref="Hsv"/> on the right side of the operand.
+        /// </param>
+        /// <returns>
+        /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
+        /// </returns>
+        public static bool operator !=(Hsv left, Hsv right)
+        {
+            return !left.Equals(right);
         }
 
         /// <summary>
@@ -281,9 +291,9 @@ namespace ImageProcessor
         /// <param name="other">An object to compare with this object.</param>
         public bool Equals(Hsv other)
         {
-            return this.H.Equals(other.H)
-            && this.S.Equals(other.S)
-            && this.V.Equals(other.V);
+            return Math.Abs(this.H - other.H) < Epsilon
+                && Math.Abs(this.S - other.S) < Epsilon
+                && Math.Abs(this.V - other.V) < Epsilon;
         }
     }
 }

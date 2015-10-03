@@ -1,15 +1,7 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="GifImageDescriptor.cs" company="James South">
-//   Copyright © James South and contributors.
-//   Licensed under the Apache License, Version 2.0.
+﻿// <copyright file="GifImageDescriptor.cs" company="James South">
+// Copyright © James South and contributors.
+// Licensed under the Apache License, Version 2.0.
 // </copyright>
-// <summary>
-//   Each image in the Data Stream is composed of an Image Descriptor,
-//   an optional Local Color Table, and the image data.
-//   Each image must fit within the boundaries of the
-//   Logical Screen, as defined in the Logical Screen Descriptor.
-// </summary>
-// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Formats
 {

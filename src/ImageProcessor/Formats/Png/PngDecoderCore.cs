@@ -57,38 +57,22 @@ namespace ImageProcessor.Formats
         {
             ColorTypes.Add(
                 0,
-                new PngColorTypeInformation(
-                    1,
-                    new[] { 1, 2, 4, 8 },
-                    (p, a) => new GrayscaleReader(false)));
+                new PngColorTypeInformation(1, new[] { 1, 2, 4, 8 }, (p, a) => new GrayscaleReader(false)));
 
             ColorTypes.Add(
                 2,
-                new PngColorTypeInformation(
-                    3,
-                    new[] { 8 },
-                    (p, a) => new TrueColorReader(false)));
+                new PngColorTypeInformation(3, new[] { 8 }, (p, a) => new TrueColorReader(false)));
 
             ColorTypes.Add(
                 3,
-                new PngColorTypeInformation(
-                    1,
-                    new[] { 1, 2, 4, 8 },
-                    (p, a) => new PaletteIndexReader(p, a)));
+                new PngColorTypeInformation(1, new[] { 1, 2, 4, 8 }, (p, a) => new PaletteIndexReader(p, a)));
 
             ColorTypes.Add(
                 4,
-                new PngColorTypeInformation(
-                    2,
-                    new[] { 8 },
-                    (p, a) => new GrayscaleReader(true)));
+                new PngColorTypeInformation(2, new[] { 8 }, (p, a) => new GrayscaleReader(true)));
 
-            ColorTypes.Add(
-                6,
-                new PngColorTypeInformation(
-                    4,
-                    new[] { 8 },
-                    (p, a) => new TrueColorReader(true)));
+            ColorTypes.Add(6,
+                new PngColorTypeInformation(4, new[] { 8 }, (p, a) => new TrueColorReader(true)));
         }
 
         /// <summary>
@@ -334,7 +318,7 @@ namespace ImageProcessor.Formats
                             colorReader.ReadScanline(currentScanline, pixels, this.header);
                             column = -1;
 
-                            Utils.Swap(ref currentScanline, ref lastScanline);
+                            this.Swap(ref currentScanline, ref lastScanline);
                         }
                     }
                 }
@@ -543,6 +527,21 @@ namespace ImageProcessor.Formats
             chunk.Length = BitConverter.ToInt32(lengthBuffer, 0);
 
             return numBytes;
+        }
+
+        /// <summary>
+        /// Swaps two references.
+        /// </summary>
+        /// <typeparam name="TRef">The type of the references to swap.</typeparam>
+        /// <param name="lhs">The first reference.</param>
+        /// <param name="rhs">The second reference.</param>
+        private void Swap<TRef>(ref TRef lhs, ref TRef rhs)
+                    where TRef : class
+        {
+            TRef tmp = lhs;
+
+            lhs = rhs;
+            rhs = tmp;
         }
     }
 }

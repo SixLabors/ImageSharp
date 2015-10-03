@@ -10,7 +10,7 @@ namespace ImageProcessor.Formats
     using System.Linq;
 
     /// <summary>
-    /// The Gif encoder
+    /// Image encoder for writing image data to a stream in gif format.
     /// </summary>
     public class GifEncoder : IImageEncoder
     {
@@ -63,12 +63,12 @@ namespace ImageProcessor.Formats
             quality = quality > 0 ? quality.Clamp(1, 256) : 256;
 
             // Get the number of bits.
-            int bitdepth = this.GetBitsNeededForColorDepth(quality);
+            int bitDepth = this.GetBitsNeededForColorDepth(quality);
 
             // Write the LSD and check to see if we need a global color table.
             // Always true just now.
-            bool globalColor = this.WriteGlobalLogicalScreenDescriptor(image, stream, bitdepth);
-            QuantizedImage quantized = this.WriteColorTable(imageBase, stream, quality, bitdepth);
+            bool globalColor = this.WriteGlobalLogicalScreenDescriptor(image, stream, bitDepth);
+            QuantizedImage quantized = this.WriteColorTable(imageBase, stream, quality, bitDepth);
 
             this.WriteGraphicalControlExtension(imageBase, stream);
             this.WriteImageDescriptor(quantized, quality, stream);
@@ -238,13 +238,13 @@ namespace ImageProcessor.Formats
             this.WriteShort(stream, image.Height);
 
             // Calculate the quality.
-            int bitdepth = this.GetBitsNeededForColorDepth(quality);
+            int bitDepth = this.GetBitsNeededForColorDepth(quality);
 
             // No LCT use GCT.
             this.WriteByte(stream, 0);
 
-            // Write the image data..
-            this.WriteImageData(image, stream, bitdepth);
+            // Write the image data.
+            this.WriteImageData(image, stream, bitDepth);
         }
 
         /// <summary>
@@ -264,19 +264,19 @@ namespace ImageProcessor.Formats
             // Calculate the quality.
             int quality = this.Quality > 0 ? this.Quality : image.Quality;
             quality = quality > 0 ? quality.Clamp(1, 256) : 256;
-            int bitdepth = this.GetBitsNeededForColorDepth(quality);
+            int bitDepth = this.GetBitsNeededForColorDepth(quality);
 
             int packed = 0x80 | // 1: Local color table flag = 1 (LCT used)
                          0x00 | // 2: Interlace flag 0
                          0x00 | // 3: Sort flag 0
                          0 | // 4-5: Reserved
-                         bitdepth - 1;
+                         bitDepth - 1;
 
             this.WriteByte(stream, packed);
 
             // Now immediately follow with the color table.
-            QuantizedImage quantized = this.WriteColorTable(image, stream, quality, bitdepth);
-            this.WriteImageData(quantized, stream, bitdepth);
+            QuantizedImage quantized = this.WriteColorTable(image, stream, quality, bitDepth);
+            this.WriteImageData(quantized, stream, bitDepth);
         }
 
         /// <summary>

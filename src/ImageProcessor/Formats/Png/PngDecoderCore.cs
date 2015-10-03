@@ -177,6 +177,41 @@ namespace ImageProcessor.Formats
         }
 
         /// <summary>
+        /// Computes a simple linear function of the three neighboring pixels (left, above, upper left), then chooses
+        /// as predictor the neighboring pixel closest to the computed value.
+        /// </summary>
+        /// <param name="left">The left neighbour pixel.</param>
+        /// <param name="above">The above neighbour pixel.</param>
+        /// <param name="upperLeft">The upper left neighbour pixel.</param>
+        /// <returns>
+        /// The <see cref="byte"/>.
+        /// </returns>
+        private static byte PaethPredicator(byte left, byte above, byte upperLeft)
+        {
+            byte predicator;
+
+            int p = left + above - upperLeft;
+            int pa = Math.Abs(p - left);
+            int pb = Math.Abs(p - above);
+            int pc = Math.Abs(p - upperLeft);
+
+            if (pa <= pb && pa <= pc)
+            {
+                predicator = left;
+            }
+            else if (pb <= pc)
+            {
+                predicator = above;
+            }
+            else
+            {
+                predicator = upperLeft;
+            }
+
+            return predicator;
+        }
+
+        /// <summary>
         /// Reads the data chunk containing physical dimension data.
         /// </summary>
         /// <param name="data">The data containing physical data.</param>
@@ -289,7 +324,7 @@ namespace ImageProcessor.Formats
                         }
                         else if (filter == 4)
                         {
-                            currentScanline[column] = (byte)(currentScanline[column] + PathPredicator(a, b, c));
+                            currentScanline[column] = (byte)(currentScanline[column] + PaethPredicator(a, b, c));
                         }
 
                         column++;
@@ -304,40 +339,6 @@ namespace ImageProcessor.Formats
                     }
                 }
             }
-        }
-
-        /// <summary>
-        /// TODO: Document this
-        /// </summary>
-        /// <param name="a">The a.</param>
-        /// <param name="b">The b.</param>
-        /// <param name="c">The c.</param>
-        /// <returns>
-        /// The <see cref="byte"/>.
-        /// </returns>
-        private static byte PathPredicator(byte a, byte b, byte c)
-        {
-            byte predicator;
-
-            int p = a + b - c;
-            int pa = Math.Abs(p - a);
-            int pb = Math.Abs(p - b);
-            int pc = Math.Abs(p - c);
-
-            if (pa <= pb && pa <= pc)
-            {
-                predicator = a;
-            }
-            else if (pb <= pc)
-            {
-                predicator = b;
-            }
-            else
-            {
-                predicator = c;
-            }
-
-            return predicator;
         }
 
         /// <summary>

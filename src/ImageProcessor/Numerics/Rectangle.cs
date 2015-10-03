@@ -1,28 +1,27 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="Rectangle.cs" company="James South">
-//   Copyright © James South and contributors.
-//   Licensed under the Apache License, Version 2.0.
+﻿// <copyright file="Rectangle.cs" company="James South">
+// Copyright © James South and contributors.
+// Licensed under the Apache License, Version 2.0.
 // </copyright>
-// <summary>
-//   Stores the location and size of a rectangular region.
-// </summary>
-// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor
 {
     using System;
     using System.ComponentModel;
-    using System.Globalization;
 
     /// <summary>
     /// Stores a set of four integers that represent the location and size of a rectangle.
     /// </summary>
     /// <remarks>
-    /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance, 
+    /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
     /// as it avoids the need to create new values for modification operations.
     /// </remarks>
     public struct Rectangle : IEquatable<Rectangle>
     {
+        /// <summary>
+        /// Represents a <see cref="Rectangle"/> that has X, Y, Width, and Height values set to zero.
+        /// </summary>
+        public static readonly Rectangle Empty = default(Rectangle);
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Rectangle"/> struct.
         /// </summary>
@@ -54,11 +53,6 @@ namespace ImageProcessor
             this.Width = size.Width;
             this.Height = size.Height;
         }
-
-        /// <summary>
-        /// Represents a <see cref="Rectangle"/> that has X, Y, Width, and Height values set to zero.
-        /// </summary>
-        public static readonly Rectangle Empty = new Rectangle();
 
         /// <summary>
         /// The x-coordinate of this <see cref="Rectangle"/>.
@@ -150,7 +144,7 @@ namespace ImageProcessor
         /// Indicates whether this instance and a specified object are equal.
         /// </summary>
         /// <returns>
-        /// True if <paramref name="obj"/> and this instance are the same type and represent the same value; otherwise, false. 
+        /// True if <paramref name="obj"/> and this instance are the same type and represent the same value; otherwise, false.
         /// </returns>
         /// <param name="obj">The object to compare with the current instance. </param>
         public override bool Equals(object obj)
@@ -191,8 +185,7 @@ namespace ImageProcessor
             }
 
             return
-                $"Rectangle [ X={this.X.ToString(CultureInfo.CurrentCulture)}, Y={this.Y.ToString(CultureInfo.CurrentCulture)}, "
-                + $"Width={this.Width.ToString(CultureInfo.CurrentCulture)}, Height={this.Height.ToString(CultureInfo.CurrentCulture)}]";
+                $"Rectangle [ X={this.X}, Y={this.Y}, Width={this.Width}, Height={this.Height} ]";
         }
 
         /// <summary>
@@ -204,8 +197,10 @@ namespace ImageProcessor
         /// <param name="other">An object to compare with this object.</param>
         public bool Equals(Rectangle other)
         {
-            return this.X.Equals(other.X) && this.Y.Equals(other.Y)
-                   && this.Width.Equals(other.Width) && this.Height.Equals(other.Height);
+            return this.X.Equals(other.X)
+                && this.Y.Equals(other.Y)
+                && this.Width.Equals(other.Width)
+                && this.Height.Equals(other.Height);
         }
 
         /// <summary>

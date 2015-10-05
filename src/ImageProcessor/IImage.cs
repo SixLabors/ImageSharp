@@ -85,7 +85,7 @@ namespace ImageProcessor
         void Save(Stream stream);
 
         /// <summary>
-        /// Saves the image to the given stream using the currently loaded image format.
+        /// Saves the image to the given stream using the given image format.
         /// </summary>
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="format">The format to save the image as.</param>

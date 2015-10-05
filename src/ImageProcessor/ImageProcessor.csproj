@@ -13,7 +13,7 @@
     <DefaultLanguage>en-US</DefaultLanguage>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{786C830F-07A1-408B-BD7F-6EE04809D6DB};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
-    <TargetFrameworkProfile>Profile78</TargetFrameworkProfile>
+    <TargetFrameworkProfile>Profile259</TargetFrameworkProfile>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
@@ -38,12 +38,14 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- A reference to the entire .NET Framework is automatically included -->
+    <Folder Include="Samplers\" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Filters\Contrast.cs" />
     <Compile Include="Filters\ImageFilterExtensions.cs" />
-    <Compile Include="Filters\ParallelImageFilter.cs" />
-    <Compile Include="Filters\IImageFilter.cs" />
+    <Compile Include="ImageExtensions.cs" />
+    <Compile Include="ParallelImageProcessor.cs" />
+    <Compile Include="IImageProcessor.cs" />
     <Compile Include="Colors\Hsv.cs" />
     <Compile Include="Colors\YCbCr.cs" />
     <Compile Include="Common\Extensions\ByteExtensions.cs" />
@@ -177,7 +179,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Numerics\Rectangle.cs" />
     <Compile Include="Numerics\Size.cs" />
-    <Compile Include="Samplers\IImageSampler.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="ICSharpCode.SharpZipLib.Portable, Version=0.86.0.51802, Culture=neutral, processorArchitecture=MSIL">

@@ -1,12 +1,7 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="JpegEncoder.cs" company="James South">
-//   Copyright © James South and contributors.
-//   Licensed under the Apache License, Version 2.0.
+﻿// <copyright file="JpegDecoder.cs" company="James South">
+// Copyright © James South and contributors.
+// Licensed under the Apache License, Version 2.0.
 // </copyright>
-// <summary>
-//   Image decoder for generating an image out of a jpg stream.
-// </summary>
-// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Formats
 {
@@ -42,7 +37,11 @@ namespace ImageProcessor.Formats
         {
             Guard.NotNullOrEmpty(extension, "extension");
 
-            if (extension.StartsWith(".")) extension = extension.Substring(1);
+            if (extension.StartsWith("."))
+            {
+                extension = extension.Substring(1);
+            }
+
             return extension.Equals("JPG", StringComparison.OrdinalIgnoreCase) ||
                    extension.Equals("JPEG", StringComparison.OrdinalIgnoreCase) ||
                    extension.Equals("JFIF", StringComparison.OrdinalIgnoreCase);
@@ -68,36 +67,12 @@ namespace ImageProcessor.Formats
             if (header.Length >= 11)
             {
                 bool isJpeg = IsJpeg(header);
-                bool isExif = IsExif(header);
+                bool isExif = this.IsExif(header);
 
                 isSupported = isJpeg || isExif;
             }
 
             return isSupported;
-        }
-
-        private bool IsExif(byte[] header)
-        {
-            bool isExif =
-                header[6] == 0x45 && // E
-                header[7] == 0x78 && // x
-                header[8] == 0x69 && // i
-                header[9] == 0x66 && // f
-                header[10] == 0x00;
-
-            return isExif;
-        }
-
-        private static bool IsJpeg(byte[] header)
-        {
-            bool isJpg =
-                header[6] == 0x4A && // J
-                header[7] == 0x46 && // F
-                header[8] == 0x49 && // I
-                header[9] == 0x46 && // F
-                header[10] == 0x00;
-
-            return isJpg;
         }
 
         /// <summary>
@@ -137,7 +112,7 @@ namespace ImageProcessor.Formats
                 {
                     Sample sample = row.GetAt(x);
 
-                    int offset = (y * pixelWidth + x) * 4;
+                    int offset = ((y * pixelWidth) + x) * 4;
 
                     pixels[offset + 0] = (byte)sample[2];
                     pixels[offset + 1] = (byte)sample[1];
@@ -147,6 +122,35 @@ namespace ImageProcessor.Formats
             }
 
             image.SetPixels(pixelWidth, pixelHeight, pixels);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="header"></param>
+        /// <returns></returns>
+        private bool IsExif(byte[] header)
+        {
+            bool isExif =
+                header[6] == 0x45 && // E
+                header[7] == 0x78 && // x
+                header[8] == 0x69 && // i
+                header[9] == 0x66 && // f
+                header[10] == 0x00;
+
+            return isExif;
+        }
+
+        private static bool IsJpeg(byte[] header)
+        {
+            bool isJpg =
+                header[6] == 0x4A && // J
+                header[7] == 0x46 && // F
+                header[8] == 0x49 && // I
+                header[9] == 0x46 && // F
+                header[10] == 0x00;
+
+            return isJpg;
         }
     }
 }

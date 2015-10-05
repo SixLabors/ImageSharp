@@ -2,9 +2,8 @@
 {
     using System.Diagnostics;
     using System.IO;
-    using System.Linq;
 
-    using ImageProcessor.Formats;
+    using Formats;
 
     using Xunit;
 

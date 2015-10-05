@@ -61,6 +61,7 @@ namespace ImageProcessor
         {
             this.HorizontalResolution = DefaultHorizontalResolution;
             this.VerticalResolution = DefaultVerticalResolution;
+            this.CurrentImageFormat = DefaultFormats.Value.First(f => f.GetType() == typeof(PngFormat));
         }
 
         /// <summary>
@@ -74,6 +75,7 @@ namespace ImageProcessor
         {
             this.HorizontalResolution = DefaultHorizontalResolution;
             this.VerticalResolution = DefaultVerticalResolution;
+            this.CurrentImageFormat = DefaultFormats.Value.First(f => f.GetType() == typeof(PngFormat));
         }
 
         /// <summary>
@@ -97,6 +99,7 @@ namespace ImageProcessor
 
             this.HorizontalResolution = DefaultHorizontalResolution;
             this.VerticalResolution = DefaultVerticalResolution;
+            this.CurrentImageFormat = other.CurrentImageFormat;
         }
 
         /// <summary>

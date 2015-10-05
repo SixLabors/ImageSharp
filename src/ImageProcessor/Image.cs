@@ -1,13 +1,7 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="Image.cs" company="James South">
-//   Copyright © James South and contributors.
-//   Licensed under the Apache License, Version 2.0.
+﻿// <copyright file="Image.cs" company="James South">
+// Copyright © James South and contributors.
+// Licensed under the Apache License, Version 2.0.
 // </copyright>
-// <summary>
-//   Image class which stores the pixels and provides common functionality
-//   such as loading images from files and streams or operation like resizing or cropping.
-// </summary>
-// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor
 {
@@ -187,7 +181,7 @@ namespace ImageProcessor
         public IList<ImageProperty> Properties { get; } = new List<ImageProperty>();
 
         /// <inheritdoc/>
-        public IImageFormat CurrentImageFormat { get; private set; }
+        public IImageFormat CurrentImageFormat { get; internal set; }
 
         /// <inheritdoc/>
         public void Save(Stream stream)

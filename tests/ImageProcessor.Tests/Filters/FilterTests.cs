@@ -23,7 +23,7 @@ namespace ImageProcessor.Tests.Filters
             //{ "../../TestImages/Formats/Gif/giphy.gif" },
         };
 
-        public static readonly TheoryData<string, IImageFilter> Filters = new TheoryData<string, IImageFilter>
+        public static readonly TheoryData<string, IImageProcessor> Filters = new TheoryData<string, IImageProcessor>
         {
             { "Contrast-50", new Contrast(50) },
             { "Contrast--50", new Contrast(-50) },
@@ -31,7 +31,7 @@ namespace ImageProcessor.Tests.Filters
 
         [Theory]
         [MemberData("Filters")]
-        public void FilterImage(string name, IImageFilter filter)
+        public void FilterImage(string name, IImageProcessor processor)
         {
             if (!Directory.Exists("Filtered"))
             {
@@ -47,7 +47,7 @@ namespace ImageProcessor.Tests.Filters
                     string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
                     using (FileStream output = File.OpenWrite($"Filtered/{ Path.GetFileName(filename) }"))
                     {
-                        image.Filter(filter).Save(output);
+                        image.Process(processor).Save(output);
                     }
 
                     Trace.WriteLine($"{ name }: { watch.ElapsedMilliseconds}ms");

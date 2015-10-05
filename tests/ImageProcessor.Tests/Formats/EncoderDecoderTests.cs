@@ -31,29 +31,10 @@
 
             string encodedFilename = "Encoded/" + Path.GetFileName(filename);
 
-            //if (!image.IsAnimated)
-            //{
             using (FileStream output = File.OpenWrite(encodedFilename))
             {
                 image.Save(output);
             }
-            //}
-            //else
-            //{
-            //    using (var output = File.OpenWrite(
-            //        string.Format("Encoded/{ Path.GetFileNameWithoutExtension(filename) }.jpg"))
-            //    {
-            //        image.SaveAsJpeg(output, 40);
-            //    }
-
-            //    for (int i = 0; i < image.Frames.Count; i++)
-            //    {
-            //        using (var output = File.OpenWrite($"Encoded/{ i }_{ Path.GetFileNameWithoutExtension(filename) }.png"))
-            //        {
-            //            image.Frames[i].SaveAsPng(output);
-            //        }
-            //    }
-            //}
 
             Trace.WriteLine($"{filename} : {watch.ElapsedMilliseconds}ms");
         }
@@ -75,7 +56,7 @@
 
             using (FileStream output = File.OpenWrite($"Quantized/{ Path.GetFileName(filename) }"))
             {
-                quantizedImage.ToImage().Save(output, image.CurrentImageFormat);
+                quantizedImage.ToImage().Save(output);
             }
         }
     }

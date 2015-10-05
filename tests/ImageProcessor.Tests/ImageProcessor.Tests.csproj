@@ -53,6 +53,7 @@
   <ItemGroup>
     <Compile Include="Colors\ColorConversionTests.cs" />
     <Compile Include="Colors\ColorTests.cs" />
+    <Compile Include="Filters\FilterTests.cs" />
     <Compile Include="Formats\EncoderDecoderTests.cs" />
     <Compile Include="Helpers\GuardTests.cs" />
     <Compile Include="Numerics\RectangleTests.cs" />

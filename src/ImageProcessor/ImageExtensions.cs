@@ -86,7 +86,11 @@ namespace ImageProcessor
         private static Image PerformAction(Image source, bool clone, Action<ImageBase, ImageBase> action)
         {
             Image transformedImage = clone ? new Image(source) : new Image();
+
+            // Only on clone?
             transformedImage.CurrentImageFormat = source.CurrentImageFormat;
+            transformedImage.RepeatCount = source.RepeatCount;
+
             action(source, transformedImage);
 
             for (int i = 0; i < source.Frames.Count; i++)

@@ -77,6 +77,29 @@ namespace ImageProcessor
         }
 
         /// <summary>
+        /// Applies the collection of processors to the image.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="rectangle">
+        /// The rectangle defining the bounds of the pixels the image filter with adjust.</param>
+        /// <param name="width"></param>
+        /// <param name="height"></param>
+        /// <param name="sourceRectangle"></param>
+        /// <param name="targetRectangle"></param>
+        /// <param name="processors">Any processors to apply to the image.</param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image Process(this Image source, int width, int height, Rectangle sourceRectangle, Rectangle targetRectangle, params IImageProcessor[] processors)
+        {
+            // ReSharper disable once LoopCanBeConvertedToQuery
+            foreach (IImageProcessor filter in processors)
+            {
+                source = PerformAction(source, false, (sourceImage, targetImage) => filter.Apply(targetImage, sourceImage, width, height, targetRectangle, sourceRectangle));
+            }
+
+            return source;
+        }
+
+        /// <summary>
         /// Performs the given action on the source image.
         /// </summary>
         /// <param name="source">The image to perform the action against.</param>

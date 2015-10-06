@@ -38,9 +38,9 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- A reference to the entire .NET Framework is automatically included -->
-    <Folder Include="Samplers\" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Common\Helpers\PixelOperations.cs" />
     <Compile Include="Filters\Contrast.cs" />
     <Compile Include="Filters\ImageFilterExtensions.cs" />
     <Compile Include="ImageExtensions.cs" />
@@ -179,6 +179,10 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Numerics\Rectangle.cs" />
     <Compile Include="Numerics\Size.cs" />
+    <Compile Include="Samplers\BicubicResampler.cs" />
+    <Compile Include="Samplers\ImageSampleExtensions.cs" />
+    <Compile Include="Samplers\IResampler.cs" />
+    <Compile Include="Samplers\Resize.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="ICSharpCode.SharpZipLib.Portable, Version=0.86.0.51802, Culture=neutral, processorArchitecture=MSIL">

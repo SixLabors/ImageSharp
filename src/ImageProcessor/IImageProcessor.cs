@@ -29,5 +29,7 @@ namespace ImageProcessor
         /// <paramref name="rectangle"/> doesnt fit the dimension of the image.
         /// </exception>
         void Apply(ImageBase target, ImageBase source, Rectangle rectangle);
+
+        void Apply(ImageBase target, ImageBase source, int width, int height, Rectangle targetRectangle, Rectangle sourceRectangle);
     }
 }

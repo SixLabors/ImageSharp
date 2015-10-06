@@ -50,12 +50,59 @@ namespace ImageProcessor
             }
         }
 
+        /// <inheritdoc/>
+        public void Apply(ImageBase target, ImageBase source, int width, int height, Rectangle targetRectangle = default(Rectangle), Rectangle sourceRectangle = default(Rectangle))
+        {
+            this.OnApply();
+
+            byte[] pixels = new byte[width * height * 4];
+            target.SetPixels(width, height, pixels);
+
+            if (targetRectangle == Rectangle.Empty)
+            {
+                targetRectangle = target.Bounds;
+            }
+
+            if (sourceRectangle == Rectangle.Empty)
+            {
+                sourceRectangle = source.Bounds;
+            }
+
+            if (this.Parallelism > 1)
+            {
+                int partitionCount = this.Parallelism;
+
+                Task[] tasks = new Task[partitionCount];
+
+                for (int p = 0; p < partitionCount; p++)
+                {
+                    int current = p;
+                    tasks[p] = Task.Run(() =>
+                    {
+                        int batchSize = targetRectangle.Bottom / partitionCount;
+                        int yStart = current * batchSize;
+                        int yEnd = current == partitionCount - 1 ? targetRectangle.Bottom : yStart + batchSize;
+
+                        this.Apply(target, source, targetRectangle, sourceRectangle, yStart, yEnd);
+                    });
+                }
+
+                Task.WaitAll(tasks);
+            }
+            else
+            {
+                this.Apply(target, source, targetRectangle, sourceRectangle, targetRectangle.Y, targetRectangle.Bottom);
+            }
+        }
+
         /// <summary>
         /// This method is called before the process is applied to prepare the processor.
         /// </summary>
         protected virtual void OnApply()
         {
         }
+
+        protected abstract void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY);
 
         /// <summary>
         /// Apply a process to an image to alter the pixels at the area of the specified rectangle.

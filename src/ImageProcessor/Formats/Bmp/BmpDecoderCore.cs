@@ -133,7 +133,9 @@ namespace ImageProcessor.Formats
                         }
                         else if (this.infoHeader.BitsPerPixel <= 8)
                         {
-                            this.ReadRgbPalette(imageData, palette,
+                            this.ReadRgbPalette(
+                                imageData,
+                                palette,
                                 this.infoHeader.Width,
                                 this.infoHeader.Height,
                                 this.infoHeader.BitsPerPixel);

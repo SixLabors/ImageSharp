@@ -30,6 +30,11 @@ namespace ImageProcessor.Filters
         /// </summary>
         public int Value { get; }
 
+        protected override void Apply(ImageBase source, ImageBase target, Rectangle sourceRectangle, Rectangle targetRectangle, int startY, int endY)
+        {
+            throw new NotImplementedException();
+        }
+
         /// <inheritdoc/>
         protected override void Apply(ImageBase target, ImageBase source, Rectangle rectangle, int startY, int endY)
         {

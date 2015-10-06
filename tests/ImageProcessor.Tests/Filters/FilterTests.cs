@@ -6,6 +6,7 @@ namespace ImageProcessor.Tests.Filters
     using System.IO;
 
     using ImageProcessor.Filters;
+    using ImageProcessor.Samplers;
 
     using Xunit;
 
@@ -14,8 +15,8 @@ namespace ImageProcessor.Tests.Filters
         public static readonly List<string> Files = new List<string>
         {
             { "../../TestImages/Formats/Jpg/Backdrop.jpg"},
-            { "../../TestImages/Formats/Bmp/Car.bmp" },
-            { "../../TestImages/Formats/Png/cmyk.png" },
+            //{ "../../TestImages/Formats/Bmp/Car.bmp" },
+            //{ "../../TestImages/Formats/Png/cmyk.png" },
             //{ "../../TestImages/Formats/Gif/a.gif" },
             //{ "../../TestImages/Formats/Gif/leaf.gif" },
             //{ "../../TestImages/Formats/Gif/ani.gif" },
@@ -51,6 +52,31 @@ namespace ImageProcessor.Tests.Filters
                     }
 
                     Trace.WriteLine($"{ name }: { watch.ElapsedMilliseconds}ms");
+                }
+            }
+        }
+
+        [Fact]
+        public void ResizeImage()
+        {
+            if (!Directory.Exists("Resized"))
+            {
+                Directory.CreateDirectory("Resized");
+            }
+
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    Stopwatch watch = Stopwatch.StartNew();
+                    Image image = new Image(stream);
+                    string filename = Path.GetFileName(file);
+                    using (FileStream output = File.OpenWrite($"Resized/{ Path.GetFileName(filename) }"))
+                    {
+                        image.Resize(400, 400).Save(output);
+                    }
+
+                    Trace.WriteLine($"{ filename }: { watch.ElapsedMilliseconds}ms");
                 }
             }
         }

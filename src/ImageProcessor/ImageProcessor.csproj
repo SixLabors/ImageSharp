@@ -190,7 +190,6 @@
     <None Include="Formats\Gif\README.md" />
     <None Include="Formats\Jpg\README.md" />
     <None Include="packages.config" />
-    <AdditionalFiles Include="stylecop.json" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Formats\Bmp\README.md" />

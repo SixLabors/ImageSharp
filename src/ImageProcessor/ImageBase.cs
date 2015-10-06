@@ -60,6 +60,8 @@ namespace ImageProcessor
 
             this.Width = other.Width;
             this.Height = other.Height;
+            this.Quality = other.Quality;
+            this.FrameDelay = other.FrameDelay;
             this.Pixels = new byte[pixels.Length];
             Array.Copy(pixels, this.Pixels, pixels.Length);
         }

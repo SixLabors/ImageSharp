@@ -1,5 +1,5 @@
 ﻿
-namespace ImageProcessor.Tests.Filters
+namespace ImageProcessor.Tests
 {
     using System.Collections.Generic;
     using System.Diagnostics;
@@ -10,20 +10,8 @@ namespace ImageProcessor.Tests.Filters
 
     using Xunit;
 
-    public class FilterTests
+    public class FilterTests : ProcessorTestBase
     {
-        public static readonly List<string> Files = new List<string>
-        {
-            //{ "../../TestImages/Formats/Jpg/Backdrop.jpg"},
-            //{ "../../TestImages/Formats/Bmp/Car.bmp" },
-            //{ "../../TestImages/Formats/Png/cmyk.png" },
-            //{ "../../TestImages/Formats/Gif/a.gif" },
-            //{ "../../TestImages/Formats/Gif/leaf.gif" },
-            { "../../TestImages/Formats/Gif/ani.gif" },
-            //{ "../../TestImages/Formats/Gif/ani2.gif" },
-            //{ "../../TestImages/Formats/Gif/giphy.gif" },
-        };
-
         public static readonly TheoryData<string, IImageProcessor> Filters = new TheoryData<string, IImageProcessor>
         {
             { "Contrast-50", new Contrast(50) },

@@ -55,22 +55,26 @@ namespace ImageProcessor
         /// <param name="source">The image this method extends.</param>
         /// <param name="processors">Any processors to apply to the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Process(this Image source, params IImageProcessor[] processors) => Process(source, source.Bounds, processors);
+        public static Image Process(this Image source, params IImageProcessor[] processors)
+        {
+            return Process(source, source.Bounds, processors);
+        }
 
         /// <summary>
         /// Applies the collection of processors to the image.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
-        /// <param name="rectangle">
-        /// The rectangle defining the bounds of the pixels the image filter with adjust.</param>
+        /// <param name="sourceRectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
+        /// </param>
         /// <param name="processors">Any processors to apply to the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Process(this Image source, Rectangle rectangle, params IImageProcessor[] processors)
+        public static Image Process(this Image source, Rectangle sourceRectangle, params IImageProcessor[] processors)
         {
             // ReSharper disable once LoopCanBeConvertedToQuery
             foreach (IImageProcessor filter in processors)
             {
-                source = PerformAction(source, true, (sourceImage, targetImage) => filter.Apply(targetImage, sourceImage, rectangle));
+                source = PerformAction(source, true, (sourceImage, targetImage) => filter.Apply(targetImage, sourceImage, sourceRectangle));
             }
 
             return source;
@@ -79,13 +83,29 @@ namespace ImageProcessor
         /// <summary>
         /// Applies the collection of processors to the image.
         /// </summary>
-        /// <param name="source">The image this method extends.</param>
-        /// <param name="rectangle">
-        /// The rectangle defining the bounds of the pixels the image filter with adjust.</param>
-        /// <param name="width"></param>
-        /// <param name="height"></param>
-        /// <param name="sourceRectangle"></param>
-        /// <param name="targetRectangle"></param>
+        /// <param name="source">The source image. Cannot be null.</param>
+        /// <param name="width">The target image width.</param>
+        /// <param name="height">The target image width.</param>
+        /// <param name="processors">Any processors to apply to the image.</param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image Process(this Image source, int width, int height, params IImageProcessor[] processors)
+        {
+            return Process(source, width, height, source.Bounds, default(Rectangle), processors);
+        }
+
+        /// <summary>
+        /// Applies the collection of processors to the image.
+        /// </summary>
+        /// <param name="source">The source image. Cannot be null.</param>
+        /// <param name="width">The target image width.</param>
+        /// <param name="height">The target image width.</param>
+        /// <param name="sourceRectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
+        /// </param>
+        /// <param name="targetRectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the location and size of the drawn image.
+        /// The image is scaled to fit the rectangle.
+        /// </param>
         /// <param name="processors">Any processors to apply to the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
         public static Image Process(this Image source, int width, int height, Rectangle sourceRectangle, Rectangle targetRectangle, params IImageProcessor[] processors)

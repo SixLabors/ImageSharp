@@ -119,7 +119,7 @@ namespace ImageProcessor
             for (int i = 0; i < source.Frames.Count; i++)
             {
                 ImageFrame sourceFrame = source.Frames[i];
-                ImageFrame tranformedFrame = clone ? new ImageFrame(sourceFrame) : new ImageFrame();
+                ImageFrame tranformedFrame = clone ? new ImageFrame(sourceFrame) : new ImageFrame { FrameDelay = sourceFrame.FrameDelay };
                 action(sourceFrame, tranformedFrame);
 
                 if (!clone)

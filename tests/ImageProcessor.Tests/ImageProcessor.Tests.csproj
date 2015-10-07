@@ -60,6 +60,7 @@
     <Compile Include="Numerics\PointTests.cs" />
     <Compile Include="Numerics\SizeTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Samplers\SamplerTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

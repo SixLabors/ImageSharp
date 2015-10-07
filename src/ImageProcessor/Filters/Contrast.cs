@@ -51,21 +51,21 @@ namespace ImageProcessor.Filters
                     r *= contrast;
                     r += 0.5;
                     r *= 255;
-                    r = r.Clamp(0, 255);
+                    r = r.ToByte();
 
                     double g = color.G / 255.0;
                     g -= 0.5;
                     g *= contrast;
                     g += 0.5;
                     g *= 255;
-                    g = g.Clamp(0, 255);
+                    g = g.ToByte();
 
                     double b = color.B / 255.0;
                     b -= 0.5;
                     b *= contrast;
                     b += 0.5;
                     b *= 255;
-                    b = b.Clamp(0, 255);
+                    b = b.ToByte();
 
                     target[x, y] = new Bgra((byte)b, (byte)g, (byte)r, color.A);
                 }

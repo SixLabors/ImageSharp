@@ -40,7 +40,7 @@ namespace ImageProcessor.Formats
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="OctreeQuantizer"/> class. 
+        /// Initializes a new instance of the <see cref="OctreeQuantizer"/> class.
         /// </summary>
         /// <remarks>
         /// The Octree quantizer is a two pass algorithm. The initial pass sets up the Octree,
@@ -157,7 +157,7 @@ namespace ImageProcessor.Formats
             private int previousColor;
 
             /// <summary>
-            /// Initializes a new instance of the <see cref="Octree"/> class. 
+            /// Initializes a new instance of the <see cref="Octree"/> class.
             /// </summary>
             /// <param name="maxColorBits">
             /// The maximum number of significant bits in the image
@@ -465,9 +465,9 @@ namespace ImageProcessor.Formats
                         // Consume the next palette index
                         this.paletteIndex = index++;
 
-                        byte r = (byte)(this.red / this.pixelCount).Clamp(0, 255);
-                        byte g = (byte)(this.green / this.pixelCount).Clamp(0, 255);
-                        byte b = (byte)(this.blue / this.pixelCount).Clamp(0, 255);
+                        byte r = (this.red / this.pixelCount).ToByte();
+                        byte g = (this.green / this.pixelCount).ToByte();
+                        byte b = (this.blue / this.pixelCount).ToByte();
 
                         // And set the color of the palette entry
                         palette.Add(new Bgra(b, g, r));

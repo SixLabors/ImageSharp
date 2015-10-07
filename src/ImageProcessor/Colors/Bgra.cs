@@ -18,7 +18,7 @@ namespace ImageProcessor
         /// <summary>
         /// Represents a <see cref="Bgra"/> that has B, G, R, and A values set to zero.
         /// </summary>
-        public static readonly Bgra Empty;
+        public static readonly Bgra Empty = default(Bgra);
 
         /// <summary>
         /// Represents a transparent <see cref="Bgra"/> that has B, G, R, and A values set to 255, 255, 255, 0.
@@ -64,6 +64,11 @@ namespace ImageProcessor
         /// </summary>
         [FieldOffset(0)]
         public readonly int BGRA;
+
+        /// <summary>
+        /// The epsilon for comparing floating point numbers.
+        /// </summary>
+        private const float Epsilon = 0.0001f;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Bgra"/> struct.
@@ -172,6 +177,101 @@ namespace ImageProcessor
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public bool IsEmpty => this.B == 0 && this.G == 0 && this.R == 0 && this.A == 0;
+
+        /// <summary>
+        /// Allows the implicit conversion of an instance of <see cref="Hsv"/> to a
+        /// <see cref="Bgra"/>.
+        /// </summary>
+        /// <param name="color">
+        /// The instance of <see cref="Hsv"/> to convert.
+        /// </param>
+        /// <returns>
+        /// An instance of <see cref="Bgra"/>.
+        /// </returns>
+        public static implicit operator Bgra(Hsv color)
+        {
+            float s = color.S / 100;
+            float v = color.V / 100;
+
+            if (Math.Abs(s) < Epsilon)
+            {
+                byte component = (byte)(v * 255);
+                return new Bgra(component, component, component, 255);
+            }
+
+            float h = (Math.Abs(color.H - 360) < Epsilon) ? 0 : color.H / 60;
+            int i = (int)Math.Truncate(h);
+            float f = h - i;
+
+            float p = v * (1.0f - s);
+            float q = v * (1.0f - (s * f));
+            float t = v * (1.0f - (s * (1.0f - f)));
+
+            float r, g, b;
+            switch (i)
+            {
+                case 0:
+                    r = v;
+                    g = t;
+                    b = p;
+                    break;
+
+                case 1:
+                    r = q;
+                    g = v;
+                    b = p;
+                    break;
+
+                case 2:
+                    r = p;
+                    g = v;
+                    b = t;
+                    break;
+
+                case 3:
+                    r = p;
+                    g = q;
+                    b = v;
+                    break;
+
+                case 4:
+                    r = t;
+                    g = p;
+                    b = v;
+                    break;
+
+                default:
+                    r = v;
+                    g = p;
+                    b = q;
+                    break;
+            }
+
+            return new Bgra((byte)Math.Round(b * 255), (byte)Math.Round(g * 255), (byte)Math.Round(r * 255));
+        }
+
+        /// <summary>
+        /// Allows the implicit conversion of an instance of <see cref="YCbCr"/> to a
+        /// <see cref="Bgra"/>.
+        /// </summary>
+        /// <param name="color">
+        /// The instance of <see cref="YCbCr"/> to convert.
+        /// </param>
+        /// <returns>
+        /// An instance of <see cref="Bgra"/>.
+        /// </returns>
+        public static implicit operator Bgra(YCbCr color)
+        {
+            float y = color.Y;
+            float cb = color.Cb - 128;
+            float cr = color.Cr - 128;
+
+            byte b = (y + (1.772 * cb)).ToByte();
+            byte g = (y - (0.34414 * cb) - (0.71414 * cr)).ToByte();
+            byte r = (y + (1.402 * cr)).ToByte();
+
+            return new Bgra(b, g, r, 255);
+        }
 
         /// <summary>
         /// Compares two <see cref="Bgra"/> objects. The result specifies whether the values

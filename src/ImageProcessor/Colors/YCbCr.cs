@@ -51,9 +51,9 @@ namespace ImageProcessor
         /// <param name="cr">The cr chroma component.</param>
         public YCbCr(float y, float cb, float cr)
         {
-            this.Y = y.Clamp(0, 255);
-            this.Cb = cb.Clamp(0, 255);
-            this.Cr = cr.Clamp(0, 255);
+            this.Y = y.ToByte();
+            this.Cb = cb.ToByte();
+            this.Cr = cr.ToByte();
         }
 
         /// <summary>
@@ -85,29 +85,6 @@ namespace ImageProcessor
             float cr = 128 + (float)((0.5 * r) - (0.418688 * g) - (0.081312 * b));
 
             return new YCbCr(y, cb, cr);
-        }
-
-        /// <summary>
-        /// Allows the implicit conversion of an instance of <see cref="YCbCr"/> to a
-        /// <see cref="Bgra"/>.
-        /// </summary>
-        /// <param name="color">
-        /// The instance of <see cref="YCbCr"/> to convert.
-        /// </param>
-        /// <returns>
-        /// An instance of <see cref="Bgra"/>.
-        /// </returns>
-        public static implicit operator Bgra(YCbCr color)
-        {
-            float y = color.Y;
-            float cb = color.Cb - 128;
-            float cr = color.Cr - 128;
-
-            byte b = Convert.ToByte((y + (1.772 * cb)).Clamp(0, 255));
-            byte g = Convert.ToByte((y - (0.34414 * cb) - (0.71414 * cr)).Clamp(0, 255));
-            byte r = Convert.ToByte((y + (1.402 * cr)).Clamp(0, 255));
-
-            return new Bgra(b, g, r, 255);
         }
 
         /// <summary>

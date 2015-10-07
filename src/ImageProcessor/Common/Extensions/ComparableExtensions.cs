@@ -1,12 +1,7 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="ComparableExtensions.cs" company="James South">
-//   Copyright © James South and contributors.
-//   Licensed under the Apache License, Version 2.0.
+﻿// <copyright file="ComparableExtensions.cs" company="James South">
+// Copyright © James South and contributors.
+// Licensed under the Apache License, Version 2.0.
 // </copyright>
-// <summary>
-//   Extension methods for classes that implement <see cref="IComparable{T}" />.
-// </summary>
-// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor
 {
@@ -18,24 +13,94 @@ namespace ImageProcessor
     internal static class ComparableExtensions
     {
         /// <summary>
-        /// Restricts a value to be within a specified range.
+        /// Restricts a <see cref="byte"/> to be within a specified range.
         /// </summary>
         /// <param name="value">The The value to clamp.</param>
         /// <param name="min">The minimum value. If value is less than min, min will be returned.</param>
         /// <param name="max">The maximum value. If value is greater than max, max will be returned.</param>
-        /// <typeparam name="T">The <see cref="System.Type"/> to clamp.</typeparam>
         /// <returns>
-        /// The <see cref="IComparable{T}"/> representing the clamped value.
+        /// The <see cref="byte"/> representing the clamped value.
         /// </returns>
-        public static T Clamp<T>(this T value, T min, T max)
-                    where T : IComparable<T>
+        public static byte Clamp(this byte value, byte min, byte max)
         {
-            if (value.CompareTo(min) < 0)
+            if (value < min)
             {
                 return min;
             }
 
-            if (value.CompareTo(max) > 0)
+            if (value > max)
+            {
+                return max;
+            }
+
+            return value;
+        }
+
+        /// <summary>
+        /// Restricts a <see cref="int"/> to be within a specified range.
+        /// </summary>
+        /// <param name="value">The The value to clamp.</param>
+        /// <param name="min">The minimum value. If value is less than min, min will be returned.</param>
+        /// <param name="max">The maximum value. If value is greater than max, max will be returned.</param>
+        /// <returns>
+        /// The <see cref="int"/> representing the clamped value.
+        /// </returns>
+        public static int Clamp(this int value, int min, int max)
+        {
+            if (value < min)
+            {
+                return min;
+            }
+
+            if (value > max)
+            {
+                return max;
+            }
+
+            return value;
+        }
+
+        /// <summary>
+        /// Restricts a <see cref="float"/> to be within a specified range.
+        /// </summary>
+        /// <param name="value">The The value to clamp.</param>
+        /// <param name="min">The minimum value. If value is less than min, min will be returned.</param>
+        /// <param name="max">The maximum value. If value is greater than max, max will be returned.</param>
+        /// <returns>
+        /// The <see cref="float"/> representing the clamped value.
+        /// </returns>
+        public static float Clamp(this float value, float min, float max)
+        {
+            if (value < min)
+            {
+                return min;
+            }
+
+            if (value > max)
+            {
+                return max;
+            }
+
+            return value;
+        }
+
+        /// <summary>
+        /// Restricts a <see cref="double"/> to be within a specified range.
+        /// </summary>
+        /// <param name="value">The The value to clamp.</param>
+        /// <param name="min">The minimum value. If value is less than min, min will be returned.</param>
+        /// <param name="max">The maximum value. If value is greater than max, max will be returned.</param>
+        /// <returns>
+        /// The <see cref="double"/> representing the clamped value.
+        /// </returns>
+        public static double Clamp(this double value, double min, double max)
+        {
+            if (value < min)
+            {
+                return min;
+            }
+
+            if (value > max)
             {
                 return max;
             }
@@ -62,7 +127,7 @@ namespace ImageProcessor
         /// <returns>The <see cref="byte"/></returns>
         public static byte ToByte(this float value)
         {
-            return (byte)value.Clamp(0, 255);
+            return (byte)(value.Clamp(0, 255) + 0.5f);
         }
 
         /// <summary>
@@ -73,7 +138,7 @@ namespace ImageProcessor
         /// <returns>The <see cref="byte"/></returns>
         public static byte ToByte(this double value)
         {
-            return (byte)value.Clamp(0, 255);
+            return (byte)(value.Clamp(0, 255) + 0.5d);
         }
     }
 }

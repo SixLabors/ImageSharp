@@ -30,19 +30,14 @@ namespace ImageProcessor.Filters
         /// </summary>
         public int Value { get; }
 
-        protected override void Apply(ImageBase source, ImageBase target, Rectangle sourceRectangle, Rectangle targetRectangle, int startY, int endY)
-        {
-            throw new NotImplementedException();
-        }
-
         /// <inheritdoc/>
-        protected override void Apply(ImageBase target, ImageBase source, Rectangle rectangle, int startY, int endY)
+        protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             double contrast = (100.0 + this.Value) / 100.0;
 
             for (int y = startY; y < endY; y++)
             {
-                for (int x = rectangle.X; x < rectangle.Right; x++)
+                for (int x = sourceRectangle.X; x < sourceRectangle.Right; x++)
                 {
                     Bgra color = source[x, y];
 

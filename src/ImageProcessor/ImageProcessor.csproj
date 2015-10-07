@@ -180,7 +180,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Numerics\Rectangle.cs" />
     <Compile Include="Numerics\Size.cs" />
-    <Compile Include="Samplers\Lanczos3Resampler.cs" />
+    <Compile Include="Samplers\Lanczos5Resampler.cs" />
     <Compile Include="Samplers\BicubicResampler.cs" />
     <Compile Include="Samplers\ImageSampleExtensions.cs" />
     <Compile Include="Samplers\IResampler.cs" />
@@ -196,6 +196,7 @@
     <None Include="Formats\Gif\README.md" />
     <None Include="Formats\Jpg\README.md" />
     <None Include="packages.config" />
+    <AdditionalFiles Include="stylecop.json" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Formats\Bmp\README.md" />

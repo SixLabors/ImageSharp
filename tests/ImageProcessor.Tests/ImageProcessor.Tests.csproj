@@ -53,14 +53,15 @@
   <ItemGroup>
     <Compile Include="Colors\ColorConversionTests.cs" />
     <Compile Include="Colors\ColorTests.cs" />
-    <Compile Include="Filters\FilterTests.cs" />
-    <Compile Include="Formats\EncoderDecoderTests.cs" />
+    <Compile Include="Processors\Filters\FilterTests.cs" />
+    <Compile Include="Processors\Formats\EncoderDecoderTests.cs" />
     <Compile Include="Helpers\GuardTests.cs" />
     <Compile Include="Numerics\RectangleTests.cs" />
     <Compile Include="Numerics\PointTests.cs" />
     <Compile Include="Numerics\SizeTests.cs" />
+    <Compile Include="Processors\ProcessorTestBase.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Samplers\SamplerTests.cs" />
+    <Compile Include="Processors\Samplers\SamplerTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

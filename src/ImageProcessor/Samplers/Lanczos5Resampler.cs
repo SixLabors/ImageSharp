@@ -9,10 +9,10 @@ namespace ImageProcessor.Samplers
     /// The function implements the Lanczos kernel algorithm as described on
     /// <see href="https://en.wikipedia.org/wiki/Lanczos_resampling#Algorithm">Wikipedia</see>
     /// </summary>
-    public class Lanczos3Resampler : IResampler
+    public class Lanczos5Resampler : IResampler
     {
         /// <inheritdoc/>
-        public double Radius => 3;
+        public double Radius => 5;
 
         /// <inheritdoc/>
         public double GetValue(double x)

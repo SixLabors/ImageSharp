@@ -1,7 +1,15 @@
-﻿using System;
+﻿// <copyright file="Resize.cs" company="James South">
+// Copyright © James South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
 
 namespace ImageProcessor.Samplers
 {
+    using System;
+
+    /// <summary>
+    /// Provides methods that allow the resizing of images using various resampling algorithms.
+    /// </summary>
     public class Resize : ParallelImageProcessor
     {
         /// <summary>
@@ -23,13 +31,7 @@ namespace ImageProcessor.Samplers
         public IResampler Sampler { get; }
 
         /// <inheritdoc/>
-        protected override void Apply(
-            ImageBase target,
-            ImageBase source,
-            Rectangle targetRectangle,
-            Rectangle sourceRectangle,
-            int startY,
-            int endY)
+        protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             int sourceWidth = source.Width;
             int sourceHeight = source.Height;
@@ -125,12 +127,6 @@ namespace ImageProcessor.Samplers
                     }
                 }
             }
-        }
-
-        /// <inheritdoc/>
-        protected override void Apply(ImageBase target, ImageBase source, Rectangle rectangle, int startY, int endY)
-        {
-            throw new NotImplementedException();
         }
     }
 }

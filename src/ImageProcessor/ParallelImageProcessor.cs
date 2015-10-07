@@ -19,7 +19,7 @@ namespace ImageProcessor
         public int Parallelism { get; set; } = Environment.ProcessorCount;
 
         /// <inheritdoc/>
-        public void Apply(ImageBase target, ImageBase source, Rectangle rectangle)
+        public void Apply(ImageBase target, ImageBase source, Rectangle sourceRectangle)
         {
             this.OnApply();
 
@@ -34,11 +34,11 @@ namespace ImageProcessor
                     int current = p;
                     tasks[p] = Task.Run(() =>
                     {
-                        int batchSize = rectangle.Height / partitionCount;
-                        int yStart = rectangle.Y + (current * batchSize);
-                        int yEnd = current == partitionCount - 1 ? rectangle.Bottom : yStart + batchSize;
+                        int batchSize = sourceRectangle.Height / partitionCount;
+                        int yStart = sourceRectangle.Y + (current * batchSize);
+                        int yEnd = current == partitionCount - 1 ? sourceRectangle.Bottom : yStart + batchSize;
 
-                        this.Apply(target, source, rectangle, yStart, yEnd);
+                        this.Apply(target, source, target.Bounds, sourceRectangle, yStart, yEnd);
                     });
                 }
 
@@ -46,7 +46,7 @@ namespace ImageProcessor
             }
             else
             {
-                this.Apply(target, source, rectangle, rectangle.Y, rectangle.Bottom);
+                this.Apply(target, source, target.Bounds, sourceRectangle, sourceRectangle.Y, sourceRectangle.Bottom);
             }
         }
 
@@ -102,22 +102,25 @@ namespace ImageProcessor
         {
         }
 
-        protected abstract void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY);
-
         /// <summary>
-        /// Apply a process to an image to alter the pixels at the area of the specified rectangle.
+        /// Applies the process to the specified portion of the specified <see cref="ImageBase"/> at the specified location
+        /// and with the specified size.
         /// </summary>
         /// <param name="target">Target image to apply the process to.</param>
         /// <param name="source">The source image. Cannot be null.</param>
-        /// <param name="rectangle">
-        /// The rectangle, which defines the area of the image where the process should be applied to.
+        /// <param name="targetRectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the location and size of the drawn image.
+        /// The image is scaled to fit the rectangle.
         /// </param>
-        /// <param name="startY">The index of the row within the image to start processing.</param>
-        /// <param name="endY">The index of the row within the image to end processing.</param>
+        /// <param name="sourceRectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
+        /// </param>
+        /// <param name="startY">The index of the row within the source image to start processing.</param>
+        /// <param name="endY">The index of the row within the source image to end processing.</param>
         /// <remarks>
         /// The method keeps the source image unchanged and returns the
-        /// the result of image processing filter as new image.
+        /// the result of image process as new image.
         /// </remarks>
-        protected abstract void Apply(ImageBase target, ImageBase source, Rectangle rectangle, int startY, int endY);
+        protected abstract void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY);
     }
 }

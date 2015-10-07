@@ -10,31 +10,17 @@ namespace ImageProcessor.Samplers
         /// <param name="sampler">
         /// The sampler to perform the resize operation.
         /// </param>
-        public Resize(IResampler sampler, int width, int height)
+        public Resize(IResampler sampler)
         {
             Guard.NotNull(sampler, nameof(sampler));
-            Guard.MustBeGreaterThan(width, 0, nameof(width));
-            Guard.MustBeGreaterThan(height, 0, nameof(height));
 
             this.Sampler = sampler;
-            this.Width = width;
-            this.Height = height;
         }
 
         /// <summary>
         /// Gets the sampler to perform the resize operation.
         /// </summary>
         public IResampler Sampler { get; }
-
-        /// <summary>
-        /// Gets the width.
-        /// </summary>
-        public int Width { get; }
-
-        /// <summary>
-        /// Gets the height.
-        /// </summary>
-        public int Height { get; }
 
         /// <inheritdoc/>
         protected override void Apply(
@@ -51,6 +37,7 @@ namespace ImageProcessor.Samplers
             int width = target.Width;
             int height = target.Height;
 
+            int targetY = targetRectangle.Y;
             int startX = targetRectangle.X;
             int endX = targetRectangle.Right;
             int right = (int)(this.Sampler.Radius + .5);
@@ -69,7 +56,7 @@ namespace ImageProcessor.Samplers
                 if (y >= 0 && y < height)
                 {
                     // Y coordinates of source points.
-                    double originY = ((startY - targetRectangle.Y) * heightFactor) - 0.5;
+                    double originY = ((y - targetY) * heightFactor) - 0.5;
                     int originY1 = (int)originY;
                     double dy = originY - originY1;
 

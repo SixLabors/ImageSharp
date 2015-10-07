@@ -12,17 +12,17 @@ namespace ImageProcessor.Samplers
     {
         public static Image Resize(this Image source, int width, int height)
         {
-            return source.Process(width, height, default(Rectangle), default(Rectangle), new Resize(new BicubicResampler(), width, height));
+            return source.Process(width, height, default(Rectangle), default(Rectangle), new Resize(new BicubicResampler()));
         }
 
         public static Image Resize(this Image source, int width, int height, IResampler sampler)
         {
-            return source.Process(width, height, default(Rectangle), default(Rectangle), new Resize(sampler, width, height));
+            return source.Process(width, height, default(Rectangle), default(Rectangle), new Resize(sampler));
         }
 
         public static Image Resize(this Image source, int width, int height, IResampler sampler, Rectangle sourceRectangle, Rectangle targetRectangle)
         {
-            return source.Process(width, height, sourceRectangle, targetRectangle, new Resize(sampler, width, height));
+            return source.Process(width, height, sourceRectangle, targetRectangle, new Resize(sampler));
         }
     }
 }

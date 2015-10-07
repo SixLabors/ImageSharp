@@ -43,7 +43,7 @@ namespace ImageProcessor.Formats
         public LzwEncoder(byte[] indexedPixels, byte colorDepth)
         {
             this.indexedPixels = indexedPixels;
-            this.colorDepth = colorDepth.Clamp<byte>(2, 8);
+            this.colorDepth = colorDepth.Clamp(2, 8);
             this.initDataSize = this.colorDepth;
         }
 

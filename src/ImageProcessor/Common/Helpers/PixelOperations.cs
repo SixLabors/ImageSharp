@@ -70,7 +70,7 @@ namespace ImageProcessor
             byte[] ramp = new byte[256];
             for (int x = 0; x < 256; ++x)
             {
-                byte val = (byte)(255f * SrgbToLinear(x / 255f)).Clamp(0, 255);
+                byte val = (255f * SrgbToLinear(x / 255f)).ToByte();
                 ramp[x] = val;
             }
 
@@ -89,7 +89,7 @@ namespace ImageProcessor
             byte[] ramp = new byte[256];
             for (int x = 0; x < 256; ++x)
             {
-                byte val = (byte)(255f * LinearToSrgb(x / 255f)).Clamp(0, 255);
+                byte val = (255f * LinearToSrgb(x / 255f)).ToByte();
                 ramp[x] = val;
             }
 

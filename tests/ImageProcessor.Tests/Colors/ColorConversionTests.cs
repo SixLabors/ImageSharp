@@ -160,11 +160,93 @@ namespace ImageProcessor.Tests
 
             // Check others.
             Random random = new Random(0);
-            for (var i = 0; i < 1000; i++)
+            for (int i = 0; i < 1000; i++)
             {
                 Bgra bgra4 = new Bgra((byte)random.Next(255), (byte)random.Next(255), (byte)random.Next(255));
                 Hsv hsb4 = bgra4;
                 Assert.Equal(bgra4, (Bgra)hsb4);
+            }
+        }
+
+        /// <summary>
+        /// Tests the implicit conversion from <see cref="Bgra"/> to <see cref="Cmyk"/>.
+        /// </summary>
+        [Fact]
+        [SuppressMessage("StyleCop.CSharp.NamingRules", "SA1305:FieldNamesMustNotUseHungarianNotation",
+            Justification = "Reviewed. Suppression is OK here.")]
+        public void BgrToCmyk()
+        {
+            // White
+            Bgra color = new Bgra(255, 255, 255, 255);
+            Cmyk cmyk = color;
+
+            Assert.Equal(0, cmyk.C);
+            Assert.Equal(0, cmyk.M);
+            Assert.Equal(0, cmyk.Y);
+            Assert.Equal(0, cmyk.K);
+
+            // Black
+            Bgra color2 = new Bgra(0, 0, 0, 255);
+            Cmyk cmyk2 = color2;
+            Assert.Equal(0, cmyk2.C);
+            Assert.Equal(0, cmyk2.M);
+            Assert.Equal(0, cmyk2.Y);
+            Assert.Equal(100, cmyk2.K);
+
+            // Grey
+            Bgra color3 = new Bgra(128, 128, 128, 255);
+            Cmyk cmyk3 = color3;
+            Assert.Equal(0, cmyk3.C);
+            Assert.Equal(0, cmyk3.M);
+            Assert.Equal(0, cmyk3.Y);
+            Assert.Equal(49.8, cmyk3.K, 1); // Checked with other tools.
+
+            // Cyan
+            Bgra color4 = new Bgra(255, 255, 0, 255);
+            Cmyk cmyk4 = color4;
+            Assert.Equal(100, cmyk4.C);
+            Assert.Equal(0, cmyk4.M);
+            Assert.Equal(0, cmyk4.Y);
+            Assert.Equal(0, cmyk4.K);
+        }
+
+        /// <summary>
+        /// Tests the implicit conversion from <see cref="Hsv"/> to <see cref="Bgra"/>.
+        /// </summary>
+        [Fact]
+        public void CmykToBgr()
+        {
+            // Dark moderate pink.
+            Cmyk cmyk = new Cmyk(49.8f, 74.9f, 58.4f, 0);
+            Bgra bgra = cmyk;
+
+            Assert.Equal(bgra.B, 106);
+            Assert.Equal(bgra.G, 64);
+            Assert.Equal(bgra.R, 128);
+
+            // Ochre
+            Cmyk cmyk2 = new Cmyk(20, 53.3f, 86.7f, 0);
+            Bgra bgra2 = cmyk2;
+
+            Assert.Equal(bgra2.B, 34);
+            Assert.Equal(bgra2.G, 119);
+            Assert.Equal(bgra2.R, 204);
+
+            // White
+            Cmyk cmyk3 = new Cmyk(0, 0, 0, 0);
+            Bgra bgra3 = cmyk3;
+
+            Assert.Equal(bgra3.B, 255);
+            Assert.Equal(bgra3.G, 255);
+            Assert.Equal(bgra3.R, 255);
+
+            // Check others.
+            Random random = new Random(0);
+            for (int i = 0; i < 1000; i++)
+            {
+                Bgra bgra4 = new Bgra((byte)random.Next(255), (byte)random.Next(255), (byte)random.Next(255));
+                Cmyk cmyk4 = bgra4;
+                Assert.Equal(bgra4, (Bgra)cmyk4);
             }
         }
     }

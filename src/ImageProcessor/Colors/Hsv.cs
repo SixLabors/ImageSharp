@@ -149,7 +149,7 @@ namespace ImageProcessor
         /// The <see cref="Hsv"/> on the right side of the operand.
         /// </param>
         /// <returns>
-        /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
+        /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         public static bool operator !=(Hsv left, Hsv right)
         {

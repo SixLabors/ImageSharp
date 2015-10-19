@@ -12,7 +12,7 @@ namespace ImageProcessor.Samplers
     public class BicubicResampler : IResampler
     {
         /// <inheritdoc/>
-        public double Radius => 4;
+        public double Radius => 2;
 
         /// <inheritdoc/>
         public double GetValue(double x)

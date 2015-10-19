@@ -13,6 +13,11 @@ namespace ImageProcessor.Samplers
     public class Resize : ParallelImageProcessor
     {
         /// <summary>
+        /// The epsilon for comparing floating point numbers.
+        /// </summary>
+        private const float Epsilon = 0.0001f;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="Resize"/> class.
         /// </summary>
         /// <param name="sampler">
@@ -78,10 +83,15 @@ namespace ImageProcessor.Samplers
                             double b = 0;
                             double a = 0;
 
-                            for (int yy = left; yy < right; yy++)
+                            for (int yy = left; yy <= right; yy++)
                             {
                                 // Get Y cooefficient
                                 double kernel1 = this.Sampler.GetValue(dy - yy);
+
+                                if (Math.Abs(kernel1) < Epsilon)
+                                {
+                                    continue;
+                                }
 
                                 int originY2 = originY1 + yy;
                                 if (originY2 < 0)
@@ -94,10 +104,15 @@ namespace ImageProcessor.Samplers
                                     originY2 = maxHeight;
                                 }
 
-                                for (int xx = left; xx < right; xx++)
+                                for (int xx = left; xx <= right; xx++)
                                 {
                                     // Get X cooefficient
                                     double kernel2 = kernel1 * this.Sampler.GetValue(xx - dx);
+
+                                    if (Math.Abs(kernel2) < Epsilon)
+                                    {
+                                        continue;
+                                    }
 
                                     int originX2 = originX1 + xx;
                                     if (originX2 < 0)

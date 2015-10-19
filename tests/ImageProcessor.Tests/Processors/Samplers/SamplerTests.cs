@@ -14,7 +14,16 @@ namespace ImageProcessor.Tests
             new TheoryData<string, IResampler>
             {
                 { "Bicubic", new BicubicResampler() },
-                //{ "Lanczos3", new Lanczos5Resampler() }
+                { "Bilinear", new TriangleResampler() },
+                { "NearestNeighbour", new BoxResampler() },
+                { "Lanczos3", new Lanczos3Resampler() },
+                { "MitchellNetravali", new MitchellNetravaliResampler() },
+                { "Hermite", new HermiteResampler() },
+                { "Spline", new SplineResampler() },
+                { "Robidoux", new RobidouxResampler() },
+                { "RobidouxSharp", new RobidouxSharpResampler() },
+                { "RobidouxSoft", new RobidouxSoftResampler() },
+                { "Welch", new WelchResampler() }
             };
 
         [Theory]
@@ -52,7 +61,7 @@ namespace ImageProcessor.Tests
         [InlineData(2, 0)]
         public static void Lanczos3WindowOscillatesCorrectly(double x, double expected)
         {
-            Lanczos5Resampler sampler = new Lanczos5Resampler();
+            Lanczos3Resampler sampler = new Lanczos3Resampler();
             double result = sampler.GetValue(x);
 
             Assert.Equal(result, expected);

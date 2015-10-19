@@ -85,7 +85,7 @@ namespace ImageProcessor
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="width">The target image width.</param>
-        /// <param name="height">The target image width.</param>
+        /// <param name="height">The target image height.</param>
         /// <param name="processors">Any processors to apply to the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
         public static Image Process(this Image source, int width, int height, params IImageProcessor[] processors)
@@ -98,7 +98,7 @@ namespace ImageProcessor
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="width">The target image width.</param>
-        /// <param name="height">The target image width.</param>
+        /// <param name="height">The target image height.</param>
         /// <param name="sourceRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>

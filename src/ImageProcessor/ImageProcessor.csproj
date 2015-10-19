@@ -181,10 +181,20 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Numerics\Rectangle.cs" />
     <Compile Include="Numerics\Size.cs" />
-    <Compile Include="Samplers\Lanczos5Resampler.cs" />
-    <Compile Include="Samplers\BicubicResampler.cs" />
+    <Compile Include="Samplers\Resamplers\WelchResampler.cs" />
+    <Compile Include="Samplers\Resamplers\CatmullRomResampler.cs" />
+    <Compile Include="Samplers\Resamplers\RobidouxSoftResampler.cs" />
+    <Compile Include="Samplers\Resamplers\RobidouxSharpResampler.cs" />
+    <Compile Include="Samplers\Resamplers\RobidouxResampler.cs" />
+    <Compile Include="Samplers\Resamplers\SplineResampler.cs" />
+    <Compile Include="Samplers\Resamplers\HermiteResampler.cs" />
+    <Compile Include="Samplers\Resamplers\MitchellNetravaliResampler.cs" />
+    <Compile Include="Samplers\Resamplers\TriangleResampler.cs" />
+    <Compile Include="Samplers\Resamplers\BoxResampler.cs" />
+    <Compile Include="Samplers\Resamplers\Lanczos3Resampler.cs" />
+    <Compile Include="Samplers\Resamplers\BicubicResampler.cs" />
     <Compile Include="Samplers\ImageSampleExtensions.cs" />
-    <Compile Include="Samplers\IResampler.cs" />
+    <Compile Include="Samplers\Resamplers\IResampler.cs" />
     <Compile Include="Samplers\Resize.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -197,7 +207,6 @@
     <None Include="Formats\Gif\README.md" />
     <None Include="Formats\Jpg\README.md" />
     <None Include="packages.config" />
-    <AdditionalFiles Include="stylecop.json" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Formats\Bmp\README.md" />

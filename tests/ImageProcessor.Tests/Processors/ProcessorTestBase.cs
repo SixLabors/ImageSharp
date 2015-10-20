@@ -19,8 +19,8 @@ namespace ImageProcessor.Tests
         /// </summary>
         public static readonly List<string> Files = new List<string>
         {
-            "../../TestImages/Formats/Jpg/Backdrop.jpg",
-            "../../TestImages/Formats/Jpg/Calliphora.jpg",
+            //"../../TestImages/Formats/Jpg/Backdrop.jpg",
+            //"../../TestImages/Formats/Jpg/Calliphora.jpg",
             //"../../TestImages/Formats/Bmp/Car.bmp",
             //"../../TestImages/Formats/Png/cmyk.png",
             //"../../TestImages/Formats/Gif/leaf.gif"

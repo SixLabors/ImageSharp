@@ -17,6 +17,7 @@ namespace ImageProcessor.Tests
                 { "Bilinear", new TriangleResampler() },
                 { "NearestNeighbour", new BoxResampler() },
                 { "Lanczos3", new Lanczos3Resampler() },
+                { "Lanczos8", new Lanczos8Resampler() },
                 { "MitchellNetravali", new MitchellNetravaliResampler() },
                 { "Hermite", new HermiteResampler() },
                 { "Spline", new SplineResampler() },
@@ -44,7 +45,7 @@ namespace ImageProcessor.Tests
                     string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
                     using (FileStream output = File.OpenWrite($"Resized/{filename}"))
                     {
-                        image.Resize(200, 298, sampler).Save(output);
+                        image.Resize(100, 100, sampler).Save(output);
                     }
 
                     Trace.WriteLine($"{name}: {watch.ElapsedMilliseconds}ms");

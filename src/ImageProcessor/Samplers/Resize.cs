@@ -48,7 +48,7 @@ namespace ImageProcessor.Samplers
             int startX = targetRectangle.X;
             int endX = targetRectangle.Right;
             int right = (int)(this.Sampler.Radius + .5);
-            int left = -right;
+            int left = (-right) + 1;
 
             // Scaling factors
             double widthFactor = sourceWidth / (double)targetRectangle.Width;
@@ -86,7 +86,7 @@ namespace ImageProcessor.Samplers
                             for (int yy = left; yy <= right; yy++)
                             {
                                 // Get Y cooefficient
-                                double kernel1 = this.Sampler.GetValue(dy - yy);
+                                double kernel1 = this.Sampler.GetValue(yy - dy);
 
                                 if (Math.Abs(kernel1) < Epsilon)
                                 {
@@ -126,7 +126,7 @@ namespace ImageProcessor.Samplers
                                     }
 
                                     Bgra sourceColor = source[originX2, originY2];
-                                    sourceColor = PixelOperations.ToLinear(sourceColor);
+                                   // sourceColor = PixelOperations.ToLinear(sourceColor);
 
                                     r += kernel2 * sourceColor.R;
                                     g += kernel2 * sourceColor.G;
@@ -136,7 +136,7 @@ namespace ImageProcessor.Samplers
                             }
 
                             Bgra destinationColor = new Bgra(b.ToByte(), g.ToByte(), r.ToByte(), a.ToByte());
-                            destinationColor = PixelOperations.ToSrgb(destinationColor);
+                           // destinationColor = PixelOperations.ToSrgb(destinationColor);
                             target[x, y] = destinationColor;
                         }
                     }

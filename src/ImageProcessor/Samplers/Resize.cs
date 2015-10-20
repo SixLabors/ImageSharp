@@ -10,7 +10,7 @@ namespace ImageProcessor.Samplers
     /// <summary>
     /// Provides methods that allow the resizing of images using various resampling algorithms.
     /// </summary>
-    public class Resize : ParallelImageProcessor
+    public class ResizeB : ParallelImageProcessor
     {
         /// <summary>
         /// The epsilon for comparing floating point numbers.
@@ -23,7 +23,7 @@ namespace ImageProcessor.Samplers
         /// <param name="sampler">
         /// The sampler to perform the resize operation.
         /// </param>
-        public Resize(IResampler sampler)
+        public ResizeB(IResampler sampler)
         {
             Guard.NotNull(sampler, nameof(sampler));
 

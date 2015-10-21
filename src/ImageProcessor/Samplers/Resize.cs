@@ -10,6 +10,12 @@ namespace ImageProcessor.Samplers
 
     /// <summary>
     /// Provides methods that allow the resizing of images using various resampling algorithms.
+    /// <remarks>
+    /// TODO: There is a bug in this class. Whenever the processor is set to use parallel processing, the output image becomes distorted
+    /// at the join points when startY is greater than 0. Uncomment the Parallelism overload and run the ImageShouldResize method in the SamplerTests
+    /// class to see the error manifest.
+    /// It is imperative that the issue is solved or resampling will be too slow to be practical and the project will have to cease.
+    /// </remarks>
     /// </summary>
     public class Resize : ParallelImageProcessor
     {

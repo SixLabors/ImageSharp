@@ -63,8 +63,10 @@ namespace ImageProcessor.Samplers
             int targetSectionHeight = endY - startY;
             int sourceSectionHeight = (int)((targetSectionHeight * heightFactor) + .5);
 
-            Weights[] horizontalWeights = this.PrecomputeWeights(targetRectangle.Width, sourceRectangle.Width, this.Sampler);
-            Weights[] verticalWeights = this.PrecomputeWeights(targetSectionHeight, sourceSectionHeight, this.Sampler);
+            int offsetY = this.CalculateOffset(startY, targetSectionHeight, sourceSectionHeight);
+            int offsetX = this.CalculateOffset(startX, targetRectangle.Width, sourceRectangle.Width);
+            Weights[] horizontalWeights = this.PrecomputeWeights(targetRectangle.Width, sourceRectangle.Width);
+            Weights[] verticalWeights = this.PrecomputeWeights(targetSectionHeight, sourceSectionHeight);
 
             // Width and height decreased by 1
             int maxHeight = sourceHeight - 1;
@@ -97,8 +99,8 @@ namespace ImageProcessor.Samplers
                                     continue;
                                 }
 
-                                // TODO: This is wrong. Adding (int)((startY * heightFactor) - .5) gets close but no cigar.
-                                int originY = yw.Index + (int)((startY * heightFactor) - .5);
+                                // TODO: This offset is wrong.
+                                int originY = offsetY == 0 ? yw.Index : yw.Index + offsetY;
                                 originY = originY.Clamp(0, maxHeight);
 
                                 foreach (Weight xw in horizontalValues)
@@ -108,11 +110,13 @@ namespace ImageProcessor.Samplers
                                         continue;
                                     }
 
-                                    // TODO: This need updating to take into account the target rectangle.
-                                    int originX = xw.Index;
+                                    // TODO: This offset is wrong.
+                                    int originX = xw.Index + offsetX;
                                     originX = originX.Clamp(0, maxWidth);
 
                                     Bgra sourceColor = source[originX, originY];
+                                    sourceColor = PixelOperations.ToLinear(sourceColor);
+
                                     r += sourceColor.R * (yw.Value / verticalSum) * (xw.Value / horizontalSum);
                                     g += sourceColor.G * (yw.Value / verticalSum) * (xw.Value / horizontalSum);
                                     b += sourceColor.B * (yw.Value / verticalSum) * (xw.Value / horizontalSum);
@@ -121,6 +125,7 @@ namespace ImageProcessor.Samplers
                             }
 
                             Bgra destinationColor = new Bgra(b.ToByte(), g.ToByte(), r.ToByte(), a.ToByte());
+                            destinationColor = PixelOperations.ToSrgb(destinationColor);
                             target[x, y] = destinationColor;
                         }
                     }
@@ -131,22 +136,16 @@ namespace ImageProcessor.Samplers
         /// <summary>
         /// Computes the weights to apply at each pixel when resizing.
         /// </summary>
-        /// <param name="destinationSize">
-        /// The destination section size.
-        /// </param>
-        /// <param name="sourceSize">
-        /// The source section size.
-        /// </param>
-        /// <param name="sampler">
-        /// The <see cref="IResampler"/> containing the resampling algorithm.
-        /// </param>
+        /// <param name="destinationSize">The destination section size.</param>
+        /// <param name="sourceSize">The source section size.</param>
         /// <returns>
         /// The <see cref="T:Weights[]"/>.
         /// </returns>
-        private Weights[] PrecomputeWeights(int destinationSize, int sourceSize, IResampler sampler)
+        private Weights[] PrecomputeWeights(int destinationSize, int sourceSize)
         {
-            float du = sourceSize / (float)destinationSize;
-            float scale = du;
+            IResampler sampler = this.Sampler;
+            double du = sourceSize / (double)destinationSize;
+            double scale = du;
 
             if (scale < 1)
             {
@@ -193,28 +192,92 @@ namespace ImageProcessor.Samplers
             return result;
         }
 
+        /// <summary>
+        /// Calculates the scaled offset caused by parallelism.
+        /// </summary>
+        /// <param name="offset">The offset position.</param>
+        /// <param name="destinationSize">The destination size.</param>
+        /// <param name="sourceSize">The source size.</param>
+        /// <returns>
+        /// The <see cref="int"/>.
+        /// </returns>
+        private int CalculateOffset(int offset, int destinationSize, int sourceSize)
+        {
+            if (offset == 0)
+            {
+                return 0;
+            }
+
+            IResampler sampler = this.Sampler;
+            double du = sourceSize / (double)destinationSize;
+            double scale = du;
+
+            if (scale < 1)
+            {
+                scale = 1;
+            }
+
+            double ru = Math.Ceiling(scale * sampler.Radius);
+
+            double fu = ((offset + .5) * du) - 0.5;
+            int result = (int)Math.Ceiling(fu - ru);
+
+            if (result < 0)
+            {
+                return 0;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Represents the weight to be added to a scaled pixel.
+        /// </summary>
         protected struct Weight
         {
+            /// <summary>
+            /// The pixel index.
+            /// </summary>
+            public readonly int Index;
+
+            /// <summary>
+            /// The result of the interpolation algorithm.
+            /// </summary>
+            public readonly double Value;
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="Weight"/> struct.
+            /// </summary>
+            /// <param name="index">The index.</param>
+            /// <param name="value">The value.</param>
             public Weight(int index, double value)
             {
                 this.Index = index;
                 this.Value = value;
             }
-
-            public readonly int Index;
-
-            public readonly double Value;
         }
 
+        /// <summary>
+        /// Represents a collection of weights and their sum.
+        /// </summary>
         protected class Weights
         {
+            /// <summary>
+            /// Initializes a new instance of the <see cref="Weights"/> class.
+            /// </summary>
             public Weights()
             {
                 this.Values = new List<Weight>();
             }
 
+            /// <summary>
+            /// Gets or sets the values.
+            /// </summary>
             public List<Weight> Values { get; set; }
 
+            /// <summary>
+            /// Gets or sets the sum.
+            /// </summary>
             public double Sum { get; set; }
         }
     }

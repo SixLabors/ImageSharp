@@ -67,7 +67,7 @@ namespace ImageProcessor
             {
                 sourceRectangle = source.Bounds;
             }
-            this.Parallelism = 1;
+
             if (this.Parallelism > 1)
             {
                 int partitionCount = this.Parallelism;

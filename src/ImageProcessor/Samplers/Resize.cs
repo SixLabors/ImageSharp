@@ -6,11 +6,12 @@
 namespace ImageProcessor.Samplers
 {
     using System;
+    using System.Collections.Generic;
 
     /// <summary>
     /// Provides methods that allow the resizing of images using various resampling algorithms.
     /// </summary>
-    public class ResizeB : ParallelImageProcessor
+    public class Resize : ParallelImageProcessor
     {
         /// <summary>
         /// The epsilon for comparing floating point numbers.
@@ -23,12 +24,15 @@ namespace ImageProcessor.Samplers
         /// <param name="sampler">
         /// The sampler to perform the resize operation.
         /// </param>
-        public ResizeB(IResampler sampler)
+        public Resize(IResampler sampler)
         {
             Guard.NotNull(sampler, nameof(sampler));
 
             this.Sampler = sampler;
         }
+
+        /// <inheritdoc/>
+        public override int Parallelism => 1; // Uncomment this to see bug.
 
         /// <summary>
         /// Gets the sampler to perform the resize operation.
@@ -47,12 +51,14 @@ namespace ImageProcessor.Samplers
             int targetY = targetRectangle.Y;
             int startX = targetRectangle.X;
             int endX = targetRectangle.Right;
-            int right = (int)(this.Sampler.Radius + .5);
-            int left = (-right) + 1;
 
             // Scaling factors
-            double widthFactor = sourceWidth / (double)targetRectangle.Width;
             double heightFactor = sourceHeight / (double)targetRectangle.Height;
+            int targetSectionHeight = endY - startY;
+            int sourceSectionHeight = (int)((targetSectionHeight * heightFactor) + .5);
+
+            Weights[] horizontalWeights = this.PrecomputeWeights(targetRectangle.Width, sourceRectangle.Width, this.Sampler);
+            Weights[] verticalWeights = this.PrecomputeWeights(targetSectionHeight, sourceSectionHeight, this.Sampler);
 
             // Width and height decreased by 1
             int maxHeight = sourceHeight - 1;
@@ -62,20 +68,15 @@ namespace ImageProcessor.Samplers
             {
                 if (y >= 0 && y < height)
                 {
-                    // Y coordinates of source points.
-                    double originY = ((y - targetY) * heightFactor) - 0.5;
-                    int originY1 = (int)originY;
-                    double dy = originY - originY1;
+                    List<Weight> verticalValues = verticalWeights[y - startY].Values;
+                    double verticalSum = verticalWeights[y - startY].Sum;
 
-                    // For each row.
                     for (int x = startX; x < endX; x++)
                     {
                         if (x >= 0 && x < width)
                         {
-                            // X coordinates of source points.
-                            double originX = ((x - startX) * widthFactor) - 0.5f;
-                            int originX1 = (int)originX;
-                            double dx = originX - originX1;
+                            List<Weight> horizontalValues = horizontalWeights[x - startX].Values;
+                            double horizontalSum = horizontalWeights[x - startX].Sum;
 
                             // Destination color components
                             double r = 0;
@@ -83,65 +84,132 @@ namespace ImageProcessor.Samplers
                             double b = 0;
                             double a = 0;
 
-                            for (int yy = left; yy <= right; yy++)
+                            foreach (Weight yw in verticalValues)
                             {
-                                // Get Y cooefficient
-                                double kernel1 = this.Sampler.GetValue(yy - dy);
-
-                                if (Math.Abs(kernel1) < Epsilon)
+                                if (Math.Abs(yw.Value) < Epsilon)
                                 {
                                     continue;
                                 }
 
-                                int originY2 = originY1 + yy;
-                                if (originY2 < 0)
-                                {
-                                    originY2 = 0;
-                                }
+                                // TODO: This is wrong. Adding (int)((startY * heightFactor) - .5) gets close but no cigar.
+                                int originY = yw.Index + (int)((startY * heightFactor) - .5);
+                                originY = originY.Clamp(0, maxHeight);
 
-                                if (originY2 > maxHeight)
+                                foreach (Weight xw in horizontalValues)
                                 {
-                                    originY2 = maxHeight;
-                                }
-
-                                for (int xx = left; xx <= right; xx++)
-                                {
-                                    // Get X cooefficient
-                                    double kernel2 = kernel1 * this.Sampler.GetValue(xx - dx);
-
-                                    if (Math.Abs(kernel2) < Epsilon)
+                                    if (Math.Abs(xw.Value) < Epsilon)
                                     {
                                         continue;
                                     }
 
-                                    int originX2 = originX1 + xx;
-                                    if (originX2 < 0)
-                                    {
-                                        originX2 = 0;
-                                    }
+                                    // TODO: This need updating to take into account the target rectangle.
+                                    int originX = xw.Index;
+                                    originX = originX.Clamp(0, maxWidth);
 
-                                    if (originX2 > maxWidth)
-                                    {
-                                        originX2 = maxWidth;
-                                    }
-
-                                    Bgra sourceColor = source[originX2, originY2];
-                                   // sourceColor = PixelOperations.ToLinear(sourceColor);
-
-                                    r += kernel2 * sourceColor.R;
-                                    g += kernel2 * sourceColor.G;
-                                    b += kernel2 * sourceColor.B;
-                                    a += kernel2 * sourceColor.A;
+                                    Bgra sourceColor = source[originX, originY];
+                                    r += sourceColor.R * (yw.Value / verticalSum) * (xw.Value / horizontalSum);
+                                    g += sourceColor.G * (yw.Value / verticalSum) * (xw.Value / horizontalSum);
+                                    b += sourceColor.B * (yw.Value / verticalSum) * (xw.Value / horizontalSum);
+                                    a += sourceColor.A * (yw.Value / verticalSum) * (xw.Value / horizontalSum);
                                 }
                             }
 
                             Bgra destinationColor = new Bgra(b.ToByte(), g.ToByte(), r.ToByte(), a.ToByte());
-                           // destinationColor = PixelOperations.ToSrgb(destinationColor);
                             target[x, y] = destinationColor;
                         }
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Computes the weights to apply at each pixel when resizing.
+        /// </summary>
+        /// <param name="destinationSize">
+        /// The destination section size.
+        /// </param>
+        /// <param name="sourceSize">
+        /// The source section size.
+        /// </param>
+        /// <param name="sampler">
+        /// The <see cref="IResampler"/> containing the resampling algorithm.
+        /// </param>
+        /// <returns>
+        /// The <see cref="T:Weights[]"/>.
+        /// </returns>
+        private Weights[] PrecomputeWeights(int destinationSize, int sourceSize, IResampler sampler)
+        {
+            float du = sourceSize / (float)destinationSize;
+            float scale = du;
+
+            if (scale < 1)
+            {
+                scale = 1;
+            }
+
+            double ru = Math.Ceiling(scale * sampler.Radius);
+            Weights[] result = new Weights[destinationSize];
+
+            for (int i = 0; i < destinationSize; i++)
+            {
+                double fu = ((i + .5) * du) - 0.5;
+                int startU = (int)Math.Ceiling(fu - ru);
+
+                if (startU < 0)
+                {
+                    startU = 0;
+                }
+
+                int endU = (int)Math.Floor(fu + ru);
+
+                if (endU > sourceSize - 1)
+                {
+                    endU = sourceSize - 1;
+                }
+
+                double sum = 0;
+                result[i] = new Weights();
+
+                for (int a = startU; a <= endU; a++)
+                {
+                    double w = 255 * sampler.GetValue((a - fu) / scale);
+
+                    if (Math.Abs(w) > Epsilon)
+                    {
+                        sum += w;
+                        result[i].Values.Add(new Weight(a, w));
+                    }
+                }
+
+                result[i].Sum = sum;
+            }
+
+            return result;
+        }
+
+        protected struct Weight
+        {
+            public Weight(int index, double value)
+            {
+                this.Index = index;
+                this.Value = value;
+            }
+
+            public readonly int Index;
+
+            public readonly double Value;
+        }
+
+        protected class Weights
+        {
+            public Weights()
+            {
+                this.Values = new List<Weight>();
+            }
+
+            public List<Weight> Values { get; set; }
+
+            public double Sum { get; set; }
         }
     }
 }

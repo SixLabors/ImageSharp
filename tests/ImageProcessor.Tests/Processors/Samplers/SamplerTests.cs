@@ -13,18 +13,18 @@ namespace ImageProcessor.Tests
         public static readonly TheoryData<string, IResampler> Samplers =
             new TheoryData<string, IResampler>
             {
-                //{ "Bicubic", new BicubicResampler() },
-                //{ "Bilinear", new TriangleResampler() },
-                { "NearestNeighbour", new BoxResampler() },
-                //{ "Lanczos3", new Lanczos3Resampler() },
+                { "Bicubic", new BicubicResampler() },
+                { "Triangle", new TriangleResampler() },
+                { "Box", new BoxResampler() },
+                { "Lanczos3", new Lanczos3Resampler() },
                 { "Lanczos8", new Lanczos8Resampler() },
-                //{ "MitchellNetravali", new MitchellNetravaliResampler() },
-                //{ "Hermite", new HermiteResampler() },
-                //{ "Spline", new SplineResampler() },
-                //{ "Robidoux", new RobidouxResampler() },
-                //{ "RobidouxSharp", new RobidouxSharpResampler() },
-                //{ "RobidouxSoft", new RobidouxSoftResampler() },
-                //{ "Welch", new WelchResampler() }
+                { "MitchellNetravali", new MitchellNetravaliResampler() },
+                { "Hermite", new HermiteResampler() },
+                { "Spline", new SplineResampler() },
+                { "Robidoux", new RobidouxResampler() },
+                { "RobidouxSharp", new RobidouxSharpResampler() },
+                { "RobidouxSoft", new RobidouxSoftResampler() },
+                { "Welch", new WelchResampler() }
             };
 
         [Theory]
@@ -45,7 +45,7 @@ namespace ImageProcessor.Tests
                     string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
                     using (FileStream output = File.OpenWrite($"Resized/{filename}"))
                     {
-                        image.Resize(500, 500, sampler).Save(output);
+                        image.Resize(100, 100, sampler).Save(output);
                     }
 
                     Trace.WriteLine($"{name}: {watch.ElapsedMilliseconds}ms");

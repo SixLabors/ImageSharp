@@ -38,7 +38,7 @@ namespace ImageProcessor
             // Create only once and lazily.
             byte[] ramp = LinearBytes.Value;
 
-            return new Bgra(composite.B, ramp[composite.G], ramp[composite.R], ramp[composite.A]);
+            return new Bgra(ramp[composite.B], ramp[composite.G], ramp[composite.R], composite.A);
         }
 
         /// <summary>
@@ -55,7 +55,7 @@ namespace ImageProcessor
             // Create only once and lazily.
             byte[] ramp = SrgbBytes.Value;
 
-            return new Bgra(linear.B, ramp[linear.G], ramp[linear.R], ramp[linear.A]);
+            return new Bgra(ramp[linear.B], ramp[linear.G], ramp[linear.R], linear.A);
         }
 
         /// <summary>

@@ -45,7 +45,7 @@ namespace ImageProcessor.Tests
                     string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
                     using (FileStream output = File.OpenWrite($"Resized/{filename}"))
                     {
-                        image.Resize(500, 500, sampler).Save(output);
+                        image.Resize(image.Width / 2, image.Height / 2, sampler).Save(output);
                     }
 
                     Trace.WriteLine($"{name}: {watch.ElapsedMilliseconds}ms");

@@ -1,12 +1,10 @@
 ﻿
 namespace ImageProcessor.Tests
 {
-    using System.Collections.Generic;
     using System.Diagnostics;
     using System.IO;
 
     using ImageProcessor.Filters;
-    using ImageProcessor.Samplers;
 
     using Xunit;
 
@@ -16,6 +14,7 @@ namespace ImageProcessor.Tests
         {
             { "Contrast-50", new Contrast(50) },
             { "Contrast--50", new Contrast(-50) },
+            { "Alpha--50", new Alpha(50) },
         };
 
         [Theory]
@@ -40,31 +39,6 @@ namespace ImageProcessor.Tests
                     }
 
                     Trace.WriteLine($"{ name }: { watch.ElapsedMilliseconds}ms");
-                }
-            }
-        }
-
-        [Fact]
-        public void ResizeImage()
-        {
-            if (!Directory.Exists("Resized"))
-            {
-                Directory.CreateDirectory("Resized");
-            }
-
-            foreach (string file in Files)
-            {
-                using (FileStream stream = File.OpenRead(file))
-                {
-                    Stopwatch watch = Stopwatch.StartNew();
-                    Image image = new Image(stream);
-                    string filename = Path.GetFileName(file);
-                    using (FileStream output = File.OpenWrite($"Resized/{ Path.GetFileName(filename) }"))
-                    {
-                        image.Resize(400, 400).Save(output);
-                    }
-
-                    Trace.WriteLine($"{ filename }: { watch.ElapsedMilliseconds}ms");
                 }
             }
         }

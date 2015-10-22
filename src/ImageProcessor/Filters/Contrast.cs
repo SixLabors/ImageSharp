@@ -17,7 +17,7 @@ namespace ImageProcessor.Filters
         /// </summary>
         /// <param name="contrast">The new contrast of the image. Must be between -100 and 100.</param>
         /// <exception cref="ArgumentException">
-        /// <paramref name="contrast"/> is less than -100 is greater than 100.
+        /// <paramref name="contrast"/> is less than -100 or is greater than 100.
         /// </exception>
         public Contrast(int contrast)
         {
@@ -34,35 +34,45 @@ namespace ImageProcessor.Filters
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             double contrast = (100.0 + this.Value) / 100.0;
+            int sourceY = sourceRectangle.Y;
+            int sourceBottom = sourceRectangle.Bottom;
+            int startX = sourceRectangle.X;
+            int endX = sourceRectangle.Right;
 
             for (int y = startY; y < endY; y++)
             {
-                for (int x = sourceRectangle.X; x < sourceRectangle.Right; x++)
+                if (y >= sourceY && y < sourceBottom)
                 {
-                    Bgra color = source[x, y];
+                    for (int x = startX; x < endX; x++)
+                    {
+                        Bgra sourceColor = source[x, y];
+                        sourceColor = PixelOperations.ToLinear(sourceColor);
 
-                    double r = color.R / 255.0;
-                    r -= 0.5;
-                    r *= contrast;
-                    r += 0.5;
-                    r *= 255;
-                    r = r.ToByte();
+                        double r = sourceColor.R / 255.0;
+                        r -= 0.5;
+                        r *= contrast;
+                        r += 0.5;
+                        r *= 255;
+                        r = r.ToByte();
 
-                    double g = color.G / 255.0;
-                    g -= 0.5;
-                    g *= contrast;
-                    g += 0.5;
-                    g *= 255;
-                    g = g.ToByte();
+                        double g = sourceColor.G / 255.0;
+                        g -= 0.5;
+                        g *= contrast;
+                        g += 0.5;
+                        g *= 255;
+                        g = g.ToByte();
 
-                    double b = color.B / 255.0;
-                    b -= 0.5;
-                    b *= contrast;
-                    b += 0.5;
-                    b *= 255;
-                    b = b.ToByte();
+                        double b = sourceColor.B / 255.0;
+                        b -= 0.5;
+                        b *= contrast;
+                        b += 0.5;
+                        b *= 255;
+                        b = b.ToByte();
 
-                    target[x, y] = new Bgra((byte)b, (byte)g, (byte)r, color.A);
+                        Bgra destinationColor = new Bgra(b.ToByte(), g.ToByte(), r.ToByte(), sourceColor.A);
+                        destinationColor = PixelOperations.ToSrgb(destinationColor);
+                        target[x, y] = destinationColor;
+                    }
                 }
             }
         }

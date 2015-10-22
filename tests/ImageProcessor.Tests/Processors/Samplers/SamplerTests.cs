@@ -17,6 +17,7 @@ namespace ImageProcessor.Tests
                 { "Triangle", new TriangleResampler() },
                 { "Box", new BoxResampler() },
                 { "Lanczos3", new Lanczos3Resampler() },
+                { "Lanczos5", new Lanczos5Resampler() },
                 { "Lanczos8", new Lanczos8Resampler() },
                 { "MitchellNetravali", new MitchellNetravaliResampler() },
                 { "Hermite", new HermiteResampler() },

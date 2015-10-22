@@ -43,6 +43,7 @@
     <Compile Include="Colors\Cmyk.cs" />
     <Compile Include="Common\Helpers\ImageMaths.cs" />
     <Compile Include="Common\Helpers\PixelOperations.cs" />
+    <Compile Include="Filters\Alpha.cs" />
     <Compile Include="Filters\Contrast.cs" />
     <Compile Include="Filters\ImageFilterExtensions.cs" />
     <Compile Include="ImageExtensions.cs" />
@@ -181,6 +182,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Numerics\Rectangle.cs" />
     <Compile Include="Numerics\Size.cs" />
+    <Compile Include="Samplers\Resamplers\Lanczos5Resampler.cs" />
     <Compile Include="Samplers\Resamplers\Lanczos8Resampler.cs" />
     <Compile Include="Samplers\Resamplers\WelchResampler.cs" />
     <Compile Include="Samplers\Resamplers\CatmullRomResampler.cs" />

@@ -21,7 +21,7 @@ namespace ImageProcessor
         /// <inheritdoc/>
         public void Apply(ImageBase target, ImageBase source, Rectangle sourceRectangle)
         {
-            this.OnApply();
+            this.OnApply(target.Bounds, sourceRectangle);
 
             if (this.Parallelism > 1)
             {
@@ -53,8 +53,6 @@ namespace ImageProcessor
         /// <inheritdoc/>
         public void Apply(ImageBase target, ImageBase source, int width, int height, Rectangle targetRectangle = default(Rectangle), Rectangle sourceRectangle = default(Rectangle))
         {
-            this.OnApply();
-
             byte[] pixels = new byte[width * height * 4];
             target.SetPixels(width, height, pixels);
 
@@ -67,6 +65,8 @@ namespace ImageProcessor
             {
                 sourceRectangle = source.Bounds;
             }
+
+            this.OnApply(target.Bounds, sourceRectangle);
 
             if (this.Parallelism > 1)
             {
@@ -98,7 +98,14 @@ namespace ImageProcessor
         /// <summary>
         /// This method is called before the process is applied to prepare the processor.
         /// </summary>
-        protected virtual void OnApply()
+        /// <param name="targetRectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the location and size of the drawn image.
+        /// The image is scaled to fit the rectangle.
+        /// </param>
+        /// <param name="sourceRectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
+        /// </param>
+        protected virtual void OnApply(Rectangle targetRectangle, Rectangle sourceRectangle)
         {
         }
 

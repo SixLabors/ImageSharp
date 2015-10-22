@@ -19,7 +19,7 @@ namespace ImageProcessor.Samplers
         /// <returns>The <see cref="Image"/></returns>
         public static Image Resize(this Image source, int width, int height)
         {
-            return source.Process(width, height, default(Rectangle), default(Rectangle), new Resize(new BicubicResampler()));
+            return Resize(source, width, height, new RobidouxResampler());
         }
 
         /// <summary>
@@ -32,7 +32,7 @@ namespace ImageProcessor.Samplers
         /// <returns>The <see cref="Image"/></returns>
         public static Image Resize(this Image source, int width, int height, IResampler sampler)
         {
-            return source.Process(width, height, default(Rectangle), default(Rectangle), new Resize(sampler));
+            return Resize(source, width, height, sampler, source.Bounds, new Rectangle(0, 0, width, height));
         }
 
         /// <summary>

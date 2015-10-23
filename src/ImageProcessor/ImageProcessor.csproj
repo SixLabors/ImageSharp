@@ -199,7 +199,6 @@
     <Compile Include="Samplers\ImageSampleExtensions.cs" />
     <Compile Include="Samplers\Resamplers\IResampler.cs" />
     <Compile Include="Samplers\Resize.cs" />
-    <Compile Include="Samplers\ResizeOld.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="ICSharpCode.SharpZipLib.Portable, Version=0.86.0.51802, Culture=neutral, processorArchitecture=MSIL">

@@ -16,8 +16,8 @@ namespace ImageProcessor.Formats
     using System.Linq;
     using System.Text;
 
-    using ICSharpCode.SharpZipLib.Checksums;
-    using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
+    //using ICSharpCode.SharpZipLib.Checksums;
+    //using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
 
     /// <summary>
     /// Performs the png decoding operation.

@@ -8,8 +8,8 @@ namespace ImageProcessor.Formats
     using System;
     using System.IO;
 
-    using ICSharpCode.SharpZipLib.Checksums;
-    using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
+    //using ICSharpCode.SharpZipLib.Checksums;
+    //using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
 
     /// <summary>
     /// Image encoder for writing image data to a stream in png format.

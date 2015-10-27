@@ -74,7 +74,7 @@ namespace ImageProcessor.Formats
             // Loop through each row
             for (int y = 0; y < height; y++)
             {
-                // And loop through each xumn
+                // And loop through each column
                 for (int x = 0; x < width; x++)
                 {
                     // Now I have the pixel, call the FirstPassQuantize function...

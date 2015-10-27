@@ -59,5 +59,28 @@ namespace ImageProcessor.Filters
         {
             return source.Process(sourceRectangle, new Alpha(percent));
         }
+
+        /// <summary>
+        /// Alters the alpha component of the image.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image Invert(this Image source)
+        {
+            return Invert(source, source.Bounds);
+        }
+
+        /// <summary>
+        /// Alters the alpha component of the image.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="sourceRectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
+        /// </param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image Invert(this Image source, Rectangle sourceRectangle)
+        {
+            return source.Process(sourceRectangle, new Invert());
+        }
     }
 }

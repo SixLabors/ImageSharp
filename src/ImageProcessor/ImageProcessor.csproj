@@ -17,6 +17,7 @@
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
+    <NuGetPackageImportStamp>cfa9b76b</NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -27,6 +28,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <DocumentationFile>bin\Debug\ImageProcessor.XML</DocumentationFile>
+    <LangVersion>default</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -44,6 +46,15 @@
     <Compile Include="Common\Helpers\ImageMaths.cs" />
     <Compile Include="Common\Helpers\PixelOperations.cs" />
     <Compile Include="Filters\Alpha.cs" />
+    <Compile Include="Filters\ColorMatrix\ColorMatrix.cs" />
+    <Compile Include="Filters\ColorMatrix\ColorMatrixFilter.cs" />
+    <Compile Include="Filters\ColorMatrix\GreyscaleBt601.cs" />
+    <Compile Include="Filters\ColorMatrix\GreyscaleBt709.cs" />
+    <Compile Include="Filters\ColorMatrix\BlackWhite.cs" />
+    <Compile Include="Filters\ColorMatrix\Polaroid.cs" />
+    <Compile Include="Filters\ColorMatrix\Lomograph.cs" />
+    <Compile Include="Filters\ColorMatrix\Sepia.cs" />
+    <Compile Include="Filters\ColorMatrix\Invert.cs" />
     <Compile Include="Filters\Contrast.cs" />
     <Compile Include="Filters\ImageFilterExtensions.cs" />
     <Compile Include="ImageExtensions.cs" />
@@ -210,21 +221,24 @@
     <None Include="Formats\Gif\README.md" />
     <None Include="Formats\Jpg\README.md" />
     <None Include="packages.config" />
+    <None Include="stylecop.json" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Formats\Bmp\README.md" />
     <None Include="Formats\Png\README.md" />
   </ItemGroup>
   <ItemGroup>
-    <Analyzer Include="..\..\packages\StyleCop.Analyzers.1.0.0-beta013\analyzers\dotnet\cs\Newtonsoft.Json.dll" />
-    <Analyzer Include="..\..\packages\StyleCop.Analyzers.1.0.0-beta013\analyzers\dotnet\cs\StyleCop.Analyzers.dll" />
+    <Analyzer Include="..\..\packages\StyleCop.Analyzers.1.0.0-beta015\analyzers\dotnet\cs\Newtonsoft.Json.dll" />
+    <Analyzer Include="..\..\packages\StyleCop.Analyzers.1.0.0-beta015\analyzers\dotnet\cs\StyleCop.Analyzers.dll" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
+    <Error Condition="!Exists('..\..\packages\StyleCop.Analyzers.1.0.0-beta015\build\StyleCop.Analyzers.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\StyleCop.Analyzers.1.0.0-beta015\build\StyleCop.Analyzers.targets'))" />
   </Target>
+  <Import Project="..\..\packages\StyleCop.Analyzers.1.0.0-beta015\build\StyleCop.Analyzers.targets" Condition="Exists('..\..\packages\StyleCop.Analyzers.1.0.0-beta015\build\StyleCop.Analyzers.targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

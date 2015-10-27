@@ -31,6 +31,7 @@ Honestly... I don't know. I could be writing code that may be suddenly obsolete.
  - [x] Rectangle
  - [x] Size
  - [x] Point
+ - [x] Sphere
 - Resampling algorithms. (Performance improvements?)
  - [x] Box
  - [x] Bicubic

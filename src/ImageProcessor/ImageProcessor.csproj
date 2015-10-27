@@ -17,14 +17,15 @@
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
-    <NuGetPackageImportStamp>cfa9b76b</NuGetPackageImportStamp>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;NOCRYPTO;PCL</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <DocumentationFile>bin\Debug\ImageProcessor.XML</DocumentationFile>
@@ -40,6 +41,9 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- A reference to the entire .NET Framework is automatically included -->
+    <Analyzer Include="..\..\packages\StyleCop.Analyzers.1.0.0-beta015\analyzers\dotnet\cs\Newtonsoft.Json.dll" />
+    <Analyzer Include="..\..\packages\StyleCop.Analyzers.1.0.0-beta015\analyzers\dotnet\cs\StyleCop.Analyzers.CodeFixes.dll" />
+    <Analyzer Include="..\..\packages\StyleCop.Analyzers.1.0.0-beta015\analyzers\dotnet\cs\StyleCop.Analyzers.dll" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Colors\Cmyk.cs" />
@@ -57,6 +61,26 @@
     <Compile Include="Filters\ColorMatrix\Invert.cs" />
     <Compile Include="Filters\Contrast.cs" />
     <Compile Include="Filters\ImageFilterExtensions.cs" />
+    <Compile Include="Formats\Png\Zlib\Adler32.cs" />
+    <Compile Include="Formats\Png\Zlib\InflaterDynHeader.cs" />
+    <Compile Include="Formats\Png\Zlib\InflaterHuffmanTree.cs" />
+    <Compile Include="Formats\Png\Zlib\Crc32.cs" />
+    <Compile Include="Formats\Png\Zlib\Deflater.cs" />
+    <Compile Include="Formats\Png\Zlib\DeflaterConstants.cs" />
+    <Compile Include="Formats\Png\Zlib\DeflaterEngine.cs" />
+    <Compile Include="Formats\Png\Zlib\DeflaterHuffman.cs" />
+    <Compile Include="Formats\Png\Zlib\DeflaterOutputStream.cs" />
+    <Compile Include="Formats\Png\Zlib\DeflaterPending.cs" />
+    <Compile Include="Formats\Png\Zlib\DeflateStrategy.cs" />
+    <Compile Include="Formats\Png\Zlib\GeneralBitFlags.cs" />
+    <Compile Include="Formats\Png\Zlib\IChecksum.cs" />
+    <Compile Include="Formats\Png\Zlib\Inflater.cs" />
+    <Compile Include="Formats\Png\Zlib\InflaterInputBuffer.cs" />
+    <Compile Include="Formats\Png\Zlib\InflaterInputStream.cs" />
+    <Compile Include="Formats\Png\Zlib\OutputWindow.cs" />
+    <Compile Include="Formats\Png\Zlib\PendingBuffer.cs" />
+    <Compile Include="Formats\Png\Zlib\StreamManipulator.cs" />
+    <Compile Include="Formats\Png\Zlib\ZipConstants.cs" />
     <Compile Include="ImageExtensions.cs" />
     <Compile Include="ParallelImageProcessor.cs" />
     <Compile Include="IImageProcessor.cs" />
@@ -212,12 +236,6 @@
     <Compile Include="Samplers\Resize.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="ICSharpCode.SharpZipLib.Portable, Version=0.86.0.51802, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\SharpZipLib.Portable.0.86.0.0002\lib\portable-net45+netcore45+wp8+win8+wpa81+MonoTouch+MonoAndroid\ICSharpCode.SharpZipLib.Portable.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="Formats\Gif\README.md" />
     <None Include="Formats\Jpg\README.md" />
     <None Include="packages.config" />
@@ -227,18 +245,15 @@
     <None Include="Formats\Bmp\README.md" />
     <None Include="Formats\Png\README.md" />
   </ItemGroup>
-  <ItemGroup>
-    <Analyzer Include="..\..\packages\StyleCop.Analyzers.1.0.0-beta015\analyzers\dotnet\cs\Newtonsoft.Json.dll" />
-    <Analyzer Include="..\..\packages\StyleCop.Analyzers.1.0.0-beta015\analyzers\dotnet\cs\StyleCop.Analyzers.dll" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
+  <Import Project="..\..\packages\StyleCop.Analyzers.1.0.0-beta015\build\StyleCop.Analyzers.targets" Condition="Exists('..\..\packages\StyleCop.Analyzers.1.0.0-beta015\build\StyleCop.Analyzers.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('..\..\packages\StyleCop.Analyzers.1.0.0-beta015\build\StyleCop.Analyzers.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\StyleCop.Analyzers.1.0.0-beta015\build\StyleCop.Analyzers.targets'))" />
   </Target>
-  <Import Project="..\..\packages\StyleCop.Analyzers.1.0.0-beta015\build\StyleCop.Analyzers.targets" Condition="Exists('..\..\packages\StyleCop.Analyzers.1.0.0-beta015\build\StyleCop.Analyzers.targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

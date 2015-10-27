@@ -31,7 +31,7 @@ namespace ImageProcessor.Formats
     ///     <item>Palette Index with alpha (8 bit).</item>
     ///     <item>Palette Index without alpha (8 bit).</item>
     /// </list>
-    /// </para> 
+    /// </para>
     /// </remarks>
     public class PngDecoder : IImageDecoder
     {

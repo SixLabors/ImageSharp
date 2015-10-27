@@ -15,6 +15,13 @@ namespace ImageProcessor.Tests
             { "Contrast-50", new Contrast(50) },
             { "Contrast--50", new Contrast(-50) },
             { "Alpha--50", new Alpha(50) },
+            { "Invert", new Invert() },
+            { "Sepia", new Sepia() },
+            { "BlackWhite", new BlackWhite() },
+            { "Lomograph", new Lomograph() },
+            { "Polaroid", new Polaroid() },
+            { "GreyscaleBt709", new GreyscaleBt709() },
+            { "GreyscaleBt601", new GreyscaleBt601() },
         };
 
         [Theory]

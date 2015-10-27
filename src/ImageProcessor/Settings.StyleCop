@@ -12,6 +12,12 @@
       <Value>scanlines</Value>
       <Value>tEXt</Value>
       <Value>xt</Value>
+      <Value>th</Value>
+      <Value>nd</Value>
+      <Value>rd</Value>
+      <Value>lomograph</Value>
+      <Value>polaroid</Value>
+      <Value>colorspace</Value>
     </CollectionProperty>
   </GlobalSettings>
 </StyleCopSettings>

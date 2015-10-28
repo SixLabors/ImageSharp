@@ -13,16 +13,16 @@ namespace ImageProcessor
     public static class PixelOperations
     {
         /// <summary>
-        /// The array of values representing each possible value of color component
+        /// The array of bytes representing each possible value of color component
         /// converted from sRGB to the linear color space.
         /// </summary>
-        private static readonly Lazy<float[]> LinearLut = new Lazy<float[]>(GetLinearBytes);
+        private static readonly Lazy<byte[]> LinearBytes = new Lazy<byte[]>(GetLinearBytes);
 
         /// <summary>
-        /// The array of values representing each possible value of color component
+        /// The array of bytes representing each possible value of color component
         /// converted from linear to the sRGB color space.
         /// </summary>
-        private static readonly Lazy<float[]> SrgbLut = new Lazy<float[]>(GetSrgbBytes);
+        private static readonly Lazy<byte[]> SrgbBytes = new Lazy<byte[]>(GetSrgbBytes);
 
         /// <summary>
         /// The array of bytes representing each possible value of color component
@@ -45,14 +45,13 @@ namespace ImageProcessor
         /// <returns>
         /// The <see cref="Bgra"/>.
         /// </returns>
-        public static Bgra ToLinear(ColorVector composite)
+        public static Bgra ToLinear(Bgra composite)
         {
             // Create only once and lazily.
             // byte[] ramp = LinearGammaBytes.Value;
-            float[] ramp = LinearLut.Value;
+            byte[] ramp = LinearBytes.Value;
 
-            // TODO: This just doesn't seem right to me.
-            return new ColorVector(ramp[(composite.B * 255).ToByte()], ramp[(composite.G * 255).ToByte()], ramp[(composite.R * 255).ToByte()], composite.A);
+            return new Bgra(ramp[composite.B], ramp[composite.G], ramp[composite.R], composite.A);
         }
 
         /// <summary>
@@ -64,14 +63,13 @@ namespace ImageProcessor
         /// <returns>
         /// The <see cref="Bgra"/>.
         /// </returns>
-        public static Bgra ToSrgb(ColorVector linear)
+        public static Bgra ToSrgb(Bgra linear)
         {
             // Create only once and lazily.
             // byte[] ramp = GammaLinearBytes.Value;
-            float[] ramp = SrgbLut.Value;
+            byte[] ramp = SrgbBytes.Value;
 
-            // TODO: This just doesn't seem right to me.
-            return new ColorVector(ramp[(linear.B * 255).ToByte()], ramp[(linear.G * 255).ToByte()], (linear.R * 255).ToByte(), linear.A);
+            return new Bgra(ramp[linear.B], ramp[linear.G], ramp[linear.R], linear.A);
         }
 
         /// <summary>
@@ -81,12 +79,12 @@ namespace ImageProcessor
         /// <returns>
         /// The <see cref="T:byte[]"/>.
         /// </returns>
-        private static float[] GetLinearBytes()
+        private static byte[] GetLinearBytes()
         {
-            float[] ramp = new float[256];
+            byte[] ramp = new byte[256];
             for (int x = 0; x < 256; ++x)
             {
-                float val = SrgbToLinear(x / 255f);
+                byte val = (255f * SrgbToLinear(x / 255f)).ToByte();
                 ramp[x] = val;
             }
 
@@ -100,12 +98,12 @@ namespace ImageProcessor
         /// <returns>
         /// The <see cref="T:byte[]"/>.
         /// </returns>
-        private static float[] GetSrgbBytes()
+        private static byte[] GetSrgbBytes()
         {
-            float[] ramp = new float[256];
+            byte[] ramp = new byte[256];
             for (int x = 0; x < 256; ++x)
             {
-                float val = LinearToSrgb(x / 255f);
+                byte val = (255f * LinearToSrgb(x / 255f)).ToByte();
                 ramp[x] = val;
             }
 

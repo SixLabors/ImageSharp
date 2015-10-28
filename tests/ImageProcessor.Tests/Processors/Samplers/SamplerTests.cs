@@ -47,7 +47,7 @@ namespace ImageProcessor.Tests
                     using (FileStream output = File.OpenWrite($"Resized/{filename}"))
                     {
                         //image.Resize(image.Width / 2, image.Height / 2, sampler).Save(output);
-                        image.Resize(500, 500, sampler, new Rectangle(0, 0, 100, 100), new Rectangle(0, 0, 500, 500)).Save(output);
+                        image.Resize(500, 750, sampler).Save(output);
                     }
 
                     Trace.WriteLine($"{name}: {watch.ElapsedMilliseconds}ms");

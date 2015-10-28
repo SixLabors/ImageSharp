@@ -5,6 +5,8 @@
 
 namespace ImageProcessor.Filters
 {
+    using System.Threading.Tasks;
+
     /// <summary>
     /// An <see cref="IImageProcessor"/> to invert the colors of an <see cref="Image"/>.
     /// </summary>
@@ -18,19 +20,22 @@ namespace ImageProcessor.Filters
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
 
-            for (int y = startY; y < endY; y++)
-            {
-                if (y >= sourceY && y < sourceBottom)
-                {
-                    for (int x = startX; x < endX; x++)
+            Parallel.For(
+                startY,
+                endY,
+                y =>
                     {
-                        // TODO: This doesn't work for gamma test images.
-                        Bgra color = source[x, y];
-                        Bgra targetColor = new Bgra((255 - color.B).ToByte(), (255 - color.G).ToByte(), (255 - color.R).ToByte(), color.A);
-                        target[x, y] = targetColor;
-                    }
-                }
-            }
+                        if (y >= sourceY && y < sourceBottom)
+                        {
+                            for (int x = startX; x < endX; x++)
+                            {
+                                // TODO: This doesn't work for gamma test images.
+                                Bgra color = source[x, y];
+                                Bgra targetColor = new Bgra((255 - color.B).ToByte(), (255 - color.G).ToByte(), (255 - color.R).ToByte(), color.A);
+                                target[x, y] = targetColor;
+                            }
+                        }
+                    });
         }
     }
 }

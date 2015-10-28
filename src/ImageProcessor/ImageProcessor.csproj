@@ -42,6 +42,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Colors\Cmyk.cs" />
+    <Compile Include="Colors\ColorVector.cs" />
+    <Compile Include="Common\Extensions\EnumerableExtensions.cs" />
     <Compile Include="Common\Helpers\ImageMaths.cs" />
     <Compile Include="Common\Helpers\PixelOperations.cs" />
     <Compile Include="Filters\Invert.cs" />

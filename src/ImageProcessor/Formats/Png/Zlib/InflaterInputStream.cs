@@ -150,16 +150,6 @@
         }
 
         /// <summary>
-        /// Clear any cryptographic state.
-        /// </summary>
-        protected void StopDecrypting()
-        {
-#if !NETCF_1_0 && !NOCRYPTO
-            inputBuffer.CryptoTransform = null;
-#endif
-        }
-
-        /// <summary>
         /// Returns 0 once the end of the stream (EOF) has been reached.
         /// Otherwise returns 1.
         /// </summary>

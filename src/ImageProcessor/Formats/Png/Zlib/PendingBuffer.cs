@@ -60,12 +60,6 @@
         /// </param>
         public void WriteByte(int value)
         {
-#if DebugDeflation
-			if (DeflaterConstants.DEBUGGING && (start != 0) )
-			{
-				throw new SharpZipBaseException("Debug check: start != 0");
-			}
-#endif
             buffer_[end++] = unchecked((byte)value);
         }
 
@@ -77,12 +71,6 @@
         /// </param>
         public void WriteShort(int value)
         {
-#if DebugDeflation
-			if (DeflaterConstants.DEBUGGING && (start != 0) )
-			{
-				throw new SharpZipBaseException("Debug check: start != 0");
-			}
-#endif
             buffer_[end++] = unchecked((byte)value);
             buffer_[end++] = unchecked((byte)(value >> 8));
         }
@@ -93,12 +81,6 @@
         /// <param name="value">The value to write.</param>
         public void WriteInt(int value)
         {
-#if DebugDeflation
-			if (DeflaterConstants.DEBUGGING && (start != 0) )
-			{
-				throw new SharpZipBaseException("Debug check: start != 0");
-			}
-#endif
             buffer_[end++] = unchecked((byte)value);
             buffer_[end++] = unchecked((byte)(value >> 8));
             buffer_[end++] = unchecked((byte)(value >> 16));
@@ -113,12 +95,6 @@
         /// <param name="length">number of bytes to write</param>
         public void WriteBlock(byte[] block, int offset, int length)
         {
-#if DebugDeflation
-			if (DeflaterConstants.DEBUGGING && (start != 0) ) 
-			{
-				throw new SharpZipBaseException("Debug check: start != 0");
-			}
-#endif
             System.Array.Copy(block, offset, buffer_, end, length);
             end += length;
         }
@@ -139,12 +115,6 @@
         /// </summary>
         public void AlignToByte()
         {
-#if DebugDeflation
-			if (DeflaterConstants.DEBUGGING && (start != 0) ) 
-			{
-				throw new SharpZipBaseException("Debug check: start != 0");
-			}
-#endif
             if (bitCount > 0)
             {
                 buffer_[end++] = unchecked((byte)bits);
@@ -164,16 +134,6 @@
         /// <param name="count">number of bits to write</param>
         public void WriteBits(int b, int count)
         {
-#if DebugDeflation
-			if (DeflaterConstants.DEBUGGING && (start != 0) ) 
-			{
-				throw new SharpZipBaseException("Debug check: start != 0");
-			}
-
-			//			if (DeflaterConstants.DEBUGGING) {
-			//				//Console.WriteLine("writeBits("+b+","+count+")");
-			//			}
-#endif
             bits |= (uint)(b << bitCount);
             bitCount += count;
             if (bitCount >= 16)
@@ -191,12 +151,6 @@
         /// <param name="s">value to write</param>
         public void WriteShortMSB(int s)
         {
-#if DebugDeflation
-			if (DeflaterConstants.DEBUGGING && (start != 0) ) 
-			{
-				throw new SharpZipBaseException("Debug check: start != 0");
-			}
-#endif
             buffer_[end++] = unchecked((byte)(s >> 8));
             buffer_[end++] = unchecked((byte)s);
         }

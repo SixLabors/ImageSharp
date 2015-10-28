@@ -238,6 +238,7 @@
   <ItemGroup>
     <None Include="Formats\Gif\README.md" />
     <None Include="Formats\Jpg\README.md" />
+    <None Include="Formats\Png\Zlib\README.md" />
     <None Include="packages.config" />
     <None Include="stylecop.json" />
   </ItemGroup>

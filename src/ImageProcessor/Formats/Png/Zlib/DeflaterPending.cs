@@ -1,8 +1,13 @@
-﻿namespace ImageProcessor.Formats
+﻿// <copyright file="DeflaterPending.cs" company="James South">
+// Copyright © James South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
+namespace ImageProcessor.Formats
 {
     /// <summary>
     /// This class stores the pending output of the Deflater.
-    /// 
+    ///
     /// author of the original java version : Jochen Hoenicke
     /// </summary>
     public class DeflaterPending : PendingBuffer
@@ -12,7 +17,7 @@
         /// Construct instance with default buffer size
         /// </summary>
         public DeflaterPending()
-            : base(DeflaterConstants.PENDING_BUF_SIZE)
+            : base(DeflaterConstants.PendingBufSize)
         {
         }
     }

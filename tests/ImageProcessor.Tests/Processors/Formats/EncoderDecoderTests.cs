@@ -17,6 +17,11 @@
                 Directory.CreateDirectory("Encoded");
             }
 
+            foreach (FileInfo file in new DirectoryInfo("Encoded").GetFiles())
+            {
+                file.Delete();
+            }
+
             foreach (string file in Files)
             {
                 using (FileStream stream = File.OpenRead(file))

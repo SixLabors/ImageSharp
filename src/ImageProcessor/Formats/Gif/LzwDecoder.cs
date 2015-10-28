@@ -69,8 +69,8 @@ namespace ImageProcessor.Formats
             int availableCode = clearCode + 2;
 
             // Jillzhangs Code (Not From Me) see: http://giflib.codeplex.com/
-            // TODO: It's imperative that this close is cleaned up and commented properly.
-            // TODO: Unfortunately I can't figure out the character encoding to translate from the original Chinese. 
+            // TODO: It's imperative that this code is cleaned up and commented properly.
+            // TODO: Unfortunately I can't figure out the character encoding to translate from the original Chinese.
             int code; // ÓÃÓÚ´æ´¢µ±Ç°µÄ±àÂëÖµ
             int oldCode = NullCode; // ÓÃÓÚ´æ´¢ÉÏÒ»´ÎµÄ±àÂëÖµ
             int codeMask = (1 << codeSize) - 1; // ±íÊ¾±àÂëµÄ×î´óÖµ£¬Èç¹ûcodeSize=5,Ôòcode_mask=31

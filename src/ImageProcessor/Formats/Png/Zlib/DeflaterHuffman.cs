@@ -12,125 +12,135 @@
     /// </summary>
     public class DeflaterHuffman
     {
-        const int BUFSIZE = 1 << (DeflaterConstants.DEFAULT_MEM_LEVEL + 6);
-        const int LITERAL_NUM = 286;
+        /// <summary>
+        /// The buffer size.
+        /// </summary>
+        private const int Buffersize = 1 << (DeflaterConstants.DefaultMemLevel + 6);
 
-        // Number of distance codes
-        const int DIST_NUM = 30;
-        // Number of codes used to transfer bit lengths
-        const int BITLEN_NUM = 19;
+        /// <summary>
+        /// The number of literals.
+        /// </summary>
+        private const int LiteralCount = 286;
 
-        // repeat previous bit length 3-6 times (2 bits of repeat count)
-        const int REP_3_6 = 16;
-        // repeat a zero length 3-10 times  (3 bits of repeat count)
-        const int REP_3_10 = 17;
-        // repeat a zero length 11-138 times  (7 bits of repeat count)
-        const int REP_11_138 = 18;
+        /// <summary>
+        /// Number of distance codes
+        /// </summary>
+        private const int DistanceCodeCount = 30;
 
-        const int EOF_SYMBOL = 256;
+        /// <summary>
+        /// Number of codes used to transfer bit lengths
+        /// </summary>
+        private const int BitLengthCount = 19;
 
-        // The lengths of the bit length codes are sent in order of decreasing
-        // probability, to avoid transmitting the lengths for unused bit length codes.
-        static readonly int[] BL_ORDER = { 16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15 };
+        /// <summary>
+        /// Repeat previous bit length 3-6 times (2 bits of repeat count)
+        /// </summary>
+        private const int Repeat3To6 = 16;
 
-        static readonly byte[] bit4Reverse =
+        /// <summary>
+        /// Repeat a zero length 3-10 times  (3 bits of repeat count)
+        /// </summary>
+        private const int Repeat3To10 = 17;
+
+        /// <summary>
+        /// Repeat a zero length 11-138 times  (7 bits of repeat count)
+        /// </summary>
+        private const int Repeat11To138 = 18;
+
+        /// <summary>
+        /// The end of file flag.
+        /// </summary>
+        private const int Eof = 256;
+
+        /// <summary>
+        /// The lengths of the bit length codes are sent in order of decreasing
+        /// probability, to avoid transmitting the lengths for unused bit length codes.
+        /// </summary>
+        private static readonly int[] BitLengthOrder = { 16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15 };
+
+        /// <summary>
+        /// Bit data reversed.
+        /// </summary>
+        private static readonly byte[] Bit4Reverse = { 0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15 };
+
+        /// <summary>
+        /// The literal codes.
+        /// </summary>
+        private static short[] staticLCodes;
+        private static byte[] staticLLength;
+        private static short[] staticDCodes;
+        private static byte[] staticDLength;
+
+        /// <summary>
+        /// A binary tree, with the property, that the parent node is smaller than both child nodes.
+        /// </summary>
+        private class Tree
         {
-            0,
-            8,
-            4,
-            12,
-            2,
-            10,
-            6,
-            14,
-            1,
-            9,
-            5,
-            13,
-            3,
-            11,
-            7,
-            15
-        };
+            /// <summary>
+            /// The minimum number of codes.
+            /// </summary>
+            private readonly int minimumNumberOfCodes;
 
-        static short[] staticLCodes;
-        static byte[] staticLLength;
-        static short[] staticDCodes;
-        static byte[] staticDLength;
+            /// <summary>
+            /// The array of codes.
+            /// </summary>
+            private short[] codes;
+            private readonly int[] blCounts;
+            private readonly int maxLength;
+            private readonly DeflaterHuffman deflater;
 
-        class Tree
-        {
-            #region Instance Fields
-            public short[] freqs;
-
-            public byte[] length;
-
-            public int minNumCodes;
-
-            public int numCodes;
-
-            short[] codes;
-            int[] bl_counts;
-            int maxLength;
-            DeflaterHuffman dh;
-            #endregion
-
-            #region Constructors
-            public Tree(DeflaterHuffman dh, int elems, int minCodes, int maxLength)
+            /// <summary>
+            /// Initializes a new instance of the <see cref="Tree"/> class.
+            /// </summary>
+            /// <param name="huffman">The <see cref="DeflaterHuffman"/></param>
+            /// <param name="elems">The elements.</param>
+            /// <param name="minCodes">The minimum number of codes.</param>
+            /// <param name="maxLength">The maximum length.</param>
+            public Tree(DeflaterHuffman huffman, int elems, int minCodes, int maxLength)
             {
-                this.dh = dh;
-                this.minNumCodes = minCodes;
+                this.deflater = huffman;
+                this.minimumNumberOfCodes = minCodes;
                 this.maxLength = maxLength;
-                freqs = new short[elems];
-                bl_counts = new int[maxLength];
+                this.Frequencies = new short[elems];
+                this.blCounts = new int[maxLength];
             }
 
-            #endregion
+            /// <summary>
+            /// Gets the number of codes.
+            /// </summary>
+            public int NumberOfCodes { get; private set; }
+
+            /// <summary>
+            /// Gets the frequencies.
+            /// </summary>
+            public short[] Frequencies { get; }
+
+            /// <summary>
+            /// Gets or sets the length.
+            /// </summary>
+            public byte[] Length { get; private set; }
 
             /// <summary>
             /// Resets the internal state of the tree
             /// </summary>
             public void Reset()
             {
-                for (int i = 0; i < freqs.Length; i++)
+                for (int i = 0; i < this.Frequencies.Length; i++)
                 {
-                    freqs[i] = 0;
+                    this.Frequencies[i] = 0;
                 }
-                codes = null;
-                length = null;
-            }
 
-            public void WriteSymbol(int code)
-            {
-                //				if (DeflaterConstants.DEBUGGING) {
-                //					freqs[code]--;
-                //					//  	  Console.Write("writeSymbol("+freqs.length+","+code+"): ");
-                //				}
-                dh.pending.WriteBits(codes[code] & 0xffff, length[code]);
+                this.codes = null;
+                this.Length = null;
             }
 
             /// <summary>
-            /// Check that all frequencies are zero
+            /// Writes a code symbol.
             /// </summary>
-            /// <exception cref="ImageFormatException">
-            /// At least one frequency is non-zero
-            /// </exception>
-            public void CheckEmpty()
+            /// <param name="code">The code index.</param>
+            public void WriteSymbol(int code)
             {
-                bool empty = true;
-                for (int i = 0; i < freqs.Length; i++)
-                {
-                    if (freqs[i] != 0)
-                    {
-                        //Console.WriteLine("freqs[" + i + "] == " + freqs[i]);
-                        empty = false;
-                    }
-                }
-
-                if (!empty)
-                {
-                    throw new InvalidOperationException("!Empty");
-                }
+                this.deflater.pending.WriteBits(this.codes[code] & 0xffff, this.Length[code]);
             }
 
             /// <summary>
@@ -140,8 +150,8 @@
             /// <param name="staticLengths">length for new codes</param>
             public void SetStaticCodes(short[] staticCodes, byte[] staticLengths)
             {
-                codes = staticCodes;
-                length = staticLengths;
+                this.codes = staticCodes;
+                this.Length = staticLengths;
             }
 
             /// <summary>
@@ -149,45 +159,24 @@
             /// </summary>
             public void BuildCodes()
             {
-                int numSymbols = freqs.Length;
-                int[] nextCode = new int[maxLength];
+                int numSymbols = this.Frequencies.Length;
+                int[] nextCode = new int[this.maxLength];
                 int code = 0;
 
-                codes = new short[freqs.Length];
+                this.codes = new short[numSymbols];
 
-                //				if (DeflaterConstants.DEBUGGING) {
-                //					//Console.WriteLine("buildCodes: "+freqs.Length);
-                //				}
-
-                for (int bits = 0; bits < maxLength; bits++)
+                for (int bits = 0; bits < this.maxLength; bits++)
                 {
                     nextCode[bits] = code;
-                    code += bl_counts[bits] << (15 - bits);
-
-                    //					if (DeflaterConstants.DEBUGGING) {
-                    //						//Console.WriteLine("bits: " + ( bits + 1) + " count: " + bl_counts[bits]
-                    //						                  +" nextCode: "+code);
-                    //					}
+                    code += this.blCounts[bits] << (15 - bits);
                 }
 
-#if DebugDeflation
-				if ( DeflaterConstants.DEBUGGING && (code != 65536) ) 
-				{
-					throw new ImageFormatException("Inconsistent bl_counts!");
-				}
-#endif
-                for (int i = 0; i < numCodes; i++)
+                for (int i = 0; i < this.NumberOfCodes; i++)
                 {
-                    int bits = length[i];
+                    int bits = this.Length[i];
                     if (bits > 0)
                     {
-
-                        //						if (DeflaterConstants.DEBUGGING) {
-                        //								//Console.WriteLine("codes["+i+"] = rev(" + nextCode[bits-1]+"),
-                        //								                  +bits);
-                        //						}
-
-                        codes[i] = BitReverse(nextCode[bits - 1]);
+                        this.codes[i] = BitReverse(nextCode[bits - 1]);
                         nextCode[bits - 1] += 1 << (16 - bits);
                     }
                 }
@@ -195,67 +184,65 @@
 
             public void BuildTree()
             {
-                int numSymbols = freqs.Length;
+                int numSymbols = this.Frequencies.Length;
 
-                /* heap is a priority queue, sorted by frequency, least frequent
-				* nodes first.  The heap is a binary tree, with the property, that
-				* the parent node is smaller than both child nodes.  This assures
-				* that the smallest node is the first parent.
-				*
-				* The binary tree is encoded in an array:  0 is root node and
-				* the nodes 2*n+1, 2*n+2 are the child nodes of node n.
-				*/
+                // Heap is a priority queue, sorted by frequency, least frequent
+                // nodes first.  The heap is a binary tree, with the property, that
+                // the parent node is smaller than both child nodes.  This assures
+                // that the smallest node is the first parent.
+                //
+                // The binary tree is encoded in an array:  0 is root node and
+                // the nodes 2//n+1, 2//n+2 are the child nodes of node n.
                 int[] heap = new int[numSymbols];
                 int heapLen = 0;
                 int maxCode = 0;
                 for (int n = 0; n < numSymbols; n++)
                 {
-                    int freq = freqs[n];
+                    int freq = this.Frequencies[n];
                     if (freq != 0)
                     {
                         // Insert n into heap
                         int pos = heapLen++;
                         int ppos;
-                        while (pos > 0 && freqs[heap[ppos = (pos - 1) / 2]] > freq)
+                        while (pos > 0 && this.Frequencies[heap[ppos = (pos - 1) / 2]] > freq)
                         {
                             heap[pos] = heap[ppos];
                             pos = ppos;
                         }
+
                         heap[pos] = n;
 
                         maxCode = n;
                     }
                 }
 
-                /* We could encode a single literal with 0 bits but then we
-				* don't see the literals.  Therefore we force at least two
-				* literals to avoid this case.  We don't care about order in
-				* this case, both literals get a 1 bit code.
-				*/
+                // We could encode a single literal with 0 bits but then we
+                // don't see the literals.  Therefore we force at least two
+                // literals to avoid this case.  We don't care about order in
+                // this case, both literals get a 1 bit code.
                 while (heapLen < 2)
                 {
                     int node = maxCode < 2 ? ++maxCode : 0;
                     heap[heapLen++] = node;
                 }
 
-                numCodes = Math.Max(maxCode + 1, minNumCodes);
+                this.NumberOfCodes = Math.Max(maxCode + 1, this.minimumNumberOfCodes);
 
                 int numLeafs = heapLen;
-                int[] childs = new int[4 * heapLen - 2];
-                int[] values = new int[2 * heapLen - 1];
+                int[] childs = new int[(4 * heapLen) - 2];
+                int[] values = new int[(2 * heapLen) - 1];
                 int numNodes = numLeafs;
                 for (int i = 0; i < heapLen; i++)
                 {
                     int node = heap[i];
                     childs[2 * i] = node;
-                    childs[2 * i + 1] = -1;
-                    values[i] = freqs[node] << 8;
+                    childs[(2 * i) + 1] = -1;
+                    values[i] = this.Frequencies[node] << 8;
                     heap[i] = i;
                 }
 
-                /* Construct the Huffman tree by repeatedly combining the least two
-				* frequent nodes.
-				*/
+                // Construct the Huffman tree by repeatedly combining the least two
+                // frequent nodes.
                 do
                 {
                     int first = heap[0];
@@ -274,26 +261,25 @@
 
                         heap[ppos] = heap[path];
                         ppos = path;
-                        path = path * 2 + 1;
+                        path = (path * 2) + 1;
                     }
 
-                    /* Now propagate the last element down along path.  Normally
-					* it shouldn't go too deep.
-					*/
+                    // Now propagate the last element down along path.  Normally
+                    // it shouldn't go too deep.
                     int lastVal = values[last];
                     while ((path = ppos) > 0 && values[heap[ppos = (path - 1) / 2]] > lastVal)
                     {
                         heap[path] = heap[ppos];
                     }
-                    heap[path] = last;
 
+                    heap[path] = last;
 
                     int second = heap[0];
 
                     // Create a new node father of first and second
                     last = numNodes++;
                     childs[2 * last] = first;
-                    childs[2 * last + 1] = second;
+                    childs[(2 * last) + 1] = second;
                     int mindepth = Math.Min(values[first] & 0xff, values[second] & 0xff);
                     values[last] = lastVal = values[first] + values[second] - mindepth + 1;
 
@@ -310,7 +296,7 @@
 
                         heap[ppos] = heap[path];
                         ppos = path;
-                        path = ppos * 2 + 1;
+                        path = (ppos * 2) + 1;
                     }
 
                     // Now propagate the new element down along path
@@ -318,15 +304,17 @@
                     {
                         heap[path] = heap[ppos];
                     }
+
                     heap[path] = last;
-                } while (heapLen > 1);
+                }
+                while (heapLen > 1);
 
                 if (heap[0] != (childs.Length / 2) - 1)
                 {
                     throw new ImageFormatException("Heap invariant violated");
                 }
 
-                BuildLength(childs);
+                this.BuildLength(childs);
             }
 
             /// <summary>
@@ -336,10 +324,11 @@
             public int GetEncodedLength()
             {
                 int len = 0;
-                for (int i = 0; i < freqs.Length; i++)
+                for (int i = 0; i < this.Frequencies.Length; i++)
                 {
-                    len += freqs[i] * length[i];
+                    len += this.Frequencies[i] * this.Length[i];
                 }
+
                 return len;
             }
 
@@ -355,10 +344,10 @@
                 int curlen = -1;             /* length of current code */
 
                 int i = 0;
-                while (i < numCodes)
+                while (i < this.NumberOfCodes)
                 {
                     count = 1;
-                    int nextlen = length[i];
+                    int nextlen = this.Length[i];
                     if (nextlen == 0)
                     {
                         max_count = 138;
@@ -370,14 +359,15 @@
                         min_count = 3;
                         if (curlen != nextlen)
                         {
-                            blTree.freqs[nextlen]++;
+                            blTree.Frequencies[nextlen]++;
                             count = 0;
                         }
                     }
+
                     curlen = nextlen;
                     i++;
 
-                    while (i < numCodes && curlen == length[i])
+                    while (i < this.NumberOfCodes && curlen == this.Length[i])
                     {
                         i++;
                         if (++count >= max_count)
@@ -388,19 +378,19 @@
 
                     if (count < min_count)
                     {
-                        blTree.freqs[curlen] += (short)count;
+                        blTree.Frequencies[curlen] += (short)count;
                     }
                     else if (curlen != 0)
                     {
-                        blTree.freqs[REP_3_6]++;
+                        blTree.Frequencies[Repeat3To6]++;
                     }
                     else if (count <= 10)
                     {
-                        blTree.freqs[REP_3_10]++;
+                        blTree.Frequencies[Repeat3To10]++;
                     }
                     else
                     {
-                        blTree.freqs[REP_11_138]++;
+                        blTree.Frequencies[Repeat11To138]++;
                     }
                 }
             }
@@ -417,10 +407,10 @@
                 int curlen = -1;             // length of current code
 
                 int i = 0;
-                while (i < numCodes)
+                while (i < this.NumberOfCodes)
                 {
                     count = 1;
-                    int nextlen = length[i];
+                    int nextlen = this.Length[i];
                     if (nextlen == 0)
                     {
                         max_count = 138;
@@ -436,10 +426,11 @@
                             count = 0;
                         }
                     }
+
                     curlen = nextlen;
                     i++;
 
-                    while (i < numCodes && curlen == length[i])
+                    while (i < this.NumberOfCodes && curlen == this.Length[i])
                     {
                         i++;
                         if (++count >= max_count)
@@ -457,32 +448,32 @@
                     }
                     else if (curlen != 0)
                     {
-                        blTree.WriteSymbol(REP_3_6);
-                        dh.pending.WriteBits(count - 3, 2);
+                        blTree.WriteSymbol(Repeat3To6);
+                        this.deflater.pending.WriteBits(count - 3, 2);
                     }
                     else if (count <= 10)
                     {
-                        blTree.WriteSymbol(REP_3_10);
-                        dh.pending.WriteBits(count - 3, 3);
+                        blTree.WriteSymbol(Repeat3To10);
+                        this.deflater.pending.WriteBits(count - 3, 3);
                     }
                     else
                     {
-                        blTree.WriteSymbol(REP_11_138);
-                        dh.pending.WriteBits(count - 11, 7);
+                        blTree.WriteSymbol(Repeat11To138);
+                        this.deflater.pending.WriteBits(count - 11, 7);
                     }
                 }
             }
 
-            void BuildLength(int[] childs)
+            private void BuildLength(int[] childs)
             {
-                this.length = new byte[freqs.Length];
+                this.Length = new byte[this.Frequencies.Length];
                 int numNodes = childs.Length / 2;
                 int numLeafs = (numNodes + 1) / 2;
                 int overflow = 0;
 
-                for (int i = 0; i < maxLength; i++)
+                for (int i = 0; i < this.maxLength; i++)
                 {
-                    bl_counts[i] = 0;
+                    this.blCounts[i] = 0;
                 }
 
                 // First calculate optimal bit lengths
@@ -491,96 +482,80 @@
 
                 for (int i = numNodes - 1; i >= 0; i--)
                 {
-                    if (childs[2 * i + 1] != -1)
+                    if (childs[(2 * i) + 1] != -1)
                     {
                         int bitLength = lengths[i] + 1;
-                        if (bitLength > maxLength)
+                        if (bitLength > this.maxLength)
                         {
-                            bitLength = maxLength;
+                            bitLength = this.maxLength;
                             overflow++;
                         }
-                        lengths[childs[2 * i]] = lengths[childs[2 * i + 1]] = bitLength;
+
+                        lengths[childs[2 * i]] = lengths[childs[(2 * i) + 1]] = bitLength;
                     }
                     else
                     {
                         // A leaf node
                         int bitLength = lengths[i];
-                        bl_counts[bitLength - 1]++;
-                        this.length[childs[2 * i]] = (byte)lengths[i];
+                        this.blCounts[bitLength - 1]++;
+                        this.Length[childs[2 * i]] = (byte)lengths[i];
                     }
                 }
-
-                //				if (DeflaterConstants.DEBUGGING) {
-                //					//Console.WriteLine("Tree "+freqs.Length+" lengths:");
-                //					for (int i=0; i < numLeafs; i++) {
-                //						//Console.WriteLine("Node "+childs[2*i]+" freq: "+freqs[childs[2*i]]
-                //						                  + " len: "+length[childs[2*i]]);
-                //					}
-                //				}
 
                 if (overflow == 0)
                 {
                     return;
                 }
 
-                int incrBitLen = maxLength - 1;
+                int incrBitLen = this.maxLength - 1;
                 do
                 {
                     // Find the first bit length which could increase:
-                    while (bl_counts[--incrBitLen] == 0)
-                        ;
+                    while (this.blCounts[--incrBitLen] == 0)
+                    {
+                    }
 
                     // Move this node one down and remove a corresponding
                     // number of overflow nodes.
                     do
                     {
-                        bl_counts[incrBitLen]--;
-                        bl_counts[++incrBitLen]++;
-                        overflow -= 1 << (maxLength - 1 - incrBitLen);
-                    } while (overflow > 0 && incrBitLen < maxLength - 1);
-                } while (overflow > 0);
+                        this.blCounts[incrBitLen]--;
+                        this.blCounts[++incrBitLen]++;
+                        overflow -= 1 << (this.maxLength - 1 - incrBitLen);
+                    }
+                    while (overflow > 0 && incrBitLen < this.maxLength - 1);
+                }
+                while (overflow > 0);
 
-                /* We may have overshot above.  Move some nodes from maxLength to
-				* maxLength-1 in that case.
-				*/
-                bl_counts[maxLength - 1] += overflow;
-                bl_counts[maxLength - 2] -= overflow;
+                // We may have overshot above.  Move some nodes from maxLength to
+                // maxLength-1 in that case.
+                this.blCounts[this.maxLength - 1] += overflow;
+                this.blCounts[this.maxLength - 2] -= overflow;
 
-                /* Now recompute all bit lengths, scanning in increasing
-				* frequency.  It is simpler to reconstruct all lengths instead of
-				* fixing only the wrong ones. This idea is taken from 'ar'
-				* written by Haruhiko Okumura.
-				*
-				* The nodes were inserted with decreasing frequency into the childs
-				* array.
-				*/
+                // Now recompute all bit lengths, scanning in increasing
+                // frequency.  It is simpler to reconstruct all lengths instead of
+                // fixing only the wrong ones. This idea is taken from 'ar'
+                // written by Haruhiko Okumura.
+                // The nodes were inserted with decreasing frequency into the childs
+                // array.
                 int nodePtr = 2 * numLeafs;
-                for (int bits = maxLength; bits != 0; bits--)
+                for (int bits = this.maxLength; bits != 0; bits--)
                 {
-                    int n = bl_counts[bits - 1];
+                    int n = this.blCounts[bits - 1];
                     while (n > 0)
                     {
                         int childPtr = 2 * childs[nodePtr++];
                         if (childs[childPtr + 1] == -1)
                         {
                             // We found another leaf
-                            length[childs[childPtr]] = (byte)bits;
+                            this.Length[childs[childPtr]] = (byte)bits;
                             n--;
                         }
                     }
                 }
-                //				if (DeflaterConstants.DEBUGGING) {
-                //					//Console.WriteLine("*** After overflow elimination. ***");
-                //					for (int i=0; i < numLeafs; i++) {
-                //						//Console.WriteLine("Node "+childs[2*i]+" freq: "+freqs[childs[2*i]]
-                //						                  + " len: "+length[childs[2*i]]);
-                //					}
-                //				}
             }
-
         }
 
-        #region Instance Fields
         /// <summary>
         /// Pending buffer to use
         /// </summary>
@@ -595,14 +570,13 @@
         byte[] l_buf;
         int last_lit;
         int extra_bits;
-        #endregion
 
         static DeflaterHuffman()
         {
             // See RFC 1951 3.2.6
             // Literal codes
-            staticLCodes = new short[LITERAL_NUM];
-            staticLLength = new byte[LITERAL_NUM];
+            staticLCodes = new short[LiteralCount];
+            staticLLength = new byte[LiteralCount];
 
             int i = 0;
             while (i < 144)
@@ -623,16 +597,16 @@
                 staticLLength[i++] = 7;
             }
 
-            while (i < LITERAL_NUM)
+            while (i < LiteralCount)
             {
                 staticLCodes[i] = BitReverse((0x0c0 - 280 + i) << 8);
                 staticLLength[i++] = 8;
             }
 
             // Distance codes
-            staticDCodes = new short[DIST_NUM];
-            staticDLength = new byte[DIST_NUM];
-            for (i = 0; i < DIST_NUM; i++)
+            staticDCodes = new short[DistanceCodeCount];
+            staticDLength = new byte[DistanceCodeCount];
+            for (i = 0; i < DistanceCodeCount; i++)
             {
                 staticDCodes[i] = BitReverse(i << 11);
                 staticDLength[i] = 5;
@@ -640,31 +614,44 @@
         }
 
         /// <summary>
-        /// Construct instance with pending buffer
+        /// Initializes a new instance of the <see cref="DeflaterHuffman"/> class with a pending buffer.
         /// </summary>
         /// <param name="pending">Pending buffer to use</param>
         public DeflaterHuffman(DeflaterPending pending)
         {
             this.pending = pending;
 
-            literalTree = new Tree(this, LITERAL_NUM, 257, 15);
-            distTree = new Tree(this, DIST_NUM, 1, 15);
-            blTree = new Tree(this, BITLEN_NUM, 4, 7);
+            this.literalTree = new Tree(this, LiteralCount, 257, 15);
+            this.distTree = new Tree(this, DistanceCodeCount, 1, 15);
+            this.blTree = new Tree(this, BitLengthCount, 4, 7);
 
-            d_buf = new short[BUFSIZE];
-            l_buf = new byte[BUFSIZE];
+            this.d_buf = new short[Buffersize];
+            this.l_buf = new byte[Buffersize];
         }
 
         /// <summary>
-        /// Reset internal state
+        /// Reverse the bits of a 16 bit value.
+        /// </summary>
+        /// <param name="toReverse">Value to reverse bits</param>
+        /// <returns>Value with bits reversed</returns>
+        public static short BitReverse(int toReverse)
+        {
+            return (short)(Bit4Reverse[toReverse & 0xF] << 12 |
+                            Bit4Reverse[(toReverse >> 4) & 0xF] << 8 |
+                            Bit4Reverse[(toReverse >> 8) & 0xF] << 4 |
+                            Bit4Reverse[toReverse >> 12]);
+        }
+
+        /// <summary>
+        /// Resets the internal state
         /// </summary>
         public void Reset()
         {
-            last_lit = 0;
-            extra_bits = 0;
-            literalTree.Reset();
-            distTree.Reset();
-            blTree.Reset();
+            this.last_lit = 0;
+            this.extra_bits = 0;
+            this.literalTree.Reset();
+            this.distTree.Reset();
+            this.blTree.Reset();
         }
 
         /// <summary>
@@ -673,24 +660,20 @@
         /// <param name="blTreeCodes">The number/rank of treecodes to send.</param>
         public void SendAllTrees(int blTreeCodes)
         {
-            blTree.BuildCodes();
-            literalTree.BuildCodes();
-            distTree.BuildCodes();
-            pending.WriteBits(literalTree.numCodes - 257, 5);
-            pending.WriteBits(distTree.numCodes - 1, 5);
-            pending.WriteBits(blTreeCodes - 4, 4);
+            this.blTree.BuildCodes();
+            this.literalTree.BuildCodes();
+            this.distTree.BuildCodes();
+            this.pending.WriteBits(this.literalTree.NumberOfCodes - 257, 5);
+            this.pending.WriteBits(this.distTree.NumberOfCodes - 1, 5);
+            this.pending.WriteBits(blTreeCodes - 4, 4);
+
             for (int rank = 0; rank < blTreeCodes; rank++)
             {
-                pending.WriteBits(blTree.length[BL_ORDER[rank]], 3);
+                this.pending.WriteBits(this.blTree.Length[BitLengthOrder[rank]], 3);
             }
-            literalTree.WriteTree(blTree);
-            distTree.WriteTree(blTree);
 
-#if DebugDeflation
-			if (DeflaterConstants.DEBUGGING) {
-				blTree.CheckEmpty();
-			}
-#endif
+            this.literalTree.WriteTree(this.blTree);
+            this.distTree.WriteTree(this.blTree);
         }
 
         /// <summary>
@@ -698,60 +681,37 @@
         /// </summary>
         public void CompressBlock()
         {
-            for (int i = 0; i < last_lit; i++)
+            for (int i = 0; i < this.last_lit; i++)
             {
-                int litlen = l_buf[i] & 0xff;
-                int dist = d_buf[i];
+                int litlen = this.l_buf[i] & 0xff;
+                int dist = this.d_buf[i];
                 if (dist-- != 0)
                 {
-                    //					if (DeflaterConstants.DEBUGGING) {
-                    //						Console.Write("["+(dist+1)+","+(litlen+3)+"]: ");
-                    //					}
-
                     int lc = Lcode(litlen);
-                    literalTree.WriteSymbol(lc);
+                    this.literalTree.WriteSymbol(lc);
 
                     int bits = (lc - 261) / 4;
                     if (bits > 0 && bits <= 5)
                     {
-                        pending.WriteBits(litlen & ((1 << bits) - 1), bits);
+                        this.pending.WriteBits(litlen & ((1 << bits) - 1), bits);
                     }
 
                     int dc = Dcode(dist);
-                    distTree.WriteSymbol(dc);
+                    this.distTree.WriteSymbol(dc);
 
-                    bits = dc / 2 - 1;
+                    bits = (dc / 2) - 1;
                     if (bits > 0)
                     {
-                        pending.WriteBits(dist & ((1 << bits) - 1), bits);
+                        this.pending.WriteBits(dist & ((1 << bits) - 1), bits);
                     }
                 }
                 else
                 {
-                    //					if (DeflaterConstants.DEBUGGING) {
-                    //						if (litlen > 32 && litlen < 127) {
-                    //							Console.Write("("+(char)litlen+"): ");
-                    //						} else {
-                    //							Console.Write("{"+litlen+"}: ");
-                    //						}
-                    //					}
-                    literalTree.WriteSymbol(litlen);
+                    this.literalTree.WriteSymbol(litlen);
                 }
             }
 
-#if DebugDeflation
-			if (DeflaterConstants.DEBUGGING) {
-				Console.Write("EOF: ");
-			}
-#endif
-            literalTree.WriteSymbol(EOF_SYMBOL);
-
-#if DebugDeflation
-			if (DeflaterConstants.DEBUGGING) {
-				literalTree.CheckEmpty();
-				distTree.CheckEmpty();
-			}
-#endif
+            this.literalTree.WriteSymbol(Eof);
         }
 
         /// <summary>
@@ -763,17 +723,12 @@
         /// <param name="lastBlock">True if this is the last block</param>
         public void FlushStoredBlock(byte[] stored, int storedOffset, int storedLength, bool lastBlock)
         {
-#if DebugDeflation
-			//			if (DeflaterConstants.DEBUGGING) {
-			//				//Console.WriteLine("Flushing stored block "+ storedLength);
-			//			}
-#endif
-            pending.WriteBits((DeflaterConstants.STORED_BLOCK << 1) + (lastBlock ? 1 : 0), 3);
-            pending.AlignToByte();
-            pending.WriteShort(storedLength);
-            pending.WriteShort(~storedLength);
-            pending.WriteBlock(stored, storedOffset, storedLength);
-            Reset();
+            this.pending.WriteBits((DeflaterConstants.StoredBlock << 1) + (lastBlock ? 1 : 0), 3);
+            this.pending.AlignToByte();
+            this.pending.WriteShort(storedLength);
+            this.pending.WriteShort(~storedLength);
+            this.pending.WriteBlock(stored, storedOffset, storedLength);
+            this.Reset();
         }
 
         /// <summary>
@@ -785,40 +740,43 @@
         /// <param name="lastBlock">True if this is the last block</param>
         public void FlushBlock(byte[] stored, int storedOffset, int storedLength, bool lastBlock)
         {
-            literalTree.freqs[EOF_SYMBOL]++;
+            this.literalTree.Frequencies[Eof]++;
 
             // Build trees
-            literalTree.BuildTree();
-            distTree.BuildTree();
+            this.literalTree.BuildTree();
+            this.distTree.BuildTree();
 
             // Calculate bitlen frequency
-            literalTree.CalcBLFreq(blTree);
-            distTree.CalcBLFreq(blTree);
+            this.literalTree.CalcBLFreq(this.blTree);
+            this.distTree.CalcBLFreq(this.blTree);
 
             // Build bitlen tree
-            blTree.BuildTree();
+            this.blTree.BuildTree();
 
             int blTreeCodes = 4;
             for (int i = 18; i > blTreeCodes; i--)
             {
-                if (blTree.length[BL_ORDER[i]] > 0)
+                if (this.blTree.Length[BitLengthOrder[i]] > 0)
                 {
                     blTreeCodes = i + 1;
                 }
             }
-            int opt_len = 14 + blTreeCodes * 3 + blTree.GetEncodedLength() +
-                literalTree.GetEncodedLength() + distTree.GetEncodedLength() +
-                extra_bits;
 
-            int static_len = extra_bits;
-            for (int i = 0; i < LITERAL_NUM; i++)
+            int opt_len = 14 + (blTreeCodes * 3) + this.blTree.GetEncodedLength() +
+                this.literalTree.GetEncodedLength() + this.distTree.GetEncodedLength() +
+                this.extra_bits;
+
+            int static_len = this.extra_bits;
+            for (int i = 0; i < LiteralCount; i++)
             {
-                static_len += literalTree.freqs[i] * staticLLength[i];
+                static_len += this.literalTree.Frequencies[i] * staticLLength[i];
             }
-            for (int i = 0; i < DIST_NUM; i++)
+
+            for (int i = 0; i < DistanceCodeCount; i++)
             {
-                static_len += distTree.freqs[i] * staticDLength[i];
+                static_len += this.distTree.Frequencies[i] * staticDLength[i];
             }
+
             if (opt_len >= static_len)
             {
                 // Force static trees
@@ -828,29 +786,24 @@
             if (storedOffset >= 0 && storedLength + 4 < opt_len >> 3)
             {
                 // Store Block
-
-                //				if (DeflaterConstants.DEBUGGING) {
-                //					//Console.WriteLine("Storing, since " + storedLength + " < " + opt_len
-                //					                  + " <= " + static_len);
-                //				}
-                FlushStoredBlock(stored, storedOffset, storedLength, lastBlock);
+                this.FlushStoredBlock(stored, storedOffset, storedLength, lastBlock);
             }
             else if (opt_len == static_len)
             {
                 // Encode with static tree
-                pending.WriteBits((DeflaterConstants.STATIC_TREES << 1) + (lastBlock ? 1 : 0), 3);
-                literalTree.SetStaticCodes(staticLCodes, staticLLength);
-                distTree.SetStaticCodes(staticDCodes, staticDLength);
-                CompressBlock();
-                Reset();
+                this.pending.WriteBits((DeflaterConstants.StaticTrees << 1) + (lastBlock ? 1 : 0), 3);
+                this.literalTree.SetStaticCodes(staticLCodes, staticLLength);
+                this.distTree.SetStaticCodes(staticDCodes, staticDLength);
+                this.CompressBlock();
+                this.Reset();
             }
             else
             {
                 // Encode with dynamic tree
-                pending.WriteBits((DeflaterConstants.DYN_TREES << 1) + (lastBlock ? 1 : 0), 3);
-                SendAllTrees(blTreeCodes);
-                CompressBlock();
-                Reset();
+                this.pending.WriteBits((DeflaterConstants.DynTrees << 1) + (lastBlock ? 1 : 0), 3);
+                this.SendAllTrees(blTreeCodes);
+                this.CompressBlock();
+                this.Reset();
             }
         }
 
@@ -860,7 +813,7 @@
         /// <returns>true if buffer is full</returns>
         public bool IsFull()
         {
-            return last_lit >= BUFSIZE;
+            return this.last_lit >= Buffersize;
         }
 
         /// <summary>
@@ -870,17 +823,10 @@
         /// <returns>Value indicating internal buffer is full</returns>
         public bool TallyLit(int literal)
         {
-            //			if (DeflaterConstants.DEBUGGING) {
-            //				if (lit > 32 && lit < 127) {
-            //					//Console.WriteLine("("+(char)lit+")");
-            //				} else {
-            //					//Console.WriteLine("{"+lit+"}");
-            //				}
-            //			}
-            d_buf[last_lit] = 0;
-            l_buf[last_lit++] = (byte)literal;
-            literalTree.freqs[literal]++;
-            return IsFull();
+            this.d_buf[this.last_lit] = 0;
+            this.l_buf[this.last_lit++] = (byte)literal;
+            this.literalTree.Frequencies[literal]++;
+            return this.IsFull();
         }
 
         /// <summary>
@@ -891,44 +837,27 @@
         /// <returns>Value indicating if internal buffer is full</returns>
         public bool TallyDist(int distance, int length)
         {
-            //			if (DeflaterConstants.DEBUGGING) {
-            //				//Console.WriteLine("[" + distance + "," + length + "]");
-            //			}
-
-            d_buf[last_lit] = (short)distance;
-            l_buf[last_lit++] = (byte)(length - 3);
+            this.d_buf[this.last_lit] = (short)distance;
+            this.l_buf[this.last_lit++] = (byte)(length - 3);
 
             int lc = Lcode(length - 3);
-            literalTree.freqs[lc]++;
+            this.literalTree.Frequencies[lc]++;
             if (lc >= 265 && lc < 285)
             {
-                extra_bits += (lc - 261) / 4;
+                this.extra_bits += (lc - 261) / 4;
             }
 
             int dc = Dcode(distance - 1);
-            distTree.freqs[dc]++;
+            this.distTree.Frequencies[dc]++;
             if (dc >= 4)
             {
-                extra_bits += dc / 2 - 1;
+                this.extra_bits += (dc / 2) - 1;
             }
-            return IsFull();
+
+            return this.IsFull();
         }
 
-
-        /// <summary>
-        /// Reverse the bits of a 16 bit value.
-        /// </summary>
-        /// <param name="toReverse">Value to reverse bits</param>
-        /// <returns>Value with bits reversed</returns>
-        public static short BitReverse(int toReverse)
-        {
-            return (short)(bit4Reverse[toReverse & 0xF] << 12 |
-                            bit4Reverse[(toReverse >> 4) & 0xF] << 8 |
-                            bit4Reverse[(toReverse >> 8) & 0xF] << 4 |
-                            bit4Reverse[toReverse >> 12]);
-        }
-
-        static int Lcode(int length)
+        private static int Lcode(int length)
         {
             if (length == 255)
             {
@@ -941,10 +870,11 @@
                 code += 4;
                 length >>= 1;
             }
+
             return code + length;
         }
 
-        static int Dcode(int distance)
+        private static int Dcode(int distance)
         {
             int code = 0;
             while (distance >= 4)
@@ -952,6 +882,7 @@
                 code += 2;
                 distance >>= 1;
             }
+
             return code + distance;
         }
     }

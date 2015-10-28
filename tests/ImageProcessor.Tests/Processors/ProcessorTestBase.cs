@@ -20,14 +20,14 @@ namespace ImageProcessor.Tests
         public static readonly List<string> Files = new List<string>
         {
             "../../TestImages/Formats/Jpg/Backdrop.jpg",
-            "../../TestImages/Formats/Jpg/Calliphora.jpg",
-            "../../TestImages/Formats/Jpg/gamma_dalai_lama_gray.jpg",
-            "../../TestImages/Formats/Jpg/greyscale.jpg",
-            "../../TestImages/Formats/Bmp/Car.bmp",
-            "../../TestImages/Formats/Png/cmyk.png",
-            "../../TestImages/Formats/Png/gamma-1.0-or-2.2.png",
-            "../../TestImages/Formats/Gif/leaf.gif",
-            "../../TestImages/Formats/Gif/rings.gif"
+            //"../../TestImages/Formats/Jpg/Calliphora.jpg",
+            //"../../TestImages/Formats/Jpg/gamma_dalai_lama_gray.jpg",
+            //"../../TestImages/Formats/Jpg/greyscale.jpg",
+            //"../../TestImages/Formats/Bmp/Car.bmp",
+            //"../../TestImages/Formats/Png/cmyk.png",
+            //"../../TestImages/Formats/Png/gamma-1.0-or-2.2.png",
+            //"../../TestImages/Formats/Gif/leaf.gif",
+            //"../../TestImages/Formats/Gif/rings.gif"
 
             // { "../../TestImages/Formats/Gif/ani.gif" },
             // { "../../TestImages/Formats/Gif/ani2.gif" },

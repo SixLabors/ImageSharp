@@ -1,10 +1,11 @@
-﻿namespace ImageProcessor.Formats {
+﻿namespace ImageProcessor.Formats
+{
     using System;
 
     /// <summary>
     /// Inflater is used to decompress data that has been compressed according
     /// to the "deflate" standard described in rfc1951.
-    /// 
+    ///
     /// By default Zlib (rfc1950) headers and footers are expected in the input.
     /// You can use constructor <code> public Inflater(bool noHeader)</code> passing true
     /// if there is no Zlib header information
@@ -28,19 +29,20 @@
     /// </summary>
     public class Inflater
     {
-        #region Constants/Readonly
         /// <summary>
         /// Copy lengths for literal codes 257..285
         /// </summary>
-        static readonly int[] CPLENS = {
-                                  3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31,
-                                  35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258
-                              };
+        private static readonly int[] CPLENS =
+            {
+                3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31,
+                35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258
+            };
 
         /// <summary>
         /// Extra bits for literal codes 257..285
         /// </summary>
-        static readonly int[] CPLEXT = {
+        private static readonly int[] CPLEXT =
+        {
                                   0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2,
                                   3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0
                               };
@@ -48,7 +50,8 @@
         /// <summary>
         /// Copy offsets for distance codes 0..29
         /// </summary>
-        static readonly int[] CPDIST = {
+        private static readonly int[] CPDIST =
+        {
                                 1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193,
                                 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145,
                                 8193, 12289, 16385, 24577
@@ -57,7 +60,8 @@
         /// <summary>
         /// Extra bits for distance codes
         /// </summary>
-        static readonly int[] CPDEXT = {
+        private static readonly int[] CPDEXT =
+        {
                                 0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6,
                                 7, 7, 8, 8, 9, 9, 10, 10, 11, 11,
                                 12, 12, 13, 13
@@ -66,95 +70,92 @@
         /// <summary>
         /// These are the possible states for an inflater
         /// </summary>
-        const int DECODE_HEADER = 0;
-        const int DECODE_DICT = 1;
-        const int DECODE_BLOCKS = 2;
-        const int DECODE_STORED_LEN1 = 3;
-        const int DECODE_STORED_LEN2 = 4;
-        const int DECODE_STORED = 5;
-        const int DECODE_DYN_HEADER = 6;
-        const int DECODE_HUFFMAN = 7;
-        const int DECODE_HUFFMAN_LENBITS = 8;
-        const int DECODE_HUFFMAN_DIST = 9;
-        const int DECODE_HUFFMAN_DISTBITS = 10;
-        const int DECODE_CHKSUM = 11;
-        const int FINISHED = 12;
-        #endregion
+        private const int DECODE_HEADER = 0;
+        private const int DECODE_DICT = 1;
+        private const int DECODE_BLOCKS = 2;
+        private const int DECODE_STORED_LEN1 = 3;
+        private const int DECODE_STORED_LEN2 = 4;
+        private const int DECODE_STORED = 5;
+        private const int DECODE_DYN_HEADER = 6;
+        private const int DECODE_HUFFMAN = 7;
+        private const int DECODE_HUFFMAN_LENBITS = 8;
+        private const int DECODE_HUFFMAN_DIST = 9;
+        private const int DECODE_HUFFMAN_DISTBITS = 10;
+        private const int DECODE_CHKSUM = 11;
+        private const int FINISHED = 12;
 
-        #region Instance Fields
         /// <summary>
         /// This variable contains the current state.
         /// </summary>
-        int mode;
+        private int mode;
 
         /// <summary>
         /// The adler checksum of the dictionary or of the decompressed
         /// stream, as it is written in the header resp. footer of the
-        /// compressed stream. 
+        /// compressed stream.
         /// Only valid if mode is DECODE_DICT or DECODE_CHKSUM.
         /// </summary>
-        int readAdler;
+        private int readAdler;
 
         /// <summary>
         /// The number of bits needed to complete the current state.  This
         /// is valid, if mode is DECODE_DICT, DECODE_CHKSUM,
         /// DECODE_HUFFMAN_LENBITS or DECODE_HUFFMAN_DISTBITS.
         /// </summary>
-        int neededBits;
-        int repLength;
-        int repDist;
-        int uncomprLen;
+        private int neededBits;
+        private int repLength;
+        private int repDist;
+        private int uncomprLen;
 
         /// <summary>
         /// True, if the last block flag was set in the last block of the
         /// inflated stream.  This means that the stream ends after the
         /// current block.
         /// </summary>
-        bool isLastBlock;
+        private bool isLastBlock;
 
         /// <summary>
         /// The total number of inflated bytes.
         /// </summary>
-        long totalOut;
+        private long totalOut;
 
         /// <summary>
         /// The total number of bytes set with setInput().  This is not the
         /// value returned by the TotalIn property, since this also includes the
         /// unprocessed input.
         /// </summary>
-        long totalIn;
+        private long totalIn;
 
         /// <summary>
         /// This variable stores the noHeader flag that was given to the constructor.
-        /// True means, that the inflated stream doesn't contain a Zlib header or 
+        /// True means, that the inflated stream doesn't contain a Zlib header or
         /// footer.
         /// </summary>
-        bool noHeader;
+        private bool noHeader;
 
-        StreamManipulator input;
-        OutputWindow outputWindow;
-        InflaterDynHeader dynHeader;
-        InflaterHuffmanTree litlenTree, distTree;
-        Adler32 adler;
-        #endregion
+        private StreamManipulator input;
+        private OutputWindow outputWindow;
+        private InflaterDynHeader dynHeader;
+        private InflaterHuffmanTree litlenTree, distTree;
+        private Adler32 adler;
 
-        #region Constructors
         /// <summary>
-        /// Creates a new inflater or RFC1951 decompressor
+        /// Initializes a new instance of the <see cref="Inflater"/> class.
         /// RFC1950/Zlib headers and footers will be expected in the input data
         /// </summary>
-        public Inflater() : this(false)
+        public Inflater()
+            : this(false)
         {
         }
 
         /// <summary>
-        /// Creates a new inflater.
+        /// Initializes a new instance of the <see cref="Inflater"/> class.
         /// </summary>
         /// <param name="noHeader">
         /// True if no RFC1950/Zlib header and footer fields are expected in the input data
-        /// 
+        ///
         /// This is used for GZIPed/Zipped input.
-        /// 
+        ///
         /// For compatibility with
         /// Sun JDK you should provide one byte of input more than needed in
         /// this case.
@@ -163,11 +164,10 @@
         {
             this.noHeader = noHeader;
             this.adler = new Adler32();
-            input = new StreamManipulator();
-            outputWindow = new OutputWindow();
-            mode = noHeader ? DECODE_BLOCKS : DECODE_HEADER;
+            this.input = new StreamManipulator();
+            this.outputWindow = new OutputWindow();
+            this.mode = noHeader ? DECODE_BLOCKS : DECODE_HEADER;
         }
-        #endregion
 
         /// <summary>
         /// Resets the inflater so that a new stream can be decompressed.  All
@@ -175,16 +175,16 @@
         /// </summary>
         public void Reset()
         {
-            mode = noHeader ? DECODE_BLOCKS : DECODE_HEADER;
-            totalIn = 0;
-            totalOut = 0;
-            input.Reset();
-            outputWindow.Reset();
-            dynHeader = null;
-            litlenTree = null;
-            distTree = null;
-            isLastBlock = false;
-            adler.Reset();
+            this.mode = this.noHeader ? DECODE_BLOCKS : DECODE_HEADER;
+            this.totalIn = 0;
+            this.totalOut = 0;
+            this.input.Reset();
+            this.outputWindow.Reset();
+            this.dynHeader = null;
+            this.litlenTree = null;
+            this.distTree = null;
+            this.isLastBlock = false;
+            this.adler.Reset();
         }
 
         /// <summary>
@@ -198,12 +198,13 @@
         /// </exception>
         private bool DecodeHeader()
         {
-            int header = input.PeekBits(16);
+            int header = this.input.PeekBits(16);
             if (header < 0)
             {
                 return false;
             }
-            input.DropBits(16);
+
+            this.input.DropBits(16);
 
             // The header is written in "wrong" byte order
             header = ((header << 8) | (header >> 8)) & 0xffff;
@@ -212,27 +213,28 @@
                 throw new ImageFormatException("Header checksum illegal");
             }
 
-            if ((header & 0x0f00) != (Deflater.DEFLATED << 8))
+            if ((header & 0x0f00) != (Deflater.Deflated << 8))
             {
                 throw new ImageFormatException("Compression Method unknown");
             }
 
             /* Maximum size of the backwards window in bits.
-			* We currently ignore this, but we could use it to make the
-			* inflater window more space efficient. On the other hand the
-			* full window (15 bits) is needed most times, anyway.
-			int max_wbits = ((header & 0x7000) >> 12) + 8;
-			*/
+            * We currently ignore this, but we could use it to make the
+            * inflater window more space efficient. On the other hand the
+            * full window (15 bits) is needed most times, anyway.
+            int max_wbits = ((header & 0x7000) >> 12) + 8;
+            */
 
             if ((header & 0x0020) == 0)
             { // Dictionary flag?
-                mode = DECODE_BLOCKS;
+                this.mode = DECODE_BLOCKS;
             }
             else
             {
-                mode = DECODE_DICT;
-                neededBits = 32;
+                this.mode = DECODE_DICT;
+                this.neededBits = 32;
             }
+
             return true;
         }
 
@@ -244,17 +246,19 @@
         /// </returns>
         private bool DecodeDict()
         {
-            while (neededBits > 0)
+            while (this.neededBits > 0)
             {
-                int dictByte = input.PeekBits(8);
+                int dictByte = this.input.PeekBits(8);
                 if (dictByte < 0)
                 {
                     return false;
                 }
-                input.DropBits(8);
-                readAdler = (readAdler << 8) | dictByte;
-                neededBits -= 8;
+
+                this.input.DropBits(8);
+                this.readAdler = (this.readAdler << 8) | dictByte;
+                this.neededBits -= 8;
             }
+
             return false;
         }
 
@@ -270,17 +274,17 @@
         /// </exception>
         private bool DecodeHuffman()
         {
-            int free = outputWindow.GetFreeSpace();
+            int free = this.outputWindow.GetFreeSpace();
             while (free >= 258)
             {
                 int symbol;
-                switch (mode)
+                switch (this.mode)
                 {
                     case DECODE_HUFFMAN:
                         // This is the inner loop so it is optimized a bit
-                        while (((symbol = litlenTree.GetSymbol(input)) & ~0xff) == 0)
+                        while (((symbol = this.litlenTree.GetSymbol(this.input)) & ~0xff) == 0)
                         {
-                            outputWindow.Write(symbol);
+                            this.outputWindow.Write(symbol);
                             if (--free < 258)
                             {
                                 return true;
@@ -296,41 +300,44 @@
                             else
                             {
                                 // symbol == 256: end of block
-                                distTree = null;
-                                litlenTree = null;
-                                mode = DECODE_BLOCKS;
+                                this.distTree = null;
+                                this.litlenTree = null;
+                                this.mode = DECODE_BLOCKS;
                                 return true;
                             }
                         }
 
                         try
                         {
-                            repLength = CPLENS[symbol - 257];
-                            neededBits = CPLEXT[symbol - 257];
+                            this.repLength = CPLENS[symbol - 257];
+                            this.neededBits = CPLEXT[symbol - 257];
                         }
                         catch (Exception)
                         {
                             throw new ImageFormatException("Illegal rep length code");
                         }
+
                         goto case DECODE_HUFFMAN_LENBITS; // fall through
 
                     case DECODE_HUFFMAN_LENBITS:
-                        if (neededBits > 0)
+                        if (this.neededBits > 0)
                         {
-                            mode = DECODE_HUFFMAN_LENBITS;
-                            int i = input.PeekBits(neededBits);
+                            this.mode = DECODE_HUFFMAN_LENBITS;
+                            int i = this.input.PeekBits(this.neededBits);
                             if (i < 0)
                             {
                                 return false;
                             }
-                            input.DropBits(neededBits);
-                            repLength += i;
+
+                            this.input.DropBits(this.neededBits);
+                            this.repLength += i;
                         }
-                        mode = DECODE_HUFFMAN_DIST;
+
+                        this.mode = DECODE_HUFFMAN_DIST;
                         goto case DECODE_HUFFMAN_DIST; // fall through
 
                     case DECODE_HUFFMAN_DIST:
-                        symbol = distTree.GetSymbol(input);
+                        symbol = this.distTree.GetSymbol(this.input);
                         if (symbol < 0)
                         {
                             return false;
@@ -338,8 +345,8 @@
 
                         try
                         {
-                            repDist = CPDIST[symbol];
-                            neededBits = CPDEXT[symbol];
+                            this.repDist = CPDIST[symbol];
+                            this.neededBits = CPDEXT[symbol];
                         }
                         catch (Exception)
                         {
@@ -349,27 +356,29 @@
                         goto case DECODE_HUFFMAN_DISTBITS; // fall through
 
                     case DECODE_HUFFMAN_DISTBITS:
-                        if (neededBits > 0)
+                        if (this.neededBits > 0)
                         {
-                            mode = DECODE_HUFFMAN_DISTBITS;
-                            int i = input.PeekBits(neededBits);
+                            this.mode = DECODE_HUFFMAN_DISTBITS;
+                            int i = this.input.PeekBits(this.neededBits);
                             if (i < 0)
                             {
                                 return false;
                             }
-                            input.DropBits(neededBits);
-                            repDist += i;
+
+                            this.input.DropBits(this.neededBits);
+                            this.repDist += i;
                         }
 
-                        outputWindow.Repeat(repLength, repDist);
-                        free -= repLength;
-                        mode = DECODE_HUFFMAN;
+                        this.outputWindow.Repeat(this.repLength, this.repDist);
+                        free -= this.repLength;
+                        this.mode = DECODE_HUFFMAN;
                         break;
 
                     default:
                         throw new ImageFormatException("Inflater unknown mode");
                 }
             }
+
             return true;
         }
 
@@ -384,24 +393,25 @@
         /// </exception>
         private bool DecodeChksum()
         {
-            while (neededBits > 0)
+            while (this.neededBits > 0)
             {
-                int chkByte = input.PeekBits(8);
+                int chkByte = this.input.PeekBits(8);
                 if (chkByte < 0)
                 {
                     return false;
                 }
-                input.DropBits(8);
-                readAdler = (readAdler << 8) | chkByte;
-                neededBits -= 8;
+
+                this.input.DropBits(8);
+                this.readAdler = (this.readAdler << 8) | chkByte;
+                this.neededBits -= 8;
             }
 
-            if ((int)adler.Value != readAdler)
+            if ((int)this.adler.Value != this.readAdler)
             {
-                throw new ImageFormatException("Adler chksum doesn't match: " + (int)adler.Value + " vs. " + readAdler);
+                throw new ImageFormatException("Adler chksum doesn't match: " + (int)this.adler.Value + " vs. " + this.readAdler);
             }
 
-            mode = FINISHED;
+            this.mode = FINISHED;
             return false;
         }
 
@@ -416,120 +426,129 @@
         /// </exception>
         private bool Decode()
         {
-            switch (mode)
+            switch (this.mode)
             {
                 case DECODE_HEADER:
-                    return DecodeHeader();
+                    return this.DecodeHeader();
 
                 case DECODE_DICT:
-                    return DecodeDict();
+                    return this.DecodeDict();
 
                 case DECODE_CHKSUM:
-                    return DecodeChksum();
+                    return this.DecodeChksum();
 
                 case DECODE_BLOCKS:
-                    if (isLastBlock)
+                    if (this.isLastBlock)
                     {
-                        if (noHeader)
+                        if (this.noHeader)
                         {
-                            mode = FINISHED;
+                            this.mode = FINISHED;
                             return false;
                         }
                         else
                         {
-                            input.SkipToByteBoundary();
-                            neededBits = 32;
-                            mode = DECODE_CHKSUM;
+                            this.input.SkipToByteBoundary();
+                            this.neededBits = 32;
+                            this.mode = DECODE_CHKSUM;
                             return true;
                         }
                     }
 
-                    int type = input.PeekBits(3);
+                    int type = this.input.PeekBits(3);
                     if (type < 0)
                     {
                         return false;
                     }
-                    input.DropBits(3);
+
+                    this.input.DropBits(3);
 
                     if ((type & 1) != 0)
                     {
-                        isLastBlock = true;
+                        this.isLastBlock = true;
                     }
+
                     switch (type >> 1)
                     {
-                        case DeflaterConstants.STORED_BLOCK:
-                            input.SkipToByteBoundary();
-                            mode = DECODE_STORED_LEN1;
+                        case DeflaterConstants.StoredBlock:
+                            this.input.SkipToByteBoundary();
+                            this.mode = DECODE_STORED_LEN1;
                             break;
-                        case DeflaterConstants.STATIC_TREES:
-                            litlenTree = InflaterHuffmanTree.defLitLenTree;
-                            distTree = InflaterHuffmanTree.defDistTree;
-                            mode = DECODE_HUFFMAN;
+                        case DeflaterConstants.StaticTrees:
+                            this.litlenTree = InflaterHuffmanTree.defLitLenTree;
+                            this.distTree = InflaterHuffmanTree.defDistTree;
+                            this.mode = DECODE_HUFFMAN;
                             break;
-                        case DeflaterConstants.DYN_TREES:
-                            dynHeader = new InflaterDynHeader();
-                            mode = DECODE_DYN_HEADER;
+                        case DeflaterConstants.DynTrees:
+                            this.dynHeader = new InflaterDynHeader();
+                            this.mode = DECODE_DYN_HEADER;
                             break;
                         default:
                             throw new ImageFormatException("Unknown block type " + type);
                     }
+
                     return true;
 
                 case DECODE_STORED_LEN1:
                     {
-                        if ((uncomprLen = input.PeekBits(16)) < 0)
+                        if ((this.uncomprLen = this.input.PeekBits(16)) < 0)
                         {
                             return false;
                         }
-                        input.DropBits(16);
-                        mode = DECODE_STORED_LEN2;
+
+                        this.input.DropBits(16);
+                        this.mode = DECODE_STORED_LEN2;
                     }
+
                     goto case DECODE_STORED_LEN2; // fall through
 
                 case DECODE_STORED_LEN2:
                     {
-                        int nlen = input.PeekBits(16);
+                        int nlen = this.input.PeekBits(16);
                         if (nlen < 0)
                         {
                             return false;
                         }
-                        input.DropBits(16);
-                        if (nlen != (uncomprLen ^ 0xffff))
+
+                        this.input.DropBits(16);
+                        if (nlen != (this.uncomprLen ^ 0xffff))
                         {
                             throw new ImageFormatException("broken uncompressed block");
                         }
-                        mode = DECODE_STORED;
+
+                        this.mode = DECODE_STORED;
                     }
+
                     goto case DECODE_STORED; // fall through
 
                 case DECODE_STORED:
                     {
-                        int more = outputWindow.CopyStored(input, uncomprLen);
-                        uncomprLen -= more;
-                        if (uncomprLen == 0)
+                        int more = this.outputWindow.CopyStored(this.input, this.uncomprLen);
+                        this.uncomprLen -= more;
+                        if (this.uncomprLen == 0)
                         {
-                            mode = DECODE_BLOCKS;
+                            this.mode = DECODE_BLOCKS;
                             return true;
                         }
-                        return !input.IsNeedingInput;
+
+                        return !this.input.IsNeedingInput;
                     }
 
                 case DECODE_DYN_HEADER:
-                    if (!dynHeader.Decode(input))
+                    if (!this.dynHeader.Decode(this.input))
                     {
                         return false;
                     }
 
-                    litlenTree = dynHeader.BuildLitLenTree();
-                    distTree = dynHeader.BuildDistTree();
-                    mode = DECODE_HUFFMAN;
+                    this.litlenTree = this.dynHeader.BuildLitLenTree();
+                    this.distTree = this.dynHeader.BuildDistTree();
+                    this.mode = DECODE_HUFFMAN;
                     goto case DECODE_HUFFMAN; // fall through
 
                 case DECODE_HUFFMAN:
                 case DECODE_HUFFMAN_LENBITS:
                 case DECODE_HUFFMAN_DIST:
                 case DECODE_HUFFMAN_DISTBITS:
-                    return DecodeHuffman();
+                    return this.DecodeHuffman();
 
                 case FINISHED:
                     return false;
@@ -550,7 +569,7 @@
         /// </param>
         public void SetDictionary(byte[] buffer)
         {
-            SetDictionary(buffer, 0, buffer.Length);
+            this.SetDictionary(buffer, 0, buffer.Length);
         }
 
         /// <summary>
@@ -591,20 +610,21 @@
                 throw new ArgumentOutOfRangeException(nameof(count));
             }
 
-            if (!IsNeedingDictionary)
+            if (!this.IsNeedingDictionary)
             {
                 throw new InvalidOperationException("Dictionary is not needed");
             }
 
-            adler.Update(buffer, index, count);
+            this.adler.Update(buffer, index, count);
 
-            if ((int)adler.Value != readAdler)
+            if ((int)this.adler.Value != this.readAdler)
             {
                 throw new ImageFormatException("Wrong adler checksum");
             }
-            adler.Reset();
-            outputWindow.CopyDict(buffer, index, count);
-            mode = DECODE_BLOCKS;
+
+            this.adler.Reset();
+            this.outputWindow.CopyDict(buffer, index, count);
+            this.mode = DECODE_BLOCKS;
         }
 
         /// <summary>
@@ -616,7 +636,7 @@
         /// </param>
         public void SetInput(byte[] buffer)
         {
-            SetInput(buffer, 0, buffer.Length);
+            this.SetInput(buffer, 0, buffer.Length);
         }
 
         /// <summary>
@@ -640,8 +660,8 @@
         /// </exception>
         public void SetInput(byte[] buffer, int index, int count)
         {
-            input.SetInput(buffer, index, count);
-            totalIn += (long)count;
+            this.input.SetInput(buffer, index, count);
+            this.totalIn += (long)count;
         }
 
         /// <summary>
@@ -670,7 +690,7 @@
                 throw new ArgumentNullException(nameof(buffer));
             }
 
-            return Inflate(buffer, 0, buffer.Length);
+            return this.Inflate(buffer, 0, buffer.Length);
         }
 
         /// <summary>
@@ -709,20 +729,12 @@
 
             if (count < 0)
             {
-#if NETCF_1_0
-				throw new ArgumentOutOfRangeException("count");
-#else
                 throw new ArgumentOutOfRangeException(nameof(count), "count cannot be negative");
-#endif
             }
 
             if (offset < 0)
             {
-#if NETCF_1_0
-				throw new ArgumentOutOfRangeException("offset");
-#else
                 throw new ArgumentOutOfRangeException(nameof(offset), "offset cannot be negative");
-#endif
             }
 
             if (offset + count > buffer.Length)
@@ -733,10 +745,11 @@
             // Special case: count may be zero
             if (count == 0)
             {
-                if (!IsFinished)
+                if (!this.IsFinished)
                 { // -jr- 08-Nov-2003 INFLATE_BUG fix..
-                    Decode();
+                    this.Decode();
                 }
+
                 return 0;
             }
 
@@ -744,22 +757,22 @@
 
             do
             {
-                if (mode != DECODE_CHKSUM)
+                if (this.mode != DECODE_CHKSUM)
                 {
                     /* Don't give away any output, if we are waiting for the
-					* checksum in the input stream.
-					*
-					* With this trick we have always:
-					*   IsNeedingInput() and not IsFinished()
-					*   implies more output can be produced.
-					*/
-                    int more = outputWindow.CopyOutput(buffer, offset, count);
+                    * checksum in the input stream.
+                    *
+                    * With this trick we have always:
+                    *   IsNeedingInput() and not IsFinished()
+                    *   implies more output can be produced.
+                    */
+                    int more = this.outputWindow.CopyOutput(buffer, offset, count);
                     if (more > 0)
                     {
-                        adler.Update(buffer, offset, more);
+                        this.adler.Update(buffer, offset, more);
                         offset += more;
                         bytesCopied += more;
-                        totalOut += (long)more;
+                        this.totalOut += (long)more;
                         count -= more;
                         if (count == 0)
                         {
@@ -767,45 +780,28 @@
                         }
                     }
                 }
-            } while (Decode() || ((outputWindow.GetAvailable() > 0) && (mode != DECODE_CHKSUM)));
+            }
+            while (this.Decode() || ((this.outputWindow.GetAvailable() > 0) && (this.mode != DECODE_CHKSUM)));
             return bytesCopied;
         }
 
         /// <summary>
         /// Returns true, if the input buffer is empty.
-        /// You should then call setInput(). 
+        /// You should then call setInput().
         /// NOTE: This method also returns true when the stream is finished.
         /// </summary>
-        public bool IsNeedingInput
-        {
-            get
-            {
-                return input.IsNeedingInput;
-            }
-        }
+        public bool IsNeedingInput => this.input.IsNeedingInput;
 
         /// <summary>
         /// Returns true, if a preset dictionary is needed to inflate the input.
         /// </summary>
-        public bool IsNeedingDictionary
-        {
-            get
-            {
-                return mode == DECODE_DICT && neededBits == 0;
-            }
-        }
+        public bool IsNeedingDictionary => this.mode == DECODE_DICT && this.neededBits == 0;
 
         /// <summary>
         /// Returns true, if the inflater has finished.  This means, that no
         /// input is needed and no output can be produced.
         /// </summary>
-        public bool IsFinished
-        {
-            get
-            {
-                return mode == FINISHED && outputWindow.GetAvailable() == 0;
-            }
-        }
+        public bool IsFinished => this.mode == FINISHED && this.outputWindow.GetAvailable() == 0;
 
         /// <summary>
         /// Gets the adler checksum.  This is either the checksum of all
@@ -816,13 +812,7 @@
         /// <returns>
         /// the adler checksum.
         /// </returns>
-        public int Adler
-        {
-            get
-            {
-                return IsNeedingDictionary ? readAdler : (int)adler.Value;
-            }
-        }
+        public int Adler => this.IsNeedingDictionary ? this.readAdler : (int)this.adler.Value;
 
         /// <summary>
         /// Gets the total number of output bytes returned by Inflate().
@@ -830,13 +820,7 @@
         /// <returns>
         /// the total number of output bytes.
         /// </returns>
-        public long TotalOut
-        {
-            get
-            {
-                return totalOut;
-            }
-        }
+        public long TotalOut => this.totalOut;
 
         /// <summary>
         /// Gets the total number of processed compressed input bytes.
@@ -844,13 +828,7 @@
         /// <returns>
         /// The total number of bytes of processed input bytes.
         /// </returns>
-        public long TotalIn
-        {
-            get
-            {
-                return totalIn - (long)RemainingInput;
-            }
-        }
+        public long TotalIn => this.totalIn - (long)this.RemainingInput;
 
         /// <summary>
         /// Gets the number of unprocessed input bytes.  Useful, if the end of the
@@ -860,13 +838,6 @@
         /// <returns>
         /// The number of bytes of the input which have not been processed.
         /// </returns>
-        public int RemainingInput
-        {
-            // TODO: This should be a long?
-            get
-            {
-                return input.AvailableBytes;
-            }
-        }
+        public int RemainingInput => this.input.AvailableBytes; // TODO: Should this be a long?
     }
 }

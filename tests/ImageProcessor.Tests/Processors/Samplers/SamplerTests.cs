@@ -1,6 +1,7 @@
 ﻿
 namespace ImageProcessor.Tests
 {
+    using System;
     using System.Diagnostics;
     using System.IO;
 

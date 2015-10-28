@@ -127,7 +127,7 @@ namespace ImageProcessor
         /// <returns>The <see cref="byte"/></returns>
         public static byte ToByte(this float value)
         {
-            return (byte)(value.Clamp(0, 255) + 0.5f);
+            return (byte)(value.Clamp(0, 255));
         }
 
         /// <summary>
@@ -138,7 +138,7 @@ namespace ImageProcessor
         /// <returns>The <see cref="byte"/></returns>
         public static byte ToByte(this double value)
         {
-            return (byte)(value.Clamp(0, 255) + 0.5d);
+            return (byte)(value.Clamp(0, 255));
         }
     }
 }

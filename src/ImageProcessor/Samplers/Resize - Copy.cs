@@ -141,42 +141,39 @@ namespace ImageProcessor.Samplers
             double ru = Math.Ceiling(scale * sampler.Radius);
             Weights[] result = new Weights[destinationSize];
 
-            Parallel.For(
-                0,
-                destinationSize,
-                i =>
+            for (int i = 0; i < destinationSize; i++)
+            {
+                double fu = ((i + .5) * du) - 0.5;
+                int startU = (int)Math.Ceiling(fu - ru);
+
+                if (startU < 0)
+                {
+                    startU = 0;
+                }
+
+                int endU = (int)Math.Floor(fu + ru);
+
+                if (endU > sourceSize - 1)
+                {
+                    endU = sourceSize - 1;
+                }
+
+                double sum = 0;
+                result[i] = new Weights();
+
+                for (int a = startU; a <= endU; a++)
+                {
+                    double w = 255 * sampler.GetValue((a - fu) / scale);
+
+                    if (Math.Abs(w) > Epsilon)
                     {
-                        double fu = ((i + .5) * du) - 0.5;
-                        int startU = (int)Math.Ceiling(fu - ru);
+                        sum += w;
+                        result[i].Values.Add(new Weight(a, w));
+                    }
+                }
 
-                        if (startU < 0)
-                        {
-                            startU = 0;
-                        }
-
-                        int endU = (int)Math.Floor(fu + ru);
-
-                        if (endU > sourceSize - 1)
-                        {
-                            endU = sourceSize - 1;
-                        }
-
-                        double sum = 0;
-                        result[i] = new Weights();
-
-                        for (int a = startU; a <= endU; a++)
-                        {
-                            double w = 255 * sampler.GetValue((a - fu) / scale);
-
-                            if (Math.Abs(w) > Epsilon)
-                            {
-                                sum += w;
-                                result[i].Values.Add(new Weight(a, w));
-                            }
-                        }
-
-                        result[i].Sum = sum;
-                    });
+                result[i].Sum = sum;
+            }
 
             return result;
         }

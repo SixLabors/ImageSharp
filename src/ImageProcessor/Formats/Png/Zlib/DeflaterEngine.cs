@@ -1,4 +1,9 @@
-﻿namespace ImageProcessor.Formats
+﻿// <copyright file="DeflaterEngine.cs" company="James South">
+// Copyright © James South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
+namespace ImageProcessor.Formats
 {
     using System;
 
@@ -22,7 +27,7 @@
     public class DeflaterEngine : DeflaterConstants
     {
         /// <summary>
-        /// ne more than the maximum upper bounds.
+        /// One more than the maximum upper bounds.
         /// </summary>
         private const int TooFar = 4096;
 
@@ -44,9 +49,108 @@
         private readonly short[] head;
 
         /// <summary>
+        /// This array contains the part of the uncompressed stream that
+        /// is of relevance.  The current character is indexed by strstart.
+        /// </summary>
+        private readonly byte[] window;
+
+        /// <summary>
+        /// Stores the pending output of the deflator
+        /// </summary>
+        private readonly DeflaterPending pending;
+
+        /// <summary>
+        /// The huffman deflator
+        /// </summary>
+        private readonly DeflaterHuffman huffman;
+
+        /// <summary>
+        /// The adler checksum
+        /// </summary>
+        private readonly Adler32 adler;
+
+        /// <summary>
         /// Hash index of string to be inserted.
         /// </summary>
         private int insertHashIndex;
+
+        /// <summary>
+        /// Index of the beginning of a match.
+        /// </summary>
+        private int matchStart;
+
+        /// <summary>
+        /// Length of best match
+        /// </summary>
+        private int matchLen;
+
+        /// <summary>
+        /// Set if previous match exists
+        /// </summary>
+        private bool prevAvailable;
+
+        /// <summary>
+        /// The index of the beinning of a block
+        /// </summary>
+        private int blockStart;
+
+        /// <summary>
+        /// Points to the current character in the window.
+        /// </summary>
+        private int strstart;
+
+        /// <summary>
+        /// lookahead is the number of characters starting at strstart in
+        /// window that are valid.
+        /// So window[strstart] until window[strstart+lookahead-1] are valid
+        /// characters.
+        /// </summary>
+        private int lookahead;
+
+        /// <summary>
+        /// The maximum chain length
+        /// </summary>
+        private int maxChain;
+
+        /// <summary>
+        /// The maximum lazy length
+        /// </summary>
+        private int maxLazy;
+
+        /// <summary>
+        /// The nice length
+        /// </summary>
+        private int niceLength;
+
+        /// <summary>
+        /// The good length
+        /// </summary>
+        private int goodLength;
+
+        /// <summary>
+        /// The current compression function.
+        /// </summary>
+        private int compressionFunction;
+
+        /// <summary>
+        /// The input data for compression.
+        /// </summary>
+        private byte[] inputBuf;
+
+        /// <summary>
+        /// The total bytes of input read.
+        /// </summary>
+        private long totalIn;
+
+        /// <summary>
+        /// The offset into inputBuf, where input data starts.
+        /// </summary>
+        private int inputOff;
+
+        /// <summary>
+        /// The end offset of the input data.
+        /// </summary>
+        private int inputEnd;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DeflaterEngine"/> class with a pending buffer.
@@ -58,9 +162,9 @@
             this.huffman = new DeflaterHuffman(pending);
             this.adler = new Adler32();
 
-            this.window = new byte[2 * WSIZE];
-            this.head = new short[HASH_SIZE];
-            this.previousIndex = new short[WSIZE];
+            this.window = new byte[2 * Wsize];
+            this.head = new short[HashSize];
+            this.previousIndex = new short[Wsize];
 
             // We start at index 1, to avoid an implementation deficiency, that
             // we cannot build a repeat pattern at index 0.
@@ -98,13 +202,13 @@
 
                 switch (this.compressionFunction)
                 {
-                    case DEFLATE_STORED:
+                    case Deflatestored:
                         progress = this.DeflateStored(canFlush, finish);
                         break;
-                    case DEFLATE_FAST:
+                    case Deflatefast:
                         progress = this.DeflateFast(canFlush, finish);
                         break;
-                    case DEFLATE_SLOW:
+                    case Deflateslow:
                         progress = this.DeflateSlow(canFlush, finish);
                         break;
                     default:
@@ -176,15 +280,15 @@
         public void SetDictionary(byte[] buffer, int offset, int length)
         {
             this.adler.Update(buffer, offset, length);
-            if (length < MIN_MATCH)
+            if (length < MinMatch)
             {
                 return;
             }
 
-            if (length > MAX_DIST)
+            if (length > MaxDist)
             {
-                offset += length - MAX_DIST;
-                length = MAX_DIST;
+                offset += length - MaxDist;
+                length = MaxDist;
             }
 
             Array.Copy(buffer, offset, this.window, this.strstart, length);
@@ -212,14 +316,14 @@
             this.lookahead = 0;
             this.totalIn = 0;
             this.prevAvailable = false;
-            this.matchLen = MIN_MATCH - 1;
+            this.matchLen = MinMatch - 1;
 
-            for (int i = 0; i < HASH_SIZE; i++)
+            for (int i = 0; i < HashSize; i++)
             {
                 this.head[i] = 0;
             }
 
-            for (int i = 0; i < WSIZE; i++)
+            for (int i = 0; i < Wsize; i++)
             {
                 this.previousIndex[i] = 0;
             }
@@ -244,16 +348,16 @@
                 throw new ArgumentOutOfRangeException(nameof(level));
             }
 
-            this.goodLength = GOOD_LENGTH[level];
-            this.maxLazy = MAX_LAZY[level];
-            this.niceLength = NICE_LENGTH[level];
-            this.maxChain = MAX_CHAIN[level];
+            this.goodLength = GoodLength[level];
+            this.maxLazy = MaxLazy[level];
+            this.niceLength = NiceLength[level];
+            this.maxChain = MaxChain[level];
 
-            if (COMPR_FUNC[level] != this.compressionFunction)
+            if (ComprFunc[level] != this.compressionFunction)
             {
                 switch (this.compressionFunction)
                 {
-                    case DEFLATE_STORED:
+                    case Deflatestored:
                         if (this.strstart > this.blockStart)
                         {
                             this.huffman.FlushStoredBlock(this.window, this.blockStart, this.strstart - this.blockStart, false);
@@ -263,17 +367,16 @@
                         this.UpdateHash();
                         break;
 
-                    case DEFLATE_FAST:
+                    case Deflatefast:
                         if (this.strstart > this.blockStart)
                         {
-                            this.huffman.FlushBlock(this.window, this.blockStart, this.strstart - this.blockStart,
-                                false);
+                            this.huffman.FlushBlock(this.window, this.blockStart, this.strstart - this.blockStart, false);
                             this.blockStart = this.strstart;
                         }
 
                         break;
 
-                    case DEFLATE_SLOW:
+                    case Deflateslow:
                         if (this.prevAvailable)
                         {
                             this.huffman.TallyLit(this.window[this.strstart - 1] & 0xff);
@@ -286,31 +389,31 @@
                         }
 
                         this.prevAvailable = false;
-                        this.matchLen = MIN_MATCH - 1;
+                        this.matchLen = MinMatch - 1;
                         break;
                 }
 
-                this.compressionFunction = COMPR_FUNC[level];
+                this.compressionFunction = ComprFunc[level];
             }
         }
 
         /// <summary>
-        /// Fill the window
+        /// Fills the window
         /// </summary>
         public void FillWindow()
         {
             // If the window is almost full and there is insufficient lookahead,
             // move the upper half to the lower one to make room in the upper half.
-            if (this.strstart >= WSIZE + MAX_DIST)
+            if (this.strstart >= Wsize + MaxDist)
             {
                 this.SlideWindow();
             }
 
             // If there is not enough lookahead, but still some input left,
             // read in the input
-            while (this.lookahead < MIN_LOOKAHEAD && this.inputOff < this.inputEnd)
+            while (this.lookahead < MinLookahead && this.inputOff < this.inputEnd)
             {
-                int more = (2 * WSIZE) - this.lookahead - this.strstart;
+                int more = (2 * Wsize) - this.lookahead - this.strstart;
 
                 if (more > this.inputEnd - this.inputOff)
                 {
@@ -325,15 +428,18 @@
                 this.lookahead += more;
             }
 
-            if (this.lookahead >= MIN_MATCH)
+            if (this.lookahead >= MinMatch)
             {
                 this.UpdateHash();
             }
         }
 
+        /// <summary>
+        /// Updates this hash.
+        /// </summary>
         private void UpdateHash()
         {
-            this.insertHashIndex = (this.window[this.strstart] << HASH_SHIFT) ^ this.window[this.strstart + 1];
+            this.insertHashIndex = (this.window[this.strstart] << HashShift) ^ this.window[this.strstart + 1];
         }
 
         /// <summary>
@@ -344,34 +450,37 @@
         private int InsertString()
         {
             short match;
-            int hash = ((this.insertHashIndex << HASH_SHIFT) ^ this.window[this.strstart + (MIN_MATCH - 1)]) & HASH_MASK;
+            int hash = ((this.insertHashIndex << HashShift) ^ this.window[this.strstart + (MinMatch - 1)]) & HashMask;
 
-            this.previousIndex[this.strstart & WMASK] = match = this.head[hash];
+            this.previousIndex[this.strstart & Wmask] = match = this.head[hash];
             this.head[hash] = unchecked((short)this.strstart);
             this.insertHashIndex = hash;
             return match & 0xffff;
         }
 
+        /// <summary>
+        /// Slides the current byte window to the ewlefvent part of the uncompressed stream.
+        /// </summary>
         private void SlideWindow()
         {
-            Array.Copy(this.window, WSIZE, this.window, 0, WSIZE);
-            this.matchStart -= WSIZE;
-            this.strstart -= WSIZE;
-            this.blockStart -= WSIZE;
+            Array.Copy(this.window, Wsize, this.window, 0, Wsize);
+            this.matchStart -= Wsize;
+            this.strstart -= Wsize;
+            this.blockStart -= Wsize;
 
             // Slide the hash table (could be avoided with 32 bit values
             // at the expense of memory usage).
-            for (int i = 0; i < HASH_SIZE; ++i)
+            for (int i = 0; i < HashSize; ++i)
             {
                 int m = this.head[i] & 0xffff;
-                this.head[i] = (short)(m >= WSIZE ? (m - WSIZE) : 0);
+                this.head[i] = (short)(m >= Wsize ? (m - Wsize) : 0);
             }
 
             // Slide the prev table.
-            for (int i = 0; i < WSIZE; i++)
+            for (int i = 0; i < Wsize; i++)
             {
                 int m = this.previousIndex[i] & 0xffff;
-                this.previousIndex[i] = (short)(m >= WSIZE ? (m - WSIZE) : 0);
+                this.previousIndex[i] = (short)(m >= Wsize ? (m - Wsize) : 0);
             }
         }
 
@@ -392,11 +501,11 @@
             short[] previous = this.previousIndex;
             int scan = this.strstart;
             int bestEnd = this.strstart + this.matchLen;
-            int bestLength = Math.Max(this.matchLen, MIN_MATCH - 1);
+            int bestLength = Math.Max(this.matchLen, MinMatch - 1);
 
-            int limit = Math.Max(this.strstart - MAX_DIST, 0);
+            int limit = Math.Max(this.strstart - MaxDist, 0);
 
-            int strend = this.strstart + MAX_MATCH - 1;
+            int strend = this.strstart + MaxMatch - 1;
             byte scanEnd1 = this.window[bestEnd - 1];
             byte scanEnd = this.window[bestEnd];
 
@@ -458,12 +567,19 @@
                 }
 
                 scan = this.strstart;
-            } while ((curMatch = previous[curMatch & WMASK] & 0xffff) > limit && --chainLength != 0);
+            }
+            while ((curMatch = previous[curMatch & Wmask] & 0xffff) > limit && --chainLength != 0);
 
             this.matchLen = Math.Min(bestLength, this.lookahead);
-            return this.matchLen >= MIN_MATCH;
+            return this.matchLen >= MinMatch;
         }
 
+        /// <summary>
+        /// Returns a value indicating whether the uncompressed block is stored.
+        /// </summary>
+        /// <param name="flush">Whether to flush the stream.</param>
+        /// <param name="finish">Whether to finish the stream.</param>
+        /// <returns>The <see cref="bool"/></returns>
         private bool DeflateStored(bool flush, bool finish)
         {
             if (!flush && (this.lookahead == 0))
@@ -476,14 +592,14 @@
 
             int storedLength = this.strstart - this.blockStart;
 
-            if ((storedLength >= MAX_BLOCK_SIZE) || // Block is full
-                (this.blockStart < WSIZE && storedLength >= MAX_DIST) || // Block may move out of window
+            if ((storedLength >= MaxBlockSize) || // Block is full
+                (this.blockStart < Wsize && storedLength >= MaxDist) || // Block may move out of window
                 flush)
             {
                 bool lastBlock = finish;
-                if (storedLength > MAX_BLOCK_SIZE)
+                if (storedLength > MaxBlockSize)
                 {
-                    storedLength = MAX_BLOCK_SIZE;
+                    storedLength = MaxBlockSize;
                     lastBlock = false;
                 }
 
@@ -495,14 +611,20 @@
             return true;
         }
 
+        /// <summary>
+        /// Performs a fast deflation of the input stream return a value to indicate succes.
+        /// </summary>
+        /// <param name="flush">Whether to flush the stream.</param>
+        /// <param name="finish">Whether to finish the stream.</param>
+        /// <returns>The <see cref="bool"/></returns>
         private bool DeflateFast(bool flush, bool finish)
         {
-            if (this.lookahead < MIN_LOOKAHEAD && !flush)
+            if (this.lookahead < MinLookahead && !flush)
             {
                 return false;
             }
 
-            while (this.lookahead >= MIN_LOOKAHEAD || flush)
+            while (this.lookahead >= MinLookahead || flush)
             {
                 if (this.lookahead == 0)
                 {
@@ -512,27 +634,26 @@
                     return false;
                 }
 
-                if (this.strstart > (2 * WSIZE) - MIN_LOOKAHEAD)
+                if (this.strstart > (2 * Wsize) - MinLookahead)
                 {
-                    /* slide window, as FindLongestMatch needs this.
-                     * This should only happen when flushing and the window
-                     * is almost full.
-                     */
+                    // slide window, as FindLongestMatch needs this.
+                    // This should only happen when flushing and the window
+                    // is almost full.
                     this.SlideWindow();
                 }
 
                 int hashHead;
-                if (this.lookahead >= MIN_MATCH &&
+                if (this.lookahead >= MinMatch &&
                     (hashHead = this.InsertString()) != 0 &&
                     this.Strategy != DeflateStrategy.HuffmanOnly &&
-                    this.strstart - hashHead <= MAX_DIST &&
+                    this.strstart - hashHead <= MaxDist &&
                     this.FindLongestMatch(hashHead))
                 {
                     // longestMatch sets matchStart and matchLen
                     bool full = this.huffman.TallyDist(this.strstart - this.matchStart, this.matchLen);
 
                     this.lookahead -= this.matchLen;
-                    if (this.matchLen <= this.maxLazy && this.lookahead >= MIN_MATCH)
+                    if (this.matchLen <= this.maxLazy && this.lookahead >= MinMatch)
                     {
                         while (--this.matchLen > 0)
                         {
@@ -545,13 +666,13 @@
                     else
                     {
                         this.strstart += this.matchLen;
-                        if (this.lookahead >= MIN_MATCH - 1)
+                        if (this.lookahead >= MinMatch - 1)
                         {
                             this.UpdateHash();
                         }
                     }
 
-                    this.matchLen = MIN_MATCH - 1;
+                    this.matchLen = MinMatch - 1;
                     if (!full)
                     {
                         continue;
@@ -577,14 +698,20 @@
             return true;
         }
 
+        /// <summary>
+        /// Performs a slow deflation of the input stream return a value to indicate succes.
+        /// </summary>
+        /// <param name="flush">Whether to flush the stream.</param>
+        /// <param name="finish">Whether to finish the stream.</param>
+        /// <returns>The <see cref="bool"/></returns>
         private bool DeflateSlow(bool flush, bool finish)
         {
-            if (this.lookahead < MIN_LOOKAHEAD && !flush)
+            if (this.lookahead < MinLookahead && !flush)
             {
                 return false;
             }
 
-            while (this.lookahead >= MIN_LOOKAHEAD || flush)
+            while (this.lookahead >= MinLookahead || flush)
             {
                 if (this.lookahead == 0)
                 {
@@ -596,13 +723,12 @@
                     this.prevAvailable = false;
 
                     // We are flushing everything
-                    this.huffman.FlushBlock(this.window, this.blockStart, this.strstart - this.blockStart,
-                        finish);
+                    this.huffman.FlushBlock(this.window, this.blockStart, this.strstart - this.blockStart, finish);
                     this.blockStart = this.strstart;
                     return false;
                 }
 
-                if (this.strstart >= (2 * WSIZE) - MIN_LOOKAHEAD)
+                if (this.strstart >= (2 * Wsize) - MinLookahead)
                 {
                     // slide window, as FindLongestMatch needs this.
                     // This should only happen when flushing and the window
@@ -612,29 +738,26 @@
 
                 int prevMatch = this.matchStart;
                 int prevLen = this.matchLen;
-                if (this.lookahead >= MIN_MATCH)
+                if (this.lookahead >= MinMatch)
                 {
-
                     int hashHead = this.InsertString();
 
                     if (this.Strategy != DeflateStrategy.HuffmanOnly &&
                         hashHead != 0 &&
-                        this.strstart - hashHead <= MAX_DIST &&
+                        this.strstart - hashHead <= MaxDist &&
                         this.FindLongestMatch(hashHead))
                     {
-
                         // longestMatch sets matchStart and matchLen
-
                         // Discard match if too small and too far away
-                        if (this.matchLen <= 5 && (this.Strategy == DeflateStrategy.Filtered || (this.matchLen == MIN_MATCH && this.strstart - this.matchStart > TooFar)))
+                        if (this.matchLen <= 5 && (this.Strategy == DeflateStrategy.Filtered || (this.matchLen == MinMatch && this.strstart - this.matchStart > TooFar)))
                         {
-                            this.matchLen = MIN_MATCH - 1;
+                            this.matchLen = MinMatch - 1;
                         }
                     }
                 }
 
                 // previous match was better
-                if ((prevLen >= MIN_MATCH) && (this.matchLen <= prevLen))
+                if ((prevLen >= MinMatch) && (this.matchLen <= prevLen))
                 {
                     this.huffman.TallyDist(this.strstart - 1 - prevMatch, prevLen);
                     prevLen -= 2;
@@ -642,16 +765,17 @@
                     {
                         this.strstart++;
                         this.lookahead--;
-                        if (this.lookahead >= MIN_MATCH)
+                        if (this.lookahead >= MinMatch)
                         {
                             this.InsertString();
                         }
-                    } while (--prevLen > 0);
+                    }
+                    while (--prevLen > 0);
 
                     this.strstart++;
                     this.lookahead--;
                     this.prevAvailable = false;
-                    this.matchLen = MIN_MATCH - 1;
+                    this.matchLen = MinMatch - 1;
                 }
                 else
                 {
@@ -682,76 +806,5 @@
 
             return true;
         }
-
-        private int matchStart;
-
-        // Length of best match
-        private int matchLen;
-
-        // Set if previous match exists
-        private bool prevAvailable;
-
-        private int blockStart;
-
-        /// <summary>
-        /// Points to the current character in the window.
-        /// </summary>
-        private int strstart;
-
-        /// <summary>
-        /// lookahead is the number of characters starting at strstart in
-        /// window that are valid.
-        /// So window[strstart] until window[strstart+lookahead-1] are valid
-        /// characters.
-        /// </summary>
-        private int lookahead;
-
-        /// <summary>
-        /// This array contains the part of the uncompressed stream that
-        /// is of relevance.  The current character is indexed by strstart.
-        /// </summary>
-        private byte[] window;
-
-        private int maxChain;
-
-        private int maxLazy;
-
-        private int niceLength;
-
-        private int goodLength;
-
-        /// <summary>
-        /// The current compression function.
-        /// </summary>
-        private int compressionFunction;
-
-        /// <summary>
-        /// The input data for compression.
-        /// </summary>
-        private byte[] inputBuf;
-
-        /// <summary>
-        /// The total bytes of input read.
-        /// </summary>
-        private long totalIn;
-
-        /// <summary>
-        /// The offset into inputBuf, where input data starts.
-        /// </summary>
-        private int inputOff;
-
-        /// <summary>
-        /// The end offset of the input data.
-        /// </summary>
-        private int inputEnd;
-
-        private DeflaterPending pending;
-
-        private DeflaterHuffman huffman;
-
-        /// <summary>
-        /// The adler checksum
-        /// </summary>
-        private Adler32 adler;
     }
 }

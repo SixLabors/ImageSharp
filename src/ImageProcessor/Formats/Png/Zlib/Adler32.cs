@@ -1,4 +1,9 @@
-﻿namespace ImageProcessor.Formats
+﻿// <copyright file="Adler32.cs" company="James South">
+// Copyright © James South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
+namespace ImageProcessor.Formats
 {
     using System;
 
@@ -6,7 +11,8 @@
     /// Computes Adler32 checksum for a stream of data. An Adler32
     /// checksum is not as reliable as a CRC32 checksum, but a lot faster to
     /// compute.
-    ///
+    /// </summary>
+    /// <remarks>
     /// The specification for Adler32 may be found in RFC 1950.
     /// ZLIB Compressed Data Format Specification version 3.3)
     ///
@@ -45,36 +51,33 @@
     ///    of the sequence part of s2, so that the length does not have to be
     ///    checked separately. (Any sequence of zeroes has a Fletcher
     ///    checksum of zero.)"
-    /// </summary>
-    /// <see cref="ICSharpCode.SharpZipLib.Zip.Compression.Streams.InflaterInputStream"/>
-    /// <see cref="ICSharpCode.SharpZipLib.Zip.Compression.Streams.DeflaterOutputStream"/>
+    /// </remarks>
+    /// <see cref="InflaterInputStream"/>
+    /// <see cref="DeflaterOutputStream"/>
     public sealed class Adler32 : IChecksum
     {
         /// <summary>
         /// largest prime smaller than 65536
         /// </summary>
-        const uint BASE = 65521;
+        private const uint Base = 65521;
 
         /// <summary>
-        /// Returns the Adler32 data checksum computed so far.
+        /// The checksum calculated to far.
         /// </summary>
-        public long Value
-        {
-            get
-            {
-                return this.checksum;
-            }
-        }
+        private uint checksum;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Adler32"/> class.
-        /// Creates a new instance of the Adler32 class.
-        /// The checksum starts off with a value of 1.
+        /// Initializes a new instance of the <see cref="Adler32"/> class. The checksum starts off with a value of 1.
         /// </summary>
         public Adler32()
         {
             this.Reset();
         }
+
+        /// <summary>
+        /// Returns the Adler32 data checksum computed so far.
+        /// </summary>
+        public long Value => this.checksum;
 
         /// <summary>
         /// Resets the Adler32 checksum to the initial value.
@@ -97,8 +100,8 @@
             uint s1 = this.checksum & 0xFFFF;
             uint s2 = this.checksum >> 16;
 
-            s1 = (s1 + ((uint)value & 0xFF)) % BASE;
-            s2 = (s1 + s2) % BASE;
+            s1 = (s1 + ((uint)value & 0xFF)) % Base;
+            s2 = (s1 + s2) % Base;
 
             this.checksum = (s2 << 16) + s1;
         }
@@ -113,7 +116,7 @@
         {
             if (buffer == null)
             {
-                throw new ArgumentNullException("buffer");
+                throw new ArgumentNullException(nameof(buffer));
             }
 
             this.Update(buffer, 0, buffer.Length);
@@ -135,30 +138,30 @@
         {
             if (buffer == null)
             {
-                throw new ArgumentNullException("buffer");
+                throw new ArgumentNullException(nameof(buffer));
             }
 
             if (offset < 0)
             {
-                throw new ArgumentOutOfRangeException("offset", "cannot be negative");
+                throw new ArgumentOutOfRangeException(nameof(offset), "cannot be negative");
             }
 
             if (count < 0)
             {
-                throw new ArgumentOutOfRangeException("count", "cannot be negative");
+                throw new ArgumentOutOfRangeException(nameof(count), "cannot be negative");
             }
 
             if (offset >= buffer.Length)
             {
-                throw new ArgumentOutOfRangeException("offset", "not a valid index into buffer");
+                throw new ArgumentOutOfRangeException(nameof(offset), "not a valid index into buffer");
             }
 
             if (offset + count > buffer.Length)
             {
-                throw new ArgumentOutOfRangeException("count", "exceeds buffer size");
+                throw new ArgumentOutOfRangeException(nameof(count), "exceeds buffer size");
             }
 
-            //(By Per Bothner)
+            // (By Per Bothner)
             uint s1 = this.checksum & 0xFFFF;
             uint s2 = this.checksum >> 16;
 
@@ -172,21 +175,19 @@
                 {
                     n = count;
                 }
+
                 count -= n;
                 while (--n >= 0)
                 {
                     s1 = s1 + (uint)(buffer[offset++] & 0xff);
                     s2 = s2 + s1;
                 }
-                s1 %= BASE;
-                s2 %= BASE;
+
+                s1 %= Base;
+                s2 %= Base;
             }
 
             this.checksum = (s2 << 16) | s1;
         }
-
-        #region Instance Fields
-        uint checksum;
-        #endregion
     }
 }

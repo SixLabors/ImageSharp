@@ -1,8 +1,11 @@
-﻿namespace ImageProcessor.Formats
+﻿// <copyright file="Deflater.cs" company="James South">
+// Copyright © James South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
+namespace ImageProcessor.Formats
 {
     using System;
-
-    //using ICSharpCode.SharpZipLib.Zip.Compression;
 
     /// <summary>
     /// This is the Deflater class.  The deflater class compresses input
@@ -11,12 +14,11 @@
     ///
     /// This class is <i>not</i> thread safe.  This is inherent in the API, due
     /// to the split of deflate and setInput.
-    /// 
+    ///
     /// author of the original java version : Jochen Hoenicke
     /// </summary>
     public class Deflater
     {
-        #region Deflater Documentation
         /*
         * The Deflater can do the following state transitions:
         *
@@ -51,104 +53,193 @@
         * (7) At any time (7)
         *
         */
-        #endregion
-        #region Public Constants
+
         /// <summary>
         /// The best and slowest compression level.  This tries to find very
         /// long and distant string repetitions.
         /// </summary>
-        public const int BEST_COMPRESSION = 9;
+        public const int BestCompression = 9;
 
         /// <summary>
         /// The worst but fastest compression level.
         /// </summary>
-        public const int BEST_SPEED = 1;
+        public const int BestSpeed = 1;
 
         /// <summary>
         /// The default compression level.
         /// </summary>
-        public const int DEFAULT_COMPRESSION = -1;
+        public const int DefaultCompression = -1;
 
         /// <summary>
         /// This level won't compress at all but output uncompressed blocks.
         /// </summary>
-        public const int NO_COMPRESSION = 0;
+        public const int NoCompression = 0;
 
         /// <summary>
         /// The compression method.  This is the only method supported so far.
         /// There is no need to use this constant at all.
         /// </summary>
-        public const int DEFLATED = 8;
-        #endregion
-        #region Local Constants
-        private const int IS_SETDICT = 0x01;
-        private const int IS_FLUSHING = 0x04;
-        private const int IS_FINISHING = 0x08;
+        public const int Deflated = 8;
 
-        private const int INIT_STATE = 0x00;
-        private const int SETDICT_STATE = 0x01;
-        //      private static  int INIT_FINISHING_STATE    = 0x08;
-        //      private static  int SETDICT_FINISHING_STATE = 0x09;
-        private const int BUSY_STATE = 0x10;
-        private const int FLUSHING_STATE = 0x14;
-        private const int FINISHING_STATE = 0x1c;
-        private const int FINISHED_STATE = 0x1e;
-        private const int CLOSED_STATE = 0x7f;
-        #endregion
-        #region Constructors
         /// <summary>
-        /// Creates a new deflater with default compression level.
+        /// The is dictionary set flag.
         /// </summary>
-        public Deflater() : this(DEFAULT_COMPRESSION, false)
-        {
+        private const int IsSetdict = 0x01;
 
+        /// <summary>
+        /// Flags whether flushing.
+        /// </summary>
+        private const int IsFlushing = 0x04;
+
+        /// <summary>
+        /// Flags whether finishing.
+        /// </summary>
+        private const int IsFinishing = 0x08;
+
+        /// <summary>
+        /// The initial stat flag
+        /// </summary>
+        private const int InitState = 0x00;
+
+        /// <summary>
+        /// Flags setting the dictionary.
+        /// </summary>
+        private const int SetdictState = 0x01;
+
+        /// <summary>
+        /// The busy state flag.
+        /// </summary>
+        private const int BusyState = 0x10;
+
+        /// <summary>
+        /// The flushing state flag.
+        /// </summary>
+        private const int FlushingState = 0x14;
+
+        /// <summary>
+        /// The finishing state flag.
+        /// </summary>
+        private const int FinishingState = 0x1c;
+
+        /// <summary>
+        /// The finished state flag.
+        /// </summary>
+        private const int FinishedState = 0x1e;
+
+        /// <summary>
+        /// The closed state flag.
+        /// </summary>
+        private const int ClosedState = 0x7f;
+
+        /// <summary>
+        /// The pending output.
+        /// </summary>
+        private readonly DeflaterPending pending;
+
+        /// <summary>
+        /// If true no Zlib/RFC1950 headers or footers are generated
+        /// </summary>
+        private readonly bool noZlibHeaderOrFooter;
+
+        /// <summary>
+        /// The deflater engine.
+        /// </summary>
+        private readonly DeflaterEngine engine;
+
+        /// <summary>
+        /// Compression level.
+        /// </summary>
+        private int deflaterLevel;
+
+        /// <summary>
+        /// The current state.
+        /// </summary>
+        private int state;
+
+        /// <summary>
+        /// The total bytes of output written.
+        /// </summary>
+        private long totalOut;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Deflater"/> class with the default compression level.
+        /// </summary>
+        public Deflater()
+            : this(DefaultCompression, false)
+        {
         }
 
         /// <summary>
-        /// Creates a new deflater with given compression level.
+        /// Initializes a new instance of the <see cref="Deflater"/> class with the given compressin level.
         /// </summary>
         /// <param name="level">
-        /// the compression level, a value between NO_COMPRESSION
-        /// and BEST_COMPRESSION, or DEFAULT_COMPRESSION.
+        /// The compression level, a value between NoCompression and BestCompression, or DefaultCompression.
         /// </param>
-        /// <exception cref="System.ArgumentOutOfRangeException">if lvl is out of range.</exception>
-        public Deflater(int level) : this(level, false)
+        /// <exception cref="System.ArgumentOutOfRangeException">If level is out of range.</exception>
+        public Deflater(int level)
+            : this(level, false)
         {
-
         }
 
         /// <summary>
-        /// Creates a new deflater with given compression level.
+        /// Initializes a new instance of the <see cref="Deflater"/> class with the given compressin level.
         /// </summary>
         /// <param name="level">
-        /// the compression level, a value between NO_COMPRESSION
-        /// and BEST_COMPRESSION.
+        /// The compression level, a value between NoCompression and BestCompression, or DefaultCompression.
         /// </param>
         /// <param name="noZlibHeaderOrFooter">
-        /// true, if we should suppress the Zlib/RFC1950 header at the
+        /// True, if we should suppress the Zlib/RFC1950 header at the
         /// beginning and the adler checksum at the end of the output.  This is
         /// useful for the GZIP/PKZIP formats.
         /// </param>
         /// <exception cref="System.ArgumentOutOfRangeException">if lvl is out of range.</exception>
         public Deflater(int level, bool noZlibHeaderOrFooter)
         {
-            if (level == DEFAULT_COMPRESSION)
+            if (level == DefaultCompression)
             {
                 level = 6;
             }
-            else if (level < NO_COMPRESSION || level > BEST_COMPRESSION)
+            else if (level < NoCompression || level > BestCompression)
             {
-                throw new ArgumentOutOfRangeException("level");
+                throw new ArgumentOutOfRangeException(nameof(level));
             }
 
-            pending = new DeflaterPending();
-            engine = new DeflaterEngine(pending);
+            this.pending = new DeflaterPending();
+            this.engine = new DeflaterEngine(this.pending);
             this.noZlibHeaderOrFooter = noZlibHeaderOrFooter;
-            SetStrategy(DeflateStrategy.Default);
-            SetLevel(level);
-            Reset();
+            this.SetStrategy(DeflateStrategy.Default);
+            this.SetLevel(level);
+            this.Reset();
         }
-        #endregion
+
+        /// <summary>
+        /// Gets the current adler checksum of the data that was processed so far.
+        /// </summary>
+        public int Adler => this.engine.Adler;
+
+        /// <summary>
+        /// Gets the number of input bytes processed so far.
+        /// </summary>
+        public long TotalIn => this.engine.TotalIn;
+
+        /// <summary>
+        /// Gets the number of output bytes so far.
+        /// </summary>
+        public long TotalOut => this.totalOut;
+
+        /// <summary>
+        /// Returns true if the stream was finished and no more output bytes
+        /// are available.
+        /// </summary>
+        public bool IsFinished => (this.state == FinishedState) && this.pending.IsFlushed;
+
+        /// <summary>
+        /// Returns true, if the input buffer is empty.
+        /// You should then call setInput().
+        /// NOTE: This method can also return true when the stream
+        /// was finished.
+        /// </summary>
+        public bool IsNeedingInput => this.engine.NeedsInput();
 
         /// <summary>
         /// Resets the deflater.  The deflater acts afterwards as if it was
@@ -157,43 +248,10 @@
         /// </summary>
         public void Reset()
         {
-            state = (noZlibHeaderOrFooter ? BUSY_STATE : INIT_STATE);
-            totalOut = 0;
-            pending.Reset();
-            engine.Reset();
-        }
-
-        /// <summary>
-        /// Gets the current adler checksum of the data that was processed so far.
-        /// </summary>
-        public int Adler
-        {
-            get
-            {
-                return engine.Adler;
-            }
-        }
-
-        /// <summary>
-        /// Gets the number of input bytes processed so far.
-        /// </summary>
-        public long TotalIn
-        {
-            get
-            {
-                return engine.TotalIn;
-            }
-        }
-
-        /// <summary>
-        /// Gets the number of output bytes so far.
-        /// </summary>
-        public long TotalOut
-        {
-            get
-            {
-                return totalOut;
-            }
+            this.state = this.noZlibHeaderOrFooter ? BusyState : InitState;
+            this.totalOut = 0;
+            this.pending.Reset();
+            this.engine.Reset();
         }
 
         /// <summary>
@@ -205,7 +263,7 @@
         /// </summary>
         public void Flush()
         {
-            state |= IS_FLUSHING;
+            this.state |= IsFlushing;
         }
 
         /// <summary>
@@ -215,33 +273,7 @@
         /// </summary>
         public void Finish()
         {
-            state |= (IS_FLUSHING | IS_FINISHING);
-        }
-
-        /// <summary>
-        /// Returns true if the stream was finished and no more output bytes
-        /// are available.
-        /// </summary>
-        public bool IsFinished
-        {
-            get
-            {
-                return (state == FINISHED_STATE) && pending.IsFlushed;
-            }
-        }
-
-        /// <summary>
-        /// Returns true, if the input buffer is empty.
-        /// You should then call setInput(). 
-        /// NOTE: This method can also return true when the stream
-        /// was finished.
-        /// </summary>
-        public bool IsNeedingInput
-        {
-            get
-            {
-                return engine.NeedsInput();
-            }
+            this.state |= IsFlushing | IsFinishing;
         }
 
         /// <summary>
@@ -261,7 +293,7 @@
         /// </exception>
         public void SetInput(byte[] input)
         {
-            SetInput(input, 0, input.Length);
+            this.SetInput(input, 0, input.Length);
         }
 
         /// <summary>
@@ -284,11 +316,12 @@
         /// </exception>
         public void SetInput(byte[] input, int offset, int count)
         {
-            if ((state & IS_FINISHING) != 0)
+            if ((this.state & IsFinishing) != 0)
             {
                 throw new InvalidOperationException("Finish() already called");
             }
-            engine.SetInput(input, offset, count);
+
+            this.engine.SetInput(input, offset, count);
         }
 
         /// <summary>
@@ -302,19 +335,19 @@
         /// </param>
         public void SetLevel(int level)
         {
-            if (level == DEFAULT_COMPRESSION)
+            if (level == DefaultCompression)
             {
                 level = 6;
             }
-            else if (level < NO_COMPRESSION || level > BEST_COMPRESSION)
+            else if (level < NoCompression || level > BestCompression)
             {
-                throw new ArgumentOutOfRangeException("level");
+                throw new ArgumentOutOfRangeException(nameof(level));
             }
 
-            if (this.level != level)
+            if (this.deflaterLevel != level)
             {
-                this.level = level;
-                engine.SetLevel(level);
+                this.deflaterLevel = level;
+                this.engine.SetLevel(level);
             }
         }
 
@@ -324,7 +357,7 @@
         /// <returns>Returns the current compression level</returns>
         public int GetLevel()
         {
-            return level;
+            return this.deflaterLevel;
         }
 
         /// <summary>
@@ -338,7 +371,7 @@
         /// </param>
         public void SetStrategy(DeflateStrategy strategy)
         {
-            engine.Strategy = strategy;
+            this.engine.Strategy = strategy;
         }
 
         /// <summary>
@@ -353,7 +386,7 @@
         /// </returns>
         public int Deflate(byte[] output)
         {
-            return Deflate(output, 0, output.Length);
+            return this.Deflate(output, 0, output.Length);
         }
 
         /// <summary>
@@ -382,95 +415,100 @@
         {
             int origLength = length;
 
-            if (state == CLOSED_STATE)
+            if (this.state == ClosedState)
             {
                 throw new InvalidOperationException("Deflater closed");
             }
 
-            if (state < BUSY_STATE)
+            if (this.state < BusyState)
             {
                 // output header
-                int header = (DEFLATED +
-                    ((DeflaterConstants.MAX_WBITS - 8) << 4)) << 8;
-                int level_flags = (level - 1) >> 1;
-                if (level_flags < 0 || level_flags > 3)
+                int header = (Deflated +
+                    ((DeflaterConstants.MaxWbits - 8) << 4)) << 8;
+                int levelFlags = (this.deflaterLevel - 1) >> 1;
+                if (levelFlags < 0 || levelFlags > 3)
                 {
-                    level_flags = 3;
+                    levelFlags = 3;
                 }
-                header |= level_flags << 6;
-                if ((state & IS_SETDICT) != 0)
+
+                header |= levelFlags << 6;
+                if ((this.state & IsSetdict) != 0)
                 {
                     // Dictionary was set
-                    header |= DeflaterConstants.PRESET_DICT;
+                    header |= DeflaterConstants.PresetDict;
                 }
+
                 header += 31 - (header % 31);
 
-                pending.WriteShortMSB(header);
-                if ((state & IS_SETDICT) != 0)
+                this.pending.WriteShortMSB(header);
+                if ((this.state & IsSetdict) != 0)
                 {
-                    int chksum = engine.Adler;
-                    engine.ResetAdler();
-                    pending.WriteShortMSB(chksum >> 16);
-                    pending.WriteShortMSB(chksum & 0xffff);
+                    int chksum = this.engine.Adler;
+                    this.engine.ResetAdler();
+                    this.pending.WriteShortMSB(chksum >> 16);
+                    this.pending.WriteShortMSB(chksum & 0xffff);
                 }
 
-                state = BUSY_STATE | (state & (IS_FLUSHING | IS_FINISHING));
+                this.state = BusyState | (this.state & (IsFlushing | IsFinishing));
             }
 
-            for (;;)
+            for (; ;)
             {
-                int count = pending.Flush(output, offset, length);
+                int count = this.pending.Flush(output, offset, length);
                 offset += count;
-                totalOut += count;
+                this.totalOut += count;
                 length -= count;
 
-                if (length == 0 || state == FINISHED_STATE)
+                if (length == 0 || this.state == FinishedState)
                 {
                     break;
                 }
 
-                if (!engine.Deflate((state & IS_FLUSHING) != 0, (state & IS_FINISHING) != 0))
+                if (!this.engine.Deflate((this.state & IsFlushing) != 0, (this.state & IsFinishing) != 0))
                 {
-                    if (state == BUSY_STATE)
+                    if (this.state == BusyState)
                     {
                         // We need more input now
                         return origLength - length;
                     }
-                    else if (state == FLUSHING_STATE)
+                    else if (this.state == FlushingState)
                     {
-                        if (level != NO_COMPRESSION)
+                        if (this.deflaterLevel != NoCompression)
                         {
                             /* We have to supply some lookahead.  8 bit lookahead
                              * is needed by the zlib inflater, and we must fill
                              * the next byte, so that all bits are flushed.
                              */
-                            int neededbits = 8 + ((-pending.BitCount) & 7);
+                            int neededbits = 8 + ((-this.pending.BitCount) & 7);
                             while (neededbits > 0)
                             {
                                 /* write a static tree block consisting solely of
                                  * an EOF:
                                  */
-                                pending.WriteBits(2, 10);
+                                this.pending.WriteBits(2, 10);
                                 neededbits -= 10;
                             }
                         }
-                        state = BUSY_STATE;
+
+                        this.state = BusyState;
                     }
-                    else if (state == FINISHING_STATE)
+                    else if (this.state == FinishingState)
                     {
-                        pending.AlignToByte();
+                        this.pending.AlignToByte();
 
                         // Compressed data is complete.  Write footer information if required.
-                        if (!noZlibHeaderOrFooter)
+                        if (!this.noZlibHeaderOrFooter)
                         {
-                            int adler = engine.Adler;
-                            pending.WriteShortMSB(adler >> 16);
-                            pending.WriteShortMSB(adler & 0xffff);
+                            int adler = this.engine.Adler;
+                            this.pending.WriteShortMSB(adler >> 16);
+                            this.pending.WriteShortMSB(adler & 0xffff);
                         }
-                        state = FINISHED_STATE;
+
+                        this.state = FinishedState;
                     }
                 }
             }
+
             return origLength - length;
         }
 
@@ -486,7 +524,7 @@
         /// </exception>
         public void SetDictionary(byte[] dictionary)
         {
-            SetDictionary(dictionary, 0, dictionary.Length);
+            this.SetDictionary(dictionary, 0, dictionary.Length);
         }
 
         /// <summary>
@@ -511,45 +549,13 @@
         /// </exception>
         public void SetDictionary(byte[] dictionary, int index, int count)
         {
-            if (state != INIT_STATE)
+            if (this.state != InitState)
             {
                 throw new InvalidOperationException();
             }
 
-            state = SETDICT_STATE;
-            engine.SetDictionary(dictionary, index, count);
+            this.state = SetdictState;
+            this.engine.SetDictionary(dictionary, index, count);
         }
-
-        #region Instance Fields
-        /// <summary>
-        /// Compression level.
-        /// </summary>
-        int level;
-
-        /// <summary>
-        /// If true no Zlib/RFC1950 headers or footers are generated
-        /// </summary>
-        bool noZlibHeaderOrFooter;
-
-        /// <summary>
-        /// The current state.
-        /// </summary>
-        int state;
-
-        /// <summary>
-        /// The total bytes of output written.
-        /// </summary>
-        long totalOut;
-
-        /// <summary>
-        /// The pending output.
-        /// </summary>
-        DeflaterPending pending;
-
-        /// <summary>
-        /// The deflater engine.
-        /// </summary>
-        DeflaterEngine engine;
-        #endregion
     }
 }

@@ -6,6 +6,7 @@
 namespace ImageProcessor.Filters
 {
     using System;
+    using System.Threading.Tasks;
 
     /// <summary>
     /// An <see cref="IImageProcessor"/> to change the Alpha of an <see cref="Image"/>.
@@ -39,18 +40,21 @@ namespace ImageProcessor.Filters
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
 
-            for (int y = startY; y < endY; y++)
-            {
-                if (y >= sourceY && y < sourceBottom)
-                {
-                    for (int x = startX; x < endX; x++)
+            Parallel.For(
+                startY,
+                endY,
+                y =>
                     {
-                        Bgra color = source[x, y];
-                        double a = color.A * alpha;
-                        target[x, y] = new Bgra(color.B, color.G, color.R, a.ToByte());
-                    }
-                }
-            }
+                        if (y >= sourceY && y < sourceBottom)
+                        {
+                            for (int x = startX; x < endX; x++)
+                            {
+                                Bgra color = source[x, y];
+                                double a = color.A * alpha;
+                                target[x, y] = new Bgra(color.B, color.G, color.R, a.ToByte());
+                            }
+                        }
+                    });
         }
     }
 }

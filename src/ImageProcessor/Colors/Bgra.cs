@@ -12,6 +12,10 @@ namespace ImageProcessor
     /// <summary>
     /// Represents an BGRA (blue, green, red, alpha) color.
     /// </summary>
+    /// <remarks>
+    /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
+    /// as it avoids the need to create new values for modification operations.
+    /// </remarks>
     [StructLayout(LayoutKind.Explicit)]
     public struct Bgra : IEquatable<Bgra>
     {
@@ -177,6 +181,21 @@ namespace ImageProcessor
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public bool IsEmpty => this.B == 0 && this.G == 0 && this.R == 0 && this.A == 0;
+
+        /// <summary>
+        /// Allows the implicit conversion of an instance of <see cref="ColorVector"/> to a
+        /// <see cref="Bgra"/>.
+        /// </summary>
+        /// <param name="color">
+        /// The instance of <see cref="ColorVector"/> to convert.
+        /// </param>
+        /// <returns>
+        /// An instance of <see cref="Bgra"/>.
+        /// </returns>
+        public static implicit operator Bgra(ColorVector color)
+        {
+            return new Bgra((255 * color.B).ToByte(), (255 * color.G).ToByte(), (255 * color.R).ToByte(), (255 * color.A).ToByte());
+        }
 
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="Hsv"/> to a

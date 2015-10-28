@@ -7,7 +7,6 @@
     /// </summary>
     public static class ZipConstants
     {
-        #region Versions
         /// <summary>
         /// The version made by field for entries in the central header when created by this library
         /// </summary>
@@ -30,9 +29,7 @@
         /// The version required for Zip64 extensions (4.5 or higher)
         /// </summary>
         public const int VersionZip64 = 45;
-        #endregion
 
-        #region Header Sizes
         /// <summary>
         /// Size of local entry header (excluding variable length fields at end)
         /// </summary>
@@ -62,9 +59,7 @@
         /// Size of 'classic' cryptographic header stored before any entry data
         /// </summary>
         public const int CryptoHeaderSize = 12;
-        #endregion
 
-        #region Header Signatures
 
         /// <summary>
         /// Signature for local entry header
@@ -121,52 +116,8 @@
         /// End of central directory record signature
         /// </summary>
         public const int EndOfCentralDirectorySignature = 'P' | ('K' << 8) | (5 << 16) | (6 << 24);
-
-        #endregion
-
-#if NETCF_1_0 || NETCF_2_0
-		// This isnt so great but is better than nothing.
-        // Trying to work out an appropriate OEM code page would be good.
-        // 850 is a good default for english speakers particularly in Europe.
-		static int defaultCodePage = CultureInfo.CurrentCulture.TextInfo.ANSICodePage;
-#elif PCL
         static Encoding defaultEncoding = Encoding.UTF8;
-#else
-	    /// <remarks>
-	    /// Get OEM codepage from NetFX, which parses the NLP file with culture info table etc etc.
-	    /// But sometimes it yields the special value of 1 which is nicknamed <c>CodePageNoOEM</c> in <see cref="Encoding"/> sources (might also mean <c>CP_OEMCP</c>, but Encoding puts it so).
-	    /// This was observed on Ukranian and Hindu systems.
-	    /// Given this value, <see cref="Encoding.GetEncoding(int)"/> throws an <see cref="ArgumentException"/>.
-	    /// So replace it with some fallback, e.g. 437 which is the default cpcp in a console in a default Windows installation.
-	    /// </remarks>
-	    static int defaultCodePage =
-            // these values cause ArgumentException in subsequent calls to Encoding::GetEncoding()
-            ((Thread.CurrentThread.CurrentCulture.TextInfo.OEMCodePage == 1) || (Thread.CurrentThread.CurrentCulture.TextInfo.OEMCodePage == 2) || (Thread.CurrentThread.CurrentCulture.TextInfo.OEMCodePage == 3) || (Thread.CurrentThread.CurrentCulture.TextInfo.OEMCodePage == 42))
-            ? 437 // The default OEM encoding in a console in a default Windows installation, as a fallback.
-	        : Thread.CurrentThread.CurrentCulture.TextInfo.OEMCodePage;  
-#endif
-#if !PCL
-		/// <summary>
-		/// Default encoding used for string conversion.  0 gives the default system OEM code page.
-		/// Dont use unicode encodings if you want to be Zip compatible!
-		/// Using the default code page isnt the full solution neccessarily
-		/// there are many variable factors, codepage 850 is often a good choice for
-		/// European users, however be careful about compatability.
-		/// </summary>
-		public static int DefaultCodePage {
-			get {
-				return defaultCodePage; 
-			}
-			set {
-                if ((value < 0) || (value > 65535) ||
-                    (value == 1) || (value == 2) || (value == 3) || (value == 42)) {
-                    throw new ArgumentOutOfRangeException("value");
-                }
 
-                defaultCodePage = value;
-			}
-		}
-#else
         /// <summary>
         /// PCL don't support CodePage so we used Encoding instead of
         /// </summary>
@@ -176,12 +127,12 @@
             {
                 return defaultEncoding;
             }
+
             set
             {
                 defaultEncoding = value;
             }
         }
-#endif
 
         /// <summary>
         /// Convert a portion of a byte array to a string.
@@ -201,11 +152,8 @@
             {
                 return string.Empty;
             }
-#if !PCL
-			return Encoding.GetEncoding(DefaultCodePage).GetString(data, 0, count);
-#else
+
             return DefaultEncoding.GetString(data, 0, count);
-#endif
         }
 
         /// <summary>
@@ -294,11 +242,8 @@
             {
                 return new byte[0];
             }
-#if !PCL
-			return Encoding.GetEncoding(DefaultCodePage).GetBytes(str);
-#else
+
             return DefaultEncoding.GetBytes(str);
-#endif
         }
 
         /// <summary>
@@ -320,10 +265,8 @@
             {
                 return Encoding.UTF8.GetBytes(str);
             }
-            else
-            {
-                return ConvertToArray(str);
-            }
+
+            return ConvertToArray(str);
         }
     }
 }

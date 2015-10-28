@@ -7,6 +7,7 @@ namespace ImageProcessor.Samplers
 {
     using System;
     using System.Collections.Generic;
+    using System.Numerics;
     using System.Threading.Tasks;
 
     /// <summary>
@@ -61,6 +62,7 @@ namespace ImageProcessor.Samplers
             int targetBottom = targetRectangle.Bottom;
             int startX = targetRectangle.X;
             int endX = targetRectangle.Right;
+            //Vector<int> endVX = new Vector<int>(targetRectangle.Right);
 
             Parallel.For(
                 startY,
@@ -100,8 +102,8 @@ namespace ImageProcessor.Samplers
                                     }
 
                                     int originX = xw.Index;
-                                    Bgra sourceColor = source[originX, originY];
-                                    //ColorVector sourceColor = PixelOperations.ToLinear(source[originX, originY]);
+                                    ColorVector sourceColor = source[originX, originY];
+                                    //sourceColor = PixelOperations.ToLinear(sourceColor);
 
                                     r += sourceColor.R * (yw.Value / verticalSum) * (xw.Value / horizontalSum);
                                     g += sourceColor.G * (yw.Value / verticalSum) * (xw.Value / horizontalSum);
@@ -110,9 +112,8 @@ namespace ImageProcessor.Samplers
                                 }
                             }
 
-                            // TODO: Double cast.
-                            Bgra destinationColor = new Bgra(b.ToByte(), g.ToByte(), r.ToByte(), a.ToByte());
-                            //Bgra destinationColor = PixelOperations.ToSrgb(new ColorVector(b, g, r, a));
+                            // TODO: Double cast?
+                            Bgra destinationColor = new ColorVector(b, g, r, a);//PixelOperations.ToSrgb(new ColorVector(b, g, r, a));
                             target[x, y] = destinationColor;
                         }
                     }

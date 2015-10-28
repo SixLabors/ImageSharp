@@ -25,6 +25,18 @@ namespace ImageProcessor
         private static readonly Lazy<byte[]> SrgbBytes = new Lazy<byte[]>(GetSrgbBytes);
 
         /// <summary>
+        /// The array of bytes representing each possible value of color component
+        /// converted from gamma to the linear color space.
+        /// </summary>
+        private static readonly Lazy<byte[]> LinearGammaBytes = new Lazy<byte[]>(GetLinearGammaBytes);
+
+        /// <summary>
+        /// The array of bytes representing each possible value of color component
+        /// converted from linear to the gamma color space.
+        /// </summary>
+        private static readonly Lazy<byte[]> GammaLinearBytes = new Lazy<byte[]>(GetGammaLinearBytes);
+
+        /// <summary>
         /// Converts an pixel from an sRGB color-space to the equivalent linear color-space.
         /// </summary>
         /// <param name="composite">
@@ -36,6 +48,7 @@ namespace ImageProcessor
         public static Bgra ToLinear(Bgra composite)
         {
             // Create only once and lazily.
+            // byte[] ramp = LinearGammaBytes.Value;
             byte[] ramp = LinearBytes.Value;
 
             return new Bgra(ramp[composite.B], ramp[composite.G], ramp[composite.R], composite.A);
@@ -53,6 +66,7 @@ namespace ImageProcessor
         public static Bgra ToSrgb(Bgra linear)
         {
             // Create only once and lazily.
+            // byte[] ramp = GammaLinearBytes.Value;
             byte[] ramp = SrgbBytes.Value;
 
             return new Bgra(ramp[linear.B], ramp[linear.G], ramp[linear.R], linear.A);
@@ -105,7 +119,7 @@ namespace ImageProcessor
         /// <returns>
         /// The <see cref="float"/>.
         /// </returns>
-        internal static float SrgbToLinear(float signal)
+        private static float SrgbToLinear(float signal)
         {
             float a = 0.055f;
 
@@ -126,7 +140,7 @@ namespace ImageProcessor
         /// <returns>
         /// The <see cref="float"/>.
         /// </returns>
-        internal static float LinearToSrgb(float signal)
+        private static float LinearToSrgb(float signal)
         {
             float a = 0.055f;
 
@@ -136,6 +150,44 @@ namespace ImageProcessor
             }
 
             return ((float)((1 + a) * Math.Pow(signal, 1 / 2.4f))) - a;
+        }
+
+        /// <summary>
+        /// Gets an array of bytes representing each possible value of color component
+        /// converted from gamma to the linear color space.
+        /// </summary>
+        /// <returns>
+        /// The <see cref="T:byte[]"/>.
+        /// </returns>
+        private static byte[] GetLinearGammaBytes()
+        {
+            byte[] ramp = new byte[256];
+            for (int x = 0; x < 256; ++x)
+            {
+                byte val = (255f * Math.Pow(x / 255f, 2.2)).ToByte();
+                ramp[x] = val;
+            }
+
+            return ramp;
+        }
+
+        /// <summary>
+        /// Gets an array of bytes representing each possible value of color component
+        /// converted from linear to the gamma color space.
+        /// </summary>
+        /// <returns>
+        /// The <see cref="T:byte[]"/>.
+        /// </returns>
+        private static byte[] GetGammaLinearBytes()
+        {
+            byte[] ramp = new byte[256];
+            for (int x = 0; x < 256; ++x)
+            {
+                byte val = (255f * Math.Pow(x / 255f, 1 / 2.2)).ToByte();
+                ramp[x] = val;
+            }
+
+            return ramp;
         }
     }
 }

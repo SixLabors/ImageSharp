@@ -1,5 +1,5 @@
 ﻿// <copyright file="LzwDecoder.cs" company="James South">
-// Copyright © James South and contributors.
+// Copyright (c) James South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
@@ -81,7 +81,7 @@ namespace ImageProcessor.Formats
             int[] pixelStatck = new int[MaxStackSize + 1]; // ÓÃÓÚÁÙÊ±±£´æÊý¾ÝÁ÷
 
             int top = 0;
-            int count = 0; // ÔÚÏÂÃæµÄÑ­»·ÖÐ£¬Ã¿´Î»á»ñÈ¡Ò»¶¨Á¿µÄ±àÂëµÄ×Ö½ÚÊý×é£¬¶ø´¦ÀíÕâÐ©Êý×éµÄÊ±ºòÐèÒª1¸ö¸ö×Ö½ÚÀ´´¦Àí£¬count¾ÍÊÇ±íÊ¾»¹Òª´¦ÀíµÄ×Ö½ÚÊýÄ¿
+            int count = 0; // ÔÚÏÂÃæµÄÑ­»·ÖÐ£¬Ã¿´Î»á»ñÈ¡Ò»¶¨Á¿µÄ±àÂëµÄ×Ö½ÚÊý×é£¬¶ø´¦ÀíÕâÐ(c)Êý×éµÄÊ±ºòÐèÒª1¸ö¸ö×Ö½ÚÀ´´¦Àí£¬count¾ÍÊÇ±íÊ¾»¹Òª´¦ÀíµÄ×Ö½ÚÊýÄ¿
             int bi = 0; // count±íÊ¾»¹Ê£¶àÉÙ×Ö½ÚÐèÒª´¦Àí£¬¶øbiÔò±íÊ¾±¾´ÎÒÑ¾­´¦ÀíµÄ¸öÊý
             int xyz = 0; // i´ú±íµ±Ç°´¦ÀíµÃµ½ÏñËØÊý
 
@@ -134,10 +134,10 @@ namespace ImageProcessor.Formats
                         continue;
                     }
 
-                    // Èç¹ûÒÑ¾­ÓÐ×ã¹»µÄbitÊý¿É¹©´¦Àí£¬ÏÂÃæ¾ÍÊÇ´¦Àí¹ý³Ì
+                    // Èç¹ûÒÑ¾­ÓÐ×ã¹»µÄbitÊý¿É¹(c)´¦Àí£¬ÏÂÃæ¾ÍÊÇ´¦Àí¹ý³Ì
                     // »ñÈ¡±àÂë
                     code = data & codeMask; // »ñÈ¡dataÊý¾ÝµÄ±àÂëÎ»´óÐ¡bitµÄÊý¾Ý
-                    data >>= codeSize; // ½«±àÂëÊý¾Ý½ØÈ¡ºó£¬Ô­À´µÄÊý¾Ý¾ÍÊ£ÏÂ¼¸¸öbitÁË£¬´ËÊ±½«ÕâÐ©bitÓÒÒÆ£¬ÎªÏÂ´Î×÷×¼±¸
+                    data >>= codeSize; // ½«±àÂëÊý¾Ý½ØÈ¡ºó£¬Ô­À´µÄÊý¾Ý¾ÍÊ£ÏÂ¼¸¸öbitÁË£¬´ËÊ±½«ÕâÐ(c)bitÓÒÒÆ£¬ÎªÏÂ´Î×÷×¼±¸
                     bits -= codeSize; // Í¬Ê±ÐèÒª½«µ±Ç°Êý¾ÝµÄbitÊý¼õÈ¥±àÂëÎ»³¤£¬ÒòÎªÒÑ¾­µÃµ½ÁË´¦Àí¡£
 
                     // ÏÂÃæ¸ù¾Ý»ñÈ¡µÄcodeÖµÀ´½øÐÐ´¦Àí

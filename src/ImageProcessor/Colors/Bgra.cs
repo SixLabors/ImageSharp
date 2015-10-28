@@ -194,7 +194,7 @@ namespace ImageProcessor
         /// </returns>
         public static implicit operator Bgra(ColorVector color)
         {
-            return new Bgra((255 * color.B).ToByte(), (255 * color.G).ToByte(), (255 * color.R).ToByte(), (255 * color.A).ToByte());
+            return new Bgra((255f * color.B).ToByte(), (255f * color.G).ToByte(), (255f * color.R).ToByte(), (255f * color.A).ToByte());
         }
 
         /// <summary>

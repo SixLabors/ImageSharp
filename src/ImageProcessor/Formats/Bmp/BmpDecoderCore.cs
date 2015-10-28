@@ -12,6 +12,7 @@ namespace ImageProcessor.Formats
 {
     using System;
     using System.IO;
+    using System.Threading.Tasks;
 
     /// <summary>
     /// Performs the bmp decoding operation.
@@ -194,7 +195,7 @@ namespace ImageProcessor.Formats
             // Bit mask
             int mask = 0xFF >> (8 - bits);
 
-            byte[] data = new byte[(arrayWidth * height)];
+            byte[] data = new byte[arrayWidth * height];
 
             this.currentStream.Read(data, 0, data.Length);
 
@@ -205,31 +206,34 @@ namespace ImageProcessor.Formats
                 alignment = 4 - alignment;
             }
 
-            for (int y = 0; y < height; y++)
-            {
-                int rowOffset = y * (arrayWidth + alignment);
-
-                for (int x = 0; x < arrayWidth; x++)
-                {
-                    int offset = rowOffset + x;
-
-                    // Revert the y value, because bitmaps are saved from down to top
-                    int row = Invert(y, height);
-
-                    int colOffset = x * ppb;
-
-                    for (int shift = 0; shift < ppb && (colOffset + shift) < width; shift++)
+            Parallel.For(
+                0,
+                height,
+                y =>
                     {
-                        int colorIndex = (data[offset] >> (8 - bits - (shift * bits))) & mask;
+                        int rowOffset = y * (arrayWidth + alignment);
 
-                        int arrayOffset = ((row * width) + (colOffset + shift)) * 4;
-                        imageData[arrayOffset + 0] = colors[colorIndex * 4];
-                        imageData[arrayOffset + 1] = colors[(colorIndex * 4) + 1];
-                        imageData[arrayOffset + 2] = colors[(colorIndex * 4) + 2];
-                        imageData[arrayOffset + 3] = 255;
-                    }
-                }
-            }
+                        for (int x = 0; x < arrayWidth; x++)
+                        {
+                            int offset = rowOffset + x;
+
+                            // Revert the y value, because bitmaps are saved from down to top
+                            int row = Invert(y, height);
+
+                            int colOffset = x * ppb;
+
+                            for (int shift = 0; shift < ppb && (colOffset + shift) < width; shift++)
+                            {
+                                int colorIndex = (data[offset] >> (8 - bits - (shift * bits))) & mask;
+
+                                int arrayOffset = ((row * width) + (colOffset + shift)) * 4;
+                                imageData[arrayOffset + 0] = colors[colorIndex * 4];
+                                imageData[arrayOffset + 1] = colors[(colorIndex * 4) + 1];
+                                imageData[arrayOffset + 2] = colors[(colorIndex * 4) + 2];
+                                imageData[arrayOffset + 3] = 255;
+                            }
+                        }
+                    });
         }
 
         /// <summary>

@@ -5,6 +5,8 @@
 
 namespace ImageProcessor.Filters
 {
+    using System.Threading.Tasks;
+
     /// <summary>
     /// The color matrix filter.
     /// </summary>
@@ -42,29 +44,32 @@ namespace ImageProcessor.Filters
             Bgra previousColor = source[0, 0];
             Bgra pixelValue = this.ApplyMatrix(previousColor, matrix);
 
-            for (int y = startY; y < endY; y++)
-            {
-                if (y >= sourceY && y < sourceBottom)
-                {
-                    for (int x = startX; x < endX; x++)
+            Parallel.For(
+                startY,
+                endY,
+                y =>
                     {
-                        Bgra sourceColor = source[x, y];
-
-                        // Check if this is the same as the last pixel. If so use that value
-                        // rather than calculating it again. This is an inexpensive optimization.
-                        if (sourceColor != previousColor)
+                        if (y >= sourceY && y < sourceBottom)
                         {
-                            // Perform the operation on the pixel.
-                            pixelValue = this.ApplyMatrix(sourceColor, matrix);
+                            for (int x = startX; x < endX; x++)
+                            {
+                                Bgra sourceColor = source[x, y];
 
-                            // And setup the previous pointer
-                            previousColor = sourceColor;
+                                // Check if this is the same as the last pixel. If so use that value
+                                // rather than calculating it again. This is an inexpensive optimization.
+                                if (sourceColor != previousColor)
+                                {
+                                    // Perform the operation on the pixel.
+                                    pixelValue = this.ApplyMatrix(sourceColor, matrix);
+
+                                    // And setup the previous pointer
+                                    previousColor = sourceColor;
+                                }
+
+                                target[x, y] = pixelValue;
+                            }
                         }
-
-                        target[x, y] = pixelValue;
-                    }
-                }
-            }
+                    });
         }
 
         /// <summary>

@@ -62,7 +62,6 @@ namespace ImageProcessor.Samplers
             int targetBottom = targetRectangle.Bottom;
             int startX = targetRectangle.X;
             int endX = targetRectangle.Right;
-            //Vector<int> endVX = new Vector<int>(targetRectangle.Right);
 
             Parallel.For(
                 startY,
@@ -72,18 +71,15 @@ namespace ImageProcessor.Samplers
                     if (y >= targetY && y < targetBottom)
                     {
                         List<Weight> verticalValues = this.verticalWeights[y].Values;
-                        double verticalSum = this.verticalWeights[y].Sum;
+                        float verticalSum = this.verticalWeights[y].Sum;
 
                         for (int x = startX; x < endX; x++)
                         {
                             List<Weight> horizontalValues = this.horizontalWeights[x].Values;
-                            double horizontalSum = this.horizontalWeights[x].Sum;
+                            float horizontalSum = this.horizontalWeights[x].Sum;
 
                             // Destination color components
-                            double r = 0;
-                            double g = 0;
-                            double b = 0;
-                            double a = 0;
+                            Color destination = new Color(0, 0, 0, 0);
 
                             foreach (Weight yw in verticalValues)
                             {
@@ -102,19 +98,20 @@ namespace ImageProcessor.Samplers
                                     }
 
                                     int originX = xw.Index;
-                                    ColorVector sourceColor = source[originX, originY];
-                                    //sourceColor = PixelOperations.ToLinear(sourceColor);
+                                    Color sourceColor = source[originX, originY];
+                                    sourceColor = PixelOperations.ToLinear(sourceColor);
 
-                                    r += sourceColor.R * (yw.Value / verticalSum) * (xw.Value / horizontalSum);
-                                    g += sourceColor.G * (yw.Value / verticalSum) * (xw.Value / horizontalSum);
-                                    b += sourceColor.B * (yw.Value / verticalSum) * (xw.Value / horizontalSum);
-                                    a += sourceColor.A * (yw.Value / verticalSum) * (xw.Value / horizontalSum);
+                                    float weight = (yw.Value / verticalSum) * (xw.Value / horizontalSum);
+
+                                    destination.R += sourceColor.R * weight;
+                                    destination.G += sourceColor.G * weight;
+                                    destination.B += sourceColor.B * weight;
+                                    destination.A += sourceColor.A * weight;
                                 }
                             }
 
-                            // TODO: Double cast?
-                            Bgra destinationColor = new ColorVector(b, g, r, a);//PixelOperations.ToSrgb(new ColorVector(b, g, r, a));
-                            target[x, y] = destinationColor;
+                            destination = PixelOperations.ToSrgb(destination);
+                            target[x, y] = destination;
                         }
                     }
                 });
@@ -131,15 +128,15 @@ namespace ImageProcessor.Samplers
         private Weights[] PrecomputeWeights(int destinationSize, int sourceSize)
         {
             IResampler sampler = this.Sampler;
-            double du = sourceSize / (double)destinationSize;
-            double scale = du;
+            float du = sourceSize / (float)destinationSize;
+            float scale = du;
 
             if (scale < 1)
             {
                 scale = 1;
             }
 
-            double ru = Math.Ceiling(scale * sampler.Radius);
+            float ru = (float)Math.Ceiling(scale * sampler.Radius);
             Weights[] result = new Weights[destinationSize];
 
             Parallel.For(
@@ -147,7 +144,7 @@ namespace ImageProcessor.Samplers
                 destinationSize,
                 i =>
                     {
-                        double fu = ((i + .5) * du) - 0.5;
+                        float fu = ((i + .5f) * du) - 0.5f;
                         int startU = (int)Math.Ceiling(fu - ru);
 
                         if (startU < 0)
@@ -162,12 +159,13 @@ namespace ImageProcessor.Samplers
                             endU = sourceSize - 1;
                         }
 
-                        double sum = 0;
+                        float sum = 0;
                         result[i] = new Weights();
 
                         for (int a = startU; a <= endU; a++)
                         {
-                            double w = 255 * sampler.GetValue((a - fu) / scale);
+                            // TODO: CHeck multiplier here
+                            float w = 255f * sampler.GetValue((a - fu) / scale);
 
                             if (Math.Abs(w) > Epsilon)
                             {
@@ -195,14 +193,14 @@ namespace ImageProcessor.Samplers
             /// <summary>
             /// The result of the interpolation algorithm.
             /// </summary>
-            public readonly double Value;
+            public readonly float Value;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="Weight"/> struct.
             /// </summary>
             /// <param name="index">The index.</param>
             /// <param name="value">The value.</param>
-            public Weight(int index, double value)
+            public Weight(int index, float value)
             {
                 this.Index = index;
                 this.Value = value;
@@ -230,7 +228,7 @@ namespace ImageProcessor.Samplers
             /// <summary>
             /// Gets or sets the sum.
             /// </summary>
-            public double Sum { get; set; }
+            public float Sum { get; set; }
         }
     }
 }

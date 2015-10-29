@@ -15,18 +15,18 @@ namespace ImageProcessor.Tests
             new TheoryData<string, IResampler>
             {
                 { "Bicubic", new BicubicResampler() },
-                { "Triangle", new TriangleResampler() },
-                { "Box", new BoxResampler() },
-                { "Lanczos3", new Lanczos3Resampler() },
-                { "Lanczos5", new Lanczos5Resampler() },
-                { "Lanczos8", new Lanczos8Resampler() },
-                { "MitchellNetravali", new MitchellNetravaliResampler() },
-                { "Hermite", new HermiteResampler() },
-                { "Spline", new SplineResampler() },
-                { "Robidoux", new RobidouxResampler() },
-                { "RobidouxSharp", new RobidouxSharpResampler() },
-                { "RobidouxSoft", new RobidouxSoftResampler() },
-                { "Welch", new WelchResampler() }
+                //{ "Triangle", new TriangleResampler() },
+                //{ "Box", new BoxResampler() },
+                //{ "Lanczos3", new Lanczos3Resampler() },
+                //{ "Lanczos5", new Lanczos5Resampler() },
+                //{ "Lanczos8", new Lanczos8Resampler() },
+                //{ "MitchellNetravali", new MitchellNetravaliResampler() },
+                //{ "Hermite", new HermiteResampler() },
+                //{ "Spline", new SplineResampler() },
+                //{ "Robidoux", new RobidouxResampler() },
+                //{ "RobidouxSharp", new RobidouxSharpResampler() },
+                //{ "RobidouxSoft", new RobidouxSoftResampler() },
+                //{ "Welch", new WelchResampler() }
             };
 
         [Theory]
@@ -48,7 +48,7 @@ namespace ImageProcessor.Tests
                     using (FileStream output = File.OpenWrite($"Resized/{filename}"))
                     {
                         //image.Resize(image.Width / 2, image.Height / 2, sampler).Save(output);
-                        image.Resize(500, 750, sampler).Save(output);
+                        image.Resize(image.Width / 2, image.Height / 2, sampler).Save(output);
                     }
 
                     Trace.WriteLine($"{name}: {watch.ElapsedMilliseconds}ms");
@@ -63,10 +63,10 @@ namespace ImageProcessor.Tests
         [InlineData(1, 0)]
         [InlineData(2, 0)]
         [InlineData(2, 0)]
-        public static void Lanczos3WindowOscillatesCorrectly(double x, double expected)
+        public static void Lanczos3WindowOscillatesCorrectly(float x, float expected)
         {
             Lanczos3Resampler sampler = new Lanczos3Resampler();
-            double result = sampler.GetValue(x);
+            float result = sampler.GetValue(x);
 
             Assert.Equal(result, expected);
         }

@@ -1,22 +1,27 @@
-﻿namespace ImageProcessor.Samplers
+﻿// <copyright file="IResampler.cs" company="James South">
+// Copyright (c) James South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
+namespace ImageProcessor.Samplers
 {
     /// <summary>
-    /// Encasulates an interpolation algorithm for resampling images.
+    /// Encapsulates an interpolation algorithm for resampling images.
     /// </summary>
     public interface IResampler
     {
         /// <summary>
         /// Gets the radius in which to sample pixels.
         /// </summary>
-        double Radius { get; }
+        float Radius { get; }
 
         /// <summary>
         /// Gets the result of the interpolation algorithm.
         /// </summary>
         /// <param name="x">The value to process.</param>
         /// <returns>
-        /// The <see cref="double"/>
+        /// The <see cref="float"/>
         /// </returns>
-        double GetValue(double x);
+        float GetValue(float x);
     }
 }

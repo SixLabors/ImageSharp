@@ -65,16 +65,16 @@ namespace ImageProcessor
                             && Math.Abs(this.Cr) < Epsilon;
 
         /// <summary>
-        /// Allows the implicit conversion of an instance of <see cref="Bgra"/> to a
+        /// Allows the implicit conversion of an instance of <see cref="Bgra32"/> to a
         /// <see cref="YCbCr"/>.
         /// </summary>
         /// <param name="color">
-        /// The instance of <see cref="Bgra"/> to convert.
+        /// The instance of <see cref="Bgra32"/> to convert.
         /// </param>
         /// <returns>
         /// An instance of <see cref="YCbCr"/>.
         /// </returns>
-        public static implicit operator YCbCr(Bgra color)
+        public static implicit operator YCbCr(Bgra32 color)
         {
             byte b = color.B;
             byte g = color.G;

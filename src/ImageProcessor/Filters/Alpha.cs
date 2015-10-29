@@ -49,9 +49,9 @@ namespace ImageProcessor.Filters
                         {
                             for (int x = startX; x < endX; x++)
                             {
-                                Bgra color = source[x, y];
+                                Bgra32 color = source[x, y];
                                 double a = color.A * alpha;
-                                target[x, y] = new Bgra(color.B, color.G, color.R, a.ToByte());
+                                target[x, y] = new Bgra32(color.B, color.G, color.R, a.ToByte());
                             }
                         }
                     });

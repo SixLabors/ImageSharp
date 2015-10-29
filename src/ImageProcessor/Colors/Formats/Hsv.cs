@@ -63,16 +63,16 @@ namespace ImageProcessor
                             && Math.Abs(this.V) < Epsilon;
 
         /// <summary>
-        /// Allows the implicit conversion of an instance of <see cref="Bgra"/> to a
+        /// Allows the implicit conversion of an instance of <see cref="Bgra32"/> to a
         /// <see cref="Hsv"/>.
         /// </summary>
         /// <param name="color">
-        /// The instance of <see cref="Bgra"/> to convert.
+        /// The instance of <see cref="Bgra32"/> to convert.
         /// </param>
         /// <returns>
         /// An instance of <see cref="Hsv"/>.
         /// </returns>
-        public static implicit operator Hsv(Bgra color)
+        public static implicit operator Hsv(Bgra32 color)
         {
             float r = color.R / 255f;
             float g = color.G / 255f;

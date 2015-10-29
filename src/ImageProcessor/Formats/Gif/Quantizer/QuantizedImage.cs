@@ -19,7 +19,7 @@ namespace ImageProcessor.Formats
         /// <param name="height">The image height.</param>
         /// <param name="palette">The color palette.</param>
         /// <param name="pixels">The quantized pixels.</param>
-        public QuantizedImage(int width, int height, Bgra[] palette, byte[] pixels)
+        public QuantizedImage(int width, int height, Bgra32[] palette, byte[] pixels)
         {
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
@@ -51,7 +51,7 @@ namespace ImageProcessor.Formats
         /// <summary>
         /// Gets the color palette of this <see cref="T:QuantizedImage"/>.
         /// </summary>
-        public Bgra[] Palette { get; }
+        public Bgra32[] Palette { get; }
 
         /// <summary>
         /// Gets the pixels of this <see cref="T:QuantizedImage"/>.
@@ -74,7 +74,7 @@ namespace ImageProcessor.Formats
             for (int i = 0; i < pixelCount; i++)
             {
                 int offset = i * 4;
-                Bgra color = this.Palette[this.Pixels[i]];
+                Bgra32 color = this.Palette[this.Pixels[i]];
                 bgraPixels[offset + 0] = color.B;
                 bgraPixels[offset + 1] = color.G;
                 bgraPixels[offset + 2] = color.R;

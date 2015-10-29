@@ -127,7 +127,7 @@ namespace ImageProcessor.Formats
             QuantizedImage quantizedImage = quantizer.Quantize(image);
 
             // Grab the pallete and write it to the stream.
-            Bgra[] pallete = quantizedImage.Palette;
+            Bgra32[] pallete = quantizedImage.Palette;
             int pixelCount = pallete.Length;
 
             // Get max colors for bit depth.
@@ -137,7 +137,7 @@ namespace ImageProcessor.Formats
             for (int i = 0; i < pixelCount; i++)
             {
                 int offset = i * 3;
-                Bgra color = pallete[i];
+                Bgra32 color = pallete[i];
                 colorTable[offset + 2] = color.B;
                 colorTable[offset + 1] = color.G;
                 colorTable[offset + 0] = color.R;

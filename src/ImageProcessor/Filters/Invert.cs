@@ -30,8 +30,8 @@ namespace ImageProcessor.Filters
                             for (int x = startX; x < endX; x++)
                             {
                                 // TODO: This doesn't work for gamma test images.
-                                Bgra color = source[x, y];
-                                Bgra targetColor = new Bgra((255 - color.B).ToByte(), (255 - color.G).ToByte(), (255 - color.R).ToByte(), color.A);
+                                Bgra32 color = source[x, y];
+                                Bgra32 targetColor = new Bgra32((255 - color.B).ToByte(), (255 - color.G).ToByte(), (255 - color.R).ToByte(), color.A);
                                 target[x, y] = targetColor;
                             }
                         }

@@ -6,6 +6,7 @@
 namespace ImageProcessor
 {
     using System;
+    using System.Collections.Concurrent;
 
     /// <summary>
     /// Performs per-pixel operations.
@@ -13,103 +14,41 @@ namespace ImageProcessor
     public static class PixelOperations
     {
         /// <summary>
-        /// The array of values representing each possible value of color component
-        /// converted from sRGB to the linear color space.
-        /// </summary>
-        private static readonly Lazy<float[]> LinearLut = new Lazy<float[]>(GetLinearBytes);
-
-        /// <summary>
-        /// The array of values representing each possible value of color component
-        /// converted from linear to the sRGB color space.
-        /// </summary>
-        private static readonly Lazy<float[]> SrgbLut = new Lazy<float[]>(GetSrgbBytes);
-
-        /// <summary>
-        /// The array of bytes representing each possible value of color component
-        /// converted from gamma to the linear color space.
-        /// </summary>
-        private static readonly Lazy<byte[]> LinearGammaBytes = new Lazy<byte[]>(GetLinearGammaBytes);
-
-        /// <summary>
-        /// The array of bytes representing each possible value of color component
-        /// converted from linear to the gamma color space.
-        /// </summary>
-        private static readonly Lazy<byte[]> GammaLinearBytes = new Lazy<byte[]>(GetGammaLinearBytes);
-
-        /// <summary>
         /// Converts an pixel from an sRGB color-space to the equivalent linear color-space.
         /// </summary>
         /// <param name="composite">
-        /// The <see cref="Bgra"/> to convert.
+        /// The <see cref="Bgra32"/> to convert.
         /// </param>
         /// <returns>
-        /// The <see cref="Bgra"/>.
+        /// The <see cref="Bgra32"/>.
         /// </returns>
-        public static Bgra ToLinear(ColorVector composite)
+        public static Color ToLinear(Color composite)
         {
-            // Create only once and lazily.
-            // byte[] ramp = LinearGammaBytes.Value;
-            float[] ramp = LinearLut.Value;
+            // TODO: Figure out a way to either cache these values quickly or perform the calcuations together.
+            composite.R = SrgbToLinear(composite.R);
+            composite.G = SrgbToLinear(composite.G);
+            composite.B = SrgbToLinear(composite.B);
 
-            // TODO: This just doesn't seem right to me.
-            return new ColorVector(ramp[(composite.B * 255).ToByte()], ramp[(composite.G * 255).ToByte()], ramp[(composite.R * 255).ToByte()], composite.A);
+            return composite;
         }
 
         /// <summary>
         /// Converts a pixel from a linear color-space to the equivalent sRGB color-space.
         /// </summary>
         /// <param name="linear">
-        /// The <see cref="Bgra"/> to convert.
+        /// The <see cref="Bgra32"/> to convert.
         /// </param>
         /// <returns>
-        /// The <see cref="Bgra"/>.
+        /// The <see cref="Bgra32"/>.
         /// </returns>
-        public static Bgra ToSrgb(ColorVector linear)
+        public static Color ToSrgb(Color linear)
         {
-            // Create only once and lazily.
-            // byte[] ramp = GammaLinearBytes.Value;
-            float[] ramp = SrgbLut.Value;
+            // TODO: Figure out a way to either cache these values quickly or perform the calcuations together.
+            linear.R = LinearToSrgb(linear.R);
+            linear.G = LinearToSrgb(linear.G);
+            linear.B = LinearToSrgb(linear.B);
 
-            // TODO: This just doesn't seem right to me.
-            return new ColorVector(ramp[(linear.B * 255).ToByte()], ramp[(linear.G * 255).ToByte()], (linear.R * 255).ToByte(), linear.A);
-        }
-
-        /// <summary>
-        /// Gets an array of bytes representing each possible value of color component
-        /// converted from sRGB to the linear color space.
-        /// </summary>
-        /// <returns>
-        /// The <see cref="T:byte[]"/>.
-        /// </returns>
-        private static float[] GetLinearBytes()
-        {
-            float[] ramp = new float[256];
-            for (int x = 0; x < 256; ++x)
-            {
-                float val = SrgbToLinear(x / 255f);
-                ramp[x] = val;
-            }
-
-            return ramp;
-        }
-
-        /// <summary>
-        /// Gets an array of bytes representing each possible value of color component
-        /// converted from linear to the sRGB color space.
-        /// </summary>
-        /// <returns>
-        /// The <see cref="T:byte[]"/>.
-        /// </returns>
-        private static float[] GetSrgbBytes()
-        {
-            float[] ramp = new float[256];
-            for (int x = 0; x < 256; ++x)
-            {
-                float val = LinearToSrgb(x / 255f);
-                ramp[x] = val;
-            }
-
-            return ramp;
+            return linear;
         }
 
         /// <summary>
@@ -123,14 +62,12 @@ namespace ImageProcessor
         /// </returns>
         private static float SrgbToLinear(float signal)
         {
-            float a = 0.055f;
-
-            if (signal <= 0.04045)
+            if (signal <= 0.04045f)
             {
                 return signal / 12.92f;
             }
 
-            return (float)Math.Pow((signal + a) / (1 + a), 2.4);
+            return (float)Math.Pow((signal + 0.055f) / 1.055f, 2.4f);
         }
 
         /// <summary>
@@ -144,52 +81,12 @@ namespace ImageProcessor
         /// </returns>
         private static float LinearToSrgb(float signal)
         {
-            float a = 0.055f;
-
-            if (signal <= 0.0031308)
+            if (signal <= 0.0031308f)
             {
                 return signal * 12.92f;
             }
 
-            return ((float)((1 + a) * Math.Pow(signal, 1 / 2.4f))) - a;
-        }
-
-        /// <summary>
-        /// Gets an array of bytes representing each possible value of color component
-        /// converted from gamma to the linear color space.
-        /// </summary>
-        /// <returns>
-        /// The <see cref="T:byte[]"/>.
-        /// </returns>
-        private static byte[] GetLinearGammaBytes()
-        {
-            byte[] ramp = new byte[256];
-            for (int x = 0; x < 256; ++x)
-            {
-                byte val = (255f * Math.Pow(x / 255f, 2.2)).ToByte();
-                ramp[x] = val;
-            }
-
-            return ramp;
-        }
-
-        /// <summary>
-        /// Gets an array of bytes representing each possible value of color component
-        /// converted from linear to the gamma color space.
-        /// </summary>
-        /// <returns>
-        /// The <see cref="T:byte[]"/>.
-        /// </returns>
-        private static byte[] GetGammaLinearBytes()
-        {
-            byte[] ramp = new byte[256];
-            for (int x = 0; x < 256; ++x)
-            {
-                byte val = (255f * Math.Pow(x / 255f, 1 / 2.2)).ToByte();
-                ramp[x] = val;
-            }
-
-            return ramp;
+            return (1.055f * (float)Math.Pow(signal, 0.41666666f)) - 0.055f;
         }
     }
 }

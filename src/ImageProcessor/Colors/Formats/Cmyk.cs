@@ -72,16 +72,16 @@ namespace ImageProcessor
                             && Math.Abs(this.K) < Epsilon;
 
         /// <summary>
-        /// Allows the implicit conversion of an instance of <see cref="Bgra"/> to a
+        /// Allows the implicit conversion of an instance of <see cref="Bgra32"/> to a
         /// <see cref="Cmyk"/>.
         /// </summary>
         /// <param name="color">
-        /// The instance of <see cref="Bgra"/> to convert.
+        /// The instance of <see cref="Bgra32"/> to convert.
         /// </param>
         /// <returns>
         /// An instance of <see cref="Cmyk"/>.
         /// </returns>
-        public static implicit operator Cmyk(Bgra color)
+        public static implicit operator Cmyk(Bgra32 color)
         {
             float c = (255f - color.R) / 255;
             float m = (255f - color.G) / 255;

@@ -41,8 +41,8 @@ namespace ImageProcessor.Filters
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
             ColorMatrix matrix = this.Value;
-            Bgra previousColor = source[0, 0];
-            Bgra pixelValue = this.ApplyMatrix(previousColor, matrix);
+            Bgra32 previousColor = source[0, 0];
+            Bgra32 pixelValue = this.ApplyMatrix(previousColor, matrix);
 
             Parallel.For(
                 startY,
@@ -53,7 +53,7 @@ namespace ImageProcessor.Filters
                         {
                             for (int x = startX; x < endX; x++)
                             {
-                                Bgra sourceColor = source[x, y];
+                                Bgra32 sourceColor = source[x, y];
 
                                 // Check if this is the same as the last pixel. If so use that value
                                 // rather than calculating it again. This is an inexpensive optimization.
@@ -78,9 +78,9 @@ namespace ImageProcessor.Filters
         /// <param name="sourceColor">The source color.</param>
         /// <param name="matrix">The matrix.</param>
         /// <returns>
-        /// The <see cref="Bgra"/>.
+        /// The <see cref="Bgra32"/>.
         /// </returns>
-        private Bgra ApplyMatrix(Bgra sourceColor, ColorMatrix matrix)
+        private Bgra32 ApplyMatrix(Bgra32 sourceColor, ColorMatrix matrix)
         {
             bool gamma = this.GammaAdjust;
 
@@ -100,7 +100,8 @@ namespace ImageProcessor.Filters
             byte b = ((sr * matrix.Matrix02) + (sg * matrix.Matrix12) + (sb * matrix.Matrix22) + (sa * matrix.Matrix32) + (255f * matrix.Matrix42)).ToByte();
             byte a = ((sr * matrix.Matrix03) + (sg * matrix.Matrix13) + (sb * matrix.Matrix23) + (sa * matrix.Matrix33) + (255f * matrix.Matrix43)).ToByte();
 
-            return gamma ? PixelOperations.ToSrgb(new Bgra(b, g, r, a)) : new Bgra(b, g, r, a);
+            // TODO: Fix this.
+            return gamma ? (Bgra32)PixelOperations.ToSrgb(new Bgra32(b, g, r, a)) : new Bgra32(b, g, r, a);
         }
     }
 }

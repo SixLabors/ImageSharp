@@ -49,7 +49,7 @@ namespace ImageProcessor.Filters
                         {
                             for (int x = startX; x < endX; x++)
                             {
-                                Bgra sourceColor = source[x, y];
+                                Bgra32 sourceColor = source[x, y];
                                 sourceColor = PixelOperations.ToLinear(sourceColor);
 
                                 double r = sourceColor.R / 255.0;
@@ -73,7 +73,7 @@ namespace ImageProcessor.Filters
                                 b *= 255;
                                 b = b.ToByte();
 
-                                Bgra destinationColor = new Bgra(b.ToByte(), g.ToByte(), r.ToByte(), sourceColor.A);
+                                Bgra32 destinationColor = new Bgra32(b.ToByte(), g.ToByte(), r.ToByte(), sourceColor.A);
                                 destinationColor = PixelOperations.ToSrgb(destinationColor);
                                 target[x, y] = destinationColor;
                             }

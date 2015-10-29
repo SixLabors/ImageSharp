@@ -130,8 +130,8 @@ namespace ImageProcessor
         /// The y-coordinate of the pixel. Must be greater
         /// than zero and smaller than the width of the pixel.
         /// </param>
-        /// <returns>The <see cref="Bgra"/> at the specified position.</returns>
-        public Bgra this[int x, int y]
+        /// <returns>The <see cref="Bgra32"/> at the specified position.</returns>
+        public Bgra32 this[int x, int y]
         {
             get
             {
@@ -148,7 +148,7 @@ namespace ImageProcessor
 #endif
 
                 int start = ((y * this.Width) + x) * 4;
-                return new Bgra(this.Pixels[start], this.Pixels[start + 1], this.Pixels[start + 2], this.Pixels[start + 3]);
+                return new Bgra32(this.Pixels[start], this.Pixels[start + 1], this.Pixels[start + 2], this.Pixels[start + 3]);
             }
 
             set

@@ -13,6 +13,12 @@ namespace ImageProcessor
     internal static class ImageMaths
     {
         /// <summary>
+        /// Represents PI, the ratio of a circle's circumference to its diameter.
+        /// </summary>
+        // ReSharper disable once InconsistentNaming
+        public const float PI = 3.1415926535897931f;
+
+        /// <summary>
         /// Returns the result of a B-C filter against the given value.
         /// <see href="http://www.imagemagick.org/Usage/filter/#cubic_bc"/>
         /// </summary>
@@ -20,11 +26,11 @@ namespace ImageProcessor
         /// <param name="b">The B-Spline curve variable.</param>
         /// <param name="c">The Cardinal curve variable.</param>
         /// <returns>
-        /// The <see cref="double"/>.
+        /// The <see cref="float"/>.
         /// </returns>
-        public static double GetBcValue(double x, double b, double c)
+        public static float GetBcValue(float x, float b, float c)
         {
-            double temp;
+            float temp;
 
             if (x < 0)
             {
@@ -54,19 +60,19 @@ namespace ImageProcessor
         /// The value to calculate the result for.
         /// </param>
         /// <returns>
-        /// The <see cref="double"/>.
+        /// The <see cref="float"/>.
         /// </returns>
-        public static double SinC(double x)
+        public static float SinC(float x)
         {
-            const double Epsilon = .0001;
+            const float Epsilon = .00001f;
 
             if (Math.Abs(x) > Epsilon)
             {
-                x *= Math.PI;
-                return Clean(Math.Sin(x) / x);
+                x *= PI;
+                return Clean((float)Math.Sin(x) / x);
             }
 
-            return 1.0;
+            return 1.0f;
         }
 
         /// <summary>
@@ -74,15 +80,15 @@ namespace ImageProcessor
         /// </summary>
         /// <param name="x">The value to clean.</param>
         /// <returns>
-        /// The <see cref="double"/>
+        /// The <see cref="float"/>
         /// </returns>.
-        private static double Clean(double x)
+        private static float Clean(float x)
         {
-            const double Epsilon = .0001;
+            const float Epsilon = .00001f;
 
             if (Math.Abs(x) < Epsilon)
             {
-                return 0.0;
+                return 0f;
             }
 
             return x;

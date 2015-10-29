@@ -12,32 +12,28 @@ namespace ImageProcessor
     /// <summary>
     /// Represents an BGRA (blue, green, red, alpha) color.
     /// </summary>
-    /// <remarks>
-    /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
-    /// as it avoids the need to create new values for modification operations.
-    /// </remarks>
     [StructLayout(LayoutKind.Explicit)]
-    public struct Bgra : IEquatable<Bgra>
+    public struct Bgra32 : IEquatable<Bgra32>
     {
         /// <summary>
-        /// Represents a <see cref="Bgra"/> that has B, G, R, and A values set to zero.
+        /// Represents a <see cref="Bgra32"/> that has B, G, R, and A values set to zero.
         /// </summary>
-        public static readonly Bgra Empty = default(Bgra);
+        public static readonly Bgra32 Empty = default(Bgra32);
 
         /// <summary>
-        /// Represents a transparent <see cref="Bgra"/> that has B, G, R, and A values set to 255, 255, 255, 0.
+        /// Represents a transparent <see cref="Bgra32"/> that has B, G, R, and A values set to 255, 255, 255, 0.
         /// </summary>
-        public static readonly Bgra Transparent = new Bgra(255, 255, 255, 0);
+        public static readonly Bgra32 Transparent = new Bgra32(255, 255, 255, 0);
 
         /// <summary>
-        /// Represents a black <see cref="Bgra"/> that has B, G, R, and A values set to 0, 0, 0, 0.
+        /// Represents a black <see cref="Bgra32"/> that has B, G, R, and A values set to 0, 0, 0, 0.
         /// </summary>
-        public static readonly Bgra Black = new Bgra(0, 0, 0, 255);
+        public static readonly Bgra32 Black = new Bgra32(0, 0, 0, 255);
 
         /// <summary>
-        /// Represents a white <see cref="Bgra"/> that has B, G, R, and A values set to 255, 255, 255, 255.
+        /// Represents a white <see cref="Bgra32"/> that has B, G, R, and A values set to 255, 255, 255, 255.
         /// </summary>
-        public static readonly Bgra White = new Bgra(255, 255, 255, 255);
+        public static readonly Bgra32 White = new Bgra32(255, 255, 255, 255);
 
         /// <summary>
         /// Holds the blue component of the color
@@ -64,7 +60,7 @@ namespace ImageProcessor
         public readonly byte A;
 
         /// <summary>
-        /// Permits the <see cref="Bgra"/> to be treated as a 32 bit integer.
+        /// Permits the <see cref="Bgra32"/> to be treated as a 32 bit integer.
         /// </summary>
         [FieldOffset(0)]
         public readonly int BGRA;
@@ -75,18 +71,18 @@ namespace ImageProcessor
         private const float Epsilon = 0.0001f;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Bgra"/> struct.
+        /// Initializes a new instance of the <see cref="Bgra32"/> struct.
         /// </summary>
         /// <param name="b">
-        /// The blue component of this <see cref="Bgra"/>.
+        /// The blue component of this <see cref="Bgra32"/>.
         /// </param>
         /// <param name="g">
-        /// The green component of this <see cref="Bgra"/>.
+        /// The green component of this <see cref="Bgra32"/>.
         /// </param>
         /// <param name="r">
-        /// The red component of this <see cref="Bgra"/>.
+        /// The red component of this <see cref="Bgra32"/>.
         /// </param>
-        public Bgra(byte b, byte g, byte r)
+        public Bgra32(byte b, byte g, byte r)
             : this()
         {
             this.B = b;
@@ -96,21 +92,21 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Bgra"/> struct.
+        /// Initializes a new instance of the <see cref="Bgra32"/> struct.
         /// </summary>
         /// <param name="b">
-        /// The blue component of this <see cref="Bgra"/>.
+        /// The blue component of this <see cref="Bgra32"/>.
         /// </param>
         /// <param name="g">
-        /// The green component of this <see cref="Bgra"/>.
+        /// The green component of this <see cref="Bgra32"/>.
         /// </param>
         /// <param name="r">
-        /// The red component of this <see cref="Bgra"/>.
+        /// The red component of this <see cref="Bgra32"/>.
         /// </param>
         /// <param name="a">
-        /// The alpha component of this <see cref="Bgra"/>.
+        /// The alpha component of this <see cref="Bgra32"/>.
         /// </param>
-        public Bgra(byte b, byte g, byte r, byte a)
+        public Bgra32(byte b, byte g, byte r, byte a)
             : this()
         {
             this.B = b;
@@ -120,25 +116,25 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Bgra"/> struct.
+        /// Initializes a new instance of the <see cref="Bgra32"/> struct.
         /// </summary>
         /// <param name="bgra">
         /// The combined color components.
         /// </param>
-        public Bgra(int bgra)
+        public Bgra32(int bgra)
             : this()
         {
             this.BGRA = bgra;
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Bgra"/> struct.
+        /// Initializes a new instance of the <see cref="Bgra32"/> struct.
         /// </summary>
         /// <param name="hex">
         /// The hexadecimal representation of the combined color components arranged
         /// in rgb, rrggbb, or aarrggbb format to match web syntax.
         /// </param>
-        public Bgra(string hex)
+        public Bgra32(string hex)
             : this()
         {
             // Hexadecimal representations are layed out AARRGGBB to we need to do some reordering.
@@ -177,37 +173,38 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Gets a value indicating whether this <see cref="Bgra"/> is empty.
+        /// Gets a value indicating whether this <see cref="Bgra32"/> is empty.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public bool IsEmpty => this.B == 0 && this.G == 0 && this.R == 0 && this.A == 0;
 
         /// <summary>
-        /// Allows the implicit conversion of an instance of <see cref="ColorVector"/> to a
-        /// <see cref="Bgra"/>.
+        /// Allows the implicit conversion of an instance of <see cref="Color"/> to a
+        /// <see cref="Bgra32"/>.
         /// </summary>
         /// <param name="color">
-        /// The instance of <see cref="ColorVector"/> to convert.
+        /// The instance of <see cref="Color"/> to convert.
         /// </param>
         /// <returns>
-        /// An instance of <see cref="Bgra"/>.
+        /// An instance of <see cref="Bgra32"/>.
         /// </returns>
-        public static implicit operator Bgra(ColorVector color)
+        public static implicit operator Bgra32(Color color)
         {
-            return new Bgra((255f * color.B).ToByte(), (255f * color.G).ToByte(), (255f * color.R).ToByte(), (255f * color.A).ToByte());
+            color = color.Limited;
+            return new Bgra32((255f * color.B).ToByte(), (255f * color.G).ToByte(), (255f * color.R).ToByte(), (255f * color.A).ToByte());
         }
 
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="Hsv"/> to a
-        /// <see cref="Bgra"/>.
+        /// <see cref="Bgra32"/>.
         /// </summary>
         /// <param name="color">
         /// The instance of <see cref="Hsv"/> to convert.
         /// </param>
         /// <returns>
-        /// An instance of <see cref="Bgra"/>.
+        /// An instance of <see cref="Bgra32"/>.
         /// </returns>
-        public static implicit operator Bgra(Hsv color)
+        public static implicit operator Bgra32(Hsv color)
         {
             float s = color.S / 100;
             float v = color.V / 100;
@@ -215,7 +212,7 @@ namespace ImageProcessor
             if (Math.Abs(s) < Epsilon)
             {
                 byte component = (byte)(v * 255);
-                return new Bgra(component, component, component, 255);
+                return new Bgra32(component, component, component, 255);
             }
 
             float h = (Math.Abs(color.H - 360) < Epsilon) ? 0 : color.H / 60;
@@ -266,20 +263,20 @@ namespace ImageProcessor
                     break;
             }
 
-            return new Bgra((byte)Math.Round(b * 255), (byte)Math.Round(g * 255), (byte)Math.Round(r * 255));
+            return new Bgra32((byte)Math.Round(b * 255), (byte)Math.Round(g * 255), (byte)Math.Round(r * 255));
         }
 
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="YCbCr"/> to a
-        /// <see cref="Bgra"/>.
+        /// <see cref="Bgra32"/>.
         /// </summary>
         /// <param name="color">
         /// The instance of <see cref="YCbCr"/> to convert.
         /// </param>
         /// <returns>
-        /// An instance of <see cref="Bgra"/>.
+        /// An instance of <see cref="Bgra32"/>.
         /// </returns>
-        public static implicit operator Bgra(YCbCr color)
+        public static implicit operator Bgra32(YCbCr color)
         {
             float y = color.Y;
             float cb = color.Cb - 128;
@@ -289,61 +286,61 @@ namespace ImageProcessor
             byte g = (y - (0.34414 * cb) - (0.71414 * cr)).ToByte();
             byte r = (y + (1.402 * cr)).ToByte();
 
-            return new Bgra(b, g, r, 255);
+            return new Bgra32(b, g, r, 255);
         }
 
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="Cmyk"/> to a
-        /// <see cref="Bgra"/>.
+        /// <see cref="Bgra32"/>.
         /// </summary>
         /// <param name="cmykColor">
         /// The instance of <see cref="Cmyk"/> to convert.
         /// </param>
         /// <returns>
-        /// An instance of <see cref="Bgra"/>.
+        /// An instance of <see cref="Bgra32"/>.
         /// </returns>
-        public static implicit operator Bgra(Cmyk cmykColor)
+        public static implicit operator Bgra32(Cmyk cmykColor)
         {
             int red = Convert.ToInt32((1 - (cmykColor.C / 100)) * (1 - (cmykColor.K / 100)) * 255.0);
             int green = Convert.ToInt32((1 - (cmykColor.M / 100)) * (1 - (cmykColor.K / 100)) * 255.0);
             int blue = Convert.ToInt32((1 - (cmykColor.Y / 100)) * (1 - (cmykColor.K / 100)) * 255.0);
-            return new Bgra(blue.ToByte(), green.ToByte(), red.ToByte());
+            return new Bgra32(blue.ToByte(), green.ToByte(), red.ToByte());
         }
 
         /// <summary>
-        /// Compares two <see cref="Bgra"/> objects. The result specifies whether the values
-        /// of the <see cref="Bgra.B"/>, <see cref="Bgra.G"/>, <see cref="Bgra.R"/>, and <see cref="Bgra.A"/>
-        /// properties of the two <see cref="Bgra"/> objects are equal.
+        /// Compares two <see cref="Bgra32"/> objects. The result specifies whether the values
+        /// of the <see cref="Bgra32.B"/>, <see cref="Bgra32.G"/>, <see cref="Bgra32.R"/>, and <see cref="Bgra32.A"/>
+        /// properties of the two <see cref="Bgra32"/> objects are equal.
         /// </summary>
         /// <param name="left">
-        /// The <see cref="Bgra"/> on the left side of the operand.
+        /// The <see cref="Bgra32"/> on the left side of the operand.
         /// </param>
         /// <param name="right">
-        /// The <see cref="Bgra"/> on the right side of the operand.
+        /// The <see cref="Bgra32"/> on the right side of the operand.
         /// </param>
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        public static bool operator ==(Bgra left, Bgra right)
+        public static bool operator ==(Bgra32 left, Bgra32 right)
         {
             return left.Equals(right);
         }
 
         /// <summary>
-        /// Compares two <see cref="Bgra"/> objects. The result specifies whether the values
-        /// of the <see cref="Bgra.B"/>, <see cref="Bgra.G"/>, <see cref="Bgra.R"/>, and <see cref="Bgra.A"/>
-        /// properties of the two <see cref="Bgra"/> objects are unequal.
+        /// Compares two <see cref="Bgra32"/> objects. The result specifies whether the values
+        /// of the <see cref="Bgra32.B"/>, <see cref="Bgra32.G"/>, <see cref="Bgra32.R"/>, and <see cref="Bgra32.A"/>
+        /// properties of the two <see cref="Bgra32"/> objects are unequal.
         /// </summary>
         /// <param name="left">
-        /// The <see cref="Bgra"/> on the left side of the operand.
+        /// The <see cref="Bgra32"/> on the left side of the operand.
         /// </param>
         /// <param name="right">
-        /// The <see cref="Bgra"/> on the right side of the operand.
+        /// The <see cref="Bgra32"/> on the right side of the operand.
         /// </param>
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        public static bool operator !=(Bgra left, Bgra right)
+        public static bool operator !=(Bgra32 left, Bgra32 right)
         {
             return !left.Equals(right);
         }
@@ -357,9 +354,9 @@ namespace ImageProcessor
         /// <param name="obj">Another object to compare to. </param>
         public override bool Equals(object obj)
         {
-            if (obj is Bgra)
+            if (obj is Bgra32)
             {
-                Bgra color = (Bgra)obj;
+                Bgra32 color = (Bgra32)obj;
 
                 return this.BGRA == color.BGRA;
             }
@@ -408,7 +405,7 @@ namespace ImageProcessor
         /// True if the current object is equal to the <paramref name="other"/> parameter; otherwise, false.
         /// </returns>
         /// <param name="other">An object to compare with this object.</param>
-        public bool Equals(Bgra other)
+        public bool Equals(Bgra32 other)
         {
             return this.BGRA == other.BGRA;
         }

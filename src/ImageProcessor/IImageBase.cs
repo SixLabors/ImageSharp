@@ -66,8 +66,8 @@ namespace ImageProcessor
         /// The y-coordinate of the pixel. Must be greater
         /// than zero and smaller than the width of the pixel.
         /// </param>
-        /// <returns>The <see cref="Bgra"/> at the specified position.</returns>
-        Bgra this[int x, int y] { get; set; }
+        /// <returns>The <see cref="Bgra32"/> at the specified position.</returns>
+        Bgra32 this[int x, int y] { get; set; }
 
         /// <summary>
         /// Sets the pixel array of the image.

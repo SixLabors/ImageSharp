@@ -39,6 +39,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <DocumentationFile>bin\Release\ImageProcessor.XML</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Colors\Formats\Cmyk.cs" />
@@ -237,13 +238,14 @@
     <None Include="Formats\Jpg\README.md" />
     <None Include="Formats\Png\Zlib\README.md" />
     <None Include="project.json" />
-    <AdditionalFiles Include="stylecop.json" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Formats\Bmp\README.md" />
     <None Include="Formats\Png\README.md" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <AdditionalFiles Include="stylecop.json" />
+  </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

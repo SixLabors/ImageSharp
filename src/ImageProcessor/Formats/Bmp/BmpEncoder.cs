@@ -7,7 +7,6 @@ namespace ImageProcessor.Formats
 {
     using System;
     using System.IO;
-    using System.Threading.Tasks;
 
     /// <summary>
     /// Image encoder for writing an image to a stream as a Windows bitmap.

@@ -67,9 +67,8 @@ namespace ImageProcessor.Formats
             bool isBmp = false;
             if (header.Length >= 2)
             {
-                isBmp =
-                    header[0] == 0x42 && // B
-                    header[1] == 0x4D;   // M
+                isBmp = header[0] == 0x42 && // B
+                        header[1] == 0x4D;   // M
             }
 
             return isBmp;

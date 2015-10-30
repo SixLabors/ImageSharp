@@ -17,7 +17,7 @@ namespace ImageProcessor.Samplers
         /// <summary>
         /// The epsilon for comparing floating point numbers.
         /// </summary>
-        private const float Epsilon = 0.0001f;
+        private const float Epsilon = 0.0000001f;
 
         /// <summary>
         /// The horizontal weights.
@@ -163,8 +163,7 @@ namespace ImageProcessor.Samplers
 
                         for (int a = startU; a <= endU; a++)
                         {
-                            // TODO: CHeck multiplier here
-                            float w = 255f * sampler.GetValue((a - fu) / scale);
+                            float w = sampler.GetValue((a - fu) / scale);
 
                             if (Math.Abs(w) > Epsilon)
                             {

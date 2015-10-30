@@ -3,9 +3,9 @@
   "settings": {
     "documentationRules": {
       "companyName": "James South",
-      "copyrightText": "Copyright (c) {companyName} and contributors\nLicensed under the {licenseName} license.",
+      "copyrightText": "Copyright (c) {companyName} and contributors.\nLicensed under the {licenseName}.",
       "variables": {
-        "licenseName": "Apache License, Version 2.0."
+        "licenseName": "Apache License, Version 2.0"
       },
       "documentPrivateFields": true
     }

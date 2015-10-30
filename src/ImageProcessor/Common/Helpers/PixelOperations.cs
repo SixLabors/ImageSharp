@@ -6,7 +6,6 @@
 namespace ImageProcessor
 {
     using System;
-    using System.Collections.Concurrent;
 
     /// <summary>
     /// Performs per-pixel operations.

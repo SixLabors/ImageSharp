@@ -108,6 +108,7 @@ TestResults
 *.Cache
 ClientBin
 stylecop.*
+!stylecop.json
 ~$*
 *.dbmdl
 Generated_Code #added for RIA/Silverlight projects

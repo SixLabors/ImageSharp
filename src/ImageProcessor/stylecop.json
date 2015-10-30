@@ -1,0 +1,13 @@
+﻿{
+  "$schema": "https://raw.githubusercontent.com/DotNetAnalyzers/StyleCopAnalyzers/master/StyleCop.Analyzers/StyleCop.Analyzers/Settings/stylecop.schema.json",
+  "settings": {
+    "documentationRules": {
+      "companyName": "James South",
+      "copyrightText": "Copyright (c) {companyName} and contributors\nLicensed under the {licenseName} license.",
+      "variables": {
+        "licenseName": "Apache License, Version 2.0."
+      },
+      "documentPrivateFields": true
+    }
+  }
+}

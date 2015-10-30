@@ -5,6 +5,8 @@
 
 namespace ImageProcessor
 {
+    using System;
+    using System.ComponentModel;
     using System.Numerics;
 
     /// <summary>
@@ -14,7 +16,7 @@ namespace ImageProcessor
     /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
     /// as it avoids the need to create new values for modification operations.
     /// </remarks>
-    public struct Color
+    public struct Color : IEquatable<Color>
     {
         /// <summary>
         /// Represents a <see cref="Color"/> that has R, G, B, and A values set to zero.
@@ -60,6 +62,12 @@ namespace ImageProcessor
         {
             this.backingVector = vector;
         }
+
+        /// <summary>
+        /// Gets a value indicating whether this <see cref="Color"/> is empty.
+        /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public bool IsEmpty => this.backingVector.Equals(default(Vector4));
 
         /// <summary>
         /// Gets or sets the blue component of the color.
@@ -221,6 +229,40 @@ namespace ImageProcessor
         }
 
         /// <summary>
+        /// Compares two <see cref="Color"/> objects for equality.
+        /// </summary>
+        /// <param name="left">
+        /// The <see cref="Color"/> on the left side of the operand.
+        /// </param>
+        /// <param name="right">
+        /// The <see cref="Color"/> on the right side of the operand.
+        /// </param>
+        /// <returns>
+        /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
+        /// </returns>
+        public static bool operator ==(Color left, Color right)
+        {
+            return left.Equals(right);
+        }
+
+        /// <summary>
+        /// Compares two <see cref="Hsv"/> objects for inequality.
+        /// </summary>
+        /// <param name="left">
+        /// The <see cref="Color"/> on the left side of the operand.
+        /// </param>
+        /// <param name="right">
+        /// The <see cref="Color"/> on the right side of the operand.
+        /// </param>
+        /// <returns>
+        /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
+        /// </returns>
+        public static bool operator !=(Color left, Color right)
+        {
+            return !left.Equals(right);
+        }
+
+        /// <summary>
         /// Returns a new color whose components are the average of the components of first and second.
         /// </summary>
         /// <param name="first">The first color.</param>
@@ -250,5 +292,52 @@ namespace ImageProcessor
 
             return (from * (1 - amount)) + (to * amount);
         }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (obj is Color)
+            {
+                Color color = (Color)obj;
+
+                return this.backingVector == color.backingVector;
+            }
+
+            return false;
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            return GetHashCode(this);
+        }
+
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            if (this.IsEmpty)
+            {
+                return "Color [ Empty ]";
+            }
+
+            return $"Color [ R={this.R:#0.##}, G={this.G:#0.##}, B={this.B:#0.##}, A={this.A:#0.##} ]";
+        }
+
+        /// <inheritdoc/>
+        public bool Equals(Color other)
+        {
+            return this.backingVector.Equals(other.backingVector);
+        }
+
+        /// <summary>
+        /// Returns the hash code for this instance.
+        /// </summary>
+        /// <param name="color">
+        /// The instance of <see cref="Color"/> to return the hash code for.
+        /// </param>
+        /// <returns>
+        /// A 32-bit signed integer that is the hash code for this instance.
+        /// </returns>
+        private static int GetHashCode(Color color) => color.backingVector.GetHashCode();
     }
 }

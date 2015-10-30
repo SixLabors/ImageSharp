@@ -17,6 +17,11 @@ namespace ImageProcessor
     public struct Color
     {
         /// <summary>
+        /// Represents a <see cref="Color"/> that has R, G, B, and A values set to zero.
+        /// </summary>
+        public static readonly Color Empty = default(Color);
+
+        /// <summary>
         /// The backing vector for SIMD support.
         /// </summary>
         private Vector4 backingVector;

@@ -250,31 +250,34 @@ namespace ImageProcessor.Formats
             int alignment;
             byte[] data = this.GetImageArray(width, height, 2, out alignment);
 
-            for (int y = 0; y < height; y++)
-            {
-                int rowOffset = y * ((width * 2) + alignment);
+            Parallel.For(
+                0,
+                height,
+                y =>
+                    {
+                        int rowOffset = y * ((width * 2) + alignment);
 
-                // Revert the y value, because bitmaps are saved from down to top
-                int row = Invert(y, height);
+                        // Revert the y value, because bitmaps are saved from down to top
+                        int row = Invert(y, height);
 
-                for (int x = 0; x < width; x++)
-                {
-                    int offset = rowOffset + (x * 2);
+                        for (int x = 0; x < width; x++)
+                        {
+                            int offset = rowOffset + (x * 2);
 
-                    short temp = BitConverter.ToInt16(data, offset);
+                            short temp = BitConverter.ToInt16(data, offset);
 
-                    byte r = (byte)(((temp & Rgb16RMask) >> 11) * ScaleR);
-                    byte g = (byte)(((temp & Rgb16GMask) >> 5) * ScaleG);
-                    byte b = (byte)((temp & Rgb16BMask) * ScaleR);
+                            byte r = (byte)(((temp & Rgb16RMask) >> 11) * ScaleR);
+                            byte g = (byte)(((temp & Rgb16GMask) >> 5) * ScaleG);
+                            byte b = (byte)((temp & Rgb16BMask) * ScaleR);
 
-                    int arrayOffset = ((row * width) + x) * 4;
+                            int arrayOffset = ((row * width) + x) * 4;
 
-                    imageData[arrayOffset + 0] = b;
-                    imageData[arrayOffset + 1] = g;
-                    imageData[arrayOffset + 2] = r;
-                    imageData[arrayOffset + 3] = 255;
-                }
-            }
+                            imageData[arrayOffset + 0] = b;
+                            imageData[arrayOffset + 1] = g;
+                            imageData[arrayOffset + 2] = r;
+                            imageData[arrayOffset + 3] = 255;
+                        }
+                    });
         }
 
         /// <summary>
@@ -288,24 +291,27 @@ namespace ImageProcessor.Formats
             int alignment;
             byte[] data = this.GetImageArray(width, height, 3, out alignment);
 
-            for (int y = 0; y < height; y++)
-            {
-                int rowOffset = y * ((width * 3) + alignment);
+            Parallel.For(
+                0,
+                height,
+                y =>
+                    {
+                        int rowOffset = y * ((width * 3) + alignment);
 
-                // Revert the y value, because bitmaps are saved from down to top
-                int row = Invert(y, height);
+                        // Revert the y value, because bitmaps are saved from down to top
+                        int row = Invert(y, height);
 
-                for (int x = 0; x < width; x++)
-                {
-                    int offset = rowOffset + (x * 3);
-                    int arrayOffset = ((row * width) + x) * 4;
+                        for (int x = 0; x < width; x++)
+                        {
+                            int offset = rowOffset + (x * 3);
+                            int arrayOffset = ((row * width) + x) * 4;
 
-                    imageData[arrayOffset + 0] = data[offset + 0];
-                    imageData[arrayOffset + 1] = data[offset + 1];
-                    imageData[arrayOffset + 2] = data[offset + 2];
-                    imageData[arrayOffset + 3] = 255;
-                }
-            }
+                            imageData[arrayOffset + 0] = data[offset + 0];
+                            imageData[arrayOffset + 1] = data[offset + 1];
+                            imageData[arrayOffset + 2] = data[offset + 2];
+                            imageData[arrayOffset + 3] = 255;
+                        }
+                    });
         }
 
         /// <summary>
@@ -319,24 +325,27 @@ namespace ImageProcessor.Formats
             int alignment;
             byte[] data = this.GetImageArray(width, height, 4, out alignment);
 
-            for (int y = 0; y < height; y++)
-            {
-                int rowOffset = y * ((width * 4) + alignment);
+            Parallel.For(
+                0,
+                height,
+                y =>
+                    {
+                        int rowOffset = y * ((width * 4) + alignment);
 
-                // Revert the y value, because bitmaps are saved from down to top
-                int row = Invert(y, height);
+                        // Revert the y value, because bitmaps are saved from down to top
+                        int row = Invert(y, height);
 
-                for (int x = 0; x < width; x++)
-                {
-                    int offset = rowOffset + (x * 4);
+                        for (int x = 0; x < width; x++)
+                        {
+                            int offset = rowOffset + (x * 4);
 
-                    var arrayOffset = ((row * width) + x) * 4;
-                    imageData[arrayOffset + 0] = data[offset + 0];
-                    imageData[arrayOffset + 1] = data[offset + 1];
-                    imageData[arrayOffset + 2] = data[offset + 2];
-                    imageData[arrayOffset + 3] = 255; // Can we get alpha here?
-                }
-            }
+                            var arrayOffset = ((row * width) + x) * 4;
+                            imageData[arrayOffset + 0] = data[offset + 0];
+                            imageData[arrayOffset + 1] = data[offset + 1];
+                            imageData[arrayOffset + 2] = data[offset + 2];
+                            imageData[arrayOffset + 3] = 255; // Can we get alpha here?
+                        }
+                    });
         }
 
         /// <summary>

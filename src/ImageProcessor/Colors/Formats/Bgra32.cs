@@ -26,7 +26,7 @@ namespace ImageProcessor
         public static readonly Bgra32 Transparent = new Bgra32(255, 255, 255, 0);
 
         /// <summary>
-        /// Represents a black <see cref="Bgra32"/> that has B, G, R, and A values set to 0, 0, 0, 0.
+        /// Represents a black <see cref="Bgra32"/> that has B, G, R, and A values set to 0, 0, 0, 255.
         /// </summary>
         public static readonly Bgra32 Black = new Bgra32(0, 0, 0, 255);
 

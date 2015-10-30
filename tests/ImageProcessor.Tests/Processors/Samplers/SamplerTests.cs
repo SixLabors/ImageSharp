@@ -15,18 +15,18 @@ namespace ImageProcessor.Tests
             new TheoryData<string, IResampler>
             {
                 { "Bicubic", new BicubicResampler() },
-                //{ "Triangle", new TriangleResampler() },
-                //{ "Box", new BoxResampler() },
-                //{ "Lanczos3", new Lanczos3Resampler() },
-                //{ "Lanczos5", new Lanczos5Resampler() },
-                //{ "Lanczos8", new Lanczos8Resampler() },
-                //{ "MitchellNetravali", new MitchellNetravaliResampler() },
-                //{ "Hermite", new HermiteResampler() },
-                //{ "Spline", new SplineResampler() },
-                //{ "Robidoux", new RobidouxResampler() },
-                //{ "RobidouxSharp", new RobidouxSharpResampler() },
-                //{ "RobidouxSoft", new RobidouxSoftResampler() },
-                //{ "Welch", new WelchResampler() }
+                { "Triangle", new TriangleResampler() },
+                { "Box", new BoxResampler() },
+                { "Lanczos3", new Lanczos3Resampler() },
+                { "Lanczos5", new Lanczos5Resampler() },
+                { "Lanczos8", new Lanczos8Resampler() },
+                { "MitchellNetravali", new MitchellNetravaliResampler() },
+                { "Hermite", new HermiteResampler() },
+                { "Spline", new SplineResampler() },
+                { "Robidoux", new RobidouxResampler() },
+                { "RobidouxSharp", new RobidouxSharpResampler() },
+                { "RobidouxSoft", new RobidouxSoftResampler() },
+                { "Welch", new WelchResampler() }
             };
 
         [Theory]

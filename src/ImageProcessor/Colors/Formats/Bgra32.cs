@@ -66,11 +66,6 @@ namespace ImageProcessor
         public readonly int BGRA;
 
         /// <summary>
-        /// The epsilon for comparing floating point numbers.
-        /// </summary>
-        private const float Epsilon = 0.0001f;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="Bgra32"/> struct.
         /// </summary>
         /// <param name="b">
@@ -192,78 +187,6 @@ namespace ImageProcessor
         {
             color = color.Limited;
             return new Bgra32((255f * color.B).ToByte(), (255f * color.G).ToByte(), (255f * color.R).ToByte(), (255f * color.A).ToByte());
-        }
-
-        /// <summary>
-        /// Allows the implicit conversion of an instance of <see cref="Hsv"/> to a
-        /// <see cref="Bgra32"/>.
-        /// </summary>
-        /// <param name="color">
-        /// The instance of <see cref="Hsv"/> to convert.
-        /// </param>
-        /// <returns>
-        /// An instance of <see cref="Bgra32"/>.
-        /// </returns>
-        public static implicit operator Bgra32(Hsv color)
-        {
-            float s = color.S / 100;
-            float v = color.V / 100;
-
-            if (Math.Abs(s) < Epsilon)
-            {
-                byte component = (byte)(v * 255);
-                return new Bgra32(component, component, component, 255);
-            }
-
-            float h = (Math.Abs(color.H - 360) < Epsilon) ? 0 : color.H / 60;
-            int i = (int)Math.Truncate(h);
-            float f = h - i;
-
-            float p = v * (1.0f - s);
-            float q = v * (1.0f - (s * f));
-            float t = v * (1.0f - (s * (1.0f - f)));
-
-            float r, g, b;
-            switch (i)
-            {
-                case 0:
-                    r = v;
-                    g = t;
-                    b = p;
-                    break;
-
-                case 1:
-                    r = q;
-                    g = v;
-                    b = p;
-                    break;
-
-                case 2:
-                    r = p;
-                    g = v;
-                    b = t;
-                    break;
-
-                case 3:
-                    r = p;
-                    g = q;
-                    b = v;
-                    break;
-
-                case 4:
-                    r = t;
-                    g = p;
-                    b = v;
-                    break;
-
-                default:
-                    r = v;
-                    g = p;
-                    b = q;
-                    break;
-            }
-
-            return new Bgra32((byte)Math.Round(b * 255), (byte)Math.Round(g * 255), (byte)Math.Round(r * 255));
         }
 
         /// <summary>

@@ -7,10 +7,11 @@ namespace ImageProcessor
 {
     using System;
     using System.ComponentModel;
+    using System.Numerics;
 
     /// <summary>
     /// Represents an YCbCr (luminance, chroma, chroma) color conforming to the
-    /// ITU-R BT.601 standard used in digital imaging systems.
+    /// Full range standard used in digital imaging systems.
     /// <see href="http://en.wikipedia.org/wiki/YCbCr"/>
     /// </summary>
     public struct YCbCr : IEquatable<YCbCr>
@@ -21,27 +22,9 @@ namespace ImageProcessor
         public static readonly YCbCr Empty = default(YCbCr);
 
         /// <summary>
-        /// Gets the Y luminance component.
-        /// <remarks>A value ranging between 0 and 255.</remarks>
+        /// The backing vector for SIMD support.
         /// </summary>
-        public readonly float Y;
-
-        /// <summary>
-        /// Gets the Cb chroma component.
-        /// <remarks>A value ranging between 0 and 255.</remarks>
-        /// </summary>
-        public readonly float Cb;
-
-        /// <summary>
-        /// Gets the Cr chroma component.
-        /// <remarks>A value ranging between 0 and 255.</remarks>
-        /// </summary>
-        public readonly float Cr;
-
-        /// <summary>
-        /// The epsilon for comparing floating point numbers.
-        /// </summary>
-        private const float Epsilon = 0.0001f;
+        private Vector3 backingVector;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="YCbCr"/> struct.
@@ -50,35 +33,53 @@ namespace ImageProcessor
         /// <param name="cb">The cb chroma component.</param>
         /// <param name="cr">The cr chroma component.</param>
         public YCbCr(float y, float cb, float cr)
+            : this()
         {
-            this.Y = y.ToByte();
-            this.Cb = cb.ToByte();
-            this.Cr = cr.ToByte();
+            this.backingVector.X = y.Clamp(0, 255);
+            this.backingVector.Y = cb.Clamp(0, 255);
+            this.backingVector.Z = cr.Clamp(0, 255);
         }
+
+        /// <summary>
+        /// Gets the Y luminance component.
+        /// <remarks>A value ranging between 0 and 255.</remarks>
+        /// </summary>
+        public float Y => this.backingVector.X;
+
+        /// <summary>
+        /// Gets the Cb chroma component.
+        /// <remarks>A value ranging between 0 and 255.</remarks>
+        /// </summary>
+        public float Cb => this.backingVector.Y;
+
+        /// <summary>
+        /// Gets the Cr chroma component.
+        /// <remarks>A value ranging between 0 and 255.</remarks>
+        /// </summary>
+        public float Cr => this.backingVector.Z;
 
         /// <summary>
         /// Gets a value indicating whether this <see cref="YCbCr"/> is empty.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty => Math.Abs(this.Y) < Epsilon
-                            && Math.Abs(this.Cb) < Epsilon
-                            && Math.Abs(this.Cr) < Epsilon;
+        public bool IsEmpty => this.backingVector.Equals(default(Vector3));
 
         /// <summary>
-        /// Allows the implicit conversion of an instance of <see cref="Bgra32"/> to a
+        /// Allows the implicit conversion of an instance of <see cref="Color"/> to a
         /// <see cref="YCbCr"/>.
         /// </summary>
         /// <param name="color">
-        /// The instance of <see cref="Bgra32"/> to convert.
+        /// The instance of <see cref="Color"/> to convert.
         /// </param>
         /// <returns>
         /// An instance of <see cref="YCbCr"/>.
         /// </returns>
-        public static implicit operator YCbCr(Bgra32 color)
+        public static implicit operator YCbCr(Color color)
         {
-            byte b = color.B;
-            byte g = color.G;
-            byte r = color.R;
+            color = color.Limited;
+            float r = color.R * 255f;
+            float g = color.G * 255f;
+            float b = color.B * 255f;
 
             float y = (float)((0.299 * r) + (0.587 * g) + (0.114 * b));
             float cb = 128 + (float)((-0.168736 * r) - (0.331264 * g) + (0.5 * b));
@@ -88,9 +89,7 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Compares two <see cref="YCbCr"/> objects. The result specifies whether the values
-        /// of the <see cref="YCbCr.Y"/>, <see cref="YCbCr.Cb"/>, and <see cref="YCbCr.Cr"/>
-        /// properties of the two <see cref="YCbCr"/> objects are equal.
+        /// Compares two <see cref="YCbCr"/> objects for equality.
         /// </summary>
         /// <param name="left">
         /// The <see cref="YCbCr"/> on the left side of the operand.
@@ -107,9 +106,7 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Compares two <see cref="YCbCr"/> objects. The result specifies whether the values
-        /// of the <see cref="YCbCr.Y"/>, <see cref="YCbCr.Cb"/>, and <see cref="YCbCr.Cr"/>
-        /// properties of the two <see cref="YCbCr"/> objects are unequal.
+        /// Compares two <see cref="YCbCr"/> objects for inequality.
         /// </summary>
         /// <param name="left">
         /// The <see cref="YCbCr"/> on the left side of the operand.
@@ -125,50 +122,26 @@ namespace ImageProcessor
             return !left.Equals(right);
         }
 
-        /// <summary>
-        /// Indicates whether this instance and a specified object are equal.
-        /// </summary>
-        /// <returns>
-        /// true if <paramref name="obj"/> and this instance are the same type and represent the same value; otherwise, false.
-        /// </returns>
-        /// <param name="obj">Another object to compare to. </param>
+        /// <inheritdoc/>
         public override bool Equals(object obj)
         {
             if (obj is YCbCr)
             {
                 YCbCr color = (YCbCr)obj;
 
-                return Math.Abs(this.Y - color.Y) < Epsilon
-                    && Math.Abs(this.Cb - color.Cb) < Epsilon
-                    && Math.Abs(this.Cr - color.Cr) < Epsilon;
+                return this.backingVector == color.backingVector;
             }
 
             return false;
         }
 
-        /// <summary>
-        /// Returns the hash code for this instance.
-        /// </summary>
-        /// <returns>
-        /// A 32-bit signed integer that is the hash code for this instance.
-        /// </returns>
+        /// <inheritdoc/>
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = this.Y.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.Cb.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.Cr.GetHashCode();
-                return hashCode;
-            }
+            return GetHashCode(this);
         }
 
-        /// <summary>
-        /// Returns the fully qualified type name of this instance.
-        /// </summary>
-        /// <returns>
-        /// A <see cref="T:System.String"/> containing a fully qualified type name.
-        /// </returns>
+        /// <inheritdoc/>
         public override string ToString()
         {
             if (this.IsEmpty)
@@ -179,18 +152,21 @@ namespace ImageProcessor
             return $"YCbCr [ Y={this.Y:#0.##}, Cb={this.Cb:#0.##}, Cr={this.Cr:#0.##} ]";
         }
 
-        /// <summary>
-        /// Indicates whether the current object is equal to another object of the same type.
-        /// </summary>
-        /// <returns>
-        /// True if the current object is equal to the <paramref name="other"/> parameter; otherwise, false.
-        /// </returns>
-        /// <param name="other">An object to compare with this object.</param>
+        /// <inheritdoc/>
         public bool Equals(YCbCr other)
         {
-            return Math.Abs(this.Y - other.Y) < Epsilon
-                && Math.Abs(this.Cb - other.Cb) < Epsilon
-                && Math.Abs(this.Cr - other.Cr) < Epsilon;
+            return this.backingVector.Equals(other.backingVector);
         }
+
+        /// <summary>
+        /// Returns the hash code for this instance.
+        /// </summary>
+        /// <param name="color">
+        /// The instance of <see cref="Hsv"/> to return the hash code for.
+        /// </param>
+        /// <returns>
+        /// A 32-bit signed integer that is the hash code for this instance.
+        /// </returns>
+        private static int GetHashCode(YCbCr color) => color.backingVector.GetHashCode();
     }
 }

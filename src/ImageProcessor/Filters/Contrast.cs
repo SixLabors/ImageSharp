@@ -34,7 +34,7 @@ namespace ImageProcessor.Filters
         /// <inheritdoc/>
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-            double contrast = (100.0 + this.Value) / 100.0;
+            float contrast = (100f + this.Value) / 100f;
             int sourceY = sourceRectangle.Y;
             int sourceBottom = sourceRectangle.Bottom;
             int startX = sourceRectangle.X;
@@ -49,36 +49,37 @@ namespace ImageProcessor.Filters
                         {
                             for (int x = startX; x < endX; x++)
                             {
-                                Bgra32 sourceColor = source[x, y];
-                                sourceColor = PixelOperations.ToLinear(sourceColor);
-
-                                double r = sourceColor.R / 255.0;
-                                r -= 0.5;
-                                r *= contrast;
-                                r += 0.5;
-                                r *= 255;
-                                r = r.ToByte();
-
-                                double g = sourceColor.G / 255.0;
-                                g -= 0.5;
-                                g *= contrast;
-                                g += 0.5;
-                                g *= 255;
-                                g = g.ToByte();
-
-                                double b = sourceColor.B / 255.0;
-                                b -= 0.5;
-                                b *= contrast;
-                                b += 0.5;
-                                b *= 255;
-                                b = b.ToByte();
-
-                                Bgra32 destinationColor = new Bgra32(b.ToByte(), g.ToByte(), r.ToByte(), sourceColor.A);
-                                destinationColor = PixelOperations.ToSrgb(destinationColor);
-                                target[x, y] = destinationColor;
+                                target[x, y] = AdjustContrast(source[x, y], contrast);
                             }
                         }
                     });
+        }
+
+        /// <summary>
+        /// Returns a <see cref="Color"/> with the contrast adjusted.
+        /// </summary>
+        /// <param name="color">The source color.</param>
+        /// <param name="contrast">The contrast adjustment factor.</param>
+        /// <returns>
+        /// The <see cref="Color"/>.
+        /// </returns>
+        private static Color AdjustContrast(Color color, float contrast)
+        {
+            color = PixelOperations.ToLinear(color);
+
+            color.R -= 0.5f;
+            color.R *= contrast;
+            color.R += 0.5f;
+
+            color.G -= 0.5f;
+            color.G *= contrast;
+            color.G += 0.5f;
+
+            color.B -= 0.5f;
+            color.B *= contrast;
+            color.B += 0.5f;
+
+            return PixelOperations.ToSrgb(color);
         }
     }
 }

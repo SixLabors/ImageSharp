@@ -88,83 +88,83 @@ namespace ImageProcessor.Tests
         }
 
         /// <summary>
-        /// Tests the implicit conversion from <see cref="Bgra32"/> to <see cref="Hsv"/>.
+        /// Tests the implicit conversion from <see cref="Color"/> to <see cref="Hsv"/>.
         /// </summary>
         [Fact]
         [SuppressMessage("StyleCop.CSharp.NamingRules", "SA1305:FieldNamesMustNotUseHungarianNotation",
             Justification = "Reviewed. Suppression is OK here.")]
-        public void BgrToHsv()
+        public void ColorToHsv()
         {
             // Black
-            Bgra32 b = new Bgra32(0, 0, 0, 255);
+            Color b = new Color(0, 0, 0);
             Hsv h = b;
 
-            Assert.Equal(0, h.H);
-            Assert.Equal(0, h.S);
-            Assert.Equal(0, h.V);
+            Assert.Equal(0, h.H, 1);
+            Assert.Equal(0, h.S, 1);
+            Assert.Equal(0, h.V, 1);
 
             // White
-            Bgra32 color = new Bgra32(255, 255, 255, 255);
+            Color color = new Color(1, 1, 1);
             Hsv hsv = color;
 
-            Assert.Equal(0, hsv.H);
-            Assert.Equal(0, hsv.S);
-            Assert.Equal(100, hsv.V);
+            Assert.Equal(0f, hsv.H, 1);
+            Assert.Equal(0f, hsv.S, 1);
+            Assert.Equal(1f, hsv.V, 1);
 
             // Dark moderate pink.
-            Bgra32 color2 = new Bgra32(106, 64, 128, 255);
+            Color color2 = new Color(128 / 255f, 64 / 255f, 106 / 255f);
             Hsv hsv2 = color2;
 
-            Assert.Equal(320.6, hsv2.H, 1);
-            Assert.Equal(50, hsv2.S, 1);
-            Assert.Equal(50.2, hsv2.V, 1);
+            Assert.Equal(320.6f, hsv2.H, 1);
+            Assert.Equal(0.5f, hsv2.S, 1);
+            Assert.Equal(0.502f, hsv2.V, 2);
 
             // Ochre.
-            Bgra32 color3 = new Bgra32(34, 119, 204, 255);
+            Color color3 = new Color(204 / 255f, 119 / 255f, 34 / 255f);
             Hsv hsv3 = color3;
 
-            Assert.Equal(30, hsv3.H, 1);
-            Assert.Equal(83.3, hsv3.S, 1);
-            Assert.Equal(80, hsv3.V, 1);
+            Assert.Equal(30f, hsv3.H, 1);
+            Assert.Equal(0.833f, hsv3.S, 3);
+            Assert.Equal(0.8f, hsv3.V, 1);
         }
 
         /// <summary>
-        /// Tests the implicit conversion from <see cref="Hsv"/> to <see cref="Bgra32"/>.
+        /// Tests the implicit conversion from <see cref="Hsv"/> to <see cref="Color"/>.
         /// </summary>
         [Fact]
-        public void HsvToBgr()
+        public void HsvToColor()
         {
             // Dark moderate pink.
-            Hsv hsv = new Hsv(320.6f, 50, 50.2f);
-            Bgra32 bgra32 = hsv;
+            Hsv hsv = new Hsv(320.6f, 0.5f, 0.502f);
+            Color color = hsv;
 
-            Assert.Equal(bgra32.B, 106);
-            Assert.Equal(bgra32.G, 64);
-            Assert.Equal(bgra32.R, 128);
+            Assert.Equal(color.B, 106 / 255f, 1);
+            Assert.Equal(color.G, 64 / 255f, 1);
+            Assert.Equal(color.R, 128 / 255f, 1);
 
             // Ochre
-            Hsv hsv2 = new Hsv(30, 83.3f, 80);
-            Bgra32 bgra2 = hsv2;
+            Hsv hsv2 = new Hsv(30, 0.833f, 0.8f);
+            Color color2 = hsv2;
 
-            Assert.Equal(bgra2.B, 34);
-            Assert.Equal(bgra2.G, 119);
-            Assert.Equal(bgra2.R, 204);
+            Assert.Equal(color2.B, 34 / 255f, 1);
+            Assert.Equal(color2.G, 119 / 255f, 1);
+            Assert.Equal(color2.R, 204 / 255f, 1);
 
             // White
-            Hsv hsv3 = new Hsv(0, 0, 100);
-            Bgra32 bgra3 = hsv3;
+            Hsv hsv3 = new Hsv(0, 0, 1);
+            Color color3 = hsv3;
 
-            Assert.Equal(bgra3.B, 255);
-            Assert.Equal(bgra3.G, 255);
-            Assert.Equal(bgra3.R, 255);
+            Assert.Equal(color3.B, 1, 1);
+            Assert.Equal(color3.G, 1, 1);
+            Assert.Equal(color3.R, 1, 1);
 
             // Check others.
             Random random = new Random(0);
             for (int i = 0; i < 1000; i++)
             {
-                Bgra32 bgra4 = new Bgra32((byte)random.Next(255), (byte)random.Next(255), (byte)random.Next(255));
-                Hsv hsb4 = bgra4;
-                Assert.Equal(bgra4, (Bgra32)hsb4);
+                Color color4 = new Color(random.Next(1), random.Next(1), random.Next(1));
+                Hsv hsb4 = color4;
+                Assert.Equal(color4, (Color)hsb4);
             }
         }
 

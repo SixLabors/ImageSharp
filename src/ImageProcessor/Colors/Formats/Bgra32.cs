@@ -213,24 +213,6 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Allows the implicit conversion of an instance of <see cref="Cmyk"/> to a
-        /// <see cref="Bgra32"/>.
-        /// </summary>
-        /// <param name="cmykColor">
-        /// The instance of <see cref="Cmyk"/> to convert.
-        /// </param>
-        /// <returns>
-        /// An instance of <see cref="Bgra32"/>.
-        /// </returns>
-        public static implicit operator Bgra32(Cmyk cmykColor)
-        {
-            int red = Convert.ToInt32((1 - (cmykColor.C / 100)) * (1 - (cmykColor.K / 100)) * 255.0);
-            int green = Convert.ToInt32((1 - (cmykColor.M / 100)) * (1 - (cmykColor.K / 100)) * 255.0);
-            int blue = Convert.ToInt32((1 - (cmykColor.Y / 100)) * (1 - (cmykColor.K / 100)) * 255.0);
-            return new Bgra32(blue.ToByte(), green.ToByte(), red.ToByte());
-        }
-
-        /// <summary>
         /// Compares two <see cref="Bgra32"/> objects. The result specifies whether the values
         /// of the <see cref="Bgra32.B"/>, <see cref="Bgra32.G"/>, <see cref="Bgra32.R"/>, and <see cref="Bgra32.A"/>
         /// properties of the two <see cref="Bgra32"/> objects are equal.

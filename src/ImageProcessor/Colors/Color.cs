@@ -62,9 +62,9 @@ namespace ImageProcessor
         public bool IsEmpty => this.backingVector.Equals(default(Vector4));
 
         /// <summary>
-        /// Gets or sets the blue component of the color.
+        /// Gets or sets the red component of the color.
         /// </summary>
-        public float B
+        public float R
         {
             get
             {
@@ -94,9 +94,9 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Gets or sets the red component of the color.
+        /// Gets or sets the blue component of the color.
         /// </summary>
-        public float R
+        public float B
         {
             get
             {

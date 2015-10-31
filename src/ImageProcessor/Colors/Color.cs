@@ -24,9 +24,28 @@ namespace ImageProcessor
         public static readonly Color Empty = default(Color);
 
         /// <summary>
+        /// The epsilon for comparing floating point numbers.
+        /// </summary>
+        private const float Epsilon = 0.0001f;
+
+        /// <summary>
         /// The backing vector for SIMD support.
         /// </summary>
         private Vector4 backingVector;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Color"/> struct with the alpha component set to 1.
+        /// </summary>
+        /// <param name="r">The red component of this <see cref="Color"/>.</param>
+        /// <param name="g">The green component of this <see cref="Color"/>.</param>
+        /// <param name="b">The blue component of this <see cref="Color"/>.</param>
+        public Color(float r, float g, float b)
+            : this(r, g, b, 1)
+        {
+            this.backingVector.X = r;
+            this.backingVector.Y = g;
+            this.backingVector.Z = b;
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Color"/> struct.
@@ -54,12 +73,6 @@ namespace ImageProcessor
         {
             this.backingVector = vector;
         }
-
-        /// <summary>
-        /// Gets a value indicating whether this <see cref="Color"/> is empty.
-        /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty => this.backingVector.Equals(default(Vector4));
 
         /// <summary>
         /// Gets or sets the red component of the color.
@@ -126,6 +139,12 @@ namespace ImageProcessor
         }
 
         /// <summary>
+        /// Gets a value indicating whether this <see cref="Color"/> is empty.
+        /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public bool IsEmpty => this.backingVector.Equals(default(Vector4));
+
+        /// <summary>
         /// Gets this color with the component values clamped from 0 to 1.
         /// </summary>
         public Color Limited
@@ -153,6 +172,77 @@ namespace ImageProcessor
         public static implicit operator Color(Bgra32 color)
         {
             return new Color(color.R / 255f, color.G / 255f, color.B / 255f, color.A / 255f);
+        }
+
+        /// <summary>
+        /// Allows the implicit conversion of an instance of <see cref="Hsv"/> to a
+        /// <see cref="Color"/>.
+        /// </summary>
+        /// <param name="color">
+        /// The instance of <see cref="Hsv"/> to convert.
+        /// </param>
+        /// <returns>
+        /// An instance of <see cref="Color"/>.
+        /// </returns>
+        public static implicit operator Color(Hsv color)
+        {
+            float s = color.S;
+            float v = color.V;
+
+            if (Math.Abs(s) < Epsilon)
+            {
+                return new Color(v, v, v, 1);
+            }
+
+            float h = (Math.Abs(color.H - 360) < Epsilon) ? 0 : color.H / 60;
+            int i = (int)Math.Truncate(h);
+            float f = h - i;
+
+            float p = v * (1.0f - s);
+            float q = v * (1.0f - (s * f));
+            float t = v * (1.0f - (s * (1.0f - f)));
+
+            float r, g, b;
+            switch (i)
+            {
+                case 0:
+                    r = v;
+                    g = t;
+                    b = p;
+                    break;
+
+                case 1:
+                    r = q;
+                    g = v;
+                    b = p;
+                    break;
+
+                case 2:
+                    r = p;
+                    g = v;
+                    b = t;
+                    break;
+
+                case 3:
+                    r = p;
+                    g = q;
+                    b = v;
+                    break;
+
+                case 4:
+                    r = t;
+                    g = p;
+                    b = v;
+                    break;
+
+                default:
+                    r = v;
+                    g = p;
+                    b = q;
+                    break;
+            }
+
+            return new Color(r, g, b);
         }
 
         /// <summary>

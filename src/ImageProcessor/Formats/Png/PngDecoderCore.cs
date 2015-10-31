@@ -16,9 +16,6 @@ namespace ImageProcessor.Formats
     using System.Linq;
     using System.Text;
 
-    //using ICSharpCode.SharpZipLib.Checksums;
-    //using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
-
     /// <summary>
     /// Performs the png decoding operation.
     /// </summary>
@@ -145,7 +142,7 @@ namespace ImageProcessor.Formats
                         + $"max allowed size '{ImageBase.MaxWidth}x{ImageBase.MaxHeight}'");
                 }
 
-                byte[] pixels = new byte[this.header.Width * this.header.Height * 4];
+                float[] pixels = new float[this.header.Width * this.header.Height * 4];
 
                 PngColorTypeInformation colorTypeInformation = ColorTypes[this.header.ColorType];
 
@@ -248,10 +245,10 @@ namespace ImageProcessor.Formats
         /// </summary>
         /// <param name="dataStream">The <see cref="MemoryStream"/> containing data.</param>
         /// <param name="pixels">
-        /// The <see cref="T:byte[]"/> containing pixel data.</param>
+        /// The <see cref="T:float[]"/> containing pixel data.</param>
         /// <param name="colorReader">The color reader.</param>
         /// <param name="colorTypeInformation">The color type information.</param>
-        private void ReadScanlines(MemoryStream dataStream, byte[] pixels, IColorReader colorReader, PngColorTypeInformation colorTypeInformation)
+        private void ReadScanlines(MemoryStream dataStream, float[] pixels, IColorReader colorReader, PngColorTypeInformation colorTypeInformation)
         {
             dataStream.Position = 0;
 

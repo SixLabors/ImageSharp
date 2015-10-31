@@ -39,9 +39,13 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <DocumentationFile>bin\Release\ImageProcessor.XML</DocumentationFile>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Colors\Cmyk.cs" />
+    <Compile Include="Colors\Formats\Cmyk.cs" />
+    <Compile Include="Colors\Color.cs" />
+    <Compile Include="Common\Extensions\EnumerableExtensions.cs" />
     <Compile Include="Common\Helpers\ImageMaths.cs" />
     <Compile Include="Common\Helpers\PixelOperations.cs" />
     <Compile Include="Filters\Invert.cs" />
@@ -80,8 +84,8 @@
     <Compile Include="Numerics\Rectangle.cs" />
     <Compile Include="ParallelImageProcessor.cs" />
     <Compile Include="IImageProcessor.cs" />
-    <Compile Include="Colors\Hsv.cs" />
-    <Compile Include="Colors\YCbCr.cs" />
+    <Compile Include="Colors\Formats\Hsv.cs" />
+    <Compile Include="Colors\Formats\YCbCr.cs" />
     <Compile Include="Common\Extensions\ByteExtensions.cs" />
     <Compile Include="Common\Extensions\ComparableExtensions.cs" />
     <Compile Include="Formats\Bmp\BmpCompression.cs" />
@@ -196,7 +200,7 @@
     <Compile Include="IImageBase.cs" />
     <Compile Include="ImageProperty.cs" />
     <Compile Include="ImageFrame.cs" />
-    <Compile Include="Colors\Bgra.cs" />
+    <Compile Include="Colors\Formats\Bgra32.cs" />
     <Compile Include="Common\Exceptions\ImageFormatException.cs" />
     <Compile Include="Common\Helpers\Guard.cs" />
     <Compile Include="Formats\Gif\GifDecoder.cs" />
@@ -235,13 +239,14 @@
     <None Include="Formats\Jpg\README.md" />
     <None Include="Formats\Png\Zlib\README.md" />
     <None Include="project.json" />
-    <None Include="stylecop.json" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Formats\Bmp\README.md" />
     <None Include="Formats\Png\README.md" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <AdditionalFiles Include="stylecop.json" />
+  </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

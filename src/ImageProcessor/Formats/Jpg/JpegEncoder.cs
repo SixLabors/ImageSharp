@@ -7,6 +7,7 @@ namespace ImageProcessor.Formats
 {
     using System;
     using System.IO;
+    using System.Threading.Tasks;
 
     using BitMiracle.LibJpeg;
 
@@ -88,26 +89,29 @@ namespace ImageProcessor.Formats
             int pixelWidth = image.Width;
             int pixelHeight = image.Height;
 
-            byte[] sourcePixels = image.Pixels;
+            float[] sourcePixels = image.Pixels;
 
             SampleRow[] rows = new SampleRow[pixelHeight];
 
-            for (int y = 0; y < pixelHeight; y++)
-            {
-                byte[] samples = new byte[pixelWidth * 3];
+            Parallel.For(
+                0,
+                pixelHeight,
+                y =>
+                    {
+                        byte[] samples = new byte[pixelWidth * 3];
 
-                for (int x = 0; x < pixelWidth; x++)
-                {
-                    int start = x * 3;
-                    int source = ((y * pixelWidth) + x) * 4;
+                        for (int x = 0; x < pixelWidth; x++)
+                        {
+                            int start = x * 3;
+                            int source = ((y * pixelWidth) + x) * 4;
 
-                    samples[start] = sourcePixels[source + 2];
-                    samples[start + 1] = sourcePixels[source + 1];
-                    samples[start + 2] = sourcePixels[source];
-                }
+                            samples[start] = (byte)(sourcePixels[source].Clamp(0, 1) * 255);
+                            samples[start + 1] = (byte)(sourcePixels[source + 1].Clamp(0, 1) * 255);
+                            samples[start + 2] = (byte)(sourcePixels[source + 2].Clamp(0, 1) * 255);
+                        }
 
-                rows[y] = new SampleRow(samples, pixelWidth, 8, 3);
-            }
+                        rows[y] = new SampleRow(samples, pixelWidth, 8, 3);
+                    });
 
             JpegImage jpg = new JpegImage(rows, Colorspace.RGB);
             jpg.WriteJpeg(stream, new CompressionParameters { Quality = this.Quality });

@@ -7,6 +7,8 @@ namespace ImageProcessor.Formats
 {
     using System;
     using System.IO;
+    using System.Threading.Tasks;
+
     using BitMiracle.LibJpeg;
 
     /// <summary>
@@ -97,50 +99,41 @@ namespace ImageProcessor.Formats
             int pixelWidth = jpg.Width;
             int pixelHeight = jpg.Height;
 
-            byte[] pixels = new byte[pixelWidth * pixelHeight * 4];
+            float[] pixels = new float[pixelWidth * pixelHeight * 4];
 
             if (!(jpg.Colorspace == Colorspace.RGB && jpg.BitsPerComponent == 8))
             {
                 throw new NotSupportedException("JpegDecoder only support RGB color space.");
             }
 
-            for (int y = 0; y < pixelHeight; y++)
-            {
-                SampleRow row = jpg.GetRow(y);
+            Parallel.For(
+                0,
+                pixelHeight,
+                y =>
+                    {
+                        SampleRow row = jpg.GetRow(y);
 
-                for (int x = 0; x < pixelWidth; x++)
-                {
-                    Sample sample = row.GetAt(x);
+                        for (int x = 0; x < pixelWidth; x++)
+                        {
+                            Sample sample = row.GetAt(x);
 
-                    int offset = ((y * pixelWidth) + x) * 4;
+                            int offset = ((y * pixelWidth) + x) * 4;
 
-                    pixels[offset + 0] = (byte)sample[2];
-                    pixels[offset + 1] = (byte)sample[1];
-                    pixels[offset + 2] = (byte)sample[0];
-                    pixels[offset + 3] = 255;
-                }
-            }
+                            pixels[offset + 0] = sample[0] / 255f;
+                            pixels[offset + 1] = sample[1] / 255f;
+                            pixels[offset + 2] = sample[2] / 255f;
+                            pixels[offset + 3] = 1;
+                        }
+                    });
 
             image.SetPixels(pixelWidth, pixelHeight, pixels);
         }
 
         /// <summary>
-        /// 
+        /// Returns a value indicating whether the given bytes identify Jpeg data.
         /// </summary>
-        /// <param name="header"></param>
-        /// <returns></returns>
-        private bool IsExif(byte[] header)
-        {
-            bool isExif =
-                header[6] == 0x45 && // E
-                header[7] == 0x78 && // x
-                header[8] == 0x69 && // i
-                header[9] == 0x66 && // f
-                header[10] == 0x00;
-
-            return isExif;
-        }
-
+        /// <param name="header">The bytes representing the file header.</param>
+        /// <returns>The <see cref="bool"/></returns>
         private static bool IsJpeg(byte[] header)
         {
             bool isJpg =
@@ -151,6 +144,23 @@ namespace ImageProcessor.Formats
                 header[10] == 0x00;
 
             return isJpg;
+        }
+
+        /// <summary>
+        /// Returns a value indicating whether the given bytes identify EXIF data.
+        /// </summary>
+        /// <param name="header">The bytes representing the file header.</param>
+        /// <returns>The <see cref="bool"/></returns>
+        private bool IsExif(byte[] header)
+        {
+            bool isExif =
+                header[6] == 0x45 && // E
+                header[7] == 0x78 && // x
+                header[8] == 0x69 && // i
+                header[9] == 0x66 && // f
+                header[10] == 0x00;
+
+            return isExif;
         }
     }
 }

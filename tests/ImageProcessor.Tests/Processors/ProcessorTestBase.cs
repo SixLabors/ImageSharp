@@ -29,8 +29,8 @@ namespace ImageProcessor.Tests
             "../../TestImages/Formats/Png/splash.png",
             "../../TestImages/Formats/Gif/leaf.gif",
             "../../TestImages/Formats/Gif/rings.gif",
-            "../../TestImages/Formats/Gif/ani2.gif" ,
-            "../../TestImages/Formats/Gif/giphy.gif" 
+            "../../TestImages/Formats/Gif/ani2.gif",
+            "../../TestImages/Formats/Gif/giphy.gif"
         };
     }
 }

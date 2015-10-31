@@ -42,9 +42,6 @@ namespace ImageProcessor
         public Color(float r, float g, float b)
             : this(r, g, b, 1)
         {
-            this.backingVector.X = r;
-            this.backingVector.Y = g;
-            this.backingVector.Z = b;
         }
 
         /// <summary>
@@ -61,6 +58,51 @@ namespace ImageProcessor
             this.backingVector.Y = g;
             this.backingVector.Z = b;
             this.backingVector.W = a;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Color"/> struct.
+        /// </summary>
+        /// <param name="hex">
+        /// The hexadecimal representation of the combined color components arranged
+        /// in rgb, rrggbb, or aarrggbb format to match web syntax.
+        /// </param>
+        public Color(string hex)
+            : this()
+        {
+            // Hexadecimal representations are layed out AARRGGBB to we need to do some reordering.
+            hex = hex.StartsWith("#") ? hex.Substring(1) : hex;
+
+            if (hex.Length != 8 && hex.Length != 6 && hex.Length != 3)
+            {
+                throw new ArgumentException("Hexadecimal string is not in the correct format.", nameof(hex));
+            }
+
+            if (hex.Length == 8)
+            {
+                this.R = Convert.ToByte(hex.Substring(2, 2), 16) / 255f;
+                this.G = Convert.ToByte(hex.Substring(4, 2), 16) / 255f;
+                this.B = Convert.ToByte(hex.Substring(6, 2), 16) / 255f;
+                this.A = Convert.ToByte(hex.Substring(0, 2), 16) / 255f;
+            }
+            else if (hex.Length == 6)
+            {
+                this.R = Convert.ToByte(hex.Substring(0, 2), 16) / 255f;
+                this.G = Convert.ToByte(hex.Substring(2, 2), 16) / 255f;
+                this.B = Convert.ToByte(hex.Substring(4, 2), 16) / 255f;
+                this.A = 1;
+            }
+            else
+            {
+                string r = char.ToString(hex[0]);
+                string g = char.ToString(hex[1]);
+                string b = char.ToString(hex[2]);
+
+                this.B = Convert.ToByte(b + b, 16) / 255f;
+                this.G = Convert.ToByte(g + g, 16) / 255f;
+                this.R = Convert.ToByte(r + r, 16) / 255f;
+                this.A = 1;
+            }
         }
 
         /// <summary>

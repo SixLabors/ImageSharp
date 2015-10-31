@@ -163,6 +163,7 @@ namespace ImageProcessor
         /// <inheritdoc/>
         public void SetPixels(int width, int height, float[] pixels)
         {
+#if DEBUG
             if (width <= 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(width), "Width must be greater than or equals than zero.");
@@ -177,7 +178,7 @@ namespace ImageProcessor
             {
                 throw new ArgumentException("Pixel array must have the length of Width * Height * 4.");
             }
-
+#endif
             this.Width = width;
             this.Height = height;
             this.Pixels = pixels;

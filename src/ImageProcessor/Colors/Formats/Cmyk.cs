@@ -7,6 +7,7 @@ namespace ImageProcessor
 {
     using System;
     using System.ComponentModel;
+    using System.Numerics;
 
     /// <summary>
     /// Represents an CMYK (cyan, magenta, yellow, keyline) color.
@@ -19,33 +20,14 @@ namespace ImageProcessor
         public static readonly Cmyk Empty = default(Cmyk);
 
         /// <summary>
-        /// Gets the cyan color component.
-        /// </summary>
-        /// <remarks>A value ranging between 0 and 100.</remarks>
-        public readonly float C;
-
-        /// <summary>
-        /// Gets the magenta color component.
-        /// </summary>
-        /// <remarks>A value ranging between 0 and 100.</remarks>
-        public readonly float M;
-
-        /// <summary>
-        /// Gets the yellow color component.
-        /// </summary>
-        /// <remarks>A value ranging between 0 and 100.</remarks>
-        public readonly float Y;
-
-        /// <summary>
-        /// Gets the keyline black color component.
-        /// </summary>
-        /// <remarks>A value ranging between 0 and 100.</remarks>
-        public readonly float K;
-
-        /// <summary>
         /// The epsilon for comparing floating point numbers.
         /// </summary>
         private const float Epsilon = 0.0001f;
+
+        /// <summary>
+        /// The backing vector for SIMD support.
+        /// </summary>
+        private Vector4 backingVector;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Cmyk"/> struct.
@@ -55,24 +37,46 @@ namespace ImageProcessor
         /// <param name="yellow">The yellow component.</param>
         /// <param name="keyline">The keyline black component.</param>
         public Cmyk(float cyan, float magenta, float yellow, float keyline)
+            : this()
         {
-            this.C = Clamp(cyan);
-            this.M = Clamp(magenta);
-            this.Y = Clamp(yellow);
-            this.K = Clamp(keyline);
+            this.backingVector.X = Clamp(cyan);
+            this.backingVector.Y = Clamp(magenta);
+            this.backingVector.Z = Clamp(yellow);
+            this.backingVector.W = Clamp(keyline);
         }
+
+        /// <summary>
+        /// Gets the cyan color component.
+        /// <remarks>A value ranging between 0 and 1.</remarks>
+        /// </summary>
+        public float C => this.backingVector.X;
+
+        /// <summary>
+        /// Gets the magenta color component.
+        /// <remarks>A value ranging between 0 and 1.</remarks>
+        /// </summary>
+        public float M => this.backingVector.Y;
+
+        /// <summary>
+        /// Gets the yellow color component.
+        /// <remarks>A value ranging between 0 and 1.</remarks>
+        /// </summary>
+        public float Y => this.backingVector.Z;
+
+        /// <summary>
+        /// Gets the keyline black color component.
+        /// <remarks>A value ranging between 0 and 1.</remarks>
+        /// </summary>
+        public float K => this.backingVector.W;
 
         /// <summary>
         /// Gets a value indicating whether this <see cref="Cmyk"/> is empty.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty => Math.Abs(this.C) < Epsilon
-                            && Math.Abs(this.M) < Epsilon
-                            && Math.Abs(this.Y) < Epsilon
-                            && Math.Abs(this.K) < Epsilon;
+        public bool IsEmpty => this.backingVector.Equals(default(Vector4));
 
         /// <summary>
-        /// Allows the implicit conversion of an instance of <see cref="Bgra32"/> to a
+        /// Allows the implicit conversion of an instance of <see cref="Color"/> to a
         /// <see cref="Cmyk"/>.
         /// </summary>
         /// <param name="color">
@@ -81,30 +85,30 @@ namespace ImageProcessor
         /// <returns>
         /// An instance of <see cref="Cmyk"/>.
         /// </returns>
-        public static implicit operator Cmyk(Bgra32 color)
+        public static implicit operator Cmyk(Color color)
         {
-            float c = (255f - color.R) / 255;
-            float m = (255f - color.G) / 255;
-            float y = (255f - color.B) / 255;
+            color = color.Limited;
+
+            float c = 1f - color.R;
+            float m = 1f - color.G;
+            float y = 1f - color.B;
 
             float k = Math.Min(c, Math.Min(m, y));
 
-            if (Math.Abs(k - 1.0) <= Epsilon)
+            if (Math.Abs(k - 1.0f) <= Epsilon)
             {
-                return new Cmyk(0, 0, 0, 100);
+                return new Cmyk(0, 0, 0, 1);
             }
 
-            c = ((c - k) / (1 - k)) * 100;
-            m = ((m - k) / (1 - k)) * 100;
-            y = ((y - k) / (1 - k)) * 100;
+            c = (c - k) / (1 - k);
+            m = (m - k) / (1 - k);
+            y = (y - k) / (1 - k);
 
-            return new Cmyk(c, m, y, k * 100);
+            return new Cmyk(c, m, y, k);
         }
 
         /// <summary>
-        /// Compares two <see cref="Cmyk"/> objects. The result specifies whether the values
-        /// of the <see cref="Cmyk.C"/>, <see cref="Cmyk.M"/>, <see cref="Cmyk.Y"/>, and <see cref="Cmyk.K"/>
-        /// properties of the two <see cref="Cmyk"/> objects are equal.
+        /// Compares two <see cref="Cmyk"/> objects for equality.
         /// </summary>
         /// <param name="left">
         /// The <see cref="Cmyk"/> on the left side of the operand.
@@ -121,9 +125,7 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Compares two <see cref="Cmyk"/> objects. The result specifies whether the values
-        /// of the <see cref="Cmyk.C"/>, <see cref="Cmyk.M"/>, <see cref="Cmyk.Y"/>, and <see cref="Cmyk.K"/>
-        /// properties of the two <see cref="Cmyk"/> objects are unequal.
+        /// Compares two <see cref="Cmyk"/> objects for inequality
         /// </summary>
         /// <param name="left">
         /// The <see cref="Cmyk"/> on the left side of the operand.
@@ -152,39 +154,19 @@ namespace ImageProcessor
             {
                 Cmyk color = (Cmyk)obj;
 
-                return Math.Abs(this.C - color.C) < Epsilon
-                    && Math.Abs(this.M - color.M) < Epsilon
-                    && Math.Abs(this.Y - color.Y) < Epsilon
-                    && Math.Abs(this.K - color.K) < Epsilon;
+                return this.backingVector == color.backingVector;
             }
 
             return false;
         }
 
-        /// <summary>
-        /// Returns the hash code for this instance.
-        /// </summary>
-        /// <returns>
-        /// A 32-bit signed integer that is the hash code for this instance.
-        /// </returns>
+        /// <inheritdoc/>
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = this.C.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.M.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.Y.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.K.GetHashCode();
-                return hashCode;
-            }
+            return GetHashCode(this);
         }
 
-        /// <summary>
-        /// Returns the fully qualified type name of this instance.
-        /// </summary>
-        /// <returns>
-        /// A <see cref="T:System.String"/> containing a fully qualified type name.
-        /// </returns>
+        /// <inheritdoc/>
         public override string ToString()
         {
             if (this.IsEmpty)
@@ -195,19 +177,10 @@ namespace ImageProcessor
             return $"Cmyk [ C={this.C:#0.##}, M={this.M:#0.##}, Y={this.Y:#0.##}, K={this.K:#0.##}]";
         }
 
-        /// <summary>
-        /// Indicates whether the current object is equal to another object of the same type.
-        /// </summary>
-        /// <returns>
-        /// True if the current object is equal to the <paramref name="other"/> parameter; otherwise, false.
-        /// </returns>
-        /// <param name="other">An object to compare with this object.</param>
+        /// <inheritdoc/>
         public bool Equals(Cmyk other)
         {
-            return Math.Abs(this.C - other.C) < Epsilon
-                && Math.Abs(this.M - other.M) < Epsilon
-                && Math.Abs(this.Y - other.Y) < Epsilon
-                && Math.Abs(this.K - other.Y) < Epsilon;
+            return this.backingVector.Equals(other.backingVector);
         }
 
         /// <summary>
@@ -223,5 +196,16 @@ namespace ImageProcessor
         {
             return value.Clamp(0, 100);
         }
+
+        /// <summary>
+        /// Returns the hash code for this instance.
+        /// </summary>
+        /// <param name="color">
+        /// The instance of <see cref="Cmyk"/> to return the hash code for.
+        /// </param>
+        /// <returns>
+        /// A 32-bit signed integer that is the hash code for this instance.
+        /// </returns>
+        private static int GetHashCode(Cmyk color) => color.backingVector.GetHashCode();
     }
 }

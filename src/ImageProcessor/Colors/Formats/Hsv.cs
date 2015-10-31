@@ -122,7 +122,7 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Compares two <see cref="Hsv"/> objects for equality
+        /// Compares two <see cref="Hsv"/> objects for equality.
         /// </summary>
         /// <param name="left">
         /// The <see cref="Hsv"/> on the left side of the operand.

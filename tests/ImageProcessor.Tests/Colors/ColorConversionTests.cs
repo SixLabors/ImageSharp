@@ -17,7 +17,11 @@ namespace ImageProcessor.Tests
 
     /// <summary>
     /// Test conversion between the various color structs.
-    /// </summary>
+    ///  </summary>
+    /// <remarks>
+    /// Output values have been compared with <see cref="http://colormine.org/color-converter"/>
+    /// and <see cref="http://www.colorhexa.com/"/> for accuracy.
+    /// </remarks>
     public class ColorConversionTests
     {
         /// <summary>
@@ -163,90 +167,90 @@ namespace ImageProcessor.Tests
             for (int i = 0; i < 1000; i++)
             {
                 Color color4 = new Color(random.Next(1), random.Next(1), random.Next(1));
-                Hsv hsb4 = color4;
-                Assert.Equal(color4, (Color)hsb4);
+                Hsv hsv4 = color4;
+                Assert.Equal(color4, (Color)hsv4);
             }
         }
 
         /// <summary>
-        /// Tests the implicit conversion from <see cref="Bgra32"/> to <see cref="Cmyk"/>.
+        /// Tests the implicit conversion from <see cref="Color"/> to <see cref="Cmyk"/>.
         /// </summary>
         [Fact]
         [SuppressMessage("StyleCop.CSharp.NamingRules", "SA1305:FieldNamesMustNotUseHungarianNotation",
             Justification = "Reviewed. Suppression is OK here.")]
-        public void BgrToCmyk()
+        public void ColorToCmyk()
         {
             // White
-            Bgra32 color = new Bgra32(255, 255, 255, 255);
+            Color color = new Color(1, 1, 1);
             Cmyk cmyk = color;
 
-            Assert.Equal(0, cmyk.C);
-            Assert.Equal(0, cmyk.M);
-            Assert.Equal(0, cmyk.Y);
-            Assert.Equal(0, cmyk.K);
+            Assert.Equal(0, cmyk.C, 1);
+            Assert.Equal(0, cmyk.M, 1);
+            Assert.Equal(0, cmyk.Y, 1);
+            Assert.Equal(0, cmyk.K, 1);
 
             // Black
-            Bgra32 color2 = new Bgra32(0, 0, 0, 255);
+            Color color2 = new Color(0, 0, 0);
             Cmyk cmyk2 = color2;
-            Assert.Equal(0, cmyk2.C);
-            Assert.Equal(0, cmyk2.M);
-            Assert.Equal(0, cmyk2.Y);
-            Assert.Equal(100, cmyk2.K);
+            Assert.Equal(0, cmyk2.C, 1);
+            Assert.Equal(0, cmyk2.M, 1);
+            Assert.Equal(0, cmyk2.Y, 1);
+            Assert.Equal(1, cmyk2.K, 1);
 
             // Grey
-            Bgra32 color3 = new Bgra32(128, 128, 128, 255);
+            Color color3 = new Color(128 / 255f, 128 / 255f, 128 / 255f);
             Cmyk cmyk3 = color3;
-            Assert.Equal(0, cmyk3.C);
-            Assert.Equal(0, cmyk3.M);
-            Assert.Equal(0, cmyk3.Y);
-            Assert.Equal(49.8, cmyk3.K, 1); // Checked with other tools.
+            Assert.Equal(0f, cmyk3.C, 1);
+            Assert.Equal(0f, cmyk3.M, 1);
+            Assert.Equal(0f, cmyk3.Y, 1);
+            Assert.Equal(0.498, cmyk3.K, 2); // Checked with other online converters.
 
             // Cyan
-            Bgra32 color4 = new Bgra32(255, 255, 0, 255);
+            Color color4 = new Color(0, 1, 1);
             Cmyk cmyk4 = color4;
-            Assert.Equal(100, cmyk4.C);
-            Assert.Equal(0, cmyk4.M);
-            Assert.Equal(0, cmyk4.Y);
-            Assert.Equal(0, cmyk4.K);
+            Assert.Equal(1, cmyk4.C, 1);
+            Assert.Equal(0f, cmyk4.M, 1);
+            Assert.Equal(0f, cmyk4.Y, 1);
+            Assert.Equal(0f, cmyk4.K, 1);
         }
 
         /// <summary>
-        /// Tests the implicit conversion from <see cref="Hsv"/> to <see cref="Bgra32"/>.
+        /// Tests the implicit conversion from <see cref="Cmyk"/> to <see cref="Color"/>.
         /// </summary>
         [Fact]
-        public void CmykToBgr()
+        public void CmykToColor()
         {
             // Dark moderate pink.
-            Cmyk cmyk = new Cmyk(49.8f, 74.9f, 58.4f, 0);
-            Bgra32 bgra32 = cmyk;
+            Cmyk cmyk = new Cmyk(0f, .5f, .171f, .498f);
+            Color color = cmyk;
 
-            Assert.Equal(bgra32.B, 106);
-            Assert.Equal(bgra32.G, 64);
-            Assert.Equal(bgra32.R, 128);
+            Assert.Equal(color.R, 128 / 255f, 1);
+            Assert.Equal(color.G, 64 / 255f, 1);
+            Assert.Equal(color.B, 106 / 255f, 1);
 
             // Ochre
-            Cmyk cmyk2 = new Cmyk(20, 53.3f, 86.7f, 0);
-            Bgra32 bgra2 = cmyk2;
+            Cmyk cmyk2 = new Cmyk(0, .416f, .833f, .199f);
+            Color color2 = cmyk2;
 
-            Assert.Equal(bgra2.B, 34);
-            Assert.Equal(bgra2.G, 119);
-            Assert.Equal(bgra2.R, 204);
+            Assert.Equal(color2.R, 204 / 255f, 1);
+            Assert.Equal(color2.G, 119 / 255f, 1);
+            Assert.Equal(color2.B, 34 / 255f, 1);
 
             // White
             Cmyk cmyk3 = new Cmyk(0, 0, 0, 0);
-            Bgra32 bgra3 = cmyk3;
+            Color color3 = cmyk3;
 
-            Assert.Equal(bgra3.B, 255);
-            Assert.Equal(bgra3.G, 255);
-            Assert.Equal(bgra3.R, 255);
+            Assert.Equal(color3.R, 1f, 1);
+            Assert.Equal(color3.G, 1f, 1);
+            Assert.Equal(color3.B, 1f, 1);
 
             // Check others.
             Random random = new Random(0);
             for (int i = 0; i < 1000; i++)
             {
-                Bgra32 bgra4 = new Bgra32((byte)random.Next(255), (byte)random.Next(255), (byte)random.Next(255));
-                Cmyk cmyk4 = bgra4;
-                Assert.Equal(bgra4, (Bgra32)cmyk4);
+                Color color4 = new Color(random.Next(1), random.Next(1), random.Next(1));
+                Cmyk cmyk4 = color4;
+                Assert.Equal(color4, (Color)cmyk4);
             }
         }
     }

@@ -175,6 +175,24 @@ namespace ImageProcessor
         }
 
         /// <summary>
+        /// Allows the implicit conversion of an instance of <see cref="Cmyk"/> to a
+        /// <see cref="Color"/>.
+        /// </summary>
+        /// <param name="cmykColor">
+        /// The instance of <see cref="Cmyk"/> to convert.
+        /// </param>
+        /// <returns>
+        /// An instance of <see cref="Color"/>.
+        /// </returns>
+        public static implicit operator Color(Cmyk cmykColor)
+        {
+            float r = (1 - cmykColor.C) * (1 - cmykColor.K);
+            float g = (1 - cmykColor.M) * (1 - cmykColor.K);
+            float b = (1 - cmykColor.Y) * (1 - cmykColor.K);
+            return new Color(r, g, b);
+        }
+
+        /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="Hsv"/> to a
         /// <see cref="Color"/>.
         /// </summary>

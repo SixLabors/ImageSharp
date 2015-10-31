@@ -155,13 +155,7 @@ namespace ImageProcessor
             return !left.Equals(right);
         }
 
-        /// <summary>
-        /// Indicates whether this instance and a specified object are equal.
-        /// </summary>
-        /// <returns>
-        /// true if <paramref name="obj"/> and this instance are the same type and represent the same value; otherwise, false.
-        /// </returns>
-        /// <param name="obj">Another object to compare to. </param>
+        /// <inheritdoc/>
         public override bool Equals(object obj)
         {
             if (obj is Hsv)

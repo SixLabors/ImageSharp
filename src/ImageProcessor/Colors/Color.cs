@@ -163,9 +163,7 @@ namespace ImageProcessor
         /// Allows the implicit conversion of an instance of <see cref="Color"/> to a
         /// <see cref="Bgra32"/>.
         /// </summary>
-        /// <param name="color">
-        /// The instance of <see cref="Color"/> to convert.
-        /// </param>
+        /// <param name="color">The instance of <see cref="Color"/> to convert.</param>
         /// <returns>
         /// An instance of <see cref="Bgra32"/>.
         /// </returns>
@@ -178,9 +176,7 @@ namespace ImageProcessor
         /// Allows the implicit conversion of an instance of <see cref="Cmyk"/> to a
         /// <see cref="Color"/>.
         /// </summary>
-        /// <param name="cmykColor">
-        /// The instance of <see cref="Cmyk"/> to convert.
-        /// </param>
+        /// <param name="cmykColor">The instance of <see cref="Cmyk"/> to convert.</param>
         /// <returns>
         /// An instance of <see cref="Color"/>.
         /// </returns>
@@ -193,12 +189,31 @@ namespace ImageProcessor
         }
 
         /// <summary>
+        /// Allows the implicit conversion of an instance of <see cref="YCbCr"/> to a
+        /// <see cref="Color"/>.
+        /// </summary>
+        /// <param name="color">The instance of <see cref="YCbCr"/> to convert.</param>
+        /// <returns>
+        /// An instance of <see cref="Color"/>.
+        /// </returns>
+        public static implicit operator Color(YCbCr color)
+        {
+            float y = color.Y;
+            float cb = color.Cb - 128;
+            float cr = color.Cr - 128;
+
+            float r = (float)(y + (1.402 * cr)) / 255f;
+            float g = (float)(y - (0.34414 * cb) - (0.71414 * cr)) / 255f;
+            float b = (float)(y + (1.772 * cb)) / 255f;
+
+            return new Color(r, g, b);
+        }
+
+        /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="Hsv"/> to a
         /// <see cref="Color"/>.
         /// </summary>
-        /// <param name="color">
-        /// The instance of <see cref="Hsv"/> to convert.
-        /// </param>
+        /// <param name="color">The instance of <see cref="Hsv"/> to convert.</param>
         /// <returns>
         /// An instance of <see cref="Color"/>.
         /// </returns>

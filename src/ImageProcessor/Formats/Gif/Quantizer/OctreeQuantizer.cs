@@ -195,13 +195,13 @@ namespace ImageProcessor.Formats
             public void AddColor(Bgra32 pixel)
             {
                 // Check if this request is for the same color as the last
-                if (this.previousColor == pixel.BGRA)
+                if (this.previousColor == pixel.Bgra)
                 {
                     // If so, check if I have a previous node setup. This will only occur if the first color in the image
                     // happens to be black, with an alpha component of zero.
                     if (this.previousNode == null)
                     {
-                        this.previousColor = pixel.BGRA;
+                        this.previousColor = pixel.Bgra;
                         this.root.AddColor(pixel, this.maxColorBits, 0, this);
                     }
                     else
@@ -212,7 +212,7 @@ namespace ImageProcessor.Formats
                 }
                 else
                 {
-                    this.previousColor = pixel.BGRA;
+                    this.previousColor = pixel.Bgra;
                     this.root.AddColor(pixel, this.maxColorBits, 0, this);
                 }
             }

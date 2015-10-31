@@ -190,29 +190,6 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Allows the implicit conversion of an instance of <see cref="YCbCr"/> to a
-        /// <see cref="Bgra32"/>.
-        /// </summary>
-        /// <param name="color">
-        /// The instance of <see cref="YCbCr"/> to convert.
-        /// </param>
-        /// <returns>
-        /// An instance of <see cref="Bgra32"/>.
-        /// </returns>
-        public static implicit operator Bgra32(YCbCr color)
-        {
-            float y = color.Y;
-            float cb = color.Cb - 128;
-            float cr = color.Cr - 128;
-
-            byte b = (y + (1.772 * cb)).ToByte();
-            byte g = (y - (0.34414 * cb) - (0.71414 * cr)).ToByte();
-            byte r = (y + (1.402 * cr)).ToByte();
-
-            return new Bgra32(b, g, r, 255);
-        }
-
-        /// <summary>
         /// Compares two <see cref="Bgra32"/> objects. The result specifies whether the values
         /// of the <see cref="Bgra32.B"/>, <see cref="Bgra32.G"/>, <see cref="Bgra32.R"/>, and <see cref="Bgra32.A"/>
         /// properties of the two <see cref="Bgra32"/> objects are equal.

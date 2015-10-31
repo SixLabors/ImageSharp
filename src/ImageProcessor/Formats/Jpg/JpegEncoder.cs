@@ -89,7 +89,7 @@ namespace ImageProcessor.Formats
             int pixelWidth = image.Width;
             int pixelHeight = image.Height;
 
-            byte[] sourcePixels = image.Pixels;
+            float[] sourcePixels = image.Pixels;
 
             SampleRow[] rows = new SampleRow[pixelHeight];
 
@@ -105,9 +105,9 @@ namespace ImageProcessor.Formats
                             int start = x * 3;
                             int source = ((y * pixelWidth) + x) * 4;
 
-                            samples[start] = sourcePixels[source + 2];
-                            samples[start + 1] = sourcePixels[source + 1];
-                            samples[start + 2] = sourcePixels[source];
+                            samples[start] = (byte)(sourcePixels[source].Clamp(0, 1) * 255);
+                            samples[start + 1] = (byte)(sourcePixels[source + 1].Clamp(0, 1) * 255);
+                            samples[start + 2] = (byte)(sourcePixels[source + 2].Clamp(0, 1) * 255);
                         }
 
                         rows[y] = new SampleRow(samples, pixelWidth, 8, 3);

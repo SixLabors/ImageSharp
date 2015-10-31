@@ -53,7 +53,7 @@ namespace ImageProcessor
         /// <inheritdoc/>
         public void Apply(ImageBase target, ImageBase source, int width, int height, Rectangle targetRectangle = default(Rectangle), Rectangle sourceRectangle = default(Rectangle))
         {
-            byte[] pixels = new byte[width * height * 4];
+            float[] pixels = new float[width * height * 4];
             target.SetPixels(width, height, pixels);
 
             if (targetRectangle == Rectangle.Empty)

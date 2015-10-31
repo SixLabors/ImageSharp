@@ -18,7 +18,7 @@ namespace ImageProcessor.Formats
         private readonly bool singlePass;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Quantizer"/> class. 
+        /// Initializes a new instance of the <see cref="Quantizer"/> class.
         /// </summary>
         /// <param name="singlePass">
         /// If true, the quantization only needs to loop through the source pixels once
@@ -56,6 +56,7 @@ namespace ImageProcessor.Formats
 
             byte[] quantizedPixels = new byte[width * height];
 
+            // Get the pallete
             List<Bgra32> palette = this.GetPalette();
 
             this.SecondPass(imageBase, quantizedPixels, width, height);
@@ -94,7 +95,8 @@ namespace ImageProcessor.Formats
         {
             int i = 0;
 
-            // Convert the first pixel, so that I have values going into the loop
+            // Convert the first pixel, so that I have values going into the loop.
+            // Implicit cast here from Color.
             Bgra32 previousPixel = source[0, 0];
             byte pixelValue = this.QuantizePixel(previousPixel);
 
@@ -104,6 +106,7 @@ namespace ImageProcessor.Formats
             {
                 for (int x = 0; x < width; x++)
                 {
+                    // Implicit cast here from Color.
                     Bgra32 sourcePixel = source[x, y];
 
                     // Check if this is the same as the last pixel. If so use that value

@@ -199,7 +199,7 @@ namespace ImageProcessor.Formats
                 {
                     // If so, check if I have a previous node setup. This will only occur if the first color in the image
                     // happens to be black, with an alpha component of zero.
-                    if (null == this.previousNode)
+                    if (this.previousNode == null)
                     {
                         this.previousColor = pixel.BGRA;
                         this.root.AddColor(pixel, this.maxColorBits, 0, this);
@@ -274,7 +274,7 @@ namespace ImageProcessor.Formats
             {
                 // Find the deepest level containing at least one reducible node
                 int index = this.maxColorBits - 1;
-                while ((index > 0) && (null == this.reducibleNodes[index]))
+                while ((index > 0) && (this.reducibleNodes[index] == null))
                 {
                     index--;
                 }
@@ -407,7 +407,7 @@ namespace ImageProcessor.Formats
 
                         OctreeNode child = this.children[index];
 
-                        if (null == child)
+                        if (child == null)
                         {
                             // Create a new child node and store it in the array
                             child = new OctreeNode(level + 1, colorBits, octree);
@@ -431,7 +431,7 @@ namespace ImageProcessor.Formats
                     // Loop through all children and add their information to this node
                     for (int index = 0; index < 8; index++)
                     {
-                        if (null != this.children[index])
+                        if (this.children[index] != null)
                         {
                             this.red += this.children[index].red;
                             this.green += this.children[index].green;
@@ -477,7 +477,7 @@ namespace ImageProcessor.Formats
                         // Loop through children looking for leaves
                         for (int i = 0; i < 8; i++)
                         {
-                            if (null != this.children[i])
+                            if (this.children[i] != null)
                             {
                                 this.children[i].ConstructPalette(palette, ref index);
                             }
@@ -508,7 +508,7 @@ namespace ImageProcessor.Formats
                                          ((pixel.G & Mask[level]) >> (shift - 1)) |
                                          ((pixel.B & Mask[level]) >> shift);
 
-                        if (null != this.children[pixelIndex])
+                        if (this.children[pixelIndex] != null)
                         {
                             index = this.children[pixelIndex].GetPaletteIndex(pixel, level + 1);
                         }

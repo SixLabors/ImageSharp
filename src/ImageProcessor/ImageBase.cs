@@ -40,7 +40,7 @@ namespace ImageProcessor
             this.Width = width;
             this.Height = height;
 
-            this.Pixels = new byte[width * height * 4];
+            this.Pixels = new float[width * height * 4];
         }
 
         /// <summary>
@@ -56,13 +56,13 @@ namespace ImageProcessor
         {
             Guard.NotNull(other, nameof(other), "Other image cannot be null.");
 
-            byte[] pixels = other.Pixels;
+            float[] pixels = other.Pixels;
 
             this.Width = other.Width;
             this.Height = other.Height;
             this.Quality = other.Quality;
             this.FrameDelay = other.FrameDelay;
-            this.Pixels = new byte[pixels.Length];
+            this.Pixels = new float[pixels.Length];
             Array.Copy(pixels, this.Pixels, pixels.Length);
         }
 
@@ -84,7 +84,7 @@ namespace ImageProcessor
         /// and stores the blue, the green, the red and the alpha value for
         /// each pixel in this order.
         /// </remarks>
-        public byte[] Pixels { get; private set; }
+        public float[] Pixels { get; private set; }
 
         /// <summary>
         /// Gets the width in pixels.
@@ -106,9 +106,7 @@ namespace ImageProcessor
         /// </summary>
         public Rectangle Bounds => new Rectangle(0, 0, this.Width, this.Height);
 
-        /// <summary>
-        /// Gets or sets th quality of the image. This affects the output quality of lossy image formats.
-        /// </summary>
+        /// <inheritdoc/>
         public int Quality { get; set; }
 
         /// <summary>
@@ -119,19 +117,8 @@ namespace ImageProcessor
         /// </summary>
         public int FrameDelay { get; set; }
 
-        /// <summary>
-        /// Gets or sets the color of a pixel at the specified position.
-        /// </summary>
-        /// <param name="x">
-        /// The x-coordinate of the pixel. Must be greater
-        /// than zero and smaller than the width of the pixel.
-        /// </param>
-        /// <param name="y">
-        /// The y-coordinate of the pixel. Must be greater
-        /// than zero and smaller than the width of the pixel.
-        /// </param>
-        /// <returns>The <see cref="Bgra32"/> at the specified position.</returns>
-        public Bgra32 this[int x, int y]
+        /// <inheritdoc/>
+        public Color this[int x, int y]
         {
             get
             {
@@ -148,7 +135,7 @@ namespace ImageProcessor
 #endif
 
                 int start = ((y * this.Width) + x) * 4;
-                return new Bgra32(this.Pixels[start], this.Pixels[start + 1], this.Pixels[start + 2], this.Pixels[start + 3]);
+                return new Color(this.Pixels[start], this.Pixels[start + 1], this.Pixels[start + 2], this.Pixels[start + 3]);
             }
 
             set
@@ -166,30 +153,15 @@ namespace ImageProcessor
 #endif
                 int start = ((y * this.Width) + x) * 4;
 
-                this.Pixels[start + 0] = value.B;
+                this.Pixels[start + 0] = value.R;
                 this.Pixels[start + 1] = value.G;
-                this.Pixels[start + 2] = value.R;
+                this.Pixels[start + 2] = value.B;
                 this.Pixels[start + 3] = value.A;
             }
         }
 
-        /// <summary>
-        /// Sets the pixel array of the image.
-        /// </summary>
-        /// <param name="width">
-        /// The new width of the image. Must be greater than zero.</param>
-        /// <param name="height">The new height of the image. Must be greater than zero.</param>
-        /// <param name="pixels">
-        /// The array with colors. Must be a multiple
-        /// of four, width and height.
-        /// </param>
-        /// <exception cref="ArgumentOutOfRangeException">
-        /// Thrown if either <paramref name="width"/> or <paramref name="height"/> are less than or equal to 0.
-        /// </exception>
-        /// <exception cref="ArgumentException">
-        /// Thrown if the <paramref name="pixels"/> length is not equal to Width * Height * 4.
-        /// </exception>
-        public void SetPixels(int width, int height, byte[] pixels)
+        /// <inheritdoc/>
+        public void SetPixels(int width, int height, float[] pixels)
         {
             if (width <= 0)
             {

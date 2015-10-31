@@ -31,7 +31,7 @@ namespace ImageProcessor.Formats
         /// <summary>
         /// The current frame.
         /// </summary>
-        private byte[] currentFrame;
+        private float[] currentFrame;
 
         /// <summary>
         /// The logical screen descriptor.
@@ -288,15 +288,15 @@ namespace ImageProcessor.Formats
 
             if (this.currentFrame == null)
             {
-                this.currentFrame = new byte[imageWidth * imageHeight * 4];
+                this.currentFrame = new float[imageWidth * imageHeight * 4];
             }
 
-            byte[] lastFrame = null;
+            float[] lastFrame = null;
 
             if (this.graphicsControlExtension != null &&
                 this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToPrevious)
             {
-                lastFrame = new byte[imageWidth * imageHeight * 4];
+                lastFrame = new float[imageWidth * imageHeight * 4];
 
                 Array.Copy(this.currentFrame, lastFrame, lastFrame.Length);
             }
@@ -352,18 +352,20 @@ namespace ImageProcessor.Formats
                         this.graphicsControlExtension.TransparencyFlag == false ||
                         this.graphicsControlExtension.TransparencyIndex != index)
                     {
+                        // We divide by 255 as we will store the colors in our floating point format.
+                        // Stored in r-> g-> b-> a order.
                         int indexOffset = index * 3;
-                        this.currentFrame[offset + 0] = colorTable[indexOffset + 2];
-                        this.currentFrame[offset + 1] = colorTable[indexOffset + 1];
-                        this.currentFrame[offset + 2] = colorTable[indexOffset + 0];
-                        this.currentFrame[offset + 3] = 255;
+                        this.currentFrame[offset + 0] = colorTable[indexOffset] / 255f; // r
+                        this.currentFrame[offset + 1] = colorTable[indexOffset + 1] / 255f; // g
+                        this.currentFrame[offset + 2] = colorTable[indexOffset + 2] / 255f; // b
+                        this.currentFrame[offset + 3] = 1; // a
                     }
 
                     i++;
                 }
             }
 
-            byte[] pixels = new byte[imageWidth * imageHeight * 4];
+            float[] pixels = new float[imageWidth * imageHeight * 4];
 
             Array.Copy(this.currentFrame, pixels, pixels.Length);
 
@@ -406,6 +408,7 @@ namespace ImageProcessor.Formats
                         {
                             offset = ((y * imageWidth) + x) * 4;
 
+                            // Stored in r-> g-> b-> a order.
                             this.currentFrame[offset + 0] = 0;
                             this.currentFrame[offset + 1] = 0;
                             this.currentFrame[offset + 2] = 0;

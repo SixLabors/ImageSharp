@@ -8,9 +8,6 @@ namespace ImageProcessor.Formats
     using System;
     using System.IO;
 
-    //using ICSharpCode.SharpZipLib.Checksums;
-    //using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
-
     /// <summary>
     /// Image encoder for writing image data to a stream in png format.
     /// </summary>
@@ -36,7 +33,7 @@ namespace ImageProcessor.Formats
         public int Quality { get; set; }
 
         /// <inheritdoc/>
-        public string MimeType => "image/jpepngg";
+        public string MimeType => "image/png";
 
         /// <inheritdoc/>
         public string Extension => "png";
@@ -225,7 +222,7 @@ namespace ImageProcessor.Formats
         /// <param name="imageBase">The image base.</param>
         private void WriteDataChunksFast(Stream stream, ImageBase imageBase)
         {
-            byte[] pixels = imageBase.Pixels;
+            float[] pixels = imageBase.Pixels;
 
             // Convert the pixel array to a new array for adding
             // the filter byte.
@@ -297,7 +294,7 @@ namespace ImageProcessor.Formats
         /// <param name="imageBase">The image base.</param>
         private void WriteDataChunks(Stream stream, ImageBase imageBase)
         {
-            byte[] pixels = imageBase.Pixels;
+            float[] pixels = imageBase.Pixels;
 
             byte[] data = new byte[(imageBase.Width * imageBase.Height * 4) + imageBase.Height];
 
@@ -321,19 +318,19 @@ namespace ImageProcessor.Formats
                     // Calculate the offset for the original pixel array.
                     int pixelOffset = ((y * imageBase.Width) + x) * 4;
 
-                    data[dataOffset + 0] = pixels[pixelOffset + 2];
-                    data[dataOffset + 1] = pixels[pixelOffset + 1];
-                    data[dataOffset + 2] = pixels[pixelOffset + 0];
-                    data[dataOffset + 3] = pixels[pixelOffset + 3];
+                    data[dataOffset] = (byte)(pixels[pixelOffset].Clamp(0, 1) * 255);
+                    data[dataOffset + 1] = (byte)(pixels[pixelOffset + 1].Clamp(0, 1) * 255);
+                    data[dataOffset + 2] = (byte)(pixels[pixelOffset + 2].Clamp(0, 1) * 255);
+                    data[dataOffset + 3] = (byte)(pixels[pixelOffset + 3].Clamp(0, 1) * 255);
 
                     if (y > 0)
                     {
                         int lastOffset = (((y - 1) * imageBase.Width) + x) * 4;
 
-                        data[dataOffset + 0] -= pixels[lastOffset + 2];
-                        data[dataOffset + 1] -= pixels[lastOffset + 1];
-                        data[dataOffset + 2] -= pixels[lastOffset + 0];
-                        data[dataOffset + 3] -= pixels[lastOffset + 3];
+                        data[dataOffset] -= (byte)(pixels[lastOffset].Clamp(0, 1) * 255);
+                        data[dataOffset + 1] -= (byte)(pixels[lastOffset + 1].Clamp(0, 1) * 255);
+                        data[dataOffset + 2] -= (byte)(pixels[lastOffset + 2].Clamp(0, 1) * 255);
+                        data[dataOffset + 3] -= (byte)(pixels[lastOffset + 3].Clamp(0, 1) * 255);
                     }
                 }
             }

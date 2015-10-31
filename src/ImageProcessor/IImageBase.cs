@@ -20,7 +20,7 @@ namespace ImageProcessor
         /// and stores the blue, the green, the red and the alpha value for
         /// each pixel in this order.
         /// </remarks>
-        byte[] Pixels { get; }
+        float[] Pixels { get; }
 
         /// <summary>
         /// Gets the width in pixels.
@@ -66,8 +66,8 @@ namespace ImageProcessor
         /// The y-coordinate of the pixel. Must be greater
         /// than zero and smaller than the width of the pixel.
         /// </param>
-        /// <returns>The <see cref="Bgra32"/> at the specified position.</returns>
-        Bgra32 this[int x, int y] { get; set; }
+        /// <returns>The <see cref="Color"/> at the specified position.</returns>
+        Color this[int x, int y] { get; set; }
 
         /// <summary>
         /// Sets the pixel array of the image.
@@ -85,6 +85,6 @@ namespace ImageProcessor
         /// <exception cref="ArgumentException">
         /// Thrown if the <paramref name="pixels"/> length is not equal to Width * Height * 4.
         /// </exception>
-        void SetPixels(int width, int height, byte[] pixels);
+        void SetPixels(int width, int height, float[] pixels);
     }
 }

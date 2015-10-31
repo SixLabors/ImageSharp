@@ -1,12 +1,7 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="BmpDecoderCore.cs" company="James South">
-//   Copyright (c) James South and contributors.
-//   Licensed under the Apache License, Version 2.0.
+﻿// <copyright file="BmpDecoderCore.cs" company="James South">
+// Copyright (c) James South and contributors.
+// Licensed under the Apache License, Version 2.0.
 // </copyright>
-// <summary>
-//   Performs the bmp decoding operation.
-// </summary>
-// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Formats
 {
@@ -109,7 +104,7 @@ namespace ImageProcessor.Formats
                         + $"bigger then the max allowed size '{ImageBase.MaxWidth}x{ImageBase.MaxHeight}'");
                 }
 
-                byte[] imageData = new byte[this.infoHeader.Width * this.infoHeader.Height * 4];
+                float[] imageData = new float[this.infoHeader.Width * this.infoHeader.Height * 4];
 
                 switch (this.infoHeader.Compression)
                 {
@@ -180,12 +175,12 @@ namespace ImageProcessor.Formats
         /// <summary>
         /// Reads the color palette from the stream.
         /// </summary>
-        /// <param name="imageData">The <see cref="T:byte[]"/> image data to assign the palette to.</param>
+        /// <param name="imageData">The <see cref="T:float[]"/> image data to assign the palette to.</param>
         /// <param name="colors">The <see cref="T:byte[]"/> containing the colors.</param>
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="bits">The number of bits per pixel.</param>
-        private void ReadRgbPalette(byte[] imageData, byte[] colors, int width, int height, int bits)
+        private void ReadRgbPalette(float[] imageData, byte[] colors, int width, int height, int bits)
         {
             // Pixels per byte (bits per pixel)
             int ppb = 8 / bits;
@@ -224,13 +219,15 @@ namespace ImageProcessor.Formats
 
                             for (int shift = 0; shift < ppb && (colOffset + shift) < width; shift++)
                             {
-                                int colorIndex = (data[offset] >> (8 - bits - (shift * bits))) & mask;
-
+                                int colorIndex = ((data[offset] >> (8 - bits - (shift * bits))) & mask) * 4;
                                 int arrayOffset = ((row * width) + (colOffset + shift)) * 4;
-                                imageData[arrayOffset + 0] = colors[colorIndex * 4];
-                                imageData[arrayOffset + 1] = colors[(colorIndex * 4) + 1];
-                                imageData[arrayOffset + 2] = colors[(colorIndex * 4) + 2];
-                                imageData[arrayOffset + 3] = 255;
+
+                                // We divide by 255 as we will store the colors in our floating point format.
+                                // Stored in r-> g-> b-> a order.
+                                imageData[arrayOffset] = colors[colorIndex + 2] / 255f; // r
+                                imageData[arrayOffset + 1] = colors[colorIndex + 1] / 255f; // g
+                                imageData[arrayOffset + 2] = colors[colorIndex] / 255f; // b
+                                imageData[arrayOffset + 3] = 1; // a
                             }
                         }
                     });
@@ -239,13 +236,14 @@ namespace ImageProcessor.Formats
         /// <summary>
         /// Reads the 16 bit color palette from the stream
         /// </summary>
-        /// <param name="imageData">The <see cref="T:byte[]"/> image data to assign the palette to.</param>
+        /// <param name="imageData">The <see cref="T:float[]"/> image data to assign the palette to.</param>
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
-        private void ReadRgb16(byte[] imageData, int width, int height)
+        private void ReadRgb16(float[] imageData, int width, int height)
         {
-            const int ScaleR = 256 / 32;
-            const int ScaleG = 256 / 64;
+            // We divide here as we will store the colors in our floating point format.
+            const int ScaleR = (256 / 32) / 32;
+            const int ScaleG = (256 / 64) / 64;
 
             int alignment;
             byte[] data = this.GetImageArray(width, height, 2, out alignment);
@@ -266,16 +264,17 @@ namespace ImageProcessor.Formats
 
                             short temp = BitConverter.ToInt16(data, offset);
 
-                            byte r = (byte)(((temp & Rgb16RMask) >> 11) * ScaleR);
-                            byte g = (byte)(((temp & Rgb16GMask) >> 5) * ScaleG);
-                            byte b = (byte)((temp & Rgb16BMask) * ScaleR);
+                            float r = ((temp & Rgb16RMask) >> 11) * ScaleR;
+                            float g = ((temp & Rgb16GMask) >> 5) * ScaleG;
+                            float b = (temp & Rgb16BMask) * ScaleR;
 
                             int arrayOffset = ((row * width) + x) * 4;
 
-                            imageData[arrayOffset + 0] = b;
+                            // Stored in r-> g-> b-> a order.
+                            imageData[arrayOffset] = r;
                             imageData[arrayOffset + 1] = g;
-                            imageData[arrayOffset + 2] = r;
-                            imageData[arrayOffset + 3] = 255;
+                            imageData[arrayOffset + 2] = b;
+                            imageData[arrayOffset + 3] = 1;
                         }
                     });
         }
@@ -283,10 +282,10 @@ namespace ImageProcessor.Formats
         /// <summary>
         /// Reads the 24 bit color palette from the stream
         /// </summary>
-        /// <param name="imageData">The <see cref="T:byte[]"/> image data to assign the palette to.</param>
+        /// <param name="imageData">The <see cref="T:float[]"/> image data to assign the palette to.</param>
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
-        private void ReadRgb24(byte[] imageData, int width, int height)
+        private void ReadRgb24(float[] imageData, int width, int height)
         {
             int alignment;
             byte[] data = this.GetImageArray(width, height, 3, out alignment);
@@ -306,10 +305,12 @@ namespace ImageProcessor.Formats
                             int offset = rowOffset + (x * 3);
                             int arrayOffset = ((row * width) + x) * 4;
 
-                            imageData[arrayOffset + 0] = data[offset + 0];
-                            imageData[arrayOffset + 1] = data[offset + 1];
-                            imageData[arrayOffset + 2] = data[offset + 2];
-                            imageData[arrayOffset + 3] = 255;
+                            // We divide by 255 as we will store the colors in our floating point format.
+                            // Stored in r-> g-> b-> a order.
+                            imageData[arrayOffset] = data[offset + 2] / 255f;
+                            imageData[arrayOffset + 1] = data[offset + 1] / 255f;
+                            imageData[arrayOffset + 2] = data[offset] / 255f;
+                            imageData[arrayOffset + 3] = 1;
                         }
                     });
         }
@@ -317,10 +318,10 @@ namespace ImageProcessor.Formats
         /// <summary>
         /// Reads the 32 bit color palette from the stream
         /// </summary>
-        /// <param name="imageData">The <see cref="T:byte[]"/> image data to assign the palette to.</param>
+        /// <param name="imageData">The <see cref="T:float[]"/> image data to assign the palette to.</param>
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
-        private void ReadRgb32(byte[] imageData, int width, int height)
+        private void ReadRgb32(float[] imageData, int width, int height)
         {
             int alignment;
             byte[] data = this.GetImageArray(width, height, 4, out alignment);
@@ -338,12 +339,14 @@ namespace ImageProcessor.Formats
                         for (int x = 0; x < width; x++)
                         {
                             int offset = rowOffset + (x * 4);
+                            int arrayOffset = ((row * width) + x) * 4;
 
-                            var arrayOffset = ((row * width) + x) * 4;
-                            imageData[arrayOffset + 0] = data[offset + 0];
-                            imageData[arrayOffset + 1] = data[offset + 1];
-                            imageData[arrayOffset + 2] = data[offset + 2];
-                            imageData[arrayOffset + 3] = 255; // Can we get alpha here?
+                            // We divide by 255 as we will store the colors in our floating point format.
+                            // Stored in r-> g-> b-> a order.
+                            imageData[arrayOffset] = data[offset + 2] / 255f;
+                            imageData[arrayOffset + 1] = data[offset + 1] / 255f;
+                            imageData[arrayOffset + 2] = data[offset] / 255f;
+                            imageData[arrayOffset + 3] = 1; // TODO: Can we use our real alpha here?
                         }
                     });
         }

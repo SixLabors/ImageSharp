@@ -34,7 +34,7 @@ namespace ImageProcessor.Filters
         /// <inheritdoc/>
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-            double alpha = this.Value / 100.0;
+            float alpha = this.Value / 100f;
             int sourceY = sourceRectangle.Y;
             int sourceBottom = sourceRectangle.Bottom;
             int startX = sourceRectangle.X;
@@ -49,9 +49,9 @@ namespace ImageProcessor.Filters
                         {
                             for (int x = startX; x < endX; x++)
                             {
-                                Bgra32 color = source[x, y];
-                                double a = color.A * alpha;
-                                target[x, y] = new Bgra32(color.B, color.G, color.R, a.ToByte());
+                                Color color = source[x, y];
+                                color.A = color.A * alpha;
+                                target[x, y] = color;
                             }
                         }
                     });

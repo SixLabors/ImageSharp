@@ -36,13 +36,12 @@ namespace ImageProcessor.Filters
         /// <inheritdoc/>
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
+            bool gamma = this.GammaAdjust;
             int sourceY = sourceRectangle.Y;
             int sourceBottom = sourceRectangle.Bottom;
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
             ColorMatrix matrix = this.Value;
-            Bgra32 previousColor = source[0, 0];
-            Bgra32 pixelValue = this.ApplyMatrix(previousColor, matrix);
 
             Parallel.For(
                 startY,
@@ -53,20 +52,7 @@ namespace ImageProcessor.Filters
                         {
                             for (int x = startX; x < endX; x++)
                             {
-                                Bgra32 sourceColor = source[x, y];
-
-                                // Check if this is the same as the last pixel. If so use that value
-                                // rather than calculating it again. This is an inexpensive optimization.
-                                if (sourceColor != previousColor)
-                                {
-                                    // Perform the operation on the pixel.
-                                    pixelValue = this.ApplyMatrix(sourceColor, matrix);
-
-                                    // And setup the previous pointer
-                                    previousColor = sourceColor;
-                                }
-
-                                target[x, y] = pixelValue;
+                                target[x, y] = ApplyMatrix(source[x, y], matrix, gamma);
                             }
                         }
                     });
@@ -75,33 +61,31 @@ namespace ImageProcessor.Filters
         /// <summary>
         /// Applies the color matrix against the given color.
         /// </summary>
-        /// <param name="sourceColor">The source color.</param>
+        /// <param name="color">The source color.</param>
         /// <param name="matrix">The matrix.</param>
+        /// <param name="gamma">Whether to perform gamma adjustments.</param>
         /// <returns>
-        /// The <see cref="Bgra32"/>.
+        /// The <see cref="Color"/>.
         /// </returns>
-        private Bgra32 ApplyMatrix(Bgra32 sourceColor, ColorMatrix matrix)
+        private static Color ApplyMatrix(Color color, ColorMatrix matrix, bool gamma)
         {
-            bool gamma = this.GammaAdjust;
-
             if (gamma)
             {
-                sourceColor = PixelOperations.ToLinear(sourceColor);
+                color = PixelOperations.ToLinear(color);
             }
 
-            int sr = sourceColor.R;
-            int sg = sourceColor.G;
-            int sb = sourceColor.B;
-            int sa = sourceColor.A;
+            float sr = color.R;
+            float sg = color.G;
+            float sb = color.B;
+            float sa = color.A;
 
             // TODO: Investigate RGBAW
-            byte r = ((sr * matrix.Matrix00) + (sg * matrix.Matrix10) + (sb * matrix.Matrix20) + (sa * matrix.Matrix30) + (255f * matrix.Matrix40)).ToByte();
-            byte g = ((sr * matrix.Matrix01) + (sg * matrix.Matrix11) + (sb * matrix.Matrix21) + (sa * matrix.Matrix31) + (255f * matrix.Matrix41)).ToByte();
-            byte b = ((sr * matrix.Matrix02) + (sg * matrix.Matrix12) + (sb * matrix.Matrix22) + (sa * matrix.Matrix32) + (255f * matrix.Matrix42)).ToByte();
-            byte a = ((sr * matrix.Matrix03) + (sg * matrix.Matrix13) + (sb * matrix.Matrix23) + (sa * matrix.Matrix33) + (255f * matrix.Matrix43)).ToByte();
+            color.R = (sr * matrix.Matrix00) + (sg * matrix.Matrix10) + (sb * matrix.Matrix20) + (sa * matrix.Matrix30) + matrix.Matrix40;
+            color.G = (sr * matrix.Matrix01) + (sg * matrix.Matrix11) + (sb * matrix.Matrix21) + (sa * matrix.Matrix31) + matrix.Matrix41;
+            color.B = (sr * matrix.Matrix02) + (sg * matrix.Matrix12) + (sb * matrix.Matrix22) + (sa * matrix.Matrix32) + matrix.Matrix42;
+            color.A = (sr * matrix.Matrix03) + (sg * matrix.Matrix13) + (sb * matrix.Matrix23) + (sa * matrix.Matrix33) + matrix.Matrix43;
 
-            // TODO: Fix this.
-            return gamma ? (Bgra32)PixelOperations.ToSrgb(new Bgra32(b, g, r, a)) : new Bgra32(b, g, r, a);
+            return gamma ? PixelOperations.ToSrgb(color) : color;
         }
     }
 }

@@ -111,9 +111,32 @@ namespace ImageProcessor
         /// <param name="vector">
         /// The vector.
         /// </param>
-        private Color(Vector4 vector)
+        public Color(Vector4 vector)
         {
             this.backingVector = vector;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Color"/> struct.
+        /// </summary>
+        /// <param name="vector">
+        /// The vector representing the red, green, and blue componenets.
+        /// </param>
+        public Color(Vector3 vector)
+        {
+            this.backingVector = new Vector4(vector.X, vector.Y, vector.Z, 1);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Color"/> struct.
+        /// </summary>
+        /// <param name="vector">
+        /// The vector representing the red, green, and blue componenets.
+        /// </param>
+        /// <param name="alpha">The alpha component.</param>
+        public Color(Vector3 vector, float alpha)
+        {
+            this.backingVector = new Vector4(vector.X, vector.Y, vector.Z, alpha);
         }
 
         /// <summary>
@@ -448,6 +471,24 @@ namespace ImageProcessor
             amount = amount.Clamp(0f, 1f);
 
             return (from * (1 - amount)) + (to * amount);
+        }
+
+        /// <summary>
+        /// Gets a <see cref="Vector4"/> representation for this <see cref="Color"/>.
+        /// </summary>
+        /// <returns>A <see cref="Vector4"/> representation for this object.</returns>
+        public Vector4 ToVector4()
+        {
+            return new Vector4(this.R, this.G, this.B, this.A);
+        }
+
+        /// <summary>
+        /// Gets a <see cref="Vector3"/> representation for this <see cref="Color"/>.
+        /// </summary>
+        /// <returns>A <see cref="Vector3"/> representation for this object.</returns>
+        public Vector3 ToVector3()
+        {
+            return new Vector3(this.R, this.G, this.B);
         }
 
         /// <inheritdoc/>

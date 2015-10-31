@@ -99,7 +99,7 @@ namespace ImageProcessor.Formats
             int pixelWidth = jpg.Width;
             int pixelHeight = jpg.Height;
 
-            byte[] pixels = new byte[pixelWidth * pixelHeight * 4];
+            float[] pixels = new float[pixelWidth * pixelHeight * 4];
 
             if (!(jpg.Colorspace == Colorspace.RGB && jpg.BitsPerComponent == 8))
             {
@@ -119,10 +119,10 @@ namespace ImageProcessor.Formats
 
                             int offset = ((y * pixelWidth) + x) * 4;
 
-                            pixels[offset + 0] = (byte)sample[2];
-                            pixels[offset + 1] = (byte)sample[1];
-                            pixels[offset + 2] = (byte)sample[0];
-                            pixels[offset + 3] = 255;
+                            pixels[offset + 0] = sample[0] / 255f;
+                            pixels[offset + 1] = sample[1] / 255f;
+                            pixels[offset + 2] = sample[2] / 255f;
+                            pixels[offset + 3] = 1;
                         }
                     });
 

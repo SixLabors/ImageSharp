@@ -69,7 +69,7 @@ namespace ImageProcessor.Formats
             Image image = new Image();
 
             int pixelCount = this.Pixels.Length;
-            byte[] bgraPixels = new byte[pixelCount * 4];
+            float[] bgraPixels = new float[pixelCount * 4];
 
             for (int i = 0; i < pixelCount; i++)
             {

@@ -25,15 +25,15 @@ namespace ImageProcessor.Tests
     public class ColorConversionTests
     {
         /// <summary>
-        /// Tests the implicit conversion from <see cref="Bgra32"/> to <see cref="YCbCr"/>.
+        /// Tests the implicit conversion from <see cref="Color"/> to <see cref="YCbCr"/>.
         /// </summary>
         [Fact]
         [SuppressMessage("StyleCop.CSharp.NamingRules", "SA1305:FieldNamesMustNotUseHungarianNotation",
             Justification = "Reviewed. Suppression is OK here.")]
-        public void BgrToYCbCr()
+        public void ColorToYCbCr()
         {
             // White
-            Bgra32 color = new Bgra32(255, 255, 255, 255);
+            Color color = new Color(1, 1, 1);
             YCbCr yCbCr = color;
 
             Assert.Equal(255, yCbCr.Y);
@@ -41,14 +41,14 @@ namespace ImageProcessor.Tests
             Assert.Equal(128, yCbCr.Cr);
 
             // Black
-            Bgra32 color2 = new Bgra32(0, 0, 0, 255);
+            Color color2 = new Color(0, 0, 0);
             YCbCr yCbCr2 = color2;
             Assert.Equal(0, yCbCr2.Y);
             Assert.Equal(128, yCbCr2.Cb);
             Assert.Equal(128, yCbCr2.Cr);
 
             // Grey
-            Bgra32 color3 = new Bgra32(128, 128, 128, 255);
+            Color color3 = new Color(.5f, .5f, .5f);
             YCbCr yCbCr3 = color3;
             Assert.Equal(128, yCbCr3.Y);
             Assert.Equal(128, yCbCr3.Cb);
@@ -56,39 +56,39 @@ namespace ImageProcessor.Tests
         }
 
         /// <summary>
-        /// Tests the implicit conversion from <see cref="YCbCr"/> to <see cref="Bgra32"/>.
+        /// Tests the implicit conversion from <see cref="YCbCr"/> to <see cref="Color"/>.
         /// </summary>
         [Fact]
         [SuppressMessage("StyleCop.CSharp.NamingRules", "SA1305:FieldNamesMustNotUseHungarianNotation",
             Justification = "Reviewed. Suppression is OK here.")]
-        public void YCbCrToBgr()
+        public void YCbCrToColor()
         {
             // White
             YCbCr yCbCr = new YCbCr(255, 128, 128);
-            Bgra32 color = yCbCr;
+            Color color = yCbCr;
 
-            Assert.Equal(255, color.B);
-            Assert.Equal(255, color.G);
-            Assert.Equal(255, color.R);
-            Assert.Equal(255, color.A);
+            Assert.Equal(1f, color.R, 1);
+            Assert.Equal(1f, color.G, 1);
+            Assert.Equal(1f, color.B, 1);
+            Assert.Equal(1f, color.A, 1);
 
             // Black
             YCbCr yCbCr2 = new YCbCr(0, 128, 128);
-            Bgra32 color2 = yCbCr2;
+            Color color2 = yCbCr2;
 
-            Assert.Equal(0, color2.B);
-            Assert.Equal(0, color2.G);
             Assert.Equal(0, color2.R);
-            Assert.Equal(255, color2.A);
+            Assert.Equal(0, color2.G);
+            Assert.Equal(0, color2.B);
+            Assert.Equal(1, color2.A);
 
             // Grey
             YCbCr yCbCr3 = new YCbCr(128, 128, 128);
-            Bgra32 color3 = yCbCr3;
+            Color color3 = yCbCr3;
 
-            Assert.Equal(128, color3.B);
-            Assert.Equal(128, color3.G);
-            Assert.Equal(128, color3.R);
-            Assert.Equal(255, color3.A);
+            Assert.Equal(.5f, color3.R, 1);
+            Assert.Equal(.5f, color3.G, 1);
+            Assert.Equal(.5f, color3.B, 1);
+            Assert.Equal(1f, color3.A, 1);
         }
 
         /// <summary>

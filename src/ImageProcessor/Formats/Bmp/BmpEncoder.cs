@@ -100,7 +100,7 @@ namespace ImageProcessor.Formats
                 amount = 4 - amount;
             }
 
-            byte[] data = image.Pixels;
+            float[] data = image.Pixels;
 
             for (int y = image.Height - 1; y >= 0; y--)
             {
@@ -108,9 +108,11 @@ namespace ImageProcessor.Formats
                 {
                     int offset = ((y * image.Width) + x) * 4;
 
-                    writer.Write(data[offset + 0]);
-                    writer.Write(data[offset + 1]);
-                    writer.Write(data[offset + 2]);
+                    // Limit the output range and multiply out from our floating point.
+                    // Convert back to b-> g-> r-> a order.
+                    writer.Write((byte)(data[offset + 2].Clamp(0, 1) * 255));
+                    writer.Write((byte)(data[offset + 1].Clamp(0, 1) * 255));
+                    writer.Write((byte)(data[offset].Clamp(0, 1) * 255));
                 }
 
                 for (int i = 0; i < amount; i++)

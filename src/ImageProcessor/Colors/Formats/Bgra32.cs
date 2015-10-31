@@ -1,4 +1,4 @@
-﻿// <copyright file="Bgra.cs" company="James South">
+﻿// <copyright file="Bgra32.cs" company="James South">
 // Copyright (c) James South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -7,12 +7,11 @@ namespace ImageProcessor
 {
     using System;
     using System.ComponentModel;
-    using System.Runtime.InteropServices;
+    using System.Numerics;
 
     /// <summary>
     /// Represents an BGRA (blue, green, red, alpha) color.
     /// </summary>
-    [StructLayout(LayoutKind.Explicit)]
     public struct Bgra32 : IEquatable<Bgra32>
     {
         /// <summary>
@@ -21,157 +20,67 @@ namespace ImageProcessor
         public static readonly Bgra32 Empty = default(Bgra32);
 
         /// <summary>
-        /// Represents a transparent <see cref="Bgra32"/> that has B, G, R, and A values set to 255, 255, 255, 0.
+        /// The backing vector for SIMD support.
         /// </summary>
-        public static readonly Bgra32 Transparent = new Bgra32(255, 255, 255, 0);
-
-        /// <summary>
-        /// Represents a black <see cref="Bgra32"/> that has B, G, R, and A values set to 0, 0, 0, 255.
-        /// </summary>
-        public static readonly Bgra32 Black = new Bgra32(0, 0, 0, 255);
-
-        /// <summary>
-        /// Represents a white <see cref="Bgra32"/> that has B, G, R, and A values set to 255, 255, 255, 255.
-        /// </summary>
-        public static readonly Bgra32 White = new Bgra32(255, 255, 255, 255);
-
-        /// <summary>
-        /// Holds the blue component of the color
-        /// </summary>
-        [FieldOffset(0)]
-        public readonly byte B;
-
-        /// <summary>
-        /// Holds the green component of the color
-        /// </summary>
-        [FieldOffset(1)]
-        public readonly byte G;
-
-        /// <summary>
-        /// Holds the red component of the color
-        /// </summary>
-        [FieldOffset(2)]
-        public readonly byte R;
-
-        /// <summary>
-        /// Holds the alpha component of the color
-        /// </summary>
-        [FieldOffset(3)]
-        public readonly byte A;
-
-        /// <summary>
-        /// Permits the <see cref="Bgra32"/> to be treated as a 32 bit integer.
-        /// </summary>
-        [FieldOffset(0)]
-        public readonly int BGRA;
+        private Vector4 backingVector;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Bgra32"/> struct.
         /// </summary>
-        /// <param name="b">
-        /// The blue component of this <see cref="Bgra32"/>.
-        /// </param>
-        /// <param name="g">
-        /// The green component of this <see cref="Bgra32"/>.
-        /// </param>
-        /// <param name="r">
-        /// The red component of this <see cref="Bgra32"/>.
-        /// </param>
+        /// <param name="b">The blue component of this <see cref="Bgra32"/>.</param>
+        /// <param name="g">The green component of this <see cref="Bgra32"/>.</param>
+        /// <param name="r">The red component of this <see cref="Bgra32"/>.</param>
         public Bgra32(byte b, byte g, byte r)
-            : this()
+            : this(b, g, r, 255)
         {
-            this.B = b;
-            this.G = g;
-            this.R = r;
-            this.A = 255;
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Bgra32"/> struct.
         /// </summary>
-        /// <param name="b">
-        /// The blue component of this <see cref="Bgra32"/>.
-        /// </param>
-        /// <param name="g">
-        /// The green component of this <see cref="Bgra32"/>.
-        /// </param>
-        /// <param name="r">
-        /// The red component of this <see cref="Bgra32"/>.
-        /// </param>
-        /// <param name="a">
-        /// The alpha component of this <see cref="Bgra32"/>.
-        /// </param>
+        /// <param name="b">The blue component of this <see cref="Bgra32"/>.</param>
+        /// <param name="g">The green component of this <see cref="Bgra32"/>.</param>
+        /// <param name="r">The red component of this <see cref="Bgra32"/>.</param>
+        /// <param name="a">The alpha component of this <see cref="Bgra32"/>.</param>
         public Bgra32(byte b, byte g, byte r, byte a)
             : this()
         {
-            this.B = b;
-            this.G = g;
-            this.R = r;
-            this.A = a;
+            this.backingVector.X = b.Clamp(0, 255);
+            this.backingVector.Y = g.Clamp(0, 255);
+            this.backingVector.Z = r.Clamp(0, 255);
+            this.backingVector.W = a.Clamp(0, 255);
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Bgra32"/> struct.
+        /// Gets the blue component of the color
         /// </summary>
-        /// <param name="bgra">
-        /// The combined color components.
-        /// </param>
-        public Bgra32(int bgra)
-            : this()
-        {
-            this.BGRA = bgra;
-        }
+        public byte B => (byte)this.backingVector.X;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Bgra32"/> struct.
+        /// Gets the green component of the color
         /// </summary>
-        /// <param name="hex">
-        /// The hexadecimal representation of the combined color components arranged
-        /// in rgb, rrggbb, or aarrggbb format to match web syntax.
-        /// </param>
-        public Bgra32(string hex)
-            : this()
-        {
-            // Hexadecimal representations are layed out AARRGGBB to we need to do some reordering.
-            hex = hex.StartsWith("#") ? hex.Substring(1) : hex;
+        public byte G => (byte)this.backingVector.Y;
 
-            if (hex.Length != 8 && hex.Length != 6 && hex.Length != 3)
-            {
-                throw new ArgumentException("Hexadecimal string is not in the correct format.", nameof(hex));
-            }
+        /// <summary>
+        /// Gets the red component of the color
+        /// </summary>
+        public byte R => (byte)this.backingVector.Z;
 
-            if (hex.Length == 8)
-            {
-                this.B = Convert.ToByte(hex.Substring(6, 2), 16);
-                this.G = Convert.ToByte(hex.Substring(4, 2), 16);
-                this.R = Convert.ToByte(hex.Substring(2, 2), 16);
-                this.A = Convert.ToByte(hex.Substring(0, 2), 16);
-            }
-            else if (hex.Length == 6)
-            {
-                this.B = Convert.ToByte(hex.Substring(4, 2), 16);
-                this.G = Convert.ToByte(hex.Substring(2, 2), 16);
-                this.R = Convert.ToByte(hex.Substring(0, 2), 16);
-                this.A = 255;
-            }
-            else
-            {
-                string b = char.ToString(hex[2]);
-                string g = char.ToString(hex[1]);
-                string r = char.ToString(hex[0]);
+        /// <summary>
+        /// Gets the alpha component of the color
+        /// </summary>
+        public byte A => (byte)this.backingVector.W;
 
-                this.B = Convert.ToByte(b + b, 16);
-                this.G = Convert.ToByte(g + g, 16);
-                this.R = Convert.ToByte(r + r, 16);
-                this.A = 255;
-            }
-        }
+        /// <summary>
+        /// Gets the <see cref="Bgra32"/> integer representation of the color.
+        /// </summary>
+        public int Bgra => (this.R << 16) | (this.G << 8) | (this.B << 0) | (this.A << 24);
 
         /// <summary>
         /// Gets a value indicating whether this <see cref="Bgra32"/> is empty.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty => this.B == 0 && this.G == 0 && this.R == 0 && this.A == 0;
+        public bool IsEmpty => this.backingVector.Equals(default(Vector4));
 
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="Color"/> to a
@@ -190,9 +99,7 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Compares two <see cref="Bgra32"/> objects. The result specifies whether the values
-        /// of the <see cref="Bgra32.B"/>, <see cref="Bgra32.G"/>, <see cref="Bgra32.R"/>, and <see cref="Bgra32.A"/>
-        /// properties of the two <see cref="Bgra32"/> objects are equal.
+        /// Compares two <see cref="Bgra32"/> objects for equality.
         /// </summary>
         /// <param name="left">
         /// The <see cref="Bgra32"/> on the left side of the operand.
@@ -209,9 +116,7 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Compares two <see cref="Bgra32"/> objects. The result specifies whether the values
-        /// of the <see cref="Bgra32.B"/>, <see cref="Bgra32.G"/>, <see cref="Bgra32.R"/>, and <see cref="Bgra32.A"/>
-        /// properties of the two <see cref="Bgra32"/> objects are unequal.
+        /// Compares two <see cref="Bgra32"/> objects for inequality.
         /// </summary>
         /// <param name="left">
         /// The <see cref="Bgra32"/> on the left side of the operand.
@@ -240,7 +145,7 @@ namespace ImageProcessor
             {
                 Bgra32 color = (Bgra32)obj;
 
-                return this.BGRA == color.BGRA;
+                return this.backingVector == color.backingVector;
             }
 
             return false;
@@ -254,14 +159,7 @@ namespace ImageProcessor
         /// </returns>
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = this.B.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.G.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.R.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.A.GetHashCode();
-                return hashCode;
-            }
+            return GetHashCode(this);
         }
 
         /// <summary>
@@ -289,7 +187,18 @@ namespace ImageProcessor
         /// <param name="other">An object to compare with this object.</param>
         public bool Equals(Bgra32 other)
         {
-            return this.BGRA == other.BGRA;
+            return this.backingVector.Equals(other.backingVector);
         }
+
+        /// <summary>
+        /// Returns the hash code for this instance.
+        /// </summary>
+        /// <param name="color">
+        /// The instance of <see cref="Cmyk"/> to return the hash code for.
+        /// </param>
+        /// <returns>
+        /// A 32-bit signed integer that is the hash code for this instance.
+        /// </returns>
+        private static int GetHashCode(Bgra32 color) => color.backingVector.GetHashCode();
     }
 }

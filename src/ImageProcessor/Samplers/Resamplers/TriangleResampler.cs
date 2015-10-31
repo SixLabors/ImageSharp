@@ -11,10 +11,10 @@ namespace ImageProcessor.Samplers
     public class TriangleResampler : IResampler
     {
         /// <inheritdoc/>
-        public double Radius => 1;
+        public float Radius => 1;
 
         /// <inheritdoc/>
-        public double GetValue(double x)
+        public float GetValue(float x)
         {
             if (x < 0)
             {

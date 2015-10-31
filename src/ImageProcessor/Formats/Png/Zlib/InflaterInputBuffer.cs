@@ -3,9 +3,6 @@
     using System;
     using System.IO;
 
-    //using ICSharpCode.SharpZipLib.Zip;
-    //using ICSharpCode.SharpZipLib.Zip.Compression;
-
     /// <summary>
     /// An input buffer customised for use by <see cref="InflaterInputStream"/>
     /// </summary>
@@ -14,7 +11,6 @@
     /// </remarks>
     public class InflaterInputBuffer
     {
-        #region Constructors
         /// <summary>
         /// Initialise a new instance of <see cref="InflaterInputBuffer"/> with a default buffer size
         /// </summary>
@@ -39,7 +35,6 @@
             rawData = new byte[bufferSize];
             clearText = rawData;
         }
-        #endregion
 
         /// <summary>
         /// Get the length of bytes bytes in the <see cref="RawData"/>
@@ -127,17 +122,7 @@
                 toRead -= count;
             }
 
-#if !NETCF_1_0 && !NOCRYPTO
-            if (cryptoTransform != null)
-            {
-                clearTextLength = cryptoTransform.TransformBlock(rawData, 0, rawLength, clearText, 0);
-            }
-            else
-#endif
-            {
-                clearTextLength = rawLength;
-            }
-
+            clearTextLength = rawLength;
             available = clearTextLength;
         }
 
@@ -178,12 +163,14 @@
                         return 0;
                     }
                 }
+
                 int toCopy = Math.Min(currentLength, available);
-                System.Array.Copy(rawData, rawLength - (int)available, outBuffer, currentOffset, toCopy);
+                Array.Copy(rawData, rawLength - (int)available, outBuffer, currentOffset, toCopy);
                 currentOffset += toCopy;
                 currentLength -= toCopy;
                 available -= toCopy;
             }
+
             return length;
         }
 
@@ -270,57 +257,12 @@
             return (uint)ReadLeInt() | ((long)ReadLeInt() << 32);
         }
 
-#if !NETCF_1_0 && !NOCRYPTO
-        /// <summary>
-        /// Get/set the <see cref="ICryptoTransform"/> to apply to any data.
-        /// </summary>
-        /// <remarks>Set this value to null to have no transform applied.</remarks>
-        public ICryptoTransform CryptoTransform
-        {
-            set
-            {
-                cryptoTransform = value;
-                if (cryptoTransform != null)
-                {
-                    if (rawData == clearText)
-                    {
-                        if (internalClearText == null)
-                        {
-                            internalClearText = new byte[rawData.Length];
-                        }
-                        clearText = internalClearText;
-                    }
-                    clearTextLength = rawLength;
-                    if (available > 0)
-                    {
-                        cryptoTransform.TransformBlock(rawData, rawLength - available, available, clearText, rawLength - available);
-                    }
-                }
-                else
-                {
-                    clearText = rawData;
-                    clearTextLength = rawLength;
-                }
-            }
-        }
-#endif
-
-        #region Instance Fields
         int rawLength;
         byte[] rawData;
 
         int clearTextLength;
         byte[] clearText;
-#if !NETCF_1_0 && !NOCRYPTO
-        byte[] internalClearText;
-#endif
-
         int available;
-
-#if !NETCF_1_0 && !NOCRYPTO
-        ICryptoTransform cryptoTransform;
-#endif
         Stream inputStream;
-        #endregion
     }
 }

@@ -1,12 +1,7 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="GrayscaleReader.cs" company="James South">
-//   Copyright (c) James South and contributors.
-//   Licensed under the Apache License, Version 2.0.
+﻿// <copyright file="GrayscaleReader.cs" company="James South">
+// Copyright (c) James South and contributors.
+// Licensed under the Apache License, Version 2.0.
 // </copyright>
-// <summary>
-//   Color reader for reading grayscale colors from a png file.
-// </summary>
-// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Formats
 {
@@ -37,31 +32,25 @@ namespace ImageProcessor.Formats
             this.useAlpha = useAlpha;
         }
 
-        /// <summary>
-        /// Reads the specified scanline.
-        /// </summary>
-        /// <param name="scanline">The scanline.</param>
-        /// <param name="pixels">The pixels, where the colors should be stored in BGRA format.</param>
-        /// <param name="header">
-        /// The header, which contains information about the png file, like
-        /// the width of the image and the height.
-        /// </param>
-        public void ReadScanline(byte[] scanline, byte[] pixels, PngHeader header)
+        /// <inheritdoc/>
+        public void ReadScanline(byte[] scanline, float[] pixels, PngHeader header)
         {
             int offset;
 
             byte[] newScanline = scanline.ToArrayByBitsLength(header.BitDepth);
 
+            // We divide by 255 as we will store the colors in our floating point format.
+            // Stored in r-> g-> b-> a order.
             if (this.useAlpha)
             {
                 for (int x = 0; x < header.Width / 2; x++)
                 {
                     offset = ((this.row * header.Width) + x) * 4;
 
-                    pixels[offset + 0] = newScanline[x * 2];
-                    pixels[offset + 1] = newScanline[x * 2];
-                    pixels[offset + 2] = newScanline[x * 2];
-                    pixels[offset + 3] = newScanline[(x * 2) + 1];
+                    pixels[offset] = newScanline[x * 2] / 255f;
+                    pixels[offset + 1] = newScanline[x * 2] / 255f;
+                    pixels[offset + 2] = newScanline[x * 2] / 255f;
+                    pixels[offset + 3] = newScanline[(x * 2) + 1] / 255f;
                 }
             }
             else
@@ -70,10 +59,10 @@ namespace ImageProcessor.Formats
                 {
                     offset = ((this.row * header.Width) + x) * 4;
 
-                    pixels[offset + 0] = newScanline[x];
-                    pixels[offset + 1] = newScanline[x];
-                    pixels[offset + 2] = newScanline[x];
-                    pixels[offset + 3] = 255;
+                    pixels[offset] = newScanline[x] / 255f;
+                    pixels[offset + 1] = newScanline[x] / 255f;
+                    pixels[offset + 2] = newScanline[x] / 255f;
+                    pixels[offset + 3] = 1;
                 }
             }
 

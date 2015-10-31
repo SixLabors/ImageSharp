@@ -7,6 +7,7 @@ namespace ImageProcessor
 {
     using System;
     using System.ComponentModel;
+    using System.Numerics;
 
     /// <summary>
     /// Represents a HSV (hue, saturation, value) color. Also known as HSB (hue, saturation, brightness).
@@ -19,27 +20,14 @@ namespace ImageProcessor
         public static readonly Hsv Empty = default(Hsv);
 
         /// <summary>
-        /// Gets the H hue component.
-        /// <remarks>A value ranging between 0 and 360.</remarks>
-        /// </summary>
-        public readonly float H;
-
-        /// <summary>
-        /// Gets the S saturation component.
-        /// <remarks>A value ranging between 0 and 100.</remarks>
-        /// </summary>
-        public readonly float S;
-
-        /// <summary>
-        /// Gets the V value (brightness) component.
-        /// <remarks>A value ranging between 0 and 100.</remarks>
-        /// </summary>
-        public readonly float V;
-
-        /// <summary>
         /// The epsilon for comparing floating point numbers.
         /// </summary>
         private const float Epsilon = 0.0001f;
+
+        /// <summary>
+        /// The backing vector for SIMD support.
+        /// </summary>
+        private Vector3 backingVector;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Hsv"/> struct.
@@ -49,34 +37,49 @@ namespace ImageProcessor
         /// <param name="v">The v value (brightness) component.</param>
         public Hsv(float h, float s, float v)
         {
-            this.H = h.Clamp(0, 360);
-            this.S = s.Clamp(0, 100);
-            this.V = v.Clamp(0, 100);
+            this.backingVector.X = h.Clamp(0, 360);
+            this.backingVector.Y = s.Clamp(0, 1);
+            this.backingVector.Z = v.Clamp(0, 1);
         }
+
+        /// <summary>
+        /// Gets the hue component.
+        /// <remarks>A value ranging between 0 and 360.</remarks>
+        /// </summary>
+        public float H => this.backingVector.X;
+
+        /// <summary>
+        /// Gets the saturation component.
+        /// <remarks>A value ranging between 0 and 1.</remarks>
+        /// </summary>
+        public float S => this.backingVector.Y;
+
+        /// <summary>
+        /// Gets the value (brightness) component.
+        /// <remarks>A value ranging between 0 and 1.</remarks>
+        /// </summary>
+        public float V => this.backingVector.Z;
 
         /// <summary>
         /// Gets a value indicating whether this <see cref="Hsv"/> is empty.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty => Math.Abs(this.H) < Epsilon
-                            && Math.Abs(this.S) < Epsilon
-                            && Math.Abs(this.V) < Epsilon;
+        public bool IsEmpty => this.backingVector.Equals(default(Vector3));
 
         /// <summary>
-        /// Allows the implicit conversion of an instance of <see cref="Bgra"/> to a
+        /// Allows the implicit conversion of an instance of <see cref="Color"/> to a
         /// <see cref="Hsv"/>.
         /// </summary>
-        /// <param name="color">
-        /// The instance of <see cref="Bgra"/> to convert.
-        /// </param>
+        /// <param name="color">The instance of <see cref="Color"/> to convert.</param>
         /// <returns>
         /// An instance of <see cref="Hsv"/>.
         /// </returns>
-        public static implicit operator Hsv(Bgra color)
+        public static implicit operator Hsv(Color color)
         {
-            float r = color.R / 255f;
-            float g = color.G / 255f;
-            float b = color.B / 255f;
+            color = color.Limited;
+            float r = color.R;
+            float g = color.G;
+            float b = color.B;
 
             float max = Math.Max(r, Math.Max(g, b));
             float min = Math.Min(r, Math.Min(g, b));
@@ -87,7 +90,7 @@ namespace ImageProcessor
 
             if (Math.Abs(chroma) < Epsilon)
             {
-                return new Hsv(0, s * 100, v * 100);
+                return new Hsv(0, s, v);
             }
 
             if (Math.Abs(chroma) < Epsilon)
@@ -115,13 +118,11 @@ namespace ImageProcessor
 
             s = chroma / v;
 
-            return new Hsv(h, s * 100, v * 100);
+            return new Hsv(h, s, v);
         }
 
         /// <summary>
-        /// Compares two <see cref="Hsv"/> objects. The result specifies whether the values
-        /// of the <see cref="Hsv.H"/>, <see cref="Hsv.S"/>, and <see cref="Hsv.V"/>
-        /// properties of the two <see cref="Hsv"/> objects are equal.
+        /// Compares two <see cref="Hsv"/> objects for equality.
         /// </summary>
         /// <param name="left">
         /// The <see cref="Hsv"/> on the left side of the operand.
@@ -138,9 +139,7 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Compares two <see cref="Hsv"/> objects. The result specifies whether the values
-        /// of the <see cref="Hsv.H"/>, <see cref="Hsv.S"/>, and <see cref="Hsv.V"/>
-        /// properties of the two <see cref="Hsv"/> objects are unequal.
+        /// Compares two <see cref="Hsv"/> objects for inequality.
         /// </summary>
         /// <param name="left">
         /// The <see cref="Hsv"/> on the left side of the operand.
@@ -156,50 +155,26 @@ namespace ImageProcessor
             return !left.Equals(right);
         }
 
-        /// <summary>
-        /// Indicates whether this instance and a specified object are equal.
-        /// </summary>
-        /// <returns>
-        /// true if <paramref name="obj"/> and this instance are the same type and represent the same value; otherwise, false.
-        /// </returns>
-        /// <param name="obj">Another object to compare to. </param>
+        /// <inheritdoc/>
         public override bool Equals(object obj)
         {
             if (obj is Hsv)
             {
                 Hsv color = (Hsv)obj;
 
-                return Math.Abs(this.H - color.H) < Epsilon
-                    && Math.Abs(this.S - color.S) < Epsilon
-                    && Math.Abs(this.V - color.V) < Epsilon;
+                return this.backingVector == color.backingVector;
             }
 
             return false;
         }
 
-        /// <summary>
-        /// Returns the hash code for this instance.
-        /// </summary>
-        /// <returns>
-        /// A 32-bit signed integer that is the hash code for this instance.
-        /// </returns>
+        /// <inheritdoc/>
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = this.H.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.S.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.V.GetHashCode();
-                return hashCode;
-            }
+            return GetHashCode(this);
         }
 
-        /// <summary>
-        /// Returns the fully qualified type name of this instance.
-        /// </summary>
-        /// <returns>
-        /// A <see cref="T:System.String"/> containing a fully qualified type name.
-        /// </returns>
+        /// <inheritdoc/>
         public override string ToString()
         {
             if (this.IsEmpty)
@@ -210,18 +185,21 @@ namespace ImageProcessor
             return $"Hsv [ H={this.H:#0.##}, S={this.S:#0.##}, V={this.V:#0.##} ]";
         }
 
-        /// <summary>
-        /// Indicates whether the current object is equal to another object of the same type.
-        /// </summary>
-        /// <returns>
-        /// True if the current object is equal to the <paramref name="other"/> parameter; otherwise, false.
-        /// </returns>
-        /// <param name="other">An object to compare with this object.</param>
+        /// <inheritdoc/>
         public bool Equals(Hsv other)
         {
-            return Math.Abs(this.H - other.H) < Epsilon
-                && Math.Abs(this.S - other.S) < Epsilon
-                && Math.Abs(this.V - other.V) < Epsilon;
+            return this.backingVector.Equals(other.backingVector);
         }
+
+        /// <summary>
+        /// Returns the hash code for this instance.
+        /// </summary>
+        /// <param name="color">
+        /// The instance of <see cref="Hsv"/> to return the hash code for.
+        /// </param>
+        /// <returns>
+        /// A 32-bit signed integer that is the hash code for this instance.
+        /// </returns>
+        private static int GetHashCode(Hsv color) => color.backingVector.GetHashCode();
     }
 }

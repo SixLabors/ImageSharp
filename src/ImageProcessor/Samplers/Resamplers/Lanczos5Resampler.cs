@@ -12,10 +12,10 @@ namespace ImageProcessor.Samplers
     public class Lanczos5Resampler : IResampler
     {
         /// <inheritdoc/>
-        public double Radius => 5;
+        public float Radius => 5;
 
         /// <inheritdoc/>
-        public double GetValue(double x)
+        public float GetValue(float x)
         {
             if (x < 0)
             {

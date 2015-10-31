@@ -1,12 +1,7 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="PaletteIndexReader.cs" company="James South">
-//   Copyright (c) James South and contributors.
-//   Licensed under the Apache License, Version 2.0.
+﻿// <copyright file="PaletteIndexReader.cs" company="James South">
+// Copyright (c) James South and contributors.
+// Licensed under the Apache License, Version 2.0.
 // </copyright>
-// <summary>
-//   A color reader for reading palette indices from the png file.
-// </summary>
-// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Formats
 {
@@ -43,14 +38,8 @@ namespace ImageProcessor.Formats
             this.paletteAlpha = paletteAlpha;
         }
 
-        /// <summary>
-        /// Reads the specified scanline.
-        /// </summary>
-        /// <param name="scanline">The scanline.</param>
-        /// <param name="pixels">The pixels, where the colors should be stored in BGRA format.</param>
-        /// <param name="header">The header, which contains information about the png file, like
-        /// the width of the image and the height.</param>
-        public void ReadScanline(byte[] scanline, byte[] pixels, PngHeader header)
+        /// <inheritdoc/>
+        public void ReadScanline(byte[] scanline, float[] pixels, PngHeader header)
         {
             byte[] newScanline = scanline.ToArrayByBitsLength(header.BitDepth);
             int offset, index;
@@ -65,13 +54,14 @@ namespace ImageProcessor.Formats
                     index = newScanline[i];
 
                     offset = ((this.row * header.Width) + i) * 4;
+                    int pixelOffset = index * 3;
 
-                    pixels[offset + 0] = this.palette[(index * 3) + 2];
-                    pixels[offset + 1] = this.palette[(index * 3) + 1];
-                    pixels[offset + 2] = this.palette[(index * 3) + 0];
+                    pixels[offset] = this.palette[pixelOffset] / 255f;
+                    pixels[offset + 1] = this.palette[pixelOffset + 1] / 255f;
+                    pixels[offset + 2] = this.palette[pixelOffset + 2] / 255f;
                     pixels[offset + 3] = this.paletteAlpha.Length > index
-                                                ? this.paletteAlpha[index]
-                                                : (byte)255;
+                                                ? this.paletteAlpha[index] / 255f
+                                                : 1;
                 }
             }
             else
@@ -81,11 +71,12 @@ namespace ImageProcessor.Formats
                     index = newScanline[i];
 
                     offset = ((this.row * header.Width) + i) * 4;
+                    int pixelOffset = index * 3;
 
-                    pixels[offset + 0] = this.palette[(index * 3) + 2];
-                    pixels[offset + 1] = this.palette[(index * 3) + 1];
-                    pixels[offset + 2] = this.palette[(index * 3) + 0];
-                    pixels[offset + 3] = 255;
+                    pixels[offset] = this.palette[pixelOffset] / 255f;
+                    pixels[offset + 1] = this.palette[pixelOffset + 1] / 255f;
+                    pixels[offset + 2] = this.palette[pixelOffset + 2] / 255f;
+                    pixels[offset + 3] = 1;
                 }
             }
 

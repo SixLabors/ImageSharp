@@ -18,7 +18,7 @@ namespace ImageProcessor.Formats
         private readonly bool singlePass;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Quantizer"/> class. 
+        /// Initializes a new instance of the <see cref="Quantizer"/> class.
         /// </summary>
         /// <param name="singlePass">
         /// If true, the quantization only needs to loop through the source pixels once
@@ -56,7 +56,8 @@ namespace ImageProcessor.Formats
 
             byte[] quantizedPixels = new byte[width * height];
 
-            List<Bgra> palette = this.GetPalette();
+            // Get the pallete
+            List<Bgra32> palette = this.GetPalette();
 
             this.SecondPass(imageBase, quantizedPixels, width, height);
 
@@ -94,8 +95,9 @@ namespace ImageProcessor.Formats
         {
             int i = 0;
 
-            // Convert the first pixel, so that I have values going into the loop
-            Bgra previousPixel = source[0, 0];
+            // Convert the first pixel, so that I have values going into the loop.
+            // Implicit cast here from Color.
+            Bgra32 previousPixel = source[0, 0];
             byte pixelValue = this.QuantizePixel(previousPixel);
 
             output[0] = pixelValue;
@@ -104,7 +106,8 @@ namespace ImageProcessor.Formats
             {
                 for (int x = 0; x < width; x++)
                 {
-                    Bgra sourcePixel = source[x, y];
+                    // Implicit cast here from Color.
+                    Bgra32 sourcePixel = source[x, y];
 
                     // Check if this is the same as the last pixel. If so use that value
                     // rather than calculating it again. This is an inexpensive optimization.
@@ -132,7 +135,7 @@ namespace ImageProcessor.Formats
         /// This function need only be overridden if your quantize algorithm needs two passes,
         /// such as an Octree quantizer.
         /// </remarks>
-        protected virtual void InitialQuantizePixel(Bgra pixel)
+        protected virtual void InitialQuantizePixel(Bgra32 pixel)
         {
         }
 
@@ -145,7 +148,7 @@ namespace ImageProcessor.Formats
         /// <returns>
         /// The quantized value
         /// </returns>
-        protected abstract byte QuantizePixel(Bgra pixel);
+        protected abstract byte QuantizePixel(Bgra32 pixel);
 
         /// <summary>
         /// Retrieve the palette for the quantized image
@@ -153,6 +156,6 @@ namespace ImageProcessor.Formats
         /// <returns>
         /// The new color palette
         /// </returns>
-        protected abstract List<Bgra> GetPalette();
+        protected abstract List<Bgra32> GetPalette();
     }
 }

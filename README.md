@@ -19,8 +19,9 @@ Honestly... I don't know. I could be writing code that may be suddenly obsolete.
  - [x] bmp (More bmp format support required, 24bit just now)
  - [x] png (Need updating for indexed support)
  - [x] gif
-- Basic color structs with implicit operators (Needs support for HDR colors etc, could possible be updated by using Vector3/Vector4).
- - [x] BGRA (Should this become RGBA?)
+- Basic color structs with implicit operators. Vector backed.
+ - [x] Color - Float based, No limit to r, g, b, a values allowing for a fuller color range.
+ - [x] BGRA32
  - [ ] CIE Lab
  - [x] CMYK
  - [x] HSV
@@ -31,7 +32,7 @@ Honestly... I don't know. I could be writing code that may be suddenly obsolete.
  - [x] Rectangle
  - [x] Size
  - [x] Point
- - [x] Sphere
+ - [ ] Sphere
 - Resampling algorithms. (Performance improvements?)
  - [x] Box
  - [x] Bicubic
@@ -53,7 +54,6 @@ Honestly... I don't know. I could be writing code that may be suddenly obsolete.
  - [x] BlackWhite
  - [x] Greyscale BT709
  - [x] Greyscale BT601
- - [x] Invert
  - [x] Lomograph
  - [x] Polaroid
  - [x] Sepia
@@ -64,6 +64,7 @@ Honestly... I don't know. I could be writing code that may be suddenly obsolete.
 - Filters
  - [x] Alpha
  - [x] Contrast
+ - [x] Invert
  - [ ] Brightness
  - [ ] Saturation
  - [ ] Hue

@@ -13,7 +13,7 @@ namespace ImageProcessor.Tests
     using Xunit;
 
     /// <summary>
-    /// Tests the <see cref="Bgra32"/> struct.
+    /// Tests the <see cref="Color"/> struct.
     /// </summary>
     public class ColorTests
     {
@@ -23,18 +23,16 @@ namespace ImageProcessor.Tests
         [Fact]
         public void AreEqual()
         {
-            Bgra32 color1 = new Bgra32(0, 0, 0, 255);
-            Bgra32 color2 = new Bgra32(0, 0, 0, 255);
-            Bgra32 color3 = new Bgra32("#000");
-            Bgra32 color4 = new Bgra32("#000000");
-            Bgra32 color5 = new Bgra32("#FF000000");
-            Bgra32 color6 = new Bgra32(-16777216);
+            Color color1 = new Color(0, 0, 0);
+            Color color2 = new Color(0, 0, 0, 1);
+            Color color3 = new Color("#000");
+            Color color4 = new Color("#000000");
+            Color color5 = new Color("#FF000000");
 
             Assert.Equal(color1, color2);
             Assert.Equal(color1, color3);
             Assert.Equal(color1, color4);
             Assert.Equal(color1, color5);
-            Assert.Equal(color1, color6);
         }
 
         /// <summary>
@@ -43,18 +41,16 @@ namespace ImageProcessor.Tests
         [Fact]
         public void AreNotEqual()
         {
-            Bgra32 color1 = new Bgra32(255, 0, 0, 255);
-            Bgra32 color2 = new Bgra32(0, 0, 0, 255);
-            Bgra32 color3 = new Bgra32("#000");
-            Bgra32 color4 = new Bgra32("#000000");
-            Bgra32 color5 = new Bgra32("#FF000000");
-            Bgra32 color6 = new Bgra32(-16777216);
+            Color color1 = new Color(255, 0, 0, 255);
+            Color color2 = new Color(0, 0, 0, 255);
+            Color color3 = new Color("#000");
+            Color color4 = new Color("#000000");
+            Color color5 = new Color("#FF000000");
 
             Assert.NotEqual(color1, color2);
             Assert.NotEqual(color1, color3);
             Assert.NotEqual(color1, color4);
             Assert.NotEqual(color1, color5);
-            Assert.NotEqual(color1, color6);
         }
 
         /// <summary>
@@ -63,29 +59,23 @@ namespace ImageProcessor.Tests
         [Fact]
         public void ConstructorAssignsProperties()
         {
-            Bgra32 color1 = new Bgra32(255, 10, 34, 220);
-            Assert.Equal(255, color1.B);
-            Assert.Equal(10, color1.G);
-            Assert.Equal(34, color1.R);
-            Assert.Equal(220, color1.A);
+            Color color1 = new Color(1, .1f, .133f, .864f);
+            Assert.Equal(1, color1.R, 1);
+            Assert.Equal(.1f, color1.G, 1);
+            Assert.Equal(.133f, color1.B, 3);
+            Assert.Equal(.864f, color1.A, 3);
 
-            Bgra32 color2 = new Bgra32(255, 10, 34);
-            Assert.Equal(255, color2.B);
-            Assert.Equal(10, color2.G);
-            Assert.Equal(34, color2.R);
-            Assert.Equal(255, color2.A);
+            Color color2 = new Color(1, .1f, .133f);
+            Assert.Equal(1, color2.R, 1);
+            Assert.Equal(.1f, color2.G, 1);
+            Assert.Equal(.133f, color2.B, 3);
+            Assert.Equal(1, color2.A, 1);
 
-            Bgra32 color3 = new Bgra32(-1);
-            Assert.Equal(255, color3.B);
-            Assert.Equal(255, color3.G);
-            Assert.Equal(255, color3.R);
-            Assert.Equal(255, color3.A);
-
-            Bgra32 color4 = new Bgra32("#FF0000");
-            Assert.Equal(0, color4.B);
-            Assert.Equal(0, color4.G);
-            Assert.Equal(255, color4.R);
-            Assert.Equal(255, color4.A);
+            Color color3 = new Color("#FF0000");
+            Assert.Equal(1, color3.R, 1);
+            Assert.Equal(0, color3.G, 1);
+            Assert.Equal(0, color3.B, 3);
+            Assert.Equal(1, color3.A, 1);
         }
 
         /// <summary>
@@ -95,7 +85,8 @@ namespace ImageProcessor.Tests
         public void ConvertHex()
         {
             const string First = "FF000000";
-            string second = new Bgra32(0, 0, 0, 255).BGRA.ToString("X");
+            Bgra32 bgra = new Color(0, 0, 0, 1);
+            string second = bgra.Bgra.ToString("X");
             Assert.Equal(First, second);
         }
     }

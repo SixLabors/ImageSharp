@@ -17,7 +17,7 @@ namespace ImageProcessor.Samplers
         /// <summary>
         /// The epsilon for comparing floating point numbers.
         /// </summary>
-        private const float Epsilon = 0.0000001f;
+        private const float Epsilon = 0.00001f;
 
         /// <summary>
         /// The horizontal weights.
@@ -98,6 +98,11 @@ namespace ImageProcessor.Samplers
 
                                     int originX = xw.Index;
                                     Color sourceColor = PixelOperations.ToLinear(source[originX, originY]);
+
+                                    if (Math.Abs(sourceColor.A) < Epsilon)
+                                    {
+                                        continue;
+                                    }
 
                                     float weight = (yw.Value / verticalSum) * (xw.Value / horizontalSum);
 

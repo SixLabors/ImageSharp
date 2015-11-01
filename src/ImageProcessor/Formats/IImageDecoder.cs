@@ -1,12 +1,7 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="IImageDecoder.cs" company="James South">
-//   Copyright (c) James South and contributors.
-//   Licensed under the Apache License, Version 2.0.
+﻿// <copyright file="IImageDecoder.cs" company="James South">
+// Copyright (c) James South and contributors.
+// Licensed under the Apache License, Version 2.0.
 // </copyright>
-// <summary>
-//   Encapsulates properties and methods required for decoding an image from a stream.
-// </summary>
-// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Formats
 {

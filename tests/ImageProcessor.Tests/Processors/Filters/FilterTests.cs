@@ -12,16 +12,20 @@ namespace ImageProcessor.Tests
     {
         public static readonly TheoryData<string, IImageProcessor> Filters = new TheoryData<string, IImageProcessor>
         {
+            //{ "Brightness-50", new Brightness(50) },
+            //{ "Brightness--50", new Brightness(-50) },
             //{ "Contrast-50", new Contrast(50) },
             //{ "Contrast--50", new Contrast(-50) },
+            { "Saturation-100", new Saturation(100) },
+            { "Saturation--0", new Saturation(0) },
             //{ "Alpha--50", new Alpha(50) },
-            { "Invert", new Invert() },
-            { "Sepia", new Sepia() },
-            { "BlackWhite", new BlackWhite() },
-            { "Lomograph", new Lomograph() },
-            { "Polaroid", new Polaroid() },
-            { "GreyscaleBt709", new GreyscaleBt709() },
-            { "GreyscaleBt601", new GreyscaleBt601() },
+            //{ "Invert", new Invert() },
+            //{ "Sepia", new Sepia() },
+            //{ "BlackWhite", new BlackWhite() },
+            //{ "Lomograph", new Lomograph() },
+            //{ "Polaroid", new Polaroid() },
+            //{ "GreyscaleBt709", new GreyscaleBt709() },
+            //{ "GreyscaleBt601", new GreyscaleBt601() },
         };
 
         [Theory]

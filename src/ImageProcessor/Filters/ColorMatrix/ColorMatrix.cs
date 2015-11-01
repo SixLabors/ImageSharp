@@ -8,7 +8,7 @@
 namespace ImageProcessor.Filters
 {
     /// <summary>
-    /// Defines a 5 x 5 matrix that contains the coordinates for the RGBAW color space. 
+    /// Defines a 5x5 matrix that contains the coordinates for the RGBAW color space.
     /// </summary>
     public sealed class ColorMatrix
     {

@@ -1,4 +1,4 @@
-﻿// <copyright file="Contrast.cs" company="James South">
+﻿// <copyright file="Saturation.cs" company="James South">
 // Copyright (c) James South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -6,35 +6,36 @@
 namespace ImageProcessor.Filters
 {
     using System;
+    using System.Numerics;
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageProcessor"/> to change the contrast of an <see cref="Image"/>.
+    /// An <see cref="IImageProcessor"/> to change the saturation of an <see cref="Image"/>.
     /// </summary>
-    public class Contrast : ParallelImageProcessor
+    public class Saturation : ParallelImageProcessor
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="Contrast"/> class.
+        /// Initializes a new instance of the <see cref="Saturation"/> class.
         /// </summary>
-        /// <param name="contrast">The new contrast of the image. Must be between -100 and 100.</param>
+        /// <param name="saturation">The new saturation of the image. Must be between -100 and 100.</param>
         /// <exception cref="ArgumentException">
-        /// <paramref name="contrast"/> is less than -100 or is greater than 100.
+        /// <paramref name="saturation"/> is less than -100 or is greater than 100.
         /// </exception>
-        public Contrast(int contrast)
+        public Saturation(int saturation)
         {
-            Guard.MustBeBetweenOrEqualTo(contrast, -100, 100, nameof(contrast));
-            this.Value = contrast;
+            Guard.MustBeBetweenOrEqualTo(saturation, -100, 100, nameof(saturation));
+            this.Value = saturation;
         }
 
         /// <summary>
-        /// Gets the contrast value.
+        /// Gets the saturation value.
         /// </summary>
         public int Value { get; }
 
         /// <inheritdoc/>
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-            float contrast = (100f + this.Value) / 100f;
+            float saturation = this.Value / 100f;
             int sourceY = sourceRectangle.Y;
             int sourceBottom = sourceRectangle.Bottom;
             int startX = sourceRectangle.X;
@@ -49,38 +50,29 @@ namespace ImageProcessor.Filters
                         {
                             for (int x = startX; x < endX; x++)
                             {
-                                target[x, y] = AdjustContrast(source[x, y], contrast);
+                                target[x, y] = AdjustSaturation(source[x, y], saturation);
                             }
                         }
                     });
         }
 
         /// <summary>
-        /// Returns a <see cref="Color"/> with the contrast adjusted.
+        /// Returns a <see cref="Color"/> with the saturation adjusted.
         /// </summary>
         /// <param name="color">The source color.</param>
-        /// <param name="contrast">The contrast adjustment factor.</param>
+        /// <param name="saturation">The saturation adjustment factor.</param>
         /// <returns>
         /// The <see cref="Color"/>.
         /// </returns>
-        private static Color AdjustContrast(Color color, float contrast)
+        private static Color AdjustSaturation(Color color, float saturation)
         {
-            color = PixelOperations.ToLinear(color);
+            //color = PixelOperations.ToLinear(color);
 
-            // Seems to be faster than Vector3.
-            color.R -= 0.5f;
-            color.R *= contrast;
-            color.R += 0.5f;
+            // TODO: This can be done with a matrix. But why can I not get conversion to work?
+            Hsv hsv = color;
+            return new Hsv(hsv.H, saturation, hsv.V);
 
-            color.G -= 0.5f;
-            color.G *= contrast;
-            color.G += 0.5f;
-
-            color.B -= 0.5f;
-            color.B *= contrast;
-            color.B += 0.5f;
-
-            return PixelOperations.ToSrgb(color);
+            //return PixelOperations.ToSrgb(newHsv);
         }
     }
 }

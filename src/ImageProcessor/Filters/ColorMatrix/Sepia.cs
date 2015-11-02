@@ -5,30 +5,34 @@
 
 namespace ImageProcessor.Filters
 {
+    using System.Numerics;
+
     /// <summary>
     /// Converts the colors of the image to their sepia equivalent recreating an old photo effect.
     /// </summary>
-    public class Sepia : ColorMatrixFilter
+    public class Sepia : MatrixFilter
     {
         /// <summary>
         /// The sepia matrix.
-        /// TODO: Calculate a matrix that works in the linear color space.
         /// </summary>
-        private static readonly ColorMatrix Matrix = new ColorMatrix(
-            new[]
-                {
-                    new[] { .393f, .349f, .272f, 0, 0 },
-                    new[] { .769f, .686f, .534f, 0, 0 },
-                    new[] { .189f, .168f, .131f, 0, 0 },
-                    new float[] { 0, 0, 0, 1, 0 },
-                    new float[] { 0, 0, 0, 0, 1 }
-                });
+        private static readonly Matrix4x4 Matrix = new Matrix4x4()
+        {
+            M11 = .393f,
+            M12 = .349f,
+            M13 = .272f,
+            M21 = .769f,
+            M22 = .686f,
+            M23 = .534f,
+            M31 = .189f,
+            M32 = .168f,
+            M33 = .131f
+        };
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Sepia"/> class.
         /// </summary>
         public Sepia()
-            : base(Matrix, false)
+            : base(Matrix)
         {
         }
     }

@@ -5,30 +5,35 @@
 
 namespace ImageProcessor.Filters
 {
+    using System.Numerics;
+
     /// <summary>
     /// Converts the colors of the image to greyscale applying the formula as specified by
     /// ITU-R Recommendation BT.601 <see href="https://en.wikipedia.org/wiki/Luma_%28video%29#Rec._601_luma_versus_Rec._709_luma_coefficients"/>.
     /// </summary>
-    public class GreyscaleBt601 : ColorMatrixFilter
+    public class GreyscaleBt601 : MatrixFilter
     {
         /// <summary>
-        /// The inversion matrix.
+        /// The greyscale matrix.
         /// </summary>
-        private static readonly ColorMatrix Matrix = new ColorMatrix(
-            new[]
-                {
-                    new float[] { 0.299f, 0.299f, 0.299f, 0, 0 },
-                    new float[] { 0.587f, 0.587f, 0.587f, 0, 0 },
-                    new float[] { 0.114f, 0.114f, 0.114f, 0, 0 },
-                    new float[] { 0, 0, 0, 1, 0 },
-                    new float[] { 0, 0, 0, 0, 1 }
-                });
+        private static readonly Matrix4x4 Matrix = new Matrix4x4()
+        {
+            M11 = .299f,
+            M12 = .299f,
+            M13 = .299f,
+            M21 = .587f,
+            M22 = .587f,
+            M23 = .587f,
+            M31 = .114f,
+            M32 = .114f,
+            M33 = .114f
+        };
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GreyscaleBt601"/> class.
         /// </summary>
         public GreyscaleBt601()
-            : base(Matrix, true)
+            : base(Matrix)
         {
         }
     }

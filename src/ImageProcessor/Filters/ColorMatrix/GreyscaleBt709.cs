@@ -5,30 +5,35 @@
 
 namespace ImageProcessor.Filters
 {
+    using System.Numerics;
+
     /// <summary>
     /// Converts the colors of the image to greyscale applying the formula as specified by
     /// ITU-R Recommendation BT.709 <see href="https://en.wikipedia.org/wiki/Rec._709#Luma_coefficients"/>.
     /// </summary>
-    public class GreyscaleBt709 : ColorMatrixFilter
+    public class GreyscaleBt709 : MatrixFilter
     {
         /// <summary>
-        /// The inversion matrix.
+        /// The greyscale matrix.
         /// </summary>
-        private static readonly ColorMatrix Matrix = new ColorMatrix(
-            new[]
-                {
-                    new float[] { 0.2126f, 0.2126f, 0.2126f, 0, 0 },
-                    new float[] { 0.7152f, 0.7152f, 0.7152f, 0, 0 },
-                    new float[] { 0.0722f, 0.0722f, 0.0722f, 0, 0 },
-                    new float[] { 0, 0, 0, 1, 0 },
-                    new float[] { 0, 0, 0, 0, 1 }
-                });
+        private static readonly Matrix4x4 Matrix = new Matrix4x4()
+        {
+            M11 = .2126f,
+            M12 = .2126f,
+            M13 = .2126f,
+            M21 = .7152f,
+            M22 = .7152f,
+            M23 = .7152f,
+            M31 = .0722f,
+            M32 = .0722f,
+            M33 = .0722f
+        };
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GreyscaleBt709"/> class.
         /// </summary>
         public GreyscaleBt709()
-            : base(Matrix, true)
+            : base(Matrix)
         {
         }
     }

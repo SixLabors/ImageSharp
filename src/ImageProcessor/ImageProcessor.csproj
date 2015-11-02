@@ -48,6 +48,7 @@
     <Compile Include="Common\Extensions\EnumerableExtensions.cs" />
     <Compile Include="Common\Helpers\ImageMaths.cs" />
     <Compile Include="Common\Helpers\PixelOperations.cs" />
+    <Compile Include="Filters\ColorMatrix\MatrixFilter.cs" />
     <Compile Include="Filters\Saturation.cs" />
     <Compile Include="Filters\ColorMatrix\GreyscaleMode.cs" />
     <Compile Include="Filters\Brightness.cs" />

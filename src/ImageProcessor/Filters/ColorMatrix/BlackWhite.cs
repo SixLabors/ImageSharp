@@ -5,6 +5,8 @@
 
 namespace ImageProcessor.Filters
 {
+    using System.Numerics;
+
     /// <summary>
     /// Converts the colors of the image to their black and white equivalent.
     /// </summary>
@@ -12,23 +14,28 @@ namespace ImageProcessor.Filters
     {
         /// <summary>
         /// The BlackWhite matrix.
-        /// TODO: Calculate a matrix that works in the linear color space.
         /// </summary>
-        private static readonly ColorMatrix Matrix = new ColorMatrix(
-            new[]
-                {
-                    new[] { 1.5f, 1.5f, 1.5f, 0, 0 },
-                    new[] { 1.5f, 1.5f, 1.5f, 0, 0 },
-                    new[] { 1.5f, 1.5f, 1.5f, 0, 0 },
-                    new float[] { 0, 0, 0, 1, 0 },
-                    new float[] { -1, -1, -1, 0, 1 }
-                });
+        private static readonly Matrix4x4 Matrix = new Matrix4x4()
+        {
+            M11 = 1.5f,
+            M12 = 1.5f,
+            M13 = 1.5f,
+            M21 = 1.5f,
+            M22 = 1.5f,
+            M23 = 1.5f,
+            M31 = 1.5f,
+            M32 = 1.5f,
+            M33 = 1.5f,
+            M41 = -1f,
+            M42 = -1f,
+            M43 = -1f,
+        };
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BlackWhite"/> class.
         /// </summary>
         public BlackWhite()
-            : base(Matrix, false)
+            : base(Matrix)
         {
         }
     }

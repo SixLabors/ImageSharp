@@ -5,6 +5,7 @@
 
 namespace ImageProcessor.Filters
 {
+    using System.Numerics;
     using System.Threading.Tasks;
 
     /// <summary>
@@ -15,33 +16,25 @@ namespace ImageProcessor.Filters
         /// <summary>
         /// Initializes a new instance of the <see cref="ColorMatrixFilter"/> class.
         /// </summary>
-        /// <param name="matrix">The matrix to apply.</param>
-        /// <param name="gammaAdjust">Whether to gamma adjust the colors before applying the matrix.</param>
-        public ColorMatrixFilter(ColorMatrix matrix, bool gammaAdjust)
+        /// <param name="matrix">The <see cref="Matrix4x4"/> to apply.</param>
+        public ColorMatrixFilter(Matrix4x4 matrix)
         {
             this.Value = matrix;
-            this.GammaAdjust = gammaAdjust;
         }
 
         /// <summary>
         /// Gets the matrix value.
         /// </summary>
-        public ColorMatrix Value { get; }
-
-        /// <summary>
-        /// Gets a value indicating whether to gamma adjust the colors before applying the matrix.
-        /// </summary>
-        public bool GammaAdjust { get; }
+        public Matrix4x4 Value { get; }
 
         /// <inheritdoc/>
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-            bool gamma = this.GammaAdjust;
             int sourceY = sourceRectangle.Y;
             int sourceBottom = sourceRectangle.Bottom;
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
-            ColorMatrix matrix = this.Value;
+            Matrix4x4 matrix = this.Value;
 
             Parallel.For(
                 startY,
@@ -52,7 +45,7 @@ namespace ImageProcessor.Filters
                         {
                             for (int x = startX; x < endX; x++)
                             {
-                                target[x, y] = ApplyMatrix(source[x, y], matrix, gamma);
+                                target[x, y] = ApplyMatrix(source[x, y], matrix);
                             }
                         }
                     });
@@ -63,29 +56,22 @@ namespace ImageProcessor.Filters
         /// </summary>
         /// <param name="color">The source color.</param>
         /// <param name="matrix">The matrix.</param>
-        /// <param name="gamma">Whether to perform gamma adjustments.</param>
         /// <returns>
         /// The <see cref="Color"/>.
         /// </returns>
-        private static Color ApplyMatrix(Color color, ColorMatrix matrix, bool gamma)
+        private static Color ApplyMatrix(Color color, Matrix4x4 matrix)
         {
-            if (gamma)
-            {
-                color = PixelOperations.ToLinear(color);
-            }
+            color = PixelOperations.ToLinear(color);
 
             float sr = color.R;
             float sg = color.G;
             float sb = color.B;
-            float sa = color.A;
 
-            // TODO: Investigate RGBAW
-            color.R = (sr * matrix.Matrix00) + (sg * matrix.Matrix10) + (sb * matrix.Matrix20) + (sa * matrix.Matrix30) + matrix.Matrix40;
-            color.G = (sr * matrix.Matrix01) + (sg * matrix.Matrix11) + (sb * matrix.Matrix21) + (sa * matrix.Matrix31) + matrix.Matrix41;
-            color.B = (sr * matrix.Matrix02) + (sg * matrix.Matrix12) + (sb * matrix.Matrix22) + (sa * matrix.Matrix32) + matrix.Matrix42;
-            color.A = (sr * matrix.Matrix03) + (sg * matrix.Matrix13) + (sb * matrix.Matrix23) + (sa * matrix.Matrix33) + matrix.Matrix43;
+            color.R = (sr * matrix.M11) + (sg * matrix.M21) + (sb * matrix.M31) + matrix.M41;
+            color.G = (sr * matrix.M12) + (sg * matrix.M22) + (sb * matrix.M32) + matrix.M42;
+            color.B = (sr * matrix.M13) + (sg * matrix.M23) + (sb * matrix.M33) + matrix.M43;
 
-            return gamma ? PixelOperations.ToSrgb(color) : color;
+            return PixelOperations.ToSrgb(color);
         }
     }
 }

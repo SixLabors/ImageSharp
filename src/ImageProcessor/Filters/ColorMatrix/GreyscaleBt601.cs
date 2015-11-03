@@ -11,7 +11,7 @@ namespace ImageProcessor.Filters
     /// Converts the colors of the image to greyscale applying the formula as specified by
     /// ITU-R Recommendation BT.601 <see href="https://en.wikipedia.org/wiki/Luma_%28video%29#Rec._601_luma_versus_Rec._709_luma_coefficients"/>.
     /// </summary>
-    public class GreyscaleBt601 : MatrixFilter
+    public class GreyscaleBt601 : ColorMatrixFilter
     {
         /// <summary>
         /// The greyscale matrix.

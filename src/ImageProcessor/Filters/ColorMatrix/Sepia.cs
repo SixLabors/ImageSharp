@@ -10,7 +10,7 @@ namespace ImageProcessor.Filters
     /// <summary>
     /// Converts the colors of the image to their sepia equivalent recreating an old photo effect.
     /// </summary>
-    public class Sepia : MatrixFilter
+    public class Sepia : ColorMatrixFilter
     {
         /// <summary>
         /// The sepia matrix.

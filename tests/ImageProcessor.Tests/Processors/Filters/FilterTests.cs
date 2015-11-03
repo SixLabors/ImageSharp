@@ -22,8 +22,9 @@ namespace ImageProcessor.Tests
             //{ "Invert", new Invert() },
             //{ "Sepia", new Sepia() },
             //{ "BlackWhite", new BlackWhite() },
-            { "Lomograph", new Lomograph() },
+            //{ "Lomograph", new Lomograph() },
             //{ "Polaroid", new Polaroid() },
+            { "Brownie", new Kodachrome() },
             //{ "GreyscaleBt709", new GreyscaleBt709() },
             //{ "GreyscaleBt601", new GreyscaleBt601() },
         };

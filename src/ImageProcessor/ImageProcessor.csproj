@@ -49,11 +49,21 @@
     <Compile Include="Common\Helpers\ImageMaths.cs" />
     <Compile Include="Common\Helpers\PixelOperations.cs" />
     <Compile Include="Filters\Blend.cs" />
+    <Compile Include="Filters\Convolution\Convolution2DFilter.cs" />
     <Compile Include="Filters\ColorMatrix\ColorMatrixFilter.cs" />
     <Compile Include="Filters\ColorMatrix\Kodachrome.cs" />
     <Compile Include="Filters\ColorMatrix\Saturation.cs" />
     <Compile Include="Filters\ColorMatrix\GreyscaleMode.cs" />
     <Compile Include="Filters\Brightness.cs" />
+    <Compile Include="Filters\Convolution\Scharr.cs" />
+    <Compile Include="Filters\Convolution\RobertsCross.cs" />
+    <Compile Include="Filters\Convolution\Prewitt.cs" />
+    <Compile Include="Filters\Convolution\LaplacianOfGaussian.cs" />
+    <Compile Include="Filters\Convolution\Laplacian3X3.cs" />
+    <Compile Include="Filters\Convolution\Laplacian5X5.cs" />
+    <Compile Include="Filters\Convolution\Kirsch.cs" />
+    <Compile Include="Filters\Convolution\Kayyali.cs" />
+    <Compile Include="Filters\Convolution\Sobel.cs" />
     <Compile Include="Filters\Invert.cs" />
     <Compile Include="Filters\Alpha.cs" />
     <Compile Include="Filters\ColorMatrix\GreyscaleBt601.cs" />
@@ -220,6 +230,7 @@
     <Compile Include="Numerics\Point.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Numerics\Size.cs" />
+    <Compile Include="Filters\Convolution\ConvolutionFilter.cs" />
     <Compile Include="Samplers\Resamplers\Lanczos5Resampler.cs" />
     <Compile Include="Samplers\Resamplers\Lanczos8Resampler.cs" />
     <Compile Include="Samplers\Resamplers\WelchResampler.cs" />
@@ -251,6 +262,7 @@
   <ItemGroup>
     <AdditionalFiles Include="stylecop.json" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

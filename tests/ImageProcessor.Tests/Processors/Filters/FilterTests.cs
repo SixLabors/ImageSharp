@@ -16,7 +16,7 @@ namespace ImageProcessor.Tests
             //{ "Brightness--50", new Brightness(-50) },
             //{ "Contrast-50", new Contrast(50) },
             //{ "Contrast--50", new Contrast(-50) },
-            { "Blend", new Blend(new Image(File.OpenRead("../../TestImages/Formats/Bmp/Car.bmp")),75)},
+            //{ "Blend", new Blend(new Image(File.OpenRead("../../TestImages/Formats/Bmp/Car.bmp")),15)},
             //{ "Saturation-50", new Saturation(50) },
             //{ "Saturation--50", new Saturation(-50) },
             //{ "Alpha--50", new Alpha(50) },
@@ -27,7 +27,16 @@ namespace ImageProcessor.Tests
             //{ "Polaroid", new Polaroid() },
             //{ "Kodachrome", new Kodachrome() },
             //{ "GreyscaleBt709", new GreyscaleBt709() },
-            //{ "GreyscaleBt601", new GreyscaleBt601() },
+            //{ "GreyscaleBt601", new GreyscaleBt601() },`
+            { "Kayyali", new Kayyali() },
+            { "Kirsch", new Kirsch() },
+            { "Laplacian3X3", new Laplacian3X3() },
+            { "Laplacian5X5", new Laplacian5X5() },
+            { "LaplacianOfGaussian", new LaplacianOfGaussian() },
+            { "Prewitt", new Prewitt() },
+            { "RobertsCross", new RobertsCross() },
+            { "Scharr", new Scharr() },
+            { "Sobel", new Sobel() }
         };
 
         [Theory]

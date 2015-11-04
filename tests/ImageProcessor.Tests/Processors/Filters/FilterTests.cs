@@ -16,7 +16,7 @@ namespace ImageProcessor.Tests
             //{ "Brightness--50", new Brightness(-50) },
             //{ "Contrast-50", new Contrast(50) },
             //{ "Contrast--50", new Contrast(-50) },
-            { "Blend", new Blend(new Image(File.OpenRead("../../TestImages/Formats/Bmp/Car.bmp")),50)},
+            { "Blend", new Blend(new Image(File.OpenRead("../../TestImages/Formats/Bmp/Car.bmp")),75)},
             //{ "Saturation-50", new Saturation(50) },
             //{ "Saturation--50", new Saturation(-50) },
             //{ "Alpha--50", new Alpha(50) },

@@ -141,6 +141,21 @@ namespace ImageProcessor
         }
 
         /// <summary>
+        /// Determines if the specfied point is contained within the rectangular region defined by 
+        /// this <see cref="Rectangle"/>.
+        /// </summary>
+        /// <param name="x">The x-coordinate of the given point.</param>
+        /// <param name="y">The y-coordinate of the given point.</param>
+        /// <returns>The <see cref="bool"/></returns>
+        public bool Contains(int x, int y)
+        {
+            return this.X <= x
+                   && x < this.X + this.Width
+                   && this.Y <= y
+                   && y < this.Y + this.Height;
+        }
+
+        /// <summary>
         /// Indicates whether this instance and a specified object are equal.
         /// </summary>
         /// <returns>

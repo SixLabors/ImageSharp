@@ -48,9 +48,10 @@
     <Compile Include="Common\Extensions\EnumerableExtensions.cs" />
     <Compile Include="Common\Helpers\ImageMaths.cs" />
     <Compile Include="Common\Helpers\PixelOperations.cs" />
+    <Compile Include="Filters\Blend.cs" />
     <Compile Include="Filters\ColorMatrix\ColorMatrixFilter.cs" />
     <Compile Include="Filters\ColorMatrix\Kodachrome.cs" />
-    <Compile Include="Filters\Saturation.cs" />
+    <Compile Include="Filters\ColorMatrix\Saturation.cs" />
     <Compile Include="Filters\ColorMatrix\GreyscaleMode.cs" />
     <Compile Include="Filters\Brightness.cs" />
     <Compile Include="Filters\Invert.cs" />

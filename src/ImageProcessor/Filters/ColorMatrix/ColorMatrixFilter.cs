@@ -16,6 +16,13 @@ namespace ImageProcessor.Filters
         /// <summary>
         /// Initializes a new instance of the <see cref="ColorMatrixFilter"/> class.
         /// </summary>
+        public ColorMatrixFilter()
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ColorMatrixFilter"/> class.
+        /// </summary>
         /// <param name="matrix">The <see cref="Matrix4x4"/> to apply.</param>
         public ColorMatrixFilter(Matrix4x4 matrix)
         {
@@ -23,9 +30,9 @@ namespace ImageProcessor.Filters
         }
 
         /// <summary>
-        /// Gets the matrix value.
+        /// Gets or sets the matrix value.
         /// </summary>
-        public Matrix4x4 Value { get; }
+        public Matrix4x4 Value { get; set; }
 
         /// <inheritdoc/>
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)

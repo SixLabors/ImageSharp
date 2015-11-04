@@ -50,12 +50,13 @@ Honestly... I don't know. I could be writing code that may be suddenly obsolete.
 - Rotation
  - [ ] Flip (90, 270, FlipType etc) 
  - [ ] Rotate by angle
-- ColorMatrix operations (Performance improvements? Following matrices implemented)
+- ColorMatrix operations (Uses Matrix4x4)
  - [x] BlackWhite
  - [x] Greyscale BT709
  - [x] Greyscale BT601
  - [x] Lomograph
  - [x] Polaroid
+ - [x] Kodachrome
  - [x] Sepia
 - Blurring/ Sharpening
  - [ ] Gaussian blur

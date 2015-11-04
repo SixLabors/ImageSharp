@@ -16,8 +16,8 @@ Honestly... I don't know. I could be writing code that may be suddenly obsolete.
 
 - Encoding/decoding of image formats (plugable)
  - [x] jpeg (Includes progressive)
- - [x] bmp (More bmp format support required, 24bit just now)
- - [x] png (Need updating for indexed support)
+ - [x] bmp (More bmp format saving support required, 24bit just now)
+ - [x] png (Need updating for saving indexed support)
  - [x] gif
 - Basic color structs with implicit operators. Vector backed.
  - [x] Color - Float based, No limit to r, g, b, a values allowing for a fuller color range.
@@ -47,6 +47,9 @@ Honestly... I don't know. I could be writing code that may be suddenly obsolete.
  - [x] Spline
  - [x] Triangle
  - [x] Welch
+- Cropping
+ - [ ] Rectangular Crop
+ - [ ] Elliptical Crop
 - Rotation
  - [ ] Flip (90, 270, FlipType etc) 
  - [ ] Rotate by angle
@@ -58,6 +61,16 @@ Honestly... I don't know. I could be writing code that may be suddenly obsolete.
  - [x] Polaroid
  - [x] Kodachrome
  - [x] Sepia
+- Edge Detection
+ - [x] Kayyali
+ - [x] Kirsch
+ - [x] Laplacian3X3
+ - [x] Laplacian5X5
+ - [x] LaplacianOfGaussian
+ - [x] Prewitt
+ - [x] RobertsCross
+ - [x] Scharr
+ - [x] Sobel
 - Blurring/ Sharpening
  - [ ] Gaussian blur
  - [ ] Gaussian sharpening
@@ -66,9 +79,10 @@ Honestly... I don't know. I could be writing code that may be suddenly obsolete.
  - [x] Alpha
  - [x] Contrast
  - [x] Invert
- - [ ] Brightness
- - [ ] Saturation
+ - [x] Brightness
+ - [x] Saturation
  - [ ] Hue
+ - [x] Blend
 - Effects
  - [ ] Pattern brushes
  - [ ] Elliptical brushes

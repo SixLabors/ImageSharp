@@ -50,7 +50,7 @@ namespace ImageProcessor.Filters
                 M33 = saturationComplementB + saturationFactor,
             };
 
-            this.Value = matrix;
+            this.Matrix = matrix;
         }
     }
 }

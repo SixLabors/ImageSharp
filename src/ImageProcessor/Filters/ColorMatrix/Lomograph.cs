@@ -15,7 +15,7 @@ namespace ImageProcessor.Filters
         /// <summary>
         /// The Lomograph matrix. Purely artistic in composition.
         /// </summary>
-        private static readonly Matrix4x4 Matrix = new Matrix4x4()
+        private static readonly Matrix4x4 ColorMatrix = new Matrix4x4()
         {
             M11 = 1.5f,
             M22 = 1.45f,
@@ -29,7 +29,7 @@ namespace ImageProcessor.Filters
         /// Initializes a new instance of the <see cref="Lomograph"/> class.
         /// </summary>
         public Lomograph()
-            : base(Matrix)
+            : base(ColorMatrix)
         {
         }
     }

@@ -15,7 +15,7 @@ namespace ImageProcessor.Filters
         /// <summary>
         /// The Kodachrome matrix. Purely artistic in composition.
         /// </summary>
-        private static readonly Matrix4x4 Matrix = new Matrix4x4()
+        private static readonly Matrix4x4 ColorMatrix = new Matrix4x4()
         {
             M11 = 0.6997023f,
             M22 = 0.4609577f,
@@ -29,7 +29,7 @@ namespace ImageProcessor.Filters
         /// Initializes a new instance of the <see cref="Kodachrome"/> class.
         /// </summary>
         public Kodachrome()
-            : base(Matrix)
+            : base(ColorMatrix)
         {
         }
     }

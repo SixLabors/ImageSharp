@@ -18,6 +18,7 @@
       <Value>lomograph</Value>
       <Value>polaroid</Value>
       <Value>colorspace</Value>
+      <Value>kodachrome</Value>
     </CollectionProperty>
   </GlobalSettings>
 </StyleCopSettings>

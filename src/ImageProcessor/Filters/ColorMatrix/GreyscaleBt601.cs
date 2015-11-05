@@ -16,7 +16,7 @@ namespace ImageProcessor.Filters
         /// <summary>
         /// The greyscale matrix.
         /// </summary>
-        private static readonly Matrix4x4 Matrix = new Matrix4x4()
+        private static readonly Matrix4x4 ColorMatrix = new Matrix4x4()
         {
             M11 = .299f,
             M12 = .299f,
@@ -33,7 +33,7 @@ namespace ImageProcessor.Filters
         /// Initializes a new instance of the <see cref="GreyscaleBt601"/> class.
         /// </summary>
         public GreyscaleBt601()
-            : base(Matrix)
+            : base(ColorMatrix)
         {
         }
     }

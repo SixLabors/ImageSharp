@@ -11,7 +11,7 @@ namespace ImageProcessor.Filters
     /// <summary>
     /// The color matrix filter.
     /// </summary>
-    public class ColorMatrixFilter : ParallelImageProcessor
+    public class ColorMatrixFilter : ParallelImageProcessor, IColorMatrixFilter
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ColorMatrixFilter"/> class.
@@ -26,13 +26,11 @@ namespace ImageProcessor.Filters
         /// <param name="matrix">The <see cref="Matrix4x4"/> to apply.</param>
         public ColorMatrixFilter(Matrix4x4 matrix)
         {
-            this.Value = matrix;
+            this.Matrix = matrix;
         }
 
-        /// <summary>
-        /// Gets or sets the matrix value.
-        /// </summary>
-        public Matrix4x4 Value { get; set; }
+        /// <inheritdoc/>
+        public Matrix4x4 Matrix { get; set; }
 
         /// <inheritdoc/>
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
@@ -41,7 +39,7 @@ namespace ImageProcessor.Filters
             int sourceBottom = sourceRectangle.Bottom;
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
-            Matrix4x4 matrix = this.Value;
+            Matrix4x4 matrix = this.Matrix;
 
             Parallel.For(
                 startY,

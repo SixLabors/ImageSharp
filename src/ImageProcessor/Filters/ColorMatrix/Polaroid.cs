@@ -14,9 +14,8 @@ namespace ImageProcessor.Filters
     {
         /// <summary>
         /// The Polaroid matrix. Purely artistic in composition.
-        /// TODO: Calculate a matrix that works in the linear color space.
         /// </summary>
-        private static readonly Matrix4x4 Matrix = new Matrix4x4()
+        private static readonly Matrix4x4 ColorMatrix = new Matrix4x4()
         {
             M11 = 1.538f,
             M12 = -0.062f,
@@ -36,7 +35,7 @@ namespace ImageProcessor.Filters
         /// Initializes a new instance of the <see cref="Polaroid"/> class.
         /// </summary>
         public Polaroid()
-            : base(Matrix)
+            : base(ColorMatrix)
         {
         }
     }

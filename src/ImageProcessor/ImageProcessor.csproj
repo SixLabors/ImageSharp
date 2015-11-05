@@ -49,6 +49,7 @@
     <Compile Include="Common\Helpers\ImageMaths.cs" />
     <Compile Include="Common\Helpers\PixelOperations.cs" />
     <Compile Include="Filters\Blend.cs" />
+    <Compile Include="Filters\ColorMatrix\IColorMatrixFilter.cs" />
     <Compile Include="Filters\Convolution\Convolution2DFilter.cs" />
     <Compile Include="Filters\ColorMatrix\ColorMatrixFilter.cs" />
     <Compile Include="Filters\ColorMatrix\Kodachrome.cs" />
@@ -64,6 +65,7 @@
     <Compile Include="Filters\Convolution\EdgeDetection\Kirsch.cs" />
     <Compile Include="Filters\Convolution\EdgeDetection\Kayyali.cs" />
     <Compile Include="Filters\Convolution\EdgeDetection\Sobel.cs" />
+    <Compile Include="Filters\Convolution\GuassianBlur.cs" />
     <Compile Include="Filters\Invert.cs" />
     <Compile Include="Filters\Alpha.cs" />
     <Compile Include="Filters\ColorMatrix\GreyscaleBt601.cs" />

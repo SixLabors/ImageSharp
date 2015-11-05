@@ -1,13 +1,15 @@
 ﻿namespace ImageProcessor.Filters.Convolution
 {
     using System;
-    using System.Runtime.CompilerServices;
 
-    public class GuassianBlur : ConvolutionFilter
+    public class GuassianBlur : Convolution2DFilter
     {
         private int kernelSize;
 
         private float standardDeviation;
+
+        private float[,] kernelY;
+        private float[,] kernelX;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GuassianBlur"/> class.
@@ -18,79 +20,130 @@
         /// <param name="standardDeviation">
         /// The standard deviation 'sigma' value for calculating Gaussian curves.
         /// </param>
-        public GuassianBlur(int size, float standardDeviation)
+        public GuassianBlur(int size, float standardDeviation = 1.4f)
         {
             this.kernelSize = size;
             this.standardDeviation = standardDeviation;
         }
 
-        public override float[,] KernelX { get; }
+        /// <inheritdoc/>
+        public override float[,] KernelX => this.kernelX;
 
-        /// <summary>
-        /// Create a 2 dimensional Gaussian kernel using the Gaussian G(x y) function for 
-        /// blurring images.
-        /// </summary>
-        /// <param name="kernelSize">Kernel Size</param>
-        /// <returns>A Gaussian Kernel with the given size.</returns>
-        private float[,] CreateGuassianBlurFilter()
+        /// <inheritdoc/>
+        public override float[,] KernelY => this.kernelY;
+
+        /// <inheritdoc/>
+        protected override void OnApply(Rectangle targetRectangle, Rectangle sourceRectangle)
         {
-            // Create kernel
-            int size = this.kernelSize;
-            float[,] kernel = this.CreateGaussianKernel2D(size);
-            float min = kernel[0, 0];
-
-            // Convert to integer blurring kernel. First of all the integer kernel is calculated from Kernel2D
-            // by dividing all elements by the element with the smallest value.
-            float[,] intKernel = new float[size, size];
-            int divider = 0;
-
-            for (int i = 0; i < size; i++)
+            if (this.kernelY == null)
             {
-                for (int j = 0; j < size; j++)
-                {
-                    float v = kernel[i, j] / min;
-
-                    if (v > ushort.MaxValue)
-                    {
-                        v = ushort.MaxValue;
-                    }
-
-                    intKernel[i, j] = (int)v;
-
-                    // Collect the divider
-                    divider += (int)intKernel[i, j];
-                }
+                this.kernelY = this.CreateGaussianKernel(false);
             }
 
-            // Update filter
-            //this.Divider = divider;
-            return intKernel;
+            if (this.kernelX == null)
+            {
+                this.kernelX = this.CreateGaussianKernel(true);
+            }
         }
 
         /// <summary>
         /// Create a 2 dimensional Gaussian kernel using the Gaussian G(x y) function
         /// </summary>
-        /// <param name="kernelSize">Kernel Size</param>
-        /// <returns>A Gaussian Kernel with the given size and deviation.</returns>
-        public float[,] CreateGaussianKernel2D(int kernelSize)
+        private void CreateGaussianKernel2D()
         {
-            float[,] kernel = new float[kernelSize, kernelSize];
+            int size = this.kernelSize;
+            float[,] kernel = new float[size, size];
 
-            int midpoint = kernelSize / 2;
-
-            for (int i = 0; i < kernelSize; i++)
+            int midpoint = size / 2;
+            float sum = 0;
+            for (int i = 0; i < size; i++)
             {
                 int x = i - midpoint;
 
-                for (int j = 0; j < kernelSize; j++)
+                for (int j = 0; j < size; j++)
                 {
                     int y = j - midpoint;
                     float gxy = this.Gaussian2D(x, y);
+                    sum += gxy;
                     kernel[i, j] = gxy;
                 }
             }
 
+            // Normalise kernel so that the sum of all weights equals 1
+            //for (int i = 0; i < size; i++)
+            //{
+            //    for (int j = 0; j < size; j++)
+            //    {
+            //        kernel[i, 0] = kernel[i, j] / sum;
+            //    }
+            //}
+
+            this.kernelY = kernel;
+        }
+
+        /// <summary>
+        /// Create a 1 dimensional Gaussian kernel using the Gaussian G(x) function
+        /// </summary>
+        /// <returns>The <see cref="T:float[,]"/></returns>
+        private float[,] CreateGaussianKernel(bool horizontal)
+        {
+            int size = this.kernelSize;
+            float[,] kernel = horizontal ? new float[1, size] : new float[size, 1];
+            float sum = 0.0f;
+
+            int midpoint = size / 2;
+            for (int i = 0; i < size; i++)
+            {
+                int x = i - midpoint;
+                float gx = this.Gaussian(x);
+                sum += gx;
+                if (horizontal)
+                {
+                    kernel[0, i] = gx;
+                }
+                else
+                {
+                    kernel[i, 0] = gx;
+                }
+            }
+
+            // Normalise kernel so that the sum of all weights equals 1
+            if (horizontal)
+            {
+                for (int i = 0; i < size; i++)
+                {
+                    kernel[0, i] = kernel[0, i] / sum;
+                }
+            }
+            else
+            {
+                for (int i = 0; i < size; i++)
+                {
+                    kernel[i, 0] = kernel[i, 0] / sum;
+                }
+            }
+
             return kernel;
+        }
+
+        /// <summary>
+        /// Implementation of 1D Gaussian G(x) function
+        /// </summary>
+        /// <param name="x">The x provided to G(x)</param>
+        /// <returns>The Gaussian G(x)</returns>
+        private float Gaussian(float x)
+        {
+            const float Numerator = 1.0f;
+            float deviation = this.standardDeviation;
+            float denominator = (float)(Math.Sqrt(2 * Math.PI) * deviation);
+
+            float exponentNumerator = -x * x;
+            float exponentDenominator = (float)(2 * Math.Pow(deviation, 2));
+
+            float left = Numerator / denominator;
+            float right = (float)Math.Exp(exponentNumerator / exponentDenominator);
+
+            return left * right;
         }
 
         /// <summary>
@@ -102,10 +155,12 @@
         private float Gaussian2D(float x, float y)
         {
             const float Numerator = 1.0f;
-            float denominator = (float)((2 * Math.PI) * Math.Pow(this.standardDeviation, 2));
+            float deviation = this.standardDeviation;
+            double pow = Math.Pow(deviation, 2);
+            float denominator = (float)((2 * Math.PI) * pow);
 
             float exponentNumerator = (-x * x) + (-y * y);
-            float exponentDenominator = (float)(2 * Math.Pow(this.standardDeviation, 2));
+            float exponentDenominator = (float)(2 * pow);
 
             float left = Numerator / denominator;
             float right = (float)Math.Exp(exponentNumerator / exponentDenominator);

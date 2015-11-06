@@ -28,8 +28,12 @@ namespace ImageProcessor.Filters
         {
             float[,] kernelX = this.KernelX;
             float[,] kernelY = this.KernelY;
-            int kernelLength = kernelX.GetLength(0);
-            int radius = kernelLength >> 1;
+            int kernelYHeight = kernelY.GetLength(0);
+            int kernelYWidth = kernelY.GetLength(1);
+            int kernelXHeight = kernelX.GetLength(0);
+            int kernelXWidth = kernelX.GetLength(0);
+            int radiusY = kernelYHeight >> 1;
+            int radiusX = kernelXWidth >> 1;
 
             int sourceY = sourceRectangle.Y;
             int sourceBottom = sourceRectangle.Bottom;
@@ -55,16 +59,16 @@ namespace ImageProcessor.Filters
                             float bY = 0;
 
                             // Apply each matrix multiplier to the color components for each pixel.
-                            for (int fy = 0; fy < kernelLength; fy++)
+                            for (int fy = 0; fy < kernelYHeight; fy++)
                             {
-                                int fyr = fy - radius;
+                                int fyr = fy - radiusY;
                                 int offsetY = y + fyr;
 
                                 offsetY = offsetY.Clamp(0, maxY);
 
-                                for (int fx = 0; fx < kernelLength; fx++)
+                                for (int fx = 0; fx < kernelXWidth; fx++)
                                 {
-                                    int fxr = fx - radius;
+                                    int fxr = fx - radiusX;
                                     int offsetX = x + fxr;
 
                                     offsetX = offsetX.Clamp(0, maxX);
@@ -74,13 +78,19 @@ namespace ImageProcessor.Filters
                                     float g = currentColor.G;
                                     float b = currentColor.B;
 
-                                    rX += kernelX[fy, fx] * r;
-                                    gX += kernelX[fy, fx] * g;
-                                    bX += kernelX[fy, fx] * b;
+                                    if (fy < kernelXHeight)
+                                    {
+                                        rX += kernelX[fy, fx] * r;
+                                        gX += kernelX[fy, fx] * g;
+                                        bX += kernelX[fy, fx] * b;
+                                    }
 
-                                    rY += kernelY[fy, fx] * r;
-                                    gY += kernelY[fy, fx] * g;
-                                    bY += kernelY[fy, fx] * b;
+                                    if (fx < kernelYWidth)
+                                    {
+                                        rY += kernelY[fy, fx] * r;
+                                        gY += kernelY[fy, fx] * g;
+                                        bY += kernelY[fy, fx] * b;
+                                    }
                                 }
                             }
 

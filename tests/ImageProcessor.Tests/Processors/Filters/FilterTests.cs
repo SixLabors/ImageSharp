@@ -6,7 +6,6 @@ namespace ImageProcessor.Tests
     using System.Numerics;
 
     using ImageProcessor.Filters;
-    using ImageProcessor.Filters.Convolution;
 
     using Xunit;
 
@@ -39,7 +38,7 @@ namespace ImageProcessor.Tests
             //{ "RobertsCross", new RobertsCross() },
             //{ "Scharr", new Scharr() },
             //{ "Sobel", new Sobel() },
-            { "GuassianBlur", new GuassianBlur(20) }
+            { "GuassianBlur", new GuassianBlur(5) }
         };
 
         [Theory]

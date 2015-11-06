@@ -41,7 +41,7 @@ namespace ImageProcessor.Filters
         /// </param>
         public GuassianBlur(float standardDeviation = 3f)
         {
-            this.kernelSize = ((int)Math.Ceiling(standardDeviation * 3) * 2) + 1;
+            this.kernelSize = ((int)Math.Ceiling(standardDeviation) * 2) + 1;
             this.standardDeviation = standardDeviation;
         }
 

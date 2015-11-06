@@ -22,6 +22,7 @@ namespace ImageProcessor.Tests
             //"../../TestImages/Formats/Jpg/Backdrop.jpg",
             //"../../TestImages/Formats/Jpg/Calliphora.jpg",
             "../../TestImages/Formats/Jpg/ant.jpg",
+            "../../TestImages/Formats/Jpg/parachute.jpg",
             //"../../TestImages/Formats/Jpg/lomo.jpg",
             //"../../TestImages/Formats/Jpg/shaftesbury.jpg",
             //"../../TestImages/Formats/Jpg/gamma_dalai_lama_gray.jpg",
@@ -31,6 +32,7 @@ namespace ImageProcessor.Tests
             //"../../TestImages/Formats/Png/gamma-1.0-or-2.2.png",
             //"../../TestImages/Formats/Png/splash.png",
             //"../../TestImages/Formats/Gif/leaf.gif",
+            "../../TestImages/Formats/Gif/ben2.gif",
             //"../../TestImages/Formats/Gif/rings.gif",
             //"../../TestImages/Formats/Gif/ani2.gif",
             //"../../TestImages/Formats/Gif/giphy.gif"

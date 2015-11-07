@@ -1,4 +1,4 @@
-﻿// <copyright file="GuassianBlur.cs" company="James South">
+﻿// <copyright file="GuassianSharpen.cs" company="James South">
 // Copyright (c) James South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -8,9 +8,9 @@ namespace ImageProcessor.Filters
     using System;
 
     /// <summary>
-    /// Applies a Gaussian blur filter to the image.
+    /// Applies a Gaussian sharpening filter to the image.
     /// </summary>
-    public class GuassianBlur : Convolution2PassFilter
+    public class GuassianSharpen : Convolution2PassFilter
     {
         /// <summary>
         /// The maximum size of the kernal in either direction.
@@ -33,12 +33,12 @@ namespace ImageProcessor.Filters
         private float[,] kernelX;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="GuassianBlur"/> class.
+        /// Initializes a new instance of the <see cref="GuassianSharpen"/> class.
         /// </summary>
         /// <param name="sigma">
-        /// The 'sigma' value representing the weight of the blur.
+        /// The 'sigma' value representing the weight of the sharpening.
         /// </param>
-        public GuassianBlur(float sigma = 3f)
+        public GuassianSharpen(float sigma = 3f)
         {
             this.kernelSize = ((int)Math.Ceiling(sigma) * 2) + 1;
             this.sigma = sigma;
@@ -77,7 +77,7 @@ namespace ImageProcessor.Filters
             int size = this.kernelSize;
             float weight = this.sigma;
             float[,] kernel = horizontal ? new float[1, size] : new float[size, 1];
-            float sum = 0.0f;
+            float sum = 0;
 
             float midpoint = (size - 1) / 2f;
             for (int i = 0; i < size; i++)
@@ -92,6 +92,42 @@ namespace ImageProcessor.Filters
                 else
                 {
                     kernel[i, 0] = gx;
+                }
+            }
+
+            // Invert the kernel for sharpening.
+            int midpointRounded = (int)midpoint;
+
+            if (horizontal)
+            {
+                for (int i = 0; i < size; i++)
+                {
+                    if (i == midpointRounded)
+                    {
+                        // Calculate central value
+                        kernel[0, i] = (2f * sum) - kernel[0, i];
+                    }
+                    else
+                    {
+                        // invert value
+                        kernel[0, i] = -kernel[0, i];
+                    }
+                }
+            }
+            else
+            {
+                for (int i = 0; i < size; i++)
+                {
+                    if (i == midpointRounded)
+                    {
+                        // Calculate central value
+                        kernel[i, 0] = (2 * sum) - kernel[i, 0];
+                    }
+                    else
+                    {
+                        // invert value
+                        kernel[i, 0] = -kernel[i, 0];
+                    }
                 }
             }
 

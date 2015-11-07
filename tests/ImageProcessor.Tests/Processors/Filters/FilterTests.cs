@@ -38,7 +38,8 @@ namespace ImageProcessor.Tests
             //{ "RobertsCross", new RobertsCross() },
             //{ "Scharr", new Scharr() },
             //{ "Sobel", new Sobel() },
-            { "GuassianBlur", new GuassianBlur(10) }
+            //{ "GuassianBlur", new GuassianBlur() },
+            { "GuassianSharpen", new GuassianSharpen() }
         };
 
         [Theory]

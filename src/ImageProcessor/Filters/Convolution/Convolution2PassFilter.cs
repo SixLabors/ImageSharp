@@ -80,12 +80,13 @@ namespace ImageProcessor.Filters
                     {
                         for (int x = startX; x < endX; x++)
                         {
-                            float rX = 0;
-                            float gX = 0;
-                            float bX = 0;
+                            float red = 0;
+                            float green = 0;
+                            float blue = 0;
+                            float alpha = 0;
 
-                        // Apply each matrix multiplier to the color components for each pixel.
-                        for (int fy = 0; fy < kernelHeight; fy++)
+                            // Apply each matrix multiplier to the color components for each pixel.
+                            for (int fy = 0; fy < kernelHeight; fy++)
                             {
                                 int fyr = fy - radiusY;
                                 int offsetY = y + fyr;
@@ -100,22 +101,15 @@ namespace ImageProcessor.Filters
                                     offsetX = offsetX.Clamp(0, maxX);
 
                                     Color currentColor = source[offsetX, offsetY];
-                                    float r = currentColor.R;
-                                    float g = currentColor.G;
-                                    float b = currentColor.B;
 
-                                    rX += kernel[fy, fx] * r;
-                                    gX += kernel[fy, fx] * g;
-                                    bX += kernel[fy, fx] * b;
+                                    red += kernel[fy, fx] * currentColor.R;
+                                    green += kernel[fy, fx] * currentColor.G;
+                                    blue += kernel[fy, fx] * currentColor.B;
+                                    alpha += kernel[fy, fx] * currentColor.A;
                                 }
                             }
 
-                            float red = rX;
-                            float green = gX;
-                            float blue = bX;
-
-                            Color targetColor = target[x, y];
-                            target[x, y] = new Color(red, green, blue, targetColor.A);
+                            target[x, y] = new Color(red, green, blue, alpha);
                         }
                     }
                 });

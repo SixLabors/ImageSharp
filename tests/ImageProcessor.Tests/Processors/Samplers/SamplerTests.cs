@@ -1,7 +1,6 @@
 ﻿
 namespace ImageProcessor.Tests
 {
-    using System;
     using System.Diagnostics;
     using System.IO;
 
@@ -47,11 +46,32 @@ namespace ImageProcessor.Tests
                     string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
                     using (FileStream output = File.OpenWrite($"Resized/{filename}"))
                     {
-                        //image.Resize(image.Width / 2, image.Height / 2, sampler).Save(output);
                         image.Resize(image.Width / 2, image.Height / 2, sampler).Save(output);
                     }
 
                     Trace.WriteLine($"{name}: {watch.ElapsedMilliseconds}ms");
+                }
+            }
+        }
+
+        [Fact]
+        public void ImageShouldCrop()
+        {
+            if (!Directory.Exists("Cropped"))
+            {
+                Directory.CreateDirectory("Cropped");
+            }
+
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    Image image = new Image(stream);
+                    string filename = Path.GetFileNameWithoutExtension(file) + "-Cropped" + Path.GetExtension(file);
+                    using (FileStream output = File.OpenWrite($"Cropped/{filename}"))
+                    {
+                        image.Crop(image.Width / 2, image.Height / 2).Save(output);
+                    }
                 }
             }
         }

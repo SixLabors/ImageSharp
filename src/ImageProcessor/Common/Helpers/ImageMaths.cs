@@ -19,6 +19,26 @@ namespace ImageProcessor
         public const float PI = 3.1415926535897931f;
 
         /// <summary>
+        /// Implementation of 1D Gaussian G(x) function
+        /// </summary>
+        /// <param name="x">The x provided to G(x).</param>
+        /// <param name="sigma">The spread of the blur.</param>
+        /// <returns>The Gaussian G(x)</returns>
+        public static float Gaussian(float x, float sigma)
+        {
+            const float Numerator = 1.0f;
+            float denominator = (float)(Math.Sqrt(2 * PI) * sigma);
+
+            float exponentNumerator = -x * x;
+            float exponentDenominator = (float)(2 * Math.Pow(sigma, 2));
+
+            float left = Numerator / denominator;
+            float right = (float)Math.Exp(exponentNumerator / exponentDenominator);
+
+            return left * right;
+        }
+
+        /// <summary>
         /// Returns the result of a B-C filter against the given value.
         /// <see href="http://www.imagemagick.org/Usage/filter/#cubic_bc"/>
         /// </summary>

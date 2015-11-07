@@ -57,7 +57,7 @@ namespace ImageProcessor.Formats
 
             // Write the LSD and check to see if we need a global color table.
             // Always true just now.
-            bool globalColor = this.WriteGlobalLogicalScreenDescriptor(image, stream, bitDepth);
+            this.WriteGlobalLogicalScreenDescriptor(image, stream, bitDepth);
             QuantizedImage quantized = this.WriteColorTable(imageBase, stream, quality, bitDepth);
 
             this.WriteGraphicalControlExtension(imageBase, stream);

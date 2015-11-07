@@ -44,6 +44,34 @@ namespace ImageProcessor.Filters
             this.sigma = sigma;
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GuassianSharpen"/> class.
+        /// </summary>
+        /// <param name="radius">
+        /// The 'radius' value representing the size of the area to sample.
+        /// </param>
+        public GuassianSharpen(int radius)
+        {
+            this.kernelSize = (radius * 2) + 1;
+            this.sigma = radius;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GuassianSharpen"/> class.
+        /// </summary>
+        /// <param name="sigma">
+        /// The 'sigma' value representing the weight of the sharpen.
+        /// </param>
+        /// <param name="radius">
+        /// The 'radius' value representing the size of the area to sample.
+        /// This should be at least twice the sigma value.
+        /// </param>
+        public GuassianSharpen(float sigma, int radius)
+        {
+            this.kernelSize = (radius * 2) + 1;
+            this.sigma = sigma;
+        }
+
         /// <inheritdoc/>
         public override float[,] KernelX => this.kernelX;
 

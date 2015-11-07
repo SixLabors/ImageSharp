@@ -48,7 +48,7 @@ Honestly... I don't know. I could be writing code that may be suddenly obsolete.
  - [x] Triangle
  - [x] Welch
 - Cropping
- - [ ] Rectangular Crop
+ - [x] Rectangular Crop
  - [ ] Elliptical Crop
  - [ ] Entropy Crop
 - Rotation

@@ -73,8 +73,8 @@ Honestly... I don't know. I could be writing code that may be suddenly obsolete.
  - [x] Scharr
  - [x] Sobel
 - Blurring/ Sharpening
- - [ ] Gaussian blur
- - [ ] Gaussian sharpening
+ - [x] Gaussian blur
+ - [x] Gaussian sharpening
  - [ ] Box Blur
 - Filters
  - [x] Alpha

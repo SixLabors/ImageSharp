@@ -15,7 +15,7 @@ namespace ImageProcessor
     public struct Bgra32 : IEquatable<Bgra32>
     {
         /// <summary>
-        /// Represents a <see cref="Bgra32"/> that has B, G, R, and A values set to zero.
+        /// Represents a 32 bit <see cref="Bgra32"/> that has B, G, R, and A values set to zero.
         /// </summary>
         public static readonly Bgra32 Empty = default(Bgra32);
 
@@ -172,10 +172,10 @@ namespace ImageProcessor
         {
             if (this.IsEmpty)
             {
-                return "Color [ Empty ]";
+                return "Bgra32 [ Empty ]";
             }
 
-            return $"Color [ B={this.B}, G={this.G}, R={this.R}, A={this.A} ]";
+            return $"Bgra32 [ B={this.B}, G={this.G}, R={this.R}, A={this.A} ]";
         }
 
         /// <summary>

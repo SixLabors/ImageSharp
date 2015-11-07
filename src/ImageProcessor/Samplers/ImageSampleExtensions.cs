@@ -32,12 +32,12 @@ namespace ImageProcessor.Samplers
         /// <returns>The <see cref="Image"/></returns>
         public static Image Resize(this Image source, int width, int height, IResampler sampler)
         {
-            return Resize(source, width, height, sampler, source.Bounds, new Rectangle(0, 0, width, height));
+            return Resize(source, width, height, sampler, source.Bounds);
         }
 
         /// <summary>
-        /// Resizes an image to the given width and height with the given sampler,
-        /// source rectangle, and target rectangle.
+        /// Resizes an image to the given width and height with the given sampler and
+        /// source rectangle.
         /// </summary>
         /// <param name="source">The image to resize.</param>
         /// <param name="width">The target image width.</param>
@@ -46,14 +46,10 @@ namespace ImageProcessor.Samplers
         /// <param name="sourceRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
-        /// <param name="targetRectangle">
-        /// The <see cref="Rectangle"/> structure that specifies the location and size of the drawn image.
-        /// The image is scaled to fit the rectangle.
-        /// </param>
         /// <returns>The <see cref="Image"/></returns>
-        public static Image Resize(this Image source, int width, int height, IResampler sampler, Rectangle sourceRectangle, Rectangle targetRectangle)
+        public static Image Resize(this Image source, int width, int height, IResampler sampler, Rectangle sourceRectangle)
         {
-            return source.Process(width, height, sourceRectangle, targetRectangle, new Resize(sampler));
+            return source.Process(width, height, sourceRectangle, new Rectangle(0, 0, width, height), new Resize(sampler));
         }
 
         /// <summary>
@@ -65,12 +61,11 @@ namespace ImageProcessor.Samplers
         /// <returns>The <see cref="Image"/></returns>
         public static Image Crop(this Image source, int width, int height)
         {
-            return Crop(source, width, height, source.Bounds, new Rectangle(0, 0, width, height));
+            return Crop(source, width, height, source.Bounds);
         }
 
         /// <summary>
-        /// Crops an image to the given width and height with the given source rectangle,
-        /// and target rectangle.
+        /// Crops an image to the given width and height with the given source rectangle.
         /// <remarks>
         /// If the source rectangle is smaller than the target dimensions then the
         /// area within the source is resized performing a zoomed crop.
@@ -82,21 +77,17 @@ namespace ImageProcessor.Samplers
         /// <param name="sourceRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
-        /// <param name="targetRectangle">
-        /// The <see cref="Rectangle"/> structure that specifies the location and size of the drawn image.
-        /// The image is cropped to fit the rectangle.
-        /// </param>
         /// <returns>The <see cref="Image"/></returns>
-        public static Image Crop(this Image source, int width, int height, Rectangle sourceRectangle, Rectangle targetRectangle)
+        public static Image Crop(this Image source, int width, int height, Rectangle sourceRectangle)
         {
-            if (sourceRectangle.Width < targetRectangle.Width || sourceRectangle.Height < targetRectangle.Height)
+            if (sourceRectangle.Width < width || sourceRectangle.Height < height)
             {
                 // If the source rectangle is smaller than the target perform a
                 // cropped zoom.
                 source = source.Resize(sourceRectangle.Width, sourceRectangle.Height);
             }
 
-            return source.Process(width, height, sourceRectangle, targetRectangle, new Crop());
+            return source.Process(width, height, sourceRectangle, new Rectangle(0, 0, width, height), new Crop());
         }
     }
 }

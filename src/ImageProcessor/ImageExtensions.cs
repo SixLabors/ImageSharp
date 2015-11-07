@@ -1,4 +1,4 @@
-﻿// <copyright file="ImageFilterExtensions.cs" company="James South">
+﻿// <copyright file="ImageExtensions.cs" company="James South">
 // Copyright (c) James South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -62,6 +62,7 @@ namespace ImageProcessor
 
         /// <summary>
         /// Applies the collection of processors to the image.
+        /// <remarks>This method does not resize the target image.</remarks>
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="sourceRectangle">
@@ -95,6 +96,10 @@ namespace ImageProcessor
 
         /// <summary>
         /// Applies the collection of processors to the image.
+        /// <remarks>
+        /// This method does will resize the target image if the source and target
+        /// rectangles are different.
+        /// </remarks>
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="width">The target image width.</param>

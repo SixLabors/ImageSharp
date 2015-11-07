@@ -50,6 +50,7 @@
     <Compile Include="Common\Helpers\PixelOperations.cs" />
     <Compile Include="Filters\Blend.cs" />
     <Compile Include="Filters\ColorMatrix\IColorMatrixFilter.cs" />
+    <Compile Include="Filters\Convolution\Convolution2PassFilter.cs" />
     <Compile Include="Filters\Convolution\Convolution2DFilter.cs" />
     <Compile Include="Filters\ColorMatrix\ColorMatrixFilter.cs" />
     <Compile Include="Filters\ColorMatrix\Kodachrome.cs" />

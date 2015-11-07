@@ -66,6 +66,7 @@
     <Compile Include="Filters\Convolution\EdgeDetection\Kirsch.cs" />
     <Compile Include="Filters\Convolution\EdgeDetection\Kayyali.cs" />
     <Compile Include="Filters\Convolution\EdgeDetection\Sobel.cs" />
+    <Compile Include="Filters\Convolution\GuassianSharpen.cs" />
     <Compile Include="Filters\Convolution\GuassianBlur.cs" />
     <Compile Include="Filters\Invert.cs" />
     <Compile Include="Filters\Alpha.cs" />

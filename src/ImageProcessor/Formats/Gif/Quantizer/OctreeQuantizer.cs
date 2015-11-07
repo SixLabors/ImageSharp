@@ -8,6 +8,8 @@ namespace ImageProcessor.Formats
     using System;
     using System.Collections.Generic;
 
+    using ImageProcessor.Common.Extensions;
+
     /// <summary>
     /// Encapsulates methods to calculate the colour palette if an image using an Octree pattern.
     /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>
@@ -61,6 +63,11 @@ namespace ImageProcessor.Formats
         }
 
         /// <summary>
+        /// Gets or sets the transparency threshold.
+        /// </summary>
+        public byte Threshold { get; set; } = 128;
+
+        /// <summary>
         /// Process the pixel in the first pass of the algorithm
         /// </summary>
         /// <param name="pixel">
@@ -90,8 +97,8 @@ namespace ImageProcessor.Formats
             // The color at [maxColors] is set to transparent
             byte paletteIndex = (byte)this.maxColors;
 
-            // Get the palette index if this non-transparent
-            if (pixel.A > 0)
+            // Get the palette index if it's transparency meets criterea.
+            if (pixel.A >= this.Threshold)
             {
                 paletteIndex = (byte)this.octree.GetPaletteIndex(pixel);
             }
@@ -110,7 +117,6 @@ namespace ImageProcessor.Formats
             // First off convert the Octree to maxColors colors
             List<Bgra32> palette = this.octree.Palletize(Math.Max(this.maxColors - 1, 1));
 
-            // Add empty color for transparency
             palette.Add(Bgra32.Empty);
 
             return palette;
@@ -175,7 +181,7 @@ namespace ImageProcessor.Formats
             /// <summary>
             /// Gets or sets the number of leaves in the tree
             /// </summary>
-            private int Leaves
+            public int Leaves
             {
                 get { return this.leafCount; }
                 set { this.leafCount = value; }

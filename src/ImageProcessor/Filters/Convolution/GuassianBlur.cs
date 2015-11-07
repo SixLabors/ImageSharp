@@ -9,9 +9,8 @@ namespace ImageProcessor.Filters
 
     /// <summary>
     /// Applies a Gaussian blur to the image.
-    /// TODO: Something is not right here. The output blur is more like a motion blur.
     /// </summary>
-    public class GuassianBlur : Convolution2DFilter
+    public class GuassianBlur : Convolution2PassFilter
     {
         /// <summary>
         /// The maximum size of the kernal in either direction.
@@ -19,9 +18,9 @@ namespace ImageProcessor.Filters
         private readonly int kernelSize;
 
         /// <summary>
-        /// The standard deviation (weight)
+        /// The spread of the blur.
         /// </summary>
-        private readonly float standardDeviation;
+        private readonly float sigma;
 
         /// <summary>
         /// The vertical kernel
@@ -36,13 +35,13 @@ namespace ImageProcessor.Filters
         /// <summary>
         /// Initializes a new instance of the <see cref="GuassianBlur"/> class.
         /// </summary>
-        /// <param name="standardDeviation">
-        /// The standard deviation 'sigma' value for calculating Gaussian curves.
+        /// <param name="sigma">
+        /// The 'sigma' value representing the weight of the blur.
         /// </param>
-        public GuassianBlur(float standardDeviation = 3f)
+        public GuassianBlur(float sigma = 3f)
         {
-            this.kernelSize = ((int)Math.Ceiling(standardDeviation) * 2) + 1;
-            this.standardDeviation = standardDeviation;
+            this.kernelSize = ((int)Math.Ceiling(sigma) * 2) + 1;
+            this.sigma = sigma;
         }
 
         /// <inheritdoc/>
@@ -50,6 +49,9 @@ namespace ImageProcessor.Filters
 
         /// <inheritdoc/>
         public override float[,] KernelY => this.kernelY;
+
+        /// <inheritdoc/>
+        public override int Parallelism => 1;
 
         /// <inheritdoc/>
         protected override void OnApply(Rectangle targetRectangle, Rectangle sourceRectangle)
@@ -73,6 +75,7 @@ namespace ImageProcessor.Filters
         private float[,] CreateGaussianKernel(bool horizontal)
         {
             int size = this.kernelSize;
+            float weight = this.sigma;
             float[,] kernel = horizontal ? new float[1, size] : new float[size, 1];
             float sum = 0.0f;
 
@@ -80,7 +83,7 @@ namespace ImageProcessor.Filters
             for (int i = 0; i < size; i++)
             {
                 float x = i - midpoint;
-                float gx = this.Gaussian(x);
+                float gx = ImageMaths.Gaussian(x, weight);
                 sum += gx;
                 if (horizontal)
                 {
@@ -109,26 +112,6 @@ namespace ImageProcessor.Filters
             }
 
             return kernel;
-        }
-
-        /// <summary>
-        /// Implementation of 1D Gaussian G(x) function
-        /// </summary>
-        /// <param name="x">The x provided to G(x)</param>
-        /// <returns>The Gaussian G(x)</returns>
-        private float Gaussian(float x)
-        {
-            const float Numerator = 1.0f;
-            float deviation = this.standardDeviation;
-            float denominator = (float)(Math.Sqrt(2 * Math.PI) * deviation);
-
-            float exponentNumerator = -x * x;
-            float exponentDenominator = (float)(2 * Math.Pow(deviation, 2));
-
-            float left = Numerator / denominator;
-            float right = (float)Math.Exp(exponentNumerator / exponentDenominator);
-
-            return left * right;
         }
     }
 }

@@ -9,12 +9,10 @@ namespace ImageProcessor.Filters
     /// The Laplacian 5 x 5 operator filter.
     /// <see href="http://en.wikipedia.org/wiki/Discrete_Laplace_operator"/>
     /// </summary>
-    public class Laplacian5X5 : ConvolutionFilter
+    public class Laplacian5X5 : EdgeDetectorFilter
     {
-        /// <summary>
-        /// Gets the horizontal gradient operator.
-        /// </summary>
-        public override float[,] KernelX => new float[,]
+        /// <inheritdoc/>
+        public override float[,] KernelXY => new float[,]
         {
             { -1, -1, -1, -1, -1 },
             { -1, -1, -1, -1, -1 },

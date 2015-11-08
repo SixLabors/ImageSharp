@@ -9,12 +9,10 @@ namespace ImageProcessor.Filters
     /// The Laplacian 3 x 3 operator filter.
     /// <see href="http://en.wikipedia.org/wiki/Discrete_Laplace_operator"/>
     /// </summary>
-    public class Laplacian3X3 : ConvolutionFilter
+    public class Laplacian3X3 : EdgeDetectorFilter
     {
-        /// <summary>
-        /// Gets the horizontal gradient operator.
-        /// </summary>
-        public override float[,] KernelX => new float[,]
+        /// <inheritdoc/>
+        public override float[,] KernelXY => new float[,]
         {
             { -1, -1, -1 },
             { -1,  8, -1 },

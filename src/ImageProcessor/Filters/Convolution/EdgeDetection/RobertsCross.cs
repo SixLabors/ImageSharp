@@ -9,20 +9,16 @@ namespace ImageProcessor.Filters
     /// The Roberts Cross operator filter.
     /// <see href="http://en.wikipedia.org/wiki/Roberts_cross"/>
     /// </summary>
-    public class RobertsCross : Convolution2DFilter
+    public class RobertsCross : EdgeDetector2DFilter
     {
-        /// <summary>
-        /// Gets the horizontal gradient operator.
-        /// </summary>
+        /// <inheritdoc/>
         public override float[,] KernelX => new float[,]
         {
             { 1, 0 },
             { 0, -1 }
         };
 
-        /// <summary>
-        /// Gets the vertical gradient operator.
-        /// </summary>
+        /// <inheritdoc/>
         public override float[,] KernelY => new float[,]
         {
             { 0, 1 },

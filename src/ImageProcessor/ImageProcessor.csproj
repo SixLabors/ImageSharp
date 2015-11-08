@@ -57,6 +57,9 @@
     <Compile Include="Filters\ColorMatrix\Saturation.cs" />
     <Compile Include="Filters\ColorMatrix\GreyscaleMode.cs" />
     <Compile Include="Filters\Brightness.cs" />
+    <Compile Include="Filters\Convolution\EdgeDetection\EdgeDetector2DFilter.cs" />
+    <Compile Include="Filters\Convolution\EdgeDetection\EdgeDetectorFilter.cs" />
+    <Compile Include="Filters\Convolution\EdgeDetection\IEdgeDetectorFilter.cs" />
     <Compile Include="Filters\Convolution\EdgeDetection\Scharr.cs" />
     <Compile Include="Filters\Convolution\EdgeDetection\RobertsCross.cs" />
     <Compile Include="Filters\Convolution\EdgeDetection\Prewitt.cs" />

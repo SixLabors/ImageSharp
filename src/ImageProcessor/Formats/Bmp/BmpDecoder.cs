@@ -25,7 +25,7 @@ namespace ImageProcessor.Formats
     ///    <item>RLE8</item>
     ///    <item>BitFields</item>
     /// </list>
-    /// Formats will be supported in a later releases. We advise always 
+    /// Formats will be supported in a later releases. We advise always
     /// to use only 24 Bit Windows bitmaps.
     /// </remarks>
     public class BmpDecoder : IImageDecoder

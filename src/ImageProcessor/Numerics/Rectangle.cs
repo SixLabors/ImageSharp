@@ -141,7 +141,7 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Determines if the specfied point is contained within the rectangular region defined by 
+        /// Determines if the specfied point is contained within the rectangular region defined by
         /// this <see cref="Rectangle"/>.
         /// </summary>
         /// <param name="x">The x-coordinate of the given point.</param>

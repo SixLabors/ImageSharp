@@ -328,7 +328,7 @@ namespace ImageProcessor.Formats
         /// Returns how many bits are required to store the specified number of colors.
         /// Performs a Log2() on the value.
         /// </summary>
-        /// <para>The number of colors.</para>
+        /// <param name="colors">The number of colors.</param>
         /// <returns>
         /// The <see cref="int"/>
         /// </returns>

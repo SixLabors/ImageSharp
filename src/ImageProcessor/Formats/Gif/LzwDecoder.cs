@@ -199,7 +199,7 @@ namespace ImageProcessor.Formats
                     // »ñÈ¡ÏÂÒ»¸öÊý¾Ý
                     pixelStatck[top++] = suffix[code];
 
-                    // Fix for Gifs that have "deferred clear code" as per here : 
+                    // Fix for Gifs that have "deferred clear code" as per here :
                     // https://bugzilla.mozilla.org/show_bug.cgi?id=55918
                     if (availableCode < MaxStackSize)
                     {

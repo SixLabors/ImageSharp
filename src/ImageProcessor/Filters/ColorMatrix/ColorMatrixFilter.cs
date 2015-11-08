@@ -11,26 +11,10 @@ namespace ImageProcessor.Filters
     /// <summary>
     /// The color matrix filter.
     /// </summary>
-    public class ColorMatrixFilter : ParallelImageProcessor, IColorMatrixFilter
+    public abstract class ColorMatrixFilter : ParallelImageProcessor, IColorMatrixFilter
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ColorMatrixFilter"/> class.
-        /// </summary>
-        public ColorMatrixFilter()
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ColorMatrixFilter"/> class.
-        /// </summary>
-        /// <param name="matrix">The <see cref="Matrix4x4"/> to apply.</param>
-        public ColorMatrixFilter(Matrix4x4 matrix)
-        {
-            this.Matrix = matrix;
-        }
-
         /// <inheritdoc/>
-        public Matrix4x4 Matrix { get; set; }
+        public abstract Matrix4x4 Matrix { get; }
 
         /// <inheritdoc/>
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)

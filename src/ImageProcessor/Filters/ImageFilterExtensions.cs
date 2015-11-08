@@ -48,74 +48,18 @@ namespace ImageProcessor.Filters
         }
 
         /// <summary>
-        /// Alters the contrast component of the image.
+        /// Combines the given image together with the current one by blending their pixels.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
-        /// <param name="amount">The new contrast of the image. Must be between -100 and 100.</param>
-        /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Contrast(this Image source, int amount)
-        {
-            return Contrast(source, amount, source.Bounds);
-        }
-
-        /// <summary>
-        /// Alters the contrast component of the image.
-        /// </summary>
-        /// <param name="source">The image this method extends.</param>
-        /// <param name="amount">The new contrast of the image. Must be between -100 and 100.</param>
+        /// <param name="image">The image to blend with the currently processing image.</param>
+        /// <param name="percent">The opacity of the image image to blend. Must be between 0 and 100.</param>
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Contrast(this Image source, int amount, Rectangle rectangle)
+        public static Image Blend(this Image source, ImageBase image, int percent, Rectangle rectangle)
         {
-            return source.Process(rectangle, new Contrast(amount));
-        }
-
-        /// <summary>
-        /// Inverts the colors of the image.
-        /// </summary>
-        /// <param name="source">The image this method extends.</param>
-        /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Invert(this Image source)
-        {
-            return Invert(source, source.Bounds);
-        }
-
-        /// <summary>
-        /// Inverts the colors of the image.
-        /// </summary>
-        /// <param name="source">The image this method extends.</param>
-        /// <param name="rectangle">
-        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
-        /// </param>
-        /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Invert(this Image source, Rectangle rectangle)
-        {
-            return source.Process(rectangle, new Invert());
-        }
-
-        /// <summary>
-        /// Applies sepia toning to the image.
-        /// </summary>
-        /// <param name="source">The image this method extends.</param>
-        /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Sepia(this Image source)
-        {
-            return Sepia(source, source.Bounds);
-        }
-
-        /// <summary>
-        /// Applies sepia toning to the image.
-        /// </summary>
-        /// <param name="source">The image this method extends.</param>
-        /// <param name="rectangle">
-        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
-        /// </param>
-        /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Sepia(this Image source, Rectangle rectangle)
-        {
-            return source.Process(rectangle, new Sepia());
+            return source.Process(rectangle, new Blend(image, percent));
         }
 
         /// <summary>
@@ -139,6 +83,56 @@ namespace ImageProcessor.Filters
         public static Image BlackWhite(this Image source, Rectangle rectangle)
         {
             return source.Process(rectangle, new BlackWhite());
+        }
+
+        /// <summary>
+        /// Alters the brightness component of the image.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="amount">The new brightness of the image. Must be between -100 and 100.</param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image Brightness(this Image source, int amount)
+        {
+            return Brightness(source, amount, source.Bounds);
+        }
+
+        /// <summary>
+        /// Alters the brightness component of the image.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="amount">The new brightness of the image. Must be between -100 and 100.</param>
+        /// <param name="rectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
+        /// </param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image Brightness(this Image source, int amount, Rectangle rectangle)
+        {
+            return source.Process(rectangle, new Brightness(amount));
+        }
+
+        /// <summary>
+        /// Alters the contrast component of the image.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="amount">The new contrast of the image. Must be between -100 and 100.</param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image Contrast(this Image source, int amount)
+        {
+            return Contrast(source, amount, source.Bounds);
+        }
+
+        /// <summary>
+        /// Alters the contrast component of the image.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="amount">The new contrast of the image. Must be between -100 and 100.</param>
+        /// <param name="rectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
+        /// </param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image Contrast(this Image source, int amount, Rectangle rectangle)
+        {
+            return source.Process(rectangle, new Contrast(amount));
         }
 
         /// <summary>
@@ -166,6 +160,146 @@ namespace ImageProcessor.Filters
             return mode == GreyscaleMode.Bt709
                 ? source.Process(rectangle, new GreyscaleBt709())
                 : source.Process(rectangle, new GreyscaleBt601());
+        }
+
+        /// <summary>
+        /// Inverts the colors of the image.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image Invert(this Image source)
+        {
+            return Invert(source, source.Bounds);
+        }
+
+        /// <summary>
+        /// Inverts the colors of the image.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="rectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
+        /// </param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image Invert(this Image source, Rectangle rectangle)
+        {
+            return source.Process(rectangle, new Invert());
+        }
+
+        /// <summary>
+        /// Alters the colors of the image recreating an old Kodachrome camera effect.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image Kodachrome(this Image source)
+        {
+            return Kodachrome(source, source.Bounds);
+        }
+
+        /// <summary>
+        /// Alters the colors of the image recreating an old Kodachrome camera effect.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="rectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
+        /// </param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image Kodachrome(this Image source, Rectangle rectangle)
+        {
+            return source.Process(rectangle, new Kodachrome());
+        }
+
+        /// <summary>
+        /// Alters the colors of the image recreating an old Lomograph camera effect.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image Lomograph(this Image source)
+        {
+            return Lomograph(source, source.Bounds);
+        }
+
+        /// <summary>
+        /// Alters the colors of the image recreating an old Lomograph camera effect.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="rectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
+        /// </param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image Lomograph(this Image source, Rectangle rectangle)
+        {
+            return source.Process(rectangle, new Lomograph());
+        }
+
+        /// <summary>
+        /// Alters the colors of the image recreating an old Polaroid camera effect.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image Polaroid(this Image source)
+        {
+            return Polaroid(source, source.Bounds);
+        }
+
+        /// <summary>
+        /// Alters the colors of the image recreating an old Polaroid camera effect.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="rectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
+        /// </param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image Polaroid(this Image source, Rectangle rectangle)
+        {
+            return source.Process(rectangle, new Polaroid());
+        }
+
+        /// <summary>
+        /// Alters the saturation component of the image.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="amount">The new saturation of the image. Must be between -100 and 100.</param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image Saturation(this Image source, int amount)
+        {
+            return Saturation(source, amount, source.Bounds);
+        }
+
+        /// <summary>
+        /// Alters the saturation component of the image.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="amount">The new saturation of the image. Must be between -100 and 100.</param>
+        /// <param name="rectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
+        /// </param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image Saturation(this Image source, int amount, Rectangle rectangle)
+        {
+            return source.Process(rectangle, new Saturation(amount));
+        }
+
+        /// <summary>
+        /// Applies sepia toning to the image.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image Sepia(this Image source)
+        {
+            return Sepia(source, source.Bounds);
+        }
+
+        /// <summary>
+        /// Applies sepia toning to the image.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="rectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
+        /// </param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image Sepia(this Image source, Rectangle rectangle)
+        {
+            return source.Process(rectangle, new Sepia());
         }
     }
 }

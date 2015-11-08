@@ -14,6 +14,16 @@ namespace ImageProcessor.Filters
     public class Saturation : ColorMatrixFilter
     {
         /// <summary>
+        /// The saturation to be applied to the image.
+        /// </summary>
+        private readonly int saturation;
+
+        /// <summary>
+        /// The <see cref="Matrix4x4"/> used to alter the image.
+        /// </summary>
+        private Matrix4x4 matrix;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="Saturation"/> class.
         /// </summary>
         /// <param name="saturation">The new saturation of the image. Must be between -100 and 100.</param>
@@ -23,7 +33,16 @@ namespace ImageProcessor.Filters
         public Saturation(int saturation)
         {
             Guard.MustBeBetweenOrEqualTo(saturation, -100, 100, nameof(saturation));
-            float saturationFactor = saturation / 100f;
+            this.saturation = saturation;
+        }
+
+        /// <inheritdoc/>
+        public override Matrix4x4 Matrix => this.matrix;
+
+        /// <inheritdoc/>
+        protected override void OnApply(Rectangle targetRectangle, Rectangle sourceRectangle)
+        {
+            float saturationFactor = this.saturation / 100f;
 
             // Stop at -1 to prevent inversion.
             saturationFactor++;
@@ -37,7 +56,7 @@ namespace ImageProcessor.Filters
             float saturationComplementG = 0.6094f * saturationComplement;
             float saturationComplementB = 0.0820f * saturationComplement;
 
-            Matrix4x4 matrix = new Matrix4x4()
+            Matrix4x4 matrix4X4 = new Matrix4x4()
             {
                 M11 = saturationComplementR + saturationFactor,
                 M12 = saturationComplementR,
@@ -50,7 +69,7 @@ namespace ImageProcessor.Filters
                 M33 = saturationComplementB + saturationFactor,
             };
 
-            this.Matrix = matrix;
+            this.matrix = matrix4X4;
         }
     }
 }

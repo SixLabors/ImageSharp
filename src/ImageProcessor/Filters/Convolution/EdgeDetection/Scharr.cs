@@ -9,11 +9,9 @@ namespace ImageProcessor.Filters
     /// The Scharr operator filter.
     /// <see href="http://en.wikipedia.org/wiki/Sobel_operator#Alternative_operators"/>
     /// </summary>
-    public class Scharr : Convolution2DFilter
+    public class Scharr : EdgeDetector2DFilter
     {
-        /// <summary>
-        /// Gets the horizontal gradient operator.
-        /// </summary>
+        /// <inheritdoc/>
         public override float[,] KernelX => new float[,]
         {
             { -3, 0, 3 },
@@ -21,9 +19,7 @@ namespace ImageProcessor.Filters
             { -3, 0, 3 }
         };
 
-        /// <summary>
-        /// Gets the vertical gradient operator.
-        /// </summary>
+        /// <inheritdoc/>
         public override float[,] KernelY => new float[,]
         {
             { 3, 10, 3 },

@@ -7,14 +7,12 @@ namespace ImageProcessor.Filters
 {
     /// <summary>
     /// The Laplacian of Gaussian operator filter.
-    /// <see href="http://fourier.eng.hmc.edu/e161/lectures/gradient/node9.html"/>
+    /// <see href="http://fourier.eng.hmc.edu/e161/lectures/gradient/node8.html"/>
     /// </summary>
-    public class LaplacianOfGaussian : ConvolutionFilter
+    public class LaplacianOfGaussian : EdgeDetectorFilter
     {
-        /// <summary>
-        /// Gets the horizontal gradient operator.
-        /// </summary>
-        public override float[,] KernelX => new float[,]
+        /// <inheritdoc/>
+        public override float[,] KernelXY => new float[,]
         {
             { 0, 0, -1,  0,  0 },
             { 0, -1, -2, -1,  0 },

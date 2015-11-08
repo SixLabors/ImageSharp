@@ -8,7 +8,7 @@ namespace ImageProcessor.Filters
     using System.Threading.Tasks;
 
     /// <summary>
-    /// Defines a filter that uses a matrix to perform convolution across two dimensions against an image.
+    /// Defines a filter that uses two one-dimensional matrices to perform two-pass convolution against an image.
     /// </summary>
     public abstract class Convolution2PassFilter : ParallelImageProcessor
     {

@@ -11,7 +11,7 @@ namespace ImageProcessor.Filters
     /// Encapsulates properties and methods for creating processors that utilize a matrix to
     /// alter the image pixels.
     /// </summary>
-    public interface IColorMatrixFilter
+    public interface IColorMatrixFilter : IImageProcessor
     {
         /// <summary>
         /// Gets the <see cref="Matrix4x4"/> used to alter the image.

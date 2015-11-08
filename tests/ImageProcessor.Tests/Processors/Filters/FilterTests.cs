@@ -37,7 +37,7 @@ namespace ImageProcessor.Tests
             { "Prewitt", new Prewitt() },
             { "RobertsCross", new RobertsCross() },
             { "Scharr", new Scharr() },
-            { "Sobel", new Sobel() },
+            { "Sobel", new Sobel {Greyscale = true} },
             { "GuassianBlur", new GuassianBlur(10) },
             { "GuassianSharpen", new GuassianSharpen(10) }
         };

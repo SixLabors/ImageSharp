@@ -136,7 +136,7 @@ using (FileStream stream = File.OpenRead("foo.jpg"))
     }
 }
 ```
-Individual processors can be initialised and apply processing against images. This allows nesting which will allow the powerful combination of processng methods:
+Individual processors can be initialised and apply processing against images. This allows nesting which will allow the powerful combination of processing methods:
 
 ```csharp
 new Brightness(50).Apply(sourceImage, targetImage, sourceImage.Bounds);

@@ -12,10 +12,8 @@ namespace ImageProcessor.Filters
     /// </summary>
     public class BlackWhite : ColorMatrixFilter
     {
-        /// <summary>
-        /// The BlackWhite matrix.
-        /// </summary>
-        private static readonly Matrix4x4 ColorMatrix = new Matrix4x4()
+        /// <inheritdoc/>
+        public override Matrix4x4 Matrix => new Matrix4x4()
         {
             M11 = 1.5f,
             M12 = 1.5f,
@@ -30,13 +28,5 @@ namespace ImageProcessor.Filters
             M42 = -1f,
             M43 = -1f,
         };
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="BlackWhite"/> class.
-        /// </summary>
-        public BlackWhite()
-            : base(ColorMatrix)
-        {
-        }
     }
 }

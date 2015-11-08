@@ -12,10 +12,8 @@ namespace ImageProcessor.Filters
     /// </summary>
     public class Sepia : ColorMatrixFilter
     {
-        /// <summary>
-        /// The sepia matrix.
-        /// </summary>
-        private static readonly Matrix4x4 ColorMatrix = new Matrix4x4()
+        /// <inheritdoc/>
+        public override Matrix4x4 Matrix => new Matrix4x4()
         {
             M11 = .393f,
             M12 = .349f,
@@ -27,13 +25,5 @@ namespace ImageProcessor.Filters
             M32 = .168f,
             M33 = .131f
         };
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Sepia"/> class.
-        /// </summary>
-        public Sepia()
-            : base(ColorMatrix)
-        {
-        }
     }
 }

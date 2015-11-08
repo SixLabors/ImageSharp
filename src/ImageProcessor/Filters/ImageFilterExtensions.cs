@@ -42,7 +42,7 @@ namespace ImageProcessor.Filters
         /// <param name="image">The image to blend with the currently processing image.</param>
         /// <param name="percent">The opacity of the image image to blend. Must be between 0 and 100.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Blend(this Image source, ImageBase image, int percent = 100)
+        public static Image Blend(this Image source, ImageBase image, int percent = 50)
         {
             return source.Process(source.Bounds, new Blend(image, percent));
         }

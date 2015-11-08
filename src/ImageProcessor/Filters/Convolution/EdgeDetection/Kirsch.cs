@@ -9,11 +9,9 @@ namespace ImageProcessor.Filters
     /// The Kirsch operator filter.
     /// <see href="http://en.wikipedia.org/wiki/Kirsch_operator"/>
     /// </summary>
-    public class Kirsch : Convolution2DFilter
+    public class Kirsch : EdgeDetector2DFilter
     {
-        /// <summary>
-        /// Gets the horizontal gradient operator.
-        /// </summary>
+        /// <inheritdoc/>
         public override float[,] KernelX => new float[,]
         {
             { 5, 5, 5 },
@@ -21,9 +19,7 @@ namespace ImageProcessor.Filters
             { -3, -3, -3 }
         };
 
-        /// <summary>
-        /// Gets the vertical gradient operator.
-        /// </summary>
+        /// <inheritdoc/>
         public override float[,] KernelY => new float[,]
         {
             { 5, -3, -3 },

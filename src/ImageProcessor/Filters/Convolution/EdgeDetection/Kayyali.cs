@@ -9,11 +9,9 @@ namespace ImageProcessor.Filters
     /// The Kayyali operator filter.
     /// <see href="http://edgedetection.webs.com/"/>
     /// </summary>
-    public class Kayyali : Convolution2DFilter
+    public class Kayyali : EdgeDetector2DFilter
     {
-        /// <summary>
-        /// Gets the horizontal gradient operator.
-        /// </summary>
+        /// <inheritdoc/>
         public override float[,] KernelX => new float[,]
         {
             { 6, 0, -6 },
@@ -21,9 +19,7 @@ namespace ImageProcessor.Filters
             { -6, 0, 6 }
         };
 
-        /// <summary>
-        /// Gets the vertical gradient operator.
-        /// </summary>
+        /// <inheritdoc/>
         public override float[,] KernelY => new float[,]
         {
             { -6, 0, 6 },

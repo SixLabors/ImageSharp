@@ -136,6 +136,42 @@ namespace ImageProcessor.Filters
         }
 
         /// <summary>
+        /// Detects any edges within the image. Uses the <see cref="Sobel"/> filter
+        /// operating in greyscale mode.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image DetectEdges(this Image source)
+        {
+            return DetectEdges(source, source.Bounds, new Sobel { Greyscale = true });
+        }
+
+        /// <summary>
+        /// Detects any edges within the image.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="filter">The filter for detecting edges.</param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image DetectEdges(this Image source, IEdgeDetectorFilter filter)
+        {
+            return DetectEdges(source, source.Bounds, filter);
+        }
+
+        /// <summary>
+        /// Detects any edges within the image.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="rectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
+        /// </param>
+        /// <param name="filter">The filter for detecting edges.</param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image DetectEdges(this Image source, Rectangle rectangle, IEdgeDetectorFilter filter)
+        {
+            return source.Process(rectangle, filter);
+        }
+
+        /// <summary>
         /// Applies greyscale toning to the image.
         /// </summary>
         /// <param name="source">The image this method extends.</param>

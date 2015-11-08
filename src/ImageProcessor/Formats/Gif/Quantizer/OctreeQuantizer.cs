@@ -8,8 +8,6 @@ namespace ImageProcessor.Formats
     using System;
     using System.Collections.Generic;
 
-    using ImageProcessor.Common.Extensions;
-
     /// <summary>
     /// Encapsulates methods to calculate the colour palette if an image using an Octree pattern.
     /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>

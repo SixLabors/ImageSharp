@@ -8,19 +8,19 @@ namespace ImageProcessor.Filters
     using System.Threading.Tasks;
 
     /// <summary>
-    /// Defines a filter that uses a matrix to perform convolution across a single dimension against an image.
+    /// Defines a filter that uses a 2 dimensional matrix to perform convolution against an image.
     /// </summary>
     public abstract class ConvolutionFilter : ParallelImageProcessor
     {
         /// <summary>
-        /// Gets the horizontal gradient operator.
+        /// Gets the 2d gradient operator.
         /// </summary>
-        public abstract float[,] KernelX { get; }
+        public abstract float[,] KernelXY { get; }
 
         /// <inheritdoc/>
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-            float[,] kernelX = this.KernelX;
+            float[,] kernelX = this.KernelXY;
             int kernelLength = kernelX.GetLength(0);
             int radius = kernelLength >> 1;
 

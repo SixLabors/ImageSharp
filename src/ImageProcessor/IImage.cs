@@ -31,16 +31,16 @@ namespace ImageProcessor
         double VerticalResolution { get; set; }
 
         /// <summary>
-        /// Gets the width of the image in inches. It is calculated as the width of the image 
-        /// in pixels multiplied with the density. When the density is equals or less than zero 
+        /// Gets the width of the image in inches. It is calculated as the width of the image
+        /// in pixels multiplied with the density. When the density is equals or less than zero
         /// the default value is used.
         /// </summary>
         /// <value>The width of the image in inches.</value>
         double InchWidth { get; }
 
         /// <summary>
-        /// Gets the height of the image in inches. It is calculated as the height of the image 
-        /// in pixels multiplied with the density. When the density is equals or less than zero 
+        /// Gets the height of the image in inches. It is calculated as the height of the image
+        /// in pixels multiplied with the density. When the density is equals or less than zero
         /// the default value is used.
         /// </summary>
         /// <value>The height of the image in inches.</value>

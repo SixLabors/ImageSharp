@@ -14,8 +14,8 @@
 namespace ImageProcessor.Formats
 {
     /// <summary>
-    /// This block of bytes tells the application detailed information 
-    /// about the image, which will be used to display the image on 
+    /// This block of bytes tells the application detailed information
+    /// about the image, which will be used to display the image on
     /// the screen.
     /// <see href="https://en.wikipedia.org/wiki/BMP_file_format"/>
     /// </summary>
@@ -47,43 +47,43 @@ namespace ImageProcessor.Formats
         public short Planes { get; set; }
 
         /// <summary>
-        /// Gets or sets the number of bits per pixel, which is the color depth of the image. 
+        /// Gets or sets the number of bits per pixel, which is the color depth of the image.
         /// Typical values are 1, 4, 8, 16, 24 and 32.
         /// </summary>
         public short BitsPerPixel { get; set; }
 
         /// <summary>
-        /// Gets or sets the compression method being used. 
+        /// Gets or sets the compression method being used.
         /// See the next table for a list of possible values.
         /// </summary>
         public BmpCompression Compression { get; set; }
 
         /// <summary>
-        /// Gets or sets the image size. This is the size of the raw bitmap data (see below), 
+        /// Gets or sets the image size. This is the size of the raw bitmap data (see below),
         /// and should not be confused with the file size.
         /// </summary>
         public int ImageSize { get; set; }
 
         /// <summary>
-        /// Gets or sets the horizontal resolution of the image. 
+        /// Gets or sets the horizontal resolution of the image.
         /// (pixel per meter, signed integer)
         /// </summary>
         public int XPelsPerMeter { get; set; }
 
         /// <summary>
-        /// Gets or sets the vertical resolution of the image. 
+        /// Gets or sets the vertical resolution of the image.
         /// (pixel per meter, signed integer)
         /// </summary>
         public int YPelsPerMeter { get; set; }
 
         /// <summary>
-        /// Gets or sets the number of colors in the color palette, 
+        /// Gets or sets the number of colors in the color palette,
         /// or 0 to default to 2^n.
         /// </summary>
         public int ClrUsed { get; set; }
 
         /// <summary>
-        /// Gets or sets the number of important colors used, 
+        /// Gets or sets the number of important colors used,
         /// or 0 when every color is important{ get; set; } generally ignored.
         /// </summary>
         public int ClrImportant { get; set; }

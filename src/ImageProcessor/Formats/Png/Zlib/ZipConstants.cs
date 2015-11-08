@@ -1,4 +1,9 @@
-﻿namespace ImageProcessor.Formats
+﻿// <copyright file="ZipConstants.cs" company="James South">
+// Copyright (c) James South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
+namespace ImageProcessor.Formats
 {
     using System.Text;
 
@@ -60,7 +65,6 @@
         /// </summary>
         public const int CryptoHeaderSize = 12;
 
-
         /// <summary>
         /// Signature for local entry header
         /// </summary>
@@ -116,27 +120,15 @@
         /// End of central directory record signature
         /// </summary>
         public const int EndOfCentralDirectorySignature = 'P' | ('K' << 8) | (5 << 16) | (6 << 24);
-        static Encoding defaultEncoding = Encoding.UTF8;
 
         /// <summary>
         /// PCL don't support CodePage so we used Encoding instead of
         /// </summary>
-        public static Encoding DefaultEncoding
-        {
-            get
-            {
-                return defaultEncoding;
-            }
-
-            set
-            {
-                defaultEncoding = value;
-            }
-        }
+        public static Encoding DefaultEncoding { get; set; } = Encoding.UTF8;
 
         /// <summary>
         /// Convert a portion of a byte array to a string.
-        /// </summary>		
+        /// </summary>
         /// <param name="data">
         /// Data to convert to string
         /// </param>
@@ -171,6 +163,7 @@
             {
                 return string.Empty;
             }
+
             return ConvertToString(data, data.Length);
         }
 
@@ -205,10 +198,8 @@
         /// <summary>
         /// Convert a byte array to string
         /// </summary>
-        /// <param name="data">
-        /// Byte array to convert
-        /// </param>
         /// <param name="flags">The applicable general purpose bits flags</param>
+        /// <param name="data">Byte array to convert</param>
         /// <returns>
         /// <paramref name="data">data</paramref>converted to a string
         /// </returns>

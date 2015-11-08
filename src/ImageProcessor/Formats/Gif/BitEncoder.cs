@@ -81,28 +81,14 @@ namespace ImageProcessor.Formats
         }
 
         /// <summary>
-        /// The end.
-        /// </summary>
-        internal void End()
-        {
-            while (this.currentBit > 0)
-            {
-                byte value = (byte)(this.currentValue & 0XFF);
-                this.currentValue = this.currentValue >> 8;
-                this.currentBit -= 8;
-                this.list.Add(value);
-            }
-        }
-
-        /// <summary>
-        /// Copies a range of elements from the encoder to a compatible one-dimensional array, 
+        /// Copies a range of elements from the encoder to a compatible one-dimensional array,
         /// starting at the specified index of the target array.
         /// </summary>
         /// <param name="index">
         /// The zero-based index in the source <see cref="BitEncoder"/> at which copying begins.
         /// </param>
         /// <param name="array">
-        /// The one-dimensional Array that is the destination of the elements copied 
+        /// The one-dimensional Array that is the destination of the elements copied
         /// from <see cref="BitEncoder"/>. The Array must have zero-based indexing
         /// </param>
         /// <param name="arrayIndex">The zero-based index in array at which copying begins.</param>
@@ -127,6 +113,20 @@ namespace ImageProcessor.Formats
         public byte[] ToArray()
         {
             return this.list.ToArray();
+        }
+
+        /// <summary>
+        /// The end.
+        /// </summary>
+        internal void End()
+        {
+            while (this.currentBit > 0)
+            {
+                byte value = (byte)(this.currentValue & 0XFF);
+                this.currentValue = this.currentValue >> 8;
+                this.currentBit -= 8;
+                this.list.Add(value);
+            }
         }
     }
 }

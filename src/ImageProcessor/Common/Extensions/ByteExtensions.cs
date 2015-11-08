@@ -18,7 +18,7 @@ namespace ImageProcessor
     internal static class ByteExtensions
     {
         /// <summary>
-        /// Converts a byte array to a new array where each value in the original array is represented 
+        /// Converts a byte array to a new array where each value in the original array is represented
         /// by a the specified number of bits.
         /// </summary>
         /// <param name="bytes">The bytes to convert from. Cannot be null.</param>

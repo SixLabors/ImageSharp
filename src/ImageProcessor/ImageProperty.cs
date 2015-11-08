@@ -22,21 +22,6 @@ namespace ImageProcessor
     public struct ImageProperty : IEquatable<ImageProperty>
     {
         /// <summary>
-        /// Gets the name of this <see cref="ImageProperty"/> indicating which kind of 
-        /// information this property stores.
-        /// </summary>
-        /// <example>
-        /// Typical properties are the author, copyright
-        /// information or other meta information.
-        /// </example>
-        public string Name { get; }
-
-        /// <summary>
-        /// The value of this <see cref="ImageProperty"/>.
-        /// </summary>
-        public string Value { get; }
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="ImageProperty"/> struct.
         /// </summary>
         /// <param name="name">
@@ -50,6 +35,21 @@ namespace ImageProcessor
             this.Name = name;
             this.Value = value;
         }
+
+        /// <summary>
+        /// Gets the name of this <see cref="ImageProperty"/> indicating which kind of
+        /// information this property stores.
+        /// </summary>
+        /// <example>
+        /// Typical properties are the author, copyright
+        /// information or other meta information.
+        /// </example>
+        public string Name { get; }
+
+        /// <summary>
+        /// The value of this <see cref="ImageProperty"/>.
+        /// </summary>
+        public string Value { get; }
 
         /// <summary>
         /// Compares two <see cref="ImageProperty"/> objects. The result specifies whether the values
@@ -93,11 +93,11 @@ namespace ImageProcessor
         /// Indicates whether this instance and a specified object are equal.
         /// </summary>
         /// <param name="obj">
-        /// The object to compare with the current instance. 
+        /// The object to compare with the current instance.
         /// </param>
         /// <returns>
-        /// true if <paramref name="obj"/> and this instance are the same type and represent the 
-        /// same value; otherwise, false. 
+        /// true if <paramref name="obj"/> and this instance are the same type and represent the
+        /// same value; otherwise, false.
         /// </returns>
         public override bool Equals(object obj)
         {

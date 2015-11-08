@@ -40,7 +40,7 @@ namespace ImageProcessor.Filters
         public override Matrix4x4 Matrix => this.matrix;
 
         /// <inheritdoc/>
-        protected override void OnApply(Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
             float saturationFactor = this.saturation / 100f;
 

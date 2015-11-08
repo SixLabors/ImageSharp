@@ -9,11 +9,9 @@ namespace ImageProcessor.Filters
     /// The Prewitt operator filter.
     /// <see href="http://en.wikipedia.org/wiki/Prewitt_operator"/>
     /// </summary>
-    public class Prewitt : Convolution2DFilter
+    public class Prewitt : EdgeDetector2DFilter
     {
-        /// <summary>
-        /// Gets the horizontal gradient operator.
-        /// </summary>
+        /// <inheritdoc/>
         public override float[,] KernelX => new float[,]
         {
             { -1, 0, 1 },
@@ -21,14 +19,15 @@ namespace ImageProcessor.Filters
             { -1, 0, 1 }
         };
 
-        /// <summary>
-        /// Gets the vertical gradient operator.
-        /// </summary>
+        /// <inheritdoc/>
         public override float[,] KernelY => new float[,]
         {
             { 1, 1, 1 },
             { 0, 0, 0 },
             { -1, -1, -1 }
         };
+
+        /// <inheritdoc/>
+        public bool Greyscale { get; set; }
     }
 }

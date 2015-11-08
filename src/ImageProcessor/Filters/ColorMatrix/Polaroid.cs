@@ -12,10 +12,8 @@ namespace ImageProcessor.Filters
     /// </summary>
     public class Polaroid : ColorMatrixFilter
     {
-        /// <summary>
-        /// The Polaroid matrix. Purely artistic in composition.
-        /// </summary>
-        private static readonly Matrix4x4 ColorMatrix = new Matrix4x4()
+        /// <inheritdoc/>
+        public override Matrix4x4 Matrix => new Matrix4x4()
         {
             M11 = 1.538f,
             M12 = -0.062f,
@@ -30,13 +28,5 @@ namespace ImageProcessor.Filters
             M42 = -0.05f,
             M43 = -0.05f
         };
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Polaroid"/> class.
-        /// </summary>
-        public Polaroid()
-            : base(ColorMatrix)
-        {
-        }
     }
 }

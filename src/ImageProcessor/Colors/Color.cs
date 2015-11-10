@@ -474,6 +474,40 @@ namespace ImageProcessor
         }
 
         /// <summary>
+        /// Compresseses a linear color signal to its sRGB equivalent.
+        /// <see href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>
+        /// <see href="http://entropymine.com/imageworsener/srgbformula/"/>
+        /// </summary>
+        /// <param name="linear">The <see cref="Color"/> whos signal to compress.</param>
+        /// <returns>The <see cref="Color"/>.</returns>
+        public static Color Compand(Color linear)
+        {
+            // TODO: Is there a faster way to do this?
+            float r = Compand(linear.R);
+            float g = Compand(linear.G);
+            float b = Compand(linear.B);
+
+            return new Color(r, g, b, linear.A);
+        }
+
+        /// <summary>
+        /// Expands an sRGB color signal to its linear equivalent.
+        /// <see href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>
+        /// <see href="http://entropymine.com/imageworsener/srgbformula/"/>
+        /// </summary>
+        /// <param name="gamma">The <see cref="Color"/> whos signal to expand.</param>
+        /// <returns>The <see cref="Color"/>.</returns>
+        public static Color InverseCompand(Color gamma)
+        {
+            // TODO: Is there a faster way to do this?
+            float r = InverseCompand(gamma.R);
+            float g = InverseCompand(gamma.G);
+            float b = InverseCompand(gamma.B);
+
+            return new Color(r, g, b, gamma.A);
+        }
+
+        /// <summary>
         /// Gets a <see cref="Vector4"/> representation for this <see cref="Color"/>.
         /// </summary>
         /// <returns>A <see cref="Vector4"/> representation for this object.</returns>
@@ -525,6 +559,44 @@ namespace ImageProcessor
         public bool Equals(Color other)
         {
             return this.backingVector.Equals(other.backingVector);
+        }
+
+        /// <summary>
+        /// Gets the compressed sRGB value from an linear signal.
+        /// <see href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>
+        /// <see href="http://entropymine.com/imageworsener/srgbformula/"/>
+        /// </summary>
+        /// <param name="signal">The signal value to compress.</param>
+        /// <returns>
+        /// The <see cref="float"/>.
+        /// </returns>
+        private static float Compand(float signal)
+        {
+            if (signal <= 0.0031308f)
+            {
+                return signal * 12.92f;
+            }
+
+            return (1.055f * (float)Math.Pow(signal, 0.41666666f)) - 0.055f;
+        }
+
+        /// <summary>
+        /// Gets the expanded linear value from an sRGB signal.
+        /// <see href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>
+        /// <see href="http://entropymine.com/imageworsener/srgbformula/"/>
+        /// </summary>
+        /// <param name="signal">The signal value to expand.</param>
+        /// <returns>
+        /// The <see cref="float"/>.
+        /// </returns>
+        private static float InverseCompand(float signal)
+        {
+            if (signal <= 0.04045f)
+            {
+                return signal / 12.92f;
+            }
+
+            return (float)Math.Pow((signal + 0.055f) / 1.055f, 2.4f);
         }
 
         /// <summary>

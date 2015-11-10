@@ -6,6 +6,7 @@
 namespace ImageProcessor
 {
     using System;
+    using System.Numerics;
 
     /// <summary>
     /// Performs per-pixel operations.

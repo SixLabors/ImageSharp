@@ -8,6 +8,7 @@ namespace ImageProcessor
     using System;
     using System.ComponentModel;
     using System.Numerics;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Represents a four-component color using red, green, blue, and alpha data.

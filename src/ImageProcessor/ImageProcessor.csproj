@@ -47,7 +47,6 @@
     <Compile Include="Colors\Color.cs" />
     <Compile Include="Common\Extensions\EnumerableExtensions.cs" />
     <Compile Include="Common\Helpers\ImageMaths.cs" />
-    <Compile Include="Common\Helpers\PixelOperations.cs" />
     <Compile Include="Filters\Blend.cs" />
     <Compile Include="Filters\ColorMatrix\IColorMatrixFilter.cs" />
     <Compile Include="Filters\Convolution\Convolution2PassFilter.cs" />

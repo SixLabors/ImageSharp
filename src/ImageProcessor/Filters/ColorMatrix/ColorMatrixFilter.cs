@@ -50,7 +50,7 @@ namespace ImageProcessor.Filters
         /// </returns>
         private static Color ApplyMatrix(Color color, Matrix4x4 matrix)
         {
-            color = PixelOperations.ToLinear(color);
+            color = Color.InverseCompand(color);
 
             float sr = color.R;
             float sg = color.G;
@@ -60,7 +60,7 @@ namespace ImageProcessor.Filters
             color.G = (sr * matrix.M12) + (sg * matrix.M22) + (sb * matrix.M32) + matrix.M42;
             color.B = (sr * matrix.M13) + (sg * matrix.M23) + (sb * matrix.M33) + matrix.M43;
 
-            return PixelOperations.ToSrgb(color);
+            return Color.Compand(color);
         }
     }
 }

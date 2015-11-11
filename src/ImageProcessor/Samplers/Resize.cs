@@ -97,8 +97,7 @@ namespace ImageProcessor.Samplers
                                     }
 
                                     int originX = xw.Index;
-                                    Color sourceColor = PixelOperations.ToLinear(source[originX, originY]);
-
+                                    Color sourceColor = Color.InverseCompand(source[originX, originY]);
                                     if (Math.Abs(sourceColor.A) < Epsilon)
                                     {
                                         continue;
@@ -113,8 +112,7 @@ namespace ImageProcessor.Samplers
                                 }
                             }
 
-                            destination = PixelOperations.ToSrgb(destination);
-                            target[x, y] = destination;
+                            target[x, y] = Color.Compand(destination);
                         }
                     }
                 });

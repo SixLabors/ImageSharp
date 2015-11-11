@@ -8,7 +8,6 @@ namespace ImageProcessor
     using System;
     using System.ComponentModel;
     using System.Numerics;
-    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Represents a four-component color using red, green, blue, and alpha data.
@@ -506,6 +505,34 @@ namespace ImageProcessor
             float b = InverseCompand(gamma.B);
 
             return new Color(r, g, b, gamma.A);
+        }
+
+        /// <summary>
+        /// Converts a non-premultipled alpha <see cref="Color"/> to a <see cref="Color"/>
+        /// that contains premultiplied alpha.
+        /// </summary>
+        /// <param name="r">The red component of this <see cref="Color"/>.</param>
+        /// <param name="g">The green component of this <see cref="Color"/>.</param>
+        /// <param name="b">The blue component of this <see cref="Color"/>.</param>
+        /// <param name="a">The alpha component of this <see cref="Color"/>.</param>
+        /// <returns>The <see cref="Color"/>.</returns>
+        public static Color FromNonPremultiplied(float r, float g, float b, float a)
+        {
+            return new Color(r * a, g * a, b * a, a);
+        }
+
+        /// <summary>
+        /// Converts a premultipled alpha <see cref="Color"/> to a <see cref="Color"/>
+        /// that contains non-premultiplied alpha.
+        /// </summary>
+        /// <param name="r">The red component of this <see cref="Color"/>.</param>
+        /// <param name="g">The green component of this <see cref="Color"/>.</param>
+        /// <param name="b">The blue component of this <see cref="Color"/>.</param>
+        /// <param name="a">The alpha component of this <see cref="Color"/>.</param>
+        /// <returns>The <see cref="Color"/>.</returns>
+        public static Color ToNonPremultiplied(float r, float g, float b, float a)
+        {
+            return new Color(r / a, g / a, b / a, a);
         }
 
         /// <summary>

@@ -1,12 +1,12 @@
-﻿// <copyright file="Resize.cs" company="James South">
-// Copyright (c) James South and contributors.
+﻿// <copyright file="Resize.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
 namespace ImageProcessor.Samplers
 {
     using System;
-    using System.Collections.Generic;
+    using System.Collections.Immutable;
     using System.Threading.Tasks;
 
     /// <summary>
@@ -69,12 +69,12 @@ namespace ImageProcessor.Samplers
                 {
                     if (y >= targetY && y < targetBottom)
                     {
-                        List<Weight> verticalValues = this.verticalWeights[y].Values;
+                        ImmutableArray<Weight> verticalValues = this.verticalWeights[y].Values;
                         float verticalSum = this.verticalWeights[y].Sum;
 
                         for (int x = startX; x < endX; x++)
                         {
-                            List<Weight> horizontalValues = this.horizontalWeights[x].Values;
+                            ImmutableArray<Weight> horizontalValues = this.horizontalWeights[x].Values;
                             float horizontalSum = this.horizontalWeights[x].Sum;
 
                             // Destination color components
@@ -163,6 +163,7 @@ namespace ImageProcessor.Samplers
                         float sum = 0;
                         result[i] = new Weights();
 
+                        ImmutableArray<Weight>.Builder builder = ImmutableArray.CreateBuilder<Weight>();
                         for (int a = startU; a <= endU; a++)
                         {
                             float w = sampler.GetValue((a - fu) / scale);
@@ -170,10 +171,10 @@ namespace ImageProcessor.Samplers
                             if (Math.Abs(w) > Epsilon)
                             {
                                 sum += w;
-                                result[i].Values.Add(new Weight(a, w));
+                                builder.Add(new Weight(a, w));
                             }
                         }
-
+                        result[i].Values = builder.ToImmutable();
                         result[i].Sum = sum;
                     });
 
@@ -213,17 +214,9 @@ namespace ImageProcessor.Samplers
         protected class Weights
         {
             /// <summary>
-            /// Initializes a new instance of the <see cref="Weights"/> class.
-            /// </summary>
-            public Weights()
-            {
-                this.Values = new List<Weight>();
-            }
-
-            /// <summary>
             /// Gets or sets the values.
             /// </summary>
-            public List<Weight> Values { get; set; }
+            public ImmutableArray<Weight> Values { get; set; }
 
             /// <summary>
             /// Gets or sets the sum.

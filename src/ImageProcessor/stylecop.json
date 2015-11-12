@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/DotNetAnalyzers/StyleCopAnalyzers/master/StyleCop.Analyzers/StyleCop.Analyzers/Settings/stylecop.schema.json",
   "settings": {
     "documentationRules": {
-      "companyName": "James South",
+      "companyName": "James Jackson-South",
       "copyrightText": "Copyright (c) {companyName} and contributors.\nLicensed under the {licenseName}.",
       "variables": {
         "licenseName": "Apache License, Version 2.0"

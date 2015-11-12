@@ -1,6 +1,6 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="RectangleTests.cs" company="James South">
-//   Copyright © James South and contributors.
+// <copyright file="RectangleTests.cs" company="James Jackson-South">
+//   Copyright © James Jackson-South and contributors.
 //   Licensed under the Apache License, Version 2.0.
 // </copyright>
 // <summary>

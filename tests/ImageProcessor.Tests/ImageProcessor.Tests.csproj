@@ -77,12 +77,6 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\ImageProcessor\ImageProcessor.csproj">
-      <Project>{8047C4AC-7097-4DE4-B00D-6D55EBCF1D36}</Project>
-      <Name>ImageProcessor</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

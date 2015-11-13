@@ -2,7 +2,7 @@
 var util = require('util');
 
 var file = '../src/imageprocessor/project.json';
-var buildNumber = process.env.APPVEYOR_BUILD_NUMBER;
+var buildNumber = process.env.APPVEYOR_BUILD_VERSION;
 
 jsonfile.readFile(file, function (err, project) {
     project.version = buildNumber;

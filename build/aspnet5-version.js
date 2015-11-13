@@ -1,6 +1,5 @@
 ﻿var jsonfile = require('jsonfile');
 var semver = require('semver');
-var util = require('util');
 
 var file = '../src/imageprocessor/project.json';
 var buildVersion = process.env.APPVEYOR_BUILD_VERSION.substring(1);

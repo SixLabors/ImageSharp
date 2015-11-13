@@ -1,11 +1,14 @@
 {
-    "version": "3.0.0-*",
-    "description": "ImageProcessor",
-    "authors": [ "James Jackson-South" ],
-    "tags": [ "Image Resize Crop Quality Gif Jpg Jpeg Bitmap Png Fluent Animated" ],
-    "projectUrl": "",
-    "licenseUrl": "",
-
+  "version": "3.0.0-*",
+  "description": "ImageProcessor",
+  "authors": [
+    "James Jackson-South"
+  ],
+  "tags": [
+    "Image Resize Crop Quality Gif Jpg Jpeg Bitmap Png Fluent Animated"
+  ],
+  "projectUrl": "",
+  "licenseUrl": "",
   "dependencies": {
     "System.Collections": "4.0.10",
     "System.Linq": "4.0.0",
@@ -20,8 +23,7 @@
     "Microsoft.NETCore": "5.0.1-beta-23409",
     "Microsoft.NETCore.Platforms": "1.0.1-beta-23409"
   },
-
-    "frameworks": {
-        "dotnet": { }
-    }
+  "frameworks": {
+    "dnxcore50": {}
+  }
 }

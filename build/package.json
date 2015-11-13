@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "jsonfile": "^2.2.3"
+  }
+}

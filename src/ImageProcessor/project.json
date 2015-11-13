@@ -1,17 +1,26 @@
-﻿{
-  "supports": {
-    "net46.app": {},
-    "uwp.10.0.app": {},
-    "dnxcore50.app": {}
-  },
-  "dependencies": {
-    "Microsoft.NETCore": "5.0.0",
-    "Microsoft.NETCore.Portable.Compatibility": "1.0.0",
-    "StyleCop.Analyzers": "1.0.0-beta015"
-  },
-  "frameworks": {
-    "dotnet": {
-      "imports": "portable-net452+win81"
+{
+    "version": "3.0.0-*",
+    "description": "ImageProcessor",
+    "authors": [ "James Jackson-South" ],
+    "tags": [ "Image Resize Crop Quality Gif Jpg Jpeg Bitmap Png Fluent Animated" ],
+    "projectUrl": "",
+    "licenseUrl": "",
+
+    "dependencies": {
+        "System.Collections": "4.0.10-beta-23019",
+        "System.Linq": "4.0.0-beta-23019",
+        "System.Threading": "4.0.10-beta-23019",
+        "System.Runtime": "4.0.10-beta-23019",
+        "Microsoft.CSharp": "4.0.0-beta-23019",
+        "Microsoft.NETCore": "5.0.0",
+        "Microsoft.NETCore.Portable.Compatibility": "1.0.0",
+        "System.Runtime.Extensions": "4.0.0",
+        "System.Reflection": "4.0.0",
+        "System.IO": "4.0.0",
+        "StyleCop.Analyzers": "1.0.0-beta015"
+    },
+
+    "frameworks": {
+        "dotnet": { }
     }
-  }
 }

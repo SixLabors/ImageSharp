@@ -2,11 +2,11 @@
 var util = require('util');
 
 var file = '../src/imageprocessor/project.json';
-var buildNumber = process.env.APPVEYOR_BUILD_VERSION;
+var buildNumber = process.env.APPVEYOR_BUILD_VERSION.substring(1);
 
 jsonfile.readFile(file, function (err, project) {
-    project.version = buildNumber;
-    jsonfile.writeFile(file, project, {spaces: 2}, function(err) {
-        console.error(err);
-    });
+	project.version = buildNumber;
+	jsonfile.writeFile(file, project, {spaces: 2}, function(err) {
+		console.error(err);
+	});
 })

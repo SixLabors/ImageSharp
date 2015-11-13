@@ -173,3 +173,6 @@ build/TestResult.xml
 
 _site/
 .vs/config/applicationhost.config
+
+**/node_modules
+**/node_modules/*

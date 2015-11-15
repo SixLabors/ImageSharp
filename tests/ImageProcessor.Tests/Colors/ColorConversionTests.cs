@@ -27,7 +27,7 @@ namespace ImageProcessor.Tests
         /// <summary>
         /// Tests the implicit conversion from <see cref="Color"/> to <see cref="YCbCr"/>.
         /// </summary>
-        //[Fact]
+        [Fact]
         [SuppressMessage("StyleCop.CSharp.NamingRules", "SA1305:FieldNamesMustNotUseHungarianNotation",
             Justification = "Reviewed. Suppression is OK here.")]
         public void ColorToYCbCr()

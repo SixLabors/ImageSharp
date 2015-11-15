@@ -1,18 +1,40 @@
-<?xml version="1.0"?>
-<package >
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package>
   <metadata>
-    <id>$id$</id>
-    <version>$version$</version>
-    <title>$title$</title>
-    <authors>$author$</authors>
-    <owners>$author$</owners>
-    <licenseUrl>http://LICENSE_URL_HERE_OR_DELETE_THIS_LINE</licenseUrl>
-    <projectUrl>http://PROJECT_URL_HERE_OR_DELETE_THIS_LINE</projectUrl>
-    <iconUrl>http://ICON_URL_HERE_OR_DELETE_THIS_LINE</iconUrl>
+    <id>ImageProcessor</id>
+    <version>3.0.0-alpha</version>
+    <title>ImageProcessor</title>
+    <authors>James Jackson-South</authors>
+    <owners>James Jackson-South</owners>
+    <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
+    <projectUrl>http://imageprocessor.org</projectUrl>
+    <iconUrl>http://imageprocessor.org/assets/ico/apple-touch-icon-144x144.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>$description$</description>
+    <description>A cross-platform library for processing of image files written in C#</description>
     <releaseNotes>Alpha Release.</releaseNotes>
-    <copyright>Copyright James Jackson-South and contributors2015</copyright>
+    <copyright>Copyright (c) James Jackson-South and contributors</copyright>
     <tags>Image Resize Crop Quality Gif Jpg Jpeg Bitmap Png Fluent Animated</tags>
+    <dependencies>
+      <group targetFramework="dotnet">
+        <dependency id="System.Collections" version="4.0.10" />
+        <dependency id="System.Collections.Immutable" version="1.1.37" />
+        <dependency id="System.Diagnostics.Debug" version="4.0.10" />
+        <dependency id="System.Globalization" version="4.0.10" />
+        <dependency id="System.IO" version="4.0.10" />
+        <dependency id="System.Linq" version="4.0.0" />
+        <dependency id="System.Numerics.Vectors" version="4.1.0" />
+        <dependency id="System.Reflection" version="4.0.10" />
+        <dependency id="System.Resources.ResourceManager" version="4.0.0" />
+        <dependency id="System.Runtime" version="4.0.20" />
+        <dependency id="System.Runtime.Extensions" version="4.0.10" />
+        <dependency id="System.Text.Encoding" version="4.0.10" />
+        <dependency id="System.Threading" version="4.0.10" />
+        <dependency id="System.Threading.Tasks" version="4.0.10" />
+        <dependency id="System.Threading.Tasks.Parallel" version="4.0.0" />
+      </group>
+    </dependencies>
   </metadata>
+  <files>
+    <file src="bin\Debug\ImageProcessor.dll" target="lib\dotnet\ImageProcessor.dll" />
+  </files>
 </package>

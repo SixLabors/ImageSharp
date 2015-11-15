@@ -1,0 +1,30 @@
+version: v3.0.0.{build}
+os: Visual Studio 2015
+install:
+# Remove NuGet v2 source as we want to use v3 for everything
+- cmd: nuget sources remove -Name nuget.org
+before_build:
+- cmd: >-
+    dnvm install 1.0.0-beta8 -r clr
+    dnvm install 1.0.0-beta8 -r coreclr -arch x64 -a x64
+    dnvm use 1.0.0-beta8 -r coreclr -a x64
+
+    dnvm list
+
+    dnu restore src\ImageProcessor
+    dnu restore tests\ImageProcessor.Tests
+
+    cd build
+    npm install
+    node aspnet5-version.js
+    cd..
+build:
+  project: ImageProcessor.sln
+  verbosity: minimal
+test_script:
+- cmd: >-
+    dnvm use 1.0.0-beta8 -r coreclr -a x64
+    cd tests/ImageProcessor.Tests
+    dnx test
+artifacts:
+- path: artifacts\bin\ImageProcessor\**\*.nupkg

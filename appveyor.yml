@@ -21,7 +21,7 @@ before_build:
 
     npm install
 
-    node aspnet5-version.js
+    node appveyor-project-version-patch.js
 
     cd..
 build:

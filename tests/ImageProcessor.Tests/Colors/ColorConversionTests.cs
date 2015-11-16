@@ -36,23 +36,23 @@ namespace ImageProcessor.Tests
             Color color = new Color(1, 1, 1);
             YCbCr yCbCr = color;
 
-            Assert.Equal(255, yCbCr.Y);
-            Assert.Equal(128, yCbCr.Cb);
-            Assert.Equal(128, yCbCr.Cr);
+            Assert.Equal(255, yCbCr.Y, 0);
+            Assert.Equal(128, yCbCr.Cb, 0);
+            Assert.Equal(128, yCbCr.Cr, 0);
 
             // Black
             Color color2 = new Color(0, 0, 0);
             YCbCr yCbCr2 = color2;
-            Assert.Equal(0, yCbCr2.Y);
-            Assert.Equal(128, yCbCr2.Cb);
-            Assert.Equal(128, yCbCr2.Cr);
+            Assert.Equal(0, yCbCr2.Y, 0);
+            Assert.Equal(128, yCbCr2.Cb, 0);
+            Assert.Equal(128, yCbCr2.Cr, 0);
 
             // Grey
             Color color3 = new Color(.5f, .5f, .5f);
             YCbCr yCbCr3 = color3;
-            Assert.Equal(128, yCbCr3.Y);
-            Assert.Equal(128, yCbCr3.Cb);
-            Assert.Equal(128, yCbCr3.Cr);
+            Assert.Equal(128, yCbCr3.Y, 0);
+            Assert.Equal(128, yCbCr3.Cb, 0);
+            Assert.Equal(128, yCbCr3.Cr, 0);
         }
 
         /// <summary>

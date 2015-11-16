@@ -20,8 +20,8 @@
     "ImageProcessor": "3.0.0-*",
     "Microsoft.NETCore": "5.0.1-beta-23409",
     "Microsoft.NETCore.Platforms": "1.0.1-beta-23409",
-    "xunit": "2.1.0",
-    "xunit.runner.dnx": "2.1.0-beta6-build191"
+    "xunit": "2.1.0-*",
+    "xunit.runner.dnx": "2.1.0-*"
   },
   "commands": {
     "test": "xunit.runner.dnx"

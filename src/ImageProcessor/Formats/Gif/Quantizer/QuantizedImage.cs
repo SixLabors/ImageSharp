@@ -69,12 +69,13 @@ namespace ImageProcessor.Formats
             Image image = new Image();
 
             int pixelCount = this.Pixels.Length;
+            int palletCount = this.Palette.Length - 1;
             float[] bgraPixels = new float[pixelCount * 4];
 
             for (int i = 0; i < pixelCount; i++)
             {
                 int offset = i * 4;
-                Bgra32 color = this.Palette[this.Pixels[i]];
+                Bgra32 color = this.Palette[Math.Min(palletCount, this.Pixels[i])];
                 bgraPixels[offset + 0] = color.B;
                 bgraPixels[offset + 1] = color.G;
                 bgraPixels[offset + 2] = color.R;

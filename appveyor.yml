@@ -1,8 +1,10 @@
 version: v3.0.0.{build}
 os: Visual Studio 2015
+
 install:
 # Remove NuGet v2 source as we want to use v3 for everything
 - cmd: nuget sources remove -Name nuget.org
+
 before_build:
 - cmd: >-
     dnvm install 1.0.0-beta8 -r clr
@@ -24,9 +26,11 @@ before_build:
     node appveyor-project-version-patch.js
 
     cd..
+    
 build:
   project: ImageProcessor.sln
   verbosity: minimal
+  
 test_script:
 - cmd: >-
     dnvm use 1.0.0-beta8 -r coreclr -a x64
@@ -36,3 +40,14 @@ test_script:
     dnx test
 artifacts:
 - path: artifacts\bin\ImageProcessor\**\*.nupkg
+
+deploy:
+     # MyGet Deployment for builds & releases
+  - provider: NuGet
+    server: https://www.myget.org/F/imageprocessor/api/v2/package
+    symbol_server: https://nuget.symbolsource.org/MyGet/imageprocessor
+    api_key:
+      secure: fz0rUrt3B1HczUC1ZehwVsrFSWX9WZGDQoueDztLte9/+yQG+BBU7UrO+coE8lUf
+    artifact: /.*\.nupkg/
+    on:
+      branch: V3

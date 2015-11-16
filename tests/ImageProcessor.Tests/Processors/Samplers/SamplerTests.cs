@@ -32,9 +32,9 @@ namespace ImageProcessor.Tests
         [MemberData("Samplers")]
         public void ImageShouldResize(string name, IResampler sampler)
         {
-            if (!Directory.Exists("Resized"))
+            if (!Directory.Exists("TestOutput/Resized"))
             {
-                Directory.CreateDirectory("Resized");
+                Directory.CreateDirectory("TestOutput/Resized");
             }
 
             foreach (string file in Files)
@@ -44,7 +44,7 @@ namespace ImageProcessor.Tests
                     Stopwatch watch = Stopwatch.StartNew();
                     Image image = new Image(stream);
                     string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
-                    using (FileStream output = File.OpenWrite($"Resized/{filename}"))
+                    using (FileStream output = File.OpenWrite($"TestOutput/Resized/{filename}"))
                     {
                         image.Resize(image.Width / 2, image.Height / 2, sampler).Save(output);
                     }
@@ -57,9 +57,9 @@ namespace ImageProcessor.Tests
         [Fact]
         public void ImageShouldCrop()
         {
-            if (!Directory.Exists("Cropped"))
+            if (!Directory.Exists("TestOutput/Cropped"))
             {
-                Directory.CreateDirectory("Cropped");
+                Directory.CreateDirectory("TestOutput/Cropped");
             }
 
             foreach (string file in Files)
@@ -68,7 +68,7 @@ namespace ImageProcessor.Tests
                 {
                     Image image = new Image(stream);
                     string filename = Path.GetFileNameWithoutExtension(file) + "-Cropped" + Path.GetExtension(file);
-                    using (FileStream output = File.OpenWrite($"Cropped/{filename}"))
+                    using (FileStream output = File.OpenWrite($"TestOutput/Cropped/{filename}"))
                     {
                         image.Crop(image.Width / 2, image.Height / 2).Save(output);
                     }

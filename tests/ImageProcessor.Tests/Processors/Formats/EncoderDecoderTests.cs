@@ -12,12 +12,12 @@
         [Fact]
         public void DecodeThenEncodeImageFromStreamShouldSucceed()
         {
-            if (!Directory.Exists("Encoded"))
+            if (!Directory.Exists("TestOutput/Encoded"))
             {
-                Directory.CreateDirectory("Encoded");
+                Directory.CreateDirectory("TestOutput/Encoded");
             }
 
-            foreach (FileInfo file in new DirectoryInfo("Encoded").GetFiles())
+            foreach (FileInfo file in new DirectoryInfo("TestOutput/Encoded").GetFiles())
             {
                 file.Delete();
             }
@@ -29,7 +29,7 @@
                     Stopwatch watch = Stopwatch.StartNew();
                     Image image = new Image(stream);
 
-                    string encodedFilename = "Encoded/" + Path.GetFileName(file);
+                    string encodedFilename = "TestOutput/Encoded/" + Path.GetFileName(file);
 
                     using (FileStream output = File.OpenWrite(encodedFilename))
                     {

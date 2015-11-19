@@ -55,13 +55,25 @@ namespace ImageProcessor.Formats
 
                     offset = ((this.row * header.Width) + i) * 4;
                     int pixelOffset = index * 3;
+                    
+                    float r = newScanline[pixelOffset] / 255f;
+                    float g = newScanline[pixelOffset + 1] / 255f;
+                    float b = newScanline[pixelOffset + 2] / 255f;
+                    float a = this.paletteAlpha.Length > index
+                                            ? this.paletteAlpha[index] / 255f
+                                            : 1;
 
-                    pixels[offset] = this.palette[pixelOffset] / 255f;
-                    pixels[offset + 1] = this.palette[pixelOffset + 1] / 255f;
-                    pixels[offset + 2] = this.palette[pixelOffset + 2] / 255f;
-                    pixels[offset + 3] = this.paletteAlpha.Length > index
-                                                ? this.paletteAlpha[index] / 255f
-                                                : 1;
+                    Color color = new Color(r, g, b, a);
+                    if (color.A < 1)
+                    {
+                        // We want to convert to premultiplied alpha here.
+                        color = Color.FromNonPremultiplied(color);
+                    }
+                    
+                    pixels[offset] = color.R;
+                    pixels[offset + 1] = color.G;
+                    pixels[offset + 2] = color.B;
+                    pixels[offset + 3] = color.A;
                 }
             }
             else

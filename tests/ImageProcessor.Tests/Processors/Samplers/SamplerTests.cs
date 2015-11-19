@@ -4,6 +4,7 @@ namespace ImageProcessor.Tests
     using System.Diagnostics;
     using System.IO;
 
+    using ImageProcessor.Filters;
     using ImageProcessor.Samplers;
 
     using Xunit;

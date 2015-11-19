@@ -44,10 +44,18 @@ namespace ImageProcessor.Formats
                 {
                     offset = ((this.row * header.Width) + (x >> 2)) * 4;
 
-                    pixels[offset + 0] = newScanline[x] / 255f;
-                    pixels[offset + 1] = newScanline[x + 1] / 255f;
-                    pixels[offset + 2] = newScanline[x + 2] / 255f;
-                    pixels[offset + 3] = newScanline[x + 3] / 255f;
+                    // We want to convert to premultiplied alpha here.
+                    float r = newScanline[x] / 255f;
+                    float g = newScanline[x + 1] / 255f;
+                    float b = newScanline[x + 2] / 255f;
+                    float a = newScanline[x + 3] / 255f;
+
+                    Color premultiplied = Color.FromNonPremultiplied(new Color(r, g, b, a));
+
+                    pixels[offset] = premultiplied.R;
+                    pixels[offset + 1] = premultiplied.G;
+                    pixels[offset + 2] = premultiplied.B;
+                    pixels[offset + 3] = premultiplied.A;
                 }
             }
             else
@@ -57,7 +65,7 @@ namespace ImageProcessor.Formats
                     offset = ((this.row * header.Width) + x) * 4;
                     int pixelOffset = x * 3;
 
-                    pixels[offset + 0] = newScanline[pixelOffset] / 255f;
+                    pixels[offset] = newScanline[pixelOffset] / 255f;
                     pixels[offset + 1] = newScanline[pixelOffset + 1] / 255f;
                     pixels[offset + 2] = newScanline[pixelOffset + 2] / 255f;
                     pixels[offset + 3] = 1;

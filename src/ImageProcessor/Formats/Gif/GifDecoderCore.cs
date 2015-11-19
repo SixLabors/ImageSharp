@@ -354,6 +354,8 @@ namespace ImageProcessor.Formats
                     {
                         // We divide by 255 as we will store the colors in our floating point format.
                         // Stored in r-> g-> b-> a order.
+                        // Gifs don't store alpha transparency so we don't need to convert to
+                        // premultiplied.
                         int indexOffset = index * 3;
                         this.currentFrame[offset + 0] = colorTable[indexOffset] / 255f; // r
                         this.currentFrame[offset + 1] = colorTable[indexOffset + 1] / 255f; // g

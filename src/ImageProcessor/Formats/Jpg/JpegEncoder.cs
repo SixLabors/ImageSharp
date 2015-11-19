@@ -105,9 +105,17 @@ namespace ImageProcessor.Formats
                             int start = x * 3;
                             int source = ((y * pixelWidth) + x) * 4;
 
-                            samples[start] = (byte)(sourcePixels[source].Clamp(0, 1) * 255);
-                            samples[start + 1] = (byte)(sourcePixels[source + 1].Clamp(0, 1) * 255);
-                            samples[start + 2] = (byte)(sourcePixels[source + 2].Clamp(0, 1) * 255);
+                            // Convert to non-premultiplied color.
+                            float r = sourcePixels[source];
+                            float g = sourcePixels[source + 1];
+                            float b = sourcePixels[source + 2];
+                            float a = sourcePixels[source + 3];
+
+                            Bgra32 color = Color.ToNonPremultiplied(new Color(r, g, b, a));
+
+                            samples[start] = color.R;
+                            samples[start + 1] = color.G;
+                            samples[start + 2] = color.B;
                         }
 
                         rows[y] = new SampleRow(samples, pixelWidth, 8, 3);

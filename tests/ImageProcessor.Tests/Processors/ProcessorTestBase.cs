@@ -30,6 +30,7 @@ namespace ImageProcessor.Tests
             //"TestImages/Formats/Jpg/greyscale.jpg",
             //"TestImages/Formats/Bmp/Car.bmp",
             "TestImages/Formats/Png/cballs.png",
+            "TestImages/Formats/Png/blur.png",
             //"TestImages/Formats/Png/cmyk.png",
             //"TestImages/Formats/Png/gamma-1.0-or-2.2.png",
             "TestImages/Formats/Png/splash.png",

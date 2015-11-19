@@ -532,6 +532,11 @@ namespace ImageProcessor
         /// <returns>The <see cref="Color"/>.</returns>
         public static Color ToNonPremultiplied(float r, float g, float b, float a)
         {
+            if (Math.Abs(a) < Epsilon)
+            {
+                return new Color(r, g, b, a);
+            }
+
             return new Color(r / a, g / a, b / a, a);
         }
 

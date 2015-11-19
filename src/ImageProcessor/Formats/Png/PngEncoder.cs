@@ -326,7 +326,8 @@ namespace ImageProcessor.Formats
                     float b = pixels[pixelOffset + 2];
                     float a = pixels[pixelOffset + 3];
 
-                    Bgra32 color = Color.ToNonPremultiplied(new Color(r, g, b, a));
+                    // Implicit cast to Bgra32 handles premultiplication conversion.
+                    Bgra32 color = new Color(r, g, b, a);
 
                     data[dataOffset] = color.R;
                     data[dataOffset + 1] = color.G;
@@ -342,7 +343,7 @@ namespace ImageProcessor.Formats
                         b = pixels[lastOffset + 2];
                         a = pixels[lastOffset + 3];
 
-                        color = Color.ToNonPremultiplied(new Color(r, g, b, a));
+                        color = new Color(r, g, b, a);
 
                         data[dataOffset] -= color.R;
                         data[dataOffset + 1] -= color.G;

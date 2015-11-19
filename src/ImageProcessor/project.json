@@ -2,7 +2,7 @@
   "version": "3.0.0-*",
   "description": "ImageProcessor",
   "authors": [
-    "James Jackson-South"
+    "James Jackson-South and contributors"
   ],
   "tags": [
     "Image Resize Crop Quality Gif Jpg Jpeg Bitmap Png Fluent Animated"
@@ -19,7 +19,7 @@
     "System.Runtime.Extensions": "4.0.10",
     "System.Reflection": "4.0.10",
     "System.IO": "4.0.10",
-    "StyleCop.Analyzers": "1.0.0-beta015",
+    "StyleCop.Analyzers": "1.0.0-beta016",
     "Microsoft.NETCore": "5.0.1-beta-23409",
     "Microsoft.NETCore.Platforms": "1.0.1-beta-23409"
   },

@@ -46,7 +46,9 @@ namespace ImageProcessor.Formats
         /// <c>true</c> if the image should be written uncompressed to
         /// the stream; otherwise, <c>false</c>.
         /// </value>
-        public bool IsWritingUncompressed { get; set; }
+        // TODO: We can't quickly return a color to non-premultiplied with this method.
+        // Should we remove?
+        //public bool IsWritingUncompressed { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether this instance is writing
@@ -113,14 +115,14 @@ namespace ImageProcessor.Formats
             this.WritePhysicalChunk(stream, image);
             this.WriteGammaChunk(stream);
 
-            if (this.IsWritingUncompressed)
-            {
-                this.WriteDataChunksFast(stream, image);
-            }
-            else
-            {
-                this.WriteDataChunks(stream, image);
-            }
+            //if (this.IsWritingUncompressed)
+            //{
+            //    this.WriteDataChunksFast(stream, image);
+            //}
+            //else
+            //{
+            this.WriteDataChunks(stream, image);
+            //}
 
             this.WriteEndChunk(stream);
             stream.Flush();
@@ -318,19 +320,34 @@ namespace ImageProcessor.Formats
                     // Calculate the offset for the original pixel array.
                     int pixelOffset = ((y * imageBase.Width) + x) * 4;
 
-                    data[dataOffset] = (byte)(pixels[pixelOffset].Clamp(0, 1) * 255);
-                    data[dataOffset + 1] = (byte)(pixels[pixelOffset + 1].Clamp(0, 1) * 255);
-                    data[dataOffset + 2] = (byte)(pixels[pixelOffset + 2].Clamp(0, 1) * 255);
-                    data[dataOffset + 3] = (byte)(pixels[pixelOffset + 3].Clamp(0, 1) * 255);
+                    // Convert to non-premultiplied color.
+                    float r = pixels[pixelOffset];
+                    float g = pixels[pixelOffset + 1];
+                    float b = pixels[pixelOffset + 2];
+                    float a = pixels[pixelOffset + 3];
+
+                    Bgra32 color = Color.ToNonPremultiplied(new Color(r, g, b, a));
+
+                    data[dataOffset] = color.R;
+                    data[dataOffset + 1] = color.G;
+                    data[dataOffset + 2] = color.B;
+                    data[dataOffset + 3] = color.A;
 
                     if (y > 0)
                     {
                         int lastOffset = (((y - 1) * imageBase.Width) + x) * 4;
 
-                        data[dataOffset] -= (byte)(pixels[lastOffset].Clamp(0, 1) * 255);
-                        data[dataOffset + 1] -= (byte)(pixels[lastOffset + 1].Clamp(0, 1) * 255);
-                        data[dataOffset + 2] -= (byte)(pixels[lastOffset + 2].Clamp(0, 1) * 255);
-                        data[dataOffset + 3] -= (byte)(pixels[lastOffset + 3].Clamp(0, 1) * 255);
+                        r = pixels[lastOffset];
+                        g = pixels[lastOffset + 1];
+                        b = pixels[lastOffset + 2];
+                        a = pixels[lastOffset + 3];
+
+                        color = Color.ToNonPremultiplied(new Color(r, g, b, a));
+
+                        data[dataOffset] -= color.R;
+                        data[dataOffset + 1] -= color.G;
+                        data[dataOffset + 2] -= color.B;
+                        data[dataOffset + 3] -= color.A;
                     }
                 }
             }

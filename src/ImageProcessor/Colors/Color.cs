@@ -81,10 +81,13 @@ namespace ImageProcessor
 
             if (hex.Length == 8)
             {
-                this.R = Convert.ToByte(hex.Substring(2, 2), 16) / 255f;
-                this.G = Convert.ToByte(hex.Substring(4, 2), 16) / 255f;
-                this.B = Convert.ToByte(hex.Substring(6, 2), 16) / 255f;
-                this.A = Convert.ToByte(hex.Substring(0, 2), 16) / 255f;
+                float r = Convert.ToByte(hex.Substring(2, 2), 16) / 255f;
+                float g = Convert.ToByte(hex.Substring(4, 2), 16) / 255f;
+                float b = Convert.ToByte(hex.Substring(6, 2), 16) / 255f;
+                float a = Convert.ToByte(hex.Substring(0, 2), 16) / 255f;
+
+                this.backingVector = Color.FromNonPremultiplied(new Color(r, g, b, a)).ToVector4();
+
             }
             else if (hex.Length == 6)
             {
@@ -95,13 +98,13 @@ namespace ImageProcessor
             }
             else
             {
-                string r = char.ToString(hex[0]);
-                string g = char.ToString(hex[1]);
-                string b = char.ToString(hex[2]);
+                string rh = char.ToString(hex[0]);
+                string gh = char.ToString(hex[1]);
+                string bh = char.ToString(hex[2]);
 
-                this.B = Convert.ToByte(b + b, 16) / 255f;
-                this.G = Convert.ToByte(g + g, 16) / 255f;
-                this.R = Convert.ToByte(r + r, 16) / 255f;
+                this.B = Convert.ToByte(bh + bh, 16) / 255f;
+                this.G = Convert.ToByte(gh + gh, 16) / 255f;
+                this.R = Convert.ToByte(rh + rh, 16) / 255f;
                 this.A = 1;
             }
         }
@@ -235,7 +238,7 @@ namespace ImageProcessor
         /// </returns>
         public static implicit operator Color(Bgra32 color)
         {
-            return new Color(color.R / 255f, color.G / 255f, color.B / 255f, color.A / 255f);
+            return Color.FromNonPremultiplied(new Color(color.R / 255f, color.G / 255f, color.B / 255f, color.A / 255f));
         }
 
         /// <summary>
@@ -471,8 +474,12 @@ namespace ImageProcessor
         {
             amount = amount.Clamp(0f, 1f);
 
-            //return (from * (1 - amount)) + (to * amount);
-            return (from * (1 - amount)) + to ;
+            if (to.A < 1)
+            {
+                return (from * (1 - amount)) + to; 
+            }
+
+            return (from * (1 - amount)) + (to * amount);
         }
 
         /// <summary>

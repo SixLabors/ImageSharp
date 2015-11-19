@@ -2,7 +2,7 @@
 
 **This branch contains the new cross platform version of ImageProcessor**.
 
-This is a complete rewrite from the ground up to allow the processing of images without the use of `System.Drawing` using a portable class library (PCL). It's still in early stages but progress has been pretty quick.
+This is a complete rewrite from the ground up to allow the processing of images without the use of `System.Drawing` using a cross-platform class library. It's still in early stages but progress has been pretty quick.
 
 ###Why am I writing this?
 

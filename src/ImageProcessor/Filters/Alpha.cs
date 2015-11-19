@@ -49,8 +49,9 @@ namespace ImageProcessor.Filters
                         {
                             for (int x = startX; x < endX; x++)
                             {
-                                Color color = source[x, y];
+                                Color color = Color.ToNonPremultiplied(source[x, y]);
                                 color.A = color.A * alpha;
+                                color = Color.FromNonPremultiplied(color);
                                 target[x, y] = color;
                             }
                         }

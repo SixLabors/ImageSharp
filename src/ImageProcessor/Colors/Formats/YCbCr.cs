@@ -76,7 +76,7 @@ namespace ImageProcessor
         /// </returns>
         public static implicit operator YCbCr(Color color)
         {
-            color = color.Limited;
+            color = Color.ToNonPremultiplied(color.Limited);
             float r = color.R * 255f;
             float g = color.G * 255f;
             float b = color.B * 255f;

@@ -4,13 +4,39 @@
 
 This is a complete rewrite from the ground up to allow the processing of images without the use of `System.Drawing` using a cross-platform class library. It's still in early stages but progress has been pretty quick.
 
+[![Build status](https://ci.appveyor.com/api/projects/status/8ypr7527dnao04yr/branch/V3?svg=true)](https://ci.appveyor.com/project/JamesSouth/imageprocessor/branch/V3)
+[![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/JimBobSquarePants/ImageProcessor?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 ###Why am I writing this?
 
-With NETCore there is currently no version of `System.Drawing` to allow continued progress of the existing ImageProcessor library. Progress developing a crossplatform update are restricted to the [CoreFXLab repo](https://github.com/dotnet/corefxlab/tree/master/src/System.Drawing.Graphics) where progress seems to be very slow.
+With NETCore there is currently no version of `System.Drawing` to allow continued progress of the existing ImageProcessor library. Progress developing a cross-platform update are restricted to the [CoreFXLab repo](https://github.com/dotnet/corefxlab/tree/master/src/System.Drawing.Graphics) where progress seems to be very slow.
 
 ###Is this wise?
 
 Honestly... I don't know. I could be writing code that may be suddenly obsolete. There has been little [feedback](https://github.com/dotnet/corefxlab/issues/86#issuecomment-139930600) on questions I've asked but it's a nice learning process if anything and I will definitely be releasing the code for consumption.
+
+### Installation
+At present the code is pre-release but when ready it will be available on [Nuget](http://www.nuget.org). 
+
+**Pre-release downloads**
+
+We already have a [MyGet package repository](https://www.myget.org/F/imageprocessor/api/v3/index.json) - for bleeding-edge / development NuGet releases.
+
+### Manual build
+
+If you prefer, you can compile ImageProcessor yourself (please do and help!), you'll need:
+
+- Visual Studio 2015 (or above)
+- The [Windows 10 development tools](https://dev.windows.com/en-us/downloads) - Click `Get Visual Studio Community`.
+- Dnvm and Dnx installed
+
+To install the last two please see the instructions at the [DotNet documentation](http://dotnet.readthedocs.org/en/latest/getting-started/installing-core-windows.html)
+
+To clone it locally click the "Clone in Windows" button above or run the following git commands.
+
+```bash
+git clone https://github.com/JimBobSquarePants/ImageProcessor
+```
 
 ###What works so far/ What is planned?
 
@@ -19,8 +45,8 @@ Honestly... I don't know. I could be writing code that may be suddenly obsolete.
  - [x] bmp (More bmp format saving support required, 24bit just now)
  - [x] png (Need updating for saving indexed support)
  - [x] gif
-- Basic color structs with implicit operators. Vector backed. Need help investigating premultiplication.
- - [x] Color - Float based, No limit to r, g, b, a values allowing for a fuller color range.
+- Basic color structs with implicit operators. Vector backed.
+ - [x] Color - Float based, premultiplied alpha, No limit to r, g, b, a values allowing for a fuller color range.
  - [x] BGRA32
  - [ ] CIE Lab
  - [ ] CIE XYZ
@@ -81,6 +107,7 @@ Honestly... I don't know. I could be writing code that may be suddenly obsolete.
  - [x] Alpha
  - [x] Contrast
  - [x] Invert
+ - [x] BackgroundColor
  - [x] Brightness
  - [x] Saturation
  - [ ] Hue

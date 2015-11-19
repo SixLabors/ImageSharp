@@ -46,8 +46,7 @@ namespace ImageProcessor.Filters
                         {
                             Color color = source[x, y];
 
-                            // TODO: Fix this nonesense.
-                            if (color.A < .9)
+                            if (color.A < 1)
                             {
                                 color = Color.Lerp(color, backgroundColor, .5f);
                             }

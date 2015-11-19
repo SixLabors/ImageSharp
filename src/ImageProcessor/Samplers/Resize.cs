@@ -17,7 +17,7 @@ namespace ImageProcessor.Samplers
         /// <summary>
         /// The epsilon for comparing floating point numbers.
         /// </summary>
-        private const float Epsilon = 0.00001f;
+        private const float Epsilon = 0.01f;
 
         /// <summary>
         /// The horizontal weights.
@@ -112,6 +112,8 @@ namespace ImageProcessor.Samplers
                                 }
                             }
 
+                            // Ensure are alpha values only reflect possible values to prevent bleed.
+                            destination.A = (float)Math.Round(destination.A, 2);
                             target[x, y] = Color.Compand(destination);
                         }
                     }

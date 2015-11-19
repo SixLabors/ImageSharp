@@ -76,7 +76,7 @@ namespace ImageProcessor
         /// </returns>
         public static implicit operator Hsv(Color color)
         {
-            color = color.Limited;
+            color = Color.ToNonPremultiplied(color.Limited);
             float r = color.R;
             float g = color.G;
             float b = color.B;

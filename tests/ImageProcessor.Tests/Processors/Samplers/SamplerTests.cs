@@ -4,7 +4,6 @@ namespace ImageProcessor.Tests
     using System.Diagnostics;
     using System.IO;
 
-    using ImageProcessor.Filters;
     using ImageProcessor.Samplers;
 
     using Xunit;
@@ -44,7 +43,7 @@ namespace ImageProcessor.Tests
                 {
                     Stopwatch watch = Stopwatch.StartNew();
                     Image image = new Image(stream);
-                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
+                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + ".jpg";
                     using (FileStream output = File.OpenWrite($"TestOutput/Resized/{filename}"))
                     {
                         image.Resize(image.Width / 2, image.Height / 2, sampler).Save(output);

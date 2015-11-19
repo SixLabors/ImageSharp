@@ -44,9 +44,9 @@
         [Fact]
         public void QuantizedImageShouldPreserveMaximumColorPrecision()
         {
-            if (!Directory.Exists("Quantized"))
+            if (!Directory.Exists("TestOutput/Quantized"))
             {
-                Directory.CreateDirectory("Quantized");
+                Directory.CreateDirectory("TestOutput/Quantized");
             }
 
             foreach (string file in Files)
@@ -57,7 +57,7 @@
                     IQuantizer quantizer = new OctreeQuantizer();
                     QuantizedImage quantizedImage = quantizer.Quantize(image);
 
-                    using (FileStream output = File.OpenWrite($"Quantized/{Path.GetFileName(file)}"))
+                    using (FileStream output = File.OpenWrite($"TestOutput/Quantized/{Path.GetFileName(file)}"))
                     {
                         quantizedImage.ToImage().Save(output);
                     }

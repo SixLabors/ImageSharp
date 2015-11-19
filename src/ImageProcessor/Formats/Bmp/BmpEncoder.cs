@@ -110,9 +110,18 @@ namespace ImageProcessor.Formats
 
                     // Limit the output range and multiply out from our floating point.
                     // Convert back to b-> g-> r-> a order.
-                    writer.Write((byte)(data[offset + 2].Clamp(0, 1) * 255));
-                    writer.Write((byte)(data[offset + 1].Clamp(0, 1) * 255));
-                    writer.Write((byte)(data[offset].Clamp(0, 1) * 255));
+                    // Convert to non-premultiplied color.
+                    float r = data[offset];
+                    float g = data[offset + 1];
+                    float b = data[offset + 2];
+                    float a = data[offset + 3];
+
+                    // Implicit cast to Bgra32 handles premultiplication conversion.
+                    Bgra32 color = new Color(r, g, b, a);
+
+                    writer.Write(color.B);
+                    writer.Write(color.G);
+                    writer.Write(color.R);
                 }
 
                 for (int i = 0; i < amount; i++)

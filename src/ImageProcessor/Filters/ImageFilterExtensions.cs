@@ -42,6 +42,18 @@ namespace ImageProcessor.Filters
         /// <param name="image">The image to blend with the currently processing image.</param>
         /// <param name="percent">The opacity of the image image to blend. Must be between 0 and 100.</param>
         /// <returns>The <see cref="Image"/>.</returns>
+        public static Image BackgroundColor(this Image source, Color color)
+        {
+            return source.Process(source.Bounds, new BackgroundColor(color));
+        }
+
+        /// <summary>
+        /// Combines the given image together with the current one by blending their pixels.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="image">The image to blend with the currently processing image.</param>
+        /// <param name="percent">The opacity of the image image to blend. Must be between 0 and 100.</param>
+        /// <returns>The <see cref="Image"/>.</returns>
         public static Image Blend(this Image source, ImageBase image, int percent = 50)
         {
             return source.Process(source.Bounds, new Blend(image, percent));

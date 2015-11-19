@@ -10,7 +10,8 @@ namespace ImageProcessor
     using System.Numerics;
 
     /// <summary>
-    /// Represents a four-component color using red, green, blue, and alpha data.
+    /// Represents a four-component color using red, green, blue, and alpha data. 
+    /// Each component is stored in premultiplied format multiplied by the alpha component.
     /// </summary>
     /// <remarks>
     /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
@@ -470,7 +471,8 @@ namespace ImageProcessor
         {
             amount = amount.Clamp(0f, 1f);
 
-            return (from * (1 - amount)) + (to * amount);
+            //return (from * (1 - amount)) + (to * amount);
+            return (from * (1 - amount)) + to ;
         }
 
         /// <summary>
@@ -478,7 +480,7 @@ namespace ImageProcessor
         /// <see href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>
         /// <see href="http://entropymine.com/imageworsener/srgbformula/"/>
         /// </summary>
-        /// <param name="linear">The <see cref="Color"/> whos signal to compress.</param>
+        /// <param name="linear">The <see cref="Color"/> whose signal to compress.</param>
         /// <returns>The <see cref="Color"/>.</returns>
         public static Color Compand(Color linear)
         {
@@ -495,7 +497,7 @@ namespace ImageProcessor
         /// <see href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>
         /// <see href="http://entropymine.com/imageworsener/srgbformula/"/>
         /// </summary>
-        /// <param name="gamma">The <see cref="Color"/> whos signal to expand.</param>
+        /// <param name="gamma">The <see cref="Color"/> whose signal to expand.</param>
         /// <returns>The <see cref="Color"/>.</returns>
         public static Color InverseCompand(Color gamma)
         {
@@ -511,33 +513,29 @@ namespace ImageProcessor
         /// Converts a non-premultipled alpha <see cref="Color"/> to a <see cref="Color"/>
         /// that contains premultiplied alpha.
         /// </summary>
-        /// <param name="r">The red component of this <see cref="Color"/>.</param>
-        /// <param name="g">The green component of this <see cref="Color"/>.</param>
-        /// <param name="b">The blue component of this <see cref="Color"/>.</param>
-        /// <param name="a">The alpha component of this <see cref="Color"/>.</param>
+        /// <param name="color">The <see cref="Color"/> to convert.</param>
         /// <returns>The <see cref="Color"/>.</returns>
-        public static Color FromNonPremultiplied(float r, float g, float b, float a)
+        public static Color FromNonPremultiplied(Color color)
         {
-            return new Color(r * a, g * a, b * a, a);
+            float a = color.A;
+            return new Color(color.R * a, color.G * a, color.B * a, a);
         }
 
         /// <summary>
         /// Converts a premultipled alpha <see cref="Color"/> to a <see cref="Color"/>
         /// that contains non-premultiplied alpha.
         /// </summary>
-        /// <param name="r">The red component of this <see cref="Color"/>.</param>
-        /// <param name="g">The green component of this <see cref="Color"/>.</param>
-        /// <param name="b">The blue component of this <see cref="Color"/>.</param>
-        /// <param name="a">The alpha component of this <see cref="Color"/>.</param>
+        /// <param name="color">The <see cref="Color"/> to convert.</param>
         /// <returns>The <see cref="Color"/>.</returns>
-        public static Color ToNonPremultiplied(float r, float g, float b, float a)
+        public static Color ToNonPremultiplied(Color color)
         {
+            float a = color.A;
             if (Math.Abs(a) < Epsilon)
             {
-                return new Color(r, g, b, a);
+                return new Color(color.R, color.G, color.B, a);
             }
 
-            return new Color(r / a, g / a, b / a, a);
+            return new Color(color.R / a, color.G / a, color.B / a, a);
         }
 
         /// <summary>

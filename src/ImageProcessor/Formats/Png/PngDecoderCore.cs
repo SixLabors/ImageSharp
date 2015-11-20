@@ -24,7 +24,7 @@ namespace ImageProcessor.Formats
         /// <summary>
         /// The maximum chunk size.
         /// </summary>
-        private const int MaxChunkSize = 1024 * 1024;
+        private const int MaxChunkSize = int.MaxValue / 4 * sizeof(float);
 
         /// <summary>
         /// The dictionary of available color types.

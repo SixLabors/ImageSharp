@@ -9,9 +9,9 @@ before_build:
 - cmd: >-
     dnvm install 1.0.0-rc1-final -r clr
 
-    dnvm install 1.0.0-rc1-final -r coreclr -arch x64 -a x64
+    dnvm install 1.0.0-rc1-final -r coreclr -arch x64 -alias x64
 
-    dnvm use 1.0.0-rc1-final -r coreclr -a x64
+    dnvm use 1.0.0-rc1-final -r coreclr -alias x64
 
     dnvm list
 
@@ -33,7 +33,7 @@ build:
   
 test_script:
 - cmd: >-
-    dnvm use 1.0.0-rc1-final -r coreclr -a x64
+    dnvm use 1.0.0-rc1-final -r coreclr -alias x64
 
     cd tests/ImageProcessor.Tests
 

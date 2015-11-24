@@ -96,6 +96,44 @@ namespace ImageProcessor
         }
 
         /// <summary>
+        /// Returns the given degrees converted to radians.
+        /// </summary>
+        /// <param name="angleInDegrees">
+        /// The angle in degrees.
+        /// </param>
+        /// <returns>
+        /// The <see cref="double"/> representing the degree as radians.
+        /// </returns>
+        public static double DegreesToRadians(double angleInDegrees)
+        {
+            return angleInDegrees * (PI / 180);
+        }
+
+        /// <summary>
+        /// Rotates one point around another
+        /// <see href="http://stackoverflow.com/a/13695630/82333"/>
+        /// </summary>
+        /// <param name="pointToRotate">The point to rotate.</param>
+        /// <param name="angleInDegrees">The rotation angle in degrees.</param>
+        /// <param name="centerPoint">The centre point of rotation. If not set the point will equal
+        /// <see cref="Point.Empty"/>
+        /// </param>
+        /// <returns>Rotated point</returns>
+        public static Point RotatePoint(Point pointToRotate, double angleInDegrees, Point? centerPoint = null)
+        {
+            Point center = centerPoint ?? Point.Empty;
+
+            double angleInRadians = DegreesToRadians(angleInDegrees);
+            double cosTheta = Math.Cos(angleInRadians);
+            double sinTheta = Math.Sin(angleInRadians);
+            return new Point
+            {
+                X = (int)((cosTheta * (pointToRotate.X - center.X)) - (sinTheta * (pointToRotate.Y - center.Y)) + center.X),
+                Y = (int)((sinTheta * (pointToRotate.X - center.X)) + (cosTheta * (pointToRotate.Y - center.Y)) + center.Y)
+            };
+        }
+
+        /// <summary>
         /// Ensures that any passed double is correctly rounded to zero
         /// </summary>
         /// <param name="x">The value to clean.</param>

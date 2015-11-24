@@ -49,7 +49,7 @@ namespace ImageProcessor.Samplers
         /// <returns>The <see cref="Image"/></returns>
         public static Image Resize(this Image source, int width, int height, IResampler sampler, Rectangle sourceRectangle)
         {
-            return source.Process(width, height, sourceRectangle, new Rectangle(0, 0, width, height), new Resize(sampler));
+            return source.Process(width, height, sourceRectangle, new Rectangle(0, 0, width, height), new Resampler(sampler));
         }
 
         /// <summary>

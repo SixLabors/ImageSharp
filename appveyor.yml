@@ -27,10 +27,9 @@ before_build:
 
     cd..
     
-build: 
-  project: ImageProcessor.sln
-  verbosity: minimal
-  
+build_script:
+- cmd: '"%programfiles(x86)%\MSBuild\14.0\Bin\amd64\MsBuild.exe" ImageProcessor.sln /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll" /p:RuntimeToolingDirectory="%USERPROFILE%\.dnx\runtimes\dnx-coreclr-win-x64.1.0.0-rc1-final"'
+
 test_script:
 - cmd: >-
     dnvm use 1.0.0-rc1-final -r coreclr -a x64

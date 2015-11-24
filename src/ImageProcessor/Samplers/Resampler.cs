@@ -1,4 +1,4 @@
-﻿// <copyright file="Resize.cs" company="James Jackson-South">
+﻿// <copyright file="Resampler.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -10,14 +10,19 @@ namespace ImageProcessor.Samplers
     using System.Threading.Tasks;
 
     /// <summary>
-    /// Provides methods that allow the resizing of images using various resampling algorithms.
+    /// Provides methods that allow the resampling of images using various algorithms.
     /// </summary>
-    public class Resize : ParallelImageProcessor
+    public class Resampler : ParallelImageProcessor
     {
         /// <summary>
         /// The epsilon for comparing floating point numbers.
         /// </summary>
-        private const float Epsilon = 0.01f;
+        private const float Epsilon = 0.0001f;
+
+        /// <summary>
+        /// The angle of rotation.
+        /// </summary>
+        private double angle;
 
         /// <summary>
         /// The horizontal weights.
@@ -30,12 +35,12 @@ namespace ImageProcessor.Samplers
         private Weights[] verticalWeights;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Resize"/> class.
+        /// Initializes a new instance of the <see cref="Resampler"/> class.
         /// </summary>
         /// <param name="sampler">
         /// The sampler to perform the resize operation.
         /// </param>
-        public Resize(IResampler sampler)
+        public Resampler(IResampler sampler)
         {
             Guard.NotNull(sampler, nameof(sampler));
 
@@ -46,6 +51,32 @@ namespace ImageProcessor.Samplers
         /// Gets the sampler to perform the resize operation.
         /// </summary>
         public IResampler Sampler { get; }
+
+        /// <summary>
+        /// Gets or sets the angle of rotation.
+        /// </summary>
+        public double Angle
+        {
+            get
+            {
+                return this.angle;
+            }
+
+            set
+            {
+                if (value > 360)
+                {
+                    value -= 360;
+                }
+
+                if (value < 0)
+                {
+                    value += 360;
+                }
+
+                this.angle = value;
+            }
+        }
 
         /// <inheritdoc/>
         protected override void OnApply(ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle)
@@ -61,6 +92,8 @@ namespace ImageProcessor.Samplers
             int targetBottom = targetRectangle.Bottom;
             int startX = targetRectangle.X;
             int endX = targetRectangle.Right;
+            Point centre = Rectangle.Center(sourceRectangle);
+            bool rotate = this.angle > 0 && this.angle < 360;
 
             Parallel.For(
                 startY,
@@ -82,28 +115,38 @@ namespace ImageProcessor.Samplers
 
                             foreach (Weight yw in verticalValues)
                             {
-                                if (Math.Abs(yw.Value) < Epsilon)
-                                {
-                                    continue;
-                                }
-
                                 int originY = yw.Index;
 
                                 foreach (Weight xw in horizontalValues)
                                 {
-                                    if (Math.Abs(xw.Value) < Epsilon)
-                                    {
-                                        continue;
-                                    }
-
                                     int originX = xw.Index;
-                                    Color sourceColor = Color.InverseCompand(source[originX, originY]);
-                                    if (Math.Abs(sourceColor.A) < Epsilon)
+                                    Color sourceColor;
+
+                                    float weight;
+
+                                    if (rotate)
                                     {
-                                        continue;
+                                        // Rotating at the centre point
+                                        Point rotated = ImageMaths.RotatePoint(new Point(originX, originY), this.angle, centre);
+                                        originX = rotated.X;
+                                        originY = rotated.Y;
+
+                                        // TODO: This can't work. We're not normalising properly since weights are skipped.
+                                        // Also... This is so slow!
+                                        if (sourceRectangle.Contains(originX, originY))
+                                        {
+                                            sourceColor = Color.InverseCompand(source[originX, originY]);
+                                            weight = (yw.Value / verticalSum) * (xw.Value / horizontalSum);
+
+                                            destination.R += sourceColor.R * weight;
+                                            destination.G += sourceColor.G * weight;
+                                            destination.B += sourceColor.B * weight;
+                                            destination.A += sourceColor.A * weight;
+                                        }
                                     }
 
-                                    float weight = (yw.Value / verticalSum) * (xw.Value / horizontalSum);
+                                    sourceColor = Color.InverseCompand(source[originX, originY]);
+                                    weight = (yw.Value / verticalSum) * (xw.Value / horizontalSum);
 
                                     destination.R += sourceColor.R * weight;
                                     destination.G += sourceColor.G * weight;
@@ -112,9 +155,12 @@ namespace ImageProcessor.Samplers
                                 }
                             }
 
+                            destination = Color.Compand(destination);
+
                             // Ensure are alpha values only reflect possible values to prevent bleed.
                             destination.A = (float)Math.Round(destination.A, 2);
-                            target[x, y] = Color.Compand(destination);
+
+                            target[x, y] = destination;
                         }
                     }
                 });
@@ -176,6 +222,7 @@ namespace ImageProcessor.Samplers
                                 builder.Add(new Weight(a, w));
                             }
                         }
+
                         result[i].Values = builder.ToImmutable();
                         result[i].Sum = sum;
                     });

@@ -7,11 +7,11 @@ install:
 
 before_build:
 - cmd: >-
-    dnvm install 1.0.0-beta8 -r clr
+    dnvm install 1.0.0-rc1-final -r clr
 
-    dnvm install 1.0.0-beta8 -r coreclr -arch x64 -a x64
+    dnvm install 1.0.0-rc1-final -r coreclr -arch x64 -alias x64
 
-    dnvm use 1.0.0-beta8 -r coreclr -a x64
+    dnvm use 1.0.0-rc1-final -r coreclr -a x64
 
     dnvm list
 
@@ -27,13 +27,13 @@ before_build:
 
     cd..
     
-build:
+build: 
   project: ImageProcessor.sln
   verbosity: minimal
   
 test_script:
 - cmd: >-
-    dnvm use 1.0.0-beta8 -r coreclr -a x64
+    dnvm use 1.0.0-rc1-final -r coreclr -a x64
 
     cd tests/ImageProcessor.Tests
 

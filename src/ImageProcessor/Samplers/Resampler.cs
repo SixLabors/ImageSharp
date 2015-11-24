@@ -17,12 +17,12 @@ namespace ImageProcessor.Samplers
         /// <summary>
         /// The epsilon for comparing floating point numbers.
         /// </summary>
-        private const float Epsilon = 0.0001f;
+        private const float Epsilon = 0.000001f;
 
         /// <summary>
         /// The angle of rotation.
         /// </summary>
-        private double angle = 45;
+        private double angle;
 
         /// <summary>
         /// The horizontal weights.
@@ -95,10 +95,6 @@ namespace ImageProcessor.Samplers
             Point centre = Rectangle.Center(sourceRectangle);
             bool rotate = this.angle > 0 && this.angle < 360;
 
-            int sourceBottom = sourceRectangle.Bottom;
-            int maxY = sourceBottom - 1;
-            int maxX = endX - 1;
-
             Parallel.For(
                 startY,
                 endY,
@@ -135,8 +131,6 @@ namespace ImageProcessor.Samplers
                                         int rotatedX = rotated.X;
                                         int rotatedY = rotated.Y;
 
-                                        // TODO: This can't work. We're not normalising properly since weights are skipped.
-                                        // Also... This is so slow!
                                         if (sourceRectangle.Contains(rotatedX, rotatedY))
                                         {
                                             sourceColor = Color.InverseCompand(source[rotatedX, rotatedY]);
@@ -161,10 +155,17 @@ namespace ImageProcessor.Samplers
                                 }
                             }
 
-                            destination = Color.Compand(destination);
-
-                            // Ensure are alpha values only reflect possible values to prevent bleed.
-                            destination.A = (float)Math.Round(destination.A, 2);
+                            // Restrict alpha values in an attempt to prevent bleed.
+                            // This is a baaaaaaad hack!!!
+                            if (destination.A <= 0.03)
+                            {
+                                destination = Color.Empty;
+                            }
+                            else
+                            {
+                                destination = Color.Compand(destination);
+                                destination.A = (float)Math.Round(destination.A, 2);
+                            }
 
                             target[x, y] = destination;
                         }
@@ -222,7 +223,7 @@ namespace ImageProcessor.Samplers
                         {
                             float w = sampler.GetValue((a - fu) / scale);
 
-                            if (Math.Abs(w) > Epsilon)
+                            if (w < 0 || w > 0)
                             {
                                 sum += w;
                                 builder.Add(new Weight(a, w));

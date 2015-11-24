@@ -10,20 +10,20 @@
   "projectUrl": "",
   "licenseUrl": "",
   "dependencies": {
-    "System.Collections": "4.0.10",
-    "System.Linq": "4.0.0",
-    "System.Threading": "4.0.10",
-    "System.Runtime": "4.0.20",
-    "Microsoft.CSharp": "4.0.0",
-    "Microsoft.NETCore.Portable.Compatibility": "1.0.0",
-    "System.Runtime.Extensions": "4.0.10",
-    "System.Reflection": "4.0.10",
-    "System.IO": "4.0.10",
-    "Microsoft.NETCore": "5.0.1-beta-23409",
-    "Microsoft.NETCore.Platforms": "1.0.1-beta-23409",
-    "StyleCop.Analyzers": "1.0.0-beta016"
+    "System.Collections": "4.0.11-beta-23516",
+    "System.Linq": "4.0.1-beta-23516",
+    "System.Threading": "4.0.11-beta-23516",
+    "System.Runtime": "4.0.21-beta-23516",
+    "Microsoft.CSharp": "4.0.1-beta-23516",
+    "Microsoft.NETCore.Portable.Compatibility": "1.0.1-beta-23516",
+    "System.Runtime.Extensions": "4.0.11-beta-23516",
+    "System.Reflection": "4.1.0-beta-23516",
+    "System.IO": "4.0.11-beta-23516",
+    "StyleCop.Analyzers": "1.0.0-beta016",
+    "Microsoft.NETCore": "5.0.1-beta-23516",
+    "Microsoft.NETCore.Platforms": "1.0.1-beta-23516"
   },
   "frameworks": {
-    "dotnet": { }
+    "dotnet5.4": { }
   }
 }

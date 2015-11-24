@@ -134,6 +134,38 @@ namespace ImageProcessor
         }
 
         /// <summary>
+        /// Calculates the new size after rotation.
+        /// </summary>
+        /// <param name="width">The width of the image.</param>
+        /// <param name="height">The height of the image.</param>
+        /// <param name="angleInDegrees">The angle of rotation.</param>
+        /// <returns>The new size of the image</returns>
+        public static Rectangle GetBoundingRotatedRectangle(int width, int height, float angleInDegrees)
+        {
+            // Check first clockwise.
+            double radians = DegreesToRadians(angleInDegrees);
+            double radiansSin = Math.Sin(radians);
+            double radiansCos = Math.Cos(radians);
+            double width1 = (height * radiansSin) + (width * radiansCos);
+            double height1 = (width * radiansSin) + (height * radiansCos);
+
+            // Find dimensions in the other direction
+            radiansSin = Math.Sin(-radians);
+            radiansCos = Math.Cos(-radians);
+            double width2 = (height * radiansSin) + (width * radiansCos);
+            double height2 = (width * radiansSin) + (height * radiansCos);
+
+            // Get the external vertex for the rotation
+            Rectangle result = new Rectangle(
+                0,
+                0,
+                Convert.ToInt32(Math.Max(Math.Abs(width1), Math.Abs(width2))),
+                Convert.ToInt32(Math.Max(Math.Abs(height1), Math.Abs(height2))));
+
+            return result;
+        }
+
+        /// <summary>
         /// Ensures that any passed double is correctly rounded to zero
         /// </summary>
         /// <param name="x">The value to clean.</param>

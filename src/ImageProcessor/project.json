@@ -19,11 +19,11 @@
     "System.Runtime.Extensions": "4.0.10",
     "System.Reflection": "4.0.10",
     "System.IO": "4.0.10",
-    "StyleCop.Analyzers": "1.0.0-beta016",
     "Microsoft.NETCore": "5.0.1-beta-23409",
-    "Microsoft.NETCore.Platforms": "1.0.1-beta-23409"
+    "Microsoft.NETCore.Platforms": "1.0.1-beta-23409",
+    "StyleCop.Analyzers": "1.0.0-beta016"
   },
   "frameworks": {
-    "dotnet": {}
+    "dotnet": { }
   }
 }

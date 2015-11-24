@@ -156,6 +156,16 @@ namespace ImageProcessor
         }
 
         /// <summary>
+        /// Returns the center point of the given <see cref="Rectangle"/>
+        /// </summary>
+        /// <param name="rectangle">The rectangle</param>
+        /// <returns><see cref="Point"/></returns>
+        public static Point Center(Rectangle rectangle)
+        {
+            return new Point(rectangle.Left + rectangle.Width / 2, rectangle.Top + rectangle.Height / 2);
+        }
+
+        /// <summary>
         /// Indicates whether this instance and a specified object are equal.
         /// </summary>
         /// <returns>

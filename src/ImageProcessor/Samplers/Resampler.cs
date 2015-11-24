@@ -22,7 +22,7 @@ namespace ImageProcessor.Samplers
         /// <summary>
         /// The angle of rotation.
         /// </summary>
-        private double angle;
+        private double angle = 45;
 
         /// <summary>
         /// The horizontal weights.
@@ -95,6 +95,10 @@ namespace ImageProcessor.Samplers
             Point centre = Rectangle.Center(sourceRectangle);
             bool rotate = this.angle > 0 && this.angle < 360;
 
+            int sourceBottom = sourceRectangle.Bottom;
+            int maxY = sourceBottom - 1;
+            int maxX = endX - 1;
+
             Parallel.For(
                 startY,
                 endY,
@@ -128,14 +132,14 @@ namespace ImageProcessor.Samplers
                                     {
                                         // Rotating at the centre point
                                         Point rotated = ImageMaths.RotatePoint(new Point(originX, originY), this.angle, centre);
-                                        originX = rotated.X;
-                                        originY = rotated.Y;
+                                        int rotatedX = rotated.X;
+                                        int rotatedY = rotated.Y;
 
                                         // TODO: This can't work. We're not normalising properly since weights are skipped.
                                         // Also... This is so slow!
-                                        if (sourceRectangle.Contains(originX, originY))
+                                        if (sourceRectangle.Contains(rotatedX, rotatedY))
                                         {
-                                            sourceColor = Color.InverseCompand(source[originX, originY]);
+                                            sourceColor = Color.InverseCompand(source[rotatedX, rotatedY]);
                                             weight = (yw.Value / verticalSum) * (xw.Value / horizontalSum);
 
                                             destination.R += sourceColor.R * weight;
@@ -144,14 +148,16 @@ namespace ImageProcessor.Samplers
                                             destination.A += sourceColor.A * weight;
                                         }
                                     }
+                                    else
+                                    {
+                                        sourceColor = Color.InverseCompand(source[originX, originY]);
+                                        weight = (yw.Value / verticalSum) * (xw.Value / horizontalSum);
 
-                                    sourceColor = Color.InverseCompand(source[originX, originY]);
-                                    weight = (yw.Value / verticalSum) * (xw.Value / horizontalSum);
-
-                                    destination.R += sourceColor.R * weight;
-                                    destination.G += sourceColor.G * weight;
-                                    destination.B += sourceColor.B * weight;
-                                    destination.A += sourceColor.A * weight;
+                                        destination.R += sourceColor.R * weight;
+                                        destination.G += sourceColor.G * weight;
+                                        destination.B += sourceColor.B * weight;
+                                        destination.A += sourceColor.A * weight;
+                                    }
                                 }
                             }
 

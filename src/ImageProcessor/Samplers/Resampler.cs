@@ -7,6 +7,7 @@ namespace ImageProcessor.Samplers
 {
     using System;
     using System.Collections.Immutable;
+    using System.Numerics;
     using System.Threading.Tasks;
 
     /// <summary>
@@ -15,14 +16,9 @@ namespace ImageProcessor.Samplers
     public class Resampler : ParallelImageProcessor
     {
         /// <summary>
-        /// The epsilon for comparing floating point numbers.
-        /// </summary>
-        private const float Epsilon = 0.000001f;
-
-        /// <summary>
         /// The angle of rotation.
         /// </summary>
-        private double angle;
+        private float angle;
 
         /// <summary>
         /// The horizontal weights.
@@ -55,7 +51,7 @@ namespace ImageProcessor.Samplers
         /// <summary>
         /// Gets or sets the angle of rotation.
         /// </summary>
-        public double Angle
+        public float Angle
         {
             get
             {
@@ -88,12 +84,25 @@ namespace ImageProcessor.Samplers
         /// <inheritdoc/>
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
+            bool rotate = this.angle > 0 && this.angle < 360;
+
+            // Split the two methods up so we can keep standard resize as performant as possible.
+            if (rotate)
+            {
+                this.ApplyResizeAndRotate(target, source, targetRectangle, sourceRectangle, startY, endY);
+            }
+            else
+            {
+                this.ApplyResizeOnly(target, source, targetRectangle, startY, endY);
+            }
+        }
+
+        private void ApplyResizeOnly(ImageBase target, ImageBase source, Rectangle targetRectangle, int startY, int endY)
+        {
             int targetY = targetRectangle.Y;
             int targetBottom = targetRectangle.Bottom;
             int startX = targetRectangle.X;
             int endX = targetRectangle.Right;
-            Point centre = Rectangle.Center(sourceRectangle);
-            bool rotate = this.angle > 0 && this.angle < 360;
 
             Parallel.For(
                 startY,
@@ -120,32 +129,71 @@ namespace ImageProcessor.Samplers
                                 foreach (Weight xw in horizontalValues)
                                 {
                                     int originX = xw.Index;
-                                    Color sourceColor;
+                                    Color sourceColor = Color.InverseCompand(source[originX, originY]);
+                                    float weight = (yw.Value / verticalSum) * (xw.Value / horizontalSum);
 
-                                    float weight;
+                                    destination.R += sourceColor.R * weight;
+                                    destination.G += sourceColor.G * weight;
+                                    destination.B += sourceColor.B * weight;
+                                    destination.A += sourceColor.A * weight;
+                                }
+                            }
 
-                                    if (rotate)
+                            destination = Color.Compand(destination);
+
+                            // Round alpha values in an attempt to prevent bleed.
+                            destination.A = (float)Math.Round(destination.A, 2);
+
+                            target[x, y] = destination;
+                        }
+                    }
+                });
+        }
+
+        private void ApplyResizeAndRotate(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        {
+            int targetY = targetRectangle.Y;
+            int targetBottom = targetRectangle.Bottom;
+            int startX = targetRectangle.X;
+            int endX = targetRectangle.Right;
+            float negativeAngle = -this.angle;
+            Vector2 centre = Rectangle.Center(sourceRectangle);
+
+            Parallel.For(
+                startY,
+                endY,
+                y =>
+                {
+                    if (y >= targetY && y < targetBottom)
+                    {
+                        ImmutableArray<Weight> verticalValues = this.verticalWeights[y].Values;
+                        float verticalSum = this.verticalWeights[y].Sum;
+
+                        for (int x = startX; x < endX; x++)
+                        {
+                            ImmutableArray<Weight> horizontalValues = this.horizontalWeights[x].Values;
+                            float horizontalSum = this.horizontalWeights[x].Sum;
+
+                            // Destination color components
+                            Color destination = new Color(0, 0, 0, 0);
+
+                            foreach (Weight yw in verticalValues)
+                            {
+                                int originY = yw.Index;
+
+                                foreach (Weight xw in horizontalValues)
+                                {
+                                    int originX = xw.Index;
+
+                                    // Rotate at the centre point
+                                    Vector2 rotated = ImageMaths.RotatePoint(new Vector2(originX, originY), centre, negativeAngle);
+                                    int rotatedX = (int)rotated.X;
+                                    int rotatedY = (int)rotated.Y;
+
+                                    if (sourceRectangle.Contains(rotatedX, rotatedY))
                                     {
-                                        // Rotating at the centre point
-                                        Point rotated = ImageMaths.RotatePoint(new Point(originX, originY), this.angle, centre);
-                                        int rotatedX = rotated.X;
-                                        int rotatedY = rotated.Y;
-
-                                        if (sourceRectangle.Contains(rotatedX, rotatedY))
-                                        {
-                                            sourceColor = Color.InverseCompand(source[rotatedX, rotatedY]);
-                                            weight = (yw.Value / verticalSum) * (xw.Value / horizontalSum);
-
-                                            destination.R += sourceColor.R * weight;
-                                            destination.G += sourceColor.G * weight;
-                                            destination.B += sourceColor.B * weight;
-                                            destination.A += sourceColor.A * weight;
-                                        }
-                                    }
-                                    else
-                                    {
-                                        sourceColor = Color.InverseCompand(source[originX, originY]);
-                                        weight = (yw.Value / verticalSum) * (xw.Value / horizontalSum);
+                                        Color sourceColor = Color.InverseCompand(source[rotatedX, rotatedY]);
+                                        float weight = (yw.Value / verticalSum) * (xw.Value / horizontalSum);
 
                                         destination.R += sourceColor.R * weight;
                                         destination.G += sourceColor.G * weight;
@@ -155,18 +203,10 @@ namespace ImageProcessor.Samplers
                                 }
                             }
 
-                            // Restrict alpha values in an attempt to prevent bleed.
-                            // This is a baaaaaaad hack!!!
-                            //if (destination.A <= 0.03)
-                            //{
-                            //    destination = Color.Empty;
-                            //}
-                            //else
-                            //{
-                                destination = Color.Compand(destination);
-                                destination.A = (float)Math.Round(destination.A, 2);
-                            //}
+                            destination = Color.Compand(destination);
 
+                            // Round alpha values in an attempt to prevent bleed.
+                            destination.A = (float)Math.Round(destination.A, 2);
                             target[x, y] = destination;
                         }
                     }

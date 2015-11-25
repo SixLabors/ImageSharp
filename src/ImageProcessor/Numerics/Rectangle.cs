@@ -7,6 +7,7 @@ namespace ImageProcessor
 {
     using System;
     using System.ComponentModel;
+    using System.Numerics;
 
     /// <summary>
     /// Stores a set of four integers that represent the location and size of a rectangle.
@@ -150,9 +151,9 @@ namespace ImageProcessor
         public bool Contains(int x, int y)
         {
             return this.X <= x
-                   && x < this.X + this.Width
+                   && x < this.Right
                    && this.Y <= y
-                   && y < this.Y + this.Height;
+                   && y < this.Bottom;
         }
 
         /// <summary>
@@ -160,9 +161,9 @@ namespace ImageProcessor
         /// </summary>
         /// <param name="rectangle">The rectangle</param>
         /// <returns><see cref="Point"/></returns>
-        public static Point Center(Rectangle rectangle)
+        public static Vector2 Center(Rectangle rectangle)
         {
-            return new Point(rectangle.Left + rectangle.Width / 2, rectangle.Top + rectangle.Height / 2);
+            return new Vector2(rectangle.Left + rectangle.Width / 2, rectangle.Top + rectangle.Height / 2);
         }
 
         /// <summary>

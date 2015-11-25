@@ -15,6 +15,11 @@ namespace ImageProcessor.Formats
     public class GifEncoder : IImageEncoder
     {
         /// <summary>
+        /// The the transparency threshold.
+        /// </summary>
+        private int threshold = 128;
+
+        /// <summary>
         /// Gets or sets the quality of output for images.
         /// </summary>
         /// <remarks>For gifs the value ranges from 1 to 256.</remarks>
@@ -25,6 +30,15 @@ namespace ImageProcessor.Formats
 
         /// <inheritdoc/>
         public string MimeType => "image/gif";
+        
+        /// <summary>
+        /// Gets or sets the transparency threshold.
+        /// </summary>
+        public int Threshold
+        {
+            get { return this.threshold; }
+            set { this.threshold = value.Clamp(0, 255); }
+        }
 
         /// <inheritdoc/>
         public bool IsSupportedFileExtension(string extension)
@@ -123,7 +137,7 @@ namespace ImageProcessor.Formats
         private QuantizedImage WriteColorTable(ImageBase image, Stream stream, int quality, int bitDepth)
         {
             // Quantize the image returning a pallete.
-            IQuantizer quantizer = new OctreeQuantizer(quality.Clamp(1, 255), bitDepth);
+            IQuantizer quantizer = new OctreeQuantizer(quality.Clamp(1, 255), bitDepth) {Threshold = this.threshold};
             QuantizedImage quantizedImage = quantizer.Quantize(image);
 
             // Grab the pallete and write it to the stream.

@@ -23,6 +23,11 @@ namespace ImageProcessor.Formats
         int Quality { get; set; }
 
         /// <summary>
+        /// Gets or sets the transparency threshold.
+        /// </summary>
+        int Threshold { get; set; }
+
+        /// <summary>
         /// Gets the standard identifier used on the Internet to indicate the type of data that a file contains.
         /// </summary>
         string MimeType { get; }

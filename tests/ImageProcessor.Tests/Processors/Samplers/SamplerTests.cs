@@ -7,6 +7,7 @@ namespace ImageProcessor.Tests
     using ImageProcessor.Samplers;
 
     using Xunit;
+    using Filters;
 
     public class SamplerTests : ProcessorTestBase
     {
@@ -46,7 +47,8 @@ namespace ImageProcessor.Tests
                     string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
                     using (FileStream output = File.OpenWrite($"TestOutput/Resized/{filename}"))
                     {
-                        image.Resize(image.Width / 2, image.Height / 2, sampler).Save(output);
+                        image.Resize(image.Width / 2, image.Height / 2, sampler)
+                             .Save(output);
                     }
 
                     Trace.WriteLine($"{name}: {watch.ElapsedMilliseconds}ms");

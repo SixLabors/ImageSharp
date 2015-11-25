@@ -6,6 +6,7 @@
 namespace ImageProcessor
 {
     using System;
+    using System.Numerics;
 
     /// <summary>
     /// Provides common mathematical methods.
@@ -113,24 +114,27 @@ namespace ImageProcessor
         /// Rotates one point around another
         /// <see href="http://stackoverflow.com/a/13695630/82333"/>
         /// </summary>
-        /// <param name="pointToRotate">The point to rotate.</param>
-        /// <param name="angleInDegrees">The rotation angle in degrees.</param>
-        /// <param name="centerPoint">The centre point of rotation. If not set the point will equal
-        /// <see cref="Point.Empty"/>
-        /// </param>
-        /// <returns>Rotated point</returns>
-        public static Point RotatePoint(Point pointToRotate, double angleInDegrees, Point? centerPoint = null)
+        /// <param name="point">The point to rotate.</param>
+        /// <param name="origin">The origin point of rotation.</param>
+        /// <param name="degrees">The rotation angle in degrees.</param>
+        /// <returns><see cref="Vector2"/></returns>
+        public static Vector2 RotatePoint(Vector2 point, Vector2 origin, float degrees)
         {
-            Point center = centerPoint ?? Point.Empty;
+            double radians = DegreesToRadians(degrees);
+            double cosTheta = Math.Cos(radians);
+            double sinTheta = Math.Sin(radians);
 
-            double angleInRadians = DegreesToRadians(angleInDegrees);
-            double cosTheta = Math.Cos(angleInRadians);
-            double sinTheta = Math.Sin(angleInRadians);
-            return new Point
+            Vector2 translatedPoint = new Vector2
             {
-                X = (int)((cosTheta * (pointToRotate.X - center.X)) - (sinTheta * (pointToRotate.Y - center.Y)) + center.X),
-                Y = (int)((sinTheta * (pointToRotate.X - center.X)) + (cosTheta * (pointToRotate.Y - center.Y)) + center.Y)
+                X = (float)(origin.X
+                    + (point.X - origin.X) * cosTheta
+                    - (point.Y - origin.Y) * sinTheta),
+                Y = (float)(origin.Y
+                    + (point.Y - origin.Y) * cosTheta
+                    + (point.X - origin.X) * sinTheta)
             };
+
+            return translatedPoint;
         }
 
         /// <summary>

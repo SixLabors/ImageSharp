@@ -43,7 +43,7 @@ namespace ImageProcessor.Tests
                 {
                     Stopwatch watch = Stopwatch.StartNew();
                     Image image = new Image(stream);
-                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + ".jpg";
+                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
                     using (FileStream output = File.OpenWrite($"TestOutput/Resized/{filename}"))
                     {
                         image.Resize(image.Width / 2, image.Height / 2, sampler).Save(output);

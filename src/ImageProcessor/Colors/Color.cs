@@ -473,13 +473,9 @@ namespace ImageProcessor
         public static Color Lerp(Color from, Color to, float amount)
         {
             amount = amount.Clamp(0f, 1f);
-
-            if (to.A < 1)
-            {
-                return (from * (1 - amount)) + to; 
-            }
-
-            return (from * (1 - amount)) + (to * amount);
+            
+            // Premultiplied.
+            return (from * (1 - amount)) + to;
         }
 
         /// <summary>

@@ -157,15 +157,15 @@ namespace ImageProcessor.Samplers
 
                             // Restrict alpha values in an attempt to prevent bleed.
                             // This is a baaaaaaad hack!!!
-                            if (destination.A <= 0.03)
-                            {
-                                destination = Color.Empty;
-                            }
-                            else
-                            {
+                            //if (destination.A <= 0.03)
+                            //{
+                            //    destination = Color.Empty;
+                            //}
+                            //else
+                            //{
                                 destination = Color.Compand(destination);
                                 destination.A = (float)Math.Round(destination.A, 2);
-                            }
+                            //}
 
                             target[x, y] = destination;
                         }

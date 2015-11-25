@@ -15,6 +15,11 @@ namespace ImageProcessor.Formats
     public class BmpEncoder : IImageEncoder
     {
         /// <summary>
+        /// The the transparency threshold.
+        /// </summary>
+        private int threshold = 128;
+
+        /// <summary>
         /// Gets or sets the quality of output for images.
         /// </summary>
         /// <remarks>Bitmap is a lossless format so this is not used in this encoder.</remarks>
@@ -25,6 +30,15 @@ namespace ImageProcessor.Formats
 
         /// <inheritdoc/>
         public string Extension => "bmp";
+
+        /// <summary>
+        /// Gets or sets the transparency threshold.
+        /// </summary>
+        public int Threshold
+        {
+            get { return this.threshold; }
+            set { this.threshold = value.Clamp(0, 255); }
+        }
 
         /// <inheritdoc/>
         public bool IsSupportedFileExtension(string extension)
@@ -77,7 +91,7 @@ namespace ImageProcessor.Formats
 
             WriteInfo(writer, infoHeader);
 
-            WriteImage(writer, image);
+            this.WriteImage(writer, image);
 
             writer.Flush();
         }
@@ -91,7 +105,7 @@ namespace ImageProcessor.Formats
         /// <param name="image">
         /// The <see cref="ImageBase"/> containing pixel data.
         /// </param>
-        private static void WriteImage(BinaryWriter writer, ImageBase image)
+        private void WriteImage(BinaryWriter writer, ImageBase image)
         {
             // TODO: Add more compression formats.
             int amount = (image.Width * 3) % 4;
@@ -118,6 +132,11 @@ namespace ImageProcessor.Formats
 
                     // Implicit cast to Bgra32 handles premultiplication conversion.
                     Bgra32 color = new Color(r, g, b, a);
+
+                    if (color.A < this.Threshold)
+                    {
+                        color = new Bgra32(0, 0, 0, 0);
+                    }
 
                     writer.Write(color.B);
                     writer.Write(color.G);

@@ -53,6 +53,17 @@ namespace ImageProcessor.Samplers
         }
 
         /// <summary>
+        /// Rotates an image by the given angle in degrees.
+        /// </summary>
+        /// <param name="source">The image to resize.</param>
+        /// <param name="degrees">The angle in degrees to porform the rotation.</param>
+        /// <returns>The <see cref="Image"/></returns>
+        public static Image Rotate(this Image source, float degrees)
+        {
+            return source.Process(source.Width, source.Height, source.Bounds, source.Bounds, new Resampler(new RobidouxResampler()) { Angle = degrees });
+        }
+
+        /// <summary>
         /// Crops an image to the given width and height.
         /// </summary>
         /// <param name="source">The image to resize.</param>

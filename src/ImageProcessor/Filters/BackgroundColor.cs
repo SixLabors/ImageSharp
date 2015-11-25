@@ -1,4 +1,4 @@
-﻿// <copyright file="Blend.cs" company="James Jackson-South">
+﻿// <copyright file="BackgroundColor.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -13,7 +13,7 @@ namespace ImageProcessor.Filters
     public class BackgroundColor : ParallelImageProcessor
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="Blend"/> class.
+        /// Initializes a new instance of the <see cref="BackgroundColor"/> class.
         /// </summary>
         /// <param name="color">The <see cref="Color"/> to set the background color to.</param>
         public BackgroundColor(Color color)
@@ -46,7 +46,11 @@ namespace ImageProcessor.Filters
                         {
                             Color color = source[x, y];
 
-                            if (color.A < 1)
+                            if (color == Color.Empty)
+                            {
+                                color = backgroundColor;
+                            }
+                            else if (color.A < 1)
                             {
                                 color = Color.Lerp(color, backgroundColor, .5f);
                             }

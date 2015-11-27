@@ -6,7 +6,7 @@
 namespace ImageProcessor.Samplers
 {
     using System;
-    using System.Collections.Immutable;
+    using System.Collections.Generic;
     using System.Numerics;
     using System.Threading.Tasks;
 
@@ -97,6 +97,22 @@ namespace ImageProcessor.Samplers
             }
         }
 
+        /// <summary>
+        /// Resamples the specified <see cref="ImageBase"/> at the specified location
+        /// and with the specified size.
+        /// </summary>
+        /// <param name="target">Target image to apply the process to.</param>
+        /// <param name="source">The source image. Cannot be null.</param>
+        /// <param name="targetRectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the location and size of the drawn image.
+        /// The image is scaled to fit the rectangle.
+        /// </param>
+        /// <param name="startY">The index of the row within the source image to start processing.</param>
+        /// <param name="endY">The index of the row within the source image to end processing.</param>
+        /// <remarks>
+        /// The method keeps the source image unchanged and returns the
+        /// the result of image process as new image.
+        /// </remarks>
         private void ApplyResizeOnly(ImageBase target, ImageBase source, Rectangle targetRectangle, int startY, int endY)
         {
             int targetY = targetRectangle.Y;
@@ -111,13 +127,11 @@ namespace ImageProcessor.Samplers
                 {
                     if (y >= targetY && y < targetBottom)
                     {
-                        ImmutableArray<Weight> verticalValues = this.verticalWeights[y].Values;
-                        float verticalSum = this.verticalWeights[y].Sum;
+                        Weight[] verticalValues = this.verticalWeights[y].Values;
 
                         for (int x = startX; x < endX; x++)
                         {
-                            ImmutableArray<Weight> horizontalValues = this.horizontalWeights[x].Values;
-                            float horizontalSum = this.horizontalWeights[x].Sum;
+                            Weight[] horizontalValues = this.horizontalWeights[x].Values;
 
                             // Destination color components
                             Color destination = new Color(0, 0, 0, 0);
@@ -130,7 +144,7 @@ namespace ImageProcessor.Samplers
                                 {
                                     int originX = xw.Index;
                                     Color sourceColor = Color.InverseCompand(source[originX, originY]);
-                                    float weight = (yw.Value / verticalSum) * (xw.Value / horizontalSum);
+                                    float weight = yw.Value * xw.Value;
 
                                     destination.R += sourceColor.R * weight;
                                     destination.G += sourceColor.G * weight;
@@ -150,6 +164,25 @@ namespace ImageProcessor.Samplers
                 });
         }
 
+        /// <summary>
+        /// Resamples and rotates the specified <see cref="ImageBase"/> at the specified location
+        /// and with the specified size.
+        /// </summary>
+        /// <param name="target">Target image to apply the process to.</param>
+        /// <param name="source">The source image. Cannot be null.</param>
+        /// <param name="targetRectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the location and size of the drawn image.
+        /// The image is scaled to fit the rectangle.
+        /// </param>
+        /// <param name="sourceRectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
+        /// </param>
+        /// <param name="startY">The index of the row within the source image to start processing.</param>
+        /// <param name="endY">The index of the row within the source image to end processing.</param>
+        /// <remarks>
+        /// The method keeps the source image unchanged and returns the
+        /// the result of image process as new image.
+        /// </remarks>
         private void ApplyResizeAndRotate(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             int targetY = targetRectangle.Y;
@@ -166,13 +199,11 @@ namespace ImageProcessor.Samplers
                 {
                     if (y >= targetY && y < targetBottom)
                     {
-                        ImmutableArray<Weight> verticalValues = this.verticalWeights[y].Values;
-                        float verticalSum = this.verticalWeights[y].Sum;
+                        Weight[] verticalValues = this.verticalWeights[y].Values;
 
                         for (int x = startX; x < endX; x++)
                         {
-                            ImmutableArray<Weight> horizontalValues = this.horizontalWeights[x].Values;
-                            float horizontalSum = this.horizontalWeights[x].Sum;
+                            Weight[] horizontalValues = this.horizontalWeights[x].Values;
 
                             // Destination color components
                             Color destination = new Color(0, 0, 0, 0);
@@ -193,12 +224,18 @@ namespace ImageProcessor.Samplers
                                     if (sourceRectangle.Contains(rotatedX, rotatedY))
                                     {
                                         Color sourceColor = Color.InverseCompand(source[rotatedX, rotatedY]);
-                                        float weight = (yw.Value / verticalSum) * (xw.Value / horizontalSum);
-
+                                        float weight = yw.Value * xw.Value;
                                         destination.R += sourceColor.R * weight;
                                         destination.G += sourceColor.G * weight;
                                         destination.B += sourceColor.B * weight;
                                         destination.A += sourceColor.A * weight;
+                                    }
+                                    else
+                                    {
+                                        // This is well hacky but clears up most of the 
+                                        // Alpha bleeding issues present in rotated images.
+                                        float weight = yw.Value * xw.Value;
+                                        destination.A += .9f * weight;
                                     }
                                 }
                             }
@@ -258,7 +295,7 @@ namespace ImageProcessor.Samplers
                         float sum = 0;
                         result[i] = new Weights();
 
-                        ImmutableArray<Weight>.Builder builder = ImmutableArray.CreateBuilder<Weight>();
+                        List<Weight> builder = new List<Weight>();
                         for (int a = startU; a <= endU; a++)
                         {
                             float w = sampler.GetValue((a - fu) / scale);
@@ -270,7 +307,13 @@ namespace ImageProcessor.Samplers
                             }
                         }
 
-                        result[i].Values = builder.ToImmutable();
+                        // Normalise the values
+                        if (Math.Abs(sum) > 0.00001f)
+                        {
+                            builder.ForEach(w => w.Value /= sum);
+                        }
+
+                        result[i].Values = builder.ToArray();
                         result[i].Sum = sum;
                     });
 
@@ -280,7 +323,7 @@ namespace ImageProcessor.Samplers
         /// <summary>
         /// Represents the weight to be added to a scaled pixel.
         /// </summary>
-        protected struct Weight
+        protected class Weight
         {
             /// <summary>
             /// The pixel index.
@@ -288,12 +331,7 @@ namespace ImageProcessor.Samplers
             public readonly int Index;
 
             /// <summary>
-            /// The result of the interpolation algorithm.
-            /// </summary>
-            public readonly float Value;
-
-            /// <summary>
-            /// Initializes a new instance of the <see cref="Weight"/> struct.
+            /// Initializes a new instance of the <see cref="Weight"/> class.
             /// </summary>
             /// <param name="index">The index.</param>
             /// <param name="value">The value.</param>
@@ -302,6 +340,11 @@ namespace ImageProcessor.Samplers
                 this.Index = index;
                 this.Value = value;
             }
+
+            /// <summary>
+            /// Gets or sets the result of the interpolation algorithm.
+            /// </summary>
+            public float Value { get; set; }
         }
 
         /// <summary>
@@ -312,7 +355,7 @@ namespace ImageProcessor.Samplers
             /// <summary>
             /// Gets or sets the values.
             /// </summary>
-            public ImmutableArray<Weight> Values { get; set; }
+            public Weight[] Values { get; set; }
 
             /// <summary>
             /// Gets or sets the sum.

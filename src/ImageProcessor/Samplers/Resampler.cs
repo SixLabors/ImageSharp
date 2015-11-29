@@ -75,7 +75,7 @@ namespace ImageProcessor.Samplers
         }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase source, ImageBase target, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
             this.horizontalWeights = this.PrecomputeWeights(targetRectangle.Width, sourceRectangle.Width);
             this.verticalWeights = this.PrecomputeWeights(targetRectangle.Height, sourceRectangle.Height);

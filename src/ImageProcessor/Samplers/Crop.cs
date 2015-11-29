@@ -13,13 +13,7 @@ namespace ImageProcessor.Samplers
     public class Crop : ParallelImageProcessor
     {
         /// <inheritdoc/>
-        protected override void Apply(
-            ImageBase target,
-            ImageBase source,
-            Rectangle targetRectangle,
-            Rectangle sourceRectangle,
-            int startY,
-            int endY)
+        protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             int targetY = targetRectangle.Y;
             int targetBottom = targetRectangle.Bottom;

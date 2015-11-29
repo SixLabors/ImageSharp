@@ -18,7 +18,7 @@ namespace ImageProcessor.Tests
             //{ "Contrast-50", new Contrast(50) },
             //{ "Contrast--50", new Contrast(-50) },
             //{ "BackgroundColor", new BackgroundColor(new Color(243 / 255f, 87 / 255f, 161 / 255f))},
-            { "Blend", new Blend(new Image(File.OpenRead("TestImages/Formats/Bmp/Car.bmp")),50)},
+            //{ "Blend", new Blend(new Image(File.OpenRead("TestImages/Formats/Bmp/Car.bmp")),50)},
             //{ "Saturation-50", new Saturation(50) },
             //{ "Saturation--50", new Saturation(-50) },
             //{ "Alpha--50", new Alpha(50) },
@@ -38,7 +38,7 @@ namespace ImageProcessor.Tests
             //{ "Prewitt", new Prewitt() },
             //{ "RobertsCross", new RobertsCross() },
             //{ "Scharr", new Scharr() },
-            //{ "Sobel", new Sobel {Greyscale = true} },
+            { "Sobel", new Sobel {Greyscale = true} },
             //{ "GuassianBlur", new GuassianBlur(10) },
             //{ "GuassianSharpen", new GuassianSharpen(10) }
         };

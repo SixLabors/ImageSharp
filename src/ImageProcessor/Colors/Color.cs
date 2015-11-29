@@ -17,10 +17,10 @@ namespace ImageProcessor
     /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
     /// as it avoids the need to create new values for modification operations.
     /// </remarks>
-    public struct Color : IEquatable<Color>
+    public partial struct Color : IEquatable<Color>
     {
         /// <summary>
-        /// Represents a <see cref="Color"/> that has R, G, B, and A values set to zero.
+        /// Represents an empty <see cref="Color"/> that has R, G, B, and A values set to zero.
         /// </summary>
         public static readonly Color Empty = default(Color);
 

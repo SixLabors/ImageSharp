@@ -138,6 +138,23 @@ namespace ImageProcessor
         }
 
         /// <summary>
+        /// Gets the bounding <see cref="Rectangle"/> from the given points.
+        /// </summary>
+        /// <param name="topLeft">
+        /// The <see cref="Point"/> designating the top left position.
+        /// </param>
+        /// <param name="bottomRight">
+        /// The <see cref="Point"/> designating the bottom right position.
+        /// </param>
+        /// <returns>
+        /// The bounding <see cref="Rectangle"/>.
+        /// </returns>
+        public static Rectangle GetBoundingRectangle(Point topLeft, Point bottomRight)
+        {
+            return new Rectangle(topLeft.X, topLeft.Y, bottomRight.X - topLeft.X, bottomRight.Y - topLeft.Y);
+        }
+
+        /// <summary>
         /// Calculates the new size after rotation.
         /// </summary>
         /// <param name="width">The width of the image.</param>
@@ -167,6 +184,124 @@ namespace ImageProcessor
                 Convert.ToInt32(Math.Max(Math.Abs(height1), Math.Abs(height2))));
 
             return result;
+        }
+
+        /// <summary>
+        /// Finds the bounding rectangle based on the first instance of any color component other
+        /// than the given one.
+        /// </summary>
+        /// <param name="bitmap">
+        /// The <see cref="Image"/> to search within.
+        /// </param>
+        /// <param name="componentValue">
+        /// The color component value to remove.
+        /// </param>
+        /// <param name="channel">
+        /// The <see cref="RgbaComponent"/> channel to test against.
+        /// </param>
+        /// <returns>
+        /// The <see cref="Rectangle"/>.
+        /// </returns>
+        public static Rectangle GetFilteredBoundingRectangle(ImageBase bitmap, float componentValue, RgbaComponent channel = RgbaComponent.B)
+        {
+            const float Epsilon = .00001f;
+            int width = bitmap.Width;
+            int height = bitmap.Height;
+            Point topLeft = new Point();
+            Point bottomRight = new Point();
+
+            Func<ImageBase, int, int, float, bool> delegateFunc;
+
+            // Determine which channel to check against
+            switch (channel)
+            {
+                case RgbaComponent.R:
+                    delegateFunc = (imageBase, x, y, b) => imageBase[x, y].R != b;
+                    break;
+
+                case RgbaComponent.G:
+                    delegateFunc = (imageBase, x, y, b) => imageBase[x, y].G != b;
+                    break;
+
+                case RgbaComponent.A:
+                    delegateFunc = (imageBase, x, y, b) => imageBase[x, y].A != b;
+                    break;
+
+                default:
+                    delegateFunc = (imageBase, x, y, b) => imageBase[x, y].B != b;
+                    break;
+            }
+
+            Func<ImageBase, int> getMinY = imageBase =>
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    for (int x = 0; x < width; x++)
+                    {
+                        if (delegateFunc(imageBase, x, y, componentValue))
+                        {
+                            return y;
+                        }
+                    }
+                }
+
+                return 0;
+            };
+
+            Func<ImageBase, int> getMaxY = imageBase =>
+            {
+                for (int y = height - 1; y > -1; y--)
+                {
+                    for (int x = 0; x < width; x++)
+                    {
+                        if (delegateFunc(imageBase, x, y, componentValue))
+                        {
+                            return y;
+                        }
+                    }
+                }
+
+                return height;
+            };
+
+            Func<ImageBase, int> getMinX = imageBase =>
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    for (int y = 0; y < height; y++)
+                    {
+                        if (delegateFunc(imageBase, x, y, componentValue))
+                        {
+                            return x;
+                        }
+                    }
+                }
+
+                return 0;
+            };
+
+            Func<ImageBase, int> getMaxX = imageBase =>
+            {
+                for (int x = width - 1; x > -1; x--)
+                {
+                    for (int y = 0; y < height; y++)
+                    {
+                        if (delegateFunc(imageBase, x, y, componentValue))
+                        {
+                            return x;
+                        }
+                    }
+                }
+
+                return height;
+            };
+
+            topLeft.Y = getMinY(bitmap);
+            topLeft.X = getMinX(bitmap);
+            bottomRight.Y = getMaxY(bitmap) + 1;
+            bottomRight.X = getMaxX(bitmap) + 1;
+
+            return GetBoundingRectangle(topLeft, bottomRight);
         }
 
         /// <summary>

@@ -21,7 +21,9 @@ namespace ImageProcessor
         /// <inheritdoc/>
         public void Apply(ImageBase target, ImageBase source, Rectangle sourceRectangle)
         {
-            this.OnApply(source, target.Bounds, sourceRectangle);
+            // We don't want to affect the original source pixels so we make clone here.
+            Image temp = new Image((Image)source);
+            this.OnApply(temp, target, target.Bounds, sourceRectangle);
 
             if (this.Parallelism > 1)
             {
@@ -38,7 +40,7 @@ namespace ImageProcessor
                         int yStart = sourceRectangle.Y + (current * batchSize);
                         int yEnd = current == partitionCount - 1 ? sourceRectangle.Bottom : yStart + batchSize;
 
-                        this.Apply(target, source, target.Bounds, sourceRectangle, yStart, yEnd);
+                        this.Apply(target, temp, target.Bounds, sourceRectangle, yStart, yEnd);
                     });
                 }
 
@@ -46,7 +48,7 @@ namespace ImageProcessor
             }
             else
             {
-                this.Apply(target, source, target.Bounds, sourceRectangle, sourceRectangle.Y, sourceRectangle.Bottom);
+                this.Apply(target, temp, target.Bounds, sourceRectangle, sourceRectangle.Y, sourceRectangle.Bottom);
             }
         }
 
@@ -56,17 +58,16 @@ namespace ImageProcessor
             float[] pixels = new float[width * height * 4];
             target.SetPixels(width, height, pixels);
 
-            if (targetRectangle == Rectangle.Empty)
-            {
-                targetRectangle = target.Bounds;
-            }
-
             if (sourceRectangle == Rectangle.Empty)
             {
                 sourceRectangle = source.Bounds;
             }
 
-            this.OnApply(source, target.Bounds, sourceRectangle);
+            // We don't want to affect the original source pixels so we make clone here.
+            Image temp = new Image((Image)source);
+            this.OnApply(temp, target, target.Bounds, sourceRectangle);
+
+            targetRectangle = target.Bounds;
 
             if (this.Parallelism > 1)
             {
@@ -83,7 +84,7 @@ namespace ImageProcessor
                         int yStart = current * batchSize;
                         int yEnd = current == partitionCount - 1 ? targetRectangle.Bottom : yStart + batchSize;
 
-                        this.Apply(target, source, targetRectangle, sourceRectangle, yStart, yEnd);
+                        this.Apply(target, temp, targetRectangle, sourceRectangle, yStart, yEnd);
                     });
                 }
 
@@ -91,7 +92,7 @@ namespace ImageProcessor
             }
             else
             {
-                this.Apply(target, source, targetRectangle, sourceRectangle, targetRectangle.Y, targetRectangle.Bottom);
+                this.Apply(target, temp, targetRectangle, sourceRectangle, targetRectangle.Y, targetRectangle.Bottom);
             }
         }
 
@@ -99,6 +100,7 @@ namespace ImageProcessor
         /// This method is called before the process is applied to prepare the processor.
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
+        /// <param name="target">Target image to apply the process to.</param>
         /// <param name="targetRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the location and size of the drawn image.
         /// The image is scaled to fit the rectangle.
@@ -106,7 +108,7 @@ namespace ImageProcessor
         /// <param name="sourceRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
-        protected virtual void OnApply(ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected virtual void OnApply(ImageBase source, ImageBase target, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
         }
 

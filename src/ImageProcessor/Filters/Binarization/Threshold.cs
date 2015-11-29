@@ -1,0 +1,69 @@
+﻿// <copyright file="Threshold.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
+namespace ImageProcessor.Filters
+{
+    using System;
+    using System.Threading.Tasks;
+
+    /// <summary>
+    /// An <see cref="IImageProcessor"/> to perform binary threshold filtering against an 
+    /// <see cref="Image"/>. The mage will be converted to greyscale before thresholding 
+    /// occurrs.
+    /// </summary>
+    public class Threshold : ParallelImageProcessor
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Threshold"/> class.
+        /// </summary>
+        /// <param name="threshold">The threshold to split the image. Must be between 0 and 1.</param>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="threshold"/> is less than 0 or is greater than 1.
+        /// </exception>
+        public Threshold(float threshold)
+        {
+            Guard.MustBeBetweenOrEqualTo(threshold, 0, 1, nameof(threshold));
+            this.Value = threshold;
+        }
+
+        /// <summary>
+        /// Gets the threshold value.
+        /// </summary>
+        public float Value { get; }
+
+        /// <inheritdoc/>
+        protected override void OnApply(ImageBase source, ImageBase target, Rectangle targetRectangle, Rectangle sourceRectangle)
+        {
+            new GreyscaleBt709().Apply(source, source, sourceRectangle);
+        }
+
+        /// <inheritdoc/>
+        protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        {
+            float threshold = this.Value;
+            int sourceY = sourceRectangle.Y;
+            int sourceBottom = sourceRectangle.Bottom;
+            int startX = sourceRectangle.X;
+            int endX = sourceRectangle.Right;
+
+            Parallel.For(
+                startY,
+                endY,
+                y =>
+                    {
+                        if (y >= sourceY && y < sourceBottom)
+                        {
+                            for (int x = startX; x < endX; x++)
+                            {
+                                Color color = source[x, y];
+
+                                // Any channel will do since it's greyscale.
+                                target[x, y] = color.B >= threshold ? Color.White : Color.Black;
+                            }
+                        }
+                    });
+        }
+    }
+}

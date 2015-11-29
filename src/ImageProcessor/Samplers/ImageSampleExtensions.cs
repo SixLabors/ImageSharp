@@ -11,6 +11,55 @@ namespace ImageProcessor.Samplers
     public static class ImageSampleExtensions
     {
         /// <summary>
+        /// Crops an image to the given width and height.
+        /// </summary>
+        /// <param name="source">The image to resize.</param>
+        /// <param name="width">The target image width.</param>
+        /// <param name="height">The target image height.</param>
+        /// <returns>The <see cref="Image"/></returns>
+        public static Image Crop(this Image source, int width, int height)
+        {
+            return Crop(source, width, height, source.Bounds);
+        }
+
+        /// <summary>
+        /// Crops an image to the given width and height with the given source rectangle.
+        /// <remarks>
+        /// If the source rectangle is smaller than the target dimensions then the
+        /// area within the source is resized performing a zoomed crop.
+        /// </remarks>
+        /// </summary>
+        /// <param name="source">The image to crop.</param>
+        /// <param name="width">The target image width.</param>
+        /// <param name="height">The target image height.</param>
+        /// <param name="sourceRectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
+        /// </param>
+        /// <returns>The <see cref="Image"/></returns>
+        public static Image Crop(this Image source, int width, int height, Rectangle sourceRectangle)
+        {
+            if (sourceRectangle.Width < width || sourceRectangle.Height < height)
+            {
+                // If the source rectangle is smaller than the target perform a
+                // cropped zoom.
+                source = source.Resize(sourceRectangle.Width, sourceRectangle.Height);
+            }
+
+            return source.Process(width, height, sourceRectangle, new Rectangle(0, 0, width, height), new Crop());
+        }
+
+        /// <summary>
+        /// Crops an image to the area of greatest entropy.
+        /// </summary>
+        /// <param name="source">The image to crop.</param>
+        /// <param name="threshold">The threshold for entropic density.</param>
+        /// <returns>The <see cref="Image"/></returns>
+        public static Image EntropyCrop(this Image source, float threshold = .5f)
+        {
+            return source.Process(source.Width, source.Height, source.Bounds, source.Bounds, new EntropyCrop(threshold));
+        }
+
+        /// <summary>
         /// Resizes an image to the given width and height.
         /// </summary>
         /// <param name="source">The image to resize.</param>
@@ -61,44 +110,6 @@ namespace ImageProcessor.Samplers
         public static Image Rotate(this Image source, float degrees)
         {
             return source.Process(source.Width, source.Height, source.Bounds, source.Bounds, new Resampler(new RobidouxResampler()) { Angle = degrees });
-        }
-
-        /// <summary>
-        /// Crops an image to the given width and height.
-        /// </summary>
-        /// <param name="source">The image to resize.</param>
-        /// <param name="width">The target image width.</param>
-        /// <param name="height">The target image height.</param>
-        /// <returns>The <see cref="Image"/></returns>
-        public static Image Crop(this Image source, int width, int height)
-        {
-            return Crop(source, width, height, source.Bounds);
-        }
-
-        /// <summary>
-        /// Crops an image to the given width and height with the given source rectangle.
-        /// <remarks>
-        /// If the source rectangle is smaller than the target dimensions then the
-        /// area within the source is resized performing a zoomed crop.
-        /// </remarks>
-        /// </summary>
-        /// <param name="source">The image to resize.</param>
-        /// <param name="width">The target image width.</param>
-        /// <param name="height">The target image height.</param>
-        /// <param name="sourceRectangle">
-        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
-        /// </param>
-        /// <returns>The <see cref="Image"/></returns>
-        public static Image Crop(this Image source, int width, int height, Rectangle sourceRectangle)
-        {
-            if (sourceRectangle.Width < width || sourceRectangle.Height < height)
-            {
-                // If the source rectangle is smaller than the target perform a
-                // cropped zoom.
-                source = source.Resize(sourceRectangle.Width, sourceRectangle.Height);
-            }
-
-            return source.Process(width, height, sourceRectangle, new Rectangle(0, 0, width, height), new Crop());
         }
     }
 }

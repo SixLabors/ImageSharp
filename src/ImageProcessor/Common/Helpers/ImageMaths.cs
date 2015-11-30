@@ -240,6 +240,8 @@ namespace ImageProcessor
                     {
                         if (delegateFunc(imageBase, x, y, componentValue))
                         {
+                            var c = imageBase[x, y];
+
                             return y;
                         }
                     }

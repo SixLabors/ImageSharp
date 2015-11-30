@@ -20,7 +20,7 @@ namespace ImageProcessor.Tests
         public static readonly List<string> Files = new List<string>
         {
             //"TestImages/Formats/Jpg/Backdrop.jpg",
-            //"TestImages/Formats/Jpg/Calliphora.jpg",
+            "TestImages/Formats/Jpg/Calliphora.jpg",
             //"TestImages/Formats/Jpg/china.jpg",
             //"TestImages/Formats/Jpg/ant.jpg",
             //"TestImages/Formats/Jpg/parachute.jpg",

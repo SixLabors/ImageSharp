@@ -10,8 +10,8 @@ namespace ImageProcessor.Filters
 
     /// <summary>
     /// An <see cref="IImageProcessor"/> to perform binary threshold filtering against an 
-    /// <see cref="Image"/>. The mage will be converted to greyscale before thresholding 
-    /// occurrs.
+    /// <see cref="Image"/>. The image will be converted to greyscale before thresholding 
+    /// occurs.
     /// </summary>
     public class Threshold : ParallelImageProcessor
     {

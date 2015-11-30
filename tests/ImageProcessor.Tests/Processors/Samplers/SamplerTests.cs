@@ -59,9 +59,9 @@ namespace ImageProcessor.Tests
         [Fact]
         public void ImageShouldEntropyCrop()
         {
-            if (!Directory.Exists("TestOutput/EntropyCropped"))
+            if (!Directory.Exists("TestOutput/EntropyCrop"))
             {
-                Directory.CreateDirectory("TestOutput/EntropyCropped");
+                Directory.CreateDirectory("TestOutput/EntropyCrop");
             }
 
             foreach (string file in Files)
@@ -69,8 +69,8 @@ namespace ImageProcessor.Tests
                 using (FileStream stream = File.OpenRead(file))
                 {
                     Image image = new Image(stream);
-                    string filename = Path.GetFileNameWithoutExtension(file) + "-EntropyCropped" + Path.GetExtension(file);
-                    using (FileStream output = File.OpenWrite($"TestOutput/EntropyCropped/{filename}"))
+                    string filename = Path.GetFileNameWithoutExtension(file) + "-EntropyCrop" + Path.GetExtension(file);
+                    using (FileStream output = File.OpenWrite($"TestOutput/EntropyCrop/{filename}"))
                     {
                         image.EntropyCrop().Save(output);
                     }

@@ -302,6 +302,31 @@ namespace ImageProcessor.Filters
         }
 
         /// <summary>
+        /// Pixelates and image with the given pixel size.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="size">The size of the pixels.</param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image Pixelate(this Image source, int size = 4)
+        {
+            return source.Process(source.Bounds, new Pixelate(size));
+        }
+
+        /// <summary>
+        /// Pixelates and image with the given pixel size.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="size">The size of the pixels.</param>
+        /// <param name="rectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
+        /// </param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image Pixelate(this Image source, int size, Rectangle rectangle)
+        {
+            return source.Process(rectangle, new Pixelate(size));
+        }
+
+        /// <summary>
         /// Alters the saturation component of the image.
         /// </summary>
         /// <param name="source">The image this method extends.</param>

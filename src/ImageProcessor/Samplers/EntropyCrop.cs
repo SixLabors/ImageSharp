@@ -16,6 +16,8 @@ namespace ImageProcessor.Samplers
     /// </summary>
     public class EntropyCrop : ParallelImageProcessor
     {
+        private Rectangle cropRectangle;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="EntropyCrop"/> class.
         /// </summary>
@@ -39,37 +41,36 @@ namespace ImageProcessor.Samplers
         {
             ImageBase temp = new Image(source.Width, source.Height);
 
-            // TODO: Should we detect edges on a grayscale image? 
-            new Sobel() { Greyscale = true }.Apply(temp, source, sourceRectangle);
+            // Detect the edges.
+            new Sobel().Apply(temp, source, sourceRectangle);
 
             // Apply threshold binarization filter.
             new Threshold(.5f).Apply(temp, temp, sourceRectangle);
 
             // Search for the first white pixels
             Rectangle rectangle = ImageMaths.GetFilteredBoundingRectangle(temp, 0);
-            target.SetPixels(rectangle.Width, rectangle.Height, new float[rectangle.Width * rectangle.Height * 4]);
 
+            // Reset the target pixel to the correct size.
+            target.SetPixels(rectangle.Width, rectangle.Height, new float[rectangle.Width * rectangle.Height * 4]);
+            this.cropRectangle = rectangle;
         }
 
         /// <inheritdoc/>
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-            int targetY = targetRectangle.Y;
-            int targetBottom = targetRectangle.Height;
+            int targetY = this.cropRectangle.Y;
             int startX = targetRectangle.X;
-            int endX = targetRectangle.Width;
+            int targetX = this.cropRectangle.X;
+            int endX = this.cropRectangle.Width;
 
             Parallel.For(
             startY,
             endY,
             y =>
             {
-                if (y >= targetY && y < targetBottom)
+                for (int x = startX; x < endX; x++)
                 {
-                    for (int x = startX; x < endX; x++)
-                    {
-                        target[x, y] = source[x, y];
-                    }
+                    target[x, y] = source[x + targetX, y + targetY];
                 }
             });
         }

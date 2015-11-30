@@ -59,7 +59,7 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
  - [x] Rectangle
  - [x] Size
  - [x] Point
- - [ ] Sphere
+ - [ ] Ellipse
 - Resampling algorithms. (Performance improvements?)
  - [x] Box
  - [x] Bicubic
@@ -77,7 +77,7 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
 - Cropping
  - [x] Rectangular Crop
  - [ ] Elliptical Crop
- - [ ] Entropy Crop
+ - [x] Entropy Crop
 - Rotation
  - [ ] Flip (90, 270, FlipType etc. Need help) 
  - [ ] Rotate by angle (Need help)
@@ -109,6 +109,7 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
  - [x] Invert
  - [x] BackgroundColor
  - [x] Brightness
+ - [x] Pixelate
  - [x] Saturation
  - [ ] Hue
  - [x] Blend

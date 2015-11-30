@@ -29,7 +29,6 @@ namespace ImageProcessor.Filters
                         {
                             for (int x = startX; x < endX; x++)
                             {
-                                // TODO: This doesn't work for gamma test images.
                                 Color color = source[x, y];
                                 color.R = 1 - color.R;
                                 color.G = 1 - color.G;

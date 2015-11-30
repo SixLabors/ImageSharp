@@ -216,19 +216,19 @@ namespace ImageProcessor
             switch (channel)
             {
                 case RgbaComponent.R:
-                    delegateFunc = (imageBase, x, y, b) => imageBase[x, y].R != b;
+                    delegateFunc = (imageBase, x, y, b) => Math.Abs(imageBase[x, y].R - b) > Epsilon;
                     break;
 
                 case RgbaComponent.G:
-                    delegateFunc = (imageBase, x, y, b) => imageBase[x, y].G != b;
+                    delegateFunc = (imageBase, x, y, b) => Math.Abs(imageBase[x, y].G - b) > Epsilon;
                     break;
 
                 case RgbaComponent.A:
-                    delegateFunc = (imageBase, x, y, b) => imageBase[x, y].A != b;
+                    delegateFunc = (imageBase, x, y, b) => Math.Abs(imageBase[x, y].A - b) > Epsilon;
                     break;
 
                 default:
-                    delegateFunc = (imageBase, x, y, b) => imageBase[x, y].B != b;
+                    delegateFunc = (imageBase, x, y, b) => Math.Abs(imageBase[x, y].B - b) > Epsilon;
                     break;
             }
 
@@ -240,8 +240,6 @@ namespace ImageProcessor
                     {
                         if (delegateFunc(imageBase, x, y, componentValue))
                         {
-                            var c = imageBase[x, y];
-
                             return y;
                         }
                     }

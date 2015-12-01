@@ -58,10 +58,18 @@ namespace ImageProcessor.Samplers
         /// <inheritdoc/>
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
+            if (source.Bounds == target.Bounds)
+            {
+                target.SetPixels(target.Width, target.Height, source.Pixels);
+                return;
+            }
+
             int targetY = this.cropRectangle.Y;
             int startX = targetRectangle.X;
             int targetX = this.cropRectangle.X;
             int endX = this.cropRectangle.Width;
+            int maxX = endX - 1;
+            int maxY = this.cropRectangle.Bottom - 1;
 
             Parallel.For(
             startY,
@@ -70,7 +78,13 @@ namespace ImageProcessor.Samplers
             {
                 for (int x = startX; x < endX; x++)
                 {
-                    target[x, y] = source[x + targetX, y + targetY];
+                    int offsetY = y + targetY;
+                    offsetY = offsetY.Clamp(0, maxY);
+
+                    int offsetX = x + targetX;
+                    offsetX = offsetX.Clamp(0, maxX);
+
+                    target[x, y] = source[offsetX, offsetY];
                 }
             });
         }

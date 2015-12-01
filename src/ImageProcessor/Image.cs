@@ -81,8 +81,6 @@ namespace ImageProcessor
         public Image(Image other)
             : base(other)
         {
-            Guard.NotNull(other, nameof(other), "Other image cannot be null.");
-
             foreach (ImageFrame frame in other.Frames)
             {
                 if (frame != null)
@@ -94,6 +92,25 @@ namespace ImageProcessor
             this.HorizontalResolution = DefaultHorizontalResolution;
             this.VerticalResolution = DefaultVerticalResolution;
             this.CurrentImageFormat = other.CurrentImageFormat;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image"/> class.
+        /// </summary>
+        /// <param name="other">
+        /// The other <see cref="ImageFrame"/> to create this instance from.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown if the given <see cref="ImageFrame"/> is null.
+        /// </exception>
+        public Image(ImageFrame other)
+            : base(other)
+        {
+            this.HorizontalResolution = DefaultHorizontalResolution;
+            this.VerticalResolution = DefaultVerticalResolution;
+            
+            // Most likely a gif
+            this.CurrentImageFormat = DefaultFormats.Value.First(f => f.GetType() == typeof(GifFormat));
         }
 
         /// <summary>

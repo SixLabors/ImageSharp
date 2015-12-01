@@ -20,12 +20,12 @@ namespace ImageProcessor.Tests
         public static readonly List<string> Files = new List<string>
         {
             "TestImages/Formats/Jpg/Calliphora.jpg",
-            "TestImages/Formats/Jpg/gamma_dalai_lama_gray.jpg",
+            //"TestImages/Formats/Jpg/gamma_dalai_lama_gray.jpg", //Perf: Enable for local testing only
             "TestImages/Formats/Bmp/Car.bmp",
-            "TestImages/Formats/Png/blur.png",
+            //"TestImages/Formats/Png/blur.png", //Perf: Enable for local testing only
             "TestImages/Formats/Png/splash.png",
             "TestImages/Formats/Gif/rings.gif",
-            "TestImages/Formats/Gif/giphy.gif"
+            //"TestImages/Formats/Gif/giphy.gif" //Perf: Enable for local testing only
         };
     }
 }

@@ -115,6 +115,12 @@ namespace ImageProcessor.Samplers
         /// </remarks>
         private void ApplyResizeOnly(ImageBase target, ImageBase source, Rectangle targetRectangle, int startY, int endY)
         {
+            if (source.Bounds == target.Bounds)
+            {
+                target.SetPixels(target.Width, target.Height, source.Pixels);
+                return;
+            }
+
             int targetY = targetRectangle.Y;
             int targetBottom = targetRectangle.Bottom;
             int startX = targetRectangle.X;

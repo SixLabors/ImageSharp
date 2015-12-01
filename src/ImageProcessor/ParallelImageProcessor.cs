@@ -22,7 +22,8 @@ namespace ImageProcessor
         public void Apply(ImageBase target, ImageBase source, Rectangle sourceRectangle)
         {
             // We don't want to affect the original source pixels so we make clone here.
-            Image temp = new Image((Image)source);
+            ImageFrame frame = source as ImageFrame;
+            Image temp = frame != null ? new Image(frame) : new Image((Image)source);
             this.OnApply(temp, target, target.Bounds, sourceRectangle);
 
             if (this.Parallelism > 1)
@@ -64,7 +65,8 @@ namespace ImageProcessor
             }
 
             // We don't want to affect the original source pixels so we make clone here.
-            Image temp = new Image((Image)source);
+            ImageFrame frame = source as ImageFrame;
+            Image temp = frame != null ? new Image(frame) : new Image((Image)source);
             this.OnApply(temp, target, target.Bounds, sourceRectangle);
 
             targetRectangle = target.Bounds;

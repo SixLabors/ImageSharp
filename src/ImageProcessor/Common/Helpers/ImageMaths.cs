@@ -298,8 +298,8 @@ namespace ImageProcessor
 
             topLeft.Y = getMinY(bitmap);
             topLeft.X = getMinX(bitmap);
-            bottomRight.Y = getMaxY(bitmap) + 1;
-            bottomRight.X = getMaxX(bitmap) + 1;
+            bottomRight.Y = (getMaxY(bitmap) + 1).Clamp(0, height);
+            bottomRight.X = (getMaxX(bitmap) + 1).Clamp(0, width);
 
             return GetBoundingRectangle(topLeft, bottomRight);
         }

@@ -7,6 +7,8 @@ namespace ImageProcessor.Samplers
 {
     /// <summary>
     /// The function implements the triangle (bilinear) algorithm.
+    /// Bilinear interpolation can be used where perfect image transformation with pixel matching is impossible, 
+    /// so that one can calculate and assign appropriate intensity values to pixels.   
     /// </summary>
     public class TriangleResampler : IResampler
     {

@@ -12,12 +12,12 @@
         [Fact]
         public void DecodeThenEncodeImageFromStreamShouldSucceed()
         {
-            if (!Directory.Exists("TestOutput/Encoded"))
+            if (!Directory.Exists("TestOutput/Encode"))
             {
-                Directory.CreateDirectory("TestOutput/Encoded");
+                Directory.CreateDirectory("TestOutput/Encode");
             }
 
-            foreach (FileInfo file in new DirectoryInfo("TestOutput/Encoded").GetFiles())
+            foreach (FileInfo file in new DirectoryInfo("TestOutput/Encode").GetFiles())
             {
                 file.Delete();
             }
@@ -29,9 +29,9 @@
                     Stopwatch watch = Stopwatch.StartNew();
                     Image image = new Image(stream);
 
-                    string encodedFilename = "TestOutput/Encoded/" + Path.GetFileName(file);
+                    string encodeFilename = "TestOutput/Encode/" + Path.GetFileName(file);
 
-                    using (FileStream output = File.OpenWrite(encodedFilename))
+                    using (FileStream output = File.OpenWrite(encodeFilename))
                     {
                         image.Save(output);
                     }
@@ -42,11 +42,11 @@
         }
 
         [Fact]
-        public void QuantizedImageShouldPreserveMaximumColorPrecision()
+        public void QuantizeImageShouldPreserveMaximumColorPrecision()
         {
-            if (!Directory.Exists("TestOutput/Quantized"))
+            if (!Directory.Exists("TestOutput/Quantize"))
             {
-                Directory.CreateDirectory("TestOutput/Quantized");
+                Directory.CreateDirectory("TestOutput/Quantize");
             }
 
             foreach (string file in Files)
@@ -57,7 +57,7 @@
                     IQuantizer quantizer = new OctreeQuantizer();
                     QuantizedImage quantizedImage = quantizer.Quantize(image);
 
-                    using (FileStream output = File.OpenWrite($"TestOutput/Quantized/{Path.GetFileName(file)}"))
+                    using (FileStream output = File.OpenWrite($"TestOutput/Quantize/{Path.GetFileName(file)}"))
                     {
                         quantizedImage.ToImage().Save(output);
                     }

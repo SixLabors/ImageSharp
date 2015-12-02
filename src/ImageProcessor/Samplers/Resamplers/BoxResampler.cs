@@ -6,7 +6,8 @@
 namespace ImageProcessor.Samplers
 {
     /// <summary>
-    /// The function implements the box (nearest neighbour) algorithm.
+    /// The function implements the box algorithm. Similar to nearest neighbour when upscaling.
+    /// When downscaling the pixels will average, merging together.
     /// </summary>
     public class BoxResampler : IResampler
     {

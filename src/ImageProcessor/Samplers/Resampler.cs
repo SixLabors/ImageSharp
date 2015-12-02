@@ -77,8 +77,11 @@ namespace ImageProcessor.Samplers
         /// <inheritdoc/>
         protected override void OnApply(ImageBase source, ImageBase target, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
-            this.horizontalWeights = this.PrecomputeWeights(targetRectangle.Width, sourceRectangle.Width);
-            this.verticalWeights = this.PrecomputeWeights(targetRectangle.Height, sourceRectangle.Height);
+            if (!(this.Sampler is NearestNeighborResampler))
+            {
+                this.horizontalWeights = this.PrecomputeWeights(targetRectangle.Width, sourceRectangle.Width);
+                this.verticalWeights = this.PrecomputeWeights(targetRectangle.Height, sourceRectangle.Height);
+            }
         }
 
         /// <inheritdoc/>
@@ -126,6 +129,37 @@ namespace ImageProcessor.Samplers
             int startX = targetRectangle.X;
             int endX = targetRectangle.Right;
 
+            if (this.Sampler is NearestNeighborResampler)
+            {
+                // Scaling factors
+                float widthFactor = source.Width / (float)target.Width;
+                float heightFactor = source.Height / (float)target.Height;
+
+                Parallel.For(
+                    startY,
+                    endY,
+                    y =>
+                    {
+                        if (y >= targetY && y < targetBottom)
+                        {
+                            // Y coordinates of source points
+                            int originY = (int)((y - targetY) * heightFactor);
+
+                            for (int x = startX; x < endX; x++)
+                            {
+                                // X coordinates of source points
+                                int originX = (int)((x - startX) * widthFactor);
+
+                                target[x, y] = source[originX, originY];
+                            }
+                        }
+                    });
+
+                // Break out now.
+                return;
+            }
+
+            // Interpolate the image using the calculated weights.
             Parallel.For(
                 startY,
                 endY,
@@ -198,6 +232,45 @@ namespace ImageProcessor.Samplers
             float negativeAngle = -this.angle;
             Vector2 centre = Rectangle.Center(sourceRectangle);
 
+            if (this.Sampler is NearestNeighborResampler)
+            {
+                // Scaling factors
+                float widthFactor = source.Width / (float)target.Width;
+                float heightFactor = source.Height / (float)target.Height;
+
+                Parallel.For(
+                    startY,
+                    endY,
+                    y =>
+                    {
+                        if (y >= targetY && y < targetBottom)
+                        {
+                            // Y coordinates of source points
+                            int originY = (int)((y - targetY) * heightFactor);
+
+                            for (int x = startX; x < endX; x++)
+                            {
+                                // X coordinates of source points
+                                int originX = (int)((x - startX) * widthFactor);
+
+                                // Rotate at the centre point
+                                Vector2 rotated = ImageMaths.RotatePoint(new Vector2(originX, originY), centre, negativeAngle);
+                                int rotatedX = (int)rotated.X;
+                                int rotatedY = (int)rotated.Y;
+
+                                if (sourceRectangle.Contains(rotatedX, rotatedY))
+                                {
+                                    target[x, y] = source[rotatedX, rotatedY];
+                                }
+                            }
+                        }
+                    });
+
+                // Break out now.
+                return;
+            }
+
+            // Interpolate the image using the calculated weights.
             Parallel.For(
                 startY,
                 endY,
@@ -235,13 +308,6 @@ namespace ImageProcessor.Samplers
                                         destination.G += sourceColor.G * weight;
                                         destination.B += sourceColor.B * weight;
                                         destination.A += sourceColor.A * weight;
-                                    }
-                                    else
-                                    {
-                                        // This is well hacky but clears up most of the 
-                                        // Alpha bleeding issues present in rotated images.
-                                        float weight = yw.Value * xw.Value;
-                                        destination.A += .9f * weight;
                                     }
                                 }
                             }

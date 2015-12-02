@@ -48,9 +48,9 @@ namespace ImageProcessor.Tests
         [MemberData("Filters")]
         public void FilterImage(string name, IImageProcessor processor)
         {
-            if (!Directory.Exists("TestOutput/Filtered"))
+            if (!Directory.Exists("TestOutput/Filter"))
             {
-                Directory.CreateDirectory("TestOutput/Filtered");
+                Directory.CreateDirectory("TestOutput/Filter");
             }
 
             foreach (string file in Files)
@@ -60,7 +60,7 @@ namespace ImageProcessor.Tests
                     Stopwatch watch = Stopwatch.StartNew();
                     Image image = new Image(stream);
                     string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
-                    using (FileStream output = File.OpenWrite($"TestOutput/Filtered/{ Path.GetFileName(filename) }"))
+                    using (FileStream output = File.OpenWrite($"TestOutput/Filter/{ Path.GetFileName(filename) }"))
                     {
                         image.Process(processor).Save(output);
                     }

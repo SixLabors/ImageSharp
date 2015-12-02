@@ -1,5 +1,4 @@
-﻿
-namespace ImageProcessor.Tests
+﻿namespace ImageProcessor.Tests
 {
     using System.Diagnostics;
     using System.IO;

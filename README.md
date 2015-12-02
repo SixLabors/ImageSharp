@@ -45,7 +45,7 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
  - [x] bmp (More bmp format saving support required, 24bit just now)
  - [x] png (Need updating for saving indexed support)
  - [x] gif
-- Basic color structs with implicit operators. Vector backed. #260
+- Basic color structs with implicit operators. Vector backed. [#260](https://github.com/JimBobSquarePants/ImageProcessor/issues/260)
  - [x] Color - Float based, premultiplied alpha, No limit to r, g, b, a values allowing for a fuller color range.
  - [x] BGRA32
  - [ ] CIE Lab
@@ -67,7 +67,7 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
  - [x] Lanczos5
  - [x] Lanczos8
  - [x] MitchelNetravali
- - [ ] Nearest Neighbour #257
+ - [x] Nearest Neighbour 
  - [x] Robidoux
  - [x] Robidoux Sharp
  - [x] Robidoux Soft
@@ -79,8 +79,8 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
  - [ ] Elliptical Crop
  - [x] Entropy Crop
 - Rotation
- - [ ] Flip (90, 270, FlipType etc. Need help) #261
- - [ ] Rotate by angle (Need help) #258
+ - [ ] Flip (90, 270, FlipType etc. Need help) [#261](https://github.com/JimBobSquarePants/ImageProcessor/issues/261)
+ - [] Rotate by angle (Need help with Paeth approach) [#258](https://github.com/JimBobSquarePants/ImageProcessor/issues/258)
 - ColorMatrix operations (Uses Matrix4x4)
  - [x] BlackWhite
  - [x] Greyscale BT709
@@ -102,7 +102,7 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
 - Blurring/ Sharpening
  - [x] Gaussian blur
  - [x] Gaussian sharpening
- - [ ] Box Blur #263
+ - [ ] Box Blur [#263](https://github.com/JimBobSquarePants/ImageProcessor/issues/263)
 - Filters
  - [x] Alpha
  - [x] Contrast
@@ -111,17 +111,17 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
  - [x] Brightness
  - [x] Pixelate
  - [x] Saturation
- - [ ] Hue #262
+ - [ ] Hue [#262](https://github.com/JimBobSquarePants/ImageProcessor/issues/262)
  - [x] Blend
  - [ ] Mask
 - Effects
- - [ ] Pattern brushes (Need help) #264
- - [ ] Elliptical brushes (Need help) #264
- - [ ] Gradient brush (vignette? Need help) #264
+ - [ ] Pattern brushes (Need help) [#264](https://github.com/JimBobSquarePants/ImageProcessor/issues/264)
+ - [ ] Elliptical brushes (Need help) [#264](https://github.com/JimBobSquarePants/ImageProcessor/issues/264)
+ - [ ] Gradient brush (vignette? Need help) [#264](https://github.com/JimBobSquarePants/ImageProcessor/issues/264)
 - Other stuff I haven't thought of.
  
 ###What might never happen
-- Exif manipulation - There's a lot of quirks in parsing EXIF and I'd need a ton of help to get it all coded.
+- Exif manipulation - There's a lot of quirks in parsing EXIF and I'd need a ton of help to get it all coded. [#78](https://github.com/JimBobSquarePants/ImageProcessor/issues/78)
 - Font support (Depends on new System.Text stuff) I don't know where to start coding this so if you have any pointers please chip in.
 
 ###API Changes

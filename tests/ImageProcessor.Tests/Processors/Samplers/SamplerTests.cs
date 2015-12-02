@@ -21,6 +21,7 @@ namespace ImageProcessor.Tests
                 { "Lanczos5", new Lanczos5Resampler() },
                 { "Lanczos8", new Lanczos8Resampler() },
                 { "MitchellNetravali", new MitchellNetravaliResampler() },
+                { "NearestNeighbor", new NearestNeighborResampler() },
                 { "Hermite", new HermiteResampler() },
                 { "Spline", new SplineResampler() },
                 { "Robidoux", new RobidouxResampler() },
@@ -33,9 +34,9 @@ namespace ImageProcessor.Tests
         [MemberData("Samplers")]
         public void ImageShouldResize(string name, IResampler sampler)
         {
-            if (!Directory.Exists("TestOutput/Resized"))
+            if (!Directory.Exists("TestOutput/Resize"))
             {
-                Directory.CreateDirectory("TestOutput/Resized");
+                Directory.CreateDirectory("TestOutput/Resize");
             }
 
             foreach (string file in Files)
@@ -45,9 +46,36 @@ namespace ImageProcessor.Tests
                     Stopwatch watch = Stopwatch.StartNew();
                     Image image = new Image(stream);
                     string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
-                    using (FileStream output = File.OpenWrite($"TestOutput/Resized/{filename}"))
+                    using (FileStream output = File.OpenWrite($"TestOutput/Resize/{filename}"))
                     {
                         image.Resize(image.Width / 2, image.Height / 2, sampler)
+                             .Save(output);
+                    }
+
+                    Trace.WriteLine($"{name}: {watch.ElapsedMilliseconds}ms");
+                }
+            }
+        }
+
+        [Theory]
+        [MemberData("Samplers")]
+        public void ImageShouldRotate(string name, IResampler sampler)
+        {
+            if (!Directory.Exists("TestOutput/Rotate"))
+            {
+                Directory.CreateDirectory("TestOutput/Rotate");
+            }
+
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    Stopwatch watch = Stopwatch.StartNew();
+                    Image image = new Image(stream);
+                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
+                    using (FileStream output = File.OpenWrite($"TestOutput/Rotate/{filename}"))
+                    {
+                        image.Rotate(45, sampler)
                              .Save(output);
                     }
 
@@ -81,9 +109,9 @@ namespace ImageProcessor.Tests
         [Fact]
         public void ImageShouldCrop()
         {
-            if (!Directory.Exists("TestOutput/Cropped"))
+            if (!Directory.Exists("TestOutput/Crop"))
             {
-                Directory.CreateDirectory("TestOutput/Cropped");
+                Directory.CreateDirectory("TestOutput/Crop");
             }
 
             foreach (string file in Files)
@@ -91,8 +119,8 @@ namespace ImageProcessor.Tests
                 using (FileStream stream = File.OpenRead(file))
                 {
                     Image image = new Image(stream);
-                    string filename = Path.GetFileNameWithoutExtension(file) + "-Cropped" + Path.GetExtension(file);
-                    using (FileStream output = File.OpenWrite($"TestOutput/Cropped/{filename}"))
+                    string filename = Path.GetFileNameWithoutExtension(file) + "-Crop" + Path.GetExtension(file);
+                    using (FileStream output = File.OpenWrite($"TestOutput/Crop/{filename}"))
                     {
                         image.Crop(image.Width / 2, image.Height / 2).Save(output);
                     }

@@ -17,6 +17,9 @@ namespace ImageProcessor.Filters
         public abstract Matrix4x4 Matrix { get; }
 
         /// <inheritdoc/>
+        public virtual bool Compand => true;
+
+        /// <inheritdoc/>
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             int sourceY = sourceRectangle.Y;
@@ -34,7 +37,7 @@ namespace ImageProcessor.Filters
                         {
                             for (int x = startX; x < endX; x++)
                             {
-                                target[x, y] = ApplyMatrix(source[x, y], matrix);
+                                target[x, y] = this.ApplyMatrix(source[x, y], matrix);
                             }
                         }
                     });
@@ -48,9 +51,14 @@ namespace ImageProcessor.Filters
         /// <returns>
         /// The <see cref="Color"/>.
         /// </returns>
-        private static Color ApplyMatrix(Color color, Matrix4x4 matrix)
+        private Color ApplyMatrix(Color color, Matrix4x4 matrix)
         {
-            color = Color.InverseCompand(color);
+            bool compand = this.Compand;
+
+            if (compand)
+            {
+                color = Color.InverseCompand(color);
+            }
 
             float sr = color.R;
             float sg = color.G;
@@ -60,7 +68,7 @@ namespace ImageProcessor.Filters
             color.G = (sr * matrix.M12) + (sg * matrix.M22) + (sb * matrix.M32) + matrix.M42;
             color.B = (sr * matrix.M13) + (sg * matrix.M23) + (sb * matrix.M33) + matrix.M43;
 
-            return Color.Compand(color);
+            return compand ? Color.Compand(color) : color;
         }
     }
 }

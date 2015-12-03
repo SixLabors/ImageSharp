@@ -8,7 +8,8 @@ namespace ImageProcessor.Filters
     using System.Numerics;
 
     /// <summary>
-    /// Converts the colors of the image to their sepia equivalent recreating an old photo effect.
+    /// Converts the colors of the image to their sepia equivalent.
+    /// The formula used matches the svg specification. <see href="http://www.w3.org/TR/filter-effects/#sepiaEquivalent"/>
     /// </summary>
     public class Sepia : ColorMatrixFilter
     {
@@ -25,5 +26,8 @@ namespace ImageProcessor.Filters
             M32 = .168f,
             M33 = .131f
         };
+
+        /// <inheritdoc/>
+        public override bool Compand => false;
     }
 }

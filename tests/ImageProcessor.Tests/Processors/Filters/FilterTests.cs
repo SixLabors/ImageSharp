@@ -41,7 +41,9 @@ namespace ImageProcessor.Tests
             { "Sobel", new Sobel {Greyscale = true} },
             { "Pixelate", new Pixelate(8)  },
             { "GuassianBlur", new GuassianBlur(10) },
-            { "GuassianSharpen", new GuassianSharpen(10) }
+            { "GuassianSharpen", new GuassianSharpen(10) },
+            { "Hue-180", new Hue(180) },
+            { "Hue--180", new Hue(-180) }
         };
 
         [Theory]

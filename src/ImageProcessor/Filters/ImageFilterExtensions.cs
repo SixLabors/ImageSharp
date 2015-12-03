@@ -210,6 +210,31 @@ namespace ImageProcessor.Filters
         }
 
         /// <summary>
+        /// Alters the hue component of the image.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="degrees">The angle in degrees to adjust the image.</param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image Hue(this Image source, float degrees)
+        {
+            return Hue(source, degrees, source.Bounds);
+        }
+
+        /// <summary>
+        /// Alters the hue component of the image.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="degrees">The angle in degrees to adjust the image.</param>
+        /// <param name="rectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
+        /// </param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image Hue(this Image source, float degrees, Rectangle rectangle)
+        {
+            return source.Process(rectangle, new Hue(degrees));
+        }
+
+        /// <summary>
         /// Inverts the colors of the image.
         /// </summary>
         /// <param name="source">The image this method extends.</param>

@@ -17,5 +17,10 @@ namespace ImageProcessor.Filters
         /// Gets the <see cref="Matrix4x4"/> used to alter the image.
         /// </summary>
         Matrix4x4 Matrix { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether to compand the value on processing.
+        /// </summary>
+        bool Compand { get; }
     }
 }

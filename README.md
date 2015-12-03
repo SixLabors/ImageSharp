@@ -80,7 +80,7 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
  - [x] Entropy Crop
 - Rotation
  - [ ] Flip (90, 270, FlipType etc. Need help) [#261](https://github.com/JimBobSquarePants/ImageProcessor/issues/261)
- - [] Rotate by angle (Need help with Paeth approach) [#258](https://github.com/JimBobSquarePants/ImageProcessor/issues/258)
+ - [ ] Rotate by angle (Need help with Paeth approach) [#258](https://github.com/JimBobSquarePants/ImageProcessor/issues/258)
 - ColorMatrix operations (Uses Matrix4x4)
  - [x] BlackWhite
  - [x] Greyscale BT709
@@ -111,7 +111,7 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
  - [x] Brightness
  - [x] Pixelate
  - [x] Saturation
- - [ ] Hue [#262](https://github.com/JimBobSquarePants/ImageProcessor/issues/262)
+ - [x] Hue
  - [x] Blend
  - [ ] Mask
 - Effects

@@ -23,14 +23,15 @@ namespace ImageProcessor
         /// </returns>
         public static byte Clamp(this byte value, byte min, byte max)
         {
-            if (value < min)
-            {
-                return min;
-            }
-
+            // Order is important here as someone might set min to higher than max.
             if (value > max)
             {
                 return max;
+            }
+
+            if (value < min)
+            {
+                return min;
             }
 
             return value;
@@ -47,14 +48,14 @@ namespace ImageProcessor
         /// </returns>
         public static int Clamp(this int value, int min, int max)
         {
-            if (value < min)
-            {
-                return min;
-            }
-
             if (value > max)
             {
                 return max;
+            }
+
+            if (value < min)
+            {
+                return min;
             }
 
             return value;
@@ -71,14 +72,14 @@ namespace ImageProcessor
         /// </returns>
         public static float Clamp(this float value, float min, float max)
         {
-            if (value < min)
-            {
-                return min;
-            }
-
             if (value > max)
             {
                 return max;
+            }
+
+            if (value < min)
+            {
+                return min;
             }
 
             return value;
@@ -95,14 +96,14 @@ namespace ImageProcessor
         /// </returns>
         public static double Clamp(this double value, double min, double max)
         {
-            if (value < min)
-            {
-                return min;
-            }
-
             if (value > max)
             {
                 return max;
+            }
+
+            if (value < min)
+            {
+                return min;
             }
 
             return value;

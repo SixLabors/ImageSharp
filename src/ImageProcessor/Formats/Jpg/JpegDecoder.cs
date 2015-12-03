@@ -68,10 +68,11 @@ namespace ImageProcessor.Formats
 
             if (header.Length >= 11)
             {
+                bool isJfif = IsJfif(header);
+                bool isExif = IsExif(header);
                 bool isJpeg = IsJpeg(header);
-                bool isExif = this.IsExif(header);
 
-                isSupported = isJpeg || isExif;
+                isSupported = isJfif || isExif || isJpeg;
             }
 
             return isSupported;
@@ -130,20 +131,20 @@ namespace ImageProcessor.Formats
         }
 
         /// <summary>
-        /// Returns a value indicating whether the given bytes identify Jpeg data.
+        /// Returns a value indicating whether the given bytes identify Jfif data.
         /// </summary>
         /// <param name="header">The bytes representing the file header.</param>
         /// <returns>The <see cref="bool"/></returns>
-        private static bool IsJpeg(byte[] header)
+        private static bool IsJfif(byte[] header)
         {
-            bool isJpg =
+            bool isJfif =
                 header[6] == 0x4A && // J
                 header[7] == 0x46 && // F
                 header[8] == 0x49 && // I
                 header[9] == 0x46 && // F
                 header[10] == 0x00;
 
-            return isJpg;
+            return isJfif;
         }
 
         /// <summary>
@@ -151,7 +152,7 @@ namespace ImageProcessor.Formats
         /// </summary>
         /// <param name="header">The bytes representing the file header.</param>
         /// <returns>The <see cref="bool"/></returns>
-        private bool IsExif(byte[] header)
+        private static bool IsExif(byte[] header)
         {
             bool isExif =
                 header[6] == 0x45 && // E
@@ -161,6 +162,21 @@ namespace ImageProcessor.Formats
                 header[10] == 0x00;
 
             return isExif;
+        }
+
+        /// <summary>
+        /// Returns a value indicating whether the given bytes identify Jpeg data.
+        /// This is a last chance resort for jpegs that contain ICC information.
+        /// </summary>
+        /// <param name="header">The bytes representing the file header.</param>
+        /// <returns>The <see cref="bool"/></returns>
+        private static bool IsJpeg(byte[] header)
+        {
+            bool isJpg =
+                header[0] == 0xFF && // 255
+                header[1] == 0xD8; // 216
+
+            return isJpg;
         }
     }
 }

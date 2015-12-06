@@ -79,7 +79,6 @@ namespace ImageProcessor.Formats
                 for (int x = 0; x < width; x++)
                 {
                     // Now I have the pixel, call the FirstPassQuantize function...
-                    // Implicit cast to Bgra32 handles premultiplication conversion.
                     this.InitialQuantizePixel(source[x, y]);
                 }
             }
@@ -107,7 +106,6 @@ namespace ImageProcessor.Formats
             {
                 for (int x = 0; x < width; x++)
                 {
-                    // Implicit cast to Bgra32 handles premultiplication conversion.
                     Bgra32 sourcePixel = source[x, y];
 
                     // Check if this is the same as the last pixel. If so use that value

@@ -238,7 +238,7 @@ namespace ImageProcessor
         /// </returns>
         public static implicit operator Color(Bgra32 color)
         {
-            return Color.FromNonPremultiplied(new Color(color.R / 255f, color.G / 255f, color.B / 255f, color.A / 255f));
+            return new Color(color.R / 255f, color.G / 255f, color.B / 255f, color.A / 255f);
         }
 
         /// <summary>
@@ -473,7 +473,7 @@ namespace ImageProcessor
         public static Color Lerp(Color from, Color to, float amount)
         {
             amount = amount.Clamp(0f, 1f);
-            
+
             // Premultiplied.
             return (from * (1 - amount)) + to;
         }

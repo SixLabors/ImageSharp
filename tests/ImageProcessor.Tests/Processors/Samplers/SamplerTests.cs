@@ -29,6 +29,15 @@
                 { "Welch", new WelchResampler() }
             };
 
+        public static readonly TheoryData<RotateType, FlipType> RotateFlips = new TheoryData<RotateType, FlipType>
+        {
+            { RotateType.None, FlipType.Vertical },
+            { RotateType.None, FlipType.Horizontal },
+            { RotateType.Rotate90, FlipType.None },
+            { RotateType.Rotate180, FlipType.None },
+            { RotateType.Rotate270, FlipType.None },
+        };
+
         [Theory]
         [MemberData("Samplers")]
         public void ImageShouldResize(string name, IResampler sampler)
@@ -52,6 +61,33 @@
                     }
 
                     Trace.WriteLine($"{name}: {watch.ElapsedMilliseconds}ms");
+                }
+            }
+        }
+
+        [Theory]
+        [MemberData("RotateFlips")]
+        public void ImageShouldRotateFlip(RotateType rotateType, FlipType flipType)
+        {
+            if (!Directory.Exists("TestOutput/RotateFlip"))
+            {
+                Directory.CreateDirectory("TestOutput/RotateFlip");
+            }
+
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    Stopwatch watch = Stopwatch.StartNew();
+                    Image image = new Image(stream);
+                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + rotateType + flipType + Path.GetExtension(file);
+                    using (FileStream output = File.OpenWrite($"TestOutput/RotateFlip/{filename}"))
+                    {
+                        image.RotateFlip(rotateType, flipType)
+                             .Save(output);
+                    }
+
+                    Trace.WriteLine($"{rotateType + "-" + flipType}: {watch.ElapsedMilliseconds}ms");
                 }
             }
         }

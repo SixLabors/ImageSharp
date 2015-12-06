@@ -183,5 +183,31 @@ namespace ImageProcessor
             this.Height = height;
             this.Pixels = pixels;
         }
+
+        /// <inheritdoc/>
+        public void ClonePixels(int width, int height, float[] pixels)
+        {
+#if DEBUG
+            if (width <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(width), "Width must be greater than or equals than zero.");
+            }
+
+            if (height <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(height), "Height must be greater than or equal than zero.");
+            }
+
+            if (pixels.Length != width * height * 4)
+            {
+                throw new ArgumentException("Pixel array must have the length of Width * Height * 4.");
+            }
+#endif
+            this.Width = width;
+            this.Height = height;
+            float[] clonedPixels = new float[pixels.Length];
+            Array.Copy(pixels, clonedPixels, pixels.Length);
+            this.Pixels = clonedPixels;
+        }
     }
 }

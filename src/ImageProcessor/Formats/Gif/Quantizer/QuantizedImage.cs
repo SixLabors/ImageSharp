@@ -75,10 +75,10 @@ namespace ImageProcessor.Formats
             for (int i = 0; i < pixelCount; i++)
             {
                 int offset = i * 4;
-                Bgra32 color = this.Palette[Math.Min(palletCount, this.Pixels[i])];
-                bgraPixels[offset + 0] = color.B;
+                Color color = this.Palette[Math.Min(palletCount, this.Pixels[i])];
+                bgraPixels[offset] = color.R;
                 bgraPixels[offset + 1] = color.G;
-                bgraPixels[offset + 2] = color.R;
+                bgraPixels[offset + 2] = color.B;
                 bgraPixels[offset + 3] = color.A;
             }
 

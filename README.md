@@ -79,7 +79,7 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
  - [ ] Elliptical Crop
  - [x] Entropy Crop
 - Rotation
- - [ ] Flip (90, 270, FlipType etc. Need help) [#261](https://github.com/JimBobSquarePants/ImageProcessor/issues/261)
+ - [x] Flip (90, 270, FlipType etc. Need help)
  - [ ] Rotate by angle (Need help with Paeth approach) [#258](https://github.com/JimBobSquarePants/ImageProcessor/issues/258)
 - ColorMatrix operations (Uses Matrix4x4)
  - [x] BlackWhite

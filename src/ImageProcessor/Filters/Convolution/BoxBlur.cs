@@ -1,26 +1,19 @@
-﻿// <copyright file="GuassianBlur.cs" company="James Jackson-South">
+﻿// <copyright file="BoxBlur.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
 namespace ImageProcessor.Filters
 {
-    using System;
-
     /// <summary>
-    /// Applies a Gaussian blur filter to the image.
+    /// Applies a Box blur filter to the image.
     /// </summary>
-    public class GuassianBlur : Convolution2PassFilter
+    public class BoxBlur : Convolution2PassFilter
     {
         /// <summary>
         /// The maximum size of the kernal in either direction.
         /// </summary>
         private readonly int kernelSize;
-
-        /// <summary>
-        /// The spread of the blur.
-        /// </summary>
-        private readonly float sigma;
 
         /// <summary>
         /// The vertical kernel
@@ -35,39 +28,12 @@ namespace ImageProcessor.Filters
         /// <summary>
         /// Initializes a new instance of the <see cref="GuassianBlur"/> class.
         /// </summary>
-        /// <param name="sigma">The 'sigma' value representing the weight of the blur.</param>
-        public GuassianBlur(float sigma = 3f)
-        {
-            this.kernelSize = ((int)Math.Ceiling(sigma) * 2) + 1;
-            this.sigma = sigma;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="GuassianBlur"/> class.
-        /// </summary>
         /// <param name="radius">
         /// The 'radius' value representing the size of the area to sample.
         /// </param>
-        public GuassianBlur(int radius)
+        public BoxBlur(int radius = 7)
         {
             this.kernelSize = (radius * 2) + 1;
-            this.sigma = radius;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="GuassianBlur"/> class.
-        /// </summary>
-        /// <param name="sigma">
-        /// The 'sigma' value representing the weight of the blur.
-        /// </param>
-        /// <param name="radius">
-        /// The 'radius' value representing the size of the area to sample.
-        /// This should be at least twice the sigma value.
-        /// </param>
-        public GuassianBlur(float sigma, int radius)
-        {
-            this.kernelSize = (radius * 2) + 1;
-            this.sigma = sigma;
         }
 
         /// <inheritdoc/>
@@ -84,40 +50,37 @@ namespace ImageProcessor.Filters
         {
             if (this.kernelY == null)
             {
-                this.kernelY = this.CreateGaussianKernel(false);
+                this.kernelY = this.CreateBoxKernel(false);
             }
 
             if (this.kernelX == null)
             {
-                this.kernelX = this.CreateGaussianKernel(true);
+                this.kernelX = this.CreateBoxKernel(true);
             }
         }
 
         /// <summary>
-        /// Create a 1 dimensional Gaussian kernel using the Gaussian G(x) function
+        /// Create a 1 dimensional Box kernel.
         /// </summary>
         /// <param name="horizontal">Whether to calculate a horizontal kernel.</param>
         /// <returns>The <see cref="T:float[,]"/></returns>
-        private float[,] CreateGaussianKernel(bool horizontal)
+        private float[,] CreateBoxKernel(bool horizontal)
         {
             int size = this.kernelSize;
-            float weight = this.sigma;
             float[,] kernel = horizontal ? new float[1, size] : new float[size, 1];
             float sum = 0.0f;
 
-            float midpoint = (size - 1) / 2f;
             for (int i = 0; i < size; i++)
             {
-                float x = i - midpoint;
-                float gx = ImageMaths.Gaussian(x, weight);
-                sum += gx;
+                float x = 1;
+                sum += x;
                 if (horizontal)
                 {
-                    kernel[0, i] = gx;
+                    kernel[0, i] = x;
                 }
                 else
                 {
-                    kernel[i, 0] = gx;
+                    kernel[i, 0] = x;
                 }
             }
 

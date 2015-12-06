@@ -97,6 +97,31 @@ namespace ImageProcessor.Filters
         }
 
         /// <summary>
+        /// Applies a box blur to the image.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="radius">The 'radius' value representing the size of the area to sample.</param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image BoxBlur(this Image source, int radius = 7)
+        {
+            return BoxBlur(source, radius, source.Bounds);
+        }
+
+        /// <summary>
+        /// Applies a box blur to the image.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="radius">The 'radius' value representing the size of the area to sample.</param>
+        /// <param name="rectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
+        /// </param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image BoxBlur(this Image source, int radius, Rectangle rectangle)
+        {
+            return source.Process(rectangle, new BoxBlur(radius));
+        }
+
+        /// <summary>
         /// Alters the brightness component of the image.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
@@ -207,6 +232,56 @@ namespace ImageProcessor.Filters
             return mode == GreyscaleMode.Bt709
                 ? source.Process(rectangle, new GreyscaleBt709())
                 : source.Process(rectangle, new GreyscaleBt601());
+        }
+
+        /// <summary>
+        /// Applies a Guassian blur to the image.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="sigma">The 'sigma' value representing the weight of the blur.</param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image GuassianBlur(this Image source, float sigma = 3f)
+        {
+            return GuassianBlur(source, sigma, source.Bounds);
+        }
+
+        /// <summary>
+        /// Applies a Guassian blur to the image.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="sigma">The 'sigma' value representing the weight of the blur.</param>
+        /// <param name="rectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
+        /// </param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image GuassianBlur(this Image source, float sigma, Rectangle rectangle)
+        {
+            return source.Process(rectangle, new GuassianBlur(sigma));
+        }
+
+        /// <summary>
+        /// Applies a Guassian sharpening filter to the image.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="sigma">The 'sigma' value representing the weight of the blur.</param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image GuassianSharpen(this Image source, float sigma = 3f)
+        {
+            return GuassianSharpen(source, sigma, source.Bounds);
+        }
+
+        /// <summary>
+        /// Applies a Guassian sharpening filter to the image.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="sigma">The 'sigma' value representing the weight of the blur.</param>
+        /// <param name="rectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
+        /// </param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image GuassianSharpen(this Image source, float sigma, Rectangle rectangle)
+        {
+            return source.Process(rectangle, new GuassianSharpen(sigma));
         }
 
         /// <summary>

@@ -120,7 +120,7 @@ namespace ImageProcessor.Samplers
         {
             if (source.Bounds == target.Bounds)
             {
-                target.SetPixels(target.Width, target.Height, source.Pixels);
+                target.ClonePixels(target.Width, target.Height, source.Pixels);
                 return;
             }
 

@@ -43,7 +43,8 @@ namespace ImageProcessor.Tests
             { "GuassianBlur", new GuassianBlur(10) },
             { "GuassianSharpen", new GuassianSharpen(10) },
             { "Hue-180", new Hue(180) },
-            { "Hue--180", new Hue(-180) }
+            { "Hue--180", new Hue(-180) },
+            { "BoxBlur", new BoxBlur(10) },
         };
 
         [Theory]

@@ -70,14 +70,12 @@ namespace ImageProcessor
         Color this[int x, int y] { get; set; }
 
         /// <summary>
-        /// Sets the pixel array of the image.
+        /// Sets the pixel array of the image to the given value.
         /// </summary>
-        /// <param name="width">
-        /// The new width of the image. Must be greater than zero.</param>
+        /// <param name="width">The new width of the image. Must be greater than zero.</param>
         /// <param name="height">The new height of the image. Must be greater than zero.</param>
         /// <param name="pixels">
-        /// The array with colors. Must be a multiple
-        /// of four, width and height.
+        /// The array with colors. Must be a multiple of four times the width and height.
         /// </param>
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown if either <paramref name="width"/> or <paramref name="height"/> are less than or equal to 0.
@@ -86,5 +84,22 @@ namespace ImageProcessor
         /// Thrown if the <paramref name="pixels"/> length is not equal to Width * Height * 4.
         /// </exception>
         void SetPixels(int width, int height, float[] pixels);
+
+        /// <summary>
+        /// Sets the pixel array of the image to the given value, creating a copy of 
+        /// the original pixels.
+        /// </summary>
+        /// <param name="width">The new width of the image. Must be greater than zero.</param>
+        /// <param name="height">The new height of the image. Must be greater than zero.</param>
+        /// <param name="pixels">
+        /// The array with colors. Must be a multiple of four times the width and height.
+        /// </param>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown if either <paramref name="width"/> or <paramref name="height"/> are less than or equal to 0.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown if the <paramref name="pixels"/> length is not equal to Width * Height * 4.
+        /// </exception>
+        void ClonePixels(int width, int height, float[] pixels);
     }
 }

@@ -123,5 +123,17 @@ namespace ImageProcessor.Samplers
         {
             return source.Process(source.Width, source.Height, source.Bounds, source.Bounds, new Resampler(sampler) { Angle = degrees });
         }
+
+        /// <summary>
+        /// Rotates and flips an image by the given instructions.
+        /// </summary>
+        /// <param name="source">The image to resize.</param>
+        /// <param name="rotateType">The <see cref="RotateType"/> to perform the rotation.</param>
+        /// <param name="flipType">The <see cref="FlipType"/> to perform the flip.</param>
+        /// <returns>The <see cref="Image"/></returns>
+        public static Image RotateFlip(this Image source, RotateType rotateType, FlipType flipType)
+        {
+            return source.Process(source.Width, source.Height, source.Bounds, source.Bounds, new RotateFlip(rotateType, flipType));
+        }
     }
 }

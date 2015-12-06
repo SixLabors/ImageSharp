@@ -102,7 +102,7 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
 - Blurring/ Sharpening
  - [x] Gaussian blur
  - [x] Gaussian sharpening
- - [ ] Box Blur [#263](https://github.com/JimBobSquarePants/ImageProcessor/issues/263)
+ - [x] Box Blur
 - Filters
  - [x] Alpha
  - [x] Contrast

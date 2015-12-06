@@ -125,8 +125,7 @@ namespace ImageProcessor.Formats
                             float b = sourcePixels[source + 2];
                             float a = sourcePixels[source + 3];
 
-                            // Implicit cast to Bgra32 handles premultiplication conversion.
-                            Bgra32 color = new Color(r, g, b, a);
+                            Bgra32 color = Color.ToNonPremultiplied(new Color(r, g, b, a));
 
                             if (color.A < this.Threshold)
                             {

@@ -30,7 +30,7 @@ namespace ImageProcessor.Formats
 
         /// <inheritdoc/>
         public string MimeType => "image/gif";
-        
+
         /// <summary>
         /// Gets or sets the transparency threshold.
         /// </summary>
@@ -137,7 +137,7 @@ namespace ImageProcessor.Formats
         private QuantizedImage WriteColorTable(ImageBase image, Stream stream, int quality, int bitDepth)
         {
             // Quantize the image returning a pallete.
-            IQuantizer quantizer = new OctreeQuantizer(quality.Clamp(1, 255), bitDepth) {Threshold = this.threshold};
+            IQuantizer quantizer = new OctreeQuantizer(quality.Clamp(1, 255), bitDepth) { Threshold = this.threshold };
             QuantizedImage quantizedImage = quantizer.Quantize(image);
 
             // Grab the pallete and write it to the stream.
@@ -151,10 +151,11 @@ namespace ImageProcessor.Formats
             for (int i = 0; i < pixelCount; i++)
             {
                 int offset = i * 3;
-                Bgra32 color = pallete[i];
-                colorTable[offset + 2] = color.B;
+                Bgra32 color = Color.ToNonPremultiplied(pallete[i]);
+
+                colorTable[offset] = color.R;
                 colorTable[offset + 1] = color.G;
-                colorTable[offset + 0] = color.R;
+                colorTable[offset + 2] = color.B;
             }
 
             stream.Write(colorTable, 0, colorTableLength);

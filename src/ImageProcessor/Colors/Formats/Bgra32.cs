@@ -94,7 +94,7 @@ namespace ImageProcessor
         /// </returns>
         public static implicit operator Bgra32(Color color)
         {
-            color = Color.ToNonPremultiplied(color.Limited);
+            color = color.Limited;
             return new Bgra32((255f * color.B).ToByte(), (255f * color.G).ToByte(), (255f * color.R).ToByte(), (255f * color.A).ToByte());
         }
 

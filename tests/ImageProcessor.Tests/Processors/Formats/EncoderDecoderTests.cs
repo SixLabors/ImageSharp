@@ -64,5 +64,42 @@
                 }
             }
         }
+
+        [Fact]
+        public void ImageCanConvertFormat()
+        {
+            if (!Directory.Exists("TestOutput/Format"))
+            {
+                Directory.CreateDirectory("TestOutput/Format");
+            }
+
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    Image image = new Image(stream);
+
+                    using (FileStream output = File.OpenWrite($"TestOutput/Format/{Path.GetFileNameWithoutExtension(file)}.gif"))
+                    {
+                        image.SaveAsGif(output);
+                    }
+
+                    using (FileStream output = File.OpenWrite($"TestOutput/Format/{Path.GetFileNameWithoutExtension(file)}.bmp"))
+                    {
+                        image.SaveAsBmp(output);
+                    }
+
+                    using (FileStream output = File.OpenWrite($"TestOutput/Format/{Path.GetFileNameWithoutExtension(file)}.jpg"))
+                    {
+                        image.SaveAsJpeg(output);
+                    }
+
+                    using (FileStream output = File.OpenWrite($"TestOutput/Format/{Path.GetFileNameWithoutExtension(file)}.png"))
+                    {
+                        image.SaveAsPng(output);
+                    }
+                }
+            }
+        }
     }
 }

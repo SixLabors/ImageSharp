@@ -52,8 +52,7 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
  - [ ] CIE XYZ
  - [x] CMYK
  - [x] HSV
- - [ ] HSLA
- - [ ] RGBAW
+ - [x] HSL
  - [x] YCbCr
 - Basic shape primitives (Unfinished and could possible be updated by using Vector2, Vector3, etc)
  - [x] Rectangle

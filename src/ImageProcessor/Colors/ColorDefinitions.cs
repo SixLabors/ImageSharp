@@ -5,6 +5,14 @@
 
 namespace ImageProcessor
 {
+    /// <summary>
+    /// Represents a four-component color using red, green, blue, and alpha data. 
+    /// Each component is stored in premultiplied format multiplied by the alpha component.
+    /// </summary>
+    /// <remarks>
+    /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
+    /// as it avoids the need to create new values for modification operations.
+    /// </remarks>
     public partial struct Color
     {
         /// <summary>

@@ -1,4 +1,4 @@
-﻿// <copyright file="Hsv.cs" company="James Jackson-South">
+﻿// <copyright file="Hsl.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -10,14 +10,14 @@ namespace ImageProcessor
     using System.Numerics;
 
     /// <summary>
-    /// Represents a HSV (hue, saturation, value) color. Also known as HSB (hue, saturation, brightness).
+    /// Represents a Hsl (hue, saturation, lightness) color.
     /// </summary>
-    public struct Hsv : IEquatable<Hsv>
+    public struct Hsl : IEquatable<Hsl>
     {
         /// <summary>
-        /// Represents a <see cref="Hsv"/> that has H, S, and V values set to zero.
+        /// Represents a <see cref="Hsl"/> that has H, S, and L values set to zero.
         /// </summary>
-        public static readonly Hsv Empty = default(Hsv);
+        public static readonly Hsl Empty = default(Hsl);
 
         /// <summary>
         /// The epsilon for comparing floating point numbers.
@@ -30,16 +30,16 @@ namespace ImageProcessor
         private Vector3 backingVector;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Hsv"/> struct.
+        /// Initializes a new instance of the <see cref="Hsl"/> struct.
         /// </summary>
         /// <param name="h">The h hue component.</param>
         /// <param name="s">The s saturation component.</param>
-        /// <param name="v">The v value (brightness) component.</param>
-        public Hsv(float h, float s, float v)
+        /// <param name="l">The l value (lightness) component.</param>
+        public Hsl(float h, float s, float l)
         {
             this.backingVector.X = h.Clamp(0, 360);
             this.backingVector.Y = s.Clamp(0, 1);
-            this.backingVector.Z = v.Clamp(0, 1);
+            this.backingVector.Z = l.Clamp(0, 1);
         }
 
         /// <summary>
@@ -55,26 +55,26 @@ namespace ImageProcessor
         public float S => this.backingVector.Y;
 
         /// <summary>
-        /// Gets the value (brightness) component.
+        /// Gets the lightness component.
         /// <remarks>A value ranging between 0 and 1.</remarks>
         /// </summary>
-        public float V => this.backingVector.Z;
+        public float L => this.backingVector.Z;
 
         /// <summary>
-        /// Gets a value indicating whether this <see cref="Hsv"/> is empty.
+        /// Gets a value indicating whether this <see cref="Hsl"/> is empty.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public bool IsEmpty => this.backingVector.Equals(default(Vector3));
 
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="Color"/> to a
-        /// <see cref="Hsv"/>.
+        /// <see cref="Hsl"/>.
         /// </summary>
         /// <param name="color">The instance of <see cref="Color"/> to convert.</param>
         /// <returns>
-        /// An instance of <see cref="Hsv"/>.
+        /// An instance of <see cref="Hsl"/>.
         /// </returns>
-        public static implicit operator Hsv(Color color)
+        public static implicit operator Hsl(Color color)
         {
             color = Color.ToNonPremultiplied(color.Limited);
             float r = color.R;
@@ -86,18 +86,14 @@ namespace ImageProcessor
             float chroma = max - min;
             float h = 0;
             float s = 0;
-            float v = max;
+            float l = (max + min) / 2;
 
             if (Math.Abs(chroma) < Epsilon)
             {
-                return new Hsv(0, s, v);
+                return new Hsl(0, s, l);
             }
 
-            if (Math.Abs(chroma) < Epsilon)
-            {
-                h = 0;
-            }
-            else if (Math.Abs(r - max) < Epsilon)
+            if (Math.Abs(r - max) < Epsilon)
             {
                 h = (g - b) / chroma;
             }
@@ -116,41 +112,47 @@ namespace ImageProcessor
                 h += 360;
             }
 
-            s = chroma / v;
+            if (l <= .5f)
+            {
+                s = chroma / (max + min);
+            }
+            else {
+                s = chroma / (2 - chroma);
+            }
 
-            return new Hsv(h, s, v);
+            return new Hsl(h, s, l);
         }
 
         /// <summary>
-        /// Compares two <see cref="Hsv"/> objects for equality.
+        /// Compares two <see cref="Hsl"/> objects for equality.
         /// </summary>
         /// <param name="left">
-        /// The <see cref="Hsv"/> on the left side of the operand.
+        /// The <see cref="Hsl"/> on the left side of the operand.
         /// </param>
         /// <param name="right">
-        /// The <see cref="Hsv"/> on the right side of the operand.
+        /// The <see cref="Hsl"/> on the right side of the operand.
         /// </param>
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        public static bool operator ==(Hsv left, Hsv right)
+        public static bool operator ==(Hsl left, Hsl right)
         {
             return left.Equals(right);
         }
 
         /// <summary>
-        /// Compares two <see cref="Hsv"/> objects for inequality.
+        /// Compares two <see cref="Hsl"/> objects for inequality.
         /// </summary>
         /// <param name="left">
-        /// The <see cref="Hsv"/> on the left side of the operand.
+        /// The <see cref="Hsl"/> on the left side of the operand.
         /// </param>
         /// <param name="right">
-        /// The <see cref="Hsv"/> on the right side of the operand.
+        /// The <see cref="Hsl"/> on the right side of the operand.
         /// </param>
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        public static bool operator !=(Hsv left, Hsv right)
+        public static bool operator !=(Hsl left, Hsl right)
         {
             return !left.Equals(right);
         }
@@ -158,9 +160,9 @@ namespace ImageProcessor
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            if (obj is Hsv)
+            if (obj is Hsl)
             {
-                Hsv color = (Hsv)obj;
+                Hsl color = (Hsl)obj;
 
                 return this.backingVector == color.backingVector;
             }
@@ -179,14 +181,14 @@ namespace ImageProcessor
         {
             if (this.IsEmpty)
             {
-                return "Hsv [ Empty ]";
+                return "Hsl [ Empty ]";
             }
 
-            return $"Hsv [ H={this.H:#0.##}, S={this.S:#0.##}, V={this.V:#0.##} ]";
+            return $"Hsl [ H={this.H:#0.##}, S={this.S:#0.##}, L={this.L:#0.##} ]";
         }
 
         /// <inheritdoc/>
-        public bool Equals(Hsv other)
+        public bool Equals(Hsl other)
         {
             return this.backingVector.Equals(other.backingVector);
         }
@@ -195,11 +197,11 @@ namespace ImageProcessor
         /// Returns the hash code for this instance.
         /// </summary>
         /// <param name="color">
-        /// The instance of <see cref="Hsv"/> to return the hash code for.
+        /// The instance of <see cref="Hsl"/> to return the hash code for.
         /// </param>
         /// <returns>
         /// A 32-bit signed integer that is the hash code for this instance.
         /// </returns>
-        private static int GetHashCode(Hsv color) => color.backingVector.GetHashCode();
+        private static int GetHashCode(Hsl color) => color.backingVector.GetHashCode();
     }
 }

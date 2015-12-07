@@ -173,6 +173,87 @@ namespace ImageProcessor.Tests
         }
 
         /// <summary>
+        /// Tests the implicit conversion from <see cref="Color"/> to <see cref="Hsl"/>.
+        /// </summary>
+        [Fact]
+        [SuppressMessage("StyleCop.CSharp.NamingRules", "SA1305:FieldNamesMustNotUseHungarianNotation",
+            Justification = "Reviewed. Suppression is OK here.")]
+        public void ColorToHsl()
+        {
+            // Black
+            Color b = new Color(0, 0, 0);
+            Hsl h = b;
+
+            Assert.Equal(0, h.H, 1);
+            Assert.Equal(0, h.S, 1);
+            Assert.Equal(0, h.L, 1);
+
+            // White
+            Color color = new Color(1, 1, 1);
+            Hsl hsl = color;
+
+            Assert.Equal(0f, hsl.H, 1);
+            Assert.Equal(0f, hsl.S, 1);
+            Assert.Equal(1f, hsl.L, 1);
+
+            // Dark moderate pink.
+            Color color2 = new Color(128 / 255f, 64 / 255f, 106 / 255f);
+            Hsl hsl2 = color2;
+
+            Assert.Equal(320.6f, hsl2.H, 1);
+            Assert.Equal(0.33f, hsl2.S, 1);
+            Assert.Equal(0.376f, hsl2.L, 2);
+
+            // Ochre.
+            Color color3 = new Color(204 / 255f, 119 / 255f, 34 / 255f);
+            Hsl hsl3 = color3;
+
+            Assert.Equal(30f, hsl3.H, 1);
+            Assert.Equal(0.714f, hsl3.S, 3);
+            Assert.Equal(0.467f, hsl3.L, 3);
+        }
+
+        /// <summary>
+        /// Tests the implicit conversion from <see cref="Hsl"/> to <see cref="Color"/>.
+        /// </summary>
+        [Fact]
+        public void HslToColor()
+        {
+            // Dark moderate pink.
+            Hsl hsl = new Hsl(320.6f, 0.33f, 0.376f);
+            Color color = hsl;
+
+            Assert.Equal(color.B, 106 / 255f, 1);
+            Assert.Equal(color.G, 64 / 255f, 1);
+            Assert.Equal(color.R, 128 / 255f, 1);
+
+            // Ochre
+            Hsl hsl2 = new Hsl(30, 0.714f, 0.467f);
+            Color color2 = hsl2;
+
+            Assert.Equal(color2.B, 34 / 255f, 1);
+            Assert.Equal(color2.G, 119 / 255f, 1);
+            Assert.Equal(color2.R, 204 / 255f, 1);
+
+            // White
+            Hsl hsl3 = new Hsl(0, 0, 1);
+            Color color3 = hsl3;
+
+            Assert.Equal(color3.B, 1, 1);
+            Assert.Equal(color3.G, 1, 1);
+            Assert.Equal(color3.R, 1, 1);
+
+            // Check others.
+            Random random = new Random(0);
+            for (int i = 0; i < 1000; i++)
+            {
+                Color color4 = new Color(random.Next(1), random.Next(1), random.Next(1));
+                Hsl hsl4 = color4;
+                Assert.Equal(color4, (Color)hsl4);
+            }
+        }
+
+        /// <summary>
         /// Tests the implicit conversion from <see cref="Color"/> to <see cref="Cmyk"/>.
         /// </summary>
         [Fact]

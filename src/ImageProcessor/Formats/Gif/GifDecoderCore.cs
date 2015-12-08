@@ -405,20 +405,19 @@ namespace ImageProcessor.Formats
             {
                 if (this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToBackground)
                 {
-                    Parallel.For(descriptor.Top, descriptor.Top + descriptor.Height,
-                        y =>
-                            {
-                                for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width; x++)
-                                {
-                                    offset = ((y * imageWidth) + x) * 4;
+                    for (int y = descriptor.Top; y < descriptor.Top + descriptor.Height; y++)
+                    {
+                        for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width; x++)
+                        {
+                            offset = ((y * imageWidth) + x) * 4;
 
-                                    // Stored in r-> g-> b-> a order.
-                                    this.currentFrame[offset + 0] = 0;
-                                    this.currentFrame[offset + 1] = 0;
-                                    this.currentFrame[offset + 2] = 0;
-                                    this.currentFrame[offset + 3] = 0;
-                                }
-                            });
+                            // Stored in r-> g-> b-> a order.
+                            this.currentFrame[offset + 0] = 0;
+                            this.currentFrame[offset + 1] = 0;
+                            this.currentFrame[offset + 2] = 0;
+                            this.currentFrame[offset + 3] = 0;
+                        }
+                    }
                 }
                 else if (this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToPrevious)
                 {

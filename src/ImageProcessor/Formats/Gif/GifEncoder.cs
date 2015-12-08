@@ -8,6 +8,7 @@ namespace ImageProcessor.Formats
     using System;
     using System.IO;
     using System.Linq;
+    using System.Threading.Tasks;
 
     /// <summary>
     /// Image encoder for writing image data to a stream in gif format.
@@ -148,15 +149,16 @@ namespace ImageProcessor.Formats
             int colorTableLength = (int)Math.Pow(2, bitDepth) * 3;
             byte[] colorTable = new byte[colorTableLength];
 
-            for (int i = 0; i < pixelCount; i++)
-            {
-                int offset = i * 3;
-                Bgra32 color = Color.ToNonPremultiplied(pallete[i]);
+            Parallel.For(0, pixelCount,
+                i =>
+                    {
+                        int offset = i * 3;
+                        Bgra32 color = Color.ToNonPremultiplied(pallete[i]);
 
-                colorTable[offset] = color.R;
-                colorTable[offset + 1] = color.G;
-                colorTable[offset + 2] = color.B;
-            }
+                        colorTable[offset] = color.R;
+                        colorTable[offset + 1] = color.G;
+                        colorTable[offset + 2] = color.B;
+                    });
 
             stream.Write(colorTable, 0, colorTableLength);
 

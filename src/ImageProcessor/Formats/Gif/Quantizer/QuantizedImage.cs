@@ -6,6 +6,7 @@
 namespace ImageProcessor.Formats
 {
     using System;
+    using System.Threading.Tasks;
 
     /// <summary>
     /// Represents a quantized image where the pixels indexed by a color palette.
@@ -72,15 +73,16 @@ namespace ImageProcessor.Formats
             int palletCount = this.Palette.Length - 1;
             float[] bgraPixels = new float[pixelCount * 4];
 
-            for (int i = 0; i < pixelCount; i++)
-            {
-                int offset = i * 4;
-                Color color = this.Palette[Math.Min(palletCount, this.Pixels[i])];
-                bgraPixels[offset] = color.R;
-                bgraPixels[offset + 1] = color.G;
-                bgraPixels[offset + 2] = color.B;
-                bgraPixels[offset + 3] = color.A;
-            }
+            Parallel.For(0, pixelCount,
+                i =>
+                    {
+                        int offset = i * 4;
+                        Color color = this.Palette[Math.Min(palletCount, this.Pixels[i])];
+                        bgraPixels[offset] = color.R;
+                        bgraPixels[offset + 1] = color.G;
+                        bgraPixels[offset + 2] = color.B;
+                        bgraPixels[offset + 3] = color.A;
+                    });
 
             image.SetPixels(this.Width, this.Height, bgraPixels);
             return image;

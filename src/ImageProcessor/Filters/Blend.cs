@@ -59,9 +59,12 @@ namespace ImageProcessor.Filters
                             {
                                 Color blendedColor = this.toBlend[x, y];
 
-                                // Lerping colors is dependent on the alpha of the blended color
-                                float alphaFactor = alpha > 0 ? alpha : blendedColor.A;
-                                color = Color.Lerp(color, blendedColor, alphaFactor);
+                                if (blendedColor.A > 0)
+                                {
+                                    // Lerping colors is dependent on the alpha of the blended color
+                                    float alphaFactor = alpha > 0 ? alpha : blendedColor.A;
+                                    color = Color.Lerp(color, blendedColor, alphaFactor);
+                                }
                             }
 
                             target[x, y] = color;

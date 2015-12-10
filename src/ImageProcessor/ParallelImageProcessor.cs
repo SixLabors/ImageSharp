@@ -51,6 +51,8 @@ namespace ImageProcessor
             {
                 this.Apply(target, temp, target.Bounds, sourceRectangle, sourceRectangle.Y, sourceRectangle.Bottom);
             }
+
+            this.AfterApply(temp, target, target.Bounds, sourceRectangle);
         }
 
         /// <inheritdoc/>
@@ -96,6 +98,8 @@ namespace ImageProcessor
             {
                 this.Apply(target, temp, targetRectangle, sourceRectangle, targetRectangle.Y, targetRectangle.Bottom);
             }
+
+            this.AfterApply(temp, target, target.Bounds, sourceRectangle);
         }
 
         /// <summary>
@@ -134,5 +138,21 @@ namespace ImageProcessor
         /// the result of image process as new image.
         /// </remarks>
         protected abstract void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY);
+
+        /// <summary>
+        /// This method is called after the process is applied to prepare the processor.
+        /// </summary>
+        /// <param name="source">The source image. Cannot be null.</param>
+        /// <param name="target">Target image to apply the process to.</param>
+        /// <param name="targetRectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the location and size of the drawn image.
+        /// The image is scaled to fit the rectangle.
+        /// </param>
+        /// <param name="sourceRectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
+        /// </param>
+        protected virtual void AfterApply(ImageBase source, ImageBase target, Rectangle targetRectangle, Rectangle sourceRectangle)
+        {
+        }
     }
 }

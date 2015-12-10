@@ -160,7 +160,7 @@ namespace ImageProcessor
         /// Returns the center point of the given <see cref="Rectangle"/>
         /// </summary>
         /// <param name="rectangle">The rectangle</param>
-        /// <returns><see cref="Point"/></returns>
+        /// <returns><see cref="Vector2"/></returns>
         public static Vector2 Center(Rectangle rectangle)
         {
             return new Vector2(rectangle.Left + rectangle.Width / 2, rectangle.Top + rectangle.Height / 2);

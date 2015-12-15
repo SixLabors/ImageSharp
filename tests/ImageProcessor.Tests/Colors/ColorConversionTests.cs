@@ -91,6 +91,18 @@ namespace ImageProcessor.Tests
             Assert.Equal(1f, color3.A, 1);
         }
 
+        [Fact]
+        public void ColorToCieXyz()
+        {
+            Color color = new Color(1, 1, 1);
+            CieXyz cieXyz = color;
+
+            Assert.Equal(0.9505F, cieXyz.X, 4);
+            Assert.Equal(1.0000F, cieXyz.Y, 4);
+            Assert.Equal(1.089F, cieXyz.Z, 3);
+            
+        }
+
         /// <summary>
         /// Tests the implicit conversion from <see cref="Color"/> to <see cref="Hsv"/>.
         /// </summary>

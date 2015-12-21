@@ -114,8 +114,9 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
  - [x] Blend
  - [ ] Mask
 - Effects
- - [ ] Pattern brushes (Need help) [#264](https://github.com/JimBobSquarePants/ImageProcessor/issues/264)
- - [ ] Elliptical brushes (Need help) [#264](https://github.com/JimBobSquarePants/ImageProcessor/issues/264)
+ - [ ] Path brush (Need help) [#264](https://github.com/JimBobSquarePants/ImageProcessor/issues/264)
+ - [ ] Pattern brush (Need help) [#264](https://github.com/JimBobSquarePants/ImageProcessor/issues/264)
+ - [ ] Elliptical brush (Need help) [#264](https://github.com/JimBobSquarePants/ImageProcessor/issues/264)
  - [ ] Gradient brush (vignette? Need help) [#264](https://github.com/JimBobSquarePants/ImageProcessor/issues/264)
 - Other stuff I haven't thought of.
  

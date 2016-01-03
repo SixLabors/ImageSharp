@@ -66,6 +66,7 @@ namespace ImageProcessor.Samplers
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
         /// <returns>The <see cref="Image"/></returns>
+        /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
         public static Image Resize(this Image source, int width, int height)
         {
             return Resize(source, width, height, new RobidouxResampler());
@@ -79,6 +80,7 @@ namespace ImageProcessor.Samplers
         /// <param name="height">The target image height.</param>
         /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
         /// <returns>The <see cref="Image"/></returns>
+        /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
         public static Image Resize(this Image source, int width, int height, IResampler sampler)
         {
             return Resize(source, width, height, sampler, source.Bounds);
@@ -96,8 +98,18 @@ namespace ImageProcessor.Samplers
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
         /// <returns>The <see cref="Image"/></returns>
+        /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
         public static Image Resize(this Image source, int width, int height, IResampler sampler, Rectangle sourceRectangle)
         {
+            if (width == 0 && height > 0)
+            {
+                width = source.Width * height / source.Height;
+            }
+            if (height == 0 && width > 0)
+            {
+                height = source.Height * width / source.Width;
+            }
+
             return source.Process(width, height, sourceRectangle, new Rectangle(0, 0, width, height), new Resampler(sampler));
         }
 

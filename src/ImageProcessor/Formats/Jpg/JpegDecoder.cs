@@ -102,15 +102,34 @@ namespace ImageProcessor.Formats
 
             float[] pixels = new float[pixelWidth * pixelHeight * 4];
 
-            if (!(jpg.Colorspace == Colorspace.RGB && jpg.BitsPerComponent == 8))
+            if (jpg.Colorspace == Colorspace.RGB && jpg.BitsPerComponent == 8)
             {
-                throw new NotSupportedException("JpegDecoder only support RGB color space.");
-            }
+                Parallel.For(
+                    0,
+                    pixelHeight,
+                    y =>
+                        {
+                            SampleRow row = jpg.GetRow(y);
 
-            Parallel.For(
-                0,
-                pixelHeight,
-                y =>
+                            for (int x = 0; x < pixelWidth; x++)
+                            {
+                                Sample sample = row.GetAt(x);
+
+                                int offset = ((y * pixelWidth) + x) * 4;
+
+                                pixels[offset + 0] = sample[0] / 255f;
+                                pixels[offset + 1] = sample[1] / 255f;
+                                pixels[offset + 2] = sample[2] / 255f;
+                                pixels[offset + 3] = 1;
+                            }
+                        });
+            }
+            else if (jpg.Colorspace == Colorspace.Grayscale && jpg.BitsPerComponent == 8)
+            {
+                Parallel.For(
+                    0,
+                    pixelHeight,
+                    y =>
                     {
                         SampleRow row = jpg.GetRow(y);
 
@@ -121,11 +140,16 @@ namespace ImageProcessor.Formats
                             int offset = ((y * pixelWidth) + x) * 4;
 
                             pixels[offset + 0] = sample[0] / 255f;
-                            pixels[offset + 1] = sample[1] / 255f;
-                            pixels[offset + 2] = sample[2] / 255f;
+                            pixels[offset + 1] = sample[0] / 255f;
+                            pixels[offset + 2] = sample[0] / 255f;
                             pixels[offset + 3] = 1;
                         }
                     });
+            }
+            else
+            {
+                throw new NotSupportedException("JpegDecoder only supports RGB and Grayscale color spaces.");
+            }
 
             image.SetPixels(pixelWidth, pixelHeight, pixels);
         }

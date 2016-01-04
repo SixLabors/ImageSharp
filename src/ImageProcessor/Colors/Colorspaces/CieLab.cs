@@ -1,0 +1,218 @@
+﻿// <copyright file="Cmyk.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
+namespace ImageProcessor
+{
+    using System;
+    using System.ComponentModel;
+    using System.Numerics;
+
+    /// <summary>
+    /// Represents an CIE LAB 1976 color.
+    /// </summary>
+    public struct CieLab : IEquatable<CieLab>
+    {
+        /// <summary>
+        /// Represents a <see cref="CieLab"/> that has L, A, B values set to zero.
+        /// </summary>
+        public static readonly CieLab Empty = default(CieLab);
+
+        /// <summary>
+        /// The epsilon for comparing floating point numbers.
+        /// </summary>
+        private const float Epsilon = 0.0001f;
+
+        /// <summary>
+        /// The backing vector for SIMD support.
+        /// </summary>
+        private Vector3 backingVector;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CieLab"/> struct.
+        /// </summary>
+        /// <param name="l">The lightness dimension.</param>
+        /// <param name="a">The a (green - magenta) component.</param>
+        /// <param name="b">The b (blue - yellow) component.</param>
+        public CieLab(float l, float a, float b)
+            : this()
+        {
+            this.backingVector.X = ClampL(l);
+            this.backingVector.Y = ClampAB(a);
+            this.backingVector.Z = ClampAB(b);
+        }
+
+        /// <summary>
+        /// Gets the lightness dimension.
+        /// <remarks>A value ranging between 0 (black), 100 (diffuse white) or higher (specular white).</remarks>
+        /// </summary>
+        public float L => this.backingVector.X;
+
+        /// <summary>
+        /// Gets the a color component.
+        /// <remarks>Negative is green, positive magenta.</remarks>
+        /// </summary>
+        public float A => this.backingVector.Y;
+
+        /// <summary>
+        /// Gets the b color component.
+        /// <remarks>Negative is blue, positive is yellow</remarks>
+        /// </summary>
+        public float B => this.backingVector.Z;
+
+        /// <summary>
+        /// Gets a value indicating whether this <see cref="CieLab"/> is empty.
+        /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public bool IsEmpty => this.backingVector.Equals(default(Vector4));
+
+        /// <summary>
+        /// Allows the implicit conversion of an instance of <see cref="Color"/> to a
+        /// <see cref="CieLab"/>.
+        /// </summary>
+        /// <param name="color">
+        /// The instance of <see cref="Bgra32"/> to convert.
+        /// </param>
+        /// <returns>
+        /// An instance of <see cref="CieLab"/>.
+        /// </returns>
+        public static implicit operator CieLab(Color color)
+        {
+            // First convert to CIE XYZ
+            color = Color.InverseCompand(color.Limited);
+
+            float x = (color.R * 0.41239079926595F) + (color.G * 0.35758433938387F) + (color.B * 0.18048078840183F);
+            float y = (color.R * 0.21263900587151F) + (color.G * 0.71516867876775F) + (color.B * 0.072192315360733F);
+            float z = (color.R * 0.019330818715591F) + (color.G * 0.11919477979462F) + (color.B * 0.95053215224966F);
+
+            x *= 100F;
+            y *= 100F;
+            z *= 100F;
+
+            // Now to LAB
+            x /= 95.047F;
+            y /= 100F;
+            z /= 108.883F;
+
+            x = x > 0.008856 ? (float) Math.Pow(x, 1F / 3F) : (7.787F * x) + (16F / 116F);
+            y = y > 0.008856 ? (float) Math.Pow(y, 1F / 3F) : (7.787F * y) + (16F / 116F);
+            z = z > 0.008856 ? (float) Math.Pow(z, 1F / 3F) : (7.787F * z) + (16F / 116F);
+
+            float l = (116 * y) - 16;
+            float a = 500 * (x - y);
+            float b = 200 * (y - z);
+
+            return new CieLab(l, a, b);
+        }
+
+        /// <summary>
+        /// Compares two <see cref="CieLab"/> objects for equality.
+        /// </summary>
+        /// <param name="left">
+        /// The <see cref="CieLab"/> on the left side of the operand.
+        /// </param>
+        /// <param name="right">
+        /// The <see cref="CieLab"/> on the right side of the operand.
+        /// </param>
+        /// <returns>
+        /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
+        /// </returns>
+        public static bool operator ==(CieLab left, CieLab right)
+        {
+            return left.Equals(right);
+        }
+
+        /// <summary>
+        /// Compares two <see cref="CieLab"/> objects for inequality
+        /// </summary>
+        /// <param name="left">
+        /// The <see cref="CieLab"/> on the left side of the operand.
+        /// </param>
+        /// <param name="right">
+        /// The <see cref="CieLab"/> on the right side of the operand.
+        /// </param>
+        /// <returns>
+        /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
+        /// </returns>
+        public static bool operator !=(CieLab left, CieLab right)
+        {
+            return !left.Equals(right);
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (obj is CieLab)
+            {
+                CieLab color = (CieLab)obj;
+
+                return this.backingVector == color.backingVector;
+            }
+
+            return false;
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            return GetHashCode(this);
+        }
+
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            if (this.IsEmpty)
+            {
+                return "CieLab [Empty]";
+            }
+
+            return $"CieLab [ L={this.L:#0.##}, A={this.A:#0.##}, B={this.B:#0.##}]";
+        }
+
+        /// <inheritdoc/>
+        public bool Equals(CieLab other)
+        {
+            return this.backingVector.Equals(other.backingVector);
+        }
+
+        /// <summary>
+        /// Checks the range for lightness.
+        /// </summary>
+        /// <param name="value">
+        /// The value to check.
+        /// </param>
+        /// <returns>
+        /// The sanitized <see cref="float"/>.
+        /// </returns>
+        private static float ClampL(float value)
+        {
+            return value.Clamp(0, 100);
+        }
+
+        /// <summary>
+        /// Checks the range for components A or B.
+        /// </summary>
+        /// <param name="value">
+        /// The value to check.
+        /// </param>
+        /// <returns>
+        /// The sanitized <see cref="float"/>.
+        /// </returns>
+        private static float ClampAB(float value)
+        {
+            return value.Clamp(-100, 100);
+        }
+
+        /// <summary>
+        /// Returns the hash code for this instance.
+        /// </summary>
+        /// <param name="color">
+        /// The instance of <see cref="CieLab"/> to return the hash code for.
+        /// </param>
+        /// <returns>
+        /// A 32-bit signed integer that is the hash code for this instance.
+        /// </returns>
+        private static int GetHashCode(CieLab color) => color.backingVector.GetHashCode();
+    }
+}

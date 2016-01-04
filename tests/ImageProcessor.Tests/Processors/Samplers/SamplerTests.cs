@@ -65,6 +65,62 @@
             }
         }
 
+        [Fact]
+        public void ImageShouldResizeWidthAndKeepAspect()
+        {
+            if (!Directory.Exists("TestOutput/Resize"))
+            {
+                Directory.CreateDirectory("TestOutput/Resize");
+            }
+
+            var name = "FixedWidth";
+
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    Stopwatch watch = Stopwatch.StartNew();
+                    Image image = new Image(stream);
+                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
+                    using (FileStream output = File.OpenWrite($"TestOutput/Resize/{filename}"))
+                    {
+                        image.Resize(image.Width / 3, 0, new TriangleResampler())
+                             .Save(output);
+                    }
+
+                    Trace.WriteLine($"{name}: {watch.ElapsedMilliseconds}ms");
+                }
+            }
+        }
+
+        [Fact]
+        public void ImageShouldResizeHeightAndKeepAspect()
+        {
+            if (!Directory.Exists("TestOutput/Resize"))
+            {
+                Directory.CreateDirectory("TestOutput/Resize");
+            }
+
+            var name = "FixedHeight";
+
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    Stopwatch watch = Stopwatch.StartNew();
+                    Image image = new Image(stream);
+                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
+                    using (FileStream output = File.OpenWrite($"TestOutput/Resize/{filename}"))
+                    {
+                        image.Resize(0, image.Height / 3, new TriangleResampler())
+                             .Save(output);
+                    }
+
+                    Trace.WriteLine($"{name}: {watch.ElapsedMilliseconds}ms");
+                }
+            }
+        }
+
         [Theory]
         [MemberData("RotateFlips")]
         public void ImageShouldRotateFlip(RotateType rotateType, FlipType flipType)

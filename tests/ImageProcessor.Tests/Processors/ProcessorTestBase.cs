@@ -19,6 +19,7 @@ namespace ImageProcessor.Tests
         /// </summary>
         public static readonly List<string> Files = new List<string>
         {
+            "TestImages/Formats/Jpg/Floorplan.jpeg",
             "TestImages/Formats/Jpg/Calliphora.jpg",
             //"TestImages/Formats/Jpg/gamma_dalai_lama_gray.jpg", //Perf: Enable for local testing only
             "TestImages/Formats/Bmp/Car.bmp",

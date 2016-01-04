@@ -174,6 +174,37 @@ namespace ImageProcessor
         }
 
         /// <summary>
+        /// Allows the implicit conversion of an instance of <see cref="CieLab"/> to a
+        /// <see cref="Color"/>.
+        /// </summary>
+        /// <param name="cieLabColor">The instance of <see cref="CieLab"/> to convert.</param>
+        /// <returns>
+        /// An instance of <see cref="Color"/>.
+        /// </returns>
+        public static implicit operator Color(CieLab cieLabColor)
+        {
+            // First convert back to XYZ...
+            float y = (cieLabColor.L + 16F) / 116F;
+            float x = cieLabColor.A / 500F + y;
+            float z = y - cieLabColor.B / 200F;
+
+            float x3 = (float)Math.Pow(x, 3);
+            float y3 = (float)Math.Pow(y, 3);
+            float z3 = (float)Math.Pow(z, 3);
+
+            y = (y3 > 0.008856F) ? y3 : (y - 16F / 116F) / 7.787F;
+            x = (x3 > 0.008856F) ? x3 : (x - 16F / 116F) / 7.787F;
+            z = (z3 > 0.008856F) ? z3 : (z - 16F / 116F) / 7.787F;
+
+            // Then XYZ to RGB
+            float r = (x * 3.240969941904521F) + (y * -1.537383177570093F) + (z * -0.498610760293F);
+            float g = (x * -0.96924363628087F) + (y * 1.87596750150772F) + (z * 0.041555057407175F);
+            float b = (x * 0.055630079696993F) + (y * -0.20397695888897F) + (z * 1.056971514242878F);
+
+            return Color.InverseCompand(new Color(r, g, b));
+        }
+
+        /// <summary>
         /// Gets the color component from the given values.
         /// </summary>
         /// <param name="first">The first value.</param>

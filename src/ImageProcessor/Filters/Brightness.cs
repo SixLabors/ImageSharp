@@ -66,12 +66,12 @@ namespace ImageProcessor.Filters
         /// </returns>
         private static Color AdjustBrightness(Color color, float brightness)
         {
-            color = Color.InverseCompand(color);
+            color = Color.Expand(color);
 
             Vector3 vector3 = color.ToVector3();
             vector3 += new Vector3(brightness, brightness, brightness);
 
-            return Color.Compand(new Color(vector3, color.A));
+            return Color.Compress(new Color(vector3, color.A));
         }
     }
 }

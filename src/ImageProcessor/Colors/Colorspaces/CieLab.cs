@@ -82,9 +82,9 @@ namespace ImageProcessor
             // First convert to CIE XYZ
             color = Color.InverseCompand(color.Limited);
 
-            float x = (color.R * 0.41239079926595F) + (color.G * 0.35758433938387F) + (color.B * 0.18048078840183F);
-            float y = (color.R * 0.21263900587151F) + (color.G * 0.71516867876775F) + (color.B * 0.072192315360733F);
-            float z = (color.R * 0.019330818715591F) + (color.G * 0.11919477979462F) + (color.B * 0.95053215224966F);
+            float x = (color.R * 0.4124F) + (color.G * 0.3576F) + (color.B * 0.1805F);
+            float y = (color.R * 0.2126F) + (color.G * 0.7152F) + (color.B * 0.0722F);
+            float z = (color.R * 0.0193F) + (color.G * 0.1192F) + (color.B * 0.9505F);
 
             x *= 100F;
             y *= 100F;
@@ -99,9 +99,9 @@ namespace ImageProcessor
             y = y > 0.008856 ? (float) Math.Pow(y, 1F / 3F) : (7.787F * y) + (16F / 116F);
             z = z > 0.008856 ? (float) Math.Pow(z, 1F / 3F) : (7.787F * z) + (16F / 116F);
 
-            float l = (116 * y) - 16;
-            float a = 500 * (x - y);
-            float b = 200 * (y - z);
+            float l = (116F * y) - 16F;
+            float a = 500F * (x - y);
+            float b = 200F * (y - z);
 
             return new CieLab(l, a, b);
         }

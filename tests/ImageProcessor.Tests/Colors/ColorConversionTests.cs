@@ -334,5 +334,86 @@ namespace ImageProcessor.Tests
                 Assert.Equal(color4, (Color)cmyk4);
             }
         }
+
+        /// <summary>
+        /// Tests the implicit conversion from <see cref="Color"/> to <see cref="CieLab"/>.
+        /// Comparison values obtained from 
+        /// http://colormine.org/convert/rgb-to-lab
+        /// http://au.mathworks.com/help/images/ref/rgb2lab.html
+        /// http://www.colorhexa.com/00ffff
+        /// L seems to match quite well, A and B tend to drift from the converter results a bit more
+        /// </summary>
+        [Fact]
+        public void ColorToCieLab()
+        {
+            // White
+            Color color = new Color(1, 1, 1);
+            CieLab cielab = color;
+
+            Assert.Equal(100, cielab.L, 1);
+            Assert.Equal(0, cielab.A, 1);
+            Assert.Equal(0, cielab.B, 1);
+
+            // Black
+            Color color2 = new Color(0, 0, 0);
+            CieLab cielab2 = color2;
+            Assert.Equal(0, cielab2.L, 1);
+            Assert.Equal(0, cielab2.A, 1);
+            Assert.Equal(0, cielab2.B, 1);
+
+            //// Grey
+            Color color3 = new Color(128 / 255f, 128 / 255f, 128 / 255f);
+            CieLab cielab3 = color3;
+            Assert.Equal(53.6, cielab3.L, 1);
+            Assert.Equal(0, cielab3.A, 1);
+            Assert.Equal(0, cielab3.B, 1);
+
+            //// Cyan
+            Color color4 = new Color(0, 1, 1);
+            CieLab cielab4 = color4;
+            Assert.Equal(91.1, cielab4.L, 1);
+            Assert.Equal(-48.1, cielab4.A, 1);
+            Assert.Equal(-14.1, cielab4.B, 1);
+        }
+
+        /// <summary>
+        /// Tests the implicit conversion from <see cref="CieLab"/> to <see cref="Color"/>.
+        /// </summary>
+        [Fact]
+        public void CieLabToColor()
+        {
+            // Dark moderate pink.
+            CieLab cielab = new CieLab(36.5492f, 33.3173f, -12.0615f);
+            Color color = cielab;
+
+            Assert.Equal(color.R, 128 / 255f, 1);
+            Assert.Equal(color.G, 64 / 255f, 2);
+            Assert.Equal(color.B, 106 / 255f, 1);
+
+            // Ochre
+            CieLab cielab2 = new CieLab(58.1758f, 27.3399f, 56.8240f);
+            Color color2 = cielab2;
+
+            Assert.Equal(color2.R, 204 / 255f, 1);
+            Assert.Equal(color2.G, 119 / 255f, 2);
+            Assert.Equal(color2.B, 34 / 255f, 1);
+
+            //// White
+            CieLab cielab3 = new CieLab(0, 0, 0);
+            Color color3 = cielab3;
+
+            Assert.Equal(color3.R, 0f, 1);
+            Assert.Equal(color3.G, 0f, 1);
+            Assert.Equal(color3.B, 0f, 1);
+
+            //// Check others.
+            Random random = new Random(0);
+            for (int i = 0; i < 1000; i++)
+            {
+                Color color4 = new Color(random.Next(1), random.Next(1), random.Next(1));
+                CieLab cielab4 = color4;
+                Assert.Equal(color4, (Color)cielab4);
+            }
+        }
     }
 }

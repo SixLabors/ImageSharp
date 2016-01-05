@@ -1,4 +1,4 @@
-﻿// <copyright file="Cmyk.cs" company="James Jackson-South">
+﻿// <copyright file="CieLab.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -65,7 +65,7 @@ namespace ImageProcessor
         /// Gets a value indicating whether this <see cref="CieLab"/> is empty.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty => this.backingVector.Equals(default(Vector4));
+        public bool IsEmpty => this.backingVector.Equals(default(Vector3));
 
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="Color"/> to a
@@ -80,7 +80,7 @@ namespace ImageProcessor
         public static implicit operator CieLab(Color color)
         {
             // First convert to CIE XYZ
-            color = Color.InverseCompand(color.Limited);
+            color = Color.Expand(color.Limited);
 
             float x = (color.R * 0.4124F) + (color.G * 0.3576F) + (color.B * 0.1805F);
             float y = (color.R * 0.2126F) + (color.G * 0.7152F) + (color.B * 0.0722F);

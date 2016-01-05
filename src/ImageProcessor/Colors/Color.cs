@@ -55,10 +55,7 @@ namespace ImageProcessor
         public Color(float r, float g, float b, float a)
             : this()
         {
-            this.backingVector.X = r;
-            this.backingVector.Y = g;
-            this.backingVector.Z = b;
-            this.backingVector.W = a;
+            this.backingVector = new Vector4(r, g, b, a);
         }
 
         /// <summary>
@@ -86,7 +83,7 @@ namespace ImageProcessor
                 float b = Convert.ToByte(hex.Substring(6, 2), 16) / 255f;
                 float a = Convert.ToByte(hex.Substring(0, 2), 16) / 255f;
 
-                this.backingVector = Color.FromNonPremultiplied(new Color(r, g, b, a)).ToVector4();
+                this.backingVector = FromNonPremultiplied(new Color(r, g, b, a)).ToVector4();
 
             }
             else if (hex.Length == 6)
@@ -277,7 +274,7 @@ namespace ImageProcessor
         /// </returns>
         public static Color operator +(Color left, Color right)
         {
-            return new Color(left.R + right.R, left.G + right.G, left.B + right.B, left.A + right.A);
+            return new Color(left.backingVector + right.backingVector);
         }
 
         /// <summary>
@@ -290,7 +287,7 @@ namespace ImageProcessor
         /// </returns>
         public static Color operator -(Color left, Color right)
         {
-            return new Color(left.R - right.R, left.G - right.G, left.B - right.B, left.A - right.A);
+            return new Color(left.backingVector - right.backingVector);
         }
 
         /// <summary>
@@ -360,18 +357,18 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Compresseses a linear color signal to its sRGB equivalent.
+        /// Compresses a linear color signal to its sRGB equivalent.
         /// <see href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>
         /// <see href="http://entropymine.com/imageworsener/srgbformula/"/>
         /// </summary>
         /// <param name="linear">The <see cref="Color"/> whose signal to compress.</param>
         /// <returns>The <see cref="Color"/>.</returns>
-        public static Color Compand(Color linear)
+        public static Color Compress(Color linear)
         {
             // TODO: Is there a faster way to do this?
-            float r = Compand(linear.R);
-            float g = Compand(linear.G);
-            float b = Compand(linear.B);
+            float r = Compress(linear.R);
+            float g = Compress(linear.G);
+            float b = Compress(linear.B);
 
             return new Color(r, g, b, linear.A);
         }
@@ -383,12 +380,12 @@ namespace ImageProcessor
         /// </summary>
         /// <param name="gamma">The <see cref="Color"/> whose signal to expand.</param>
         /// <returns>The <see cref="Color"/>.</returns>
-        public static Color InverseCompand(Color gamma)
+        public static Color Expand(Color gamma)
         {
             // TODO: Is there a faster way to do this?
-            float r = InverseCompand(gamma.R);
-            float g = InverseCompand(gamma.G);
-            float b = InverseCompand(gamma.B);
+            float r = Expand(gamma.R);
+            float g = Expand(gamma.G);
+            float b = Expand(gamma.B);
 
             return new Color(r, g, b, gamma.A);
         }
@@ -485,7 +482,7 @@ namespace ImageProcessor
         /// <returns>
         /// The <see cref="float"/>.
         /// </returns>
-        private static float Compand(float signal)
+        private static float Compress(float signal)
         {
             if (signal <= 0.0031308f)
             {
@@ -504,7 +501,7 @@ namespace ImageProcessor
         /// <returns>
         /// The <see cref="float"/>.
         /// </returns>
-        private static float InverseCompand(float signal)
+        private static float Expand(float signal)
         {
             if (signal <= 0.04045f)
             {

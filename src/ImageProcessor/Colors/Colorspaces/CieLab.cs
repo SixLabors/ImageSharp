@@ -86,20 +86,16 @@ namespace ImageProcessor
             float y = (color.R * 0.2126F) + (color.G * 0.7152F) + (color.B * 0.0722F);
             float z = (color.R * 0.0193F) + (color.G * 0.1192F) + (color.B * 0.9505F);
 
-            x *= 100F;
-            y *= 100F;
-            z *= 100F;
-
             // Now to LAB
-            x /= 95.047F;
-            y /= 100F;
-            z /= 108.883F;
+            x /= 0.95047F;
+            //y /= 1F;
+            z /= 1.08883F;
 
-            x = x > 0.008856 ? (float) Math.Pow(x, 1F / 3F) : (7.787F * x) + (16F / 116F);
-            y = y > 0.008856 ? (float) Math.Pow(y, 1F / 3F) : (7.787F * y) + (16F / 116F);
-            z = z > 0.008856 ? (float) Math.Pow(z, 1F / 3F) : (7.787F * z) + (16F / 116F);
+            x = x > 0.008856F ? (float) Math.Pow(x, 1F / 3F) : (903.3F * x + 16F) / 116F;
+            y = y > 0.008856F ? (float) Math.Pow(y, 1F / 3F) : (903.3F * y + 16F) / 116F;
+            z = z > 0.008856F ? (float) Math.Pow(z, 1F / 3F) : (903.3F * z + 16F) / 116F;
 
-            float l = (116F * y) - 16F;
+            float l = Math.Max(0, (116F * y) - 16F);
             float a = 500F * (x - y);
             float b = 200F * (y - z);
 

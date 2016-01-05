@@ -231,7 +231,7 @@ namespace ImageProcessor
             float g = (x * -0.9689F) + (y * 1.8758F) + (z * 0.0415F);
             float b = (x * 0.0557F) + (y * -0.2040F) + (z * 1.0570F);
 
-            return Color.Compand(new Color(r, g, b));
+            return Color.Compress(new Color(r, g, b));
         }
 
         /// <summary>

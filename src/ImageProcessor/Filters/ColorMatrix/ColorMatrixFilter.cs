@@ -57,7 +57,7 @@ namespace ImageProcessor.Filters
 
             if (compand)
             {
-                color = Color.InverseCompand(color);
+                color = Color.Expand(color);
             }
 
             float sr = color.R;
@@ -68,7 +68,7 @@ namespace ImageProcessor.Filters
             color.G = (sr * matrix.M12) + (sg * matrix.M22) + (sb * matrix.M32) + matrix.M42;
             color.B = (sr * matrix.M13) + (sg * matrix.M23) + (sb * matrix.M33) + matrix.M43;
 
-            return compand ? Color.Compand(color) : color;
+            return compand ? Color.Compress(color) : color;
         }
     }
 }

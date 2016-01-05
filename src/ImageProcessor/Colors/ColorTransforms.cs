@@ -67,6 +67,31 @@ namespace ImageProcessor
             return new Color(r, g, b);
         }
 
+        public static implicit operator Color(CieXyz color)
+        {
+            var x = color.X;
+            var y = color.Y;
+            var z = color.Z;
+
+            // assume sRGB
+            // http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
+            float r = (x * 3.240969941904521F) + (y * -1.537383177570093F) + (z * -0.498610760293F);
+            float g = (x * -0.96924363628087F) + (y * 1.87596750150772F) + (z * 0.041555057407175F);
+            float b = (x * 0.055630079696993F) + (y * -0.20397695888897F) + (z * 1.056971514242878F);
+
+            r = r > 0.0031308 ? (float)((1.055 * Math.Pow(r, 1.0 / 2.4)) - 0.055) : r = (r * 12.92F);
+
+            g = g > 0.0031308 ? (float)((1.055 * Math.Pow(g, 1.0 / 2.4)) - 0.055) : g = (g * 12.92F);
+
+            b = b > 0.0031308 ? (float)((1.055 * Math.Pow(b, 1.0 / 2.4)) - 0.055) : b = (b * 12.92F);
+
+            r = Math.Min(Math.Max(0, r), 1);
+            g = Math.Min(Math.Max(0, g), 1);
+            b = Math.Min(Math.Max(0, b), 1);
+
+            return new Color(r, g, b);
+        }
+
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="Hsv"/> to a
         /// <see cref="Color"/>.

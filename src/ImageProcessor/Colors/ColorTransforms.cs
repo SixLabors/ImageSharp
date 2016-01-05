@@ -188,20 +188,20 @@ namespace ImageProcessor
             float x = cieLabColor.A / 500F + y;
             float z = y - cieLabColor.B / 200F;
 
-            float x3 = (float)Math.Pow(x, 3);
-            float y3 = (float)Math.Pow(y, 3);
-            float z3 = (float)Math.Pow(z, 3);
+            float x3 = x * x * x;
+            float y3 = y * y * y;
+            float z3 = z * z * z;
 
             y = (y3 > 0.008856F) ? y3 : (y - 16F / 116F) / 7.787F;
             x = (x3 > 0.008856F) ? x3 : (x - 16F / 116F) / 7.787F;
             z = (z3 > 0.008856F) ? z3 : (z - 16F / 116F) / 7.787F;
 
             // Then XYZ to RGB
-            float r = (x * 3.240969941904521F) + (y * -1.537383177570093F) + (z * -0.498610760293F);
-            float g = (x * -0.96924363628087F) + (y * 1.87596750150772F) + (z * 0.041555057407175F);
-            float b = (x * 0.055630079696993F) + (y * -0.20397695888897F) + (z * 1.056971514242878F);
+            float r = (x * 3.2406F) + (y * -1.5372F) + (z * -0.4986F);
+            float g = (x * -0.9689F) + (y * 1.8758F) + (z * 0.0415F);
+            float b = (x * 0.0557F) + (y * -0.2040F) + (z * 1.0570F);
 
-            return Color.InverseCompand(new Color(r, g, b));
+            return Color.Compand(new Color(r, g, b));
         }
 
         /// <summary>

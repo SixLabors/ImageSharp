@@ -1,16 +1,7 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="BmpInfoHeader.cs" company="James Jackson-South">
-//   Copyright (c) James Jackson-South and contributors.
-//   Licensed under the Apache License, Version 2.0.
+﻿// <copyright file="BmpInfoHeader.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
 // </copyright>
-// <summary>
-//   This block of bytes tells the application detailed information
-//   about the image, which will be used to display the image on
-//   the screen.
-//   <see href="https://en.wikipedia.org/wiki/BMP_file_format" />
-// </summary>
-// --------------------------------------------------------------------------------------------------------------------
-
 namespace ImageProcessor.Formats
 {
     /// <summary>

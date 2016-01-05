@@ -183,7 +183,7 @@ namespace ImageProcessor.Samplers
                                 foreach (Weight xw in horizontalValues)
                                 {
                                     int originX = xw.Index;
-                                    Color sourceColor = Color.InverseCompand(source[originX, originY]);
+                                    Color sourceColor = Color.Expand(source[originX, originY]);
                                     float weight = yw.Value * xw.Value;
 
                                     destination.R += sourceColor.R * weight;
@@ -193,7 +193,7 @@ namespace ImageProcessor.Samplers
                                 }
                             }
 
-                            destination = Color.Compand(destination);
+                            destination = Color.Compress(destination);
 
                             // Round alpha values in an attempt to prevent bleed.
                             destination.A = (float)Math.Round(destination.A, 2);
@@ -302,7 +302,7 @@ namespace ImageProcessor.Samplers
 
                                     if (sourceRectangle.Contains(rotatedX, rotatedY))
                                     {
-                                        Color sourceColor = Color.InverseCompand(source[rotatedX, rotatedY]);
+                                        Color sourceColor = Color.Expand(source[rotatedX, rotatedY]);
                                         float weight = yw.Value * xw.Value;
                                         destination.R += sourceColor.R * weight;
                                         destination.G += sourceColor.G * weight;
@@ -312,7 +312,7 @@ namespace ImageProcessor.Samplers
                                 }
                             }
 
-                            destination = Color.Compand(destination);
+                            destination = Color.Compress(destination);
 
                             // Round alpha values in an attempt to prevent bleed.
                             destination.A = (float)Math.Round(destination.A, 2);

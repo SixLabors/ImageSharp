@@ -65,7 +65,7 @@ namespace ImageProcessor.Filters
         /// </returns>
         private static Color AdjustContrast(Color color, float contrast)
         {
-            color = Color.InverseCompand(color);
+            color = Color.Expand(color);
 
             // Seems to be faster than Vector3.
             color.R -= 0.5f;
@@ -80,7 +80,7 @@ namespace ImageProcessor.Filters
             color.B *= contrast;
             color.B += 0.5f;
 
-            return Color.Compand(color);
+            return Color.Compress(color);
         }
     }
 }

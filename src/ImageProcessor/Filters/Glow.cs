@@ -1,4 +1,4 @@
-﻿// <copyright file="Vignette.cs" company="James Jackson-South">
+﻿// <copyright file="Glow.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -10,14 +10,14 @@ namespace ImageProcessor.Filters
     using System.Threading.Tasks;
 
     /// <summary>
-    /// Creates a vignette effect on the image
+    /// Creates a glow effect on the image
     /// </summary>
-    public class Vignette : ParallelImageProcessor
+    public class Glow : ParallelImageProcessor
     {
         /// <summary>
         /// Gets or sets the vignette color to apply.
         /// </summary>
-        public Color Color { get; set; } = Color.Black;
+        public Color Color { get; set; } = Color.White;
 
         /// <summary>
         /// Gets or sets the the x-radius.
@@ -49,7 +49,7 @@ namespace ImageProcessor.Filters
                         {
                             float distance = Vector2.Distance(centre, new Vector2(x, y));
                             Color sourceColor = target[x, y];
-                            target[x, y] = Color.Lerp(sourceColor, color, .9f * distance / maxDistance);
+                            target[x, y] = Color.Lerp(color, sourceColor, 4f * distance / maxDistance);
                         }
                     });
         }

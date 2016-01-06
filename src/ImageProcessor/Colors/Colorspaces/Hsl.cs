@@ -12,7 +12,7 @@ namespace ImageProcessor
     /// <summary>
     /// Represents a Hsl (hue, saturation, lightness) color.
     /// </summary>
-    public struct Hsl : IEquatable<Hsl>
+    public struct Hsl : IEquatable<Hsl>, IAlmostEquatable<Hsl, float>
     {
         /// <summary>
         /// Represents a <see cref="Hsl"/> that has H, S, and L values set to zero.
@@ -22,7 +22,7 @@ namespace ImageProcessor
         /// <summary>
         /// The epsilon for comparing floating point numbers.
         /// </summary>
-        private const float Epsilon = 0.0001f;
+        private const float Epsilon = 0.001f;
 
         /// <summary>
         /// The backing vector for SIMD support.
@@ -158,19 +158,6 @@ namespace ImageProcessor
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            if (obj is Hsl)
-            {
-                Hsl color = (Hsl)obj;
-
-                return this.backingVector == color.backingVector;
-            }
-
-            return false;
-        }
-
-        /// <inheritdoc/>
         public override int GetHashCode()
         {
             return GetHashCode(this);
@@ -188,9 +175,28 @@ namespace ImageProcessor
         }
 
         /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (obj is Hsl)
+            {
+                return this.Equals((Hsl)obj);
+            }
+
+            return false;
+        }
+
+        /// <inheritdoc/>
         public bool Equals(Hsl other)
         {
-            return this.backingVector.Equals(other.backingVector);
+            return this.AlmostEquals(other, Epsilon);
+        }
+
+        /// <inheritdoc/>
+        public bool AlmostEquals(Hsl other, float precision)
+        {
+            return Math.Abs(this.H - other.H) < precision
+                && Math.Abs(this.S - other.S) < precision
+                && Math.Abs(this.L - other.L) < precision;
         }
 
         /// <summary>

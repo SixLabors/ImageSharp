@@ -11,8 +11,9 @@ namespace ImageProcessor
 
     /// <summary>
     /// Represents an CIE LAB 1976 color.
+    /// <see href="https://en.wikipedia.org/wiki/Lab_color_space"/>
     /// </summary>
-    public struct CieLab : IEquatable<CieLab>
+    public struct CieLab : IEquatable<CieLab>, IAlmostEquatable<CieLab, float>
     {
         /// <summary>
         /// Represents a <see cref="CieLab"/> that has L, A, B values set to zero.
@@ -22,7 +23,7 @@ namespace ImageProcessor
         /// <summary>
         /// The epsilon for comparing floating point numbers.
         /// </summary>
-        private const float Epsilon = 0.0001f;
+        private const float Epsilon = 0.001f;
 
         /// <summary>
         /// The backing vector for SIMD support.
@@ -91,9 +92,9 @@ namespace ImageProcessor
             //y /= 1F;
             z /= 1.08883F;
 
-            x = x > 0.008856F ? (float) Math.Pow(x, 1F / 3F) : (903.3F * x + 16F) / 116F;
-            y = y > 0.008856F ? (float) Math.Pow(y, 1F / 3F) : (903.3F * y + 16F) / 116F;
-            z = z > 0.008856F ? (float) Math.Pow(z, 1F / 3F) : (903.3F * z + 16F) / 116F;
+            x = x > 0.008856F ? (float)Math.Pow(x, 1F / 3F) : (903.3F * x + 16F) / 116F;
+            y = y > 0.008856F ? (float)Math.Pow(y, 1F / 3F) : (903.3F * y + 16F) / 116F;
+            z = z > 0.008856F ? (float)Math.Pow(z, 1F / 3F) : (903.3F * z + 16F) / 116F;
 
             float l = Math.Max(0, (116F * y) - 16F);
             float a = 500F * (x - y);
@@ -137,19 +138,6 @@ namespace ImageProcessor
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            if (obj is CieLab)
-            {
-                CieLab color = (CieLab)obj;
-
-                return this.backingVector == color.backingVector;
-            }
-
-            return false;
-        }
-
-        /// <inheritdoc/>
         public override int GetHashCode()
         {
             return GetHashCode(this);
@@ -167,17 +155,34 @@ namespace ImageProcessor
         }
 
         /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (obj is CieLab)
+            {
+                return this.Equals((CieLab)obj);
+            }
+
+            return false;
+        }
+
+        /// <inheritdoc/>
         public bool Equals(CieLab other)
         {
-            return this.backingVector.Equals(other.backingVector);
+            return this.AlmostEquals(other, Epsilon);
+        }
+
+        /// <inheritdoc/>
+        public bool AlmostEquals(CieLab other, float precision)
+        {
+            return Math.Abs(this.L - other.L) < precision
+                && Math.Abs(this.B - other.B) < precision
+                && Math.Abs(this.B - other.B) < precision;
         }
 
         /// <summary>
         /// Checks the range for lightness.
         /// </summary>
-        /// <param name="value">
-        /// The value to check.
-        /// </param>
+        /// <param name="value">The value to check.</param>
         /// <returns>
         /// The sanitized <see cref="float"/>.
         /// </returns>
@@ -189,9 +194,7 @@ namespace ImageProcessor
         /// <summary>
         /// Checks the range for components A or B.
         /// </summary>
-        /// <param name="value">
-        /// The value to check.
-        /// </param>
+        /// <param name="value">The value to check.</param>
         /// <returns>
         /// The sanitized <see cref="float"/>.
         /// </returns>

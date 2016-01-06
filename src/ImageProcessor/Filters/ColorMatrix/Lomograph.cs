@@ -22,5 +22,11 @@ namespace ImageProcessor.Filters
             M42 = .0f,
             M43 = -.08f
         };
+
+        /// <inheritdoc/>
+        protected override void AfterApply(ImageBase source, ImageBase target, Rectangle targetRectangle, Rectangle sourceRectangle)
+        {
+            new Vignette { Color = new Color(0, 10 / 255f, 0) }.Apply(target, target, targetRectangle);
+        }
     }
 }

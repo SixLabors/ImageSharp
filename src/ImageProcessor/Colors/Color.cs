@@ -353,7 +353,8 @@ namespace ImageProcessor
             amount = amount.Clamp(0f, 1f);
 
             // Premultiplied.
-            return (from * (1 - amount)) + to;
+            return from + (to - from) * amount;
+            //return (from * (1 - amount)) + to;
         }
 
         /// <summary>

@@ -82,7 +82,6 @@ namespace ImageProcessor
             float z = color.Z / 100F;
 
             // Then XYZ to RGB (multiplication by 100 was done above already)
-
             float r = (x * 3.2406F) + (y * -1.5372F) + (z * -0.4986F);
             float g = (x * -0.9689F) + (y * 1.8758F) + (z * 0.0415F);
             float b = (x * 0.0557F) + (y * -0.2040F) + (z * 1.0570F);
@@ -215,16 +214,14 @@ namespace ImageProcessor
             float y3 = y * y * y;
             float z3 = z * z * z;
 
-            x = (x3 > 0.008856F) ? x3 : (x - 16F / 116F) / 7.787F;
+            x = x3 > 0.008856F ? x3 : (x - 16F / 116F) / 7.787F;
             y = (cieLabColor.L > 0.008856F * 903.3F) ? y3 : (cieLabColor.L / 903.3F);
             z = (z3 > 0.008856F) ? z3 : (z - 16F / 116F) / 7.787F;
 
             x *= 0.95047F;
-            //y *= 1F;
             z *= 1.08883F;
 
             // Then XYZ to RGB (multiplication by 100 was done above already)
-
             float r = (x * 3.2406F) + (y * -1.5372F) + (z * -0.4986F);
             float g = (x * -0.9689F) + (y * 1.8758F) + (z * 0.0415F);
             float b = (x * 0.0557F) + (y * -0.2040F) + (z * 1.0570F);

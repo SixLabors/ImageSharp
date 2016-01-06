@@ -16,7 +16,7 @@ namespace ImageProcessor
         /// <summary>
         /// Gets or sets the count of workers to run the process in parallel.
         /// </summary>
-        public virtual int Parallelism { get; set; } = Environment.ProcessorCount;
+        public virtual int Parallelism { get; set; } = Environment.ProcessorCount * 2;
 
         /// <inheritdoc/>
         public void Apply(ImageBase target, ImageBase source, Rectangle sourceRectangle)

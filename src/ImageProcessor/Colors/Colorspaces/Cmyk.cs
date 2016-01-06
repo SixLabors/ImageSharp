@@ -12,7 +12,7 @@ namespace ImageProcessor
     /// <summary>
     /// Represents an CMYK (cyan, magenta, yellow, keyline) color.
     /// </summary>
-    public struct Cmyk : IEquatable<Cmyk>
+    public struct Cmyk : IEquatable<Cmyk>, IAlmostEquatable<Cmyk, float>
     {
         /// <summary>
         /// Represents a <see cref="Cmyk"/> that has C, M, Y, and K values set to zero.
@@ -22,7 +22,7 @@ namespace ImageProcessor
         /// <summary>
         /// The epsilon for comparing floating point numbers.
         /// </summary>
-        private const float Epsilon = 0.0001f;
+        private const float Epsilon = 0.001f;
 
         /// <summary>
         /// The backing vector for SIMD support.
@@ -142,19 +142,6 @@ namespace ImageProcessor
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            if (obj is Cmyk)
-            {
-                Cmyk color = (Cmyk)obj;
-
-                return this.backingVector == color.backingVector;
-            }
-
-            return false;
-        }
-
-        /// <inheritdoc/>
         public override int GetHashCode()
         {
             return GetHashCode(this);
@@ -172,17 +159,35 @@ namespace ImageProcessor
         }
 
         /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (obj is Cmyk)
+            {
+                return this.Equals((Cmyk)obj);
+            }
+
+            return false;
+        }
+
+        /// <inheritdoc/>
         public bool Equals(Cmyk other)
         {
-            return this.backingVector.Equals(other.backingVector);
+            return this.AlmostEquals(other, Epsilon);
+        }
+
+        /// <inheritdoc/>
+        public bool AlmostEquals(Cmyk other, float precision)
+        {
+            return Math.Abs(this.C - other.C) < precision
+                && Math.Abs(this.M - other.M) < precision
+                && Math.Abs(this.Y - other.Y) < precision
+                && Math.Abs(this.K - other.K) < precision;
         }
 
         /// <summary>
         /// Checks the range of the given value to ensure that it remains within the acceptable boundaries.
         /// </summary>
-        /// <param name="value">
-        /// The value to check.
-        /// </param>
+        /// <param name="value">The value to check.</param>
         /// <returns>
         /// The sanitized <see cref="float"/>.
         /// </returns>

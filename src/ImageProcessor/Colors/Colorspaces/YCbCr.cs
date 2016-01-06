@@ -14,12 +14,17 @@ namespace ImageProcessor
     /// Full range standard used in digital imaging systems.
     /// <see href="http://en.wikipedia.org/wiki/YCbCr"/>
     /// </summary>
-    public struct YCbCr : IEquatable<YCbCr>
+    public struct YCbCr : IEquatable<YCbCr>, IAlmostEquatable<YCbCr, float>
     {
         /// <summary>
         /// Represents a <see cref="YCbCr"/> that has Y, Cb, and Cr values set to zero.
         /// </summary>
         public static readonly YCbCr Empty = default(YCbCr);
+
+        /// <summary>
+        /// The epsilon for comparing floating point numbers.
+        /// </summary>
+        private const float Epsilon = 0.001f;
 
         /// <summary>
         /// The backing vector for SIMD support.
@@ -123,19 +128,6 @@ namespace ImageProcessor
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            if (obj is YCbCr)
-            {
-                YCbCr color = (YCbCr)obj;
-
-                return this.backingVector == color.backingVector;
-            }
-
-            return false;
-        }
-
-        /// <inheritdoc/>
         public override int GetHashCode()
         {
             return GetHashCode(this);
@@ -153,9 +145,28 @@ namespace ImageProcessor
         }
 
         /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (obj is YCbCr)
+            {
+                return this.Equals((YCbCr)obj);
+            }
+
+            return false;
+        }
+
+        /// <inheritdoc/>
         public bool Equals(YCbCr other)
         {
-            return this.backingVector.Equals(other.backingVector);
+            return this.AlmostEquals(other, Epsilon);
+        }
+
+        /// <inheritdoc/>
+        public bool AlmostEquals(YCbCr other, float precision)
+        {
+            return Math.Abs(this.Y - other.Y) < precision
+                && Math.Abs(this.Cb - other.Cb) < precision
+                && Math.Abs(this.Cr - other.Cr) < precision;
         }
 
         /// <summary>

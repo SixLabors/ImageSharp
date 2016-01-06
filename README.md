@@ -48,8 +48,8 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
 - Basic color structs with implicit operators. Vector backed. [#260](https://github.com/JimBobSquarePants/ImageProcessor/issues/260)
  - [x] Color - Float based, premultiplied alpha, No limit to r, g, b, a values allowing for a fuller color range.
  - [x] BGRA32
- - [ ] CIE Lab
- - [ ] CIE XYZ
+ - [x] CIE Lab
+ - [x] CIE XYZ
  - [x] CMYK
  - [x] HSV
  - [x] HSL

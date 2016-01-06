@@ -17,7 +17,7 @@ namespace ImageProcessor
     /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
     /// as it avoids the need to create new values for modification operations.
     /// </remarks>
-    public partial struct Color : IEquatable<Color>
+    public partial struct Color : IEquatable<Color>, IAlmostEquatable<Color, float>
     {
         /// <summary>
         /// Represents an empty <see cref="Color"/> that has R, G, B, and A values set to zero.
@@ -27,7 +27,7 @@ namespace ImageProcessor
         /// <summary>
         /// The epsilon for comparing floating point numbers.
         /// </summary>
-        private const float Epsilon = 0.0001f;
+        private const float Epsilon = 0.001f;
 
         /// <summary>
         /// The backing vector for SIMD support.
@@ -439,19 +439,6 @@ namespace ImageProcessor
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            if (obj is Color)
-            {
-                Color color = (Color)obj;
-
-                return this.backingVector == color.backingVector;
-            }
-
-            return false;
-        }
-
-        /// <inheritdoc/>
         public override int GetHashCode()
         {
             return GetHashCode(this);
@@ -469,9 +456,29 @@ namespace ImageProcessor
         }
 
         /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (obj is Color)
+            {
+                return this.Equals((Color)obj);
+            }
+
+            return false;
+        }
+
+        /// <inheritdoc/>
         public bool Equals(Color other)
         {
-            return this.backingVector.Equals(other.backingVector);
+            return this.AlmostEquals(other, Epsilon);
+        }
+
+        /// <inheritdoc/>
+        public bool AlmostEquals(Color other, float precision)
+        {
+            return Math.Abs(this.R - other.R) < precision
+                && Math.Abs(this.G - other.G) < precision
+                && Math.Abs(this.B - other.B) < precision
+                && Math.Abs(this.A - other.A) < precision;
         }
 
         /// <summary>

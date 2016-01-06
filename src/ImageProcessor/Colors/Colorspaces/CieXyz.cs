@@ -13,12 +13,17 @@ namespace ImageProcessor
     /// Represents an CIE 1931 color
     /// <see href="https://en.wikipedia.org/wiki/CIE_1931_color_space"/>
     /// </summary>
-    public struct CieXyz : IEquatable<CieXyz>
+    public struct CieXyz : IEquatable<CieXyz>, IAlmostEquatable<CieXyz, float>
     {
         /// <summary>
         /// Represents a <see cref="CieXyz"/> that has Y, Cb, and Cr values set to zero.
         /// </summary>
         public static readonly CieXyz Empty = default(CieXyz);
+
+        /// <summary>
+        /// The epsilon for comparing floating point numbers.
+        /// </summary>
+        private const float Epsilon = 0.001f;
 
         /// <summary>
         /// The backing vector for SIMD support.
@@ -124,19 +129,6 @@ namespace ImageProcessor
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            if (obj is CieXyz)
-            {
-                CieXyz color = (CieXyz)obj;
-
-                return this.backingVector == color.backingVector;
-            }
-
-            return false;
-        }
-
-        /// <inheritdoc/>
         public override int GetHashCode()
         {
             return GetHashCode(this);
@@ -154,9 +146,28 @@ namespace ImageProcessor
         }
 
         /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (obj is CieXyz)
+            {
+                return this.Equals((CieXyz)obj);
+            }
+
+            return false;
+        }
+
+        /// <inheritdoc/>
         public bool Equals(CieXyz other)
         {
-            return this.backingVector.Equals(other.backingVector);
+            return this.AlmostEquals(other, Epsilon);
+        }
+
+        /// <inheritdoc/>
+        public bool AlmostEquals(CieXyz other, float precision)
+        {
+            return Math.Abs(this.X - other.X) < precision
+                && Math.Abs(this.Y - other.Y) < precision
+                && Math.Abs(this.Z - other.Z) < precision;
         }
 
         /// <summary>

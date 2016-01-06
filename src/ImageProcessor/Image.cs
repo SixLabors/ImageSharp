@@ -89,8 +89,9 @@ namespace ImageProcessor
                 }
             }
 
-            this.HorizontalResolution = DefaultHorizontalResolution;
-            this.VerticalResolution = DefaultVerticalResolution;
+            this.RepeatCount = other.RepeatCount;
+            this.HorizontalResolution = other.HorizontalResolution;
+            this.VerticalResolution = other.VerticalResolution;
             this.CurrentImageFormat = other.CurrentImageFormat;
         }
 
@@ -108,8 +109,9 @@ namespace ImageProcessor
         {
             this.HorizontalResolution = DefaultHorizontalResolution;
             this.VerticalResolution = DefaultVerticalResolution;
-            
+
             // Most likely a gif
+            // TODO: Should this be aproperty on ImageFrame?
             this.CurrentImageFormat = DefaultFormats.Value.First(f => f.GetType() == typeof(GifFormat));
         }
 

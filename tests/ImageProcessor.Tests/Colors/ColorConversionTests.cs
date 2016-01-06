@@ -91,32 +91,84 @@ namespace ImageProcessor.Tests
             Assert.Equal(1f, color3.A, 1);
         }
 
+        /// <summary>
+        /// Tests the implicit conversion from <see cref="Color"/> to <see cref="CieXyz"/>.
+        /// Comparison values obtained from 
+        /// http://colormine.org/convert/rgb-to-xyz
+        /// </summary>
         [Fact]
         public void ColorToCieXyz()
         {
+            // White
             Color color = new Color(1, 1, 1);
-            CieXyz cieXyz = color;
+            CieXyz ciexyz = color;
 
-            Assert.Equal(0.9505F, cieXyz.X, 4);
-            Assert.Equal(1.0000F, cieXyz.Y, 4);
-            Assert.Equal(1.089F, cieXyz.Z, 3);
-            
+            Assert.Equal(95.05f, ciexyz.X, 3);
+            Assert.Equal(100.0f, ciexyz.Y, 3);
+            Assert.Equal(108.900f, ciexyz.Z, 3);
+
+            // Black
+            Color color2 = new Color(0, 0, 0);
+            CieXyz ciexyz2 = color2;
+            Assert.Equal(0, ciexyz2.X, 3);
+            Assert.Equal(0, ciexyz2.Y, 3);
+            Assert.Equal(0, ciexyz2.Z, 3);
+
+            //// Grey
+            Color color3 = new Color(128 / 255f, 128 / 255f, 128 / 255f);
+            CieXyz ciexyz3 = color3;
+            Assert.Equal(20.518, ciexyz3.X, 3);
+            Assert.Equal(21.586, ciexyz3.Y, 3);
+            Assert.Equal(23.507, ciexyz3.Z, 3);
+
+            //// Cyan
+            Color color4 = new Color(0, 1, 1);
+            CieXyz ciexyz4 = color4;
+            Assert.Equal(53.810f, ciexyz4.X, 3);
+            Assert.Equal(78.740f, ciexyz4.Y, 3);
+            Assert.Equal(106.970f, ciexyz4.Z, 3);
         }
 
+        /// <summary>
+        /// Tests the implicit conversion from <see cref="CieXyz"/> to <see cref="Color"/>.
+        /// Comparison values obtained from 
+        /// http://colormine.org/convert/rgb-to-xyz
+        /// </summary>
         [Fact]
         public void CieXyzToColor()
         {
-            CieXyz cieXyz = new CieXyz(0.25F, 0.40F, 0.10F);
-            Color color = cieXyz;
+            // Dark moderate pink.
+            CieXyz ciexyz = new CieXyz(13.337f, 9.297f, 14.727f);
+            Color color = ciexyz;
 
-            Assert.Equal(0.4174F, color.R, 3);
-            Assert.Equal(0.7434F, color.G, 3);
-            Assert.Equal(0.2162F, color.B, 2);
+            Assert.Equal(128 / 255f, color.R, 3);
+            Assert.Equal(64 / 255f, color.G, 3);
+            Assert.Equal(106 / 255f, color.B, 3);
 
-            //xyz2rgb([0.25 0.40 0.10])
-            //ans =     0.4174    0.7434    0.2152
+            // Ochre
+            CieXyz ciexyz2 = new CieXyz(31.787f, 26.147f, 4.885f);
+            Color color2 = ciexyz2;
 
+            Assert.Equal(204 / 255f, color2.R, 3);
+            Assert.Equal(119 / 255f, color2.G, 3);
+            Assert.Equal(34 / 255f, color2.B, 3);
 
+            //// White
+            CieXyz ciexyz3 = new CieXyz(0, 0, 0);
+            Color color3 = ciexyz3;
+
+            Assert.Equal(0f, color3.R, 3);
+            Assert.Equal(0f, color3.G, 3);
+            Assert.Equal(0f, color3.B, 3);
+
+            //// Check others.
+            Random random = new Random(0);
+            for (int i = 0; i < 1000; i++)
+            {
+                Color color4 = new Color(random.Next(1), random.Next(1), random.Next(1));
+                CieXyz ciexyz4 = color4;
+                Assert.Equal(color4, (Color)ciexyz4);
+            }
         }
 
         /// <summary>

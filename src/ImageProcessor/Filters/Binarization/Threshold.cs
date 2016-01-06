@@ -33,6 +33,16 @@ namespace ImageProcessor.Filters
         /// </summary>
         public float Value { get; }
 
+        /// <summary>
+        /// The color to use for pixels that are above the threshold.
+        /// </summary>
+        public Color UpperColor => Color.White;
+
+        /// <summary>
+        /// The color to use for pixels that fall below the threshold.
+        /// </summary>
+        public Color LowerColor => Color.Black;
+
         /// <inheritdoc/>
         protected override void OnApply(ImageBase source, ImageBase target, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
@@ -43,6 +53,8 @@ namespace ImageProcessor.Filters
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             float threshold = this.Value;
+            Color upper = this.UpperColor;
+            Color lower = this.LowerColor;
             int sourceY = sourceRectangle.Y;
             int sourceBottom = sourceRectangle.Bottom;
             int startX = sourceRectangle.X;
@@ -60,7 +72,7 @@ namespace ImageProcessor.Filters
                                 Color color = source[x, y];
 
                                 // Any channel will do since it's greyscale.
-                                target[x, y] = color.B >= threshold ? Color.White : Color.Black;
+                                target[x, y] = color.B >= threshold ? upper : lower;
                             }
                         }
                     });

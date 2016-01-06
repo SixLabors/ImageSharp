@@ -34,10 +34,10 @@ namespace ImageProcessor
         public CieXyz(float x, float y, float z)
             : this()
         {
-            // ToDo: check clamp values
-            this.backingVector.X = x.Clamp(0, 2);
-            this.backingVector.Y = y.Clamp(0, 2);
-            this.backingVector.Z = z.Clamp(0, 2);
+            // Not clamping as documentation about this space seems to indicate "usual" ranges
+            this.backingVector.X = x;
+            this.backingVector.Y = y;
+            this.backingVector.Z = z;
         }
 
         /// <summary>
@@ -76,18 +76,15 @@ namespace ImageProcessor
         /// </returns>
         public static implicit operator CieXyz(Color color)
         {
-            var r = color.R;
-            var g = color.G;
-            var b = color.B;
+            color = Color.Expand(color.Limited);
 
-            // assume sRGB
-            r = r > 0.04045 ? (float)Math.Pow(((r + 0.055) / 1.055), 2.4) : (float)(r / 12.92);
-            g = g > 0.04045 ? (float)Math.Pow(((g + 0.055) / 1.055), 2.4) : (float)(g / 12.92);
-            b = b > 0.04045 ? (float)Math.Pow(((b + 0.055) / 1.055), 2.4) : (float)(b / 12.92);
+            float x = (color.R * 0.4124F) + (color.G * 0.3576F) + (color.B * 0.1805F);
+            float y = (color.R * 0.2126F) + (color.G * 0.7152F) + (color.B * 0.0722F);
+            float z = (color.R * 0.0193F) + (color.G * 0.1192F) + (color.B * 0.9505F);
 
-            var x = (r * 0.41239079926595F) + (g * 0.35758433938387F) + (b * 0.18048078840183F);
-            var y = (r * 0.21263900587151F) + (g * 0.71516867876775F) + (b * 0.072192315360733F);
-            var z = (r * 0.019330818715591F) + (g * 0.11919477979462F) + (b * 0.95053215224966F);
+            x *= 100F;
+            y *= 100F;
+            z *= 100F;
 
             return new CieXyz(x, y, z);
         }

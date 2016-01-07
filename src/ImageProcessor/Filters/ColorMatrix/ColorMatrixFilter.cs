@@ -60,15 +60,8 @@ namespace ImageProcessor.Filters
                 color = Color.Expand(color);
             }
 
-            float sr = color.R;
-            float sg = color.G;
-            float sb = color.B;
-
-            color.R = (sr * matrix.M11) + (sg * matrix.M21) + (sb * matrix.M31) + matrix.M41;
-            color.G = (sr * matrix.M12) + (sg * matrix.M22) + (sb * matrix.M32) + matrix.M42;
-            color.B = (sr * matrix.M13) + (sg * matrix.M23) + (sb * matrix.M33) + matrix.M43;
-
-            return compand ? Color.Compress(color) : color;
+            Vector3 transformed = Vector3.Transform(color.ToVector3(), matrix);
+            return compand ? Color.Compress(new Color(transformed, color.A)) : new Color(transformed, color.A);
         }
     }
 }

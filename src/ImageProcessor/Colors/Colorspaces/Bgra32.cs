@@ -80,7 +80,7 @@ namespace ImageProcessor
         /// Gets a value indicating whether this <see cref="Bgra32"/> is empty.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty => this.backingVector.Equals(default(Vector4));
+        public bool IsEmpty => this.Equals(Empty);
 
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="Color"/> to a

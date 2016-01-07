@@ -24,6 +24,11 @@ namespace ImageProcessor
         public static readonly Rectangle Empty = default(Rectangle);
 
         /// <summary>
+        /// The backing vector for SIMD support.
+        /// </summary>
+        private Vector4 backingVector;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="Rectangle"/> struct.
         /// </summary>
         /// <param name="x">The horizontal position of the rectangle.</param>
@@ -32,10 +37,7 @@ namespace ImageProcessor
         /// <param name="height">The height of the rectangle.</param>
         public Rectangle(int x, int y, int width, int height)
         {
-            this.X = x;
-            this.Y = y;
-            this.Width = width;
-            this.Height = height;
+            this.backingVector = new Vector4(x, y, width, height);
         }
 
         /// <summary>
@@ -49,37 +51,87 @@ namespace ImageProcessor
         /// </param>
         public Rectangle(Point point, Size size)
         {
-            this.X = point.X;
-            this.Y = point.Y;
-            this.Width = size.Width;
-            this.Height = size.Height;
+            this.backingVector = new Vector4(point.X, point.Y, size.Width, size.Height);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Rectangle"/> struct.
+        /// </summary>
+        /// <param name="vector">The vector.</param>
+        public Rectangle(Vector4 vector)
+        {
+            this.backingVector = vector;
         }
 
         /// <summary>
         /// The x-coordinate of this <see cref="Rectangle"/>.
         /// </summary>
-        public int X { get; set; }
+        public int X
+        {
+            get
+            {
+                return (int)this.backingVector.X;
+            }
+
+            set
+            {
+                this.backingVector.X = value;
+            }
+        }
 
         /// <summary>
         /// The y-coordinate of this <see cref="Rectangle"/>.
         /// </summary>
-        public int Y { get; set; }
+        public int Y
+        {
+            get
+            {
+                return (int)this.backingVector.Y;
+            }
+
+            set
+            {
+                this.backingVector.Y = value;
+            }
+        }
 
         /// <summary>
         /// The width of this <see cref="Rectangle"/>.
         /// </summary>
-        public int Width { get; set; }
+        public int Width
+        {
+            get
+            {
+                return (int)this.backingVector.W;
+            }
+
+            set
+            {
+                this.backingVector.W = value;
+            }
+        }
 
         /// <summary>
         /// The height of this <see cref="Rectangle"/>.
         /// </summary>
-        public int Height { get; set; }
+        public int Height
+        {
+            get
+            {
+                return (int)this.backingVector.Z;
+            }
+
+            set
+            {
+                this.backingVector.Z = value;
+            }
+        }
 
         /// <summary>
         /// Gets a value indicating whether this <see cref="Rectangle"/> is empty.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty => this.X == 0 && this.Y == 0 && this.Width == 0 && this.Height == 0;
+        public bool IsEmpty => this.Equals(Empty);
 
         /// <summary>
         /// Gets the y-coordinate of the top edge of this <see cref="Rectangle"/>.
@@ -102,10 +154,33 @@ namespace ImageProcessor
         public int Left => this.X;
 
         /// <summary>
-        /// Compares two <see cref="Rectangle"/> objects. The result specifies whether the values
-        /// of the <see cref="Rectangle.X"/>, <see cref="Rectangle.Y"/>, <see cref="Rectangle.Width"/>,
-        /// and the <see cref="Rectangle.Height"/>properties of the two
-        /// <see cref="Rectangle"/> objects are equal.
+        /// Computes the sum of adding two rectangles.
+        /// </summary>
+        /// <param name="left">The rectangle on the left hand of the operand.</param>
+        /// <param name="right">The rectangle on the right hand of the operand.</param>
+        /// <returns>
+        /// The <see cref="Rectangle"/>
+        /// </returns>
+        public static Rectangle operator +(Rectangle left, Rectangle right)
+        {
+            return new Rectangle(left.backingVector + right.backingVector);
+        }
+
+        /// <summary>
+        /// Computes the difference left by subtracting one rectangle from another.
+        /// </summary>
+        /// <param name="left">The rectangle on the left hand of the operand.</param>
+        /// <param name="right">The rectangle on the right hand of the operand.</param>
+        /// <returns>
+        /// The <see cref="Rectangle"/>
+        /// </returns>
+        public static Rectangle operator -(Rectangle left, Rectangle right)
+        {
+            return new Rectangle(left.backingVector - right.backingVector);
+        }
+
+        /// <summary>
+        /// Compares two <see cref="Rectangle"/> objects for equality.
         /// </summary>
         /// <param name="left">
         /// The <see cref="Rectangle"/> on the left side of the operand.
@@ -122,10 +197,7 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Compares two <see cref="Rectangle"/> objects. The result specifies whether the values
-        /// of the <see cref="Rectangle.X"/>, <see cref="Rectangle.Y"/>, <see cref="Rectangle.Width"/>,
-        /// and the <see cref="Rectangle.Height"/>properties of the two
-        /// <see cref="Rectangle"/> objects are unequal.
+        /// Compares two <see cref="Rectangle"/> objects for inequality.
         /// </summary>
         /// <param name="left">
         /// The <see cref="Rectangle"/> on the left side of the operand.
@@ -150,6 +222,7 @@ namespace ImageProcessor
         /// <returns>The <see cref="bool"/></returns>
         public bool Contains(int x, int y)
         {
+            // TODO: SIMD?
             return this.X <= x
                    && x < this.Right
                    && this.Y <= y
@@ -160,49 +233,19 @@ namespace ImageProcessor
         /// Returns the center point of the given <see cref="Rectangle"/>
         /// </summary>
         /// <param name="rectangle">The rectangle</param>
-        /// <returns><see cref="Vector2"/></returns>
-        public static Vector2 Center(Rectangle rectangle)
+        /// <returns><see cref="Point"/></returns>
+        public static Point Center(Rectangle rectangle)
         {
-            return new Vector2(rectangle.Left + rectangle.Width / 2, rectangle.Top + rectangle.Height / 2);
+            return new Point(rectangle.Left + rectangle.Width / 2, rectangle.Top + rectangle.Height / 2);
         }
 
-        /// <summary>
-        /// Indicates whether this instance and a specified object are equal.
-        /// </summary>
-        /// <returns>
-        /// True if <paramref name="obj"/> and this instance are the same type and represent the same value; otherwise, false.
-        /// </returns>
-        /// <param name="obj">The object to compare with the current instance. </param>
-        public override bool Equals(object obj)
-        {
-            if (!(obj is Rectangle))
-            {
-                return false;
-            }
-
-            Rectangle other = (Rectangle)obj;
-
-            return other.X == this.X && other.Y == this.Y
-                   && other.Width == this.Width && other.Height == this.Height;
-        }
-
-        /// <summary>
-        /// Returns the hash code for this instance.
-        /// </summary>
-        /// <returns>
-        /// A 32-bit signed integer that is the hash code for this instance.
-        /// </returns>
+        /// <inheritdoc/>
         public override int GetHashCode()
         {
             return this.GetHashCode(this);
         }
 
-        /// <summary>
-        /// Returns the fully qualified type name of this instance.
-        /// </summary>
-        /// <returns>
-        /// A <see cref="T:System.String"/> containing a fully qualified type name.
-        /// </returns>
+        /// <inheritdoc/>
         public override string ToString()
         {
             if (this.IsEmpty)
@@ -214,19 +257,21 @@ namespace ImageProcessor
                 $"Rectangle [ X={this.X}, Y={this.Y}, Width={this.Width}, Height={this.Height} ]";
         }
 
-        /// <summary>
-        /// Indicates whether the current object is equal to another object of the same type.
-        /// </summary>
-        /// <returns>
-        /// True if the current object is equal to the <paramref name="other"/> parameter; otherwise, false.
-        /// </returns>
-        /// <param name="other">An object to compare with this object.</param>
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (obj is Rectangle)
+            {
+                return this.Equals((Rectangle)obj);
+            }
+
+            return false;
+        }
+
+        /// <inheritdoc/>
         public bool Equals(Rectangle other)
         {
-            return this.X.Equals(other.X)
-                && this.Y.Equals(other.Y)
-                && this.Width.Equals(other.Width)
-                && this.Height.Equals(other.Height);
+            return this.backingVector.Equals(other.backingVector);
         }
 
         /// <summary>
@@ -240,14 +285,7 @@ namespace ImageProcessor
         /// </returns>
         private int GetHashCode(Rectangle rectangle)
         {
-            unchecked
-            {
-                int hashCode = rectangle.X.GetHashCode();
-                hashCode = (hashCode * 397) ^ rectangle.Y.GetHashCode();
-                hashCode = (hashCode * 397) ^ rectangle.Width.GetHashCode();
-                hashCode = (hashCode * 397) ^ rectangle.Height.GetHashCode();
-                return hashCode;
-            }
+            return rectangle.backingVector.GetHashCode();
         }
     }
 }

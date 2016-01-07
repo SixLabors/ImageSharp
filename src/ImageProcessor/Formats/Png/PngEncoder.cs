@@ -19,11 +19,6 @@ namespace ImageProcessor.Formats
         private const int MaxBlockSize = 0xFFFF;
 
         /// <summary>
-        /// The the transparency threshold.
-        /// </summary>
-        private int threshold;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="PngEncoder"/> class.
         /// </summary>
         public PngEncoder()
@@ -36,15 +31,6 @@ namespace ImageProcessor.Formats
         /// </summary>
         /// <remarks>Png is a lossless format so this is not used in this encoder.</remarks>
         public int Quality { get; set; }
-
-        /// <summary>
-        /// Gets or sets the transparency threshold.
-        /// </summary>
-        public int Threshold
-        {
-            get { return this.threshold; }
-            set { this.threshold = value.Clamp(0, 255); }
-        }
 
         /// <inheritdoc/>
         public string MimeType => "image/png";
@@ -341,11 +327,6 @@ namespace ImageProcessor.Formats
                     float a = pixels[pixelOffset + 3];
 
                     Bgra32 color = Color.ToNonPremultiplied(new Color(r, g, b, a));
-
-                    if (color.A < this.Threshold)
-                    {
-                        color = new Bgra32(0, 0, 0, 0);
-                    }
 
                     data[dataOffset] = color.R;
                     data[dataOffset + 1] = color.G;

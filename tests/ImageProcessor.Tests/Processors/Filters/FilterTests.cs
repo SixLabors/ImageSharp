@@ -3,7 +3,6 @@ namespace ImageProcessor.Tests
 {
     using System.Diagnostics;
     using System.IO;
-    using System.Numerics;
 
     using ImageProcessor.Filters;
 

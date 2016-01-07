@@ -45,7 +45,7 @@ namespace ImageProcessor.Tests
             { "Hue-180", new Hue(180) },
             { "Hue--180", new Hue(-180) },
             { "BoxBlur", new BoxBlur(10) },
-            {"Vignette", new Vignette()}
+            { "Vignette", new Vignette()}
         };
 
         [Theory]

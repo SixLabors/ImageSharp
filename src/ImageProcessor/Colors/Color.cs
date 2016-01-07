@@ -350,7 +350,7 @@ namespace ImageProcessor
         {
             amount = amount.Clamp(0f, 1f);
 
-            if (Math.Abs(from.A - 1) < Epsilon || Math.Abs(from.A) < Epsilon)
+            if (Math.Abs(from.A - 1) < Epsilon && Math.Abs(to.A - 1) < Epsilon)
             {
                 return from + (to - from) * amount;
             }

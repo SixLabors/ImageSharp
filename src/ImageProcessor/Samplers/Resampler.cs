@@ -230,7 +230,7 @@ namespace ImageProcessor.Samplers
             int startX = targetRectangle.X;
             int endX = targetRectangle.Right;
             float negativeAngle = -this.angle;
-            Vector2 centre = Rectangle.Center(sourceRectangle);
+            Point centre = Rectangle.Center(sourceRectangle);
 
             if (this.Sampler is NearestNeighborResampler)
             {
@@ -254,13 +254,10 @@ namespace ImageProcessor.Samplers
                                 int originX = (int)((x - startX) * widthFactor);
 
                                 // Rotate at the centre point
-                                Vector2 rotated = ImageMaths.RotatePoint(new Vector2(originX, originY), centre, negativeAngle);
-                                int rotatedX = (int)rotated.X;
-                                int rotatedY = (int)rotated.Y;
-
-                                if (sourceRectangle.Contains(rotatedX, rotatedY))
+                                Point rotated = Point.Rotate(new Point(originX, originY), centre, negativeAngle);
+                                if (sourceRectangle.Contains(rotated.X, rotated.Y))
                                 {
-                                    target[x, y] = source[rotatedX, rotatedY];
+                                    target[x, y] = source[rotated.X, rotated.Y];
                                 }
                             }
                         }
@@ -296,13 +293,15 @@ namespace ImageProcessor.Samplers
                                     int originX = xw.Index;
 
                                     // Rotate at the centre point
-                                    Vector2 rotated = ImageMaths.RotatePoint(new Vector2(originX, originY), centre, negativeAngle);
-                                    int rotatedX = (int)rotated.X;
-                                    int rotatedY = (int)rotated.Y;
-
-                                    if (sourceRectangle.Contains(rotatedX, rotatedY))
+                                    Point rotated = Point.Rotate(new Point(originX, originY), centre, negativeAngle);
+                                    if (sourceRectangle.Contains(rotated.X, rotated.Y))
                                     {
-                                        Color sourceColor = Color.Expand(source[rotatedX, rotatedY]);
+                                        target[x, y] = source[rotated.X, rotated.Y];
+                                    }
+
+                                    if (sourceRectangle.Contains(rotated.X, rotated.Y))
+                                    {
+                                        Color sourceColor = Color.Expand(source[rotated.X, rotated.Y]);
                                         float weight = yw.Value * xw.Value;
                                         destination.R += sourceColor.R * weight;
                                         destination.G += sourceColor.G * weight;

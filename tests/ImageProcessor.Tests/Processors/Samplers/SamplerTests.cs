@@ -15,6 +15,7 @@
             {
                 { "Bicubic", new BicubicResampler() },
                 { "Triangle", new TriangleResampler() },
+                // Perf: Enable for local testing only
                 //{ "Box", new BoxResampler() },
                 //{ "Lanczos3", new Lanczos3Resampler() },
                 //{ "Lanczos5", new Lanczos5Resampler() },

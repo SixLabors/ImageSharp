@@ -22,11 +22,6 @@ namespace ImageProcessor.Formats
         private int quality = 100;
 
         /// <summary>
-        /// The the transparency threshold.
-        /// </summary>
-        private int threshold = 128;
-
-        /// <summary>
         /// Gets or sets the quality, that will be used to encode the image. Quality
         /// index must be between 0 and 100 (compression from max to min).
         /// </summary>
@@ -35,15 +30,6 @@ namespace ImageProcessor.Formats
         {
             get { return this.quality; }
             set { this.quality = value.Clamp(1, 100); }
-        }
-
-        /// <summary>
-        /// Gets or sets the transparency threshold.
-        /// </summary>
-        public int Threshold
-        {
-            get { return this.threshold; }
-            set { this.threshold = value.Clamp(0, 255); }
         }
 
         /// <inheritdoc/>
@@ -126,11 +112,6 @@ namespace ImageProcessor.Formats
                             float a = sourcePixels[source + 3];
 
                             Bgra32 color = Color.ToNonPremultiplied(new Color(r, g, b, a));
-
-                            if (color.A < this.Threshold)
-                            {
-                                color = new Bgra32(0, 0, 0, 0);
-                            }
 
                             samples[start] = color.R;
                             samples[start + 1] = color.G;

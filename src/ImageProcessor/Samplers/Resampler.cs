@@ -7,7 +7,6 @@ namespace ImageProcessor.Samplers
 {
     using System;
     using System.Collections.Generic;
-    using System.Numerics;
     using System.Threading.Tasks;
 
     /// <summary>
@@ -174,7 +173,7 @@ namespace ImageProcessor.Samplers
                             Weight[] horizontalValues = this.horizontalWeights[x].Values;
 
                             // Destination color components
-                            Color destination = new Color(0, 0, 0, 0);
+                            Color destination = new Color();
 
                             foreach (Weight yw in verticalValues)
                             {
@@ -185,11 +184,7 @@ namespace ImageProcessor.Samplers
                                     int originX = xw.Index;
                                     Color sourceColor = Color.Expand(source[originX, originY]);
                                     float weight = yw.Value * xw.Value;
-
-                                    destination.R += sourceColor.R * weight;
-                                    destination.G += sourceColor.G * weight;
-                                    destination.B += sourceColor.B * weight;
-                                    destination.A += sourceColor.A * weight;
+                                    destination += sourceColor * weight;
                                 }
                             }
 
@@ -303,10 +298,7 @@ namespace ImageProcessor.Samplers
                                     {
                                         Color sourceColor = Color.Expand(source[rotated.X, rotated.Y]);
                                         float weight = yw.Value * xw.Value;
-                                        destination.R += sourceColor.R * weight;
-                                        destination.G += sourceColor.G * weight;
-                                        destination.B += sourceColor.B * weight;
-                                        destination.A += sourceColor.A * weight;
+                                        destination += sourceColor * weight;
                                     }
                                 }
                             }

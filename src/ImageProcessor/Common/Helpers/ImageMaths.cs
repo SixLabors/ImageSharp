@@ -111,33 +111,6 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Rotates one point around another
-        /// <see href="http://stackoverflow.com/a/13695630/82333"/>
-        /// </summary>
-        /// <param name="point">The point to rotate.</param>
-        /// <param name="origin">The origin point of rotation.</param>
-        /// <param name="degrees">The rotation angle in degrees.</param>
-        /// <returns><see cref="Vector2"/></returns>
-        public static Vector2 RotatePoint(Vector2 point, Vector2 origin, float degrees)
-        {
-            double radians = DegreesToRadians(degrees);
-            double cosTheta = Math.Cos(radians);
-            double sinTheta = Math.Sin(radians);
-
-            Vector2 translatedPoint = new Vector2
-            {
-                X = (float)(origin.X
-                    + (point.X - origin.X) * cosTheta
-                    - (point.Y - origin.Y) * sinTheta),
-                Y = (float)(origin.Y
-                    + (point.Y - origin.Y) * cosTheta
-                    + (point.X - origin.X) * sinTheta)
-            };
-
-            return translatedPoint;
-        }
-
-        /// <summary>
         /// Gets the bounding <see cref="Rectangle"/> from the given points.
         /// </summary>
         /// <param name="topLeft">

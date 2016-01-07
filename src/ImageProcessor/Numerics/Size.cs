@@ -7,6 +7,7 @@ namespace ImageProcessor
 {
     using System;
     using System.ComponentModel;
+    using System.Numerics;
 
     /// <summary>
     /// Stores an ordered pair of integers, which specify a height and width.
@@ -23,40 +24,97 @@ namespace ImageProcessor
         public static readonly Size Empty = default(Size);
 
         /// <summary>
+        /// The backing vector for SIMD support.
+        /// </summary>
+        private Vector2 backingVector;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="Size"/> struct.
         /// </summary>
-        /// <param name="width">
-        /// The width of the size.
-        /// </param>
-        /// <param name="height">
-        /// The height of the size.
-        /// </param>
+        /// <param name="width">The width of the size.</param>
+        /// <param name="height">The height of the size.</param>
         public Size(int width, int height)
         {
-            this.Width = width;
-            this.Height = height;
+            this.backingVector = new Vector2(width, height);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Size"/> struct.
+        /// </summary>
+        /// <param name="vector">
+        /// The vector representing the width and height.
+        /// </param>
+        public Size(Vector2 vector)
+        {
+            this.backingVector = new Vector2(vector.X, vector.Y);
         }
 
         /// <summary>
         /// The width of this <see cref="Size"/>.
         /// </summary>
-        public int Width { get; set; }
+        public int Width
+        {
+            get
+            {
+                return (int)this.backingVector.X;
+            }
+
+            set
+            {
+                this.backingVector.X = value;
+            }
+        }
 
         /// <summary>
         /// The height of this <see cref="Size"/>.
         /// </summary>
-        public int Height { get; set; }
+        public int Height
+        {
+            get
+            {
+                return (int)this.backingVector.Y;
+            }
+
+            set
+            {
+                this.backingVector.Y = value;
+            }
+        }
 
         /// <summary>
         /// Gets a value indicating whether this <see cref="Size"/> is empty.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty => this.Width == 0 && this.Height == 0;
+        public bool IsEmpty => this.Equals(Empty);
 
         /// <summary>
-        /// Compares two <see cref="Size"/> objects. The result specifies whether the values
-        /// <see cref="Size.Width"/> and the <see cref="Size.Height"/>properties of the two
-        /// <see cref="Size"/> objects are equal.
+        /// Computes the sum of adding two sizes.
+        /// </summary>
+        /// <param name="left">The size on the left hand of the operand.</param>
+        /// <param name="right">The size on the right hand of the operand.</param>
+        /// <returns>
+        /// The <see cref="Size"/>
+        /// </returns>
+        public static Size operator +(Size left, Size right)
+        {
+            return new Size(left.backingVector + right.backingVector);
+        }
+
+        /// <summary>
+        /// Computes the difference left by subtracting one size from another.
+        /// </summary>
+        /// <param name="left">The size on the left hand of the operand.</param>
+        /// <param name="right">The size on the right hand of the operand.</param>
+        /// <returns>
+        /// The <see cref="Size"/>
+        /// </returns>
+        public static Size operator -(Size left, Size right)
+        {
+            return new Size(left.backingVector - right.backingVector);
+        }
+
+        /// <summary>
+        /// Compares two <see cref="Size"/> objects for equality.
         /// </summary>
         /// <param name="left">
         /// The <see cref="Size"/> on the left side of the operand.
@@ -73,9 +131,7 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Compares two <see cref="Size"/> objects. The result specifies whether the values
-        /// <see cref="Size.Width"/> and the <see cref="Size.Height"/>properties of the two
-        /// <see cref="Size"/> objects are unequal.
+        /// Compares two <see cref="Size"/> objects for inequality.
         /// </summary>
         /// <param name="left">
         /// The <see cref="Size"/> on the left side of the operand.
@@ -92,41 +148,21 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Indicates whether this instance and a specified object are equal.
+        /// Gets a <see cref="Vector2"/> representation for this <see cref="Size"/>.
         /// </summary>
-        /// <returns>
-        /// True if <paramref name="obj"/> and this instance are the same type and represent the same value; otherwise, false.
-        /// </returns>
-        /// <param name="obj">The object to compare with the current instance. </param>
-        public override bool Equals(object obj)
+        /// <returns>A <see cref="Vector2"/> representation for this object.</returns>
+        public Vector2 ToVector2()
         {
-            if (!(obj is Size))
-            {
-                return false;
-            }
-
-            Size other = (Size)obj;
-
-            return other.Width == this.Width && other.Height == this.Height;
+            return new Vector2(this.Width, this.Height);
         }
 
-        /// <summary>
-        /// Returns the hash code for this instance.
-        /// </summary>
-        /// <returns>
-        /// A 32-bit signed integer that is the hash code for this instance.
-        /// </returns>
+        /// <inheritdoc/>
         public override int GetHashCode()
         {
             return this.GetHashCode(this);
         }
 
-        /// <summary>
-        /// Returns the fully qualified type name of this instance.
-        /// </summary>
-        /// <returns>
-        /// A <see cref="T:System.String"/> containing a fully qualified type name.
-        /// </returns>
+        /// <inheritdoc/>
         public override string ToString()
         {
             if (this.IsEmpty)
@@ -138,16 +174,21 @@ namespace ImageProcessor
                 $"Size [ Width={this.Width}, Height={this.Height} ]";
         }
 
-        /// <summary>
-        /// Indicates whether the current object is equal to another object of the same type.
-        /// </summary>
-        /// <returns>
-        /// True if the current object is equal to the <paramref name="other"/> parameter; otherwise, false.
-        /// </returns>
-        /// <param name="other">An object to compare with this object.</param>
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (obj is Size)
+            {
+                return this.Equals((Size)obj);
+            }
+
+            return false;
+        }
+
+        /// <inheritdoc/>
         public bool Equals(Size other)
         {
-            return this.Width.Equals(other.Width) && this.Height.Equals(other.Height);
+            return this.backingVector.Equals(other.backingVector);
         }
 
         /// <summary>
@@ -161,12 +202,7 @@ namespace ImageProcessor
         /// </returns>
         private int GetHashCode(Size size)
         {
-            unchecked
-            {
-                int hashCode = size.Width.GetHashCode();
-                hashCode = (hashCode * 397) ^ size.Height.GetHashCode();
-                return hashCode;
-            }
+            return size.backingVector.GetHashCode();
         }
     }
 }

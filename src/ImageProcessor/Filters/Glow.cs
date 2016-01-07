@@ -34,7 +34,7 @@ namespace ImageProcessor.Filters
         {
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
-            Color color = this.Color;
+            Color glowColor = this.Color;
             Vector2 centre = Rectangle.Center(targetRectangle).ToVector2();
             float rX = this.RadiusX > 0 ? this.RadiusX : targetRectangle.Width / 2f;
             float rY = this.RadiusY > 0 ? this.RadiusY : targetRectangle.Height / 2f;
@@ -49,7 +49,7 @@ namespace ImageProcessor.Filters
                         {
                             float distance = Vector2.Distance(centre, new Vector2(x, y));
                             Color sourceColor = target[x, y];
-                            target[x, y] = Color.Lerp(color, sourceColor, 4f * distance / maxDistance);
+                            target[x, y] = Color.Lerp(sourceColor, glowColor, .334f * (1 - distance / maxDistance));
                         }
                     });
         }

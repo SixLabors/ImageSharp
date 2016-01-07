@@ -17,7 +17,7 @@ namespace ImageProcessor.Filters
         /// <summary>
         /// Gets or sets the vignette color to apply.
         /// </summary>
-        public Color Color { get; set; } = Color.Black;
+        public Color Color { get; set; } = new Color(0, 0, 0, 1);
 
         /// <summary>
         /// Gets or sets the the x-radius.
@@ -34,7 +34,7 @@ namespace ImageProcessor.Filters
         {
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
-            Color color = this.Color;
+            Color vignetteColor = this.Color;
             Vector2 centre = Rectangle.Center(targetRectangle).ToVector2();
             float rX = this.RadiusX > 0 ? this.RadiusX : targetRectangle.Width / 2f;
             float rY = this.RadiusY > 0 ? this.RadiusY : targetRectangle.Height / 2f;
@@ -49,7 +49,14 @@ namespace ImageProcessor.Filters
                         {
                             float distance = Vector2.Distance(centre, new Vector2(x, y));
                             Color sourceColor = target[x, y];
-                            target[x, y] = Color.Lerp(sourceColor, color, .9f * distance / maxDistance);
+                            //if (sourceColor.A > 0)
+                            //{
+                            target[x, y] = Color.Lerp(sourceColor, vignetteColor, .9f * distance / maxDistance);
+                            //}
+                            //else
+                            //{
+                            //    target[x, y] = Color.Lerp(sourceColor, color, distance / maxDistance);
+                            //}
                         }
                     });
         }

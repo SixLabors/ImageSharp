@@ -5,6 +5,7 @@
 
 namespace ImageProcessor.Filters
 {
+    using System;
     using System.Threading.Tasks;
 
     /// <summary>
@@ -12,6 +13,11 @@ namespace ImageProcessor.Filters
     /// </summary>
     public class BackgroundColor : ParallelImageProcessor
     {
+        /// <summary>
+        /// The epsilon for comparing floating point numbers.
+        /// </summary>
+        private const float Epsilon = 0.001f;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="BackgroundColor"/> class.
         /// </summary>
@@ -46,9 +52,14 @@ namespace ImageProcessor.Filters
                         {
                             Color color = source[x, y];
 
-                            if (color.A < 1)
+                            if (color.A < 1 && color.A > 0)
                             {
                                 color = Color.Lerp(color, backgroundColor, .5f);
+                            }
+
+                            if (Math.Abs(color.A) < Epsilon)
+                            {
+                                color = backgroundColor;
                             }
 
                             target[x, y] = color;

@@ -50,28 +50,15 @@ namespace ImageProcessor.Filters
                         {
                             for (int x = startX; x < endX; x++)
                             {
-                                target[x, y] = AdjustBrightness(source[x, y], brightness);
+                                Color color = Color.Expand(source[x, y]);
+
+                                Vector3 vector3 = color.ToVector3();
+                                vector3 += new Vector3(brightness);
+
+                                target[x, y] = Color.Compress(new Color(vector3, color.A));
                             }
                         }
                     });
-        }
-
-        /// <summary>
-        /// Returns a <see cref="Color"/> with the brightness adjusted.
-        /// </summary>
-        /// <param name="color">The source color.</param>
-        /// <param name="brightness">The brightness adjustment factor.</param>
-        /// <returns>
-        /// The <see cref="Color"/>.
-        /// </returns>
-        private static Color AdjustBrightness(Color color, float brightness)
-        {
-            color = Color.Expand(color);
-
-            Vector3 vector3 = color.ToVector3();
-            vector3 += new Vector3(brightness, brightness, brightness);
-
-            return Color.Compress(new Color(vector3, color.A));
         }
     }
 }

@@ -121,7 +121,7 @@ namespace ImageProcessor.Samplers
         /// <returns>The <see cref="Image"/></returns>
         public static Image Rotate(this Image source, float degrees)
         {
-            return source.Process(source.Width, source.Height, source.Bounds, source.Bounds, new Resampler(new RobidouxResampler()) { Angle = degrees });
+            return source.Process(source.Width, source.Height, source.Bounds, source.Bounds, new Resampler(new BicubicResampler()) { Angle = degrees });
         }
 
         /// <summary>

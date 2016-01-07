@@ -49,7 +49,7 @@ namespace ImageProcessor.Filters
                         {
                             float distance = Vector2.Distance(centre, new Vector2(x, y));
                             Color sourceColor = target[x, y];
-                            target[x, y] = Color.Lerp(sourceColor, glowColor, .5f * (1 - distance / maxDistance));
+                            target[x, y] = Color.Lerp(glowColor, sourceColor, .5f * (distance / maxDistance));
                         }
                     });
         }

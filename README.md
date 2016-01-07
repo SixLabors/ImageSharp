@@ -58,7 +58,7 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
  - [x] Rectangle
  - [x] Size
  - [x] Point
- - [ ] Ellipse
+ - [x] Ellipse
 - Resampling algorithms. (Performance improvements?)
  - [x] Box
  - [x] Bicubic
@@ -78,8 +78,8 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
  - [ ] Elliptical Crop
  - [x] Entropy Crop
 - Rotation
- - [x] Flip (90, 270, FlipType etc. Need help)
- - [ ] Rotate by angle (Need help with Paeth approach) [#258](https://github.com/JimBobSquarePants/ImageProcessor/issues/258)
+ - [x] Flip (90, 270, FlipType etc)
+ - [x] Rotate by angle
 - ColorMatrix operations (Uses Matrix4x4)
  - [x] BlackWhite
  - [x] Greyscale BT709
@@ -113,6 +113,8 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
  - [x] Hue
  - [x] Blend
  - [ ] Mask
+ - [x] Vignette
+ - [x] Glow
 - Effects
  - [ ] Path brush (Need help) [#264](https://github.com/JimBobSquarePants/ImageProcessor/issues/264)
  - [ ] Pattern brush (Need help) [#264](https://github.com/JimBobSquarePants/ImageProcessor/issues/264)

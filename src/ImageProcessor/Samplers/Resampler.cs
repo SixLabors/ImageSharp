@@ -277,7 +277,7 @@ namespace ImageProcessor.Samplers
                             Weight[] horizontalValues = this.horizontalWeights[x].Values;
 
                             // Destination color components
-                            Color destination = new Color(0, 0, 0, 0);
+                            Color destination = new Color();
 
                             foreach (Weight yw in verticalValues)
                             {
@@ -371,7 +371,7 @@ namespace ImageProcessor.Samplers
                         }
 
                         // Normalise the values
-                        if (Math.Abs(sum) > 0.00001f)
+                        if (sum > 0 || sum < 0)
                         {
                             builder.ForEach(w => w.Value /= sum);
                         }

@@ -719,5 +719,10 @@ namespace ImageProcessor
         /// Represents a <see cref="Color"/> matching the W3C definition that has a hex triplet value of #9ACD32.
         /// </summary>
         public static readonly Color YellowGreen = new Color(154 / 255f, 205 / 255f, 50 / 255f);
+
+        /// <summary>
+        /// Represents a system-defined <see cref="Color"/> that has an ARGB value of #00FFFFFF.
+        /// </summary>
+        public static readonly Color Transparent = new Color(1, 1, 1, 0);
     }
 }

@@ -16,6 +16,9 @@ namespace ImageProcessor.Samplers
     /// </summary>
     public class EntropyCrop : ParallelImageProcessor
     {
+        /// <summary>
+        /// The rectangle for cropping
+        /// </summary>
         private Rectangle cropRectangle;
 
         /// <summary>

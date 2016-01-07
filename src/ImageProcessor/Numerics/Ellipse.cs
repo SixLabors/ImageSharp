@@ -17,11 +17,6 @@ namespace ImageProcessor
         private Point center;
 
         /// <summary>
-        /// The epsilon for comparing floating point numbers.
-        /// </summary>
-        private const float Epsilon = 0.0001f;
-
-        /// <summary>
         /// Represents a <see cref="Ellipse"/> that has X and Y values set to zero.
         /// </summary>
         public static readonly Ellipse Empty = default(Ellipse);
@@ -47,9 +42,7 @@ namespace ImageProcessor
         /// Gets a value indicating whether this <see cref="Ellipse"/> is empty.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty => this.center.IsEmpty
-            && Math.Abs(this.RadiusX) < Epsilon
-            && Math.Abs(this.RadiusY) < Epsilon;
+        public bool IsEmpty => this.Equals(Empty);
 
         /// <summary>
         /// Compares two <see cref="Ellipse"/> objects for equality.
@@ -109,34 +102,16 @@ namespace ImageProcessor
                 return false;
             }
 
-            //This is a more general form of the circle equation
+            // TODO: SIMD?
+            // This is a more general form of the circle equation
             // X^2/a^2 + Y^2/b^2 <= 1
             Point normalized = new Point(x - this.center.X, y - this.center.Y);
             int nX = normalized.X;
             int nY = normalized.Y;
 
-            //return (double)(nX * nX) / (this.RadiusX * this.RadiusX)
-            //    + (double)(nY * nY) / (this.RadiusY * this.RadiusY)
-            //    <= 1.0;
-
-            return ((double)(nX * nX) / (this.RadiusX * this.RadiusX))
-                     + ((double)(nY * nY) / (this.RadiusY * this.RadiusY))
-                <= 1.0;
-        }
-
-        /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            if (!(obj is Ellipse))
-            {
-                return false;
-            }
-
-            Ellipse other = (Ellipse)obj;
-
-            return other.center == this.center
-                && Math.Abs(other.RadiusX - this.RadiusX) < Epsilon
-                && Math.Abs(other.RadiusY - this.RadiusY) < Epsilon;
+            return (double)(nX * nX) / (this.RadiusX * this.RadiusX)
+                 + (double)(nY * nY) / (this.RadiusY * this.RadiusY)
+                 <= 1.0;
         }
 
         /// <inheritdoc/>
@@ -158,29 +133,40 @@ namespace ImageProcessor
         }
 
         /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (obj is Ellipse)
+            {
+                return this.Equals((Ellipse)obj);
+            }
+
+            return false;
+        }
+
+        /// <inheritdoc/>
         public bool Equals(Ellipse other)
         {
             return this.center.Equals(other.center)
                 && this.RadiusX.Equals(other.RadiusX)
-                && this.RadiusX.Equals(other.RadiusY);
+                && this.RadiusY.Equals(other.RadiusY);
         }
 
         /// <summary>
         /// Returns the hash code for this instance.
         /// </summary>
-        /// <param name="point">
+        /// <param name="ellipse">
         /// The instance of <see cref="Point"/> to return the hash code for.
         /// </param>
         /// <returns>
         /// A 32-bit signed integer that is the hash code for this instance.
         /// </returns>
-        private int GetHashCode(Ellipse point)
+        private int GetHashCode(Ellipse ellipse)
         {
             unchecked
             {
-                int hashCode = point.center.GetHashCode();
-                hashCode = (hashCode * 397) ^ point.RadiusX.GetHashCode();
-                hashCode = (hashCode * 397) ^ point.RadiusY.GetHashCode();
+                int hashCode = ellipse.center.GetHashCode();
+                hashCode = (hashCode * 397) ^ ellipse.RadiusX.GetHashCode();
+                hashCode = (hashCode * 397) ^ ellipse.RadiusY.GetHashCode();
                 return hashCode;
             }
         }

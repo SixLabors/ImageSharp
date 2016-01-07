@@ -13,20 +13,20 @@
         public static readonly TheoryData<string, IResampler> Samplers =
             new TheoryData<string, IResampler>
             {
-                { "Bicubic", new BicubicResampler() },
-                { "Triangle", new TriangleResampler() },
-                { "Box", new BoxResampler() },
-                { "Lanczos3", new Lanczos3Resampler() },
+                //{ "Bicubic", new BicubicResampler() },
+                //{ "Triangle", new TriangleResampler() },
+                //{ "Box", new BoxResampler() },
+                //{ "Lanczos3", new Lanczos3Resampler() },
                 //{ "Lanczos5", new Lanczos5Resampler() },
                 //{ "Lanczos8", new Lanczos8Resampler() },
-                { "MitchellNetravali", new MitchellNetravaliResampler() },
+                //{ "MitchellNetravali", new MitchellNetravaliResampler() },
                 { "NearestNeighbor", new NearestNeighborResampler() },
-                { "Hermite", new HermiteResampler() },
-                { "Spline", new SplineResampler() },
-                { "Robidoux", new RobidouxResampler() },
-                { "RobidouxSharp", new RobidouxSharpResampler() },
-                { "RobidouxSoft", new RobidouxSoftResampler() },
-                { "Welch", new WelchResampler() }
+                //{ "Hermite", new HermiteResampler() },
+                //{ "Spline", new SplineResampler() },
+                //{ "Robidoux", new RobidouxResampler() },
+                //{ "RobidouxSharp", new RobidouxSharpResampler() },
+                //{ "RobidouxSoft", new RobidouxSoftResampler() },
+                //{ "Welch", new WelchResampler() }
             };
 
         public static readonly TheoryData<RotateType, FlipType> RotateFlips = new TheoryData<RotateType, FlipType>

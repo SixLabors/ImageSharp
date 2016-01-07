@@ -109,9 +109,7 @@ namespace ImageProcessor
         /// <summary>
         /// Initializes a new instance of the <see cref="Color"/> struct.
         /// </summary>
-        /// <param name="vector">
-        /// The vector.
-        /// </param>
+        /// <param name="vector">The vector.</param>
         public Color(Vector4 vector)
         {
             this.backingVector = vector;
@@ -208,7 +206,7 @@ namespace ImageProcessor
         /// Gets a value indicating whether this <see cref="Color"/> is empty.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty => this.backingVector.Equals(default(Vector4));
+        public bool IsEmpty => this.Equals(Empty);
 
         /// <summary>
         /// Gets this color with the component values clamped from 0 to 1.
@@ -308,7 +306,7 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Compares two <see cref="Hsv"/> objects for inequality.
+        /// Compares two <see cref="Color"/> objects for inequality.
         /// </summary>
         /// <param name="left">
         /// The <see cref="Color"/> on the left side of the operand.

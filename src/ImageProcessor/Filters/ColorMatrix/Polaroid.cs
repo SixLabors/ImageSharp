@@ -33,7 +33,13 @@ namespace ImageProcessor.Filters
         protected override void AfterApply(ImageBase source, ImageBase target, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
             new Vignette { Color = new Color(102 / 255f, 34 / 255f, 0) }.Apply(target, target, targetRectangle);
-            new Glow { Color = new Color(1, 153 / 255f, 102 / 255f, .7f) }.Apply(target, target, targetRectangle);
+            new Glow
+            {
+                Color = new Color(1, 153 / 255f, 102 / 255f),
+                RadiusX = target.Width / 4f,
+                RadiusY = target.Width / 4f
+            }
+            .Apply(target, target, targetRectangle);
         }
     }
 }

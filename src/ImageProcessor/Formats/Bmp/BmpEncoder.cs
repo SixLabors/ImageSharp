@@ -15,11 +15,6 @@ namespace ImageProcessor.Formats
     public class BmpEncoder : IImageEncoder
     {
         /// <summary>
-        /// The the transparency threshold.
-        /// </summary>
-        private int threshold = 128;
-
-        /// <summary>
         /// Gets or sets the quality of output for images.
         /// </summary>
         /// <remarks>Bitmap is a lossless format so this is not used in this encoder.</remarks>
@@ -30,15 +25,6 @@ namespace ImageProcessor.Formats
 
         /// <inheritdoc/>
         public string Extension => "bmp";
-
-        /// <summary>
-        /// Gets or sets the transparency threshold.
-        /// </summary>
-        public int Threshold
-        {
-            get { return this.threshold; }
-            set { this.threshold = value.Clamp(0, 255); }
-        }
 
         /// <inheritdoc/>
         public bool IsSupportedFileExtension(string extension)
@@ -131,11 +117,6 @@ namespace ImageProcessor.Formats
                     float a = data[offset + 3];
 
                     Bgra32 color = Color.ToNonPremultiplied(new Color(r, g, b, a));
-
-                    if (color.A < this.Threshold)
-                    {
-                        color = new Bgra32(0, 0, 0, 0);
-                    }
 
                     writer.Write(color.B);
                     writer.Write(color.G);

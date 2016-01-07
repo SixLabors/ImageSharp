@@ -49,38 +49,25 @@ namespace ImageProcessor.Filters
                         {
                             for (int x = startX; x < endX; x++)
                             {
-                                target[x, y] = AdjustContrast(source[x, y], contrast);
+                                Color color = Color.Expand(source[x, y]);
+
+                                // Seems to be faster than Vector3.
+                                color.R -= 0.5f;
+                                color.R *= contrast;
+                                color.R += 0.5f;
+
+                                color.G -= 0.5f;
+                                color.G *= contrast;
+                                color.G += 0.5f;
+
+                                color.B -= 0.5f;
+                                color.B *= contrast;
+                                color.B += 0.5f;
+
+                                target[x, y] = Color.Compress(color);
                             }
                         }
                     });
-        }
-
-        /// <summary>
-        /// Returns a <see cref="Color"/> with the contrast adjusted.
-        /// </summary>
-        /// <param name="color">The source color.</param>
-        /// <param name="contrast">The contrast adjustment factor.</param>
-        /// <returns>
-        /// The <see cref="Color"/>.
-        /// </returns>
-        private static Color AdjustContrast(Color color, float contrast)
-        {
-            color = Color.Expand(color);
-
-            // Seems to be faster than Vector3.
-            color.R -= 0.5f;
-            color.R *= contrast;
-            color.R += 0.5f;
-
-            color.G -= 0.5f;
-            color.G *= contrast;
-            color.G += 0.5f;
-
-            color.B -= 0.5f;
-            color.B *= contrast;
-            color.B += 0.5f;
-
-            return Color.Compress(color);
         }
     }
 }

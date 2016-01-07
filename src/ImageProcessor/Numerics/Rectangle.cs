@@ -102,12 +102,12 @@ namespace ImageProcessor
         {
             get
             {
-                return (int)this.backingVector.W;
+                return (int)this.backingVector.Z;
             }
 
             set
             {
-                this.backingVector.W = value;
+                this.backingVector.Z = value;
             }
         }
 
@@ -118,12 +118,12 @@ namespace ImageProcessor
         {
             get
             {
-                return (int)this.backingVector.Z;
+                return (int)this.backingVector.W;
             }
 
             set
             {
-                this.backingVector.Z = value;
+                this.backingVector.W = value;
             }
         }
 

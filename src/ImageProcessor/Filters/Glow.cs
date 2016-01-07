@@ -35,7 +35,7 @@ namespace ImageProcessor.Filters
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
             Color color = this.Color;
-            Vector2 centre = Rectangle.Center(targetRectangle);
+            Vector2 centre = Rectangle.Center(targetRectangle).ToVector2();
             float rX = this.RadiusX > 0 ? this.RadiusX : targetRectangle.Width / 2f;
             float rY = this.RadiusY > 0 ? this.RadiusY : targetRectangle.Height / 2f;
             float maxDistance = (float)Math.Sqrt(rX * rX + rY * rY);

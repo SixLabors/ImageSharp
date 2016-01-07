@@ -7,6 +7,7 @@ namespace ImageProcessor
 {
     using System;
     using System.ComponentModel;
+    using System.Numerics;
 
     /// <summary>
     /// Represents an ordered pair of integer x- and y-coordinates that defines a point in
@@ -24,36 +25,98 @@ namespace ImageProcessor
         public static readonly Point Empty = default(Point);
 
         /// <summary>
+        /// The backing vector for SIMD support.
+        /// </summary>
+        private Vector2 backingVector;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="Point"/> struct.
         /// </summary>
         /// <param name="x">The horizontal position of the point.</param>
         /// <param name="y">The vertical position of the point.</param>
         public Point(int x, int y)
+            : this()
         {
-            this.X = x;
-            this.Y = y;
+            this.backingVector = new Vector2(x, y);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Point"/> struct.
+        /// </summary>
+        /// <param name="vector">
+        /// The vector representing the width and height.
+        /// </param>
+        public Point(Vector2 vector)
+        {
+            this.backingVector = new Vector2(vector.X, vector.Y);
         }
 
         /// <summary>
         /// The x-coordinate of this <see cref="Point"/>.
         /// </summary>
-        public int X { get; set; }
+        public int X
+        {
+            get
+            {
+                return (int)this.backingVector.X;
+            }
+
+            set
+            {
+                this.backingVector.X = value;
+            }
+        }
 
         /// <summary>
         /// The y-coordinate of this <see cref="Point"/>.
         /// </summary>
-        public int Y { get; set; }
+        public int Y
+        {
+            get
+            {
+                return (int)this.backingVector.Y;
+            }
+
+            set
+            {
+                this.backingVector.Y = value;
+            }
+        }
 
         /// <summary>
         /// Gets a value indicating whether this <see cref="Point"/> is empty.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty => this.X == 0 && this.Y == 0;
+        public bool IsEmpty => this.Equals(Empty);
 
         /// <summary>
-        /// Compares two <see cref="Point"/> objects. The result specifies whether the values
-        /// of the <see cref="Point.X"/> or <see cref="Point.Y"/> properties of the two
-        /// <see cref="Point"/> objects are equal.
+        /// Computes the sum of adding two points.
+        /// </summary>
+        /// <param name="left">The point on the left hand of the operand.</param>
+        /// <param name="right">The point on the right hand of the operand.</param>
+        /// <returns>
+        /// The <see cref="Point"/>
+        /// </returns>
+        public static Point operator +(Point left, Point right)
+        {
+            return new Point(left.backingVector + right.backingVector);
+        }
+
+        /// <summary>
+        /// Computes the difference left by subtracting one point from another.
+        /// </summary>
+        /// <param name="left">The point on the left hand of the operand.</param>
+        /// <param name="right">The point on the right hand of the operand.</param>
+        /// <returns>
+        /// The <see cref="Point"/>
+        /// </returns>
+        public static Point operator -(Point left, Point right)
+        {
+            return new Point(left.backingVector - right.backingVector);
+        }
+
+        /// <summary>
+        /// Compares two <see cref="Point"/> objects for equality.
         /// </summary>
         /// <param name="left">
         /// The <see cref="Point"/> on the left side of the operand.
@@ -70,9 +133,7 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Compares two <see cref="Point"/> objects. The result specifies whether the values
-        /// of the <see cref="Point.X"/> or <see cref="Point.Y"/> properties of the two
-        /// <see cref="Point"/> objects are unequal.
+        /// Compares two <see cref="Point"/> objects for inequality.
         /// </summary>
         /// <param name="left">
         /// The <see cref="Point"/> on the left side of the operand.
@@ -89,44 +150,34 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Indicates whether this instance and a specified object are equal.
+        /// Gets a <see cref="Vector2"/> representation for this <see cref="Point"/>.
         /// </summary>
-        /// <param name="obj">
-        /// The object to compare with the current instance.
-        /// </param>
-        /// <returns>
-        /// true if <paramref name="obj"/> and this instance are the same type and represent the
-        /// same value; otherwise, false.
-        /// </returns>
-        public override bool Equals(object obj)
+        /// <returns>A <see cref="Vector2"/> representation for this object.</returns>
+        public Vector2 ToVector2()
         {
-            if (!(obj is Point))
-            {
-                return false;
-            }
-
-            Point other = (Point)obj;
-
-            return other.X == this.X && other.Y == this.Y;
+            return new Vector2(this.X, this.Y);
         }
 
         /// <summary>
-        /// Returns the hash code for this instance.
+        /// Rotates a point around a given origin by the specified angle in degrees.
         /// </summary>
-        /// <returns>
-        /// A 32-bit signed integer that is the hash code for this instance.
-        /// </returns>
+        /// <param name="point">The point to rotate</param>
+        /// <param name="origin">The center point to rotate around.</param>
+        /// <param name="degrees">The angle in degrees.</param>
+        /// <returns></returns>
+        public static Point Rotate(Point point, Point origin, float degrees)
+        {
+            float radians = (float)ImageMaths.DegreesToRadians(degrees);
+            return new Point(Vector2.Transform(point.backingVector, Matrix3x2.CreateRotation(radians, origin.backingVector)));
+        }
+
+        /// <inheritdoc/>
         public override int GetHashCode()
         {
             return this.GetHashCode(this);
         }
 
-        /// <summary>
-        /// Returns the fully qualified type name of this instance.
-        /// </summary>
-        /// <returns>
-        /// A <see cref="T:System.String"/> containing a fully qualified type name.
-        /// </returns>
+        /// <inheritdoc/>
         public override string ToString()
         {
             if (this.IsEmpty)
@@ -138,16 +189,21 @@ namespace ImageProcessor
                 $"Point [ X={this.X}, Y={this.Y} ]";
         }
 
-        /// <summary>
-        /// Indicates whether the current object is equal to another object of the same type.
-        /// </summary>
-        /// <returns>
-        /// True if the current object is equal to the <paramref name="other"/> parameter; otherwise, false.
-        /// </returns>
-        /// <param name="other">An object to compare with this object.</param>
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (obj is Point)
+            {
+                return this.Equals((Point)obj);
+            }
+
+            return false;
+        }
+
+        /// <inheritdoc/>
         public bool Equals(Point other)
         {
-            return this.X.Equals(other.X) && this.Y.Equals(other.Y);
+            return this.backingVector.Equals(other.backingVector);
         }
 
         /// <summary>
@@ -161,12 +217,7 @@ namespace ImageProcessor
         /// </returns>
         private int GetHashCode(Point point)
         {
-            unchecked
-            {
-                int hashCode = point.X.GetHashCode();
-                hashCode = (hashCode * 397) ^ point.Y.GetHashCode();
-                return hashCode;
-            }
+            return point.backingVector.GetHashCode();
         }
     }
 }

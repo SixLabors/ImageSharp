@@ -211,17 +211,7 @@ namespace ImageProcessor
         /// <summary>
         /// Gets this color with the component values clamped from 0 to 1.
         /// </summary>
-        public Color Limited
-        {
-            get
-            {
-                float r = this.R.Clamp(0, 1);
-                float g = this.G.Clamp(0, 1);
-                float b = this.B.Clamp(0, 1);
-                float a = this.A.Clamp(0, 1);
-                return new Color(r, g, b, a);
-            }
-        }
+        public Color Limited => new Color(Vector4.Clamp(this.backingVector, Vector4.Zero, Vector4.One));
 
         /// <summary>
         /// Computes the product of multiplying a color by a given factor.
@@ -402,7 +392,7 @@ namespace ImageProcessor
         public static Color FromNonPremultiplied(Color color)
         {
             float a = color.A;
-            return new Color(color.R * a, color.G * a, color.B * a, a);
+            return new Color(color.backingVector * new Vector4(a, a, a, 1));
         }
 
         /// <summary>
@@ -416,10 +406,10 @@ namespace ImageProcessor
             float a = color.A;
             if (Math.Abs(a) < Epsilon)
             {
-                return new Color(color.R, color.G, color.B, a);
+                return new Color(color.backingVector);
             }
 
-            return new Color(color.R / a, color.G / a, color.B / a, a);
+            return new Color(color.backingVector / new Vector4(a, a, a, 1));
         }
 
         /// <summary>

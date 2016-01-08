@@ -33,13 +33,7 @@ namespace ImageProcessor.Formats
             this.singlePass = singlePass;
         }
 
-        /// <summary>
-        /// Quantize an image and return the resulting output pixels.
-        /// </summary>
-        /// <param name="imageBase">The image to quantize.</param>
-        /// <returns>
-        /// A <see cref="T:byte[]"/> representing a quantized version of the image pixels.
-        /// </returns>
+        /// <inheritdoc/>
         public QuantizedImage Quantize(ImageBase imageBase)
         {
             // Get the size of the source image

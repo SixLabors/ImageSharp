@@ -9,6 +9,8 @@ namespace ImageProcessor.Samplers
     using System.Collections.Generic;
     using System.Threading.Tasks;
 
+    using ImageProcessor.Filters;
+
     /// <summary>
     /// Provides methods that allow the resampling of images using various algorithms.
     /// </summary>
@@ -81,6 +83,8 @@ namespace ImageProcessor.Samplers
                 this.horizontalWeights = this.PrecomputeWeights(targetRectangle.Width, sourceRectangle.Width);
                 this.verticalWeights = this.PrecomputeWeights(targetRectangle.Height, sourceRectangle.Height);
             }
+
+            new BackgroundColor(Color.Transparent).Apply(source, source, sourceRectangle);
         }
 
         /// <inheritdoc/>
@@ -189,10 +193,6 @@ namespace ImageProcessor.Samplers
                             }
 
                             destination = Color.Compress(destination);
-
-                            // Round alpha values in an attempt to prevent bleed.
-                            destination.A = (float)Math.Round(destination.A, 2);
-
                             target[x, y] = destination;
                         }
                     }
@@ -304,9 +304,6 @@ namespace ImageProcessor.Samplers
                             }
 
                             destination = Color.Compress(destination);
-
-                            // Round alpha values in an attempt to prevent bleed.
-                            destination.A = (float)Math.Round(destination.A, 2);
                             target[x, y] = destination;
                         }
                     }

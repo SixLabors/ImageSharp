@@ -51,13 +51,14 @@ namespace ImageProcessor.Filters
                         for (int x = startX; x < endX; x++)
                         {
                             Color color = source[x, y];
+                            float a = color.A;
 
-                            if (color.A < 1 && color.A > 0)
+                            if (a < 1 && a > 0)
                             {
                                 color = Color.Lerp(color, backgroundColor, .5f);
                             }
 
-                            if (Math.Abs(color.A) < Epsilon)
+                            if (Math.Abs(a) < Epsilon)
                             {
                                 color = backgroundColor;
                             }

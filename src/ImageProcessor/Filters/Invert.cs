@@ -5,6 +5,7 @@
 
 namespace ImageProcessor.Filters
 {
+    using System.Numerics;
     using System.Threading.Tasks;
 
     /// <summary>
@@ -19,6 +20,7 @@ namespace ImageProcessor.Filters
             int sourceBottom = sourceRectangle.Bottom;
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
+            Vector3 inverseVector = Vector3.One;
 
             Parallel.For(
                 startY,
@@ -30,10 +32,8 @@ namespace ImageProcessor.Filters
                             for (int x = startX; x < endX; x++)
                             {
                                 Color color = source[x, y];
-                                color.R = 1 - color.R;
-                                color.G = 1 - color.G;
-                                color.B = 1 - color.B;
-                                target[x, y] = color;
+                                Vector3 vector = inverseVector - color.ToVector3();
+                                target[x, y] = new Color(vector, color.A);
                             }
                         }
                     });

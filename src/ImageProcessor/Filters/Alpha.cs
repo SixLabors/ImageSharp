@@ -6,6 +6,7 @@
 namespace ImageProcessor.Filters
 {
     using System;
+    using System.Numerics;
     using System.Threading.Tasks;
 
     /// <summary>
@@ -39,6 +40,7 @@ namespace ImageProcessor.Filters
             int sourceBottom = sourceRectangle.Bottom;
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
+            Vector4 alphaVector = new Vector4(1, 1, 1, alpha);
 
             Parallel.For(
                 startY,
@@ -49,10 +51,9 @@ namespace ImageProcessor.Filters
                         {
                             for (int x = startX; x < endX; x++)
                             {
-                                Color color = Color.ToNonPremultiplied(source[x, y]);
-                                color.A = color.A * alpha;
-                                color = Color.FromNonPremultiplied(color);
-                                target[x, y] = color;
+                                Vector4 color = Color.ToNonPremultiplied(source[x, y]).ToVector4();
+                                color *= alphaVector;
+                                target[x, y] = Color.FromNonPremultiplied(new Color(color));
                             }
                         }
                     });

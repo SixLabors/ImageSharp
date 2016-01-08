@@ -61,6 +61,11 @@ namespace ImageProcessor.Formats
         }
 
         /// <summary>
+        /// Gets or sets the transparency threshold.
+        /// </summary>
+        public byte Threshold { get; set; } = 128;
+
+        /// <summary>
         /// Process the pixel in the first pass of the algorithm
         /// </summary>
         /// <param name="pixel">
@@ -91,7 +96,7 @@ namespace ImageProcessor.Formats
             byte paletteIndex = (byte)this.maxColors;
 
             // Get the palette index if it's transparency meets criterea.
-            if (pixel.A > 0)
+            if (pixel.A > this.Threshold)
             {
                 paletteIndex = (byte)this.octree.GetPaletteIndex(pixel);
             }

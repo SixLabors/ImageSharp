@@ -324,7 +324,7 @@ namespace ImageProcessor.Samplers
             float du = sourceSize / (float)destinationSize;
             float scale = du;
 
-            if (scale > 1)
+            if (scale < 1)
             {
                 scale = 1;
             }

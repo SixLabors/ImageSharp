@@ -7,11 +7,11 @@ install:
 
 before_build:
 - cmd: >-
-    dnvm install 1.0.0-rc1-final -r clr
+    dnvm install 1.0.0-rc1-update1 -r clr
 
-    dnvm install 1.0.0-rc1-final -r coreclr -arch x64 -alias x64
+    dnvm install 1.0.0-rc1-update1 -r coreclr -arch x64 -alias x64
 
-    dnvm use 1.0.0-rc1-final -r coreclr -a x64
+    dnvm use 1.0.0-rc1-update1 -r coreclr -a x64
 
     dnvm list
 
@@ -28,11 +28,11 @@ before_build:
     cd..
     
 build_script:
-- cmd: '"%programfiles(x86)%\MSBuild\14.0\Bin\amd64\MsBuild.exe" ImageProcessor.sln /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll" /p:RuntimeToolingDirectory="%USERPROFILE%\.dnx\runtimes\dnx-coreclr-win-x64.1.0.0-rc1-final"'
+- cmd: '"%programfiles(x86)%\MSBuild\14.0\Bin\amd64\MsBuild.exe" ImageProcessor.sln /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll" /p:RuntimeToolingDirectory="%USERPROFILE%\.dnx\runtimes\dnx-coreclr-win-x64.1.0.0-rc1-update1"'
 
 test_script:
 - cmd: >-
-    dnvm use 1.0.0-rc1-final -r coreclr -a x64
+    dnvm use 1.0.0-rc1-update1 -r coreclr -a x64
 
     cd tests/ImageProcessor.Tests
 

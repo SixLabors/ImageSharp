@@ -1,4 +1,4 @@
-﻿{
+{
   "version": "1.0.0-*",
   "description": "ImageProcessor.Tests Class Library",
   "authors": [ "James Jackson-South and contributors" ],
@@ -13,7 +13,7 @@
     "System.Collections": "4.0.11-beta-23516",
     "System.Linq": "4.0.1-beta-23516",
     "System.Threading": "4.0.11-beta-23516",
-    "xunit": "2.1.0",
+    "xunit": "2.2.0-beta1-build3239",
     "xunit.runner.dnx": "2.1.0-rc1-build204"
   },
   "frameworks": {

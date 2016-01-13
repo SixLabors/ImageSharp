@@ -80,10 +80,7 @@ namespace ImageProcessor.Filters
                     {
                         for (int x = startX; x < endX; x++)
                         {
-                            float red = 0;
-                            float green = 0;
-                            float blue = 0;
-                            float alpha = 0;
+                            Color destination = new Color();
 
                             // Apply each matrix multiplier to the color components for each pixel.
                             for (int fy = 0; fy < kernelHeight; fy++)
@@ -101,15 +98,11 @@ namespace ImageProcessor.Filters
                                     offsetX = offsetX.Clamp(0, maxX);
 
                                     Color currentColor = source[offsetX, offsetY];
-
-                                    red += kernel[fy, fx] * currentColor.R;
-                                    green += kernel[fy, fx] * currentColor.G;
-                                    blue += kernel[fy, fx] * currentColor.B;
-                                    alpha += kernel[fy, fx] * currentColor.A;
+                                    destination += kernel[fy, fx] * currentColor;
                                 }
                             }
 
-                            target[x, y] = new Color(red, green, blue, alpha);
+                            target[x, y] = destination; 
                         }
                     }
                 });

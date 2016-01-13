@@ -321,44 +321,52 @@ namespace ImageProcessor.Samplers
         private Weights[] PrecomputeWeights(int destinationSize, int sourceSize)
         {
             IResampler sampler = this.Sampler;
-            float du = sourceSize / (float)destinationSize;
-            float scale = du;
+            float ratio = sourceSize / (float)destinationSize;
+            float scale = ratio;
 
+            // When shrinking, broaden the effective kernel support so that we still
+            // visit every source pixel.
             if (scale < 1)
             {
                 scale = 1;
             }
 
-            float ru = (float)Math.Ceiling(scale * sampler.Radius);
+            float scaledRadius = (float)Math.Ceiling(scale * sampler.Radius);
             Weights[] result = new Weights[destinationSize];
 
+            // Make the weights slices, one source for each column or row.
             Parallel.For(
                 0,
                 destinationSize,
                 i =>
                     {
-                        float fu = ((i + .5f) * du) - 0.5f;
-                        int startU = (int)Math.Ceiling(fu - ru);
+                        float center = ((i + .5f) * ratio) - 0.5f;
+                        int start = (int)Math.Ceiling(center - scaledRadius);
 
-                        if (startU < 0)
+                        if (start < 0)
                         {
-                            startU = 0;
+                            start = 0;
                         }
 
-                        int endU = (int)Math.Floor(fu + ru);
+                        int end = (int)Math.Floor(center + scaledRadius);
 
-                        if (endU > sourceSize - 1)
+                        if (end > sourceSize)
                         {
-                            endU = sourceSize - 1;
+                            end = sourceSize;
+
+                            if (end < start)
+                            {
+                                end = start;
+                            }
                         }
 
                         float sum = 0;
                         result[i] = new Weights();
 
                         List<Weight> builder = new List<Weight>();
-                        for (int a = startU; a <= endU; a++)
+                        for (int a = start; a < end; a++)
                         {
-                            float w = sampler.GetValue((a - fu) / scale);
+                            float w = sampler.GetValue((a - center) / scale);
 
                             if (w < 0 || w > 0)
                             {

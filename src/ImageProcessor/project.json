@@ -7,6 +7,9 @@
   "tags": [
     "Image Resize Crop Quality Gif Jpg Jpeg Bitmap Png Fluent Animated"
   ],
+  "compilationOptions": {
+    "allowUnsafe": true
+  },
   "projectUrl": "",
   "licenseUrl": "",
   "dependencies": {

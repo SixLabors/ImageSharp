@@ -150,7 +150,7 @@ namespace ImageProcessor.Samplers
         {
             int width = target.Width;
             int height = target.Height;
-            int halfHeight = (int)Math.Ceiling(target.Height / 2d);
+            int halfHeight = (int)Math.Ceiling(target.Height * .5);
             ImageBase temp = new Image(width, height);
             temp.ClonePixels(width, height, target.Pixels);
 

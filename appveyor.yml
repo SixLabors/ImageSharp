@@ -5,6 +5,12 @@ install:
 # Remove NuGet v2 source as we want to use v3 for everything
 - cmd: nuget sources remove -Name nuget.org
 
+assembly_info:
+  patch: true
+  file: '**\AssemblyInfo.*'
+  assembly_version: '3.0.0.{build}'
+  assembly_file_version: '3.0.0.{build}'
+
 before_build:
 - cmd: >-
     dnvm install 1.0.0-rc1-update1 -r clr
@@ -26,9 +32,14 @@ before_build:
     node appveyor-project-version-patch.js
 
     cd..
-    
+
 build_script:
-- cmd: '"%programfiles(x86)%\MSBuild\14.0\Bin\amd64\MsBuild.exe" ImageProcessor.sln /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll" /p:RuntimeToolingDirectory="%USERPROFILE%\.dnx\runtimes\dnx-coreclr-win-x64.1.0.0-rc1-update1"'
+- cmd: >-
+    dnu build src\ImageProcessor
+
+    dnu build tests\ImageProcessor.Tests
+
+    dnu pack src\ImageProcessor --configuration Release --out "artifacts\bin\ImageProcessor"
 
 test_script:
 - cmd: >-

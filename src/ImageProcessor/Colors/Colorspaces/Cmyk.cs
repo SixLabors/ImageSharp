@@ -32,17 +32,14 @@ namespace ImageProcessor
         /// <summary>
         /// Initializes a new instance of the <see cref="Cmyk"/> struct.
         /// </summary>
-        /// <param name="cyan">The cyan component.</param>
-        /// <param name="magenta">The magenta component.</param>
-        /// <param name="yellow">The yellow component.</param>
-        /// <param name="keyline">The keyline black component.</param>
-        public Cmyk(float cyan, float magenta, float yellow, float keyline)
+        /// <param name="c">The cyan component.</param>
+        /// <param name="m">The magenta component.</param>
+        /// <param name="y">The yellow component.</param>
+        /// <param name="k">The keyline black component.</param>
+        public Cmyk(float c, float m, float y, float k)
             : this()
         {
-            this.backingVector.X = Clamp(cyan);
-            this.backingVector.Y = Clamp(magenta);
-            this.backingVector.Z = Clamp(yellow);
-            this.backingVector.W = Clamp(keyline);
+            this.backingVector = Vector4.Clamp(new Vector4(c, m, y, k), Vector4.Zero, Vector4.One);
         }
 
         /// <summary>
@@ -182,18 +179,6 @@ namespace ImageProcessor
                 && Math.Abs(this.M - other.M) < precision
                 && Math.Abs(this.Y - other.Y) < precision
                 && Math.Abs(this.K - other.K) < precision;
-        }
-
-        /// <summary>
-        /// Checks the range of the given value to ensure that it remains within the acceptable boundaries.
-        /// </summary>
-        /// <param name="value">The value to check.</param>
-        /// <returns>
-        /// The sanitized <see cref="float"/>.
-        /// </returns>
-        private static float Clamp(float value)
-        {
-            return value.Clamp(0, 1);
         }
 
         /// <summary>

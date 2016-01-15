@@ -7,10 +7,7 @@ namespace ImageProcessor.Samplers
 {
     using System;
     using System.Collections.Generic;
-    using System.Numerics;
     using System.Threading.Tasks;
-
-    using ImageProcessor.Filters;
 
     /// <summary>
     /// Provides methods that allow the resampling of images using various algorithms.

@@ -326,30 +326,6 @@ namespace ImageProcessor
         }
 
         /// <summary>
-        /// Linearly interpolates from one color to another based on the given amount.
-        /// </summary>
-        /// <param name="from">The first color value.</param>
-        /// <param name="to">The second color value.</param>
-        /// <param name="amount">
-        /// The weight value. At amount = 0, "from" is returned, at amount = 1, "to" is returned.
-        /// </param>
-        /// <returns>
-        /// The <see cref="Color"/>
-        /// </returns>
-        public static Color Lerp(Color from, Color to, float amount)
-        {
-            amount = amount.Clamp(0f, 1f);
-
-            if (Math.Abs(from.A - 1) < Epsilon && Math.Abs(to.A - 1) < Epsilon)
-            {
-                return from + (to - from) * amount;
-            }
-
-            // Premultiplied.
-            return from * (1 - amount) + to;
-        }
-
-        /// <summary>
         /// Compresses a linear color signal to its sRGB equivalent.
         /// <see href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>
         /// <see href="http://entropymine.com/imageworsener/srgbformula/"/>

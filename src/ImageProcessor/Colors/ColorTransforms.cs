@@ -186,9 +186,9 @@ namespace ImageProcessor
                     float temp2 = (l < 0.5f) ? l * (1f + s) : l + s - (l * s);
                     float temp1 = (2f * l) - temp2;
 
-                    r = GetColorComponent(temp1, temp2, rangedH + (1 / 3f));
+                    r = GetColorComponent(temp1, temp2, rangedH + 0.3333333F);
                     g = GetColorComponent(temp1, temp2, rangedH);
-                    b = GetColorComponent(temp1, temp2, rangedH - (1 / 3f));
+                    b = GetColorComponent(temp1, temp2, rangedH - 0.3333333F);
                 }
             }
 
@@ -207,16 +207,16 @@ namespace ImageProcessor
         {
             // First convert back to XYZ...
             float y = (cieLabColor.L + 16F) / 116F;
-            float x = cieLabColor.A / 500F + y;
-            float z = y - cieLabColor.B / 200F;
+            float x = (cieLabColor.A / 500F) + y;
+            float z = y - (cieLabColor.B / 200F);
 
             float x3 = x * x * x;
             float y3 = y * y * y;
             float z3 = z * z * z;
 
-            x = x3 > 0.008856F ? x3 : (x - 16F / 116F) / 7.787F;
-            y = (cieLabColor.L > 0.008856F * 903.3F) ? y3 : (cieLabColor.L / 903.3F);
-            z = (z3 > 0.008856F) ? z3 : (z - 16F / 116F) / 7.787F;
+            x = x3 > 0.008856F ? x3 : (x - 0.137931F) / 7.787F;
+            y = (cieLabColor.L > 7.999625F) ? y3 : (cieLabColor.L / 903.3F);
+            z = (z3 > 0.008856F) ? z3 : (z - 0.137931F) / 7.787F;
 
             x *= 0.95047F;
             z *= 1.08883F;
@@ -241,7 +241,7 @@ namespace ImageProcessor
         private static float GetColorComponent(float first, float second, float third)
         {
             third = MoveIntoRange(third);
-            if (third < 1.0 / 6.0)
+            if (third < 0.1666667F)
             {
                 return first + ((second - first) * 6.0f * third);
             }
@@ -251,9 +251,9 @@ namespace ImageProcessor
                 return second;
             }
 
-            if (third < 2.0 / 3.0)
+            if (third < 0.6666667F)
             {
-                return first + ((second - first) * ((2.0f / 3.0f) - third) * 6.0f);
+                return first + ((second - first) * (0.6666667F - third) * 6.0f);
             }
 
             return first;

@@ -45,10 +45,7 @@ namespace ImageProcessor
         public Bgra32(byte b, byte g, byte r, byte a)
             : this()
         {
-            this.backingVector.X = b.Clamp(0, 255);
-            this.backingVector.Y = g.Clamp(0, 255);
-            this.backingVector.Z = r.Clamp(0, 255);
-            this.backingVector.W = a.Clamp(0, 255);
+            this.backingVector = Vector4.Clamp(new Vector4(b, g, r, a), Vector4.Zero, new Vector4(255));
         }
 
         /// <summary>
@@ -94,8 +91,8 @@ namespace ImageProcessor
         /// </returns>
         public static implicit operator Bgra32(Color color)
         {
-            color = color.Limited;
-            return new Bgra32((255f * color.B).ToByte(), (255f * color.G).ToByte(), (255f * color.R).ToByte(), (255f * color.A).ToByte());
+            color = color.Limited * 255f;
+            return new Bgra32((byte)color.B, (byte)color.G, (byte)color.R, (byte)color.A);
         }
 
         /// <summary>

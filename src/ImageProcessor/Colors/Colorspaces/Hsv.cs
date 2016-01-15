@@ -37,9 +37,7 @@ namespace ImageProcessor
         /// <param name="v">The v value (brightness) component.</param>
         public Hsv(float h, float s, float v)
         {
-            this.backingVector.X = h.Clamp(0, 360);
-            this.backingVector.Y = s.Clamp(0, 1);
-            this.backingVector.Z = v.Clamp(0, 1);
+            this.backingVector = Vector3.Clamp(new Vector3(h, s, v), Vector3.Zero, new Vector3(360, 1, 1));
         }
 
         /// <summary>

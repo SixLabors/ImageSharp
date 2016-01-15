@@ -40,9 +40,7 @@ namespace ImageProcessor
         public YCbCr(float y, float cb, float cr)
             : this()
         {
-            this.backingVector.X = y.Clamp(0, 255);
-            this.backingVector.Y = cb.Clamp(0, 255);
-            this.backingVector.Z = cr.Clamp(0, 255);
+            this.backingVector = Vector3.Clamp(new Vector3(y, cb, cr), Vector3.Zero, new Vector3(255));
         }
 
         /// <summary>
@@ -81,10 +79,10 @@ namespace ImageProcessor
         /// </returns>
         public static implicit operator YCbCr(Color color)
         {
-            color = Color.ToNonPremultiplied(color.Limited);
-            float r = color.R * 255f;
-            float g = color.G * 255f;
-            float b = color.B * 255f;
+            color = Color.ToNonPremultiplied(color.Limited) * 255f;
+            float r = color.R;
+            float g = color.G;
+            float b = color.B;
 
             float y = (float)((0.299 * r) + (0.587 * g) + (0.114 * b));
             float cb = 128 + (float)((-0.168736 * r) - (0.331264 * g) + (0.5 * b));

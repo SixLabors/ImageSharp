@@ -7,6 +7,7 @@ namespace ImageProcessor.Samplers
 {
     using System;
     using System.Collections.Generic;
+    using System.Numerics;
     using System.Threading.Tasks;
 
     using ImageProcessor.Filters;
@@ -83,8 +84,6 @@ namespace ImageProcessor.Samplers
                 this.horizontalWeights = this.PrecomputeWeights(targetRectangle.Width, sourceRectangle.Width);
                 this.verticalWeights = this.PrecomputeWeights(targetRectangle.Height, sourceRectangle.Height);
             }
-
-            new BackgroundColor(Color.Transparent).Apply(source, source, sourceRectangle);
         }
 
         /// <inheritdoc/>
@@ -100,6 +99,16 @@ namespace ImageProcessor.Samplers
             else
             {
                 this.ApplyResizeOnly(target, source, targetRectangle, startY, endY);
+            }
+        }
+
+        /// <inheritdoc/>
+        protected override void AfterApply(ImageBase source, ImageBase target, Rectangle targetRectangle, Rectangle sourceRectangle)
+        {
+            // Copy the pixels over.
+            if (source.Bounds == target.Bounds && Math.Abs(this.angle) < 0.001f)
+            {
+                target.ClonePixels(target.Width, target.Height, source.Pixels);
             }
         }
 
@@ -121,9 +130,9 @@ namespace ImageProcessor.Samplers
         /// </remarks>
         private void ApplyResizeOnly(ImageBase target, ImageBase source, Rectangle targetRectangle, int startY, int endY)
         {
+            // Jump out, we'll deal with that later.
             if (source.Bounds == target.Bounds)
             {
-                target.ClonePixels(target.Width, target.Height, source.Pixels);
                 return;
             }
 
@@ -163,6 +172,7 @@ namespace ImageProcessor.Samplers
             }
 
             // Interpolate the image using the calculated weights.
+            // TODO: Figure out a way to split this up so we can reduce complexity and speed things up.
             Parallel.For(
                 startY,
                 endY,
@@ -187,8 +197,7 @@ namespace ImageProcessor.Samplers
                                 {
                                     int originX = xw.Index;
                                     Color sourceColor = Color.Expand(source[originX, originY]);
-                                    float weight = yw.Value * xw.Value;
-                                    destination += sourceColor * weight;
+                                    destination += sourceColor * yw.Value * xw.Value;
                                 }
                             }
 
@@ -297,8 +306,7 @@ namespace ImageProcessor.Samplers
                                     if (sourceRectangle.Contains(rotated.X, rotated.Y))
                                     {
                                         Color sourceColor = Color.Expand(source[rotated.X, rotated.Y]);
-                                        float weight = yw.Value * xw.Value;
-                                        destination += sourceColor * weight;
+                                        destination += sourceColor * yw.Value * xw.Value;
                                     }
                                 }
                             }

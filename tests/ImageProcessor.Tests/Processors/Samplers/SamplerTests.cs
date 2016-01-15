@@ -21,7 +21,7 @@
                 //{ "Lanczos5", new Lanczos5Resampler() },
                 //{ "Lanczos8", new Lanczos8Resampler() },
                 //{ "MitchellNetravali", new MitchellNetravaliResampler() },
-                //{ "NearestNeighbor", new NearestNeighborResampler() },
+                { "NearestNeighbor", new NearestNeighborResampler() },
                 //{ "Hermite", new HermiteResampler() },
                 //{ "Spline", new SplineResampler() },
                 //{ "Robidoux", new RobidouxResampler() },

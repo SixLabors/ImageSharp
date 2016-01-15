@@ -39,9 +39,7 @@ namespace ImageProcessor
         public CieLab(float l, float a, float b)
             : this()
         {
-            this.backingVector.X = ClampL(l);
-            this.backingVector.Y = ClampAB(a);
-            this.backingVector.Z = ClampAB(b);
+            this.backingVector = Vector3.Clamp(new Vector3(l, a, b), new Vector3(0, -100, -100), new Vector3(100));
         }
 
         /// <summary>
@@ -81,7 +79,7 @@ namespace ImageProcessor
         public static implicit operator CieLab(Color color)
         {
             // First convert to CIE XYZ
-            color = Color.Expand(color.Limited);
+            color = Color.Expand(color);
 
             float x = (color.R * 0.4124F) + (color.G * 0.3576F) + (color.B * 0.1805F);
             float y = (color.R * 0.2126F) + (color.G * 0.7152F) + (color.B * 0.0722F);
@@ -92,9 +90,9 @@ namespace ImageProcessor
             //y /= 1F;
             z /= 1.08883F;
 
-            x = x > 0.008856F ? (float)Math.Pow(x, 1F / 3F) : (903.3F * x + 16F) / 116F;
-            y = y > 0.008856F ? (float)Math.Pow(y, 1F / 3F) : (903.3F * y + 16F) / 116F;
-            z = z > 0.008856F ? (float)Math.Pow(z, 1F / 3F) : (903.3F * z + 16F) / 116F;
+            x = x > 0.008856F ? (float)Math.Pow(x, 0.3333333F) : (903.3F * x + 16F) / 116F;
+            y = y > 0.008856F ? (float)Math.Pow(y, 0.3333333F) : (903.3F * y + 16F) / 116F;
+            z = z > 0.008856F ? (float)Math.Pow(z, 0.3333333F) : (903.3F * z + 16F) / 116F;
 
             float l = Math.Max(0, (116F * y) - 16F);
             float a = 500F * (x - y);
@@ -177,30 +175,6 @@ namespace ImageProcessor
             return Math.Abs(this.L - other.L) < precision
                 && Math.Abs(this.B - other.B) < precision
                 && Math.Abs(this.B - other.B) < precision;
-        }
-
-        /// <summary>
-        /// Checks the range for lightness.
-        /// </summary>
-        /// <param name="value">The value to check.</param>
-        /// <returns>
-        /// The sanitized <see cref="float"/>.
-        /// </returns>
-        private static float ClampL(float value)
-        {
-            return value.Clamp(0, 100);
-        }
-
-        /// <summary>
-        /// Checks the range for components A or B.
-        /// </summary>
-        /// <param name="value">The value to check.</param>
-        /// <returns>
-        /// The sanitized <see cref="float"/>.
-        /// </returns>
-        private static float ClampAB(float value)
-        {
-            return value.Clamp(-100, 100);
         }
 
         /// <summary>

@@ -40,9 +40,7 @@ namespace ImageProcessor
             : this()
         {
             // Not clamping as documentation about this space seems to indicate "usual" ranges
-            this.backingVector.X = x;
-            this.backingVector.Y = y;
-            this.backingVector.Z = z;
+            this.backingVector = new Vector3(x, y, z);
         }
 
         /// <summary>
@@ -81,7 +79,7 @@ namespace ImageProcessor
         /// </returns>
         public static implicit operator CieXyz(Color color)
         {
-            color = Color.Expand(color.Limited);
+            color = Color.Expand(color);
 
             float x = (color.R * 0.4124F) + (color.G * 0.3576F) + (color.B * 0.1805F);
             float y = (color.R * 0.2126F) + (color.G * 0.7152F) + (color.B * 0.0722F);

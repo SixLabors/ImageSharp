@@ -37,9 +37,7 @@ namespace ImageProcessor
         /// <param name="l">The l value (lightness) component.</param>
         public Hsl(float h, float s, float l)
         {
-            this.backingVector.X = h.Clamp(0, 360);
-            this.backingVector.Y = s.Clamp(0, 1);
-            this.backingVector.Z = l.Clamp(0, 1);
+            this.backingVector = Vector3.Clamp(new Vector3(h, s, l), Vector3.Zero, new Vector3(360, 1, 1));
         }
 
         /// <summary>

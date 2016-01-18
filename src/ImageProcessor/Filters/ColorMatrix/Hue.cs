@@ -59,15 +59,15 @@
             // Number are taken from https://msdn.microsoft.com/en-us/library/jj192162(v=vs.85).aspx
             Matrix4x4 matrix4X4 = new Matrix4x4()
             {
-                M11 = (float)(+lumR + (cosradians * oneMinusLumR) - (sinradians * lumR)),
-                M12 = (float)(+lumR - (cosradians * lumR) - (sinradians * lumR)),
-                M13 = (float)(+lumR - (cosradians * lumR) - (sinradians * 0.787)),
-                M21 = (float)(+lumG - (cosradians * lumG) - (sinradians * lumG)),
-                M22 = (float)(+lumG + (cosradians * oneMinusLumG) + (sinradians * 0.140)),
-                M23 = (float)(+lumG - (cosradians * lumG) + (sinradians * lumG)),
-                M31 = (float)(+lumB - (cosradians * lumB) + (sinradians * oneMinusLumB)),
-                M32 = (float)(+lumB - (cosradians * lumB) - (sinradians * 0.283)),
-                M33 = (float)(+lumB + (cosradians * oneMinusLumB) + (sinradians * lumB))
+                M11 = (float)(lumR + (cosradians * oneMinusLumR) - (sinradians * lumR)),
+                M12 = (float)(lumR - (cosradians * lumR) - (sinradians * 0.143)),
+                M13 = (float)(lumR - (cosradians * lumR) - (sinradians * oneMinusLumR)),
+                M21 = (float)(lumG - (cosradians * lumG) - (sinradians * lumG)),
+                M22 = (float)(lumG + (cosradians * oneMinusLumG) + (sinradians * 0.140)),
+                M23 = (float)(lumG - (cosradians * lumG) + (sinradians * lumG)),
+                M31 = (float)(lumB - (cosradians * lumB) + (sinradians * oneMinusLumB)),
+                M32 = (float)(lumB - (cosradians * lumB) - (sinradians * 0.283)),
+                M33 = (float)(lumB + (cosradians * oneMinusLumB) + (sinradians * lumB))
             };
 
             this.matrix = matrix4X4;

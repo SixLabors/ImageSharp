@@ -9,7 +9,7 @@ namespace ImageProcessor
 
     /// <summary>
     /// Represents a four-component color using red, green, blue, and alpha data. 
-    /// Each component is stored in premultiplied format multiplied by the alpha component.
+    /// Each component is stored in a linear premultiplied format multiplied by the alpha component.
     /// </summary>
     /// <remarks>
     /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
@@ -86,7 +86,7 @@ namespace ImageProcessor
             float g = (x * -0.9689F) + (y * 1.8758F) + (z * 0.0415F);
             float b = (x * 0.0557F) + (y * -0.2040F) + (z * 1.0570F);
 
-            return Color.Compress(new Color(r, g, b));
+            return new Color(r, g, b);
         }
 
         /// <summary>
@@ -226,7 +226,7 @@ namespace ImageProcessor
             float g = (x * -0.9689F) + (y * 1.8758F) + (z * 0.0415F);
             float b = (x * 0.0557F) + (y * -0.2040F) + (z * 1.0570F);
 
-            return Color.Compress(new Color(r, g, b));
+            return new Color(r, g, b);
         }
 
         /// <summary>

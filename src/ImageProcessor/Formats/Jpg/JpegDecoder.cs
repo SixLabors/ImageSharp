@@ -7,6 +7,7 @@ namespace ImageProcessor.Formats
 {
     using System;
     using System.IO;
+    using System.Numerics;
     using System.Threading.Tasks;
 
     using BitMiracle.LibJpeg;
@@ -117,10 +118,14 @@ namespace ImageProcessor.Formats
 
                                 int offset = ((y * pixelWidth) + x) * 4;
 
-                                pixels[offset + 0] = sample[0] / 255f;
-                                pixels[offset + 1] = sample[1] / 255f;
-                                pixels[offset + 2] = sample[2] / 255f;
-                                pixels[offset + 3] = 1;
+                                // Expand from sRGB to linear RGB
+                                Color color =
+                                    Color.Expand(new Color(new Vector3(sample[0], sample[1], sample[2]) / 255f));
+
+                                pixels[offset + 0] = color.R;
+                                pixels[offset + 1] = color.G;
+                                pixels[offset + 2] = color.B;
+                                pixels[offset + 3] = color.A;
                             }
                         });
             }
@@ -139,10 +144,14 @@ namespace ImageProcessor.Formats
 
                             int offset = ((y * pixelWidth) + x) * 4;
 
-                            pixels[offset + 0] = sample[0] / 255f;
-                            pixels[offset + 1] = sample[0] / 255f;
-                            pixels[offset + 2] = sample[0] / 255f;
-                            pixels[offset + 3] = 1;
+                            // Expand from sRGB to linear RGB
+                            Color color =
+                                Color.Expand(new Color(new Vector3(sample[0], sample[0], sample[0]) / 255f));
+
+                            pixels[offset + 0] = color.R;
+                            pixels[offset + 1] = color.G;
+                            pixels[offset + 2] = color.B;
+                            pixels[offset + 3] = color.A;
                         }
                     });
             }

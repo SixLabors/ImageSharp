@@ -193,12 +193,11 @@ namespace ImageProcessor.Samplers
                                 foreach (Weight xw in horizontalValues)
                                 {
                                     int originX = xw.Index;
-                                    Color sourceColor = Color.Expand(source[originX, originY]);
+                                    Color sourceColor = source[originX, originY];
                                     destination += sourceColor * yw.Value * xw.Value;
                                 }
                             }
 
-                            destination = Color.Compress(destination);
                             target[x, y] = destination;
                         }
                     }
@@ -302,13 +301,12 @@ namespace ImageProcessor.Samplers
 
                                     if (sourceRectangle.Contains(rotated.X, rotated.Y))
                                     {
-                                        Color sourceColor = Color.Expand(source[rotated.X, rotated.Y]);
+                                        Color sourceColor = source[rotated.X, rotated.Y];
                                         destination += sourceColor * yw.Value * xw.Value;
                                     }
                                 }
                             }
 
-                            destination = Color.Compress(destination);
                             target[x, y] = destination;
                         }
                     }

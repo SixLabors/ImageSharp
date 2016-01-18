@@ -37,7 +37,7 @@
         public override Matrix4x4 Matrix => this.matrix;
 
         /// <inheritdoc/>
-        public override bool Compand => false;
+        public override bool Compand => true;
 
         /// <inheritdoc/>
         protected override void OnApply(ImageBase source, ImageBase target, Rectangle targetRectangle, Rectangle sourceRectangle)

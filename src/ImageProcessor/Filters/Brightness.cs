@@ -50,12 +50,12 @@ namespace ImageProcessor.Filters
                         {
                             for (int x = startX; x < endX; x++)
                             {
-                                Color color = Color.Expand(source[x, y]);
+                                Color color = source[x, y];
 
                                 Vector3 vector3 = color.ToVector3();
                                 vector3 += new Vector3(brightness);
 
-                                target[x, y] = Color.Compress(new Color(vector3, color.A));
+                                target[x, y] = new Color(vector3, color.A);
                             }
                         }
                     });

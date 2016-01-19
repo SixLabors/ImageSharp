@@ -17,8 +17,8 @@ namespace ImageProcessor.Samplers
         /// <inheritdoc/>
         public float GetValue(float x)
         {
-            const float B = 0.3782f;
-            const float C = 0.3109f;
+            const float B = 0.3782158F;
+            const float C = 0.3108921F;
 
             return ImageMaths.GetBcValue(x, B, C);
         }

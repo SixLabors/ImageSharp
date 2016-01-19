@@ -12,7 +12,7 @@ namespace ImageProcessor.Samplers
     public class BoxResampler : IResampler
     {
         /// <inheritdoc/>
-        public float Radius => 0.5f;
+        public float Radius => 0.5F;
 
         /// <inheritdoc/>
         public float GetValue(float x)

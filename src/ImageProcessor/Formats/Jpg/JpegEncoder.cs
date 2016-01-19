@@ -111,8 +111,7 @@ namespace ImageProcessor.Formats
                             float b = sourcePixels[source + 2];
                             float a = sourcePixels[source + 3];
 
-                            // Compress back to sRGB
-                            Bgra32 color = Color.ToNonPremultiplied(Color.Compress(new Color(r, g, b, a)));
+                            Bgra32 color = Color.ToNonPremultiplied(new Color(r, g, b, a));
 
                             samples[start] = color.R;
                             samples[start + 1] = color.G;

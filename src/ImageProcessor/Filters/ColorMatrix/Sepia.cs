@@ -28,6 +28,6 @@ namespace ImageProcessor.Filters
         };
 
         /// <inheritdoc/>
-        public override bool Compand => true;
+        public override bool Compand => false;
     }
 }

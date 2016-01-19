@@ -51,11 +51,11 @@ namespace ImageProcessor.Filters
                         {
                             for (int x = startX; x < endX; x++)
                             {
-                                Vector4 color = source[x, y].ToVector4();
+                                Vector4 color = Color.Expand(source[x, y]).ToVector4();
                                 color -= shiftVector;
                                 color *= contrastVector;
                                 color += shiftVector;
-                                target[x, y] = new Color(color);
+                                target[x, y] = Color.Compress(new Color(color));
                             }
                         }
                     });

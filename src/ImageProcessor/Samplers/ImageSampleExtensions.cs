@@ -69,7 +69,7 @@ namespace ImageProcessor.Samplers
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
         public static Image Resize(this Image source, int width, int height)
         {
-            return Resize(source, width, height, new RobidouxResampler());
+            return Resize(source, width, height, new BicubicResampler());
         }
 
         /// <summary>
@@ -105,12 +105,13 @@ namespace ImageProcessor.Samplers
             {
                 width = source.Width * height / source.Height;
             }
+
             if (height == 0 && width > 0)
             {
                 height = source.Height * width / source.Width;
             }
 
-            return source.Process(width, height, sourceRectangle, new Rectangle(0, 0, width, height), new Resampler(sampler));
+            return source.Process(width, height, sourceRectangle, new Rectangle(0, 0, width, height), new Resize(sampler));
         }
 
         /// <summary>
@@ -121,7 +122,7 @@ namespace ImageProcessor.Samplers
         /// <returns>The <see cref="Image"/></returns>
         public static Image Rotate(this Image source, float degrees)
         {
-            return source.Process(source.Width, source.Height, source.Bounds, source.Bounds, new Resampler(new BicubicResampler()) { Angle = degrees });
+            return Rotate(source, degrees, new BicubicResampler());
         }
 
         /// <summary>
@@ -133,7 +134,7 @@ namespace ImageProcessor.Samplers
         /// <returns>The <see cref="Image"/></returns>
         public static Image Rotate(this Image source, float degrees, IResampler sampler)
         {
-            return source.Process(source.Width, source.Height, source.Bounds, source.Bounds, new Resampler(sampler) { Angle = degrees });
+            return source.Process(source.Width, source.Height, source.Bounds, source.Bounds, new Rotate(sampler) { Angle = degrees });
         }
 
         /// <summary>

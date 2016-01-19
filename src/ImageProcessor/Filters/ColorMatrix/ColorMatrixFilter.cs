@@ -17,7 +17,7 @@ namespace ImageProcessor.Filters
         public abstract Matrix4x4 Matrix { get; }
 
         /// <inheritdoc/>
-        public virtual bool Compand => false;
+        public virtual bool Compand => true;
 
         /// <inheritdoc/>
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
@@ -57,11 +57,11 @@ namespace ImageProcessor.Filters
 
             if (compand)
             {
-                color = Color.Compress(color);
+                color = Color.Expand(color);
             }
 
             Vector3 transformed = Vector3.Transform(color.ToVector3(), matrix);
-            return compand ? Color.Expand(new Color(transformed, color.A)) : new Color(transformed, color.A);
+            return compand ? Color.Compress(new Color(transformed, color.A)) : new Color(transformed, color.A);
         }
     }
 }

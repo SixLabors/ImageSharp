@@ -110,13 +110,13 @@ namespace ImageProcessor.Formats
 
                     // Limit the output range and multiply out from our floating point.
                     // Convert back to b-> g-> r-> a order.
-                    // Convert to non-premultiplied sRGB color.
+                    // Convert to non-premultiplied color.
                     float r = data[offset];
                     float g = data[offset + 1];
                     float b = data[offset + 2];
                     float a = data[offset + 3];
 
-                    Bgra32 color = Color.ToNonPremultiplied(Color.Compress(new Color(r, g, b, a)));
+                    Bgra32 color = Color.ToNonPremultiplied(new Color(r, g, b, a));
 
                     writer.Write(color.B);
                     writer.Write(color.G);

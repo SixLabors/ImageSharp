@@ -7,7 +7,6 @@ namespace ImageProcessor.Formats
 {
     using System;
     using System.IO;
-    using System.Numerics;
     using System.Threading.Tasks;
 
     /// <summary>
@@ -224,17 +223,11 @@ namespace ImageProcessor.Formats
                                 int arrayOffset = ((row * width) + (colOffset + shift)) * 4;
 
                                 // We divide by 255 as we will store the colors in our floating point format.
-                                // Default colorspace is sRGB TODO: Check if we can detect this.
                                 // Stored in r-> g-> b-> a order.
-                                // Expand from sRGB to linear RGB
-                                Color color =
-                                    Color.Expand(
-                                        new Color(new Vector3(colors[colorIndex + 2], colors[colorIndex + 1], colors[colorIndex]) / 255f));
-
-                                imageData[arrayOffset] = color.R; // r
-                                imageData[arrayOffset + 1] = color.G; // g
-                                imageData[arrayOffset + 2] = color.B; // b
-                                imageData[arrayOffset + 3] = color.A; // a
+                                imageData[arrayOffset] = colors[colorIndex + 2] / 255f; // r
+                                imageData[arrayOffset + 1] = colors[colorIndex + 1] / 255f; // g
+                                imageData[arrayOffset + 2] = colors[colorIndex] / 255f; // b
+                                imageData[arrayOffset + 3] = 1; // a
                             }
                         }
                     });
@@ -277,14 +270,11 @@ namespace ImageProcessor.Formats
 
                             int arrayOffset = ((row * width) + x) * 4;
 
-                            // Expand from sRGB to linear RGB
-                            Color color = Color.Expand(new Color(r, g, b, 1));
-
                             // Stored in r-> g-> b-> a order.
-                            imageData[arrayOffset] = color.R;
-                            imageData[arrayOffset + 1] = color.G;
-                            imageData[arrayOffset + 2] = color.B;
-                            imageData[arrayOffset + 3] = color.A;
+                            imageData[arrayOffset] = r;
+                            imageData[arrayOffset + 1] = g;
+                            imageData[arrayOffset + 2] = b;
+                            imageData[arrayOffset + 3] = 1;
                         }
                     });
         }
@@ -315,15 +305,12 @@ namespace ImageProcessor.Formats
                             int offset = rowOffset + (x * 3);
                             int arrayOffset = ((row * width) + x) * 4;
 
-                            // Expand from sRGB to linear RGB
-                            Color color = Color.Expand(new Color(new Vector3(data[offset + 2], data[offset + 1], data[offset]) / 255f, 1));
-
                             // We divide by 255 as we will store the colors in our floating point format.
                             // Stored in r-> g-> b-> a order.
-                            imageData[arrayOffset] = color.R;
-                            imageData[arrayOffset + 1] = color.G;
-                            imageData[arrayOffset + 2] = color.B;
-                            imageData[arrayOffset + 3] = color.A;
+                            imageData[arrayOffset] = data[offset + 2] / 255f;
+                            imageData[arrayOffset + 1] = data[offset + 1] / 255f;
+                            imageData[arrayOffset + 2] = data[offset] / 255f;
+                            imageData[arrayOffset + 3] = 1;
                         }
                     });
         }
@@ -356,15 +343,10 @@ namespace ImageProcessor.Formats
 
                             // We divide by 255 as we will store the colors in our floating point format.
                             // Stored in r-> g-> b-> a order.
-
-                            // Expand from sRGB to linear RGB
-                            // TODO: Can we use our real alpha here?
-                            Color color = Color.Expand(new Color(new Vector3(data[offset + 2], data[offset + 1], data[offset]) / 255f, 1));
-
-                            imageData[arrayOffset] = color.R;
-                            imageData[arrayOffset + 1] = color.G;
-                            imageData[arrayOffset + 2] = color.B;
-                            imageData[arrayOffset + 3] = color.A;
+                            imageData[arrayOffset] = data[offset + 2] / 255f;
+                            imageData[arrayOffset + 1] = data[offset + 1] / 255f;
+                            imageData[arrayOffset + 2] = data[offset] / 255f;
+                            imageData[arrayOffset + 3] = 1; // TODO: Can we use our real alpha here?
                         }
                     });
         }

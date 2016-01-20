@@ -87,7 +87,8 @@ namespace ImageProcessor.Formats
 
                 if (colorMapSize > 0)
                 {
-                    if (colorMapSize > 255 * 4)
+                    // 255 * 4
+                    if (colorMapSize > 1020)
                     {
                         throw new ImageFormatException($"Invalid bmp colormap size '{colorMapSize}'");
                     }
@@ -242,8 +243,8 @@ namespace ImageProcessor.Formats
         private void ReadRgb16(float[] imageData, int width, int height)
         {
             // We divide here as we will store the colors in our floating point format.
-            const int ScaleR = (256 / 32) / 32;
-            const int ScaleG = (256 / 64) / 64;
+            const float ScaleR = 0.25F; // (256 / 32) / 32
+            const float ScaleG = 0.0625F; // (256 / 64) / 64
 
             int alignment;
             byte[] data = this.GetImageArray(width, height, 2, out alignment);

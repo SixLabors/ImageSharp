@@ -7,7 +7,6 @@ namespace ImageProcessor.Formats
 {
     using System;
     using System.IO;
-    using System.Threading.Tasks;
 
     /// <summary>
     /// Performs the gif decoding operation.
@@ -412,7 +411,7 @@ namespace ImageProcessor.Formats
                             offset = ((y * imageWidth) + x) * 4;
 
                             // Stored in r-> g-> b-> a order.
-                            this.currentFrame[offset + 0] = 0;
+                            this.currentFrame[offset] = 0;
                             this.currentFrame[offset + 1] = 0;
                             this.currentFrame[offset + 2] = 0;
                             this.currentFrame[offset + 3] = 0;

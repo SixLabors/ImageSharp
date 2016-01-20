@@ -139,7 +139,7 @@ namespace ImageProcessor.Formats
                 i =>
                     {
                         int offset = i * 3;
-                        Bgra32 color = Color.ToNonPremultiplied(pallete[i]);
+                        Bgra32 color = pallete[i];
 
                         colorTable[offset] = color.R;
                         colorTable[offset + 1] = color.G;

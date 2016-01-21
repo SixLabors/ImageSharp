@@ -52,8 +52,8 @@ namespace ImageProcessor.Formats
     ///    checked separately. (Any sequence of zeroes has a Fletcher
     ///    checksum of zero.)"
     /// </remarks>
-    /// <see cref="ZlibInputStream"/>
-    /// <see cref="ZlibOutputStream"/>
+    /// <see cref="ZlibInflateStream"/>
+    /// <see cref="ZlibDeflateStream"/>
     internal sealed class Adler32 : IChecksum
     {
         /// <summary>

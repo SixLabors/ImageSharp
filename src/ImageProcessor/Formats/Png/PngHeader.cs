@@ -8,7 +8,7 @@ namespace ImageProcessor.Formats
     /// <summary>
     /// Represents the png header chunk.
     /// </summary>
-    internal sealed class PngHeader
+    public sealed class PngHeader
     {
         /// <summary>
         /// Gets or sets the dimension in x-direction of the image in pixels.

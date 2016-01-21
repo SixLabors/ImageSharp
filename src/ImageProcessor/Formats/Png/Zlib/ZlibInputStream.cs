@@ -5,18 +5,8 @@ namespace ImageProcessor.Formats
     using System.IO;
     using System.IO.Compression;
 
-    internal class ZlibOutputStream : Stream
+    internal sealed class ZlibInputStream : Stream
     {
-        /// <summary>
-        /// The raw stream containing the uncompressed image data.
-        /// </summary>
-        private readonly Stream rawStream;
-
-        /// <summary>
-        /// Computes the checksum for the data stream. 
-        /// </summary>
-        private readonly Adler32 adler32 = new Adler32();
-
         /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.
         /// </summary>
@@ -30,84 +20,90 @@ namespace ImageProcessor.Formats
         /// </remarks>
         private bool isDisposed;
 
+        /// <summary>
+        /// The raw stream containing the uncompressed image data.
+        /// </summary>
+        private readonly Stream rawStream;
+
+        /// <summary>
+        /// The preset dictionary. 
+        /// Merely informational, not used.
+        /// </summary>
+        private bool fdict;
+
+        /// <summary>
+        /// The DICT dictionary identifier identifying the used dictionary.
+        /// Merely informational, not used.
+        /// </summary>
+        private byte[] dictId;
+
+        /// <summary>
+        /// CINFO is the base-2 logarithm of the LZ77 window size, minus eight.
+        /// Merely informational, not used.
+        /// </summary>
+        private int cinfo;
+
+        /// <summary>
+        /// The read crc data.
+        /// </summary>
+        private byte[] crcread;
+
         // The stream responsible for decompressing the input stream.
         private DeflateStream deflateStream;
 
-        /// <summary>
-        /// Initializes a new instance of <see cref="ZlibOutputStream"/>
-        /// </summary>
-        /// <param name="stream">The stream to compress.</param>
-        /// <param name="compressionLevel">The compression level.</param>
-        public ZlibOutputStream(Stream stream, int compressionLevel)
+        public ZlibInputStream(Stream stream)
         {
             this.rawStream = stream;
 
-            // Write the zlib header : http://tools.ietf.org/html/rfc1950
+            // Read the zlib header : http://tools.ietf.org/html/rfc1950
             // CMF(Compression Method and flags)
             // This byte is divided into a 4 - bit compression method and a 
             // 4-bit information field depending on the compression method.
             // bits 0 to 3  CM Compression method
             // bits 4 to 7  CINFO Compression info
-            //   0   1
             //
+            //   0   1
             // +---+---+
             // |CMF|FLG|
             // +---+---+
-            int cmf = 0x78;
-            int flg = 218;
-
-            // http://stackoverflow.com/a/2331025/277304
-            if (compressionLevel >= 5 && compressionLevel <= 6)
+            int cmf = this.rawStream.ReadByte();
+            int flag = this.rawStream.ReadByte();
+            if (cmf == -1 || flag == -1)
             {
-                flg = 156;
-            }
-            else if (compressionLevel >= 3 && compressionLevel <= 4)
-            {
-                flg = 94;
+                return;
             }
 
-            else if (compressionLevel <= 2)
+            if ((cmf & 0x0f) != 8)
             {
-                flg = 1;
+                throw new Exception($"Bad compression method for ZLIB header: cmf={cmf}");
             }
 
-            // Just in case
-            flg -= (cmf * 256 + flg) % 31;
+            this.cinfo = ((cmf & (0xf0)) >> 8);
+            this.fdict = (flag & 32) != 0;
 
-            if (flg < 0)
+            if (this.fdict)
             {
-                flg += 31;
-            }
+                this.dictId = new byte[4];
 
-            this.rawStream.WriteByte((byte)cmf);
-            this.rawStream.WriteByte((byte)flg);
+                for (int i = 0; i < 4; i++)
+                {
+                    // We consume but don't use this.
+                    this.dictId[i] = (byte)this.rawStream.ReadByte(); 
+                }
+            }
 
             // Initialize the deflate Stream.
-            CompressionLevel level = CompressionLevel.Optimal;
-
-            if (compressionLevel >= 1 && compressionLevel <= 5)
-            {
-                level = CompressionLevel.Fastest;
-            }
-
-            else if (compressionLevel == 0)
-            {
-                level = CompressionLevel.NoCompression;
-            }
-
-            // I must create with leaveopen=true always and do the closing myself, because MS implementation 
-            // of DeflateStream: I cant force a flush of the underlying stream without closing.
-            this.deflateStream = new DeflateStream(this.rawStream, level, true);
+            this.deflateStream = new DeflateStream(this.rawStream, CompressionMode.Decompress, true);
         }
 
         /// <inheritdoc/>
-        public override bool CanRead => false;
+        public override bool CanRead => true;
 
         /// <inheritdoc/>
         public override bool CanSeek => false;
 
         /// <inheritdoc/>
-        public override bool CanWrite => true;
+        public override bool CanWrite => false;
 
         /// <inheritdoc/>
         public override long Length
@@ -141,7 +137,20 @@ namespace ImageProcessor.Formats
         /// <inheritdoc/>
         public override int Read(byte[] buffer, int offset, int count)
         {
-            throw new NotImplementedException();
+            // We dont't check CRC on reading
+            int read = this.deflateStream.Read(buffer, offset, count);
+            if (read < 1 && this.crcread == null)
+            {
+                // The deflater has ended. We try to read the next 4 bytes from raw stream (crc)
+                this.crcread = new byte[4];
+                for (int i = 0; i < 4; i++)
+                {
+                    // we dont really check/use this
+                    this.crcread[i] = (byte)this.rawStream.ReadByte();
+                } 
+            }
+
+            return read;
         }
 
         /// <inheritdoc/>
@@ -159,8 +168,7 @@ namespace ImageProcessor.Formats
         /// <inheritdoc/>
         public override void Write(byte[] buffer, int offset, int count)
         {
-            this.deflateStream.Write(buffer, offset, count);
-            this.adler32.Update(buffer, offset, count);
+            throw new NotImplementedException();
         }
 
         /// <inheritdoc/>
@@ -178,20 +186,17 @@ namespace ImageProcessor.Formats
                 {
                     this.deflateStream.Dispose();
                     this.deflateStream = null;
-                }
-                else {
 
-                    // Second hack: empty input?
-                    this.rawStream.WriteByte(3);
-                    this.rawStream.WriteByte(0);
+                    if (this.crcread == null)
+                    {
+                        // Consume the trailing 4 bytes
+                        this.crcread = new byte[4];
+                        for (int i = 0; i < 4; i++)
+                        {
+                            this.crcread[i] = (byte)this.rawStream.ReadByte();
+                        }
+                    }
                 }
-
-                // Add the crc
-                uint crc = (uint)this.adler32.Value;
-                this.rawStream.WriteByte((byte)((crc >> 24) & 0xFF));
-                this.rawStream.WriteByte((byte)((crc >> 16) & 0xFF));
-                this.rawStream.WriteByte((byte)((crc >> 8) & 0xFF));
-                this.rawStream.WriteByte((byte)((crc) & 0xFF));
             }
 
             base.Dispose(disposing);

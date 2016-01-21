@@ -52,9 +52,9 @@ namespace ImageProcessor.Formats
     ///    checked separately. (Any sequence of zeroes has a Fletcher
     ///    checksum of zero.)"
     /// </remarks>
-    /// <see cref="InflaterInputStream"/>
-    /// <see cref="DeflaterOutputStream"/>
-    public sealed class Adler32 : IChecksum
+    /// <see cref="ZlibInputStream"/>
+    /// <see cref="ZlibOutputStream"/>
+    internal sealed class Adler32 : IChecksum
     {
         /// <summary>
         /// largest prime smaller than 65536
@@ -67,21 +67,18 @@ namespace ImageProcessor.Formats
         private uint checksum;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Adler32"/> class. The checksum starts off with a value of 1.
+        /// Initializes a new instance of the <see cref="Adler32"/> class. 
+        /// The checksum starts off with a value of 1.
         /// </summary>
         public Adler32()
         {
             this.Reset();
         }
 
-        /// <summary>
-        /// Returns the Adler32 data checksum computed so far.
-        /// </summary>
+        /// <inheritdoc/>
         public long Value => this.checksum;
 
-        /// <summary>
-        /// Resets the Adler32 checksum to the initial value.
-        /// </summary>
+        /// <inheritdoc/>
         public void Reset()
         {
             this.checksum = 1;
@@ -106,12 +103,7 @@ namespace ImageProcessor.Formats
             this.checksum = (s2 << 16) + s1;
         }
 
-        /// <summary>
-        /// Updates the checksum with an array of bytes.
-        /// </summary>
-        /// <param name="buffer">
-        /// The source of the data to update with.
-        /// </param>
+        /// <inheritdoc/>
         public void Update(byte[] buffer)
         {
             if (buffer == null)
@@ -122,18 +114,7 @@ namespace ImageProcessor.Formats
             this.Update(buffer, 0, buffer.Length);
         }
 
-        /// <summary>
-        /// Updates the checksum with the bytes taken from the array.
-        /// </summary>
-        /// <param name="buffer">
-        /// an array of bytes
-        /// </param>
-        /// <param name="offset">
-        /// the start of the data used for this update
-        /// </param>
-        /// <param name="count">
-        /// the number of bytes to use for this update
-        /// </param>
+        /// <inheritdoc/>
         public void Update(byte[] buffer, int offset, int count)
         {
             if (buffer == null)

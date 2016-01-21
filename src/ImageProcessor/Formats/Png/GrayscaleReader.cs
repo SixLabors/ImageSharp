@@ -8,7 +8,7 @@ namespace ImageProcessor.Formats
     /// <summary>
     /// Color reader for reading grayscale colors from a png file.
     /// </summary>
-    public sealed class GrayscaleReader : IColorReader
+    internal sealed class GrayscaleReader : IColorReader
     {
         /// <summary>
         /// Whether t also read the alpha channel.

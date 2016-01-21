@@ -8,7 +8,7 @@ namespace ImageProcessor.Formats
     /// <summary>
     /// A color reader for reading palette indices from the png file.
     /// </summary>
-    public sealed class PaletteIndexReader : IColorReader
+    internal sealed class PaletteIndexReader : IColorReader
     {
         /// <summary>
         /// The palette.

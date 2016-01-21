@@ -9,7 +9,7 @@ namespace ImageProcessor.Formats
     /// Color reader for reading true colors from a png file. Only colors
     /// with 24 or 32 bit (3 or 4 bytes) per pixel are supported at the moment.
     /// </summary>
-    public sealed class TrueColorReader : IColorReader
+    internal sealed class TrueColorReader : IColorReader
     {
         /// <summary>
         /// Whether t also read the alpha channel.

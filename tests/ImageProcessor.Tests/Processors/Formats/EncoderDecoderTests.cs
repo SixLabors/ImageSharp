@@ -17,10 +17,10 @@
                 Directory.CreateDirectory("TestOutput/Encode");
             }
 
-            foreach (FileInfo file in new DirectoryInfo("TestOutput/Encode").GetFiles())
-            {
-                file.Delete();
-            }
+            //foreach (FileInfo file in new DirectoryInfo("TestOutput/Encode").GetFiles())
+            //{
+            //    file.Delete();
+            //}
 
             foreach (string file in Files)
             {

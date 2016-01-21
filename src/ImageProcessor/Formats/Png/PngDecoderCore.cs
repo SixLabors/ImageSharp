@@ -1,12 +1,7 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="PngDecoderCore.cs" company="James Jackson-South">
-//   Copyright (c) James Jackson-South and contributors.
-//   Licensed under the Apache License, Version 2.0.
+﻿// <copyright file="PngDecoderCore.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
 // </copyright>
-// <summary>
-//   Performs the png decoding operation.
-// </summary>
-// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessor.Formats
 {
@@ -21,11 +16,6 @@ namespace ImageProcessor.Formats
     /// </summary>
     internal class PngDecoderCore
     {
-        /// <summary>
-        /// The maximum chunk size.
-        /// </summary>
-        private const int MaxChunkSize = int.MaxValue / 4 * sizeof(float);
-
         /// <summary>
         /// The dictionary of available color types.
         /// </summary>
@@ -261,7 +251,6 @@ namespace ImageProcessor.Formats
             int filter = 0, column = -1;
 
             using (ZlibInputStream compressedStream = new ZlibInputStream(dataStream))
-            //using (InflaterInputStream compressedStream = new InflaterInputStream(dataStream))
             {
                 int readByte;
                 while ((readByte = compressedStream.ReadByte()) >= 0)
@@ -456,16 +445,8 @@ namespace ImageProcessor.Formats
         /// Reads the chunk data from the stream.
         /// </summary>
         /// <param name="chunk">The chunk.</param>
-        /// <exception cref="ArgumentOutOfRangeException">
-        /// Thrown if the chunk length exceeds the maximum allowable size.
-        /// </exception>
         private void ReadChunkData(PngChunk chunk)
         {
-            if (chunk.Length > MaxChunkSize)
-            {
-                throw new ArgumentOutOfRangeException($"Png chunk size '{chunk.Length}' exceeds the maximum '{MaxChunkSize}'");
-            }
-
             chunk.Data = new byte[chunk.Length];
             this.currentStream.Read(chunk.Data, 0, chunk.Length);
         }

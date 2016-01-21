@@ -138,7 +138,7 @@ namespace ImageProcessor.Formats
                 if (this.header.Width > ImageBase.MaxWidth || this.header.Height > ImageBase.MaxHeight)
                 {
                     throw new ArgumentOutOfRangeException(
-                        $"The input png '{this.header.Width}x{this.header.Height}' is bigger thean the "
+                        $"The input png '{this.header.Width}x{this.header.Height}' is bigger than the "
                         + $"max allowed size '{ImageBase.MaxWidth}x{ImageBase.MaxHeight}'");
                 }
 
@@ -260,7 +260,8 @@ namespace ImageProcessor.Formats
             byte[] currentScanline = new byte[scanlineLength];
             int filter = 0, column = -1;
 
-            using (InflaterInputStream compressedStream = new InflaterInputStream(dataStream))
+            using (ZlibInputStream compressedStream = new ZlibInputStream(dataStream))
+            //using (InflaterInputStream compressedStream = new InflaterInputStream(dataStream))
             {
                 int readByte;
                 while ((readByte = compressedStream.ReadByte()) >= 0)

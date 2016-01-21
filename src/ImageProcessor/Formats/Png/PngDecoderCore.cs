@@ -250,7 +250,7 @@ namespace ImageProcessor.Formats
             byte[] currentScanline = new byte[scanlineLength];
             int filter = 0, column = -1;
 
-            using (ZlibInputStream compressedStream = new ZlibInputStream(dataStream))
+            using (ZlibInflateStream compressedStream = new ZlibInflateStream(dataStream))
             {
                 int readByte;
                 while ((readByte = compressedStream.ReadByte()) >= 0)

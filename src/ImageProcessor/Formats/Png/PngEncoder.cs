@@ -263,9 +263,9 @@ namespace ImageProcessor.Formats
             {
                 memoryStream = new MemoryStream();
 
-                using (ZlibOutputStream outputStream = new ZlibOutputStream(memoryStream, this.CompressionLevel))
+                using (ZlibDeflateStream deflateStream = new ZlibDeflateStream(memoryStream, this.CompressionLevel))
                 {
-                    outputStream.Write(data, 0, data.Length);
+                    deflateStream.Write(data, 0, data.Length);
                 }
 
                 bufferLength = (int)memoryStream.Length;

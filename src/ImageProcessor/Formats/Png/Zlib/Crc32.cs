@@ -104,7 +104,7 @@ namespace ImageProcessor.Formats
         private uint crc;
 
         /// <summary>
-        /// Returns the CRC32 data checksum computed so far.
+        /// Gets or sets the CRC32 data checksum computed so far.
         /// </summary>
         public long Value
         {

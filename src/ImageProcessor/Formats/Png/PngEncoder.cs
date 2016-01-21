@@ -39,6 +39,13 @@ namespace ImageProcessor.Formats
         public string Extension => "png";
 
         /// <summary>
+        /// The compression level 1-9. 
+        /// TODO: Get other compression levels to work. Something is cutting of image content.
+        /// <remarks>Defaults to 6.</remarks>
+        /// </summary>
+        public int CompressionLevel { get; set; } = 6;
+
+        /// <summary>
         /// Gets or sets a value indicating whether this encoder
         /// will write the image uncompressed the stream.
         /// </summary>
@@ -56,7 +63,7 @@ namespace ImageProcessor.Formats
         /// </summary>
         /// <value>
         /// <c>True</c> if this instance is writing gamma
-        /// information to the stream.; otherwise, <c>false</c>.
+        /// information to the stream; otherwise, <c>false</c>.
         /// </value>
         public bool IsWritingGamma { get; set; }
 
@@ -95,7 +102,7 @@ namespace ImageProcessor.Formats
                     0x0D, // Line ending CRLF
                     0x0A, // Line ending CRLF
                     0x1A, // EOF
-                    0x0A // LF
+                    0x0A  // LF
                     },
                 0,
                 8);
@@ -360,6 +367,8 @@ namespace ImageProcessor.Formats
             {
                 memoryStream = new MemoryStream();
 
+                // TODO: Get this working!
+                //using (ZlibOutputStream outputStream = new ZlibOutputStream(memoryStream, this.CompressionLevel))
                 using (DeflaterOutputStream outputStream = new DeflaterOutputStream(memoryStream))
                 {
                     outputStream.Write(data, 0, data.Length);

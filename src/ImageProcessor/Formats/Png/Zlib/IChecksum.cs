@@ -15,7 +15,7 @@ namespace ImageProcessor.Formats
     public interface IChecksum
     {
         /// <summary>
-        /// Returns the data checksum computed so far.
+        /// Gets the data checksum computed so far.
         /// </summary>
         long Value
         {
@@ -31,7 +31,7 @@ namespace ImageProcessor.Formats
         /// Adds one byte to the data checksum.
         /// </summary>
         /// <param name = "value">
-        /// the data value to add. The high byte of the int is ignored.
+        /// The data value to add. The high byte of the integer is ignored.
         /// </param>
         void Update(int value);
 

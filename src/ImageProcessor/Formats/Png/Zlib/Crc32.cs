@@ -12,6 +12,7 @@ namespace ImageProcessor.Formats
     /// x^32+x^26+x^23+x^22+x^16+x^12+x^11+x^10+x^8+x^7+x^5+x^4+x^2+x+1.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Polynomials over GF(2) are represented in binary, one bit per coefficient,
     /// with the lowest powers in the most significant bit.  Then adding polynomials
     /// is just exclusive-or, and multiplying a polynomial by x is a right shift by
@@ -19,7 +20,8 @@ namespace ImageProcessor.Formats
     /// polynomial q, also with the lowest power in the most significant bit (so the
     /// byte 0xb1 is the polynomial x^7+x^3+x+1), then the CRC is (q*x^32) mod p,
     /// where a mod b means the remainder after dividing a by b.
-    ///
+    /// </para>
+    /// <para>
     /// This calculation is done using the shift-register method of multiplying and
     /// taking the remainder.  The register is initialized to zero, and for each
     /// incoming bit, x^32 is added mod p to the register if the bit is a one (where
@@ -27,15 +29,17 @@ namespace ImageProcessor.Formats
     /// x (which is shifting right by one and adding x^32 mod p if the bit shifted
     /// out is a one).  We start with the highest power (least significant bit) of
     /// q and repeat for all eight bits of q.
-    ///
+    /// </para>
+    /// <para>
     /// The table is simply the CRC of all possible eight bit values.  This is all
     /// the information needed to generate CRC's on data a byte at a time for all
     /// combinations of CRC register values and incoming bytes.
+    /// </para>
     /// </remarks>
-    public sealed class Crc32 : IChecksum
+    internal sealed class Crc32 : IChecksum
     {
         /// <summary>
-        /// The crc seed
+        /// The cycle redundancy check seed
         /// </summary>
         private const uint CrcSeed = 0xFFFFFFFF;
 
@@ -99,13 +103,11 @@ namespace ImageProcessor.Formats
         };
 
         /// <summary>
-        /// The crc data checksum so far.
+        /// The data checksum so far.
         /// </summary>
         private uint crc;
 
-        /// <summary>
-        /// Gets or sets the CRC32 data checksum computed so far.
-        /// </summary>
+        /// <inheritdoc/>
         public long Value
         {
             get
@@ -119,16 +121,14 @@ namespace ImageProcessor.Formats
             }
         }
 
-        /// <summary>
-        /// Resets the CRC32 data checksum as if no update was ever called.
-        /// </summary>
+        /// <inheritdoc/>
         public void Reset()
         {
             this.crc = 0;
         }
 
         /// <summary>
-        /// Updates the checksum with the int bval.
+        /// Updates the checksum with the given value.
         /// </summary>
         /// <param name="value">The byte is taken as the lower 8 bits of value.</param>
         public void Update(int value)
@@ -138,12 +138,7 @@ namespace ImageProcessor.Formats
             this.crc ^= CrcSeed;
         }
 
-        /// <summary>
-        /// Updates the checksum with the bytes taken from the array.
-        /// </summary>
-        /// <param name="buffer">
-        /// buffer an array of bytes
-        /// </param>
+        /// <inheritdoc/>
         public void Update(byte[] buffer)
         {
             if (buffer == null)
@@ -154,18 +149,7 @@ namespace ImageProcessor.Formats
             this.Update(buffer, 0, buffer.Length);
         }
 
-        /// <summary>
-        /// Adds the byte array to the data checksum.
-        /// </summary>
-        /// <param name = "buffer">
-        /// The buffer which contains the data
-        /// </param>
-        /// <param name = "offset">
-        /// The offset in the buffer where the data starts
-        /// </param>
-        /// <param name = "count">
-        /// The number of data bytes to update the CRC with.
-        /// </param>
+        /// <inheritdoc/>
         public void Update(byte[] buffer, int offset, int count)
         {
             if (buffer == null)
@@ -191,17 +175,6 @@ namespace ImageProcessor.Formats
             }
 
             this.crc ^= CrcSeed;
-        }
-
-        /// <summary>
-        /// Computes the crc value for the given byte.
-        /// </summary>
-        /// <param name="oldCrc">The previous value.</param>
-        /// <param name="value">The byte to compute against.</param>
-        /// <returns>The <see cref="uint"/></returns>
-        internal static uint ComputeCrc32(uint oldCrc, byte value)
-        {
-            return CrcTable[(oldCrc ^ value) & 0xFF] ^ (oldCrc >> 8);
         }
     }
 }

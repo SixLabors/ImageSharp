@@ -7,6 +7,7 @@ namespace ImageProcessor.Formats
 {
     using System;
     using System.IO;
+    using System.Threading.Tasks;
 
     /// <summary>
     /// Image encoder for writing image data to a stream in png format.
@@ -204,7 +205,7 @@ namespace ImageProcessor.Formats
 
             int rowLength = (imageBase.Width * 4) + 1;
 
-            for (int y = 0; y < imageBase.Height; y++)
+            Parallel.For(0, imageBase.Height, y =>
             {
                 byte compression = 0;
                 if (y > 0)
@@ -252,7 +253,7 @@ namespace ImageProcessor.Formats
                         data[dataOffset + 3] -= color.A;
                     }
                 }
-            }
+            });
 
             byte[] buffer;
             int bufferLength;

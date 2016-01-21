@@ -14,17 +14,9 @@ namespace ImageProcessor.Formats
     public class PngEncoder : IImageEncoder
     {
         /// <summary>
-        /// The maximum block size.
+        /// The maximum block size, defaults at 64k for uncompressed blocks.
         /// </summary>
-        private const int MaxBlockSize = 0xFFFF;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="PngEncoder"/> class.
-        /// </summary>
-        public PngEncoder()
-        {
-            this.Gamma = 2.2f;
-        }
+        private const int MaxBlockSize = 65535;
 
         /// <summary>
         /// Gets or sets the quality of output for images.
@@ -40,40 +32,23 @@ namespace ImageProcessor.Formats
 
         /// <summary>
         /// The compression level 1-9. 
-        /// TODO: Get other compression levels to work. Something is cutting of image content.
         /// <remarks>Defaults to 6.</remarks>
         /// </summary>
         public int CompressionLevel { get; set; } = 6;
 
         /// <summary>
-        /// Gets or sets a value indicating whether this encoder
-        /// will write the image uncompressed the stream.
-        /// </summary>
-        /// <value>
-        /// <c>true</c> if the image should be written uncompressed to
-        /// the stream; otherwise, <c>false</c>.
-        /// </value>
-        // TODO: We can't quickly return a color to non-premultiplied with this method.
-        // Should we remove?
-        //public bool IsWritingUncompressed { get; set; }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether this instance is writing
+        /// Gets or sets a value indicating whether this instance should write
         /// gamma information to the stream. The default value is false.
         /// </summary>
-        /// <value>
-        /// <c>True</c> if this instance is writing gamma
-        /// information to the stream; otherwise, <c>false</c>.
-        /// </value>
-        public bool IsWritingGamma { get; set; }
+        public bool WriteGamma { get; set; }
 
         /// <summary>
         /// Gets or sets the gamma value, that will be written
-        /// the the stream, when the <see cref="IsWritingGamma"/> property
-        /// is set to true. The default value is 2.2f.
+        /// the the stream, when the <see cref="WriteGamma"/> property
+        /// is set to true. The default value is 2.2F.
         /// </summary>
         /// <value>The gamma value of the image.</value>
-        public double Gamma { get; set; }
+        public double Gamma { get; set; } = 2.2F;
 
         /// <inheritdoc/>
         public bool IsSupportedFileExtension(string extension)
@@ -111,9 +86,9 @@ namespace ImageProcessor.Formats
             {
                 Width = image.Width,
                 Height = image.Height,
-                ColorType = 6,
+                ColorType = 6, // Each pixel is an R,G,B triple, followed by an alpha sample.
                 BitDepth = 8,
-                FilterMethod = 0,
+                FilterMethod = 0, // None
                 CompressionMethod = 0,
                 InterlaceMethod = 0
             };
@@ -121,16 +96,7 @@ namespace ImageProcessor.Formats
             this.WriteHeaderChunk(stream, header);
             this.WritePhysicalChunk(stream, image);
             this.WriteGammaChunk(stream);
-
-            //if (this.IsWritingUncompressed)
-            //{
-            //    this.WriteDataChunksFast(stream, image);
-            //}
-            //else
-            //{
             this.WriteDataChunks(stream, image);
-            //}
-
             this.WriteEndChunk(stream);
             stream.Flush();
         }
@@ -187,6 +153,7 @@ namespace ImageProcessor.Formats
             Image image = imageBase as Image;
             if (image != null && image.HorizontalResolution > 0 && image.VerticalResolution > 0)
             {
+                // 39.3700787 = inches in a meter.
                 int dpmX = (int)Math.Round(image.HorizontalResolution * 39.3700787d);
                 int dpmY = (int)Math.Round(image.VerticalResolution * 39.3700787d);
 
@@ -207,7 +174,7 @@ namespace ImageProcessor.Formats
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         private void WriteGammaChunk(Stream stream)
         {
-            if (this.IsWritingGamma)
+            if (this.WriteGamma)
             {
                 int gammaValue = (int)(this.Gamma * 100000f);
 
@@ -221,78 +188,6 @@ namespace ImageProcessor.Formats
                 fourByteData[3] = size[0];
 
                 this.WriteChunk(stream, PngChunkTypes.Gamma, fourByteData);
-            }
-        }
-
-        /// <summary>
-        /// Writes the pixel information to the stream.
-        /// </summary>
-        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        /// <param name="imageBase">The image base.</param>
-        private void WriteDataChunksFast(Stream stream, ImageBase imageBase)
-        {
-            float[] pixels = imageBase.Pixels;
-
-            // Convert the pixel array to a new array for adding
-            // the filter byte.
-            byte[] data = new byte[(imageBase.Width * imageBase.Height * 4) + imageBase.Height];
-
-            int rowLength = (imageBase.Width * 4) + 1;
-
-            for (int y = 0; y < imageBase.Height; y++)
-            {
-                data[y * rowLength] = 0;
-                Array.Copy(pixels, y * imageBase.Width * 4, data, (y * rowLength) + 1, imageBase.Width * 4);
-            }
-
-            Adler32 adler32 = new Adler32();
-            adler32.Update(data);
-
-            using (MemoryStream tempStream = new MemoryStream())
-            {
-                int remainder = data.Length;
-
-                int blockCount;
-                if ((data.Length % MaxBlockSize) == 0)
-                {
-                    blockCount = data.Length / MaxBlockSize;
-                }
-                else
-                {
-                    blockCount = (data.Length / MaxBlockSize) + 1;
-                }
-
-                // Write headers
-                tempStream.WriteByte(0x78);
-                tempStream.WriteByte(0xDA);
-
-                for (int i = 0; i < blockCount; i++)
-                {
-                    // Write the length
-                    ushort length = (ushort)((remainder < MaxBlockSize) ? remainder : MaxBlockSize);
-
-                    tempStream.WriteByte(length == remainder ? (byte)0x01 : (byte)0x00);
-
-                    tempStream.Write(BitConverter.GetBytes(length), 0, 2);
-
-                    // Write one's compliment of length
-                    tempStream.Write(BitConverter.GetBytes((ushort)~length), 0, 2);
-
-                    // Write blocks
-                    tempStream.Write(data, i * MaxBlockSize, length);
-
-                    // Next block
-                    remainder -= MaxBlockSize;
-                }
-
-                WriteInteger(tempStream, (int)adler32.Value);
-
-                tempStream.Seek(0, SeekOrigin.Begin);
-
-                byte[] zipData = new byte[tempStream.Length];
-                tempStream.Read(zipData, 0, (int)tempStream.Length);
-
-                this.WriteChunk(stream, PngChunkTypes.Data, zipData);
             }
         }
 
@@ -367,17 +262,13 @@ namespace ImageProcessor.Formats
             {
                 memoryStream = new MemoryStream();
 
-                // TODO: Get this working!
-                //using (ZlibOutputStream outputStream = new ZlibOutputStream(memoryStream, this.CompressionLevel))
-                using (DeflaterOutputStream outputStream = new DeflaterOutputStream(memoryStream))
+                using (ZlibOutputStream outputStream = new ZlibOutputStream(memoryStream, this.CompressionLevel))
                 {
                     outputStream.Write(data, 0, data.Length);
-                    outputStream.Flush();
-                    outputStream.Finish();
-
-                    bufferLength = (int)memoryStream.Length;
-                    buffer = memoryStream.ToArray();
                 }
+
+                bufferLength = (int)memoryStream.Length;
+                buffer = memoryStream.ToArray();
             }
             finally
             {

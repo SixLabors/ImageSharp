@@ -196,16 +196,17 @@ namespace ImageProcessor.Formats
         /// Writes the pixel information to the stream.
         /// </summary>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        /// <param name="imageBase">The image base.</param>
-        private void WriteDataChunks(Stream stream, ImageBase imageBase)
+        /// <param name="image">The image base.</param>
+        private void WriteDataChunks(Stream stream, ImageBase image)
         {
-            float[] pixels = imageBase.Pixels;
+            int imageWidth = image.Width;
+            int imageHeight = image.Height;
 
-            byte[] data = new byte[(imageBase.Width * imageBase.Height * 4) + imageBase.Height];
+            byte[] data = new byte[(imageWidth * imageHeight * 4) + image.Height];
 
-            int rowLength = (imageBase.Width * 4) + 1;
+            int rowLength = (imageWidth * 4) + 1;
 
-            Parallel.For(0, imageBase.Height, y =>
+            Parallel.For(0, imageHeight, y =>
             {
                 byte compression = 0;
                 if (y > 0)
@@ -215,22 +216,12 @@ namespace ImageProcessor.Formats
 
                 data[y * rowLength] = compression;
 
-                for (int x = 0; x < imageBase.Width; x++)
+                for (int x = 0; x < imageWidth; x++)
                 {
+                    Bgra32 color = Color.ToNonPremultiplied(image[x, y]);
+
                     // Calculate the offset for the new array.
                     int dataOffset = (y * rowLength) + (x * 4) + 1;
-
-                    // Calculate the offset for the original pixel array.
-                    int pixelOffset = ((y * imageBase.Width) + x) * 4;
-
-                    // Convert to non-premultiplied color.
-                    float r = pixels[pixelOffset];
-                    float g = pixels[pixelOffset + 1];
-                    float b = pixels[pixelOffset + 2];
-                    float a = pixels[pixelOffset + 3];
-
-                    Bgra32 color = Color.ToNonPremultiplied(new Color(r, g, b, a));
-
                     data[dataOffset] = color.R;
                     data[dataOffset + 1] = color.G;
                     data[dataOffset + 2] = color.B;
@@ -238,14 +229,7 @@ namespace ImageProcessor.Formats
 
                     if (y > 0)
                     {
-                        int lastOffset = (((y - 1) * imageBase.Width) + x) * 4;
-
-                        r = pixels[lastOffset];
-                        g = pixels[lastOffset + 1];
-                        b = pixels[lastOffset + 2];
-                        a = pixels[lastOffset + 3];
-
-                        color = Color.ToNonPremultiplied(new Color(r, g, b, a));
+                        color = Color.ToNonPremultiplied(image[x, y - 1]);
 
                         data[dataOffset] -= color.R;
                         data[dataOffset + 1] -= color.G;

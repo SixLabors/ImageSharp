@@ -35,25 +35,10 @@ namespace ImageProcessor.Formats
         /// <inheritdoc/>
         public string MimeType => "image/jpeg";
 
-        /// <summary>
-        /// Gets the default file extension for this encoder.
-        /// </summary>
-        /// <value>The default file extension for this encoder.</value>
+        /// <inheritdoc/>
         public string Extension => "jpg";
 
-        /// <summary>
-        /// Indicates if the image encoder supports the specified
-        /// file extension.
-        /// </summary>
-        /// <param name="extension">The file extension.</param>
-        /// <returns>
-        /// 	<c>true</c>, if the encoder supports the specified
-        /// extensions; otherwise <c>false</c>.
-        /// </returns>
-        /// <exception cref="System.ArgumentNullException"><paramref name="extension"/>
-        /// is null (Nothing in Visual Basic).</exception>
-        /// <exception cref="System.ArgumentException"><paramref name="extension"/> is a string
-        /// of length zero or contains only blanks.</exception>
+        /// <inheritdoc/>
         public bool IsSupportedFileExtension(string extension)
         {
             Guard.NotNullOrEmpty(extension, "extension");
@@ -68,61 +53,41 @@ namespace ImageProcessor.Formats
                    extension.Equals("jfif", StringComparison.OrdinalIgnoreCase);
         }
 
-        /// <summary>
-        /// Encodes the data of the specified image and writes the result to
-        /// the specified stream.
-        /// </summary>
-        /// <param name="image">The image, where the data should be get from.
-        /// Cannot be null (Nothing in Visual Basic).</param>
-        /// <param name="stream">The stream, where the image data should be written to.
-        /// Cannot be null (Nothing in Visual Basic).</param>
-        /// <exception cref="System.ArgumentNullException">
-        /// 	<para><paramref name="image"/> is null (Nothing in Visual Basic).</para>
-        /// 	<para>- or -</para>
-        /// 	<para><paramref name="stream"/> is null (Nothing in Visual Basic).</para>
-        /// </exception>
+        /// <inheritdoc/>
         public void Encode(ImageBase image, Stream stream)
         {
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
-            int pixelWidth = image.Width;
-            int pixelHeight = image.Height;
+            int imageWidth = image.Width;
+            int imageHeight = image.Height;
 
-            float[] sourcePixels = image.Pixels;
-
-            SampleRow[] rows = new SampleRow[pixelHeight];
+            SampleRow[] rows = new SampleRow[imageHeight];
 
             Parallel.For(
                 0,
-                pixelHeight,
+                imageHeight,
                 y =>
                     {
-                        byte[] samples = new byte[pixelWidth * 3];
+                        byte[] samples = new byte[imageWidth * 3];
 
-                        for (int x = 0; x < pixelWidth; x++)
+                        for (int x = 0; x < imageWidth; x++)
                         {
+                            Bgra32 color = Color.ToNonPremultiplied(image[x, y]);
+
                             int start = x * 3;
-                            int source = ((y * pixelWidth) + x) * 4;
-
-                            // Convert to non-premultiplied color.
-                            float r = sourcePixels[source];
-                            float g = sourcePixels[source + 1];
-                            float b = sourcePixels[source + 2];
-                            float a = sourcePixels[source + 3];
-
-                            Bgra32 color = Color.ToNonPremultiplied(new Color(r, g, b, a));
-
                             samples[start] = color.R;
                             samples[start + 1] = color.G;
                             samples[start + 2] = color.B;
                         }
 
-                        rows[y] = new SampleRow(samples, pixelWidth, 8, 3);
+                        rows[y] = new SampleRow(samples, imageWidth, 8, 3);
                     });
 
-            JpegImage jpg = new JpegImage(rows, Colorspace.RGB);
-            jpg.WriteJpeg(stream, new CompressionParameters { Quality = this.Quality });
+            using (JpegImage jpg = new JpegImage(rows, Colorspace.RGB))
+            {
+                jpg.WriteJpeg(stream, new CompressionParameters { Quality = this.Quality });
+            }
         }
     }
 }

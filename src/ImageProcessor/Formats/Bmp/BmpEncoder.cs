@@ -51,35 +51,36 @@ namespace ImageProcessor.Formats
                 rowWidth += 4 - amount;
             }
 
-            BinaryWriter writer = new BinaryWriter(stream);
-
-            BmpFileHeader fileHeader = new BmpFileHeader
+            using (BinaryWriter writer = new BinaryWriter(stream))
             {
-                Type = 19778, // BM
-                Offset = 54,
-                FileSize = 54 + (image.Height * rowWidth * 3)
-            };
+                BmpFileHeader fileHeader = new BmpFileHeader
+                {
+                    Type = 19778, // BM
+                    Offset = 54,
+                    FileSize = 54 + (image.Height * rowWidth * 3)
+                };
 
-            WriteHeader(writer, fileHeader);
+                WriteHeader(writer, fileHeader);
 
-            BmpInfoHeader infoHeader = new BmpInfoHeader
-            {
-                HeaderSize = 40,
-                Height = image.Height,
-                Width = image.Width,
-                BitsPerPixel = 24,
-                Planes = 1,
-                Compression = BmpCompression.RGB,
-                ImageSize = image.Height * rowWidth * 3,
-                ClrUsed = 0,
-                ClrImportant = 0
-            };
+                BmpInfoHeader infoHeader = new BmpInfoHeader
+                {
+                    HeaderSize = 40,
+                    Height = image.Height,
+                    Width = image.Width,
+                    BitsPerPixel = 24,
+                    Planes = 1,
+                    Compression = BmpCompression.RGB,
+                    ImageSize = image.Height * rowWidth * 3,
+                    ClrUsed = 0,
+                    ClrImportant = 0
+                };
 
-            WriteInfo(writer, infoHeader);
+                WriteInfo(writer, infoHeader);
 
-            this.WriteImage(writer, image);
+                this.WriteImage(writer, image);
 
-            writer.Flush();
+                writer.Flush();
+            }
         }
 
         /// <summary>
@@ -100,6 +101,7 @@ namespace ImageProcessor.Formats
                 amount = 4 - amount;
             }
 
+            // TODO: Make this parallel.
             for (int y = image.Height - 1; y >= 0; y--)
             {
                 for (int x = 0; x < image.Width; x++)

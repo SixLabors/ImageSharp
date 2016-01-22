@@ -100,29 +100,20 @@ namespace ImageProcessor.Formats
                 amount = 4 - amount;
             }
 
-            float[] data = image.Pixels;
-
             for (int y = image.Height - 1; y >= 0; y--)
             {
                 for (int x = 0; x < image.Width; x++)
                 {
-                    int offset = ((y * image.Width) + x) * 4;
-
                     // Limit the output range and multiply out from our floating point.
                     // Convert back to b-> g-> r-> a order.
                     // Convert to non-premultiplied color.
-                    float r = data[offset];
-                    float g = data[offset + 1];
-                    float b = data[offset + 2];
-                    float a = data[offset + 3];
+                    Bgra32 color = Color.ToNonPremultiplied(image[x, y]);
 
-                    Bgra32 color = Color.ToNonPremultiplied(new Color(r, g, b, a));
-
-                    writer.Write(color.B);
-                    writer.Write(color.G);
-                    writer.Write(color.R);
+                    // Allocate 1 array instead of allocating 3.
+                    writer.Write(new[] { color.B, color.G, color.R });
                 }
 
+                // Pad
                 for (int i = 0; i < amount; i++)
                 {
                     writer.Write((byte)0);

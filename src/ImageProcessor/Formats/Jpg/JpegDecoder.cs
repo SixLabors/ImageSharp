@@ -152,6 +152,8 @@ namespace ImageProcessor.Formats
             }
 
             image.SetPixels(pixelWidth, pixelHeight, pixels);
+
+            jpg.Dispose();
         }
 
         /// <summary>

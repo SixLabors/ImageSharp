@@ -57,6 +57,7 @@ namespace ImageProcessor.Filters
 
                                 target[x, y] = Color.Compress(new Color(vector3, color.A));
                             }
+                            this.OnRowProcessed();
                         }
                     });
         }

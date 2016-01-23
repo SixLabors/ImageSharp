@@ -1,6 +1,7 @@
 ﻿
 namespace ImageProcessor.Tests
 {
+    using System;
     using System.Diagnostics;
     using System.IO;
 
@@ -65,12 +66,25 @@ namespace ImageProcessor.Tests
                     string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
                     using (FileStream output = File.OpenWrite($"TestOutput/Filter/{ Path.GetFileName(filename) }"))
                     {
+                        lastRowProcessed = 0;
+                        processor.OnProgressed += ProgressUpdate;
                         image.Process(processor).Save(output);
+                        processor.OnProgressed -= ProgressUpdate;
                     }
 
                     Trace.WriteLine($"{ name }: { watch.ElapsedMilliseconds}ms");
                 }
             }
+        }
+
+        private static int allowedVariability = Environment.ProcessorCount * 4;
+        private int lastRowProcessed;
+
+        private void ProgressUpdate(object sender, ProgressedEventArgs e)
+        {
+            Assert.InRange(e.numRowsProcessed, 1, e.totalRows);
+            Assert.InRange(e.numRowsProcessed, lastRowProcessed - allowedVariability, lastRowProcessed + allowedVariability);
+            lastRowProcessed = e.numRowsProcessed;
         }
     }
 }

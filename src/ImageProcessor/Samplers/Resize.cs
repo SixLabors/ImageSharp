@@ -81,6 +81,7 @@ namespace ImageProcessor.Samplers
 
                                 target[x, y] = source[originX, originY];
                             }
+                            this.OnRowProcessed();
                         }
                     });
 
@@ -141,6 +142,7 @@ namespace ImageProcessor.Samplers
                             destination = Color.Compress(destination);
                             target[x, y] = destination;
                         }
+                        this.OnRowProcessed();
                     }
                 });
         }

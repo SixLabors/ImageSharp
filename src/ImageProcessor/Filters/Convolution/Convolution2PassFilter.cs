@@ -104,6 +104,7 @@ namespace ImageProcessor.Filters
 
                             target[x, y] = destination; 
                         }
+                        this.OnRowProcessed();
                     }
                 });
         }

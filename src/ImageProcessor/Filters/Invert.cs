@@ -35,6 +35,7 @@ namespace ImageProcessor.Filters
                                 Vector3 vector = inverseVector - color.ToVector3();
                                 target[x, y] = new Color(vector, color.A);
                             }
+                            this.OnRowProcessed();
                         }
                     });
         }

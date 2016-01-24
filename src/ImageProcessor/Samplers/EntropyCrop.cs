@@ -89,6 +89,7 @@ namespace ImageProcessor.Samplers
 
                     target[x, y] = source[offsetX, offsetY];
                 }
+                this.OnRowProcessed();
             });
         }
     }

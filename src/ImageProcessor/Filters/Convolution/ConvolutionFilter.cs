@@ -76,6 +76,7 @@ namespace ImageProcessor.Filters
 
                             target[x, y] = new Color(red, green, blue);
                         }
+                        this.OnRowProcessed();
                     }
                 });
         }

@@ -101,6 +101,7 @@ namespace ImageProcessor.Filters
                             Color targetColor = target[x, y];
                             target[x, y] = new Color(red, green, blue, targetColor.A);
                         }
+                        this.OnRowProcessed();
                     }
                 });
         }

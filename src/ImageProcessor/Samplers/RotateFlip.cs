@@ -73,7 +73,7 @@ namespace ImageProcessor.Samplers
         /// </summary>
         /// <param name="target">The target image.</param>
         /// <param name="source">The source image.</param>
-        private static void Rotate270(ImageBase target, ImageBase source)
+        private void Rotate270(ImageBase target, ImageBase source)
         {
             int width = source.Width;
             int height = source.Height;
@@ -90,6 +90,7 @@ namespace ImageProcessor.Samplers
                         newY = width - newY - 1;
                         temp[newX, newY] = source[x, y];
                     }
+                    this.OnRowProcessed();
                 });
 
             target.SetPixels(height, width, temp.Pixels);
@@ -100,7 +101,7 @@ namespace ImageProcessor.Samplers
         /// </summary>
         /// <param name="target">The target image.</param>
         /// <param name="source">The source image.</param>
-        private static void Rotate180(ImageBase target, ImageBase source)
+        private void Rotate180(ImageBase target, ImageBase source)
         {
             int width = source.Width;
             int height = source.Height;
@@ -114,6 +115,7 @@ namespace ImageProcessor.Samplers
                         int newY = height - y - 1;
                         target[newX, newY] = source[x, y];
                     }
+                    this.OnRowProcessed();
                 });
         }
 
@@ -122,7 +124,7 @@ namespace ImageProcessor.Samplers
         /// </summary>
         /// <param name="target">The target image.</param>
         /// <param name="source">The source image.</param>
-        private static void Rotate90(ImageBase target, ImageBase source)
+        private void Rotate90(ImageBase target, ImageBase source)
         {
             int width = source.Width;
             int height = source.Height;
@@ -136,6 +138,7 @@ namespace ImageProcessor.Samplers
                         int newX = height - y - 1;
                         temp[newX, x] = source[x, y];
                     }
+                    this.OnRowProcessed();
                 });
 
             target.SetPixels(height, width, temp.Pixels);
@@ -146,7 +149,7 @@ namespace ImageProcessor.Samplers
         /// at half the height of the image.
         /// </summary>
         /// <param name="target">Target image to apply the process to.</param>
-        private static void FlipX(ImageBase target)
+        private void FlipX(ImageBase target)
         {
             int width = target.Width;
             int height = target.Height;
@@ -163,6 +166,7 @@ namespace ImageProcessor.Samplers
                             target[x, y] = temp[x, newY];
                             target[x, newY] = temp[x, y];
                         }
+                        this.OnRowProcessed();
                     });
         }
 
@@ -171,7 +175,7 @@ namespace ImageProcessor.Samplers
         /// at half of the width of the image.
         /// </summary>
         /// <param name="target">Target image to apply the process to.</param>
-        private static void FlipY(ImageBase target)
+        private void FlipY(ImageBase target)
         {
             int width = target.Width;
             int height = target.Height;
@@ -188,6 +192,7 @@ namespace ImageProcessor.Samplers
                         target[x, y] = temp[newX, y];
                         target[newX, y] = temp[x, y];
                     }
+                    this.OnRowProcessed();
                 });
         }
     }

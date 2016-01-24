@@ -16,10 +16,11 @@ namespace ImageProcessor.Samplers
         /// <param name="source">The image to resize.</param>
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/></returns>
-        public static Image Crop(this Image source, int width, int height)
+        public static Image Crop(this Image source, int width, int height, ProgressEventHandler progressHandler = null)
         {
-            return Crop(source, width, height, source.Bounds);
+            return Crop(source, width, height, source.Bounds, progressHandler);
         }
 
         /// <summary>
@@ -35,8 +36,9 @@ namespace ImageProcessor.Samplers
         /// <param name="sourceRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/></returns>
-        public static Image Crop(this Image source, int width, int height, Rectangle sourceRectangle)
+        public static Image Crop(this Image source, int width, int height, Rectangle sourceRectangle, ProgressEventHandler progressHandler = null)
         {
             if (sourceRectangle.Width < width || sourceRectangle.Height < height)
             {
@@ -45,7 +47,16 @@ namespace ImageProcessor.Samplers
                 source = source.Resize(sourceRectangle.Width, sourceRectangle.Height);
             }
 
-            return source.Process(width, height, sourceRectangle, new Rectangle(0, 0, width, height), new Crop());
+            var processor = new Crop();
+            processor.OnProgress += progressHandler;
+            try
+            {
+                return source.Process(width, height, sourceRectangle, new Rectangle(0, 0, width, height), processor);
+            }
+            finally
+            {
+                processor.OnProgress -= progressHandler;
+            }
         }
 
         /// <summary>
@@ -53,10 +64,20 @@ namespace ImageProcessor.Samplers
         /// </summary>
         /// <param name="source">The image to crop.</param>
         /// <param name="threshold">The threshold for entropic density.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/></returns>
-        public static Image EntropyCrop(this Image source, float threshold = .5f)
+        public static Image EntropyCrop(this Image source, float threshold = .5f, ProgressEventHandler progressHandler = null)
         {
-            return source.Process(source.Width, source.Height, source.Bounds, source.Bounds, new EntropyCrop(threshold));
+            var processor = new EntropyCrop(threshold);
+            processor.OnProgress += progressHandler;
+            try
+            {
+                return source.Process(source.Width, source.Height, source.Bounds, source.Bounds, processor);
+            }
+            finally
+            {
+                processor.OnProgress -= progressHandler;
+            }
         }
 
         /// <summary>
@@ -65,11 +86,12 @@ namespace ImageProcessor.Samplers
         /// <param name="source">The image to resize.</param>
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
-        public static Image Resize(this Image source, int width, int height)
+        public static Image Resize(this Image source, int width, int height, ProgressEventHandler progressHandler = null)
         {
-            return Resize(source, width, height, new BicubicResampler());
+            return Resize(source, width, height, new BicubicResampler(), progressHandler);
         }
 
         /// <summary>
@@ -79,11 +101,12 @@ namespace ImageProcessor.Samplers
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
         /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
-        public static Image Resize(this Image source, int width, int height, IResampler sampler)
+        public static Image Resize(this Image source, int width, int height, IResampler sampler, ProgressEventHandler progressHandler = null)
         {
-            return Resize(source, width, height, sampler, source.Bounds);
+            return Resize(source, width, height, sampler, source.Bounds, progressHandler);
         }
 
         /// <summary>
@@ -97,9 +120,10 @@ namespace ImageProcessor.Samplers
         /// <param name="sourceRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
-        public static Image Resize(this Image source, int width, int height, IResampler sampler, Rectangle sourceRectangle)
+        public static Image Resize(this Image source, int width, int height, IResampler sampler, Rectangle sourceRectangle, ProgressEventHandler progressHandler = null)
         {
             if (width == 0 && height > 0)
             {
@@ -111,7 +135,16 @@ namespace ImageProcessor.Samplers
                 height = source.Height * width / source.Width;
             }
 
-            return source.Process(width, height, sourceRectangle, new Rectangle(0, 0, width, height), new Resize(sampler));
+            var processor = new Resize(sampler);
+            processor.OnProgress += progressHandler;
+            try
+            {
+                return source.Process(width, height, sourceRectangle, new Rectangle(0, 0, width, height), processor);
+            }
+            finally
+            {
+                processor.OnProgress -= progressHandler;
+            }
         }
 
         /// <summary>
@@ -119,10 +152,11 @@ namespace ImageProcessor.Samplers
         /// </summary>
         /// <param name="source">The image to resize.</param>
         /// <param name="degrees">The angle in degrees to perform the rotation.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/></returns>
-        public static Image Rotate(this Image source, float degrees)
+        public static Image Rotate(this Image source, float degrees, ProgressEventHandler progressHandler = null)
         {
-            return Rotate(source, degrees, new BicubicResampler());
+            return Rotate(source, degrees, new BicubicResampler(), progressHandler);
         }
 
         /// <summary>
@@ -131,10 +165,20 @@ namespace ImageProcessor.Samplers
         /// <param name="source">The image to resize.</param>
         /// <param name="degrees">The angle in degrees to perform the rotation.</param>
         /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/></returns>
-        public static Image Rotate(this Image source, float degrees, IResampler sampler)
+        public static Image Rotate(this Image source, float degrees, IResampler sampler, ProgressEventHandler progressHandler = null)
         {
-            return source.Process(source.Width, source.Height, source.Bounds, source.Bounds, new Rotate(sampler) { Angle = degrees });
+            var processor = new Rotate(sampler) { Angle = degrees };
+            processor.OnProgress += progressHandler;
+            try
+            {
+                return source.Process(source.Width, source.Height, source.Bounds, source.Bounds, processor);
+            }
+            finally
+            {
+                processor.OnProgress -= progressHandler;
+            }
         }
 
         /// <summary>
@@ -143,10 +187,20 @@ namespace ImageProcessor.Samplers
         /// <param name="source">The image to resize.</param>
         /// <param name="rotateType">The <see cref="RotateType"/> to perform the rotation.</param>
         /// <param name="flipType">The <see cref="FlipType"/> to perform the flip.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/></returns>
-        public static Image RotateFlip(this Image source, RotateType rotateType, FlipType flipType)
+        public static Image RotateFlip(this Image source, RotateType rotateType, FlipType flipType, ProgressEventHandler progressHandler = null)
         {
-            return source.Process(source.Width, source.Height, source.Bounds, source.Bounds, new RotateFlip(rotateType, flipType));
+            var processor = new RotateFlip(rotateType, flipType);
+            processor.OnProgress += progressHandler;
+            try
+            {
+                return source.Process(source.Width, source.Height, source.Bounds, source.Bounds, processor);
+            }
+            finally
+            {
+                processor.OnProgress -= progressHandler;
+            }
         }
     }
 }

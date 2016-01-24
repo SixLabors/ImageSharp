@@ -5,13 +5,18 @@
 
 namespace ImageProcessor
 {
-    public struct ProgressedEventArgs
+    public class ProgressEventArgs : System.EventArgs
     {
         public int numRowsProcessed;
         public int totalRows;
     }
 
-    public delegate void ProgressedEventHandler(object sender, ProgressedEventArgs e);
+    /// <summary>
+    /// A delegate which is called as progress is made processing the image.
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    public delegate void ProgressEventHandler(object sender, ProgressEventArgs e);
 
     /// <summary>
     /// Encapsulates methods to alter the pixels of an image.
@@ -25,7 +30,7 @@ namespace ImageProcessor
         /// This event may be called from threads other than the client thread, and from multiple threads simultaneously.
         /// Individual row notifications may arrived out of order.
         /// </remarks>
-        event ProgressedEventHandler OnProgressed;
+        event ProgressEventHandler OnProgress;
 
         /// <summary>
         /// Applies the process to the specified portion of the specified <see cref="ImageBase"/>.

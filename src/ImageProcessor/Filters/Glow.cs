@@ -51,6 +51,7 @@ namespace ImageProcessor.Filters
                             Color sourceColor = target[x, y];
                             target[x, y] = Color.Lerp(glowColor, sourceColor, .5f * (distance / maxDistance));
                         }
+                        this.OnRowProcessed();
                     });
         }
     }

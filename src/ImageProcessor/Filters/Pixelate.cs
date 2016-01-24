@@ -85,6 +85,7 @@ namespace ImageProcessor.Filters
                                 }
                             }
                         }
+                        this.OnRowProcessed();
                     }
                 });
         }

@@ -57,7 +57,7 @@
                     string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
                     using (FileStream output = File.OpenWrite($"TestOutput/Resize/{filename}"))
                     {
-                        image.Resize(image.Width / 2, image.Height / 2, sampler)
+                        image.Resize(image.Width / 2, image.Height / 2, sampler, ProgressUpdate)
                              .Save(output);
                     }
 
@@ -85,7 +85,7 @@
                     string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
                     using (FileStream output = File.OpenWrite($"TestOutput/Resize/{filename}"))
                     {
-                        image.Resize(image.Width / 3, 0, new TriangleResampler())
+                        image.Resize(image.Width / 3, 0, new TriangleResampler(), ProgressUpdate)
                              .Save(output);
                     }
 
@@ -113,7 +113,7 @@
                     string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
                     using (FileStream output = File.OpenWrite($"TestOutput/Resize/{filename}"))
                     {
-                        image.Resize(0, image.Height / 3, new TriangleResampler())
+                        image.Resize(0, image.Height / 3, new TriangleResampler(), ProgressUpdate)
                              .Save(output);
                     }
 
@@ -140,7 +140,7 @@
                     string filename = Path.GetFileNameWithoutExtension(file) + "-" + rotateType + flipType + Path.GetExtension(file);
                     using (FileStream output = File.OpenWrite($"TestOutput/RotateFlip/{filename}"))
                     {
-                        image.RotateFlip(rotateType, flipType)
+                        image.RotateFlip(rotateType, flipType, ProgressUpdate)
                              .Save(output);
                     }
 
@@ -167,7 +167,7 @@
                     string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
                     using (FileStream output = File.OpenWrite($"TestOutput/Rotate/{filename}"))
                     {
-                        image.Rotate(45, sampler)
+                        image.Rotate(45, sampler, ProgressUpdate)
                              //.BackgroundColor(Color.Aqua)
                              .Save(output);
                     }
@@ -193,7 +193,7 @@
                     string filename = Path.GetFileNameWithoutExtension(file) + "-EntropyCrop" + Path.GetExtension(file);
                     using (FileStream output = File.OpenWrite($"TestOutput/EntropyCrop/{filename}"))
                     {
-                        image.EntropyCrop().Save(output);
+                        image.EntropyCrop(.5f, ProgressUpdate).Save(output);
                     }
                 }
             }
@@ -215,7 +215,7 @@
                     string filename = Path.GetFileNameWithoutExtension(file) + "-Crop" + Path.GetExtension(file);
                     using (FileStream output = File.OpenWrite($"TestOutput/Crop/{filename}"))
                     {
-                        image.Crop(image.Width / 2, image.Height / 2).Save(output);
+                        image.Crop(image.Width / 2, image.Height / 2, ProgressUpdate).Save(output);
                     }
                 }
             }
@@ -234,6 +234,11 @@
             float result = sampler.GetValue(x);
 
             Assert.Equal(result, expected);
+        }
+
+        private void ProgressUpdate(object sender, ProgressEventArgs e)
+        {
+            Assert.InRange(e.numRowsProcessed, 1, e.totalRows);
         }
     }
 }

@@ -15,7 +15,7 @@ namespace ImageProcessor
     public abstract class ParallelImageProcessor : IImageProcessor
     {
         /// <inheritdoc/>
-        public event ProgressedEventHandler OnProgressed;
+        public event ProgressEventHandler OnProgress;
 
         /// <summary>
         /// Gets or sets the count of workers to run the process in parallel.
@@ -37,12 +37,16 @@ namespace ImageProcessor
         /// </summary>
         protected void OnRowProcessed()
         {
-            if(this.OnProgressed != null)
+            if(this.OnProgress != null)
             {
                 int currThreadNumRows = Interlocked.Add(ref this.numRowsProcessed, 1);
 
+                // Multi-pass filters process multiple times more rows than totalRows, so update totalRows on the fly
+                if (currThreadNumRows > this.totalRows)
+                    this.totalRows = currThreadNumRows;
+
                 // Report progress. This may be on the client's thread, or on a Task library thread.
-                this.OnProgressed(this, new ProgressedEventArgs { numRowsProcessed = currThreadNumRows, totalRows = this.totalRows });
+                this.OnProgress(this, new ProgressEventArgs { numRowsProcessed = currThreadNumRows, totalRows = this.totalRows });
             }
         }
 

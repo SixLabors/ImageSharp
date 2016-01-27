@@ -75,50 +75,58 @@ namespace ImageProcessor
         /// <inheritdoc/>
         public void Apply(ImageBase target, ImageBase source, int width, int height, Rectangle targetRectangle = default(Rectangle), Rectangle sourceRectangle = default(Rectangle))
         {
-            float[] pixels = new float[width * height * 4];
-            target.SetPixels(width, height, pixels);
-
-            if (sourceRectangle == Rectangle.Empty)
+            try
             {
-                sourceRectangle = source.Bounds;
-            }
+                float[] pixels = new float[width * height * 4];
+                target.SetPixels(width, height, pixels);
 
-            // We don't want to affect the original source pixels so we make clone here.
-            ImageFrame frame = source as ImageFrame;
-            Image temp = frame != null ? new Image(frame) : new Image((Image)source);
-            this.OnApply(temp, target, target.Bounds, sourceRectangle);
-
-            targetRectangle = target.Bounds;
-            this.numRowsProcessed = 0;
-            this.totalRows = targetRectangle.Bottom;
-
-            if (this.Parallelism > 1)
-            {
-                int partitionCount = this.Parallelism;
-
-                Task[] tasks = new Task[partitionCount];
-
-                for (int p = 0; p < partitionCount; p++)
+                if (sourceRectangle == Rectangle.Empty)
                 {
-                    int current = p;
-                    tasks[p] = Task.Run(() =>
-                    {
-                        int batchSize = targetRectangle.Bottom / partitionCount;
-                        int yStart = current * batchSize;
-                        int yEnd = current == partitionCount - 1 ? targetRectangle.Bottom : yStart + batchSize;
-
-                        this.Apply(target, temp, targetRectangle, sourceRectangle, yStart, yEnd);
-                    });
+                    sourceRectangle = source.Bounds;
                 }
 
-                Task.WaitAll(tasks);
-            }
-            else
-            {
-                this.Apply(target, temp, targetRectangle, sourceRectangle, targetRectangle.Y, targetRectangle.Bottom);
-            }
+                // We don't want to affect the original source pixels so we make clone here.
+                ImageFrame frame = source as ImageFrame;
+                Image temp = frame != null ? new Image(frame) : new Image((Image)source);
+                this.OnApply(temp, target, target.Bounds, sourceRectangle);
 
-            this.AfterApply(temp, target, target.Bounds, sourceRectangle);
+                targetRectangle = target.Bounds;
+                this.numRowsProcessed = 0;
+                this.totalRows = targetRectangle.Bottom;
+
+                if (this.Parallelism > 1)
+                {
+                    int partitionCount = this.Parallelism;
+
+                    Task[] tasks = new Task[partitionCount];
+
+                    for (int p = 0; p < partitionCount; p++)
+                    {
+                        int current = p;
+                        tasks[p] = Task.Run(() =>
+                        {
+                            int batchSize = targetRectangle.Bottom / partitionCount;
+                            int yStart = current * batchSize;
+                            int yEnd = current == partitionCount - 1 ? targetRectangle.Bottom : yStart + batchSize;
+
+                            this.Apply(target, temp, targetRectangle, sourceRectangle, yStart, yEnd);
+                        });
+                    }
+
+                    Task.WaitAll(tasks);
+                }
+                else
+                {
+                    this.Apply(target, temp, targetRectangle, sourceRectangle, targetRectangle.Y, targetRectangle.Bottom);
+                }
+
+                this.AfterApply(temp, target, target.Bounds, sourceRectangle);
+            }
+            catch (Exception ex)
+            {
+
+                throw new ImageProcessingException($"An error occured when processing the image using {this.GetType().Name}. See the inner exception for more detail.", ex);
+            }
         }
 
         /// <summary>

@@ -75,6 +75,7 @@ namespace ImageProcessor.Filters
                                 // Any channel will do since it's greyscale.
                                 target[x, y] = color.B >= threshold ? upper : lower;
                             }
+                            this.OnRowProcessed();
                         }
                     });
         }

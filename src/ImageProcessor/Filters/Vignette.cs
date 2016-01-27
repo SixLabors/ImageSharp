@@ -51,6 +51,7 @@ namespace ImageProcessor.Filters
                             Color sourceColor = target[x, y];
                             target[x, y] = Color.Lerp(vignetteColor, sourceColor, 1 - .9f * distance / maxDistance);
                         }
+                        this.OnRowProcessed();
                     });
         }
     }

@@ -15,10 +15,11 @@ namespace ImageProcessor.Filters
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="percent">The new opacity of the image. Must be between 0 and 100.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Alpha(this Image source, int percent)
+        public static Image Alpha(this Image source, int percent, ProgressEventHandler progressHandler = null)
         {
-            return Alpha(source, percent, source.Bounds);
+            return Alpha(source, percent, source.Bounds, progressHandler);
         }
 
         /// <summary>
@@ -29,10 +30,21 @@ namespace ImageProcessor.Filters
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Alpha(this Image source, int percent, Rectangle rectangle)
+        public static Image Alpha(this Image source, int percent, Rectangle rectangle, ProgressEventHandler progressHandler = null)
         {
-            return source.Process(rectangle, new Alpha(percent));
+            Alpha processor = new Alpha(percent);
+            processor.OnProgress += progressHandler;
+
+            try
+            {
+                return source.Process(rectangle, processor);
+            }
+            finally
+            {
+                processor.OnProgress -= progressHandler;
+            }
         }
 
         /// <summary>
@@ -40,10 +52,21 @@ namespace ImageProcessor.Filters
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="color">The color to set as the background.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image BackgroundColor(this Image source, Color color)
+        public static Image BackgroundColor(this Image source, Color color, ProgressEventHandler progressHandler = null)
         {
-            return source.Process(source.Bounds, new BackgroundColor(color));
+            BackgroundColor processor = new BackgroundColor(color);
+            processor.OnProgress += progressHandler;
+
+            try
+            {
+                return source.Process(source.Bounds, processor);
+            }
+            finally
+            {
+                processor.OnProgress -= progressHandler;
+            }
         }
 
         /// <summary>
@@ -52,10 +75,11 @@ namespace ImageProcessor.Filters
         /// <param name="source">The image this method extends.</param>
         /// <param name="image">The image to blend with the currently processing image.</param>
         /// <param name="percent">The opacity of the image image to blend. Must be between 0 and 100.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Blend(this Image source, ImageBase image, int percent = 50)
+        public static Image Blend(this Image source, ImageBase image, int percent = 50, ProgressEventHandler progressHandler = null)
         {
-            return source.Process(source.Bounds, new Blend(image, percent));
+            return Blend(source, image, percent, source.Bounds, progressHandler);
         }
 
         /// <summary>
@@ -67,20 +91,32 @@ namespace ImageProcessor.Filters
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Blend(this Image source, ImageBase image, int percent, Rectangle rectangle)
+        public static Image Blend(this Image source, ImageBase image, int percent, Rectangle rectangle, ProgressEventHandler progressHandler = null)
         {
-            return source.Process(rectangle, new Blend(image, percent));
+            Blend processor = new Blend(image, percent);
+            processor.OnProgress += progressHandler;
+
+            try
+            {
+                return source.Process(rectangle, processor);
+            }
+            finally
+            {
+                processor.OnProgress -= progressHandler;
+            }
         }
 
         /// <summary>
         /// Applies black and white toning to the image.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image BlackWhite(this Image source)
+        public static Image BlackWhite(this Image source, ProgressEventHandler progressHandler = null)
         {
-            return BlackWhite(source, source.Bounds);
+            return BlackWhite(source, source.Bounds, progressHandler);
         }
 
         /// <summary>
@@ -90,10 +126,21 @@ namespace ImageProcessor.Filters
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image BlackWhite(this Image source, Rectangle rectangle)
+        public static Image BlackWhite(this Image source, Rectangle rectangle, ProgressEventHandler progressHandler = null)
         {
-            return source.Process(rectangle, new BlackWhite());
+            BlackWhite processor = new BlackWhite();
+            processor.OnProgress += progressHandler;
+
+            try
+            {
+                return source.Process(rectangle, processor);
+            }
+            finally
+            {
+                processor.OnProgress -= progressHandler;
+            }
         }
 
         /// <summary>
@@ -101,10 +148,11 @@ namespace ImageProcessor.Filters
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="radius">The 'radius' value representing the size of the area to sample.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image BoxBlur(this Image source, int radius = 7)
+        public static Image BoxBlur(this Image source, int radius = 7, ProgressEventHandler progressHandler = null)
         {
-            return BoxBlur(source, radius, source.Bounds);
+            return BoxBlur(source, radius, source.Bounds, progressHandler);
         }
 
         /// <summary>
@@ -115,10 +163,21 @@ namespace ImageProcessor.Filters
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image BoxBlur(this Image source, int radius, Rectangle rectangle)
+        public static Image BoxBlur(this Image source, int radius, Rectangle rectangle, ProgressEventHandler progressHandler = null)
         {
-            return source.Process(rectangle, new BoxBlur(radius));
+            BoxBlur processor = new BoxBlur(radius);
+            processor.OnProgress += progressHandler;
+
+            try
+            {
+                return source.Process(rectangle, processor);
+            }
+            finally
+            {
+                processor.OnProgress -= progressHandler;
+            }
         }
 
         /// <summary>
@@ -126,10 +185,11 @@ namespace ImageProcessor.Filters
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="amount">The new brightness of the image. Must be between -100 and 100.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Brightness(this Image source, int amount)
+        public static Image Brightness(this Image source, int amount, ProgressEventHandler progressHandler = null)
         {
-            return Brightness(source, amount, source.Bounds);
+            return Brightness(source, amount, source.Bounds, progressHandler);
         }
 
         /// <summary>
@@ -140,10 +200,21 @@ namespace ImageProcessor.Filters
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Brightness(this Image source, int amount, Rectangle rectangle)
+        public static Image Brightness(this Image source, int amount, Rectangle rectangle, ProgressEventHandler progressHandler = null)
         {
-            return source.Process(rectangle, new Brightness(amount));
+            Brightness processor = new Brightness(amount);
+            processor.OnProgress += progressHandler;
+
+            try
+            {
+                return source.Process(rectangle, processor);
+            }
+            finally
+            {
+                processor.OnProgress -= progressHandler;
+            }
         }
 
         /// <summary>
@@ -151,10 +222,11 @@ namespace ImageProcessor.Filters
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="amount">The new contrast of the image. Must be between -100 and 100.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Contrast(this Image source, int amount)
+        public static Image Contrast(this Image source, int amount, ProgressEventHandler progressHandler = null)
         {
-            return Contrast(source, amount, source.Bounds);
+            return Contrast(source, amount, source.Bounds, progressHandler);
         }
 
         /// <summary>
@@ -165,10 +237,21 @@ namespace ImageProcessor.Filters
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Contrast(this Image source, int amount, Rectangle rectangle)
+        public static Image Contrast(this Image source, int amount, Rectangle rectangle, ProgressEventHandler progressHandler = null)
         {
-            return source.Process(rectangle, new Contrast(amount));
+            Contrast processor = new Contrast(amount);
+            processor.OnProgress += progressHandler;
+
+            try
+            {
+                return source.Process(rectangle, processor);
+            }
+            finally
+            {
+                processor.OnProgress -= progressHandler;
+            }
         }
 
         /// <summary>
@@ -176,10 +259,11 @@ namespace ImageProcessor.Filters
         /// operating in greyscale mode.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image DetectEdges(this Image source)
+        public static Image DetectEdges(this Image source, ProgressEventHandler progressHandler = null)
         {
-            return DetectEdges(source, source.Bounds, new Sobel { Greyscale = true });
+            return DetectEdges(source, source.Bounds, new Sobel { Greyscale = true }, progressHandler);
         }
 
         /// <summary>
@@ -187,10 +271,11 @@ namespace ImageProcessor.Filters
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="filter">The filter for detecting edges.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image DetectEdges(this Image source, IEdgeDetectorFilter filter)
+        public static Image DetectEdges(this Image source, IEdgeDetectorFilter filter, ProgressEventHandler progressHandler = null)
         {
-            return DetectEdges(source, source.Bounds, filter);
+            return DetectEdges(source, source.Bounds, filter, progressHandler);
         }
 
         /// <summary>
@@ -201,10 +286,20 @@ namespace ImageProcessor.Filters
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <param name="filter">The filter for detecting edges.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image DetectEdges(this Image source, Rectangle rectangle, IEdgeDetectorFilter filter)
+        public static Image DetectEdges(this Image source, Rectangle rectangle, IEdgeDetectorFilter filter, ProgressEventHandler progressHandler = null)
         {
-            return source.Process(rectangle, filter);
+            filter.OnProgress += progressHandler;
+
+            try
+            {
+                return source.Process(rectangle, filter);
+            }
+            finally
+            {
+                filter.OnProgress -= progressHandler;
+            }
         }
 
         /// <summary>
@@ -212,10 +307,11 @@ namespace ImageProcessor.Filters
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="mode">The formula to apply to perform the operation.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Greyscale(this Image source, GreyscaleMode mode = GreyscaleMode.Bt709)
+        public static Image Greyscale(this Image source, GreyscaleMode mode = GreyscaleMode.Bt709, ProgressEventHandler progressHandler = null)
         {
-            return Greyscale(source, source.Bounds, mode);
+            return Greyscale(source, source.Bounds, mode, progressHandler);
         }
 
         /// <summary>
@@ -226,12 +322,24 @@ namespace ImageProcessor.Filters
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <param name="mode">The formula to apply to perform the operation.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Greyscale(this Image source, Rectangle rectangle, GreyscaleMode mode = GreyscaleMode.Bt709)
+        public static Image Greyscale(this Image source, Rectangle rectangle, GreyscaleMode mode = GreyscaleMode.Bt709, ProgressEventHandler progressHandler = null)
         {
-            return mode == GreyscaleMode.Bt709
-                ? source.Process(rectangle, new GreyscaleBt709())
-                : source.Process(rectangle, new GreyscaleBt601());
+            IImageProcessor processor = mode == GreyscaleMode.Bt709
+                ? (IImageProcessor)new GreyscaleBt709()
+                : new GreyscaleBt601();
+
+            processor.OnProgress += progressHandler;
+
+            try
+            {
+                return source.Process(rectangle, processor);
+            }
+            finally
+            {
+                processor.OnProgress -= progressHandler;
+            }
         }
 
         /// <summary>
@@ -239,10 +347,11 @@ namespace ImageProcessor.Filters
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="sigma">The 'sigma' value representing the weight of the blur.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image GuassianBlur(this Image source, float sigma = 3f)
+        public static Image GuassianBlur(this Image source, float sigma = 3f, ProgressEventHandler progressHandler = null)
         {
-            return GuassianBlur(source, sigma, source.Bounds);
+            return GuassianBlur(source, sigma, source.Bounds, progressHandler);
         }
 
         /// <summary>
@@ -253,10 +362,21 @@ namespace ImageProcessor.Filters
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image GuassianBlur(this Image source, float sigma, Rectangle rectangle)
+        public static Image GuassianBlur(this Image source, float sigma, Rectangle rectangle, ProgressEventHandler progressHandler = null)
         {
-            return source.Process(rectangle, new GuassianBlur(sigma));
+            GuassianBlur processor = new GuassianBlur(sigma);
+            processor.OnProgress += progressHandler;
+
+            try
+            {
+                return source.Process(rectangle, processor);
+            }
+            finally
+            {
+                processor.OnProgress -= progressHandler;
+            }
         }
 
         /// <summary>
@@ -264,10 +384,11 @@ namespace ImageProcessor.Filters
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="sigma">The 'sigma' value representing the weight of the blur.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image GuassianSharpen(this Image source, float sigma = 3f)
+        public static Image GuassianSharpen(this Image source, float sigma = 3f, ProgressEventHandler progressHandler = null)
         {
-            return GuassianSharpen(source, sigma, source.Bounds);
+            return GuassianSharpen(source, sigma, source.Bounds, progressHandler);
         }
 
         /// <summary>
@@ -278,10 +399,21 @@ namespace ImageProcessor.Filters
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image GuassianSharpen(this Image source, float sigma, Rectangle rectangle)
+        public static Image GuassianSharpen(this Image source, float sigma, Rectangle rectangle, ProgressEventHandler progressHandler = null)
         {
-            return source.Process(rectangle, new GuassianSharpen(sigma));
+            GuassianSharpen processor = new GuassianSharpen(sigma);
+            processor.OnProgress += progressHandler;
+
+            try
+            {
+                return source.Process(rectangle, processor);
+            }
+            finally
+            {
+                processor.OnProgress -= progressHandler;
+            }
         }
 
         /// <summary>
@@ -289,10 +421,11 @@ namespace ImageProcessor.Filters
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="degrees">The angle in degrees to adjust the image.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Hue(this Image source, float degrees)
+        public static Image Hue(this Image source, float degrees, ProgressEventHandler progressHandler = null)
         {
-            return Hue(source, degrees, source.Bounds);
+            return Hue(source, degrees, source.Bounds, progressHandler);
         }
 
         /// <summary>
@@ -303,20 +436,32 @@ namespace ImageProcessor.Filters
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Hue(this Image source, float degrees, Rectangle rectangle)
+        public static Image Hue(this Image source, float degrees, Rectangle rectangle, ProgressEventHandler progressHandler = null)
         {
-            return source.Process(rectangle, new Hue(degrees));
+            Hue processor = new Hue(degrees);
+            processor.OnProgress += progressHandler;
+
+            try
+            {
+                return source.Process(rectangle, processor);
+            }
+            finally
+            {
+                processor.OnProgress -= progressHandler;
+            }
         }
 
         /// <summary>
         /// Inverts the colors of the image.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Invert(this Image source)
+        public static Image Invert(this Image source, ProgressEventHandler progressHandler = null)
         {
-            return Invert(source, source.Bounds);
+            return Invert(source, source.Bounds, progressHandler);
         }
 
         /// <summary>
@@ -326,20 +471,32 @@ namespace ImageProcessor.Filters
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Invert(this Image source, Rectangle rectangle)
+        public static Image Invert(this Image source, Rectangle rectangle, ProgressEventHandler progressHandler = null)
         {
-            return source.Process(rectangle, new Invert());
+            Invert processor = new Invert();
+            processor.OnProgress += progressHandler;
+
+            try
+            {
+                return source.Process(rectangle, processor);
+            }
+            finally
+            {
+                processor.OnProgress -= progressHandler;
+            }
         }
 
         /// <summary>
         /// Alters the colors of the image recreating an old Kodachrome camera effect.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Kodachrome(this Image source)
+        public static Image Kodachrome(this Image source, ProgressEventHandler progressHandler = null)
         {
-            return Kodachrome(source, source.Bounds);
+            return Kodachrome(source, source.Bounds, progressHandler);
         }
 
         /// <summary>
@@ -349,20 +506,32 @@ namespace ImageProcessor.Filters
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Kodachrome(this Image source, Rectangle rectangle)
+        public static Image Kodachrome(this Image source, Rectangle rectangle, ProgressEventHandler progressHandler = null)
         {
-            return source.Process(rectangle, new Kodachrome());
+            Kodachrome processor = new Kodachrome();
+            processor.OnProgress += progressHandler;
+
+            try
+            {
+                return source.Process(rectangle, processor);
+            }
+            finally
+            {
+                processor.OnProgress -= progressHandler;
+            }
         }
 
         /// <summary>
         /// Alters the colors of the image recreating an old Lomograph camera effect.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Lomograph(this Image source)
+        public static Image Lomograph(this Image source, ProgressEventHandler progressHandler = null)
         {
-            return Lomograph(source, source.Bounds);
+            return Lomograph(source, source.Bounds, progressHandler);
         }
 
         /// <summary>
@@ -372,20 +541,32 @@ namespace ImageProcessor.Filters
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Lomograph(this Image source, Rectangle rectangle)
+        public static Image Lomograph(this Image source, Rectangle rectangle, ProgressEventHandler progressHandler = null)
         {
-            return source.Process(rectangle, new Lomograph());
+            Lomograph processor = new Lomograph();
+            processor.OnProgress += progressHandler;
+
+            try
+            {
+                return source.Process(rectangle, processor);
+            }
+            finally
+            {
+                processor.OnProgress -= progressHandler;
+            }
         }
 
         /// <summary>
         /// Alters the colors of the image recreating an old Polaroid camera effect.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Polaroid(this Image source)
+        public static Image Polaroid(this Image source, ProgressEventHandler progressHandler = null)
         {
-            return Polaroid(source, source.Bounds);
+            return Polaroid(source, source.Bounds, progressHandler);
         }
 
         /// <summary>
@@ -395,10 +576,21 @@ namespace ImageProcessor.Filters
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Polaroid(this Image source, Rectangle rectangle)
+        public static Image Polaroid(this Image source, Rectangle rectangle, ProgressEventHandler progressHandler = null)
         {
-            return source.Process(rectangle, new Polaroid());
+            Polaroid processor = new Polaroid();
+            processor.OnProgress += progressHandler;
+
+            try
+            {
+                return source.Process(rectangle, processor);
+            }
+            finally
+            {
+                processor.OnProgress -= progressHandler;
+            }
         }
 
         /// <summary>
@@ -406,10 +598,11 @@ namespace ImageProcessor.Filters
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="size">The size of the pixels.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Pixelate(this Image source, int size = 4)
+        public static Image Pixelate(this Image source, int size = 4, ProgressEventHandler progressHandler = null)
         {
-            return source.Process(source.Bounds, new Pixelate(size));
+            return Pixelate(source, size, source.Bounds, progressHandler);
         }
 
         /// <summary>
@@ -420,10 +613,21 @@ namespace ImageProcessor.Filters
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Pixelate(this Image source, int size, Rectangle rectangle)
+        public static Image Pixelate(this Image source, int size, Rectangle rectangle, ProgressEventHandler progressHandler = null)
         {
-            return source.Process(rectangle, new Pixelate(size));
+            Pixelate processor = new Pixelate(size);
+            processor.OnProgress += progressHandler;
+
+            try
+            {
+                return source.Process(rectangle, processor);
+            }
+            finally
+            {
+                processor.OnProgress -= progressHandler;
+            }
         }
 
         /// <summary>
@@ -431,10 +635,11 @@ namespace ImageProcessor.Filters
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="amount">The new saturation of the image. Must be between -100 and 100.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Saturation(this Image source, int amount)
+        public static Image Saturation(this Image source, int amount, ProgressEventHandler progressHandler = null)
         {
-            return Saturation(source, amount, source.Bounds);
+            return Saturation(source, amount, source.Bounds, progressHandler);
         }
 
         /// <summary>
@@ -445,20 +650,32 @@ namespace ImageProcessor.Filters
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Saturation(this Image source, int amount, Rectangle rectangle)
+        public static Image Saturation(this Image source, int amount, Rectangle rectangle, ProgressEventHandler progressHandler = null)
         {
-            return source.Process(rectangle, new Saturation(amount));
+            Saturation processor = new Saturation(amount);
+            processor.OnProgress += progressHandler;
+
+            try
+            {
+                return source.Process(rectangle, processor);
+            }
+            finally
+            {
+                processor.OnProgress -= progressHandler;
+            }
         }
 
         /// <summary>
         /// Applies sepia toning to the image.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Sepia(this Image source)
+        public static Image Sepia(this Image source, ProgressEventHandler progressHandler = null)
         {
-            return Sepia(source, source.Bounds);
+            return Sepia(source, source.Bounds, progressHandler);
         }
 
         /// <summary>
@@ -468,10 +685,21 @@ namespace ImageProcessor.Filters
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Sepia(this Image source, Rectangle rectangle)
+        public static Image Sepia(this Image source, Rectangle rectangle, ProgressEventHandler progressHandler = null)
         {
-            return source.Process(rectangle, new Sepia());
+            Sepia processor = new Sepia();
+            processor.OnProgress += progressHandler;
+
+            try
+            {
+                return source.Process(rectangle, processor);
+            }
+            finally
+            {
+                processor.OnProgress -= progressHandler;
+            }
         }
     }
 }

@@ -65,12 +65,19 @@ namespace ImageProcessor.Tests
                     string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
                     using (FileStream output = File.OpenWrite($"TestOutput/Filter/{ Path.GetFileName(filename) }"))
                     {
+                        processor.OnProgress += ProgressUpdate;
                         image.Process(processor).Save(output);
+                        processor.OnProgress -= ProgressUpdate;
                     }
 
                     Trace.WriteLine($"{ name }: { watch.ElapsedMilliseconds}ms");
                 }
             }
+        }
+
+        private void ProgressUpdate(object sender, ProgressEventArgs e)
+        {
+            Assert.InRange(e.numRowsProcessed, 1, e.totalRows);
         }
     }
 }

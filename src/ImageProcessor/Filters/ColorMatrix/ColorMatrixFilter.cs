@@ -39,6 +39,7 @@ namespace ImageProcessor.Filters
                             {
                                 target[x, y] = this.ApplyMatrix(source[x, y], matrix);
                             }
+                            this.OnRowProcessed();
                         }
                     });
         }

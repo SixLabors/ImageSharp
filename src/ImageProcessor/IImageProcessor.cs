@@ -5,17 +5,11 @@
 
 namespace ImageProcessor
 {
-    public class ProgressEventArgs : System.EventArgs
-    {
-        public int numRowsProcessed;
-        public int totalRows;
-    }
-
     /// <summary>
-    /// A delegate which is called as progress is made processing the image.
+    /// A delegate which is called as progress is made processing an image.
     /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="e"></param>
+    /// <param name="sender">The source of the event.</param>
+    /// <param name="e">An object that contains the event data.</param>
     public delegate void ProgressEventHandler(object sender, ProgressEventArgs e);
 
     /// <summary>

@@ -47,8 +47,9 @@ namespace ImageProcessor.Samplers
                 source = source.Resize(sourceRectangle.Width, sourceRectangle.Height);
             }
 
-            var processor = new Crop();
+            Crop processor = new Crop();
             processor.OnProgress += progressHandler;
+
             try
             {
                 return source.Process(width, height, sourceRectangle, new Rectangle(0, 0, width, height), processor);
@@ -68,8 +69,9 @@ namespace ImageProcessor.Samplers
         /// <returns>The <see cref="Image"/></returns>
         public static Image EntropyCrop(this Image source, float threshold = .5f, ProgressEventHandler progressHandler = null)
         {
-            var processor = new EntropyCrop(threshold);
+            EntropyCrop processor = new EntropyCrop(threshold);
             processor.OnProgress += progressHandler;
+
             try
             {
                 return source.Process(source.Width, source.Height, source.Bounds, source.Bounds, processor);
@@ -135,8 +137,9 @@ namespace ImageProcessor.Samplers
                 height = source.Height * width / source.Width;
             }
 
-            var processor = new Resize(sampler);
+            Resize processor = new Resize(sampler);
             processor.OnProgress += progressHandler;
+
             try
             {
                 return source.Process(width, height, sourceRectangle, new Rectangle(0, 0, width, height), processor);
@@ -169,8 +172,9 @@ namespace ImageProcessor.Samplers
         /// <returns>The <see cref="Image"/></returns>
         public static Image Rotate(this Image source, float degrees, IResampler sampler, ProgressEventHandler progressHandler = null)
         {
-            var processor = new Rotate(sampler) { Angle = degrees };
+            Rotate processor = new Rotate(sampler) { Angle = degrees };
             processor.OnProgress += progressHandler;
+
             try
             {
                 return source.Process(source.Width, source.Height, source.Bounds, source.Bounds, processor);
@@ -191,8 +195,9 @@ namespace ImageProcessor.Samplers
         /// <returns>The <see cref="Image"/></returns>
         public static Image RotateFlip(this Image source, RotateType rotateType, FlipType flipType, ProgressEventHandler progressHandler = null)
         {
-            var processor = new RotateFlip(rotateType, flipType);
+            RotateFlip processor = new RotateFlip(rotateType, flipType);
             processor.OnProgress += progressHandler;
+
             try
             {
                 return source.Process(source.Width, source.Height, source.Bounds, source.Bounds, processor);

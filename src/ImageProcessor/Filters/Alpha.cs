@@ -55,6 +55,7 @@ namespace ImageProcessor.Filters
                                 color *= alphaVector;
                                 target[x, y] = Color.FromNonPremultiplied(new Color(color));
                             }
+                            this.OnRowProcessed();
                         }
                     });
         }

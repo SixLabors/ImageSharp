@@ -32,24 +32,6 @@ namespace ImageProcessor
         /// </summary>
         private int totalRows;
 
-        /// <summary>
-        /// Must be called by derived classes after processing a single row.
-        /// </summary>
-        protected void OnRowProcessed()
-        {
-            if(this.OnProgress != null)
-            {
-                int currThreadNumRows = Interlocked.Add(ref this.numRowsProcessed, 1);
-
-                // Multi-pass filters process multiple times more rows than totalRows, so update totalRows on the fly
-                if (currThreadNumRows > this.totalRows)
-                    this.totalRows = currThreadNumRows;
-
-                // Report progress. This may be on the client's thread, or on a Task library thread.
-                this.OnProgress(this, new ProgressEventArgs { numRowsProcessed = currThreadNumRows, totalRows = this.totalRows });
-            }
-        }
-
         /// <inheritdoc/>
         public void Apply(ImageBase target, ImageBase source, Rectangle sourceRectangle)
         {
@@ -190,6 +172,26 @@ namespace ImageProcessor
         /// </param>
         protected virtual void AfterApply(ImageBase source, ImageBase target, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
+        }
+
+        /// <summary>
+        /// Must be called by derived classes after processing a single row.
+        /// </summary>
+        protected void OnRowProcessed()
+        {
+            if (this.OnProgress != null)
+            {
+                int currThreadNumRows = Interlocked.Add(ref this.numRowsProcessed, 1);
+
+                // Multi-pass filters process multiple times more rows than totalRows, so update totalRows on the fly
+                if (currThreadNumRows > this.totalRows)
+                {
+                    this.totalRows = currThreadNumRows;
+                }
+
+                // Report progress. This may be on the client's thread, or on a Task library thread.
+                this.OnProgress(this, new ProgressEventArgs { RowsProcessed = currThreadNumRows, TotalRows = this.totalRows });
+            }
         }
     }
 }

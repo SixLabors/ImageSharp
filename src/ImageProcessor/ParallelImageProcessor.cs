@@ -6,6 +6,7 @@
 namespace ImageProcessor
 {
     using System;
+    using System.Threading;
     using System.Threading.Tasks;
 
     /// <summary>
@@ -13,10 +14,41 @@ namespace ImageProcessor
     /// </summary>
     public abstract class ParallelImageProcessor : IImageProcessor
     {
+        /// <inheritdoc/>
+        public event ProgressEventHandler OnProgress;
+
         /// <summary>
         /// Gets or sets the count of workers to run the process in parallel.
         /// </summary>
         public virtual int Parallelism { get; set; } = Environment.ProcessorCount * 2;
+
+        /// <summary>
+        /// The number of rows processed by a derived class.
+        /// </summary>
+        private int numRowsProcessed;
+
+        /// <summary>
+        /// The total number of rows that will be processed by a derived class.
+        /// </summary>
+        private int totalRows;
+
+        /// <summary>
+        /// Must be called by derived classes after processing a single row.
+        /// </summary>
+        protected void OnRowProcessed()
+        {
+            if(this.OnProgress != null)
+            {
+                int currThreadNumRows = Interlocked.Add(ref this.numRowsProcessed, 1);
+
+                // Multi-pass filters process multiple times more rows than totalRows, so update totalRows on the fly
+                if (currThreadNumRows > this.totalRows)
+                    this.totalRows = currThreadNumRows;
+
+                // Report progress. This may be on the client's thread, or on a Task library thread.
+                this.OnProgress(this, new ProgressEventArgs { numRowsProcessed = currThreadNumRows, totalRows = this.totalRows });
+            }
+        }
 
         /// <inheritdoc/>
         public void Apply(ImageBase target, ImageBase source, Rectangle sourceRectangle)
@@ -25,6 +57,9 @@ namespace ImageProcessor
             ImageFrame frame = source as ImageFrame;
             Image temp = frame != null ? new Image(frame) : new Image((Image)source);
             this.OnApply(temp, target, target.Bounds, sourceRectangle);
+
+            this.numRowsProcessed = 0;
+            this.totalRows = sourceRectangle.Height;
 
             if (this.Parallelism > 1)
             {
@@ -72,6 +107,8 @@ namespace ImageProcessor
             this.OnApply(temp, target, target.Bounds, sourceRectangle);
 
             targetRectangle = target.Bounds;
+            this.numRowsProcessed = 0;
+            this.totalRows = targetRectangle.Bottom;
 
             if (this.Parallelism > 1)
             {

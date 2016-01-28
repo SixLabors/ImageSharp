@@ -6,10 +6,10 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("ImageProcessorCore.Tests")]
-[assembly: AssemblyDescription("A library for on-the-fly processing of image files written in C#")]
+[assembly: AssemblyDescription("A cross-platform library for processing of image files written in C#")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("ImageProcessorCore")]
+[assembly: AssemblyProduct("ImageProcessorCore.Tests")]
 [assembly: AssemblyCopyright("Copyright © James Jackson-South and contributors.")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]

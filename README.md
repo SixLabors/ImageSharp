@@ -1,6 +1,6 @@
 # ImageProcessor
 
-**This branch contains the new cross platform version of ImageProcessor**.
+## This branch contains the new cross platform version ImageProcessorCore.
 
 This is a complete rewrite from the ground up to allow the processing of images without the use of `System.Drawing` using a cross-platform class library. It's still in early stages but progress has been pretty quick.
 
@@ -9,11 +9,7 @@ This is a complete rewrite from the ground up to allow the processing of images 
 
 ###Why am I writing this?
 
-With NETCore there is currently no version of `System.Drawing` to allow continued progress of the existing ImageProcessor library. Progress developing a cross-platform update are restricted to the [CoreFXLab repo](https://github.com/dotnet/corefxlab/tree/master/src/System.Drawing.Graphics) where progress seems to be very slow.
-
-###Is this wise?
-
-Honestly... I don't know. I could be writing code that may be suddenly obsolete. There has been little [feedback](https://github.com/dotnet/corefxlab/issues/86#issuecomment-139930600) on questions I've asked but it's a nice learning process if anything and I will definitely be releasing the code for consumption.
+With NETCore there is currently no version of `System.Drawing` to allow continued progress of the existing ImageProcessor library. 
 
 ### Installation
 At present the code is pre-release but when ready it will be available on [Nuget](http://www.nuget.org). 
@@ -130,7 +126,7 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
 
 With this version the API will change dramatically. Without the constraints of `System.Drawing` I have been able to develop something much more flexible, easier to code against, and much, much less prone to memory leaks. Gone are using image classes which implements `IDisposable`, Gone are system wide proces locks with Images and processors thread safe usable in parallel processing utilizing all the availables cores. 
 
-Image methods are also fluent which allow chaining much like the `ImageFactory` class in V2 and below.
+Image methods are also fluent which allow chaining much like the `ImageFactory` class in the Framework version.
 
 Here's an example of the code required to resize an image using the default Robidoux resampler then turn the colors into their greyscale equivalent using the BT709 standard matrix.
 

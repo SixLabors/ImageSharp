@@ -3,7 +3,6 @@ var semver = require('semver');
 
 var file = '../src/imageprocessor/project.json';
 var buildVersion = process.env.APPVEYOR_BUILD_VERSION.substring(1);
-//var buildVersion = '3.0.0.23';
 
 var findPoint       = buildVersion.lastIndexOf(".");
 var basePackageVer  = buildVersion.substring(0, findPoint);

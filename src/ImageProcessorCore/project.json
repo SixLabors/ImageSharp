@@ -1,6 +1,7 @@
 {
-  "version": "3.0.0-*",
-  "description": "ImageProcessorCore",
+  "version": "1.0.0-*",
+  "title": "ImageProcessorCore",
+  "description": "A cross-platform library for processing of image files written in C#",
   "authors": [
     "James Jackson-South and contributors"
   ],

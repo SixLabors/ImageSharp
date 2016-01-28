@@ -1,10 +1,10 @@
 # ImageProcessor
 
-## This branch contains the new cross platform version ImageProcessorCore.
+## This branch contains the new cross platform version: ImageProcessorCore.
 
 This is a complete rewrite from the ground up to allow the processing of images without the use of `System.Drawing` using a cross-platform class library. It's still in early stages but progress has been pretty quick.
 
-[![Build status](https://ci.appveyor.com/api/projects/status/8ypr7527dnao04yr/branch/V3?svg=true)](https://ci.appveyor.com/project/JamesSouth/imageprocessor/branch/V3)
+[![Build status](https://ci.appveyor.com/api/projects/status/8ypr7527dnao04yr/branch/Core?svg=true)](https://ci.appveyor.com/project/JamesSouth/imageprocessor/branch/Core)
 [![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/JimBobSquarePants/ImageProcessor?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 ###Why am I writing this?
@@ -20,7 +20,7 @@ We already have a [MyGet package repository](https://www.myget.org/F/imageproces
 
 ### Manual build
 
-If you prefer, you can compile ImageProcessor yourself (please do and help!), you'll need:
+If you prefer, you can compile ImageProcessorCore yourself (please do and help!), you'll need:
 
 - Visual Studio 2015 (or above)
 - The [Windows 10 development tools](https://dev.windows.com/en-us/downloads) - Click `Get Visual Studio Community`.

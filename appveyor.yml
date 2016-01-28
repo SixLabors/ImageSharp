@@ -1,4 +1,4 @@
-version: v3.0.0.{build}
+version: v1.0.0.{build}
 os: Visual Studio 2015
 
 install:
@@ -8,8 +8,8 @@ install:
 assembly_info:
   patch: true
   file: '**\AssemblyInfo.*'
-  assembly_version: '3.0.0.{build}'
-  assembly_file_version: '3.0.0.{build}'
+  assembly_version: '1.0.0.{build}'
+  assembly_file_version: '1.0.0.{build}'
 
 before_build:
 - cmd: >-
@@ -21,9 +21,9 @@ before_build:
 
     dnvm list
 
-    dnu restore src\ImageProcessor
+    dnu restore src\ImageProcessorCore
 
-    dnu restore tests\ImageProcessor.Tests
+    dnu restore tests\ImageProcessorCore.Tests
 
     cd build
 
@@ -35,21 +35,21 @@ before_build:
 
 build_script:
 - cmd: >-
-    dnu build src\ImageProcessor
+    dnu build src\ImageProcessorCore
 
-    dnu build tests\ImageProcessor.Tests
+    dnu build tests\ImageProcessorCore.Tests
 
-    dnu pack src\ImageProcessor --configuration Release --out "artifacts\bin\ImageProcessor"
+    dnu pack src\ImageProcessorCore --configuration Release --out "artifacts\bin\ImageProcessorCore"
 
 test_script:
 - cmd: >-
     dnvm use 1.0.0-rc1-update1 -r coreclr -a x64
 
-    cd tests/ImageProcessor.Tests
+    cd tests/ImageProcessorCore.Tests
 
     dnx test
 artifacts:
-- path: artifacts\bin\ImageProcessor\**\*.nupkg
+- path: artifacts\bin\ImageProcessorCore\**\*.nupkg
 
 deploy:
     # MyGet Deployment for builds & releases

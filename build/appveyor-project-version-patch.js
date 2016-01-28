@@ -1,7 +1,7 @@
 ﻿var jsonfile = require('jsonfile');
 var semver = require('semver');
 
-var file = '../src/imageprocessor/project.json';
+var file = '../src/imageprocessorcore/project.json';
 var buildVersion = process.env.APPVEYOR_BUILD_VERSION.substring(1);
 
 var findPoint       = buildVersion.lastIndexOf(".");

@@ -69,6 +69,7 @@ namespace ImageProcessorCore.Formats
             using (EndianBinaryWriter writer = new EndianBinaryWriter(new BigEndianBitConverter(), stream))
             {
                 this.WriteApplicationHeader(image, writer);
+                this.WriteDct(writer);
             }
         }
 
@@ -83,7 +84,7 @@ namespace ImageProcessorCore.Formats
             double densityY = ((Image)image).VerticalResolution;
 
             // Write the start of image marker. Markers are always prefixed with with 0xff.
-            writer.Write(new byte[] { 0xff, JpegConstants.Markers.SOI });
+            writer.Write(new[] { JpegConstants.Markers.XFF, JpegConstants.Markers.SOI });
 
             // Write the jfif headers
             byte[] jfif = {
@@ -112,9 +113,37 @@ namespace ImageProcessorCore.Formats
             writer.Write(thumbnail);
         }
 
-        private void WriteDCT(ImageBase image, EndianBinaryWriter writer)
+        /// <summary>
+        /// Writes the descrete cosine transform tables.
+        /// </summary>
+        /// <param name="writer">The writer to write to the stream.</param>
+        private void WriteDct(EndianBinaryWriter writer)
         {
+            byte[] dqt = new byte[134];
 
+            // Write the define quantization table marker. Markers are always prefixed with with 0xff.
+            dqt[0] = JpegConstants.Markers.XFF;
+            dqt[0] = JpegConstants.Markers.DQT;
+            dqt[0] = 0x00;
+            dqt[0] = 0x84; // Length
+
+            FDCT fdct = new FDCT(this.quality);
+
+            int offset = 4;
+            for (int i = 0; i < 2; i++)
+            {
+                 dqt[offset++] = (byte)i;
+
+                // TODO: Avoid allocation.
+                int[] tempArray = fdct.Quantum[i];
+
+                for (int j = 0; j < 64; j++)
+                {
+                    dqt[offset++] = (byte)tempArray[ZigZag.ZigZagMap[j]];
+                }
+            }
+
+            writer.Write(dqt);
         }
     }
 }

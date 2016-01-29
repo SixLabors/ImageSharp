@@ -13,6 +13,11 @@
         internal static class Markers
         {
             /// <summary>
+            /// Marker prefix. Next byte is a marker.
+            /// </summary>
+            public const byte XFF = 0xff;
+
+            /// <summary>
             /// Start of Image
             /// </summary>
             public const byte SOI = 0xd8;

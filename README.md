@@ -177,3 +177,14 @@ Please... Spread the word, contribute algorithms, submit performance improvement
 Performance is a biggie, if you know anything about the new vector types and can apply some fancy new stuff with that it would be awesome. 
 
 There's a lot of developers out there who could write this stuff a lot better and faster than I and I would love to see what we collectively can come up with so please, if you can help in any way it would be most welcome and benificial for all.
+
+###The ImageProcessor Team
+
+Grand High Eternal Dictator
+- [James Jackson-South](https://github.com/jimbobsquarepants)
+
+Core Team
+- [Yufeih Huang](https://github.com/yufeih)
+- [Thomas Broust](https://github.com/cosmo0)
+- [Christopher Bauer](https://github.com/christopherbauer)
+- [Jeavon Leopold](https://github.com/jeavon)

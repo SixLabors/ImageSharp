@@ -5,7 +5,71 @@
     /// </summary>
     internal static class JpegConstants
     {
-        public static ushort MaxLength = 65535;
+        /// <summary>
+        /// The maximum allowable length in each dimension of a jpeg image.
+        /// </summary>
+        public const ushort MaxLength = 65535;
+
+        /// <summary>
+        /// Represents high detail chroma horizontal subsampling.
+        /// </summary>
+        public static readonly byte[] ChromaFourFourFourHorizontal = { 1, 1, 1 };
+
+        /// <summary>
+        /// Represents high detail chroma vertical subsampling.
+        /// </summary>
+        public static readonly byte[] ChromaFourFourFourVertical = { 1, 1, 1 };
+
+        /// <summary>
+        /// Represents medium detail chroma horizontal subsampling.
+        /// </summary>
+        public static readonly byte[] ChromaFourTwoTwoHorizontal = { 2, 1, 1 };
+
+        /// <summary>
+        /// Represents medium detail chroma vertical subsampling.
+        /// </summary>
+        public static readonly byte[] ChromaFourTwoTwoVertical = { 1, 1, 1 };
+
+        /// <summary>
+        /// Represents low detail chroma horizontal subsampling.
+        /// </summary>
+        public static readonly byte[] ChromaFourOneOneHorizontal = { 2, 1, 1 };
+
+        /// <summary>
+        /// Represents low detail chroma vertical subsampling.
+        /// </summary>
+        public static readonly byte[] ChromaFourOneOneVertical = { 2, 1, 1 };
+
+        /// <summary>
+        /// Describes component ids for start of frame components.
+        /// </summary>
+        internal static class Components
+        {
+            /// <summary>
+            /// The YCbCr luminance component id.
+            /// </summary>
+            public const byte Y = 1;
+
+            /// <summary>
+            /// The YCbCr chroma component id.
+            /// </summary>
+            public const byte Cb = 2;
+
+            /// <summary>
+            /// The YCbCr chroma component id.
+            /// </summary>
+            public const byte Cr = 3;
+
+            /// <summary>
+            /// The YIQ x coordinate component id.
+            /// </summary>
+            public const byte I = 4;
+
+            /// <summary>
+            /// The YIQ y coordinate component id.
+            /// </summary>
+            public const byte Q = 5;
+        }
 
         /// <summary>
         /// Describes common Jpeg markers

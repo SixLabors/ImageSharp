@@ -258,7 +258,7 @@ namespace ImageProcessorCore.IO
         {
             if (value == null)
             {
-                throw new ArgumentNullException("value");
+                throw new ArgumentNullException(nameof(value));
             }
 
             this.WriteInternal(value, value.Length);
@@ -294,7 +294,7 @@ namespace ImageProcessorCore.IO
         {
             if (value == null)
             {
-                throw new ArgumentNullException("value");
+                throw new ArgumentNullException(nameof(value));
             }
 
             this.CheckDisposed();
@@ -311,7 +311,7 @@ namespace ImageProcessorCore.IO
         {
             if (value == null)
             {
-                throw new ArgumentNullException("value");
+                throw new ArgumentNullException(nameof(value));
             }
 
             this.CheckDisposed();
@@ -331,7 +331,7 @@ namespace ImageProcessorCore.IO
             this.CheckDisposed();
             if (value < 0)
             {
-                throw new ArgumentOutOfRangeException("value", "Value must be greater than or equal to 0.");
+                throw new ArgumentOutOfRangeException(nameof(value), "Value must be greater than or equal to 0.");
             }
 
             int index = 0;

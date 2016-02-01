@@ -9,7 +9,7 @@ namespace ImageProcessorCore.Filters
     using System.Numerics;
 
     /// <summary>
-    /// An <see cref="IImageProcessorCore"/> to change the saturation of an <see cref="Image"/>.
+    /// An <see cref="IImageProcessor"/> to change the saturation of an <see cref="Image"/>.
     /// </summary>
     public class Saturation : ColorMatrixFilter
     {

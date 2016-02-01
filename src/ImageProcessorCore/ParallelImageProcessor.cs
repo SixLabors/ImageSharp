@@ -12,7 +12,7 @@ namespace ImageProcessorCore
     /// <summary>
     /// Allows the application of processors using parallel processing.
     /// </summary>
-    public abstract class ParallelImageProcessorCore : IImageProcessorCore
+    public abstract class ParallelImageProcessorCore : IImageProcessor
     {
         /// <inheritdoc/>
         public event ProgressEventHandler OnProgress;

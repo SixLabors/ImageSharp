@@ -8,6 +8,8 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
+using System.Numerics;
+
 namespace ImageProcessorCore.Tests
 {
     using Xunit;
@@ -76,6 +78,24 @@ namespace ImageProcessorCore.Tests
             Assert.Equal(0, color3.G, 1);
             Assert.Equal(0, color3.B, 3);
             Assert.Equal(1, color3.A, 1);
+
+            Color color4 = new Color(new Vector3(1, .1f, .133f));
+            Assert.Equal(1, color4.R, 1);
+            Assert.Equal(.1f, color4.G, 1);
+            Assert.Equal(.133f, color4.B, 3);
+            Assert.Equal(1, color4.A, 1);
+
+            Color color5 = new Color(new Vector3(1, .1f, .133f), .5f);
+            Assert.Equal(1, color5.R, 1);
+            Assert.Equal(.1f, color5.G, 1);
+            Assert.Equal(.133f, color5.B, 3);
+            Assert.Equal(.5f, color5.A, 1);
+
+            Color color6 = new Color(new Vector4(1, .1f, .133f, .5f));
+            Assert.Equal(1, color5.R, 1);
+            Assert.Equal(.1f, color6.G, 1);
+            Assert.Equal(.133f, color6.B, 3);
+            Assert.Equal(.5f, color6.A, 1);
         }
 
         /// <summary>

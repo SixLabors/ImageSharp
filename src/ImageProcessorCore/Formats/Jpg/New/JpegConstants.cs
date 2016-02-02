@@ -33,12 +33,12 @@
         /// <summary>
         /// Represents low detail chroma horizontal subsampling.
         /// </summary>
-        public static readonly byte[] ChromaFourOneOneHorizontal = { 2, 1, 1 };
+        public static readonly byte[] ChromaFourTwoZeroHorizontal = { 2, 1, 1 };
 
         /// <summary>
         /// Represents low detail chroma vertical subsampling.
         /// </summary>
-        public static readonly byte[] ChromaFourOneOneVertical = { 2, 1, 1 };
+        public static readonly byte[] ChromaFourTwoZeroVertical = { 2, 1, 1 };
 
         /// <summary>
         /// Describes component ids for start of frame components.

@@ -10,7 +10,7 @@
 
     public class SamplerTests : ProcessorTestBase
     {
-        public static readonly TheoryData<string, IResampler> Samplers =
+        public static readonly TheoryData<string, IResampler> ReSamplers =
             new TheoryData<string, IResampler>
             {
                 { "Bicubic", new BicubicResampler() },
@@ -30,6 +30,12 @@
                 //{ "Welch", new WelchResampler() }
             };
 
+        public static readonly TheoryData<string, IImageProcessor> Samplers = new TheoryData<string, IImageProcessor>
+        {
+             { "Resize", new Resize(new BicubicResampler()) },
+             { "Crop", new Crop() }
+        };
+
         public static readonly TheoryData<RotateType, FlipType> RotateFlips = new TheoryData<RotateType, FlipType>
         {
             { RotateType.None, FlipType.Vertical },
@@ -41,6 +47,34 @@
 
         [Theory]
         [MemberData("Samplers")]
+        public void SampleImage(string name, IImageProcessor processor)
+        {
+            if (!Directory.Exists("TestOutput/Sample"))
+            {
+                Directory.CreateDirectory("TestOutput/Sample");
+            }
+
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    Stopwatch watch = Stopwatch.StartNew();
+                    Image image = new Image(stream);
+                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
+                    using (FileStream output = File.OpenWrite($"TestOutput/Sample/{ Path.GetFileName(filename) }"))
+                    {
+                        processor.OnProgress += this.ProgressUpdate;
+                        image.Process(image.Width / 2, image.Height / 2, processor).Save(output);
+                        processor.OnProgress -= this.ProgressUpdate;
+                    }
+
+                    Trace.WriteLine($"{ name }: { watch.ElapsedMilliseconds}ms");
+                }
+            }
+        }
+
+        [Theory]
+        [MemberData("ReSamplers")]
         public void ImageShouldResize(string name, IResampler sampler)
         {
             if (!Directory.Exists("TestOutput/Resize"))
@@ -150,7 +184,7 @@
         }
 
         [Theory]
-        [MemberData("Samplers")]
+        [MemberData("ReSamplers")]
         public void ImageShouldRotate(string name, IResampler sampler)
         {
             if (!Directory.Exists("TestOutput/Rotate"))

@@ -1,4 +1,4 @@
-﻿// <copyright file="ParallelImageProcessorCore.cs" company="James Jackson-South">
+﻿// <copyright file="ParallelImageProcessor.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -12,7 +12,7 @@ namespace ImageProcessorCore
     /// <summary>
     /// Allows the application of processors using parallel processing.
     /// </summary>
-    public abstract class ParallelImageProcessorCore : IImageProcessorCore
+    public abstract class ParallelImageProcessor : IImageProcessor
     {
         /// <inheritdoc/>
         public event ProgressEventHandler OnProgress;
@@ -35,41 +35,49 @@ namespace ImageProcessorCore
         /// <inheritdoc/>
         public void Apply(ImageBase target, ImageBase source, Rectangle sourceRectangle)
         {
-            // We don't want to affect the original source pixels so we make clone here.
-            ImageFrame frame = source as ImageFrame;
-            Image temp = frame != null ? new Image(frame) : new Image((Image)source);
-            this.OnApply(temp, target, target.Bounds, sourceRectangle);
-
-            this.numRowsProcessed = 0;
-            this.totalRows = sourceRectangle.Height;
-
-            if (this.Parallelism > 1)
+            try
             {
-                int partitionCount = this.Parallelism;
+                // We don't want to affect the original source pixels so we make clone here.
+                ImageFrame frame = source as ImageFrame;
+                Image temp = frame != null ? new Image(frame) : new Image((Image)source);
+                this.OnApply(temp, target, target.Bounds, sourceRectangle);
 
-                Task[] tasks = new Task[partitionCount];
+                this.numRowsProcessed = 0;
+                this.totalRows = sourceRectangle.Height;
 
-                for (int p = 0; p < partitionCount; p++)
+                if (this.Parallelism > 1)
                 {
-                    int current = p;
-                    tasks[p] = Task.Run(() =>
-                    {
-                        int batchSize = sourceRectangle.Height / partitionCount;
-                        int yStart = sourceRectangle.Y + (current * batchSize);
-                        int yEnd = current == partitionCount - 1 ? sourceRectangle.Bottom : yStart + batchSize;
+                    int partitionCount = this.Parallelism;
 
-                        this.Apply(target, temp, target.Bounds, sourceRectangle, yStart, yEnd);
-                    });
+                    Task[] tasks = new Task[partitionCount];
+
+                    for (int p = 0; p < partitionCount; p++)
+                    {
+                        int current = p;
+                        tasks[p] = Task.Run(() =>
+                        {
+                            int batchSize = sourceRectangle.Height / partitionCount;
+                            int yStart = sourceRectangle.Y + (current * batchSize);
+                            int yEnd = current == partitionCount - 1 ? sourceRectangle.Bottom : yStart + batchSize;
+
+                            this.Apply(target, temp, target.Bounds, sourceRectangle, yStart, yEnd);
+                        });
+                    }
+
+                    Task.WaitAll(tasks);
+                }
+                else
+                {
+                    this.Apply(target, temp, target.Bounds, sourceRectangle, sourceRectangle.Y, sourceRectangle.Bottom);
                 }
 
-                Task.WaitAll(tasks);
+                this.AfterApply(temp, target, target.Bounds, sourceRectangle);
             }
-            else
+            catch (Exception ex)
             {
-                this.Apply(target, temp, target.Bounds, sourceRectangle, sourceRectangle.Y, sourceRectangle.Bottom);
-            }
 
-            this.AfterApply(temp, target, target.Bounds, sourceRectangle);
+                throw new ImageProcessingException($"An error occured when processing the image using {this.GetType().Name}. See the inner exception for more detail.", ex);
+            }
         }
 
         /// <inheritdoc/>

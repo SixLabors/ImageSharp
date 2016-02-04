@@ -11,7 +11,7 @@ namespace ImageProcessorCore.Filters
     /// <summary>
     /// Sets the background color of the image.
     /// </summary>
-    public class BackgroundColor : ParallelImageProcessorCore
+    public class BackgroundColor : ParallelImageProcessor
     {
         /// <summary>
         /// The epsilon for comparing floating point numbers.

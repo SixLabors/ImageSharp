@@ -85,7 +85,6 @@ namespace ImageProcessorCore
 
                 // Do division of Vector4 instead of each component to utilize SIMD optimizations
                 this.backingVector = new Vector4(r, g, b, a) / 255f;
-
                 this.backingVector = FromNonPremultiplied(this.backingVector, this.A);
 
             }

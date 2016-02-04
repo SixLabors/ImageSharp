@@ -10,7 +10,7 @@ namespace ImageProcessorCore.Filters
     /// <summary>
     /// Defines a filter that uses two one-dimensional matrices to perform two-pass convolution against an image.
     /// </summary>
-    public abstract class Convolution2PassFilter : ParallelImageProcessorCore
+    public abstract class Convolution2PassFilter : ParallelImageProcessor
     {
         /// <summary>
         /// Gets the horizontal gradient operator.

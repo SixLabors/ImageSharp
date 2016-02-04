@@ -10,11 +10,11 @@ namespace ImageProcessorCore.Filters
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageProcessorCore"/> to perform binary threshold filtering against an 
+    /// An <see cref="IImageProcessor"/> to perform binary threshold filtering against an 
     /// <see cref="Image"/>. The image will be converted to greyscale before thresholding 
     /// occurs.
     /// </summary>
-    public class Threshold : ParallelImageProcessorCore
+    public class Threshold : ParallelImageProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Threshold"/> class.

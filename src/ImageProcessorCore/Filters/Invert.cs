@@ -9,9 +9,9 @@ namespace ImageProcessorCore.Filters
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageProcessorCore"/> to invert the colors of an <see cref="Image"/>.
+    /// An <see cref="IImageProcessor"/> to invert the colors of an <see cref="Image"/>.
     /// </summary>
-    public class Invert : ParallelImageProcessorCore
+    public class Invert : ParallelImageProcessor
     {
         /// <inheritdoc/>
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)

@@ -15,7 +15,7 @@ namespace ImageProcessorCore
     /// <summary>
     /// Encapsulates methods to alter the pixels of an image.
     /// </summary>
-    public interface IImageProcessorCore
+    public interface IImageProcessor
     {
         /// <summary>
         /// Event fires when each row of the source image has been processed.

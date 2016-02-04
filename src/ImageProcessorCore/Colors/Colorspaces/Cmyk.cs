@@ -175,10 +175,12 @@ namespace ImageProcessorCore
         /// <inheritdoc/>
         public bool AlmostEquals(Cmyk other, float precision)
         {
-            return Math.Abs(this.C - other.C) < precision
-                && Math.Abs(this.M - other.M) < precision
-                && Math.Abs(this.Y - other.Y) < precision
-                && Math.Abs(this.K - other.K) < precision;
+            Vector4 result = Vector4.Abs(this.backingVector - other.backingVector);
+
+            return result.X < precision
+                && result.Y < precision
+                && result.Z < precision
+                && result.W < precision;
         }
 
         /// <summary>

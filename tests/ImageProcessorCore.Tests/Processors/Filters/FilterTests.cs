@@ -10,7 +10,7 @@ namespace ImageProcessorCore.Tests
 
     public class FilterTests : ProcessorTestBase
     {
-        public static readonly TheoryData<string, IImageProcessorCore> Filters = new TheoryData<string, IImageProcessorCore>
+        public static readonly TheoryData<string, IImageProcessor> Filters = new TheoryData<string, IImageProcessor>
         {
             { "Brightness-50", new Brightness(50) },
             { "Brightness--50", new Brightness(-50) },
@@ -49,7 +49,7 @@ namespace ImageProcessorCore.Tests
 
         [Theory]
         [MemberData("Filters")]
-        public void FilterImage(string name, IImageProcessorCore processor)
+        public void FilterImage(string name, IImageProcessor processor)
         {
             if (!Directory.Exists("TestOutput/Filter"))
             {

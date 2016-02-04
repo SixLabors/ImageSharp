@@ -10,7 +10,7 @@ namespace ImageProcessorCore.Filters
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageProcessorCore"/> to change the contrast of an <see cref="Image"/>.
+    /// An <see cref="IImageProcessor"/> to change the contrast of an <see cref="Image"/>.
     /// </summary>
     public class Contrast : ParallelImageProcessorCore
     {

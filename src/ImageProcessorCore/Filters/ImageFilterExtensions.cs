@@ -326,8 +326,8 @@ namespace ImageProcessorCore.Filters
         /// <returns>The <see cref="Image"/>.</returns>
         public static Image Greyscale(this Image source, Rectangle rectangle, GreyscaleMode mode = GreyscaleMode.Bt709, ProgressEventHandler progressHandler = null)
         {
-            IImageProcessorCore processor = mode == GreyscaleMode.Bt709
-                ? (IImageProcessorCore)new GreyscaleBt709()
+            IImageProcessor processor = mode == GreyscaleMode.Bt709
+                ? (IImageProcessor)new GreyscaleBt709()
                 : new GreyscaleBt601();
 
             processor.OnProgress += progressHandler;

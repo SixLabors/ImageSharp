@@ -31,6 +31,7 @@ namespace ImageProcessorCore.Samplers
                     {
                         target[x, y] = source[x, y];
                     }
+
                     this.OnRowProcessed();
                 }
             });

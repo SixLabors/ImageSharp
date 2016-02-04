@@ -12,7 +12,7 @@ namespace ImageProcessorCore.Filters
     /// <summary>
     /// Creates a glow effect on the image
     /// </summary>
-    public class Glow : ParallelImageProcessorCore
+    public class Glow : ParallelImageProcessor
     {
         /// <summary>
         /// Gets or sets the vignette color to apply.

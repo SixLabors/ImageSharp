@@ -1,4 +1,4 @@
-﻿// <copyright file="ParallelImageProcessorCore.cs" company="James Jackson-South">
+﻿// <copyright file="ParallelImageProcessor.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -12,7 +12,7 @@ namespace ImageProcessorCore
     /// <summary>
     /// Allows the application of processors using parallel processing.
     /// </summary>
-    public abstract class ParallelImageProcessorCore : IImageProcessor
+    public abstract class ParallelImageProcessor : IImageProcessor
     {
         /// <inheritdoc/>
         public event ProgressEventHandler OnProgress;

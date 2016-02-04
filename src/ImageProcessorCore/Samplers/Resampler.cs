@@ -12,7 +12,7 @@ namespace ImageProcessorCore.Samplers
     /// <summary>
     /// Provides methods that allow the resampling of images using various algorithms.
     /// </summary>
-    public abstract class Resampler : ParallelImageProcessorCore
+    public abstract class Resampler : ParallelImageProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Resampler"/> class.

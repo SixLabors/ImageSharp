@@ -10,7 +10,7 @@ namespace ImageProcessorCore.Filters
     /// <summary>
     /// Combines two images together by blending the pixels.
     /// </summary>
-    public class Blend : ParallelImageProcessorCore
+    public class Blend : ParallelImageProcessor
     {
         /// <summary>
         /// The image to blend.

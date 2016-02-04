@@ -12,7 +12,7 @@ namespace ImageProcessorCore.Filters
     /// <summary>
     /// An <see cref="IImageProcessor"/> to invert the colors of an <see cref="Image"/>.
     /// </summary>
-    public class Pixelate : ParallelImageProcessorCore
+    public class Pixelate : ParallelImageProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Pixelate"/> class.

@@ -12,7 +12,7 @@ namespace ImageProcessorCore.Filters
     /// <summary>
     /// An <see cref="IImageProcessor"/> to change the contrast of an <see cref="Image"/>.
     /// </summary>
-    public class Contrast : ParallelImageProcessorCore
+    public class Contrast : ParallelImageProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Contrast"/> class.

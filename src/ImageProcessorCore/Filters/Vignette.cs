@@ -12,7 +12,7 @@ namespace ImageProcessorCore.Filters
     /// <summary>
     /// Creates a vignette effect on the image
     /// </summary>
-    public class Vignette : ParallelImageProcessorCore
+    public class Vignette : ParallelImageProcessor
     {
         /// <summary>
         /// Gets or sets the vignette color to apply.

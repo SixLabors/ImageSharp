@@ -14,7 +14,7 @@ namespace ImageProcessorCore.Filters
     /// <see cref="Image"/>. The image will be converted to greyscale before thresholding 
     /// occurs.
     /// </summary>
-    public class Threshold : ParallelImageProcessorCore
+    public class Threshold : ParallelImageProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Threshold"/> class.

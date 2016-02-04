@@ -12,7 +12,7 @@ namespace ImageProcessorCore.Filters
     /// <summary>
     /// An <see cref="IImageProcessor"/> to change the Alpha of an <see cref="Image"/>.
     /// </summary>
-    public class Alpha : ParallelImageProcessorCore
+    public class Alpha : ParallelImageProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Alpha"/> class.

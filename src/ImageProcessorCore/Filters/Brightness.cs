@@ -12,7 +12,7 @@ namespace ImageProcessorCore.Filters
     /// <summary>
     /// An <see cref="IImageProcessor"/> to change the brightness of an <see cref="Image"/>.
     /// </summary>
-    public class Brightness : ParallelImageProcessorCore
+    public class Brightness : ParallelImageProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Brightness"/> class.

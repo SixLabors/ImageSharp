@@ -11,7 +11,7 @@ namespace ImageProcessorCore.Filters
     /// <summary>
     /// The color matrix filter.
     /// </summary>
-    public abstract class ColorMatrixFilter : ParallelImageProcessorCore, IColorMatrixFilter
+    public abstract class ColorMatrixFilter : ParallelImageProcessor, IColorMatrixFilter
     {
         /// <inheritdoc/>
         public abstract Matrix4x4 Matrix { get; }

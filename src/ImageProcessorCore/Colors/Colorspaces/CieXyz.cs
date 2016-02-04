@@ -163,9 +163,11 @@ namespace ImageProcessorCore
         /// <inheritdoc/>
         public bool AlmostEquals(CieXyz other, float precision)
         {
-            return Math.Abs(this.X - other.X) < precision
-                && Math.Abs(this.Y - other.Y) < precision
-                && Math.Abs(this.Z - other.Z) < precision;
+            Vector3 result = Vector3.Abs(this.backingVector - other.backingVector);
+
+            return result.X < precision
+                && result.Y < precision
+                && result.Z < precision;
         }
 
         /// <summary>

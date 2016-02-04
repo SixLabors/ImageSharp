@@ -78,20 +78,24 @@ namespace ImageProcessorCore
 
             if (hex.Length == 8)
             {
-                float r = Convert.ToByte(hex.Substring(2, 2), 16) / 255f;
-                float g = Convert.ToByte(hex.Substring(4, 2), 16) / 255f;
-                float b = Convert.ToByte(hex.Substring(6, 2), 16) / 255f;
-                float a = Convert.ToByte(hex.Substring(0, 2), 16) / 255f;
+                float r = Convert.ToByte(hex.Substring(2, 2), 16);
+                float g = Convert.ToByte(hex.Substring(4, 2), 16);
+                float b = Convert.ToByte(hex.Substring(6, 2), 16);
+                float a = Convert.ToByte(hex.Substring(0, 2), 16);
 
-                this.backingVector = FromNonPremultiplied(new Color(r, g, b, a)).ToVector4();
+                // Do division of Vector4 instead of each component to utilize SIMD optimizations
+                this.backingVector = FromNonPremultiplied(new Vector4(r, g, b, a) / 255f, this.A);
 
             }
             else if (hex.Length == 6)
             {
-                this.R = Convert.ToByte(hex.Substring(0, 2), 16) / 255f;
-                this.G = Convert.ToByte(hex.Substring(2, 2), 16) / 255f;
-                this.B = Convert.ToByte(hex.Substring(4, 2), 16) / 255f;
-                this.A = 1;
+                float r = Convert.ToByte(hex.Substring(0, 2), 16);
+                float g = Convert.ToByte(hex.Substring(2, 2), 16);
+                float b = Convert.ToByte(hex.Substring(4, 2), 16);
+                float a = 255f;
+
+                // Do division of Vector4 instead of each component to utilize SIMD optimizations
+                this.backingVector = new Vector4(r, g, b, a) / 255f;
             }
             else
             {
@@ -99,10 +103,12 @@ namespace ImageProcessorCore
                 string gh = char.ToString(hex[1]);
                 string bh = char.ToString(hex[2]);
 
-                this.B = Convert.ToByte(bh + bh, 16) / 255f;
-                this.G = Convert.ToByte(gh + gh, 16) / 255f;
-                this.R = Convert.ToByte(rh + rh, 16) / 255f;
-                this.A = 1;
+                float r = Convert.ToByte(rh + rh, 16);
+                float g = Convert.ToByte(gh + gh, 16);
+                float b = Convert.ToByte(bh + bh, 16);
+                float a = 255f;
+
+                this.backingVector = new Vector4(r, g, b, a) / 255f;
             }
         }
 
@@ -123,7 +129,7 @@ namespace ImageProcessorCore
         /// </param>
         public Color(Vector3 vector)
         {
-            this.backingVector = new Vector4(vector.X, vector.Y, vector.Z, 1);
+            this.backingVector = new Vector4(vector, 1);
         }
 
         /// <summary>
@@ -135,7 +141,7 @@ namespace ImageProcessorCore
         /// <param name="alpha">The alpha component.</param>
         public Color(Vector3 vector, float alpha)
         {
-            this.backingVector = new Vector4(vector.X, vector.Y, vector.Z, alpha);
+            this.backingVector = new Vector4(vector, alpha);
         }
 
         /// <summary>
@@ -367,8 +373,18 @@ namespace ImageProcessorCore
         /// <returns>The <see cref="Color"/>.</returns>
         public static Color FromNonPremultiplied(Color color)
         {
-            float a = color.A;
-            return new Color(color.backingVector * new Vector4(a, a, a, 1));
+            return new Color(FromNonPremultiplied(color.backingVector, color.A));
+        }
+
+        /// <summary>
+        /// Converts a non-premultiplied alpha Vector4 to a Vector4 that contains premultiplied alpha.
+        /// </summary>
+        /// <param name="vector">The vector to convert.</param>
+        /// <param name="alpha">The alpha to use in conversion.</param>
+        /// <returns>The Vector4 with premultiplied alpha.</returns>
+        private static Vector4 FromNonPremultiplied(Vector4 vector, float alpha)
+        {
+            return vector * new Vector4(alpha, alpha, alpha, 1);
         }
 
         /// <summary>
@@ -443,10 +459,12 @@ namespace ImageProcessorCore
         /// <inheritdoc/>
         public bool AlmostEquals(Color other, float precision)
         {
-            return Math.Abs(this.R - other.R) < precision
-                && Math.Abs(this.G - other.G) < precision
-                && Math.Abs(this.B - other.B) < precision
-                && Math.Abs(this.A - other.A) < precision;
+            Vector4 result = Vector4.Abs(this.backingVector - other.backingVector);
+
+            return result.X < precision
+                && result.Y < precision
+                && result.Z < precision
+                && result.W < precision;
         }
 
         /// <summary>

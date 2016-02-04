@@ -8,7 +8,7 @@ namespace ImageProcessorCore.Filters
     /// <summary>
     /// Provides properties and methods allowing the detection of edges within an image.
     /// </summary>
-    public interface IEdgeDetectorFilter : IImageProcessorCore
+    public interface IEdgeDetectorFilter : IImageProcessor
     {
         /// <summary>
         /// Gets or sets a value indicating whether to convert the

@@ -230,52 +230,45 @@ namespace ImageProcessorCore
         /// </exception>
         private void Load(Stream stream, IList<IImageFormat> formats)
         {
-            try
+            if (!stream.CanRead)
             {
-                if (!stream.CanRead)
-                {
-                    throw new NotSupportedException("Cannot read from the stream.");
-                }
+                throw new NotSupportedException("Cannot read from the stream.");
+            }
 
-                if (!stream.CanSeek)
-                {
-                    throw new NotSupportedException("The stream does not support seeking.");
-                }
+            if (!stream.CanSeek)
+            {
+                throw new NotSupportedException("The stream does not support seeking.");
+            }
 
-                if (formats.Count > 0)
+            if (formats.Count > 0)
+            {
+                int maxHeaderSize = formats.Max(x => x.Decoder.HeaderSize);
+                if (maxHeaderSize > 0)
                 {
-                    int maxHeaderSize = formats.Max(x => x.Decoder.HeaderSize);
-                    if (maxHeaderSize > 0)
+                    byte[] header = new byte[maxHeaderSize];
+
+                    stream.Read(header, 0, maxHeaderSize);
+                    stream.Position = 0;
+
+                    IImageFormat format = formats.FirstOrDefault(x => x.Decoder.IsSupportedFileFormat(header));
+                    if (format != null)
                     {
-                        byte[] header = new byte[maxHeaderSize];
-
-                        stream.Read(header, 0, maxHeaderSize);
-                        stream.Position = 0;
-
-                        IImageFormat format = formats.FirstOrDefault(x => x.Decoder.IsSupportedFileFormat(header));
-                        if (format != null)
-                        {
-                            format.Decoder.Decode(this, stream);
-                            this.CurrentImageFormat = format;
-                            return;
-                        }
+                        format.Decoder.Decode(this, stream);
+                        this.CurrentImageFormat = format;
+                        return;
                     }
                 }
-
-                StringBuilder stringBuilder = new StringBuilder();
-                stringBuilder.AppendLine("Image cannot be loaded. Available formats:");
-
-                foreach (IImageFormat format in formats)
-                {
-                    stringBuilder.AppendLine("-" + format);
-                }
-
-                throw new NotSupportedException(stringBuilder.ToString());
             }
-            finally
+
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.AppendLine("Image cannot be loaded. Available formats:");
+
+            foreach (IImageFormat format in formats)
             {
-                stream.Dispose();
+                stringBuilder.AppendLine("-" + format);
             }
+
+            throw new NotSupportedException(stringBuilder.ToString());
         }
     }
 }

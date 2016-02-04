@@ -55,7 +55,7 @@ namespace ImageProcessorCore
         /// <param name="source">The image this method extends.</param>
         /// <param name="processors">Any processors to apply to the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Process(this Image source, params IImageProcessorCore[] processors)
+        public static Image Process(this Image source, params IImageProcessor[] processors)
         {
             return Process(source, source.Bounds, processors);
         }
@@ -70,10 +70,10 @@ namespace ImageProcessorCore
         /// </param>
         /// <param name="processors">Any processors to apply to the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Process(this Image source, Rectangle sourceRectangle, params IImageProcessorCore[] processors)
+        public static Image Process(this Image source, Rectangle sourceRectangle, params IImageProcessor[] processors)
         {
             // ReSharper disable once LoopCanBeConvertedToQuery
-            foreach (IImageProcessorCore filter in processors)
+            foreach (IImageProcessor filter in processors)
             {
                 source = PerformAction(source, true, (sourceImage, targetImage) => filter.Apply(targetImage, sourceImage, sourceRectangle));
             }
@@ -89,7 +89,7 @@ namespace ImageProcessorCore
         /// <param name="height">The target image height.</param>
         /// <param name="processors">Any processors to apply to the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Process(this Image source, int width, int height, params IImageProcessorCore[] processors)
+        public static Image Process(this Image source, int width, int height, params IImageProcessor[] processors)
         {
             return Process(source, width, height, source.Bounds, default(Rectangle), processors);
         }
@@ -113,10 +113,10 @@ namespace ImageProcessorCore
         /// </param>
         /// <param name="processors">Any processors to apply to the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Process(this Image source, int width, int height, Rectangle sourceRectangle, Rectangle targetRectangle, params IImageProcessorCore[] processors)
+        public static Image Process(this Image source, int width, int height, Rectangle sourceRectangle, Rectangle targetRectangle, params IImageProcessor[] processors)
         {
             // ReSharper disable once LoopCanBeConvertedToQuery
-            foreach (IImageProcessorCore filter in processors)
+            foreach (IImageProcessor filter in processors)
             {
                 source = PerformAction(source, false, (sourceImage, targetImage) => filter.Apply(targetImage, sourceImage, width, height, targetRectangle, sourceRectangle));
             }

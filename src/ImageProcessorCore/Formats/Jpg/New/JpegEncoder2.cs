@@ -287,7 +287,7 @@ namespace ImageProcessorCore.Formats
         /// Writes the Scan header structure
         /// </summary>
         /// <param name="writer">The writer to write to the stream.</param>
-        private void WriteSos(EndianBinaryWriter writer)
+        private void WriteSos(ImageBase image, EndianBinaryWriter writer)
         {
             // Marker
             writer.Write(new[] { JpegConstants.Markers.XFF, JpegConstants.Markers.SOS });
@@ -309,6 +309,19 @@ namespace ImageProcessorCore.Formats
             };
 
             writer.Write(sos);
+
+            // Compress and write the pixels
+            for (int y = 0; y < image.Height; y+=16)
+            {
+                for (int x = 0; x < image.Width; x += 16)
+                {
+                    for (int i = 0; i < 4; i++)
+                    {
+                        var xOffset = (i & 1) * 8;
+                        var yOffset = (i & 2) * 8;
+                    }
+                }
+            }
         }
     }
 }

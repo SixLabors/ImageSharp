@@ -63,7 +63,7 @@
                 }
             }
 
-            // Creating the chrominance matrix
+            // Create the chrominance matrix
             int[] scaledChrom = JpegQuantizationTable
                                   .K2Chrominance
                                   .GetScaledInstance(quality / 100f, true).Table;
@@ -73,7 +73,7 @@
             {
                 for (j = 0; j < 8; j++)
                 {
-                    this.DivisorsChrominance[index] = (double)1.0 / ((double)scaledChrom[index] * aanScaleFactor[i] * aanScaleFactor[j] * (double)8.0);
+                    this.DivisorsChrominance[index] = 1.0 / (scaledChrom[index] * aanScaleFactor[i] * aanScaleFactor[j] * 8.0);
                     index++;
                 }
             }
@@ -91,15 +91,18 @@
             float tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7;
             float tmp10, tmp11, tmp12, tmp13;
             float z1, z2, z3, z4, z5, z11, z13;
-            int i, j;
 
-            for (i = 0; i < 8; i++)
+            for (int i = 0; i < 8; i++)
+            {
+                int j;
                 for (j = 0; j < 8; j++)
+                {
                     output[i, j] = input[i, j] - 128f;
+                }
+            }
 
             // Pass 1: process rows.
-
-            for (i = 0; i < 8; i++)
+            for (int i = 0; i < 8; i++)
             {
                 tmp0 = output[i, 0] + output[i, 7];
                 tmp7 = output[i, 0] - output[i, 7];
@@ -144,8 +147,7 @@
             }
 
             // Pass 2: process columns
-
-            for (i = 0; i < 8; i++)
+            for (int i = 0; i < 8; i++)
             {
                 tmp0 = output[0, i] + output[7, i];
                 tmp7 = output[0, i] - output[7, i];

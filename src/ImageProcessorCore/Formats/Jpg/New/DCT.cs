@@ -175,6 +175,7 @@
                 a50 = matrix[8 * i + 2] - matrix[8 * i + 5];
                 a60 = matrix[8 * i + 1] - matrix[8 * i + 6];
                 a70 = matrix[8 * i] - matrix[8 * i + 7];
+
                 a01 = a00 + a30;
                 a11 = a10 + a20;
                 a21 = a10 - a20;
@@ -210,10 +211,12 @@
                 a50 = matrix[16 + i] - matrix[40 + i];
                 a60 = matrix[8 + i] - matrix[48 + i];
                 a70 = matrix[i] - matrix[56 + i];
+
                 a01 = a00 + a30;
                 a11 = a10 + a20;
                 a21 = a10 - a20;
                 a31 = a00 - a30;
+
                 negA41 = a40 + a50;
                 a51 = a50 + a60;
                 a61 = a60 + a70;
@@ -225,10 +228,12 @@
                 a63 = a61 * A4 - mul5;
                 a54 = a70 + a53;
                 a74 = a70 - a53;
+
                 matrix[i] = a01 + a11;
                 matrix[32 + i] = a01 - a11;
                 matrix[16 + i] = a31 + a23;
                 matrix[48 + i] = a31 - a23;
+
                 matrix[40 + i] = a74 + a43;
                 matrix[8 + i] = a54 + a63;
                 matrix[56 + i] = a54 - a63;

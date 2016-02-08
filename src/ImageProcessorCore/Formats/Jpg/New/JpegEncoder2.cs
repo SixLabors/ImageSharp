@@ -22,6 +22,10 @@ namespace ImageProcessorCore.Formats
         /// </summary>
         private int quality = 100;
 
+        private FDCT fdct;
+
+        private HuffmanTable huffmanTable;
+
         /// <summary>
         /// Gets or sets the quality, that will be used to encode the image. Quality
         /// index must be between 0 and 100 (compression from max to min).
@@ -75,7 +79,9 @@ namespace ImageProcessorCore.Formats
                 this.WriteDct(writer);
                 this.WriteSof(image, writer);
                 this.WriteDht(writer);
-                this.WriteSos(writer);
+                this.WriteSos(image, writer);
+
+                writer.Write(new[] { JpegConstants.Markers.XFF, JpegConstants.Markers.EOI });
             }
         }
 
@@ -133,7 +139,7 @@ namespace ImageProcessorCore.Formats
             dqt[2] = 0x00;
             dqt[3] = 0x84; // Length
 
-            FDCT fdct = new FDCT(this.quality);
+            this.fdct = new FDCT(this.quality);
 
             int offset = 4;
             for (int i = 0; i < 2; i++)
@@ -141,7 +147,7 @@ namespace ImageProcessorCore.Formats
                 dqt[offset++] = (byte)i;
 
                 // TODO: Perf. Split and avoid allocation.
-                int[] tempArray = fdct.Quantum[i];
+                int[] tempArray = this.fdct.Quantum[i];
 
                 for (int j = 0; j < 64; j++)
                 {
@@ -311,15 +317,95 @@ namespace ImageProcessorCore.Formats
             writer.Write(sos);
 
             // Compress and write the pixels
-            for (int y = 0; y < image.Height; y+=16)
+            // This initial setting of minBlockWidth and minBlockHeight is done to
+            // ensure they start with values larger than will actually be the case.
+            int minBlockWidth = ((image.Width % 8 != 0) ? (int)(Math.Floor(image.Width / 8.0) + 1) * 8 : image.Width);
+            int minBlockHeight = ((image.Height % 8 != 0) ? (int)(Math.Floor(image.Height / 8.0) + 1) * 8 : image.Height);
+
+            var yU = new float[64];
+            var cbU = new float[64];
+            var crU = new float[64];
+
+            var dcY = 0;
+            var dcCb = 0;
+            var dcCr = 0;
+
+            float[] dctArray1 = new float[64];
+
+            // TODO: One day make this settable.
+            byte[] horizontalFactors = JpegConstants.ChromaFourFourFourHorizontal;
+            byte[] verticalFactors = JpegConstants.ChromaFourFourFourVertical;
+            byte[] quantizationTableNumber = { 0, 1, 1 };
+            int[] dcValues = new int[3];
+
+            this.huffmanTable = new HuffmanTable(null);
+
+            // TODO: This seems remarkably inefficiant.
+            // For each row
+            for (int y = 0; y < minBlockHeight; y++)
             {
-                for (int x = 0; x < image.Width; x += 16)
+                // For each column
+                for (int x = 0; x < minBlockWidth; x++)
                 {
-                    for (int i = 0; i < 4; i++)
+                    // Convert the 8x8 array to YCbCr
+                    this.RgbToYcbCr(image, yU, cbU, crU, x, y);
+
+                    // For each component
+                    this.CompressPixels(yU, 0, writer, dcValues);
+                    this.CompressPixels(cbU, 1, writer, dcValues);
+                    this.CompressPixels(crU, 2, writer, dcValues);
+                }
+            }
+
+            this.huffmanTable.FlushBuffer(writer);
+        }
+
+
+        private void RgbToYcbCr(ImageBase image, float[] yLum, float[] cb, float[] cr, int x, int y)
+        {
+            for (int a = 0; a < 8; a++)
+            {
+                // set Y value.  check bounds
+                int py = y + a;
+                if (py >= image.Height)
+                {
+                    break;
+                }
+
+                for (int b = 0; b < 8; b++)
+                {
+                    int px = x + b;
+                    if (px >= image.Width)
                     {
-                        var xOffset = (i & 1) * 8;
-                        var yOffset = (i & 2) * 8;
+                        break;
                     }
+
+                    YCbCr color = image[px, py];
+                    yLum[a * 8 + b] = color.Y;
+                    cb[a * 8 + b] = color.Cb;
+                    cr[a * 8 + b] = color.Cr;
+                }
+            }
+        }
+
+        private void CompressPixels(float[] componant, int factor, EndianBinaryWriter writer, int[] dcValues)
+        {
+            byte[] horizontalFactors = JpegConstants.ChromaFourFourFourHorizontal;
+            byte[] verticalFactors = JpegConstants.ChromaFourFourFourVertical;
+            byte[] quantizationTableNumber = { 0, 1, 1 };
+            int[] DCtableNumber = { 0, 1, 1 };
+            int[] ACtableNumber = { 0, 1, 1 };
+
+            for (int i = 0; i < verticalFactors[factor]; i++)
+            {
+                for (int j = 0; j < horizontalFactors[factor]; j++)
+                {
+                    float[] arr = this.fdct.FastFDCT(componant);
+                    int[] arr2 = this.fdct.QuantizeBlock(arr, quantizationTableNumber[factor]);
+                    this.huffmanTable.HuffmanBlockEncoder(writer, arr2, dcValues[factor], DCtableNumber[factor], ACtableNumber[factor]);
+
+                    // TODO. Are we using this?
+                    dcValues[factor] = arr2[0];
                 }
             }
         }

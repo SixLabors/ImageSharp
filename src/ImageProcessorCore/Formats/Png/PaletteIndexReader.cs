@@ -56,9 +56,10 @@ namespace ImageProcessorCore.Formats
                     offset = ((this.row * header.Width) + i) * 4;
                     int pixelOffset = index * 3;
                     
-                    float r = newScanline[pixelOffset] / 255f;
-                    float g = newScanline[pixelOffset + 1] / 255f;
-                    float b = newScanline[pixelOffset + 2] / 255f;
+                    // BUGFIX changed newScanline[] to this.palette[] , 99% sure it was a typo and not intent
+                    float r = this.palette[pixelOffset] / 255f;
+                    float g = this.palette[pixelOffset + 1] / 255f;
+                    float b = this.palette[pixelOffset + 2] / 255f;
                     float a = this.paletteAlpha.Length > index
                                             ? this.paletteAlpha[index] / 255f
                                             : 1;

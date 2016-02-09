@@ -8,6 +8,7 @@ namespace ImageProcessorCore.Formats
     using System;
     using System.IO;
 
+    using ImageProcessorCore.Formats.Jpg.New;
     using ImageProcessorCore.IO;
 
     /// <summary>

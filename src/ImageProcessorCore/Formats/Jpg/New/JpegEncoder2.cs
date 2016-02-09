@@ -76,10 +76,10 @@ namespace ImageProcessorCore.Formats
             using (EndianBinaryWriter writer = new EndianBinaryWriter(new BigEndianBitConverter(), stream))
             {
                 this.WriteApplicationHeader(image, writer);
-                this.WriteDct(writer);
-                this.WriteSof(image, writer);
-                this.WriteDht(writer);
-                this.WriteSos(image, writer);
+                this.WriteDescreteQuantizationTables(writer);
+                this.WriteStartOfFrame(image, writer);
+                this.WriteHuffmanTables(writer);
+                this.WriteStartOfScan(image, writer);
 
                 writer.Write(new[] { JpegConstants.Markers.XFF, JpegConstants.Markers.EOI });
             }
@@ -100,7 +100,7 @@ namespace ImageProcessorCore.Formats
 
             // Write the jfif headers
             byte[] jfif = {
-                    0xff,
+                    JpegConstants.Markers.XFF,
                     JpegConstants.Markers.APP0, // Application Marker
                     0x00,
                     0x10,
@@ -114,9 +114,10 @@ namespace ImageProcessorCore.Formats
                     0x01, // xyunits as dpi
             };
 
+            // No thumbnail
             byte[] thumbnail = {
-                    0x00, // thumbnwidth
-                    0x00  // thumbnheight
+                    0x00, // Thumbnail width
+                    0x00  // Thumbnail height
             };
 
             writer.Write(jfif);
@@ -126,10 +127,10 @@ namespace ImageProcessorCore.Formats
         }
 
         /// <summary>
-        /// Writes the descrete cosine transform tables.
+        /// Writes the descrete quantization tables.
         /// </summary>
         /// <param name="writer">The writer to write to the stream.</param>
-        private void WriteDct(EndianBinaryWriter writer)
+        private void WriteDescreteQuantizationTables(EndianBinaryWriter writer)
         {
             byte[] dqt = new byte[134];
 
@@ -137,7 +138,7 @@ namespace ImageProcessorCore.Formats
             dqt[0] = JpegConstants.Markers.XFF;
             dqt[1] = JpegConstants.Markers.DQT;
             dqt[2] = 0x00;
-            dqt[3] = 0x84; // Length
+            dqt[3] = 0x84; // Length 132
 
             this.fdct = new FDCT(this.quality);
 
@@ -163,7 +164,7 @@ namespace ImageProcessorCore.Formats
         /// </summary>
         /// <param name="image">The image to encode from.</param>
         /// <param name="writer">The writer to write to the stream.</param>
-        private void WriteSof(ImageBase image, EndianBinaryWriter writer)
+        private void WriteStartOfFrame(ImageBase image, EndianBinaryWriter writer)
         {
             byte[] sof = new byte[19];
             sof[0] = JpegConstants.Markers.XFF;
@@ -183,9 +184,9 @@ namespace ImageProcessorCore.Formats
                 JpegConstants.Components.Cr
             };
 
-            // TODO: One day make this settable.
-            byte[] horizontalFactors = JpegConstants.ChromaFourFourFourHorizontal;
-            byte[] verticalFactors = JpegConstants.ChromaFourFourFourVertical;
+            // TODO: This should be an option.
+            byte[] horizontalFactors = JpegConstants.ChromaFourTwoZeroHorizontal;
+            byte[] verticalFactors = JpegConstants.ChromaFourTwoZeroVertical;
 
             byte[] quantizationTableNumber = { 0, 1, 1 };
 
@@ -204,7 +205,7 @@ namespace ImageProcessorCore.Formats
         /// Writes the define huffman tables section.
         /// </summary>
         /// <param name="writer">The writer to write to the stream.</param>
-        private void WriteDht(EndianBinaryWriter writer)
+        private void WriteHuffmanTables(EndianBinaryWriter writer)
         {
             // Marker
             writer.Write(new[] { JpegConstants.Markers.XFF, JpegConstants.Markers.DHT });
@@ -292,8 +293,9 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Writes the Scan header structure
         /// </summary>
+        /// <param name="image">The image to encode from.</param>
         /// <param name="writer">The writer to write to the stream.</param>
-        private void WriteSos(ImageBase image, EndianBinaryWriter writer)
+        private void WriteStartOfScan(ImageBase image, EndianBinaryWriter writer)
         {
             // Marker
             writer.Write(new[] { JpegConstants.Markers.XFF, JpegConstants.Markers.SOS });
@@ -310,42 +312,30 @@ namespace ImageProcessorCore.Formats
                 3, // Component Id Cr
                 0x11, // DC/AC Huffman table 
                 0, // Ss - Start of spectral selection.
-                0x3f, // Se - Ens of spectral selection.
+                0x3f, // Se - End of spectral selection.
                 0 // Ah + Ah (Successive approximation bit position high + low)
             };
 
             writer.Write(sos);
 
             // Compress and write the pixels
-            // This initial setting of minBlockWidth and minBlockHeight is done to
-            // ensure they start with values larger than will actually be the case.
-            int minBlockWidth = ((image.Width % 8 != 0) ? (int)(Math.Floor(image.Width / 8.0) + 1) * 8 : image.Width);
-            int minBlockHeight = ((image.Height % 8 != 0) ? (int)(Math.Floor(image.Height / 8.0) + 1) * 8 : image.Height);
+            // Buffers for each Y'Cb Cr component
+            float[] yU = new float[64];
+            float[] cbU = new float[64];
+            float[] crU = new float[64];
 
-            var yU = new float[64];
-            var cbU = new float[64];
-            var crU = new float[64];
-
-            var dcY = 0;
-            var dcCb = 0;
-            var dcCr = 0;
-
-            float[] dctArray1 = new float[64];
-
-            // TODO: One day make this settable.
-            byte[] horizontalFactors = JpegConstants.ChromaFourFourFourHorizontal;
-            byte[] verticalFactors = JpegConstants.ChromaFourFourFourVertical;
-            byte[] quantizationTableNumber = { 0, 1, 1 };
+            // The descrete cosine values for each componant.
             int[] dcValues = new int[3];
 
+            // TODO: Why null?
             this.huffmanTable = new HuffmanTable(null);
 
-            // TODO: This seems remarkably inefficiant.
+            // TODO: Color output is incorrect after this point. I think I've got my looping all wrong.
             // For each row
-            for (int y = 0; y < minBlockHeight; y++)
+            for (int y = 0; y < image.Height; y += 8)
             {
                 // For each column
-                for (int x = 0; x < minBlockWidth; x++)
+                for (int x = 0; x < image.Width; x += 8)
                 {
                     // Convert the 8x8 array to YCbCr
                     this.RgbToYcbCr(image, yU, cbU, crU, x, y);
@@ -360,14 +350,25 @@ namespace ImageProcessorCore.Formats
             this.huffmanTable.FlushBuffer(writer);
         }
 
-
-        private void RgbToYcbCr(ImageBase image, float[] yLum, float[] cb, float[] cr, int x, int y)
+        /// <summary>
+        /// Converts the pixel block from the RGBA colorspace to YCbCr.
+        /// </summary>
+        /// <param name="image"></param>
+        /// <param name="yComponant">The container to house the Y' luma componant within the block.</param>
+        /// <param name="cbComponant">The container to house the Cb chroma componant within the block.</param>
+        /// <param name="crComponant">The container to house the Cr chroma componant within the block.</param>
+        /// <param name="x">The x-position within the image.</param>
+        /// <param name="y">The y-position within the image.</param>
+        private void RgbToYcbCr(ImageBase image, float[] yComponant, float[] cbComponant, float[] crComponant, int x, int y)
         {
+            int height = image.Height;
+            int width = image.Width;
+
             for (int a = 0; a < 8; a++)
             {
-                // set Y value.  check bounds
+                // set Y value, check bounds
                 int py = y + a;
-                if (py >= image.Height)
+                if (py >= height)
                 {
                     break;
                 }
@@ -375,36 +376,44 @@ namespace ImageProcessorCore.Formats
                 for (int b = 0; b < 8; b++)
                 {
                     int px = x + b;
-                    if (px >= image.Width)
+                    if (px >= width)
                     {
                         break;
                     }
 
                     YCbCr color = image[px, py];
-                    yLum[a * 8 + b] = color.Y;
-                    cb[a * 8 + b] = color.Cb;
-                    cr[a * 8 + b] = color.Cr;
+                    int index = a * 8 + b;
+                    yComponant[index] = color.Y;
+                    cbComponant[index] = color.Cb;
+                    crComponant[index] = color.Cr;
                 }
             }
         }
 
+        /// <summary>
+        /// Compress and encodes the pixels. 
+        /// </summary>
+        /// <param name="componant">The current color component within the image block.</param>
+        /// <param name="factor">The quantization factor.</param>
+        /// <param name="writer">The writer.</param>
+        /// <param name="dcValues">The descrete cosine values for each componant</param>
         private void CompressPixels(float[] componant, int factor, EndianBinaryWriter writer, int[] dcValues)
         {
-            byte[] horizontalFactors = JpegConstants.ChromaFourFourFourHorizontal;
-            byte[] verticalFactors = JpegConstants.ChromaFourFourFourVertical;
+            // TODO: This should be an option.
+            byte[] horizontalFactors = JpegConstants.ChromaFourTwoZeroHorizontal;
+            byte[] verticalFactors = JpegConstants.ChromaFourTwoZeroVertical;
             byte[] quantizationTableNumber = { 0, 1, 1 };
-            int[] DCtableNumber = { 0, 1, 1 };
-            int[] ACtableNumber = { 0, 1, 1 };
+            int[] dcTableNumber = { 0, 1, 1 };
+            int[] acTableNumber = { 0, 1, 1 };
 
             for (int i = 0; i < verticalFactors[factor]; i++)
             {
                 for (int j = 0; j < horizontalFactors[factor]; j++)
                 {
+                    // TODO: This can probably be combined reducing the array allocation.
                     float[] arr = this.fdct.FastFDCT(componant);
                     int[] arr2 = this.fdct.QuantizeBlock(arr, quantizationTableNumber[factor]);
-                    this.huffmanTable.HuffmanBlockEncoder(writer, arr2, dcValues[factor], DCtableNumber[factor], ACtableNumber[factor]);
-
-                    // TODO. Are we using this?
+                    this.huffmanTable.HuffmanBlockEncoder(writer, arr2, dcValues[factor], dcTableNumber[factor], acTableNumber[factor]);
                     dcValues[factor] = arr2[0];
                 }
             }

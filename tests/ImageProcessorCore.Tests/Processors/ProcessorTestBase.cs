@@ -26,7 +26,7 @@ namespace ImageProcessorCore.Tests
             //"TestImages/Formats/Bmp/Car.bmp",
             //"TestImages/Formats/Png/blur.png", // Perf: Enable for local testing only
             //"TestImages/Formats/Png/indexed.png", // Perf: Enable for local testing only
-            //"TestImages/Formats/Png/splash.png",
+            "TestImages/Formats/Png/splash.png",
             //"TestImages/Formats/Gif/rings.gif",
             //"TestImages/Formats/Gif/giphy.gif" // Perf: Enable for local testing only
         };

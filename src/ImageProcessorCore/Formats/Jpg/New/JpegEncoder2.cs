@@ -8,13 +8,14 @@ namespace ImageProcessorCore.Formats
     using System;
     using System.IO;
 
-    using ImageProcessorCore.Formats.Jpg.New;
     using ImageProcessorCore.IO;
 
     /// <summary>
     /// Encoder for writing the data image to a stream in jpeg format.
+    /// THis is all a bit messy just now and will gettidied up once we have a working encoder.
     /// <see href="http://lad.dsc.ufcg.edu.br/multimidia/jpegmarker.pdf"/>
     /// <see href="https://digitalexploration.wordpress.com/2009/07/29/jpeg-huffman-tables/"/>
+    /// <see href="http://www.media.mit.edu/pia/Research/deepview/src/JpegEncoder.java"/>
     /// </summary>
     public class JpegEncoder2 : IImageEncoder
     {
@@ -367,11 +368,11 @@ namespace ImageProcessorCore.Formats
 
             for (int a = 0; a < 8; a++)
             {
-                // set Y value, check bounds
+                // Complete with the remaining right and bottom edge pixels.
                 int py = y + a;
                 if (py >= height)
                 {
-                    break;
+                    py = height - 1;
                 }
 
                 for (int b = 0; b < 8; b++)
@@ -379,7 +380,7 @@ namespace ImageProcessorCore.Formats
                     int px = x + b;
                     if (px >= width)
                     {
-                        break;
+                        px = width - 1;
                     }
 
                     YCbCr color = image[px, py];
@@ -394,11 +395,11 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Compress and encodes the pixels. 
         /// </summary>
-        /// <param name="componant">The current color component within the image block.</param>
-        /// <param name="factor">The quantization factor.</param>
+        /// <param name="componantValues">The current color component values within the image block.</param>
+        /// <param name="componantIndex">The componant index.</param>
         /// <param name="writer">The writer.</param>
         /// <param name="dcValues">The descrete cosine values for each componant</param>
-        private void CompressPixels(float[] componant, int factor, EndianBinaryWriter writer, int[] dcValues)
+        private void CompressPixels(float[] componantValues, int componantIndex, EndianBinaryWriter writer, int[] dcValues)
         {
             // TODO: This should be an option.
             byte[] horizontalFactors = JpegConstants.ChromaFourTwoZeroHorizontal;
@@ -407,15 +408,15 @@ namespace ImageProcessorCore.Formats
             int[] dcTableNumber = { 0, 1, 1 };
             int[] acTableNumber = { 0, 1, 1 };
 
-            for (int i = 0; i < verticalFactors[factor]; i++)
+            for (int y = 0; y < verticalFactors[componantIndex]; y++)
             {
-                for (int j = 0; j < horizontalFactors[factor]; j++)
+                for (int x = 0; x < horizontalFactors[componantIndex]; x++)
                 {
                     // TODO: This can probably be combined reducing the array allocation.
-                    float[] arr = this.fdct.FastFDCT(componant);
-                    int[] arr2 = this.fdct.QuantizeBlock(arr, quantizationTableNumber[factor]);
-                    this.huffmanTable.HuffmanBlockEncoder(writer, arr2, dcValues[factor], dcTableNumber[factor], acTableNumber[factor]);
-                    dcValues[factor] = arr2[0];
+                    float[] dct = this.fdct.FastFDCT(componantValues);
+                    int[] quantizedDct = this.fdct.QuantizeBlock(dct, quantizationTableNumber[componantIndex]);
+                    this.huffmanTable.HuffmanBlockEncoder(writer, quantizedDct, dcValues[componantIndex], dcTableNumber[componantIndex], acTableNumber[componantIndex]);
+                    dcValues[componantIndex] = quantizedDct[0];
                 }
             }
         }

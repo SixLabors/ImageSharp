@@ -197,7 +197,7 @@ namespace ImageProcessorCore.Formats
             }
 
             // TODO: Why would this happen?
-            if (nbits > 11) nbits = 11;
+            //if (nbits > 11) nbits = 11;
 
             this.bufferIt(writer, this.DC_matrix[DCcode][nbits, 0], this.DC_matrix[DCcode][nbits, 1]);
 
@@ -309,7 +309,6 @@ namespace ImageProcessorCore.Formats
                 writer.Write((byte)c);
             }
         }
-
 
         /// <summary>
         /// Initialisation of the Huffman codes for Luminance and Chrominance.

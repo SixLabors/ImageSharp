@@ -1,8 +1,11 @@
 ﻿namespace ImageProcessorCore.Tests
 {
+    using System.IO;
     using System.Linq;
 
     using Formats;
+
+    using ImageProcessorCore.IO;
 
     using Xunit;
 
@@ -13,7 +16,7 @@
         {
             // Values taken from.
             // https://en.wikipedia.org/wiki/JPEG#Discrete_cosine_transform
-            float[] input = 
+            float[] input =
             {
                 52, 55, 61, 66, 70, 61, 64, 73,
                 63, 59, 55, 90, 109, 85, 69, 72,
@@ -29,7 +32,7 @@
             float[] arr = fdct.FastFDCT(input);
             int[] actual = fdct.QuantizeBlock(arr, 0);
 
-            int[] expected = 
+            int[] expected =
             {
                 -26, -3, -6, 2, 2, -1, 0, 0,
                  0, -2, -4, 1, 1, 0, 0, 0,

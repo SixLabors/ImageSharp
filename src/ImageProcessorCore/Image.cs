@@ -246,7 +246,8 @@ namespace ImageProcessorCore
                 if (maxHeaderSize > 0)
                 {
                     byte[] header = new byte[maxHeaderSize];
-
+                    
+                    stream.Position = 0;
                     stream.Read(header, 0, maxHeaderSize);
                     stream.Position = 0;
 

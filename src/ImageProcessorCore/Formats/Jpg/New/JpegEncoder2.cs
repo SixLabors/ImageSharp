@@ -392,6 +392,68 @@ namespace ImageProcessorCore.Formats
             }
         }
 
+        //private void RgbToYcbCr(ImageBase image, float[] yComponant, float[] cbComponant, float[] crComponant, int x, int y)
+        //{
+        //    byte[] horizontalFactors = JpegConstants.ChromaFourTwoZeroHorizontal;
+        //    byte[] verticalFactors = JpegConstants.ChromaFourTwoZeroVertical;
+        //    int height = image.Height;
+        //    int width = image.Width;
+
+        //    int Yy = y / verticalFactors[0];
+        //    int Cby = y / verticalFactors[1];
+        //    int Cry = y / verticalFactors[2];
+        //    int Yx = 0, Cbx = 0, Crx = 0;
+
+        //    for (int a = 0; a < 8; a++)
+        //    {
+        //        // Complete with the remaining right and bottom edge pixels.
+        //        int py = y + a;
+        //        if (py >= height)
+        //        {
+        //            py = height - 1;
+        //        }
+
+        //        for (int b = 0; b < 8; b++)
+        //        {
+        //            int px = x + b;
+        //            if (px >= width)
+        //            {
+        //                px = width - 1;
+        //            }
+
+        //            YCbCr color = image[px, py];
+        //            int indexY = Yy * 8 + Yx;
+        //            int indexCb = Cby * 8 + Cbx;
+        //            int indexCr = Cry * 8 + Crx;
+
+        //            if (IncludeInSample(0, a, b, horizontalFactors, verticalFactors))
+        //            {
+        //                yComponant[indexY] = color.Y;
+        //            }
+
+        //            if (IncludeInSample(1, a, b, horizontalFactors, verticalFactors))
+        //            {
+        //                cbComponant[indexCb] = color.Cb;
+        //            }
+
+        //            if (IncludeInSample(2, a, b, horizontalFactors, verticalFactors))
+        //            {
+        //                crComponant[indexCr] = color.Cr;
+        //            }
+
+        //            Yx++;
+        //            Cbx++;
+        //            Crx++;
+        //        }
+        //    }
+        //}
+
+        //private static bool IncludeInSample(int slice, int x, int y, byte[] horizontalFactors, byte[] verticalFactors)
+        //{
+        //    // Hopefully this gets inlined . . . 
+        //    return ((x % horizontalFactors[slice]) == 0) && ((y % verticalFactors[slice]) == 0);
+        //}
+
         /// <summary>
         /// Compress and encodes the pixels. 
         /// </summary>
@@ -408,9 +470,9 @@ namespace ImageProcessorCore.Formats
             int[] dcTableNumber = { 0, 1, 1 };
             int[] acTableNumber = { 0, 1, 1 };
 
-            for (int y = 0; y < verticalFactors[componantIndex]; y++)
+            for (int y = 0; y < verticalFactors[componantIndex]; y += 8)
             {
-                for (int x = 0; x < horizontalFactors[componantIndex]; x++)
+                for (int x = 0; x < horizontalFactors[componantIndex]; x += 8)
                 {
                     // TODO: This can probably be combined reducing the array allocation.
                     float[] dct = this.fdct.FastFDCT(componantValues);

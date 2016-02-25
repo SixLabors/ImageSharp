@@ -10,6 +10,8 @@ namespace ImageProcessorCore
 
     using Formats;
 
+    using ImageProcessorCore.Samplers;
+
     /// <summary>
     /// Exstension methods for the <see cref="Image"/> type.
     /// </summary>
@@ -89,7 +91,7 @@ namespace ImageProcessorCore
         /// <param name="height">The target image height.</param>
         /// <param name="processors">Any processors to apply to the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Process(this Image source, int width, int height, params IImageProcessor[] processors)
+        public static Image Process(this Image source, int width, int height, params IImageSampler[] processors)
         {
             return Process(source, width, height, source.Bounds, default(Rectangle), processors);
         }
@@ -113,12 +115,12 @@ namespace ImageProcessorCore
         /// </param>
         /// <param name="processors">Any processors to apply to the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Process(this Image source, int width, int height, Rectangle sourceRectangle, Rectangle targetRectangle, params IImageProcessor[] processors)
+        public static Image Process(this Image source, int width, int height, Rectangle sourceRectangle, Rectangle targetRectangle, params IImageSampler[] processors)
         {
             // ReSharper disable once LoopCanBeConvertedToQuery
-            foreach (IImageProcessor filter in processors)
+            foreach (IImageSampler sampler in processors)
             {
-                source = PerformAction(source, false, (sourceImage, targetImage) => filter.Apply(targetImage, sourceImage, width, height, targetRectangle, sourceRectangle));
+                source = PerformAction(source, false, (sourceImage, targetImage) => sampler.Apply(targetImage, sourceImage, width, height, targetRectangle, sourceRectangle));
             }
 
             return source;

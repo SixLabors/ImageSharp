@@ -30,7 +30,7 @@
                 //{ "Welch", new WelchResampler() }
             };
 
-        public static readonly TheoryData<string, IImageProcessor> Samplers = new TheoryData<string, IImageProcessor>
+        public static readonly TheoryData<string, IImageSampler> Samplers = new TheoryData<string, IImageSampler>
         {
              { "Resize", new Resize(new BicubicResampler()) },
              { "Crop", new Crop() }
@@ -47,7 +47,7 @@
 
         [Theory]
         [MemberData("Samplers")]
-        public void SampleImage(string name, IImageProcessor processor)
+        public void SampleImage(string name, IImageSampler processor)
         {
             if (!Directory.Exists("TestOutput/Sample"))
             {
@@ -64,7 +64,8 @@
                     using (FileStream output = File.OpenWrite($"TestOutput/Sample/{ Path.GetFileName(filename) }"))
                     {
                         processor.OnProgress += this.ProgressUpdate;
-                        image.Process(image.Width / 2, image.Height / 2, processor).Save(output);
+                        image = image.Process(image.Width / 2, image.Height / 2, processor);
+                        image.Save(output);
                         processor.OnProgress -= this.ProgressUpdate;
                     }
 
@@ -268,11 +269,6 @@
             float result = sampler.GetValue(x);
 
             Assert.Equal(result, expected);
-        }
-
-        private void ProgressUpdate(object sender, ProgressEventArgs e)
-        {
-            Assert.InRange(e.RowsProcessed, 1, e.TotalRows);
         }
     }
 }

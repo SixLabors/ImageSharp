@@ -10,7 +10,7 @@ namespace ImageProcessorCore.Samplers
     /// <summary>
     /// Provides methods to allow the cropping of an image.
     /// </summary>
-    public class Crop : ParallelImageProcessor
+    public class Crop : ImageSampler
     {
         /// <inheritdoc/>
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)

@@ -14,7 +14,7 @@ namespace ImageProcessorCore.Samplers
     /// Provides methods to allow the cropping of an image to preserve areas of highest
     /// entropy.
     /// </summary>
-    public class EntropyCrop : ParallelImageProcessor
+    public class EntropyCrop : ImageSampler
     {
         /// <summary>
         /// The rectangle for cropping

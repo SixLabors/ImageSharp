@@ -133,11 +133,16 @@ namespace ImageProcessorCore
         /// <returns>The <see cref="Image"/>.</returns>
         private static Image PerformAction(Image source, bool clone, Action<ImageBase, ImageBase> action)
         {
-            Image transformedImage = clone ? new Image(source) : new Image();
-
-            // Only on clone?
-            transformedImage.CurrentImageFormat = source.CurrentImageFormat;
-            transformedImage.RepeatCount = source.RepeatCount;
+            Image transformedImage = clone
+                ? new Image(source)
+                : new Image
+                {
+                    // Several properties require copying
+                    HorizontalResolution = source.HorizontalResolution,
+                    VerticalResolution = source.VerticalResolution,
+                    CurrentImageFormat = source.CurrentImageFormat,
+                    RepeatCount = source.RepeatCount
+                };
 
             action(source, transformedImage);
 

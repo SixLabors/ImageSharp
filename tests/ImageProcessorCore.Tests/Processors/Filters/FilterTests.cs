@@ -74,10 +74,5 @@ namespace ImageProcessorCore.Tests
                 }
             }
         }
-
-        private void ProgressUpdate(object sender, ProgressEventArgs e)
-        {
-            Assert.InRange(e.RowsProcessed, 1, e.TotalRows);
-        }
     }
 }

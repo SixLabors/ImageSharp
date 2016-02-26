@@ -2,6 +2,20 @@
 
 ## This branch contains the new cross platform version: ImageProcessorCore.
 
+---
+#ImageProcessor Needs Your Help
+
+### ImageProcessor is the work of a very, very, small number of developers who struggle balancing time to contribute to the project with family time and work commitments. If the project is to survive we need more contribution from the community at large. There are several issues, most notably [#324](https://github.com/JimBobSquarePants/ImageProcessor/issues/324) that we cannot possibly solve on our own.
+
+### We, and we believe many others in the community at large want a first-class 2D imaging library with a simple API that is not simply a wrapper round an existing library. We want it to have a low contribution bar which we believe can only happen if the library is written in C#. We want it to be written to cover as many use cases as possible. We want to write the same code once and have it work on any platform supporting CoreFX.
+
+### With your help we can make all that a reality.
+
+### If you can donate any time to improve on the project, be it helping with documentation, tests or contributing code please do.
+
+### Thankyou for reading this.
+---
+
 This is a complete rewrite from the ground up to allow the processing of images without the use of `System.Drawing` using a cross-platform class library. It's still in early stages but progress has been pretty quick.
 
 [![Build status](https://ci.appveyor.com/api/projects/status/8ypr7527dnao04yr/branch/Core?svg=true)](https://ci.appveyor.com/project/JamesSouth/imageprocessor/branch/Core)

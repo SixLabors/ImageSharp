@@ -1,10 +1,6 @@
 version: v1.0.0.{build}
 os: Visual Studio 2015
 
-install:
-# Remove NuGet v2 source as we want to use v3 for everything
-- cmd: nuget sources remove -Name nuget.org
-
 assembly_info:
   patch: true
   file: '**\AssemblyInfo.*'

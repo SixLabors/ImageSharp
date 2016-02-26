@@ -11,7 +11,7 @@ namespace ImageProcessorCore.Samplers
     /// <summary>
     /// Provides methods that allow the rotation and flipping of an image around its center point.
     /// </summary>
-    public class RotateFlip : ParallelImageProcessor
+    public class RotateFlip : ImageSampler
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="RotateFlip"/> class.

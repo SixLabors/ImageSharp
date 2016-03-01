@@ -2,7 +2,9 @@
 
 namespace ImageProcessorCore.Formats
 {
+    using System;
     using System.Collections.Generic;
+    using System.IO;
 
     using ImageProcessorCore.IO;
 
@@ -174,7 +176,7 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// HuffmanBlockEncoder run length encodes and Huffman encodes the quantized data.
         /// </summary>
-        internal void HuffmanBlockEncoder(EndianBinaryWriter writer, int[] zigzag, int prec, int DCcode, int ACcode)
+        internal void HuffmanBlockEncoder(Stream writer, int[] zigzag, int prec, int DCcode, int ACcode)
         {
             int temp, temp2, nbits, k, r, i;
 
@@ -257,7 +259,7 @@ namespace ImageProcessorCore.Formats
         /// Uses an integer long (32 bits) buffer to store the Huffman encoded bits
         /// and sends them to outStream by the byte.
         /// </summary>
-        private void bufferIt(EndianBinaryWriter writer, int code, int size)
+        private void bufferIt(Stream writer, int code, int size)
         {
             int PutBuffer = code;
             int PutBits = this.bufferPutBits;
@@ -270,12 +272,12 @@ namespace ImageProcessorCore.Formats
             while (PutBits >= 8)
             {
                 int c = (PutBuffer >> 16) & 0xFF;
-                writer.Write((byte)c);
+                writer.WriteByte((byte)c);
 
                 // FF must be escaped
                 if (c == 0xFF)
                 {
-                    writer.Write(0);
+                    writer.WriteByte(0);
                 }
 
                 PutBuffer <<= 8;
@@ -287,17 +289,17 @@ namespace ImageProcessorCore.Formats
 
         }
 
-        public void FlushBuffer(EndianBinaryWriter writer)
+        public void FlushBuffer(Stream writer)
         {
             int PutBuffer = this.bufferPutBuffer;
             int PutBits = this.bufferPutBits;
             while (PutBits >= 8)
             {
                 int c = (PutBuffer >> 16) & 0xFF;
-                writer.Write((byte)c);
+                writer.WriteByte((byte)c);
 
                 // FF must be escaped
-                if (c == 0xFF) writer.Write(0);
+                if (c == 0xFF) writer.WriteByte(0);
 
                 PutBuffer <<= 8;
                 PutBits -= 8;
@@ -306,7 +308,7 @@ namespace ImageProcessorCore.Formats
             if (PutBits > 0)
             {
                 int c = (PutBuffer >> 16) & 0xFF;
-                writer.Write((byte)c);
+                writer.WriteByte((byte)c);
             }
         }
 

@@ -349,7 +349,7 @@ namespace ImageProcessorCore.Formats
                 }
             }
 
-            this.huffmanTable.FlushBuffer(writer);
+            this.huffmanTable.FlushBuffer(writer.BaseStream);
         }
 
         /// <summary>
@@ -456,6 +456,7 @@ namespace ImageProcessorCore.Formats
 
         /// <summary>
         /// Compress and encodes the pixels. 
+        /// TODO: I'd rather not use the base stream and keep everything going through the EndianWriter.
         /// </summary>
         /// <param name="componantValues">The current color component values within the image block.</param>
         /// <param name="componantIndex">The componant index.</param>
@@ -477,7 +478,7 @@ namespace ImageProcessorCore.Formats
                     // TODO: This can probably be combined reducing the array allocation.
                     float[] dct = this.fdct.FastFDCT(componantValues);
                     int[] quantizedDct = this.fdct.QuantizeBlock(dct, quantizationTableNumber[componantIndex]);
-                    this.huffmanTable.HuffmanBlockEncoder(writer, quantizedDct, dcValues[componantIndex], dcTableNumber[componantIndex], acTableNumber[componantIndex]);
+                    this.huffmanTable.HuffmanBlockEncoder(writer.BaseStream, quantizedDct, dcValues[componantIndex], dcTableNumber[componantIndex], acTableNumber[componantIndex]);
                     dcValues[componantIndex] = quantizedDct[0];
                 }
             }

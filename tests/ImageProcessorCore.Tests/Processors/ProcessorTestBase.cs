@@ -9,6 +9,8 @@ namespace ImageProcessorCore.Tests
 {
     using System.Collections.Generic;
 
+    using Xunit;
+
     /// <summary>
     /// The processor test base.
     /// </summary>
@@ -30,5 +32,10 @@ namespace ImageProcessorCore.Tests
             //"TestImages/Formats/Gif/rings.gif",
             //"TestImages/Formats/Gif/giphy.gif" // Perf: Enable for local testing only
         };
+        
+        protected void ProgressUpdate(object sender, ProgressEventArgs e)
+        {
+            Assert.InRange(e.RowsProcessed, 1, e.TotalRows);
+        }
     }
 }

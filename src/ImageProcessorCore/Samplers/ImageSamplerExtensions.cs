@@ -1,4 +1,4 @@
-﻿// <copyright file="ImageSampleExtensions.cs" company="James Jackson-South">
+﻿// <copyright file="ImageSamplerExtensions.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -8,7 +8,7 @@ namespace ImageProcessorCore.Samplers
     /// <summary>
     /// Extensions methods for <see cref="Image"/> to apply samplers to the image.
     /// </summary>
-    public static class ImageSampleExtensions
+    public static class ImageSamplerExtensions
     {
         /// <summary>
         /// Crops an image to the given width and height.

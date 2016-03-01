@@ -187,8 +187,8 @@ namespace ImageProcessorCore.Formats
             };
 
             // TODO: This should be an option.
-            byte[] horizontalFactors = JpegConstants.ChromaFourTwoZeroHorizontal;
-            byte[] verticalFactors = JpegConstants.ChromaFourTwoZeroVertical;
+            byte[] horizontalFactors = JpegConstants.ChromaFourFourFourHorizontal;
+            byte[] verticalFactors = JpegConstants.ChromaFourFourFourVertical;
 
             byte[] quantizationTableNumber = { 0, 1, 1 };
 
@@ -365,7 +365,7 @@ namespace ImageProcessorCore.Formats
         {
             int height = image.Height;
             int width = image.Width;
-
+            int index = 0;
             for (int a = 0; a < 8; a++)
             {
                 // Complete with the remaining right and bottom edge pixels.
@@ -384,18 +384,18 @@ namespace ImageProcessorCore.Formats
                     }
 
                     YCbCr color = image[px, py];
-                    int index = a * 8 + b;
                     yComponant[index] = color.Y;
                     cbComponant[index] = color.Cb;
                     crComponant[index] = color.Cr;
+                    index++;
                 }
             }
         }
 
         //private void RgbToYcbCr(ImageBase image, float[] yComponant, float[] cbComponant, float[] crComponant, int x, int y)
         //{
-        //    byte[] horizontalFactors = JpegConstants.ChromaFourTwoZeroHorizontal;
-        //    byte[] verticalFactors = JpegConstants.ChromaFourTwoZeroVertical;
+        //    byte[] horizontalFactors = JpegConstants.ChromaFourFourFourHorizontal;
+        //    byte[] verticalFactors = JpegConstants.ChromaFourFourFourVertical;
         //    int height = image.Height;
         //    int width = image.Width;
 
@@ -464,8 +464,8 @@ namespace ImageProcessorCore.Formats
         private void CompressPixels(float[] componantValues, int componantIndex, EndianBinaryWriter writer, int[] dcValues)
         {
             // TODO: This should be an option.
-            byte[] horizontalFactors = JpegConstants.ChromaFourTwoZeroHorizontal;
-            byte[] verticalFactors = JpegConstants.ChromaFourTwoZeroVertical;
+            byte[] horizontalFactors = JpegConstants.ChromaFourFourFourHorizontal;
+            byte[] verticalFactors = JpegConstants.ChromaFourFourFourVertical;
             byte[] quantizationTableNumber = { 0, 1, 1 };
             int[] dcTableNumber = { 0, 1, 1 };
             int[] acTableNumber = { 0, 1, 1 };

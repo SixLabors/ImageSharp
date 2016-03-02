@@ -6,14 +6,15 @@ namespace ImageProcessorCore.Formats
     using System.Collections.Generic;
     using System.IO;
 
-    using ImageProcessorCore.IO;
-
+    /// <summary>
+    /// The huffman table.
+    /// </summary>
     internal class HuffmanTable
     {
         public static int HUFFMAN_MAX_TABLES = 4;
 
-        private short[] huffcode = new short[256];
-        private short[] huffsize = new short[256];
+        private short[] huffmanCode = new short[256];
+        private short[] huffmanSize = new short[256];
         private short[] valptr = new short[16];
         private short[] mincode = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
         private short[] maxcode = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
@@ -39,13 +40,18 @@ namespace ImageProcessorCore.Formats
         public List<short[]> bitsList;
         public List<short[]> val;
 
-
         public static byte JPEG_DC_TABLE = 0;
         public static byte JPEG_AC_TABLE = 1;
 
-        private short lastk = 0;
+        private short lastk;
 
-        internal HuffmanTable(JpegHuffmanTable table)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HuffmanTable"/> class.
+        /// </summary>
+        /// <param name="table">
+        /// The table to encode/decode with.
+        /// </param>
+        public HuffmanTable(JpegHuffmanTable table)
         {
             if (table != null)
             {
@@ -75,76 +81,7 @@ namespace ImageProcessorCore.Formats
                     JpegHuffmanTable.StandardAcChrominance.Values
                 };
 
-                this.initHuf();
-            }
-        }
-
-        /// <summary>See Figure C.1</summary>
-        private void GenerateSizeTable()
-        {
-            short index = 0;
-            for (short i = 0; i < this.bits.Length; i++)
-            {
-                for (short j = 0; j < this.bits[i]; j++)
-                {
-                    this.huffsize[index] = (short)(i + 1);
-                    index++;
-                }
-            }
-
-            this.lastk = index;
-        }
-
-        /// <summary>See Figure C.2</summary>
-        private void GenerateCodeTable()
-        {
-            short k = 0;
-            short si = this.huffsize[0];
-            short code = 0;
-            for (short i = 0; i < this.huffsize.Length; i++)
-            {
-                while (this.huffsize[k] == si)
-                {
-                    this.huffcode[k] = code;
-                    code++;
-                    k++;
-                }
-
-                code <<= 1;
-                si++;
-            }
-        }
-
-        /// <summary>See figure F.15</summary>
-        private void GenerateDecoderTables()
-        {
-            short bitcount = 0;
-            for (int i = 0; i < 16; i++)
-            {
-                if (this.bits[i] != 0)
-                {
-                    this.valptr[i] = bitcount;
-                }
-
-                for (int j = 0; j < this.bits[i]; j++)
-                {
-                    if (this.huffcode[j + bitcount] < this.mincode[i] || this.mincode[i] == -1)
-                    {
-                        this.mincode[i] = this.huffcode[j + bitcount];
-                    }
-
-                    if (this.huffcode[j + bitcount] > this.maxcode[i])
-                    {
-                        this.maxcode[i] = this.huffcode[j + bitcount];
-                    }
-                }
-
-                if (this.mincode[i] != -1)
-                {
-                    this.valptr[i] = (short)(this.valptr[i] - this.mincode[i]);
-                }
-
-                bitcount += this.bits[i];
+                this.InitHuffmanCodes();
             }
         }
 
@@ -153,171 +90,56 @@ namespace ImageProcessorCore.Formats
         {
             // here we use bitshift to implement 2^ ... 
             // NOTE: Math.Pow returns 0 for negative powers, which occassionally happen here!
-            int Vt = 1 << t - 1;
+            int vt = 1 << (t - 1);
 
             // WAS: int Vt = (int)Math.Pow(2, (t - 1));
-            if (diff < Vt)
+            if (diff < vt)
             {
-                Vt = (-1 << t) + 1;
-                diff = diff + Vt;
+                vt = (-1 << t) + 1;
+                diff = diff + vt;
             }
 
             return diff;
         }
 
         /// <summary>
-        /// Figure F.16 - Reads the huffman code bit-by-bit.
+        /// Flushes the buffer to the output stream.
         /// </summary>
-        /// <param name="writer">The writer.</param>
-        /// <param name="zigzag">The zigzag.</param>
-        /// <param name="prec">The prec.</param>
-        /// <param name="DCcode">The D Ccode.</param>
-        /// <param name="ACcode">The A Ccode.</param>
-        /// <summary>
-        /// HuffmanBlockEncoder run length encodes and Huffman encodes the quantized data.
-        /// </summary>
-        internal void HuffmanBlockEncoder(Stream writer, int[] zigzag, int prec, int DCcode, int ACcode)
+        /// <param name="stream">The stream to write to.</param>
+        public void FlushBuffer(Stream stream)
         {
-            int temp, temp2, nbits, k, r, i;
+            int putBuffer = this.bufferPutBuffer;
+            int putBits = this.bufferPutBits;
 
-            this.NumOfDCTables = 2;
-            this.NumOfACTables = 2;
-
-            // The DC portion
-            temp = temp2 = zigzag[0] - prec;
-            if (temp < 0)
+            // TODO: It might be better to write to a list and write at once.
+            while (putBits >= 8)
             {
-                temp = -temp;
-                temp2--;
-            }
-
-            nbits = 0;
-            while (temp != 0)
-            {
-                nbits++;
-                temp >>= 1;
-            }
-
-            // TODO: Why would this happen?
-            //if (nbits > 11) nbits = 11;
-
-            this.bufferIt(writer, this.DC_matrix[DCcode][nbits, 0], this.DC_matrix[DCcode][nbits, 1]);
-
-            // The arguments in bufferIt are code and size.
-            if (nbits != 0)
-            {
-                this.bufferIt(writer, temp2, nbits);
-            }
-
-            // The AC portion
-            r = 0;
-
-            for (k = 1; k < 64; k++)
-            {
-                if ((temp = zigzag[ZigZag.ZigZagMap[k]]) == 0)
-                {
-                    r++;
-                }
-                else
-                {
-                    while (r > 15)
-                    {
-                        this.bufferIt(writer, this.AC_matrix[ACcode][0xF0, 0], this.AC_matrix[ACcode][0xF0, 1]);
-
-                        r -= 16;
-                    }
-
-                    temp2 = temp;
-                    if (temp < 0)
-                    {
-                        temp = -temp;
-                        temp2--;
-                    }
-
-                    nbits = 1;
-
-                    while ((temp >>= 1) != 0)
-                    {
-                        nbits++;
-                    }
-
-                    i = (r << 4) + nbits;
-                    this.bufferIt(writer, this.AC_matrix[ACcode][i, 0], this.AC_matrix[ACcode][i, 1]);
-                    this.bufferIt(writer, temp2, nbits);
-
-                    r = 0;
-                }
-            }
-
-            if (r > 0)
-            {
-                this.bufferIt(writer, this.AC_matrix[ACcode][0, 0], this.AC_matrix[ACcode][0, 1]);
-            }
-        }
-
-        /// <summary>
-        /// Uses an integer long (32 bits) buffer to store the Huffman encoded bits
-        /// and sends them to outStream by the byte.
-        /// </summary>
-        private void bufferIt(Stream writer, int code, int size)
-        {
-            int PutBuffer = code;
-            int PutBits = this.bufferPutBits;
-
-            PutBuffer &= (1 << size) - 1;
-            PutBits += size;
-            PutBuffer <<= 24 - PutBits;
-            PutBuffer |= this.bufferPutBuffer;
-
-            while (PutBits >= 8)
-            {
-                int c = (PutBuffer >> 16) & 0xFF;
-                writer.WriteByte((byte)c);
+                int c = (putBuffer >> 16) & 0xFF;
+                stream.WriteByte((byte)c);
 
                 // FF must be escaped
                 if (c == 0xFF)
                 {
-                    writer.WriteByte(0);
+                    stream.WriteByte(0);
                 }
 
-                PutBuffer <<= 8;
-                PutBits -= 8;
+                putBuffer <<= 8;
+                putBits -= 8;
             }
 
-            this.bufferPutBuffer = PutBuffer;
-            this.bufferPutBits = PutBits;
-
-        }
-
-        public void FlushBuffer(Stream writer)
-        {
-            int PutBuffer = this.bufferPutBuffer;
-            int PutBits = this.bufferPutBits;
-            while (PutBits >= 8)
+            if (putBits > 0)
             {
-                int c = (PutBuffer >> 16) & 0xFF;
-                writer.WriteByte((byte)c);
-
-                // FF must be escaped
-                if (c == 0xFF) writer.WriteByte(0);
-
-                PutBuffer <<= 8;
-                PutBits -= 8;
-            }
-
-            if (PutBits > 0)
-            {
-                int c = (PutBuffer >> 16) & 0xFF;
-                writer.WriteByte((byte)c);
+                int c = (putBuffer >> 16) & 0xFF;
+                stream.WriteByte((byte)c);
             }
         }
 
         /// <summary>
-        /// Initialisation of the Huffman codes for Luminance and Chrominance.
+        /// Initialization of the Huffman codes for Luminance and Chrominance.
         /// This code results in the same tables created in the IJG Jpeg-6a
         /// library.
         /// </summary>
-        public void initHuf()
+        public void InitHuffmanCodes()
         {
             this.DC_matrix0 = new int[12, 2];
             this.DC_matrix1 = new int[12, 2];
@@ -335,17 +157,13 @@ namespace ImageProcessorCore.Formats
             short[] bitsDCluminance = JpegHuffmanTable.StandardDcLuminance.Codes;
             short[] bitsACluminance = JpegHuffmanTable.StandardAcLuminance.Codes;
 
-
             short[] valDCchrominance = JpegHuffmanTable.StandardDcChrominance.Values;
             short[] valACchrominance = JpegHuffmanTable.StandardAcChrominance.Values;
             short[] valDCluminance = JpegHuffmanTable.StandardDcLuminance.Values;
             short[] valACluminance = JpegHuffmanTable.StandardAcLuminance.Values;
 
-
-            /*
-            * init of the DC values for the chrominance
-            * [,0] is the code   [,1] is the number of bit
-            */
+            // init of the DC values for the chrominance
+            // [,0] is the code   [,1] is the number of bit
             p = 0;
             for (l = 0; l < 16; l++)
             {
@@ -379,10 +197,8 @@ namespace ImageProcessorCore.Formats
                 this.DC_matrix1[valDCchrominance[p], 1] = huffsize[p];
             }
 
-            /*
-            * Init of the AC hufmann code for the chrominance
-            * matrix [,,0] is the code & matrix[,,1] is the number of bit needed
-            */
+            // Init of the AC hufmann code for the chrominance
+            // matrix [,,0] is the code & matrix[,,1] is the number of bit needed
             p = 0;
             for (l = 0; l < 16; l++)
             {
@@ -416,10 +232,8 @@ namespace ImageProcessorCore.Formats
                 this.AC_matrix1[valACchrominance[p], 1] = huffsize[p];
             }
 
-            /*
-            * init of the DC values for the luminance
-            * [,0] is the code   [,1] is the number of bit
-            */
+            // init of the DC values for the luminance
+            // [,0] is the code   [,1] is the number of bit
             p = 0;
             for (l = 0; l < 16; l++)
             {
@@ -453,10 +267,8 @@ namespace ImageProcessorCore.Formats
                 this.DC_matrix0[valDCluminance[p], 1] = huffsize[p];
             }
 
-            /*
-            * Init of the AC hufmann code for luminance
-            * matrix [,,0] is the code & matrix[,,1] is the number of bit
-            */
+            // Init of the AC hufmann code for luminance
+            // matrix [,,0] is the code & matrix[,,1] is the number of bit
             p = 0;
             for (l = 0; l < 16; l++)
             {
@@ -494,6 +306,198 @@ namespace ImageProcessorCore.Formats
             this.DC_matrix[1] = this.DC_matrix1;
             this.AC_matrix[0] = this.AC_matrix0;
             this.AC_matrix[1] = this.AC_matrix1;
+        }
+
+        /// <summary>
+        /// Figure F.16 - Reads the huffman code bit-by-bit.
+        /// </summary>
+        /// <param name="writer">The writer.</param>
+        /// <param name="zigzag">The zigzag.</param>
+        /// <param name="prec">The prec.</param>
+        /// <param name="DCcode">The D Ccode.</param>
+        /// <param name="ACcode">The A Ccode.</param>
+        /// <summary>
+        /// HuffmanBlockEncoder run length encodes and Huffman encodes the quantized data.
+        /// </summary>
+        internal void HuffmanBlockEncoder(Stream writer, int[] zigzag, int prec, int DCcode, int ACcode)
+        {
+            int temp, temp2, nbits, k, r, i;
+
+            this.NumOfDCTables = 2;
+            this.NumOfACTables = 2;
+
+            // The DC portion
+            temp = temp2 = zigzag[0] - prec;
+            if (temp < 0)
+            {
+                temp = -temp;
+                temp2--;
+            }
+
+            nbits = 0;
+            while (temp != 0)
+            {
+                nbits++;
+                temp >>= 1;
+            }
+
+            this.BufferIt(writer, this.DC_matrix[DCcode][nbits, 0], this.DC_matrix[DCcode][nbits, 1]);
+
+            // The arguments in bufferIt are code and size.
+            if (nbits != 0)
+            {
+                this.BufferIt(writer, temp2, nbits);
+            }
+
+            // The AC portion
+            r = 0;
+
+            for (k = 1; k < 64; k++)
+            {
+                if ((temp = zigzag[ZigZag.ZigZagMap[k]]) == 0)
+                {
+                    r++;
+                }
+                else
+                {
+                    while (r > 15)
+                    {
+                        this.BufferIt(writer, this.AC_matrix[ACcode][0xF0, 0], this.AC_matrix[ACcode][0xF0, 1]);
+
+                        r -= 16;
+                    }
+
+                    temp2 = temp;
+                    if (temp < 0)
+                    {
+                        temp = -temp;
+                        temp2--;
+                    }
+
+                    nbits = 1;
+
+                    while ((temp >>= 1) != 0)
+                    {
+                        nbits++;
+                    }
+
+                    i = (r << 4) + nbits;
+                    this.BufferIt(writer, this.AC_matrix[ACcode][i, 0], this.AC_matrix[ACcode][i, 1]);
+                    this.BufferIt(writer, temp2, nbits);
+
+                    r = 0;
+                }
+            }
+
+            if (r > 0)
+            {
+                this.BufferIt(writer, this.AC_matrix[ACcode][0, 0], this.AC_matrix[ACcode][0, 1]);
+            }
+        }
+
+        /// <summary>See Figure C.1</summary>
+        private void GenerateSizeTable()
+        {
+            short index = 0;
+            for (short i = 0; i < this.bits.Length; i++)
+            {
+                for (short j = 0; j < this.bits[i]; j++)
+                {
+                    this.huffmanSize[index] = (short)(i + 1);
+                    index++;
+                }
+            }
+
+            this.lastk = index;
+        }
+
+        /// <summary>See Figure C.2</summary>
+        private void GenerateCodeTable()
+        {
+            short k = 0;
+            short si = this.huffmanSize[0];
+            short code = 0;
+            for (short i = 0; i < this.huffmanSize.Length; i++)
+            {
+                while (this.huffmanSize[k] == si)
+                {
+                    this.huffmanCode[k] = code;
+                    code++;
+                    k++;
+                }
+
+                code <<= 1;
+                si++;
+            }
+        }
+
+        /// <summary>See figure F.15</summary>
+        private void GenerateDecoderTables()
+        {
+            short bitcount = 0;
+            for (int i = 0; i < 16; i++)
+            {
+                if (this.bits[i] != 0)
+                {
+                    this.valptr[i] = bitcount;
+                }
+
+                for (int j = 0; j < this.bits[i]; j++)
+                {
+                    if (this.huffmanCode[j + bitcount] < this.mincode[i] || this.mincode[i] == -1)
+                    {
+                        this.mincode[i] = this.huffmanCode[j + bitcount];
+                    }
+
+                    if (this.huffmanCode[j + bitcount] > this.maxcode[i])
+                    {
+                        this.maxcode[i] = this.huffmanCode[j + bitcount];
+                    }
+                }
+
+                if (this.mincode[i] != -1)
+                {
+                    this.valptr[i] = (short)(this.valptr[i] - this.mincode[i]);
+                }
+
+                bitcount += this.bits[i];
+            }
+        }
+
+        /// <summary>
+        /// Uses an integer (32 bits) buffer to store the Huffman encoded bits
+        /// and sends them to outStream by the byte.
+        /// </summary>
+        /// <param name="stream">The stream to write to.</param>
+        /// <param name="code">The code value.</param>
+        /// <param name="size">The size of the code value in bits.</param>
+        private void BufferIt(Stream stream, int code, int size)
+        {
+            int putBuffer = code;
+            int putBits = this.bufferPutBits;
+
+            putBuffer &= (1 << size) - 1;
+            putBits += size;
+            putBuffer <<= 24 - putBits;
+            putBuffer |= this.bufferPutBuffer;
+
+            while (putBits >= 8)
+            {
+                int c = (putBuffer >> 16) & 0xFF;
+                stream.WriteByte((byte)c);
+
+                // FF must be escaped
+                if (c == 0xFF)
+                {
+                    stream.WriteByte(0);
+                }
+
+                putBuffer <<= 8;
+                putBits -= 8;
+            }
+
+            this.bufferPutBuffer = putBuffer;
+            this.bufferPutBits = putBits;
         }
     }
 }

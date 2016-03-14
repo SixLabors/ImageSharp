@@ -218,6 +218,79 @@ namespace ImageProcessorCore.Filters
         }
 
         /// <summary>
+        /// Applies the given colorblindness simulator to the image.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="colorBlindness">The type of color blindness simulator to apply.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image ColorBlindness(this Image source, ColorBlindness colorBlindness, ProgressEventHandler progressHandler = null)
+        {
+            return ColorBlindness(source, colorBlindness, source.Bounds, progressHandler);
+        }
+
+        /// <summary>
+        /// Applies the given colorblindness simulator to the image.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="colorBlindness">The type of color blindness simulator to apply.</param>
+        /// <param name="rectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
+        /// </param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image ColorBlindness(this Image source, ColorBlindness colorBlindness, Rectangle rectangle, ProgressEventHandler progressHandler = null)
+        {
+            IImageProcessor processor;
+
+            switch (colorBlindness)
+            {
+                case Filters.ColorBlindness.Achromatomaly:
+                    processor = new Achromatomaly();
+                    break;
+
+                case Filters.ColorBlindness.Achromatopsia:
+                    processor = new Achromatopsia();
+                    break;
+
+                case Filters.ColorBlindness.Deuteranomaly:
+                    processor = new Deuteranomaly();
+                    break;
+
+                case Filters.ColorBlindness.Deuteranopia:
+                    processor = new Deuteranopia();
+                    break;
+
+                case Filters.ColorBlindness.Protanomaly:
+                    processor = new Protanomaly();
+                    break;
+
+                case Filters.ColorBlindness.Protanopia:
+                    processor = new Protanopia();
+                    break;
+
+                case Filters.ColorBlindness.Tritanomaly:
+                    processor = new Tritanomaly();
+                    break;
+
+                default:
+                    processor = new Tritanopia();
+                    break;
+            }
+
+            processor.OnProgress += progressHandler;
+
+            try
+            {
+                return source.Process(rectangle, processor);
+            }
+            finally
+            {
+                processor.OnProgress -= progressHandler;
+            }
+        }
+
+        /// <summary>
         /// Alters the contrast component of the image.
         /// </summary>
         /// <param name="source">The image this method extends.</param>

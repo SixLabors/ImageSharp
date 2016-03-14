@@ -3,7 +3,7 @@ namespace ImageProcessorCore.Formats.Jpg
     using System;
     using System.IO;
 
-	public partial class JpegGo
+	public partial class Encoder
 	{
 		// Trigonometric constants in 13-bit fixed point format.
 		private const int fix_0_298631336 = 2446;
@@ -92,7 +92,7 @@ namespace ImageProcessorCore.Formats.Jpg
 				int tmp2 = b[2*8+x] + b[5*8+x];
 				int tmp3 = b[3*8+x] + b[4*8+x];
 
-				int tmp10 = tmp0 + tmp3 + 1<<(pass1Bits-1);
+				int tmp10 = tmp0 + tmp3 + (1<<(pass1Bits-1));
 				int tmp12 = tmp0 - tmp3;
 				int tmp11 = tmp1 + tmp2;
 				int tmp13 = tmp1 - tmp2;

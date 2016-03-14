@@ -14,6 +14,6 @@ namespace ImageProcessorCore.Formats
         public IImageDecoder Decoder => new JpegDecoder();
 
         /// <inheritdoc/>
-        public IImageEncoder Encoder => null;
+        public IImageEncoder Encoder => new JpegEncoder();
     }
 }

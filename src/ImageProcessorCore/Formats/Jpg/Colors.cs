@@ -5,7 +5,7 @@ namespace ImageProcessorCore.Formats.Jpg
 
 	public static class Colors
 	{
-		public static void RGBToYCbCr(byte r, byte g, byte b, out byte yy, out byte cr, out byte cb)
+		public static void RGBToYCbCr(byte r, byte g, byte b, out byte yy, out byte cb, out byte cr)
 		{
 			// The JFIF specification says:
 			//	Y' =  0.2990*R + 0.5870*G + 0.1140*B
@@ -13,9 +13,9 @@ namespace ImageProcessorCore.Formats.Jpg
 			//	Cr =  0.5000*R - 0.4187*G - 0.0813*B + 128
 			// http://www.w3.org/Graphics/JPEG/jfif3.pdf says Y but means Y'.
 
-			int iyy = (19595*r + 38470*g + 7471*b + 1<<15) >> 16;
-			int icb = (-11056*r - 21712*g + 32768*b + 257<<15) >> 16;
-			int icr = (32768*r - 27440*g - 5328*b + 257<<15) >> 16;
+			int iyy = (19595*r + 38470*g + 7471*b + (1<<15)) >> 16;
+			int icb = (-11056*r - 21712*g + 32768*b + (257<<15)) >> 16;
+			int icr = (32768*r - 27440*g - 5328*b + (257<<15)) >> 16;
 
 			if(iyy < 0) yy = 0; else if(iyy > 255) yy = 255; else yy = (byte)iyy;
 			if(icb < 0) cb = 0; else if(icb > 255) cb = 255; else cb = (byte)icb;

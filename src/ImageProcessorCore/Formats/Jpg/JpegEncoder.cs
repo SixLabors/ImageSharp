@@ -8,6 +8,7 @@ namespace ImageProcessorCore.Formats
     using System;
     using System.IO;
     using System.Threading.Tasks;
+	using ImageProcessorCore.Formats.Jpg;
 
     /// <summary>
     /// Encoder for writing the data image to a stream in jpeg format.
@@ -57,35 +58,8 @@ namespace ImageProcessorCore.Formats
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
-            int imageWidth = image.Width;
-            int imageHeight = image.Height;
-
-            /*SampleRow[] rows = new SampleRow[imageHeight];
-
-            Parallel.For(
-                0,
-                imageHeight,
-                y =>
-                    {
-                        byte[] samples = new byte[imageWidth * 3];
-
-                        for (int x = 0; x < imageWidth; x++)
-                        {
-                            Bgra32 color = Color.ToNonPremultiplied(image[x, y]);
-
-                            int start = x * 3;
-                            samples[start] = color.R;
-                            samples[start + 1] = color.G;
-                            samples[start + 2] = color.B;
-                        }
-
-                        rows[y] = new SampleRow(samples, imageWidth, 8, 3);
-                    });
-
-            using (JpegImage jpg = new JpegImage(rows, Colorspace.RGB))
-            {
-                jpg.WriteJpeg(stream, new CompressionParameters { Quality = this.Quality });
-            }*/
+			var encode = new Encoder();
+			encode.Encode(stream, image, this.Quality);
         }
     }
 }

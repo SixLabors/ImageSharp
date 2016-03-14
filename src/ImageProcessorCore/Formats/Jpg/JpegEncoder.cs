@@ -9,8 +9,6 @@ namespace ImageProcessorCore.Formats
     using System.IO;
     using System.Threading.Tasks;
 
-    using BitMiracle.LibJpeg;
-
     /// <summary>
     /// Encoder for writing the data image to a stream in jpeg format.
     /// </summary>
@@ -62,7 +60,7 @@ namespace ImageProcessorCore.Formats
             int imageWidth = image.Width;
             int imageHeight = image.Height;
 
-            SampleRow[] rows = new SampleRow[imageHeight];
+            /*SampleRow[] rows = new SampleRow[imageHeight];
 
             Parallel.For(
                 0,
@@ -87,7 +85,7 @@ namespace ImageProcessorCore.Formats
             using (JpegImage jpg = new JpegImage(rows, Colorspace.RGB))
             {
                 jpg.WriteJpeg(stream, new CompressionParameters { Quality = this.Quality });
-            }
+            }*/
         }
     }
 }

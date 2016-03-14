@@ -44,7 +44,16 @@ namespace ImageProcessorCore.Tests
             { "Hue-180", new Hue(180) },
             { "Hue--180", new Hue(-180) },
             { "BoxBlur", new BoxBlur(10) },
-            { "Vignette", new Vignette()}
+            { "Vignette", new Vignette() },
+            { "Protanopia", new Protanopia() },
+            { "Protanomaly", new Protanomaly() },
+            { "Deuteranopia", new Deuteranopia() },
+            { "Deuteranomaly", new Deuteranomaly() },
+            { "Tritanopia", new Tritanopia() },
+            { "Tritanomaly", new Tritanomaly() },
+            { "Achromatopsia", new Achromatopsia() },
+            { "Achromatomaly", new Achromatomaly() }
+
         };
 
         [Theory]

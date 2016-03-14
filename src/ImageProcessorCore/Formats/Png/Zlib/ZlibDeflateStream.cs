@@ -119,7 +119,7 @@ namespace ImageProcessorCore.Formats
         {
             get
             {
-                throw new NotImplementedException();
+                throw new NotSupportedException();
             }
         }
 
@@ -128,12 +128,12 @@ namespace ImageProcessorCore.Formats
         {
             get
             {
-                throw new NotImplementedException();
+                throw new NotSupportedException();
             }
 
             set
             {
-                throw new NotImplementedException();
+                throw new NotSupportedException();
             }
         }
 
@@ -146,19 +146,19 @@ namespace ImageProcessorCore.Formats
         /// <inheritdoc/>
         public override int Read(byte[] buffer, int offset, int count)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
 
         /// <inheritdoc/>
         public override long Seek(long offset, SeekOrigin origin)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
 
         /// <inheritdoc/>
         public override void SetLength(long value)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
 
         /// <inheritdoc/>

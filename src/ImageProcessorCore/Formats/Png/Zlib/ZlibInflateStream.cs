@@ -33,24 +33,6 @@ namespace ImageProcessorCore.Formats
         private readonly Stream rawStream;
 
         /// <summary>
-        /// The preset dictionary. 
-        /// Merely informational, not used.
-        /// </summary>
-        private bool fdict;
-
-        /// <summary>
-        /// The DICT dictionary identifier identifying the used dictionary.
-        /// Merely informational, not used.
-        /// </summary>
-        private byte[] dictId;
-
-        /// <summary>
-        /// CINFO is the base-2 logarithm of the LZ77 window size, minus eight.
-        /// Merely informational, not used.
-        /// </summary>
-        private int cinfo;
-
-        /// <summary>
         /// The read crc data.
         /// </summary>
         private byte[] crcread;
@@ -60,6 +42,10 @@ namespace ImageProcessorCore.Formats
 
         public ZlibInflateStream(Stream stream)
         {
+            // The DICT dictionary identifier identifying the used dictionary.
+
+            // The preset dictionary.
+            bool fdict;
             this.rawStream = stream;
 
             // Read the zlib header : http://tools.ietf.org/html/rfc1950
@@ -85,17 +71,19 @@ namespace ImageProcessorCore.Formats
                 throw new Exception($"Bad compression method for ZLIB header: cmf={cmf}");
             }
 
-            this.cinfo = ((cmf & (0xf0)) >> 8);
-            this.fdict = (flag & 32) != 0;
+            // CINFO is the base-2 logarithm of the LZ77 window size, minus eight.
+            // int cinfo = ((cmf & (0xf0)) >> 8);
+            fdict = (flag & 32) != 0;
 
-            if (this.fdict)
+            if (fdict)
             {
-                this.dictId = new byte[4];
+                // The DICT dictionary identifier identifying the used dictionary.
+                byte[] dictId = new byte[4];
 
                 for (int i = 0; i < 4; i++)
                 {
                     // We consume but don't use this.
-                    this.dictId[i] = (byte)this.rawStream.ReadByte(); 
+                    dictId[i] = (byte)this.rawStream.ReadByte();
                 }
             }
 
@@ -117,7 +105,7 @@ namespace ImageProcessorCore.Formats
         {
             get
             {
-                throw new NotImplementedException();
+                throw new NotSupportedException();
             }
         }
 
@@ -126,12 +114,12 @@ namespace ImageProcessorCore.Formats
         {
             get
             {
-                throw new NotImplementedException();
+                throw new NotSupportedException();
             }
 
             set
             {
-                throw new NotImplementedException();
+                throw new NotSupportedException();
             }
         }
 
@@ -154,7 +142,7 @@ namespace ImageProcessorCore.Formats
                 {
                     // we dont really check/use this
                     this.crcread[i] = (byte)this.rawStream.ReadByte();
-                } 
+                }
             }
 
             return read;
@@ -163,19 +151,19 @@ namespace ImageProcessorCore.Formats
         /// <inheritdoc/>
         public override long Seek(long offset, SeekOrigin origin)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
 
         /// <inheritdoc/>
         public override void SetLength(long value)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
 
         /// <inheritdoc/>
         public override void Write(byte[] buffer, int offset, int count)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
 
         /// <inheritdoc/>

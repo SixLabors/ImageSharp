@@ -8,8 +8,7 @@ namespace ImageProcessorCore.Formats
     using System;
     using System.IO;
     using System.Threading.Tasks;
-
-    using BitMiracle.LibJpeg;
+	using ImageProcessorCore.Formats.Jpg;
 
     /// <summary>
     /// Image decoder for generating an image out of a jpg stream.
@@ -95,56 +94,52 @@ namespace ImageProcessorCore.Formats
         {
             Guard.NotNull(image, "image");
             Guard.NotNull(stream, "stream");
-            JpegImage jpg = new JpegImage(stream);
 
-            int pixelWidth = jpg.Width;
-            int pixelHeight = jpg.Height;
+			Decoder decoder = new Decoder();
+			decoder.decode(stream, false);
+
+            int pixelWidth = decoder.width;
+            int pixelHeight = decoder.height;
 
             float[] pixels = new float[pixelWidth * pixelHeight * 4];
 
-            if (jpg.Colorspace == Colorspace.RGB && jpg.BitsPerComponent == 8)
-            {
-                Parallel.For(
-                    0,
-                    pixelHeight,
-                    y =>
-                        {
-                            SampleRow row = jpg.GetRow(y);
-
-                            for (int x = 0; x < pixelWidth; x++)
-                            {
-                                Sample sample = row.GetAt(x);
-
-                                int offset = ((y * pixelWidth) + x) * 4;
-
-                                pixels[offset + 0] = sample[0] / 255f;
-                                pixels[offset + 1] = sample[1] / 255f;
-                                pixels[offset + 2] = sample[2] / 255f;
-                                pixels[offset + 3] = 1;
-                            }
-                        });
-            }
-            else if (jpg.Colorspace == Colorspace.Grayscale && jpg.BitsPerComponent == 8)
-            {
+			if(decoder.nComp == 1)
+			{
                 Parallel.For(
                     0,
                     pixelHeight,
                     y =>
                     {
-                        SampleRow row = jpg.GetRow(y);
-
+						var yoff = decoder.img1.get_row_offset(y);
                         for (int x = 0; x < pixelWidth; x++)
                         {
-                            Sample sample = row.GetAt(x);
-
                             int offset = ((y * pixelWidth) + x) * 4;
 
-                            pixels[offset + 0] = sample[0] / 255f;
-                            pixels[offset + 1] = sample[0] / 255f;
-                            pixels[offset + 2] = sample[0] / 255f;
+                            pixels[offset + 0] = decoder.img1.pixels[yoff+x] / 255f;
+                            pixels[offset + 1] = decoder.img1.pixels[yoff+x] / 255f;
+                            pixels[offset + 2] = decoder.img1.pixels[yoff+x] / 255f;
                             pixels[offset + 3] = 1;
                         }
                     });
+			}
+			else if(decoder.nComp == 3)
+            {
+                Parallel.For(
+                    0,
+                    pixelHeight,
+                    y =>
+                        {
+							var yoff = decoder.imgrgb.get_row_offset(y);
+                            for (int x = 0; x < pixelWidth; x++)
+                            {
+                                int offset = ((y * pixelWidth) + x) * 4;
+
+                                pixels[offset + 0] = decoder.imgrgb.pixels[yoff+3*x+0] / 255f;
+                                pixels[offset + 1] = decoder.imgrgb.pixels[yoff+3*x+1] / 255f;
+                                pixels[offset + 2] = decoder.imgrgb.pixels[yoff+3*x+2] / 255f;
+                                pixels[offset + 3] = 1;
+                            }
+                        });
             }
             else
             {
@@ -152,8 +147,6 @@ namespace ImageProcessorCore.Formats
             }
 
             image.SetPixels(pixelWidth, pixelHeight, pixels);
-
-            jpg.Dispose();
         }
 
         /// <summary>

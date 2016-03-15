@@ -3,7 +3,7 @@ namespace ImageProcessorCore.Formats.Jpg
 	using System;
 	using System.IO;
 
-	public partial class Encoder
+	internal partial class Encoder
 	{
 		private const int sof0Marker = 0xc0; // Start Of Frame (Baseline).
 		private const int sof1Marker = 0xc1; // Start Of Frame (Extended Sequential).

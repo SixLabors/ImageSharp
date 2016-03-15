@@ -3,7 +3,7 @@ namespace ImageProcessorCore.Formats.Jpg
     using System;
     using System.IO;
 
-	public class Block
+	internal class Block
 	{
 		public const int blockSize = 64;
 		private int[] _data;

@@ -1523,7 +1523,6 @@ namespace ImageProcessorCore.Formats.Jpg
             {
                 for ( ; zig <= zigEnd; zig++)
                 {
-                    bool done = false;
                     int z = 0;
                     var val = decodeHuffman(h);
                     int val0 = val >> 4;
@@ -1541,7 +1540,6 @@ namespace ImageProcessorCore.Formats.Jpg
                                     eobRun |= (ushort)bits;
                                 }
                             }
-                            done = true;
                             break;
                         case 1:
                             z = delta;

@@ -1,4 +1,4 @@
-namespace ImageProcessorCore.Formats.Jpg
+namespace ImageProcessorCore.Formats
 {
     using System;
     using System.IO;
@@ -8,19 +8,19 @@ namespace ImageProcessorCore.Formats.Jpg
         private const int sof0Marker = 0xc0; // Start Of Frame (Baseline).
         private const int sof1Marker = 0xc1; // Start Of Frame (Extended Sequential).
         private const int sof2Marker = 0xc2; // Start Of Frame (Progressive).
-        private const int dhtMarker  = 0xc4; // Define Huffman Table.
+        private const int dhtMarker = 0xc4; // Define Huffman Table.
         private const int rst0Marker = 0xd0; // ReSTart (0).
         private const int rst7Marker = 0xd7; // ReSTart (7).
-        private const int soiMarker  = 0xd8; // Start Of Image.
-        private const int eoiMarker  = 0xd9; // End Of Image.
-        private const int sosMarker  = 0xda; // Start Of Scan.
-        private const int dqtMarker  = 0xdb; // Define Quantization Table.
-        private const int driMarker  = 0xdd; // Define Restart Interval.
-        private const int comMarker  = 0xfe; // COMment.
+        private const int soiMarker = 0xd8; // Start Of Image.
+        private const int eoiMarker = 0xd9; // End Of Image.
+        private const int sosMarker = 0xda; // Start Of Scan.
+        private const int dqtMarker = 0xdb; // Define Quantization Table.
+        private const int driMarker = 0xdd; // Define Restart Interval.
+        private const int comMarker = 0xfe; // COMment.
         // "APPlication specific" markers aren't part of the JPEG spec per se,
         // but in practice, their use is described at
         // http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html
-        private const int app0Marker  = 0xe0;
+        private const int app0Marker = 0xe0;
         private const int app14Marker = 0xee;
         private const int app15Marker = 0xef;
 
@@ -108,73 +108,71 @@ namespace ImageProcessorCore.Formats.Jpg
             public huffmanSpec(byte[] c, byte[] v) { count = c; values = v; }
             public byte[] count;
             public byte[] values;
-        };
+        }
 
         // theHuffmanSpec is the Huffman encoding specifications.
         // This encoder uses the same Huffman encoding for all images.
         private huffmanSpec[] theHuffmanSpec = new huffmanSpec[] {
             // Luminance DC.
             new huffmanSpec(
-                new byte[] {0, 1, 5, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0},
-                new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}
-            ),
+                new byte[] { 0, 1, 5, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0 },
+                new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 }),
             new huffmanSpec(
-                new byte[] {0, 2, 1, 3, 3, 2, 4, 3, 5, 5, 4, 4, 0, 0, 1, 125},
-                new byte[] {
-                    0x01, 0x02, 0x03, 0x00, 0x04, 0x11, 0x05, 0x12,
-                    0x21, 0x31, 0x41, 0x06, 0x13, 0x51, 0x61, 0x07,
-                    0x22, 0x71, 0x14, 0x32, 0x81, 0x91, 0xa1, 0x08,
-                    0x23, 0x42, 0xb1, 0xc1, 0x15, 0x52, 0xd1, 0xf0,
-                    0x24, 0x33, 0x62, 0x72, 0x82, 0x09, 0x0a, 0x16,
-                    0x17, 0x18, 0x19, 0x1a, 0x25, 0x26, 0x27, 0x28,
-                    0x29, 0x2a, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39,
-                    0x3a, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49,
-                    0x4a, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59,
-                    0x5a, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69,
-                    0x6a, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79,
-                    0x7a, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89,
-                    0x8a, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98,
-                    0x99, 0x9a, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7,
-                    0xa8, 0xa9, 0xaa, 0xb2, 0xb3, 0xb4, 0xb5, 0xb6,
-                    0xb7, 0xb8, 0xb9, 0xba, 0xc2, 0xc3, 0xc4, 0xc5,
-                    0xc6, 0xc7, 0xc8, 0xc9, 0xca, 0xd2, 0xd3, 0xd4,
-                    0xd5, 0xd6, 0xd7, 0xd8, 0xd9, 0xda, 0xe1, 0xe2,
-                    0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9, 0xea,
-                    0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8,
-                    0xf9, 0xfa,
-                }
-            ),
+                new byte[] { 0, 2, 1, 3, 3, 2, 4, 3, 5, 5, 4, 4, 0, 0, 1, 125 },
+                new byte[]
+                    {
+                        0x01, 0x02, 0x03, 0x00, 0x04, 0x11, 0x05, 0x12,
+                        0x21, 0x31, 0x41, 0x06, 0x13, 0x51, 0x61, 0x07,
+                        0x22, 0x71, 0x14, 0x32, 0x81, 0x91, 0xa1, 0x08,
+                        0x23, 0x42, 0xb1, 0xc1, 0x15, 0x52, 0xd1, 0xf0,
+                        0x24, 0x33, 0x62, 0x72, 0x82, 0x09, 0x0a, 0x16,
+                        0x17, 0x18, 0x19, 0x1a, 0x25, 0x26, 0x27, 0x28,
+                        0x29, 0x2a, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39,
+                        0x3a, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49,
+                        0x4a, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59,
+                        0x5a, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69,
+                        0x6a, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79,
+                        0x7a, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89,
+                        0x8a, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98,
+                        0x99, 0x9a, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7,
+                        0xa8, 0xa9, 0xaa, 0xb2, 0xb3, 0xb4, 0xb5, 0xb6,
+                        0xb7, 0xb8, 0xb9, 0xba, 0xc2, 0xc3, 0xc4, 0xc5,
+                        0xc6, 0xc7, 0xc8, 0xc9, 0xca, 0xd2, 0xd3, 0xd4,
+                        0xd5, 0xd6, 0xd7, 0xd8, 0xd9, 0xda, 0xe1, 0xe2,
+                        0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9, 0xea,
+                        0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8,
+                        0xf9, 0xfa}),
             new huffmanSpec(
-                new byte[] {0, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0},
-                new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}
-            ),
+                new byte[] { 0, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0 },
+                new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 }),
+
             // Chrominance AC.
             new huffmanSpec(
-                new byte[] {0, 2, 1, 2, 4, 4, 3, 4, 7, 5, 4, 4, 0, 1, 2, 119},
-                new byte[] {
-                    0x00, 0x01, 0x02, 0x03, 0x11, 0x04, 0x05, 0x21,
-                    0x31, 0x06, 0x12, 0x41, 0x51, 0x07, 0x61, 0x71,
-                    0x13, 0x22, 0x32, 0x81, 0x08, 0x14, 0x42, 0x91,
-                    0xa1, 0xb1, 0xc1, 0x09, 0x23, 0x33, 0x52, 0xf0,
-                    0x15, 0x62, 0x72, 0xd1, 0x0a, 0x16, 0x24, 0x34,
-                    0xe1, 0x25, 0xf1, 0x17, 0x18, 0x19, 0x1a, 0x26,
-                    0x27, 0x28, 0x29, 0x2a, 0x35, 0x36, 0x37, 0x38,
-                    0x39, 0x3a, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48,
-                    0x49, 0x4a, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58,
-                    0x59, 0x5a, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68,
-                    0x69, 0x6a, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78,
-                    0x79, 0x7a, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87,
-                    0x88, 0x89, 0x8a, 0x92, 0x93, 0x94, 0x95, 0x96,
-                    0x97, 0x98, 0x99, 0x9a, 0xa2, 0xa3, 0xa4, 0xa5,
-                    0xa6, 0xa7, 0xa8, 0xa9, 0xaa, 0xb2, 0xb3, 0xb4,
-                    0xb5, 0xb6, 0xb7, 0xb8, 0xb9, 0xba, 0xc2, 0xc3,
-                    0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9, 0xca, 0xd2,
-                    0xd3, 0xd4, 0xd5, 0xd6, 0xd7, 0xd8, 0xd9, 0xda,
-                    0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9,
-                    0xea, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8,
-                    0xf9, 0xfa,
-                }
-            ),
+                new byte[] { 0, 2, 1, 2, 4, 4, 3, 4, 7, 5, 4, 4, 0, 1, 2, 119 },
+                new byte[]
+                    {
+                        0x00, 0x01, 0x02, 0x03, 0x11, 0x04, 0x05, 0x21,
+                        0x31, 0x06, 0x12, 0x41, 0x51, 0x07, 0x61, 0x71,
+                        0x13, 0x22, 0x32, 0x81, 0x08, 0x14, 0x42, 0x91,
+                        0xa1, 0xb1, 0xc1, 0x09, 0x23, 0x33, 0x52, 0xf0,
+                        0x15, 0x62, 0x72, 0xd1, 0x0a, 0x16, 0x24, 0x34,
+                        0xe1, 0x25, 0xf1, 0x17, 0x18, 0x19, 0x1a, 0x26,
+                        0x27, 0x28, 0x29, 0x2a, 0x35, 0x36, 0x37, 0x38,
+                        0x39, 0x3a, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48,
+                        0x49, 0x4a, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58,
+                        0x59, 0x5a, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68,
+                        0x69, 0x6a, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78,
+                        0x79, 0x7a, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87,
+                        0x88, 0x89, 0x8a, 0x92, 0x93, 0x94, 0x95, 0x96,
+                        0x97, 0x98, 0x99, 0x9a, 0xa2, 0xa3, 0xa4, 0xa5,
+                        0xa6, 0xa7, 0xa8, 0xa9, 0xaa, 0xb2, 0xb3, 0xb4,
+                        0xb5, 0xb6, 0xb7, 0xb8, 0xb9, 0xba, 0xc2, 0xc3,
+                        0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9, 0xca, 0xd2,
+                        0xd3, 0xd4, 0xd5, 0xd6, 0xd7, 0xd8, 0xd9, 0xda,
+                        0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9,
+                        0xea, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8,
+                        0xf9, 0xfa,
+                })
         };
 
         // huffmanLUT is a compiled look-up table representation of a huffmanSpec.
@@ -195,14 +193,14 @@ namespace ImageProcessorCore.Formats.Jpg
                         maxValue = v;
                 }
 
-                values = new uint[maxValue+1];
+                values = new uint[maxValue + 1];
 
                 int code = 0;
                 int k = 0;
 
                 for (int i = 0; i < s.count.Length; i++)
                 {
-                    int nBits = (i+1) << 24;
+                    int nBits = (i + 1) << 24;
                     for (int j = 0; j < s.count[i]; j++)
                     {
                         values[s.values[k]] = (uint)(nBits | code);
@@ -257,7 +255,7 @@ namespace ImageProcessorCore.Formats.Jpg
         private void emitHuff(huffIndex h, int v)
         {
             uint x = theHuffmanLUT[(int)h].values[v];
-            emit(x&((1<<24)-1), x>>24);
+            emit(x & ((1 << 24) - 1), x >> 24);
         }
 
         // emitHuffRLE emits a run of runLength copies of value encoded with the given
@@ -269,17 +267,16 @@ namespace ImageProcessorCore.Formats.Jpg
             if (a < 0)
             {
                 a = -v;
-                b = v-1;
+                b = v - 1;
             }
             uint nBits = 0;
             if (a < 0x100)
                 nBits = bitCount[a];
             else
-                nBits = 8 + (uint)bitCount[a>>8];
+                nBits = 8 + (uint)bitCount[a >> 8];
 
-            emitHuff(h, (int)((runLength<<4)|nBits));
-            if (nBits > 0)
-                emit((uint)b & (uint)((1 << ((int)nBits)) - 1), nBits);
+            emitHuff(h, (int)((uint)(runLength << 4) | nBits));
+            if (nBits > 0) emit((uint)b & (uint)((1 << ((int)nBits)) - 1), nBits);
         }
 
         // writeMarkerHeader writes the header for a marker with the given length.
@@ -295,10 +292,10 @@ namespace ImageProcessorCore.Formats.Jpg
         // writeDQT writes the Define Quantization Table marker.
         private void writeDQT()
         {
-            int markerlen = 2 + nQuantIndex*(1+Block.blockSize);
+            int markerlen = 2 + nQuantIndex * (1 + Block.blockSize);
             writeMarkerHeader(dqtMarker, markerlen);
             for (int i = 0; i < nQuantIndex; i++)
-            { 
+            {
                 writeByte((byte)i);
                 w.Write(quant[i], 0, quant[i].Length);
             }
@@ -310,7 +307,7 @@ namespace ImageProcessorCore.Formats.Jpg
             byte[] chroma1 = new byte[] { 0x22, 0x11, 0x11 };
             byte[] chroma2 = new byte[] { 0x00, 0x01, 0x01 };
 
-            int markerlen = 8 + 3*nComponent;
+            int markerlen = 8 + 3 * nComponent;
             writeMarkerHeader(sof0Marker, markerlen);
             buf[0] = 8; // 8-bit color.
             buf[1] = (byte)(hei >> 8);
@@ -329,13 +326,13 @@ namespace ImageProcessorCore.Formats.Jpg
             {
                 for (int i = 0; i < nComponent; i++)
                 {
-                    buf[3*i+6] = (byte)(i + 1);
+                    buf[3 * i + 6] = (byte)(i + 1);
                     // We use 4:2:0 chroma subsampling.
-                    buf[3*i+7] = chroma1[i];
-                    buf[3*i+8] = chroma2[i];
+                    buf[3 * i + 7] = chroma1[i];
+                    buf[3 * i + 8] = chroma2[i];
                 }
             }
-            w.Write(buf, 0, 3*(nComponent-1)+9);
+            w.Write(buf, 0, 3 * (nComponent - 1) + 9);
         }
 
         // writeDHT writes the Define Huffman Table marker.
@@ -352,7 +349,9 @@ namespace ImageProcessorCore.Formats.Jpg
             }
 
             foreach (var s in specs)
+            {
                 markerlen += 1 + 16 + s.values.Length;
+            }
 
             writeMarkerHeader(dhtMarker, markerlen);
             for (int i = 0; i < specs.Length; i++)
@@ -370,19 +369,19 @@ namespace ImageProcessorCore.Formats.Jpg
         // natural (not zig-zag) order.
         private int writeBlock(Block b, quantIndex q, int prevDC)
         {
-            FDCT(b);
+            FDCT.Transform(b);
 
             // Emit the DC delta.
-            int dc = div(b[0], 8*quant[(int)q][0]);
-            emitHuffRLE((huffIndex)(2*(int)q+0), 0, dc-prevDC);
+            int dc = div(b[0], 8 * quant[(int)q][0]);
+            emitHuffRLE((huffIndex)(2 * (int)q + 0), 0, dc - prevDC);
 
             // Emit the AC components.
-            var h = (huffIndex)(2*(int)q+1);
+            var h = (huffIndex)(2 * (int)q + 1);
             int runLength = 0;
-            
+
             for (int zig = 1; zig < Block.blockSize; zig++)
             {
-                int ac = div(b[unzig[zig]], 8*quant[(int)q][zig]);
+                int ac = div(b[unzig[zig]], 8 * quant[(int)q][zig]);
 
                 if (ac == 0)
                 {
@@ -415,55 +414,14 @@ namespace ImageProcessorCore.Formats.Jpg
             {
                 for (int i = 0; i < 8; i++)
                 {
-                    byte yy, cb, cr;
-
-                    var c = m[Math.Min(x+i, xmax), Math.Min(y+j, ymax)];
-                    Colors.RGBToYCbCr((byte)(c.R*255), (byte)(c.G*255), (byte)(c.B*255), out yy, out cb, out cr);
-                    yBlock[8*j+i] = yy;
-                    cbBlock[8*j+i] = cb;
-                    crBlock[8*j+i] = cr;
+                    YCbCr color = m[Math.Min(x + i, xmax), Math.Min(y + j, ymax)];
+                    int index = (8 * j) + i;
+                    yBlock[index] = (int)color.Y;
+                    cbBlock[index] = (int)color.Cb;
+                    crBlock[index] = (int)color.Cr;
                 }
             }
         }
-
-        // grayToY stores the 8x8 region of m whose top-left corner is p in yBlock.
-        /*func grayToY(m *image.Gray, p image.Point, yBlock *block) {
-            b := m.Bounds()
-            xmax := b.Max.X - 1
-            ymax := b.Max.Y - 1
-            pix := m.Pix
-            for j := 0; j < 8; j++ {
-                for i := 0; i < 8; i++ {
-                    idx := m.PixOffset(min(p.X+i, xmax), min(p.Y+j, ymax))
-                    yBlock[8*j+i] = int32(pix[idx])
-                }
-            }
-        }
-
-        // rgbaToYCbCr is a specialized version of toYCbCr for image.RGBA images.
-        func rgbaToYCbCr(m *image.RGBA, p image.Point, yBlock, cbBlock, crBlock *block) {
-            b := m.Bounds()
-            xmax := b.Max.X - 1
-            ymax := b.Max.Y - 1
-            for j := 0; j < 8; j++ {
-                sj := p.Y + j
-                if sj > ymax {
-                    sj = ymax
-                }
-                offset := (sj-b.Min.Y)*m.Stride - b.Min.X*4
-                for i := 0; i < 8; i++ {
-                    sx := p.X + i
-                    if sx > xmax {
-                        sx = xmax
-                    }
-                    pix := m.Pix[offset+sx*4:]
-                    yy, cb, cr := color.RGBToYCbCr(pix[0], pix[1], pix[2])
-                    yBlock[8*j+i] = int32(yy)
-                    cbBlock[8*j+i] = int32(cb)
-                    crBlock[8*j+i] = int32(cr)
-                }
-            }
-        }*/
 
         // scale scales the 16x16 region represented by the 4 src blocks to the 8x8
         // dst block.
@@ -471,14 +429,14 @@ namespace ImageProcessorCore.Formats.Jpg
         {
             for (int i = 0; i < 4; i++)
             {
-                int dstOff = ((i&2)<<4) | ((i&1)<<2);
+                int dstOff = ((i & 2) << 4) | ((i & 1) << 2);
                 for (int y = 0; y < 4; y++)
                 {
                     for (int x = 0; x < 4; x++)
                     {
-                        int j = 16*y + 2*x;
-                        int sum = src[i][j] + src[i][j+1] + src[i][j+8] + src[i][j+9];
-                        dst[8*y+x+dstOff] = (sum + 2) >> 2;
+                        int j = 16 * y + 2 * x;
+                        int sum = src[i][j] + src[i][j + 1] + src[i][j + 8] + src[i][j + 9];
+                        dst[8 * y + x + dstOff] = (sum + 2) >> 2;
                     }
                 }
             }
@@ -531,7 +489,7 @@ namespace ImageProcessorCore.Formats.Jpg
                         int xOff = (i & 1) * 8;
                         int yOff = (i & 2) * 4;
 
-                        toYCbCr(m, x+xOff, y+yOff, b, cb[i], cr[i]);
+                        toYCbCr(m, x + xOff, y + yOff, b, cb[i], cr[i]);
                         prevDCY = writeBlock(b, 0, prevDCY);
                     }
                     scale(b, cb);
@@ -557,7 +515,7 @@ namespace ImageProcessorCore.Formats.Jpg
             for (int i = 0; i < nQuantIndex; i++)
                 quant[i] = new byte[Block.blockSize];
 
-            if (m.Width >= (1<<16) || m.Height >= (1<<16))
+            if (m.Width >= (1 << 16) || m.Height >= (1 << 16))
                 throw new Exception("jpeg: image is too large to encode");
 
             if (quality < 1) quality = 1;
@@ -568,15 +526,15 @@ namespace ImageProcessorCore.Formats.Jpg
             if (quality < 50)
                 scale = 5000 / quality;
             else
-                scale = 200 - quality*2;
+                scale = 200 - quality * 2;
 
             // Initialize the quantization tables.
             for (int i = 0; i < nQuantIndex; i++)
             {
                 for (int j = 0; j < Block.blockSize; j++)
                 {
-                    int x = unscaledQuant[i,j];
-                    x = (x*scale + 50) / 100;
+                    int x = unscaledQuant[i, j];
+                    x = (x * scale + 50) / 100;
                     if (x < 1) x = 1;
                     if (x > 255) x = 255;
                     quant[i][j] = (byte)x;

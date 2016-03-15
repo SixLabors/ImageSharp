@@ -103,7 +103,7 @@ namespace ImageProcessorCore.Formats
 
             float[] pixels = new float[pixelWidth * pixelHeight * 4];
 
-            if(decoder.nComp == 1)
+            if (decoder.nComp == 1)
             {
                 Parallel.For(
                     0,
@@ -122,7 +122,7 @@ namespace ImageProcessorCore.Formats
                         }
                     });
             }
-            else if(decoder.nComp == 3)
+            else if (decoder.nComp == 3)
             {
                 Parallel.For(
                     0,

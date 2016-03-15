@@ -3,7 +3,7 @@ namespace ImageProcessorCore.Formats.Jpg
     using System;
     using System.IO;
 
-	public static class Colors
+	internal static class Colors
 	{
 		public static void RGBToYCbCr(byte r, byte g, byte b, out byte yy, out byte cb, out byte cr)
 		{

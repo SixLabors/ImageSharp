@@ -3,7 +3,7 @@ namespace ImageProcessorCore.Formats.Jpg
     using System;
     using System.IO;
 
-	public partial class Decoder
+	internal partial class Decoder
 	{
 		private const int w1 = 2841; // 2048*sqrt(2)*cos(1*pi/16)
 		private const int w2 = 2676; // 2048*sqrt(2)*cos(2*pi/16)

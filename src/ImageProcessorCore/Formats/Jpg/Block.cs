@@ -3,16 +3,16 @@ namespace ImageProcessorCore.Formats.Jpg
     using System;
     using System.IO;
 
-	internal class Block
-	{
-		public const int blockSize = 64;
-		private int[] _data;
+    internal class Block
+    {
+        public const int blockSize = 64;
+        private int[] _data;
 
-		public Block()
-		{
-			_data = new int[blockSize];
-		}
+        public Block()
+        {
+            _data = new int[blockSize];
+        }
 
-		public int this[int idx] { get { return _data[idx]; } set { _data[idx] = value; } }
-	}
+        public int this[int idx] { get { return _data[idx]; } set { _data[idx] = value; } }
+    }
 }

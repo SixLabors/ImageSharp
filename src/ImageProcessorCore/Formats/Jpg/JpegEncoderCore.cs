@@ -223,6 +223,7 @@
         private byte[][] quant = new byte[nQuantIndex][];//[Block.blockSize];
         // theHuffmanLUT are compiled representations of theHuffmanSpec.
         private huffmanLUT[] theHuffmanLUT = new huffmanLUT[4];
+        private JpegSubsample subsample;
 
         private void writeByte(byte b)
         {
@@ -304,8 +305,19 @@
         // writeSOF0 writes the Start Of Frame (Baseline) marker.
         private void writeSOF0(int wid, int hei, int nComponent)
         {
-            byte[] chroma1 = new byte[] { 0x22, 0x11, 0x11 };
-            byte[] chroma2 = new byte[] { 0x00, 0x01, 0x01 };
+            //"default" to 4:2:0
+            byte[] subsamples = new byte[] { 0x22, 0x11, 0x11 };
+            byte[] chroma = new byte[] { 0x00, 0x01, 0x01 };
+
+            switch (subsample)
+            {
+                case JpegSubsample.Ratio444:
+                    subsamples = new byte[] { 0x11, 0x11, 0x11 };
+                    break;
+                case JpegSubsample.Ratio420:
+                    subsamples = new byte[] { 0x22, 0x11, 0x11 };
+                    break;
+            }
 
             int markerlen = 8 + 3 * nComponent;
             writeMarkerHeader(sof0Marker, markerlen);
@@ -328,8 +340,8 @@
                 {
                     buf[3 * i + 6] = (byte)(i + 1);
                     // We use 4:2:0 chroma subsampling.
-                    buf[3 * i + 7] = chroma1[i];
-                    buf[3 * i + 8] = chroma2[i];
+                    buf[3 * i + 7] = subsamples[i];
+                    buf[3 * i + 8] = chroma[i];
                 }
             }
             outputStream.Write(buf, 0, 3 * (nComponent - 1) + 9);
@@ -425,7 +437,7 @@
 
         // scale scales the 16x16 region represented by the 4 src blocks to the 8x8
         // dst block.
-        private void scale(Block dst, Block[] src)
+        private void scale_16x16_8x8(Block dst, Block[] src)
         {
             for (int i = 0; i < 4; i++)
             {
@@ -436,7 +448,7 @@
                     {
                         int j = 16 * y + 2 * x;
                         int sum = src[i][j] + src[i][j + 1] + src[i][j + 8] + src[i][j + 9];
-                        dst[8 * y + x + dstOff] = (sum + 2) >> 2;
+                        dst[8 * y + x + dstOff] = (sum + 2) / 4;
                     }
                 }
             }
@@ -467,11 +479,47 @@
             0x11, 0x03, 0x11, 0x00, 0x3f, 0x00,
         };
 
+
         // writeSOS writes the StartOfScan marker.
         private void writeSOS(ImageBase m)
         {
             outputStream.Write(sosHeaderYCbCr, 0, sosHeaderYCbCr.Length);
 
+            switch (subsample)
+            {
+                case JpegSubsample.Ratio444:
+                    encode444(m);
+                    break;
+                case JpegSubsample.Ratio420:
+                    encode420(m);
+                    break;
+            }
+
+            // Pad the last byte with 1's.
+            emit(0x7f, 7);
+        }
+
+        private void encode444(ImageBase m)
+        {
+            Block b = new Block();
+            Block cb = new Block();
+            Block cr = new Block();
+            int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
+
+            for (int y = 0; y < m.Height; y += 8)
+            {
+                for (int x = 0; x < m.Width; x += 8)
+                {
+                    toYCbCr(m, x, y, b, cb, cr);
+                    prevDCY = writeBlock(b, (quantIndex)0, prevDCY);
+                    prevDCCb = writeBlock(cb, (quantIndex)1, prevDCCb);
+                    prevDCCr = writeBlock(cr, (quantIndex)1, prevDCCr);
+                }
+            }
+        }
+
+        private void encode420(ImageBase m)
+        {
             Block b = new Block();
             Block[] cb = new Block[4];
             Block[] cr = new Block[4];
@@ -490,24 +538,22 @@
                         int yOff = (i & 2) * 4;
 
                         toYCbCr(m, x + xOff, y + yOff, b, cb[i], cr[i]);
-                        prevDCY = writeBlock(b, 0, prevDCY);
+                        prevDCY = writeBlock(b, (quantIndex)0, prevDCY);
                     }
-                    scale(b, cb);
+                    scale_16x16_8x8(b, cb);
                     prevDCCb = writeBlock(b, (quantIndex)1, prevDCCb);
-                    scale(b, cr);
+                    scale_16x16_8x8(b, cr);
                     prevDCCr = writeBlock(b, (quantIndex)1, prevDCCr);
                 }
             }
-
-            // Pad the last byte with 1's.
-            emit(0x7f, 7);
         }
 
         // Encode writes the Image m to w in JPEG 4:2:0 baseline format with the given
         // options. Default parameters are used if a nil *Options is passed.
-        public void Encode(Stream stream, ImageBase m, int quality)
+        public void Encode(Stream stream, ImageBase m, int quality, JpegSubsample subsample)
         {
             this.outputStream = stream;
+            this.subsample = subsample;
 
             for (int i = 0; i < theHuffmanSpec.Length; i++)
             {

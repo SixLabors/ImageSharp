@@ -56,7 +56,7 @@ namespace ImageProcessorCore.Formats
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
-			Encoder encode = new Encoder();
+			JpegEncoderCore encode = new JpegEncoderCore();
 			encode.Encode(stream, image, this.Quality);
         }
     }

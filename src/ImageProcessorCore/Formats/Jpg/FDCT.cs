@@ -1,9 +1,6 @@
-namespace ImageProcessorCore.Formats.Jpg
+namespace ImageProcessorCore.Formats
 {
-    using System;
-    using System.IO;
-
-    internal partial class Encoder
+    internal class FDCT
     {
         // Trigonometric constants in 13-bit fixed point format.
         private const int fix_0_298631336 = 2446;
@@ -24,19 +21,21 @@ namespace ImageProcessorCore.Formats.Jpg
 
         // fdct performs a forward DCT on an 8x8 block of coefficients, including a
         // level shift.
-        private static void FDCT(Block b)
+        public static void Transform(Block b)
         {
             // Pass 1: process rows.
             for (int y = 0; y < 8; y++)
             {
-                int x0 = b[y*8+0];
-                int x1 = b[y*8+1];
-                int x2 = b[y*8+2];
-                int x3 = b[y*8+3];
-                int x4 = b[y*8+4];
-                int x5 = b[y*8+5];
-                int x6 = b[y*8+6];
-                int x7 = b[y*8+7];
+                int y8 = y * 8;
+
+                int x0 = b[y8 + 0];
+                int x1 = b[y8 + 1];
+                int x2 = b[y8 + 2];
+                int x3 = b[y8 + 3];
+                int x4 = b[y8 + 4];
+                int x5 = b[y8 + 5];
+                int x6 = b[y8 + 6];
+                int x7 = b[y8 + 7];
 
                 int tmp0 = x0 + x7;
                 int tmp1 = x1 + x6;
@@ -53,12 +52,12 @@ namespace ImageProcessorCore.Formats.Jpg
                 tmp2 = x2 - x5;
                 tmp3 = x3 - x4;
 
-                b[y*8+0] = (tmp10 + tmp11 - 8*centerJSample) << pass1Bits;
-                b[y*8+4] = (tmp10 - tmp11) << pass1Bits;
+                b[y8] = (tmp10 + tmp11 - 8 * centerJSample) << pass1Bits;
+                b[y8 + 4] = (tmp10 - tmp11) << pass1Bits;
                 int z1 = (tmp12 + tmp13) * fix_0_541196100;
                 z1 += 1 << (constBits - pass1Bits - 1);
-                b[y*8+2] = (z1 + tmp12*fix_0_765366865) >> (constBits - pass1Bits);
-                b[y*8+6] = (z1 - tmp13*fix_1_847759065) >> (constBits - pass1Bits);
+                b[y8 + 2] = (z1 + tmp12 * fix_0_765366865) >> (constBits - pass1Bits);
+                b[y8 + 6] = (z1 - tmp13 * fix_1_847759065) >> (constBits - pass1Bits);
 
                 tmp10 = tmp0 + tmp3;
                 tmp11 = tmp1 + tmp2;
@@ -77,38 +76,38 @@ namespace ImageProcessorCore.Formats.Jpg
 
                 tmp12 += z1;
                 tmp13 += z1;
-                b[y*8+1] = (tmp0 + tmp10 + tmp12) >> (constBits - pass1Bits);
-                b[y*8+3] = (tmp1 + tmp11 + tmp13) >> (constBits - pass1Bits);
-                b[y*8+5] = (tmp2 + tmp11 + tmp12) >> (constBits - pass1Bits);
-                b[y*8+7] = (tmp3 + tmp10 + tmp13) >> (constBits - pass1Bits);
+                b[y8 + 1] = (tmp0 + tmp10 + tmp12) >> (constBits - pass1Bits);
+                b[y8 + 3] = (tmp1 + tmp11 + tmp13) >> (constBits - pass1Bits);
+                b[y8 + 5] = (tmp2 + tmp11 + tmp12) >> (constBits - pass1Bits);
+                b[y8 + 7] = (tmp3 + tmp10 + tmp13) >> (constBits - pass1Bits);
             }
 
             // Pass 2: process columns.
             // We remove pass1Bits scaling, but leave results scaled up by an overall factor of 8.
             for (int x = 0; x < 8; x++)
             {
-                int tmp0 = b[0*8+x] + b[7*8+x];
-                int tmp1 = b[1*8+x] + b[6*8+x];
-                int tmp2 = b[2*8+x] + b[5*8+x];
-                int tmp3 = b[3*8+x] + b[4*8+x];
+                int tmp0 = b[x] + b[56 + x];
+                int tmp1 = b[8 + x] + b[48 + x];
+                int tmp2 = b[16 + x] + b[40 + x];
+                int tmp3 = b[24 + x] + b[32 + x];
 
-                int tmp10 = tmp0 + tmp3 + (1<<(pass1Bits-1));
+                int tmp10 = tmp0 + tmp3 + (1 << (pass1Bits - 1));
                 int tmp12 = tmp0 - tmp3;
                 int tmp11 = tmp1 + tmp2;
                 int tmp13 = tmp1 - tmp2;
 
-                tmp0 = b[0*8+x] - b[7*8+x];
-                tmp1 = b[1*8+x] - b[6*8+x];
-                tmp2 = b[2*8+x] - b[5*8+x];
-                tmp3 = b[3*8+x] - b[4*8+x];
+                tmp0 = b[x] - b[56 + x];
+                tmp1 = b[8 + x] - b[48 + x];
+                tmp2 = b[16 + x] - b[40 + x];
+                tmp3 = b[24 + x] - b[32 + x];
 
-                b[0*8+x] = (tmp10 + tmp11) >> pass1Bits;
-                b[4*8+x] = (tmp10 - tmp11) >> pass1Bits;
+                b[x] = (tmp10 + tmp11) >> pass1Bits;
+                b[32 + x] = (tmp10 - tmp11) >> pass1Bits;
 
                 int z1 = (tmp12 + tmp13) * fix_0_541196100;
                 z1 += 1 << (constBits + pass1Bits - 1);
-                b[2*8+x] = (z1 + tmp12*fix_0_765366865) >> (constBits + pass1Bits);
-                b[6*8+x] = (z1 - tmp13*fix_1_847759065) >> (constBits + pass1Bits);
+                b[16 + x] = (z1 + tmp12 * fix_0_765366865) >> (constBits + pass1Bits);
+                b[48 + x] = (z1 - tmp13 * fix_1_847759065) >> (constBits + pass1Bits);
 
                 tmp10 = tmp0 + tmp3;
                 tmp11 = tmp1 + tmp2;
@@ -127,10 +126,10 @@ namespace ImageProcessorCore.Formats.Jpg
 
                 tmp12 += z1;
                 tmp13 += z1;
-                b[1*8+x] = (tmp0 + tmp10 + tmp12) >> (constBits + pass1Bits);
-                b[3*8+x] = (tmp1 + tmp11 + tmp13) >> (constBits + pass1Bits);
-                b[5*8+x] = (tmp2 + tmp11 + tmp12) >> (constBits + pass1Bits);
-                b[7*8+x] = (tmp3 + tmp10 + tmp13) >> (constBits + pass1Bits);
+                b[8 + x] = (tmp0 + tmp10 + tmp12) >> (constBits + pass1Bits);
+                b[24 + x] = (tmp1 + tmp11 + tmp13) >> (constBits + pass1Bits);
+                b[40 + x] = (tmp2 + tmp11 + tmp12) >> (constBits + pass1Bits);
+                b[56 + x] = (tmp3 + tmp10 + tmp13) >> (constBits + pass1Bits);
             }
         }
     }

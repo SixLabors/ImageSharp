@@ -97,13 +97,15 @@ namespace ImageProcessorCore.Formats
             JpegDecoderCore decoder = new JpegDecoderCore();
             decoder.Decode(stream, image, false);
 
-            int pixelWidth = decoder.width;
-            int pixelHeight = decoder.height;
-
-            float[] pixels = new float[pixelWidth * pixelHeight * 4];
-
+            // TODO: When nComp is 3 we set the ImageBase pixels internally, Eventually we should 
+            // do the same here
             if (decoder.nComp == 1)
             {
+                int pixelWidth = decoder.width;
+                int pixelHeight = decoder.height;
+
+                float[] pixels = new float[pixelWidth * pixelHeight * 4];
+
                 Parallel.For(
                     0,
                     pixelHeight,
@@ -123,16 +125,10 @@ namespace ImageProcessorCore.Formats
 
                 image.SetPixels(pixelWidth, pixelHeight, pixels);
             }
-            else if (decoder.nComp == 3)
-            {
-                // pixels = decoder.imgrgb.pixels;
-            }
-            else
+            else if (decoder.nComp != 3)
             {
                 throw new NotSupportedException("JpegDecoder only supports RGB and Grayscale color spaces.");
             }
-
-            //image.SetPixels(pixelWidth, pixelHeight, pixels);
         }
 
         /// <summary>
@@ -161,9 +157,9 @@ namespace ImageProcessorCore.Formats
         {
             bool isExif =
                 header[6] == 0x45 && // E
-                header[7] == 0x78 && // x
-                header[8] == 0x69 && // i
-                header[9] == 0x66 && // f
+                header[7] == 0x78 && // X
+                header[8] == 0x69 && // I
+                header[9] == 0x66 && // F
                 header[10] == 0x00;
 
             return isExif;

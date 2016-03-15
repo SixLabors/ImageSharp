@@ -19,6 +19,12 @@ namespace ImageProcessorCore.Formats
         private int quality = 75;
 
         /// <summary>
+        /// The subsamples used to encode the image.
+        /// </summary>
+        private JpegSubsample subsample = JpegSubsample.Ratio420;
+        private bool subsampleSet = false;
+
+        /// <summary>
         /// Gets or sets the quality, that will be used to encode the image. Quality
         /// index must be between 0 and 100 (compression from max to min).
         /// </summary>
@@ -27,6 +33,16 @@ namespace ImageProcessorCore.Formats
         {
             get { return this.quality; }
             set { this.quality = value.Clamp(1, 100); }
+        }
+
+        /// <summary>
+        /// Gets or sets the subsample ration, that will be used to encode the image.
+        /// </summary>
+        /// <value>The subsample ratio of the jpg image.</value>
+        public JpegSubsample Subsample
+        {
+            get { return this.subsample; }
+            set { this.subsample = value; subsampleSet = true; }
         }
 
         /// <inheritdoc/>
@@ -56,8 +72,11 @@ namespace ImageProcessorCore.Formats
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
-			JpegEncoderCore encode = new JpegEncoderCore();
-			encode.Encode(stream, image, this.Quality);
+            JpegEncoderCore encode = new JpegEncoderCore();
+            if(subsampleSet)
+                encode.Encode(stream, image, this.Quality, this.Subsample);
+            else
+                encode.Encode(stream, image, this.Quality, this.Quality >= 80 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420);
         }
     }
 }

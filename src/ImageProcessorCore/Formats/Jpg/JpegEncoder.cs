@@ -7,8 +7,6 @@ namespace ImageProcessorCore.Formats
 {
     using System;
     using System.IO;
-    using System.Threading.Tasks;
-	using ImageProcessorCore.Formats.Jpg;
 
     /// <summary>
     /// Encoder for writing the data image to a stream in jpeg format.
@@ -16,7 +14,7 @@ namespace ImageProcessorCore.Formats
     public class JpegEncoder : IImageEncoder
     {
         /// <summary>
-        /// The quality.
+        /// The quality used to encode the image.
         /// </summary>
         private int quality = 75;
 
@@ -58,7 +56,7 @@ namespace ImageProcessorCore.Formats
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
-			var encode = new Encoder();
+			Encoder encode = new Encoder();
 			encode.Encode(stream, image, this.Quality);
         }
     }

@@ -8,7 +8,7 @@ namespace ImageProcessorCore.Formats
     using System;
     using System.IO;
     using System.Threading.Tasks;
-    using ImageProcessorCore.Formats.Jpg;
+    using ImageProcessorCore.Formats;
 
     /// <summary>
     /// Image decoder for generating an image out of a jpg stream.
@@ -115,9 +115,9 @@ namespace ImageProcessorCore.Formats
                         {
                             int offset = ((y * pixelWidth) + x) * 4;
 
-                            pixels[offset + 0] = decoder.img1.pixels[yoff+x] / 255f;
-                            pixels[offset + 1] = decoder.img1.pixels[yoff+x] / 255f;
-                            pixels[offset + 2] = decoder.img1.pixels[yoff+x] / 255f;
+                            pixels[offset + 0] = decoder.img1.pixels[yoff + x] / 255f;
+                            pixels[offset + 1] = decoder.img1.pixels[yoff + x] / 255f;
+                            pixels[offset + 2] = decoder.img1.pixels[yoff + x] / 255f;
                             pixels[offset + 3] = 1;
                         }
                     });
@@ -133,10 +133,11 @@ namespace ImageProcessorCore.Formats
                             for (int x = 0; x < pixelWidth; x++)
                             {
                                 int offset = ((y * pixelWidth) + x) * 4;
+                                int sourceOffset = yoff + (3 * x);
 
-                                pixels[offset + 0] = decoder.imgrgb.pixels[yoff+3*x+0] / 255f;
-                                pixels[offset + 1] = decoder.imgrgb.pixels[yoff+3*x+1] / 255f;
-                                pixels[offset + 2] = decoder.imgrgb.pixels[yoff+3*x+2] / 255f;
+                                pixels[offset + 0] = decoder.imgrgb.pixels[sourceOffset];
+                                pixels[offset + 1] = decoder.imgrgb.pixels[sourceOffset + 1];
+                                pixels[offset + 2] = decoder.imgrgb.pixels[sourceOffset + 2];
                                 pixels[offset + 3] = 1;
                             }
                         });

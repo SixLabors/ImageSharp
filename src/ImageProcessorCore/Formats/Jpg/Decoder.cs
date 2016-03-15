@@ -1,10 +1,10 @@
-namespace ImageProcessorCore.Formats.Jpg
+namespace ImageProcessorCore.Formats
 {
     using System;
     using System.IO;
     using System.Threading.Tasks;
 
-    internal partial class Decoder
+    internal class Decoder
     {
         private class errMissingFF00 : Exception { }
         private class errShortHuffmanData : Exception { }
@@ -203,7 +203,7 @@ namespace ImageProcessorCore.Formats.Jpg
 
         public class img_rgb
         {
-            public byte[] pixels;
+            public float[] pixels;
             public int stride;
             public int w, h;
 
@@ -215,7 +215,7 @@ namespace ImageProcessorCore.Formats.Jpg
             {
                 this.w = w;
                 this.h = h;
-                this.pixels = new byte[w * h * 3];
+                this.pixels = new float[w * h * 3];
                 this.stride = w * 3;
             }
 
@@ -1062,11 +1062,20 @@ namespace ImageProcessorCore.Formats.Jpg
             }
 
             if (img1 != null)
+            {
                 return;
+            }
+
             else if (img3 != null)
             {
-                if (comp[0].c == 'R' && comp[1].c == 'G' && comp[2].c == 'B') imgrgb = convert_direct_to_rgb(width, height);
-                else imgrgb = convert_to_rgb(width, height);
+                if (comp[0].c == 'R' && comp[1].c == 'G' && comp[2].c == 'B')
+                {
+                    imgrgb = convert_direct_to_rgb(width, height);
+                }
+                else
+                {
+                    imgrgb = convert_to_rgb(width, height);
+                }
             }
             else
             {
@@ -1074,41 +1083,41 @@ namespace ImageProcessorCore.Formats.Jpg
             }
         }
 
-        private img_rgb convert_to_rgb(int w, int h)
+        private img_rgb convert_to_rgb(int weight, int height)
         {
-            var ret = new img_rgb(w, h);
+            img_rgb ret = new img_rgb(weight, height);
             int cScale = comp[0].h / comp[1].h;
 
             Parallel.For(
                 0,
-                h,
+                height,
                 y =>
                 {
                     int po = ret.get_row_offset(y);
                     int yo = img3.get_row_y_offset(y);
                     int co = img3.get_row_c_offset(y);
 
-                    for (int x = 0; x < w; x++)
+                    for (int x = 0; x < weight; x++)
                     {
                         byte yy = img3.pix_y[yo + x];
                         byte cb = img3.pix_cb[co + x / cScale];
                         byte cr = img3.pix_cr[co + x / cScale];
+                        int index = po + (3 * x);
 
-                        byte r, g, b;
-                        Colors.YCbCrToRGB(yy, cb, cr, out r, out g, out b);
-                        ret.pixels[po + 3 * x + 0] = r;
-                        ret.pixels[po + 3 * x + 1] = g;
-                        ret.pixels[po + 3 * x + 2] = b;
+                        // Implicit casting FTW
+                        Color color = new YCbCr(yy, cb, cr);
+                        ret.pixels[index] = color.R;
+                        ret.pixels[index + 1] = color.G;
+                        ret.pixels[index + 2] = color.B;
                     }
-                }
-            );
+                });
 
             return ret;
         }
 
         private img_rgb convert_direct_to_rgb(int w, int h)
         {
-            var ret = new img_rgb(w, h);
+            img_rgb ret = new img_rgb(w, h);
 
             int cScale = comp[0].h / comp[1].h;
             for (var y = 0; y < h; y++)
@@ -1116,11 +1125,17 @@ namespace ImageProcessorCore.Formats.Jpg
                 int po = ret.get_row_offset(y);
                 int yo = img3.get_row_y_offset(y);
                 int co = img3.get_row_c_offset(y);
+
                 for (int x = 0; x < w; x++)
                 {
-                    ret.pixels[po + 3 * x + 0] = img3.pix_y[yo + x];
-                    ret.pixels[po + 3 * x + 1] = img3.pix_cb[co + x / cScale];
-                    ret.pixels[po + 3 * x + 2] = img3.pix_cr[co + x / cScale];
+                    byte red = img3.pix_y[yo + x];
+                    byte green = img3.pix_cb[co + x / cScale];
+                    byte blue = img3.pix_cr[co + x / cScale];
+                    int index = po + (3 * x);
+                    Color color = new Bgra32(red, green, blue);
+                    ret.pixels[index] = color.R;
+                    ret.pixels[index + 1] = color.G;
+                    ret.pixels[index + 2] = color.B;
                 }
             }
 
@@ -1138,32 +1153,46 @@ namespace ImageProcessorCore.Formats.Jpg
         void processSOS(int n)
         {
             if (nComp == 0)
-                throw new Exception("missing SOF marker");
+            {
+                throw new ImageFormatException("missing SOF marker");
+            }
 
             if (n < 6 || 4 + 2 * nComp < n || n % 2 != 0)
-                throw new Exception("SOS has wrong length");
+            {
+                throw new ImageFormatException("SOS has wrong length");
+            }
 
             readFull(tmp, 0, n);
             nComp = tmp[0];
+
             if (n != 4 + 2 * nComp)
-                throw new Exception("SOS length inconsistent with number of components");
+            {
+                throw new ImageFormatException("SOS length inconsistent with number of components");
+            }
 
             var scan = new scan_scruct[maxComponents];
             int totalHV = 0;
             for (int i = 0; i < nComp; i++)
             {
-                int cs = tmp[1 + 2 * i]; // Component selector.
+                // Component selector.
+                int cs = tmp[1 + (2 * i)];
                 int compIndex = -1;
                 for (int j = 0; j < nComp; j++)
                 {
                     var compv = comp[j];
                     if (cs == compv.c)
+                    {
                         compIndex = j;
+                    }
                 }
+
                 if (compIndex < 0)
-                    throw new Exception("unknown component selector");
+                {
+                    throw new ImageFormatException("Unknown component selector");
+                }
 
                 scan[i].compIndex = (byte)compIndex;
+
                 // Section B.2.3 states that "the value of Cs_j shall be different from
                 // the values of Cs_1 through Cs_(j-1)". Since we have previously
                 // verified that a frame's component identifiers (C_i values in section
@@ -1172,24 +1201,32 @@ namespace ImageProcessorCore.Formats.Jpg
                 for (int j = 0; j < i; j++)
                 {
                     if (scan[i].compIndex == scan[j].compIndex)
+                    {
                         throw new Exception("repeated component selector");
+                    }
                 }
 
                 totalHV += comp[compIndex].h * comp[compIndex].v;
 
                 scan[i].td = (byte)(tmp[2 + 2 * i] >> 4);
                 if (scan[i].td > maxTh)
-                    throw new Exception("bad Td value");
+                {
+                    throw new ImageFormatException("bad Td value");
+                }
 
                 scan[i].ta = (byte)(tmp[2 + 2 * i] & 0x0f);
                 if (scan[i].ta > maxTh)
-                    throw new Exception("bad Ta value");
+                {
+                    throw new ImageFormatException("bad Ta value");
+                }
             }
 
             // Section B.2.3 states that if there is more than one component then the
             // total H*V values in a scan must be <= 10.
             if (nComp > 1 && totalHV > 10)
-                throw new Exception("total sampling factors too large");
+            {
+                throw new ImageFormatException("Total sampling factors too large.");
+            }
 
             // zigStart and zigEnd are the spectral selection bounds.
             // ah and al are the successive approximation high and low values.
@@ -1233,7 +1270,9 @@ namespace ImageProcessorCore.Formats.Jpg
             int myy = (height + 8 * v0 - 1) / (8 * v0);
 
             if (img1 == null && img3 == null)
+            {
                 makeImg(mxx, myy);
+            }
 
             if (progressive)
             {
@@ -1258,6 +1297,7 @@ namespace ImageProcessorCore.Formats.Jpg
             // b is the decoded coefficients, in natural (not zig-zag) order.
             Block b = new Block();
             int[] dc = new int[maxComponents];
+
             // bx and by are the location of the current block, in units of 8x8
             // blocks: the third block in the first row has (bx, by) = (2, 0).
             int bx, by, blockCount = 0;
@@ -1369,8 +1409,7 @@ namespace ImageProcessorCore.Formats.Jpg
                                                 eobRun = (ushort)(1 << val0);
                                                 if (val0 != 0)
                                                 {
-                                                    uint bits = decodeBits(val0);
-                                                    eobRun |= (ushort)(bits);
+                                                    eobRun |= (ushort)decodeBits(val0);
                                                 }
                                                 eobRun--;
                                                 break;
@@ -1387,6 +1426,7 @@ namespace ImageProcessorCore.Formats.Jpg
                                 {
                                     // We haven't completely decoded this 8x8 block. Save the coefficients.
                                     progCoeffs[compIndex][by * mxx * hi + bx] = b;
+
                                     // At this point, we could execute the rest of the loop body to dequantize and
                                     // perform the inverse DCT, to save early stages of a progressive image to the
                                     // *image.YCbCr buffers (the whole point of progressive encoding), but in Go,
@@ -1400,7 +1440,7 @@ namespace ImageProcessorCore.Formats.Jpg
                             for (int zig = 0; zig < Block.blockSize; zig++)
                                 b[unzig[zig]] *= qt[zig];
 
-                            IDCT(b);
+                            IDCT.Transform(b);
 
                             byte[] dst = null;
                             int offset = 0;

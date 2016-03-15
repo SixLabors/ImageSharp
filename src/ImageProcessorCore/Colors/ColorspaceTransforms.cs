@@ -60,9 +60,9 @@ namespace ImageProcessorCore
             float cb = color.Cb - 128;
             float cr = color.Cr - 128;
 
-            float r = (float)(y + (1.402 * cr)) / 255f;
-            float g = (float)(y - (0.34414 * cb) - (0.71414 * cr)) / 255f;
-            float b = (float)(y + (1.772 * cb)) / 255f;
+            float r = (float)(y + (1.402 * cr)).Clamp(0, 255) / 255f;
+            float g = (float)(y - (0.34414 * cb) - (0.71414 * cr)).Clamp(0, 255) / 255f;
+            float b = (float)(y + (1.772 * cb)).Clamp(0, 255) / 255f;
 
             return new Color(r, g, b);
         }

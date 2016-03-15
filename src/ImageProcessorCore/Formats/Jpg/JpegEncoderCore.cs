@@ -1,4 +1,4 @@
-namespace ImageProcessorCore.Formats
+﻿namespace ImageProcessorCore.Formats
 {
     using System;
     using System.IO;

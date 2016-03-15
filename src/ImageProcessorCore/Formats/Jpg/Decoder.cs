@@ -79,14 +79,14 @@ namespace ImageProcessorCore.Formats.Jpg
             bits = new bits_class();
             bytes = new bytes_class();
 
-            for(int i = 0; i < maxTc + 1; i++)
-                for(int j = 0; j < maxTh + 1; j++)
+            for (int i = 0; i < maxTc + 1; i++)
+                for (int j = 0; j < maxTh + 1; j++)
                     huff[i, j] = new huffman_class();
 
-            for(int i = 0; i < quant.Length; i++)
+            for (int i = 0; i < quant.Length; i++)
                 quant[i] = new Block();
 
-            for(int i = 0; i < comp.Length; i++)
+            for (int i = 0; i < comp.Length; i++)
                 comp[i] = new component();
         }
 
@@ -104,7 +104,7 @@ namespace ImageProcessorCore.Formats.Jpg
 
             private static void yCbCrSize(int w, int h, YCbCrSubsampleRatio ratio, out int cw, out int ch)
             {
-                switch(ratio)
+                switch (ratio)
                 {
                     case YCbCrSubsampleRatio.YCbCrSubsampleRatio422:
                         cw = (w+1)/2;
@@ -183,7 +183,7 @@ namespace ImageProcessorCore.Formats.Jpg
 
             public int get_row_c_offset(int y)
             {
-                switch(ratio)
+                switch (ratio)
                 {
                     case YCbCrSubsampleRatio.YCbCrSubsampleRatio422:
                         return y * c_stride;
@@ -354,16 +354,16 @@ namespace ImageProcessorCore.Formats.Jpg
         // the caller is the one responsible for first checking that bits.n < n.
         private void ensureNBits(int n)
         {
-            while(true)
+            while (true)
             {
                 var c = readByteStuffedByte();
                 bits.a = bits.a<<8 | (uint)c;
                 bits.n += 8;
-                if(bits.m == 0)
+                if (bits.m == 0)
                     bits.m = 1 << 7;
                 else
                     bits.m <<= 8;
-                if(bits.n >= n)
+                if (bits.n >= n)
                     break;
             }
         }
@@ -372,14 +372,14 @@ namespace ImageProcessorCore.Formats.Jpg
         // F.2.2.1.
         private int receiveExtend(byte t)
         {
-            if(bits.n < t)
+            if (bits.n < t)
                 ensureNBits(t);
 
             bits.n -= t;
             bits.m >>= t;
             int s = 1 << t;
             int x = (int)((bits.a>>bits.n) & (s - 1));
-            if(x < (s>>1))
+            if (x < (s>>1))
                 x += ((-1) << t) + 1;
             return x;
         }
@@ -388,19 +388,19 @@ namespace ImageProcessorCore.Formats.Jpg
         // struct from its contents. Specified in section B.2.4.2.
         private void processDHT(int n)
         {
-            while(n > 0)
+            while (n > 0)
             {
-                if(n < 17)
+                if (n < 17)
                     throw new Exception("DHT has wrong length");
 
                 readFull(tmp, 0, 17);
 
                 int tc = tmp[0] >> 4;
-                if(tc > maxTc)
+                if (tc > maxTc)
                     throw new Exception("bad Tc value");
 
                 int th = tmp[0] & 0x0f;
-                if(th > maxTh || !progressive && th > 1)
+                if (th > maxTh || !progressive && th > 1)
                     throw new Exception("bad Th value");
 
                 huffman_class h = huff[tc, th];
@@ -411,34 +411,34 @@ namespace ImageProcessorCore.Formats.Jpg
                 h.nCodes = 0;
 
                 int[] ncodes = new int[maxCodeLength];
-                for(int i = 0; i < ncodes.Length; i++)
+                for (int i = 0; i < ncodes.Length; i++)
                 {
                     ncodes[i] = tmp[i+1];
                     h.nCodes += ncodes[i];
                 }
 
-                if(h.nCodes == 0)
+                if (h.nCodes == 0)
                     throw new Exception("Huffman table has zero length");
-                if(h.nCodes > maxNCodes)
+                if (h.nCodes > maxNCodes)
                     throw new Exception("Huffman table has excessive length");
 
                 n -= h.nCodes + 17;
-                if(n < 0)
+                if (n < 0)
                     throw new Exception("DHT has wrong length");
 
                 readFull(h.vals, 0, h.nCodes);
 
                 // Derive the look-up table.
-                for(int i = 0; i < h.lut.Length; i++)
+                for (int i = 0; i < h.lut.Length; i++)
                     h.lut[i] = 0;
 
                 uint x = 0, code = 0;
 
-                for(int i = 0; i < lutSize; i++)
+                for (int i = 0; i < lutSize; i++)
                 {
                     code <<= 1;
 
-                    for(int j = 0; j < ncodes[i]; j++)
+                    for (int j = 0; j < ncodes[i]; j++)
                     {
                         // The codeLength is 1+i, so shift code by 8-(1+i) to
                         // calculate the high bits for every 8-bit sequence
@@ -447,7 +447,7 @@ namespace ImageProcessorCore.Formats.Jpg
                         // The low 8 bits are 1 plus the codeLength.
                         byte base2 = (byte)(code << (7 - i));
                         ushort lutValue = (ushort)(((ushort)h.vals[x]<<8) | (2+i));
-                        for(int k = 0; k < 1<<(7-i); k++)
+                        for (int k = 0; k < 1<<(7-i); k++)
                             h.lut[base2|k] = lutValue;
                         code++;
                         x++;
@@ -456,10 +456,10 @@ namespace ImageProcessorCore.Formats.Jpg
 
                 // Derive minCodes, maxCodes, and valsIndices.
                 int c = 0, index = 0;
-                for(int i = 0; i < ncodes.Length; i++)
+                for (int i = 0; i < ncodes.Length; i++)
                 {
                     int nc = ncodes[i];
-                    if(nc == 0)
+                    if (nc == 0)
                     {
                         h.minCodes[i] = -1;
                         h.maxCodes[i] = -1;
@@ -482,10 +482,10 @@ namespace ImageProcessorCore.Formats.Jpg
         // decoded according to h.
         private byte decodeHuffman(huffman_class h)
         {
-            if(h.nCodes == 0)
+            if (h.nCodes == 0)
                 throw new Exception("uninitialized Huffman table");
 
-            if(bits.n < 8)
+            if (bits.n < 8)
             {
                 try
                 {
@@ -493,20 +493,20 @@ namespace ImageProcessorCore.Formats.Jpg
                 }
                 catch(errMissingFF00)
                 {
-                    if(bytes.nUnreadable != 0)
+                    if (bytes.nUnreadable != 0)
                         unreadByteStuffedByte();
                     goto slowPath;
                 }
                 catch(errShortHuffmanData)
                 {
-                    if(bytes.nUnreadable != 0)
+                    if (bytes.nUnreadable != 0)
                         unreadByteStuffedByte();
                     goto slowPath;
                 }
             }
 
             ushort v = h.lut[(bits.a>>(bits.n-lutSize))&0xff];
-            if(v != 0)
+            if (v != 0)
             {
                 byte n = (byte)((v & 0xff) - 1);
                 bits.n -= n;
@@ -516,15 +516,15 @@ namespace ImageProcessorCore.Formats.Jpg
 
         slowPath:
             int code = 0;
-            for(int i = 0; i < maxCodeLength; i++)
+            for (int i = 0; i < maxCodeLength; i++)
             {
-                if(bits.n == 0)
+                if (bits.n == 0)
                     ensureNBits(1);
-                if((bits.a & bits.m) != 0)
+                if ((bits.a & bits.m) != 0)
                     code |= 1;
                 bits.n--;
                 bits.m >>= 1;
-                if(code <= h.maxCodes[i])
+                if (code <= h.maxCodes[i])
                     return h.vals[h.valsIndices[i]+code-h.minCodes[i]];
                 code <<= 1;
             }
@@ -534,7 +534,7 @@ namespace ImageProcessorCore.Formats.Jpg
 
         private bool decodeBit()
         {
-            if(bits.n == 0)
+            if (bits.n == 0)
                 ensureNBits(1);
 
             bool ret = (bits.a & bits.m) != 0;
@@ -545,7 +545,7 @@ namespace ImageProcessorCore.Formats.Jpg
 
         private uint decodeBits(int n)
         {
-            if(bits.n < n)
+            if (bits.n < n)
                 ensureNBits(n);
 
             uint ret = bits.a >> (bits.n-n);
@@ -559,12 +559,12 @@ namespace ImageProcessorCore.Formats.Jpg
         // should only be called when there are no unread bytes in bytes.
         private void fill()
         {
-            if(bytes.i != bytes.j)
+            if (bytes.i != bytes.j)
                 throw new Exception("jpeg: fill called when unread bytes exist");
 
             // Move the last 2 bytes to the start of the buffer, in case we need
             // to call unreadByteStuffedByte.
-            if(bytes.j > 2)
+            if (bytes.j > 2)
             {
                 bytes.buf[0] = bytes.buf[bytes.j-2];
                 bytes.buf[1] = bytes.buf[bytes.j-1];
@@ -574,7 +574,7 @@ namespace ImageProcessorCore.Formats.Jpg
 
             // Fill in the rest of the buffer.
             int n = r.Read(bytes.buf, bytes.j, bytes.buf.Length - bytes.j);
-            if(n == 0)
+            if (n == 0)
                 throw new errEOF();
             bytes.j += n;
         }
@@ -588,7 +588,7 @@ namespace ImageProcessorCore.Formats.Jpg
         {
             bytes.i -= bytes.nUnreadable;
             bytes.nUnreadable = 0;
-            if(bits.n >= 8)
+            if (bits.n >= 8)
             {
                 bits.a >>= 8;
                 bits.n -= 8;
@@ -600,7 +600,7 @@ namespace ImageProcessorCore.Formats.Jpg
         // not care about byte stuffing.
         private byte readByte()
         {
-            while(bytes.i == bytes.j)
+            while (bytes.i == bytes.j)
                 fill();
             byte x = bytes.buf[bytes.i];
             bytes.i++;
@@ -614,14 +614,14 @@ namespace ImageProcessorCore.Formats.Jpg
             byte x;
 
             // Take the fast path if bytes.buf contains at least two bytes.
-            if(bytes.i+2 <= bytes.j)
+            if (bytes.i+2 <= bytes.j)
             {
                 x = bytes.buf[bytes.i];
                 bytes.i++;
                 bytes.nUnreadable = 1;
-                if(x != 0xff)
+                if (x != 0xff)
                     return x;
-                if(bytes.buf[bytes.i] != 0x00)
+                if (bytes.buf[bytes.i] != 0x00)
                     throw new errMissingFF00();
                 bytes.i++;
                 bytes.nUnreadable = 2;
@@ -632,11 +632,11 @@ namespace ImageProcessorCore.Formats.Jpg
 
             x = readByte();
             bytes.nUnreadable = 1;
-            if(x != 0xff)
+            if (x != 0xff)
                 return x;
             x = readByte();
             bytes.nUnreadable = 2;
-            if(x != 0x00)
+            if (x != 0x00)
                 throw new errMissingFF00();
             return 0xff;
         }
@@ -646,16 +646,16 @@ namespace ImageProcessorCore.Formats.Jpg
         void readFull(byte[] data, int offset, int len)
         {
             // Unread the overshot bytes, if any.
-            if(bytes.nUnreadable != 0)
+            if (bytes.nUnreadable != 0)
             {
-                if(bits.n >= 8)
+                if (bits.n >= 8)
                     unreadByteStuffedByte();
                 bytes.nUnreadable = 0;
             }
 
-            while(len > 0)
+            while (len > 0)
             {
-                if(bytes.j - bytes.i >= len)
+                if (bytes.j - bytes.i >= len)
                 {
                     Array.Copy(bytes.buf, bytes.i, data, offset, len);
                     bytes.i += len;
@@ -677,20 +677,20 @@ namespace ImageProcessorCore.Formats.Jpg
         private void ignore(int n)
         {
             // Unread the overshot bytes, if any.
-            if(bytes.nUnreadable != 0)
+            if (bytes.nUnreadable != 0)
             {
-                if(bits.n >= 8)
+                if (bits.n >= 8)
                     unreadByteStuffedByte();
                 bytes.nUnreadable = 0;
             }
 
-            while(true)
+            while (true)
             {
                 int m = bytes.j - bytes.i;
-                if(m > n) m = n;
+                if (m > n) m = n;
                 bytes.i += m;
                 n -= m;
-                if(n == 0)
+                if (n == 0)
                     break;
                 else
                     fill();
@@ -700,10 +700,10 @@ namespace ImageProcessorCore.Formats.Jpg
         // Specified in section B.2.2.
         private void processSOF(int n)
         {
-            if(nComp != 0)
+            if (nComp != 0)
                 throw new Exception("multiple SOF markers");
 
-            switch(n)
+            switch (n)
             {
                 case 6 + 3*1: // Grayscale image.
                     nComp = 1;
@@ -721,41 +721,40 @@ namespace ImageProcessorCore.Formats.Jpg
             readFull(tmp, 0, n);
 
             // We only support 8-bit precision.
-            if(tmp[0] != 8)
+            if (tmp[0] != 8)
                 throw new Exception("precision");
 
             height = (tmp[1]<<8) + tmp[2];
             width = (tmp[3]<<8) + tmp[4];
-            if(tmp[5] != nComp)
+            if (tmp[5] != nComp)
                 throw new Exception("SOF has wrong length");
 
-            for(int i = 0; i < nComp; i++)
+            for (int i = 0; i < nComp; i++)
             {
                 comp[i].c = tmp[6+3*i];
                 // Section B.2.2 states that "the value of C_i shall be different from
                 // the values of C_1 through C_(i-1)".
-                for(int j = 0; j < i; j++)
+                for (int j = 0; j < i; j++)
                 {
-                    if(comp[i].c == comp[j].c)
+                    if (comp[i].c == comp[j].c)
                         throw new Exception("repeated component identifier");
                 }
 
                 comp[i].tq = tmp[8+3*i];
-                if(comp[i].tq > maxTq)
+                if (comp[i].tq > maxTq)
                     throw new Exception("bad Tq value");
 
                 byte hv = tmp[7+3*i];
                 int h = hv>>4;
                 int v = hv&0x0f;
-                if(h < 1 || 4 < h || v < 1 || 4 < v)
+                if (h < 1 || 4 < h || v < 1 || 4 < v)
                     throw new Exception("luma/chroma subsampling ratio");
-                if(h == 3 || v == 3)
+                if (h == 3 || v == 3)
                     throw new Exception("unsupported subsampling ratio");
 
-                switch(nComp)
+                switch (nComp)
                 {
                     case 1:
-                    {
                         // If a JPEG image has only one component, section A.2 says "this data
                         // is non-interleaved by definition" and section A.2.2 says "[in this
                         // case...] the order of data units within a scan shall be left-to-right
@@ -770,10 +769,8 @@ namespace ImageProcessorCore.Formats.Jpg
                         h = 1;
                         v = 1;
                         break;
-                    }
 
                     case 3:
-                    {
                         // For YCbCr images, we only support 4:4:4, 4:4:0, 4:2:2, 4:2:0,
                         // 4:1:1 or 4:1:0 chroma subsampling ratios. This implies that the
                         // (h, v) values for the Y component are either (1, 1), (1, 2),
@@ -781,35 +778,33 @@ namespace ImageProcessorCore.Formats.Jpg
                         // must be a multiple of the Cb and Cr component's values. We also
                         // assume that the two chroma components have the same subsampling
                         // ratio.
-                        switch(i)
+                        switch (i)
                         {
                             case 0: // Y.
                             {
                                 // We have already verified, above, that h and v are both
                                 // either 1, 2 or 4, so invalid (h, v) combinations are those
                                 // with v == 4.
-                                if(v == 4)
+                                if (v == 4)
                                     throw new Exception("unsupported subsampling ratio");
                                 break;
                             }
                             case 1: // Cb.
                             {
-                                if(comp[0].h%h != 0 || comp[0].v%v != 0)
+                                if (comp[0].h%h != 0 || comp[0].v%v != 0)
                                     throw new Exception("unsupported subsampling ratio");
                                 break;
                             }
                             case 2: // Cr.
                             {
-                                if(comp[1].h != h || comp[1].v != v)
+                                if (comp[1].h != h || comp[1].v != v)
                                     throw new Exception("unsupported subsampling ratio");
                                 break;
                             }
                         }
                         break;
-                    }
 
                     case 4:
-                    {
                         // For 4-component images (either CMYK or YCbCrK), we only support two
                         // hv vectors: [0x11 0x11 0x11 0x11] and [0x22 0x11 0x11 0x22].
                         // Theoretically, 4-component JPEG images could mix and match hv values
@@ -819,24 +814,23 @@ namespace ImageProcessorCore.Formats.Jpg
                         //    and Y channels subsample, they subsample both horizontally and
                         //    vertically.
                         //  - for YCbCrK, the Y and K channels have full samples.
-                        switch(i)
+                        switch (i)
                         {
                             case 0:
-                                if(hv != 0x11 && hv != 0x22)
+                                if (hv != 0x11 && hv != 0x22)
                                     throw new Exception("unsupported subsampling ratio");
                                 break;
                             case 1:
                             case 2:
-                                if(hv != 0x11)
+                                if (hv != 0x11)
                                     throw new Exception("unsupported subsampling ratio");
                                 break;
                             case 3:
-                                if(comp[0].h != h || comp[0].v != v)
+                                if (comp[0].h != h || comp[0].v != v)
                                     throw new Exception("unsupported subsampling ratio");
                                 break;
                         }
                         break;
-                    }
                 }
 
                 comp[i].h = h;
@@ -847,20 +841,20 @@ namespace ImageProcessorCore.Formats.Jpg
         // Specified in section B.2.4.1.
         private void processDQT(int n)
         {
-            while(n > 0)
+            while (n > 0)
             {
                 bool done = false;
 
                 n--;
                 byte x = readByte();
                 byte tq = (byte)(x & 0x0f);
-                if(tq > maxTq)
+                if (tq > maxTq)
                     throw new Exception("bad Tq value");
 
-                switch(x >> 4)
+                switch (x >> 4)
                 {
                     case 0:
-                        if(n < Block.blockSize)
+                        if (n < Block.blockSize)
                         {
                             done = true;
                             break;
@@ -868,11 +862,11 @@ namespace ImageProcessorCore.Formats.Jpg
                         n -= Block.blockSize;
                         readFull(tmp, 0, Block.blockSize);
 
-                        for(int i = 0; i < Block.blockSize; i++)
+                        for (int i = 0; i < Block.blockSize; i++)
                             quant[tq][i] = tmp[i];
                         break;
                     case 1:
-                        if(n < 2*Block.blockSize)
+                        if (n < 2*Block.blockSize)
                         {
                             done = true;
                             break;
@@ -880,25 +874,25 @@ namespace ImageProcessorCore.Formats.Jpg
                         n -= 2 * Block.blockSize;
                         readFull(tmp, 0, 2*Block.blockSize);
 
-                        for(int i = 0; i < Block.blockSize; i++)
+                        for (int i = 0; i < Block.blockSize; i++)
                             quant[tq][i] = ((int)tmp[2*i]<<8) | (int)tmp[2*i+1];
                         break;
                     default:
                         throw new Exception("bad Pq value");
                 }
 
-                if(done)
+                if (done)
                     break;
             }
 
-            if(n != 0)
+            if (n != 0)
                 throw new Exception("DQT has wrong length");
         }
 
         // Specified in section B.2.4.4.
         private void processDRI(int n)
         {
-            if(n != 2)
+            if (n != 2)
                 throw new Exception("DRI has wrong length");
 
             readFull(tmp, 0, 2);
@@ -907,7 +901,7 @@ namespace ImageProcessorCore.Formats.Jpg
 
         private void processApp0Marker(int n)
         {
-            if(n < 5)
+            if (n < 5)
             {
                 ignore(n);
                 return;
@@ -917,13 +911,13 @@ namespace ImageProcessorCore.Formats.Jpg
             n -= 5;
 
             jfif = tmp[0] == 'J' && tmp[1] == 'F' && tmp[2] == 'I' && tmp[3] == 'F' && tmp[4] == '\x00';
-            if(n > 0)
+            if (n > 0)
                 ignore(n);
         }
 
         private void processApp14Marker(int n)
         {
-            if(n < 12)
+            if (n < 12)
             {
                 ignore(n);
                 return;
@@ -932,13 +926,13 @@ namespace ImageProcessorCore.Formats.Jpg
             readFull(tmp, 0, 12);
             n -= 12;
 
-            if(tmp[0] == 'A' && tmp[1] == 'd' && tmp[2] == 'o' && tmp[3] == 'b' && tmp[4] == 'e')
+            if (tmp[0] == 'A' && tmp[1] == 'd' && tmp[2] == 'o' && tmp[3] == 'b' && tmp[4] == 'e')
             {
                 adobeTransformValid = true;
                 adobeTransform = tmp[11];
             }
 
-            if(n > 0)
+            if (n > 0)
                 ignore(n);
         }
 
@@ -949,14 +943,14 @@ namespace ImageProcessorCore.Formats.Jpg
 
             // Check for the Start Of Image marker.
             readFull(tmp, 0, 2);
-            if(tmp[0] != 0xff || tmp[1] != soiMarker)
+            if (tmp[0] != 0xff || tmp[1] != soiMarker)
                 throw new Exception("missing SOI marker");
 
             // Process the remaining segments until the End Of Image marker.
-            while(true)
+            while (true)
             {
                 readFull(tmp, 0, 2);
-                while(tmp[0] != 0xff)
+                while (tmp[0] != 0xff)
                 {
                     // Strictly speaking, this is a format error. However, libjpeg is
                     // liberal in what it accepts. As of version 9, next_marker in
@@ -982,22 +976,22 @@ namespace ImageProcessorCore.Formats.Jpg
                     tmp[1] = readByte();
                 }
                 byte marker = tmp[1];
-                if(marker == 0) {
+                if (marker == 0) {
                     // Treat "\xff\x00" as extraneous data.
                     continue;
                 }
 
-                while(marker == 0xff)
+                while (marker == 0xff)
                 {
                     // Section B.1.1.2 says, "Any marker may optionally be preceded by any
                     // number of fill bytes, which are bytes assigned code X'FF'".
                     marker = readByte();
                 }
 
-                if(marker == eoiMarker) // End Of Image.
+                if (marker == eoiMarker) // End Of Image.
                     break;
 
-                if(rst0Marker <= marker && marker <= rst7Marker)
+                if (rst0Marker <= marker && marker <= rst7Marker)
                 {
                     // Figures B.2 and B.16 of the specification suggest that restart markers should
                     // only occur between Entropy Coded Segments and not after the final ECS.
@@ -1012,39 +1006,39 @@ namespace ImageProcessorCore.Formats.Jpg
                 // length itself, so we subtract 2 to get the number of remaining bytes.
                 readFull(tmp, 0, 2);
                 int n = ((int)tmp[0]<<8) + (int)tmp[1] - 2;
-                if(n < 0)
+                if (n < 0)
                     throw new Exception("short segment length");
 
-                switch(marker)
+                switch (marker)
                 {
                     case sof0Marker:
                     case sof1Marker:
                     case sof2Marker:
                         progressive = (marker == sof2Marker);
                         processSOF(n);
-                        if(configOnly && jfif)
+                        if (configOnly && jfif)
                             return;
                         break;
                     case dhtMarker:
-                        if(configOnly)
+                        if (configOnly)
                             ignore(n);
                         else
                             processDHT(n);
                         break;
                     case dqtMarker:
-                        if(configOnly)
+                        if (configOnly)
                             ignore(n);
                         else
                             processDQT(n);
                         break;
                     case sosMarker:
-                        if(configOnly)
+                        if (configOnly)
                             return;
                         else
                             processSOS(n);
                         break;
                     case driMarker:
-                        if(configOnly)
+                        if (configOnly)
                             ignore(n);
                         else
                             processDRI(n);
@@ -1056,9 +1050,9 @@ namespace ImageProcessorCore.Formats.Jpg
                         processApp14Marker(n);
                         break;
                     default:
-                        if(app0Marker <= marker && marker <= app15Marker || marker == comMarker)
+                        if (app0Marker <= marker && marker <= app15Marker || marker == comMarker)
                             ignore(n);
-                        else if(marker < 0xc0) // See Table B.1 "Marker code assignments".
+                        else if (marker < 0xc0) // See Table B.1 "Marker code assignments".
                             throw new Exception("unknown marker");
                         else
                             throw new Exception("unknown marker");
@@ -1066,11 +1060,11 @@ namespace ImageProcessorCore.Formats.Jpg
                     }
             }
 
-            if(img1 != null)
+            if (img1 != null)
                 return;
-            else if(img3 != null)
+            else if (img3 != null)
             {
-                if(comp[0].c == 'R' && comp[1].c == 'G' && comp[2].c == 'B')
+                if (comp[0].c == 'R' && comp[1].c == 'G' && comp[2].c == 'B')
                     imgrgb = convert_direct_to_rgb(width, height);
                 else
                     imgrgb = convert_to_rgb(width, height);
@@ -1125,12 +1119,12 @@ namespace ImageProcessorCore.Formats.Jpg
             var ret = new img_rgb(w, h);
             
             int cScale = comp[0].h / comp[1].h;
-            for(var y = 0; y < h; y++)
+            for (var y = 0; y < h; y++)
             {
                 int po = ret.get_row_offset(y);
                 int yo = img3.get_row_y_offset(y);
                 int co = img3.get_row_c_offset(y);
-                for(int x = 0; x < w; x++)
+                for (int x = 0; x < w; x++)
                 {
                     ret.pixels[po+3*x+0] = img3.pix_y[yo+x];
                     ret.pixels[po+3*x+1] = img3.pix_cb[co+x/cScale];
@@ -1150,30 +1144,30 @@ namespace ImageProcessorCore.Formats.Jpg
         // Specified in section B.2.3.
         void processSOS(int n)
         {
-            if(nComp == 0)
+            if (nComp == 0)
                 throw new Exception("missing SOF marker");
 
-            if(n < 6 || 4+2*nComp < n || n%2 != 0)
+            if (n < 6 || 4+2*nComp < n || n%2 != 0)
                 throw new Exception("SOS has wrong length");
 
             readFull(tmp, 0, n);
             nComp = tmp[0];
-            if(n != 4+2*nComp)
+            if (n != 4+2*nComp)
                 throw new Exception("SOS length inconsistent with number of components");
 
             var scan = new scan_scruct[maxComponents];
             int totalHV = 0;
-            for(int i = 0; i < nComp; i++)
+            for (int i = 0; i < nComp; i++)
             {
                 int cs = tmp[1+2*i]; // Component selector.
                 int compIndex = -1;
-                for(int j = 0; j < nComp; j++)
+                for (int j = 0; j < nComp; j++)
                 {
                     var compv = comp[j];
-                    if(cs == compv.c)
+                    if (cs == compv.c)
                         compIndex = j;
                 }
-                if(compIndex < 0)
+                if (compIndex < 0)
                     throw new Exception("unknown component selector");
 
                 scan[i].compIndex = (byte)compIndex;
@@ -1182,26 +1176,26 @@ namespace ImageProcessorCore.Formats.Jpg
                 // verified that a frame's component identifiers (C_i values in section
                 // B.2.2) are unique, it suffices to check that the implicit indexes
                 // into comp are unique.
-                for(int j = 0; j < i; j++)
+                for (int j = 0; j < i; j++)
                 {
-                    if(scan[i].compIndex == scan[j].compIndex)
+                    if (scan[i].compIndex == scan[j].compIndex)
                         throw new Exception("repeated component selector");
                 }
 
                 totalHV += comp[compIndex].h * comp[compIndex].v;
 
                 scan[i].td = (byte)(tmp[2+2*i] >> 4);
-                if(scan[i].td > maxTh)
+                if (scan[i].td > maxTh)
                     throw new Exception("bad Td value");
 
                 scan[i].ta = (byte)(tmp[2+2*i] & 0x0f);
-                if(scan[i].ta > maxTh)
+                if (scan[i].ta > maxTh)
                     throw new Exception("bad Ta value");
             }
 
             // Section B.2.3 states that if there is more than one component then the
             // total H*V values in a scan must be <= 10.
-            if(nComp > 1 && totalHV > 10)
+            if (nComp > 1 && totalHV > 10)
                 throw new Exception("total sampling factors too large");
 
             // zigStart and zigEnd are the spectral selection bounds.
@@ -1225,17 +1219,17 @@ namespace ImageProcessorCore.Formats.Jpg
             int ah = 0;
             int al = 0;
 
-            if(progressive)
+            if (progressive)
             {
                 zigStart = (int)(tmp[1+2*nComp]);
                 zigEnd = (int)(tmp[2+2*nComp]);
                 ah = (int)(tmp[3+2*nComp] >> 4);
                 al = (int)(tmp[3+2*nComp] & 0x0f);
-                if((zigStart == 0 && zigEnd != 0) || zigStart > zigEnd || Block.blockSize <= zigEnd)
+                if ((zigStart == 0 && zigEnd != 0) || zigStart > zigEnd || Block.blockSize <= zigEnd)
                     throw new Exception("bad spectral selection bounds");;
-                if(zigStart != 0 && nComp != 1)
+                if (zigStart != 0 && nComp != 1)
                     throw new Exception("progressive AC coefficients for more than one component");
-                if(ah != 0 && ah != al+1)
+                if (ah != 0 && ah != al+1)
                     throw new Exception("bad successive approximation values");
             }
 
@@ -1245,19 +1239,19 @@ namespace ImageProcessorCore.Formats.Jpg
             int mxx = (width + 8*h0 - 1) / (8 * h0);
             int myy = (height + 8*v0 - 1) / (8 * v0);
             
-            if(img1 == null && img3 == null)
+            if (img1 == null && img3 == null)
                 makeImg(mxx, myy);
 
-            if(progressive)
+            if (progressive)
             {
-                for(int i = 0; i < nComp; i++)
+                for (int i = 0; i < nComp; i++)
                 {
                     int compIndex = scan[i].compIndex;
-                    if(progCoeffs[compIndex] == null)
+                    if (progCoeffs[compIndex] == null)
                     {
                         progCoeffs[compIndex] = new Block[mxx*myy*comp[compIndex].h*comp[compIndex].v];
 
-                        for(int j = 0; j < progCoeffs[compIndex].Length; j++)
+                        for (int j = 0; j < progCoeffs[compIndex].Length; j++)
                             progCoeffs[compIndex][j] = new Block();
                     }
                 }
@@ -1275,18 +1269,18 @@ namespace ImageProcessorCore.Formats.Jpg
             // blocks: the third block in the first row has (bx, by) = (2, 0).
             int bx, by, blockCount = 0;
 
-            for(int my = 0; my < myy; my++)
+            for (int my = 0; my < myy; my++)
             {
-                for(int mx = 0; mx < mxx; mx++)
+                for (int mx = 0; mx < mxx; mx++)
                 {
-                    for(int i = 0; i < nComp; i++)
+                    for (int i = 0; i < nComp; i++)
                     {
                         int compIndex = scan[i].compIndex;
                         int hi = comp[compIndex].h;
                         int vi = comp[compIndex].v;
                         Block qt = quant[comp[compIndex].tq];
 
-                        for(int j = 0; j < hi*vi; j++)
+                        for (int j = 0; j < hi*vi; j++)
                         {
                             // The blocks are traversed one MCU at a time. For 4:2:0 chroma
                             // subsampling, there are four Y 8x8 blocks in every 16x16 MCU.
@@ -1313,7 +1307,7 @@ namespace ImageProcessorCore.Formats.Jpg
                             // The non-interleaved scans will process only 6 Y blocks:
                             //  0 1 2
                             //  3 4 5
-                            if(nComp != 1)
+                            if (nComp != 1)
                             {
                                 bx = hi*mx + j%hi;
                                 by = vi*my + j/hi;
@@ -1324,36 +1318,36 @@ namespace ImageProcessorCore.Formats.Jpg
                                 bx = blockCount % q;
                                 by = blockCount / q;
                                 blockCount++;
-                                if(bx*8 >= width || by*8 >= height)
+                                if (bx*8 >= width || by*8 >= height)
                                     continue;
                             }
 
                             // Load the previous partially decoded coefficients, if applicable.
-                            if(progressive)
+                            if (progressive)
                                 b = progCoeffs[compIndex][by*mxx*hi+bx];
                             else
                                 b = new Block();
 
-                            if(ah != 0)
+                            if (ah != 0)
                             {
                                 refine(b, huff[acTable, scan[i].ta], zigStart, zigEnd, 1<<al);
                             }
                             else
                             {
                                 int zig = zigStart;
-                                if(zig == 0)
+                                if (zig == 0)
                                 {
                                     zig++;
                                     // Decode the DC coefficient, as specified in section F.2.2.1.
                                     byte value = decodeHuffman(huff[dcTable, scan[i].td]);
-                                    if(value > 16)
+                                    if (value > 16)
                                         throw new Exception("excessive DC component");
                                     int dcDelta = receiveExtend(value);
                                     dc[compIndex] += dcDelta;
                                     b[0] = dc[compIndex] << al;
                                 }
 
-                                if(zig <= zigEnd && eobRun > 0)
+                                if (zig <= zigEnd && eobRun > 0)
                                 {
                                     eobRun--;
                                 }
@@ -1361,15 +1355,15 @@ namespace ImageProcessorCore.Formats.Jpg
                                 {
                                     // Decode the AC coefficients, as specified in section F.2.2.2.
                                     var huffv = huff[acTable, scan[i].ta];
-                                    for( ; zig <= zigEnd; zig++)
+                                    for ( ; zig <= zigEnd; zig++)
                                     {
                                         byte value = decodeHuffman(huffv);
                                         byte val0 = (byte)(value >> 4);
                                         byte val1 = (byte)(value & 0x0f);
-                                        if(val1 != 0)
+                                        if (val1 != 0)
                                         {
                                             zig += val0;
-                                            if(zig > zigEnd)
+                                            if (zig > zigEnd)
                                                 break;
 
                                             var ac = receiveExtend(val1);
@@ -1377,10 +1371,10 @@ namespace ImageProcessorCore.Formats.Jpg
                                         }
                                         else
                                         {
-                                            if(val0 != 0x0f)
+                                            if (val0 != 0x0f)
                                             {
                                                 eobRun = (ushort)(1 << val0);
-                                                if(val0 != 0)
+                                                if (val0 != 0)
                                                 {
                                                     uint bits = decodeBits(val0);
                                                     eobRun |= (ushort)(bits);
@@ -1394,9 +1388,9 @@ namespace ImageProcessorCore.Formats.Jpg
                                 }
                             }
 
-                            if(progressive)
+                            if (progressive)
                             {
-                                if(zigEnd != Block.blockSize-1 || al != 0)
+                                if (zigEnd != Block.blockSize-1 || al != 0)
                                 {
                                     // We haven't completely decoded this 8x8 block. Save the coefficients.
                                     progCoeffs[compIndex][by*mxx*hi+bx] = b;
@@ -1410,7 +1404,7 @@ namespace ImageProcessorCore.Formats.Jpg
                             }
 
                             // Dequantize, perform the inverse DCT and store the block to the image.
-                            for(int zig = 0; zig < Block.blockSize; zig++)
+                            for (int zig = 0; zig < Block.blockSize; zig++)
                                 b[unzig[zig]] *= qt[zig];
 
                             IDCT(b);
@@ -1419,7 +1413,7 @@ namespace ImageProcessorCore.Formats.Jpg
                             int offset = 0;
                             int stride = 0;
 
-                            if(nComp == 1)
+                            if (nComp == 1)
                             {
                                 dst = img1.pixels;
                                 stride = img1.stride;
@@ -1427,7 +1421,7 @@ namespace ImageProcessorCore.Formats.Jpg
                             }
                             else
                             {
-                                switch(compIndex)
+                                switch (compIndex)
                                 {
                                     case 0:
                                     {
@@ -1461,16 +1455,16 @@ namespace ImageProcessorCore.Formats.Jpg
                             }
 
                             // Level shift by +128, clip to [0, 255], and write to dst.
-                            for(int y = 0; y < 8; y++)
+                            for (int y = 0; y < 8; y++)
                             {
                                 int y8 = y * 8;
                                 int yStride = y * stride;
-                                for(int x = 0; x < 8; x++)
+                                for (int x = 0; x < 8; x++)
                                 {
                                     int c = b[y8+x];
-                                    if(c < -128)
+                                    if (c < -128)
                                         c = 0;
-                                    else if(c > 127)
+                                    else if (c > 127)
                                         c = 255;
                                     else
                                         c += 128;
@@ -1483,16 +1477,16 @@ namespace ImageProcessorCore.Formats.Jpg
 
                     mcu++;
 
-                    if(ri > 0 && mcu%ri == 0 && mcu < mxx*myy)
+                    if (ri > 0 && mcu%ri == 0 && mcu < mxx*myy)
                     {
                         // A more sophisticated decoder could use RST[0-7] markers to resynchronize from corrupt input,
                         // but this one assumes well-formed input, and hence the restart marker follows immediately.
                         readFull(tmp, 0, 2);
-                        if(tmp[0] != 0xff || tmp[1] != expectedRST)
+                        if (tmp[0] != 0xff || tmp[1] != expectedRST)
                             throw new Exception("bad RST marker");
 
                         expectedRST++;
-                        if(expectedRST == rst7Marker+1)
+                        if (expectedRST == rst7Marker+1)
                             expectedRST = rst0Marker;
 
                         // Reset the Huffman decoder.
@@ -1511,13 +1505,13 @@ namespace ImageProcessorCore.Formats.Jpg
         private void refine(Block b, huffman_class h, int zigStart, int zigEnd, int delta)
         {
             // Refining a DC component is trivial.
-            if(zigStart == 0)
+            if (zigStart == 0)
             {
-                if(zigEnd != 0)
+                if (zigEnd != 0)
                     throw new Exception("Invalid state for zig DC component");
 
                 bool bit = decodeBit();
-                if(bit)
+                if (bit)
                     b[0] |= delta;
 
                 return;
@@ -1525,9 +1519,9 @@ namespace ImageProcessorCore.Formats.Jpg
 
             // Refining AC components is more complicated; see sections G.1.2.2 and G.1.2.3.
             int zig = zigStart;
-            if(eobRun == 0)
+            if (eobRun == 0)
             {
-                for( ; zig <= zigEnd; zig++)
+                for ( ; zig <= zigEnd; zig++)
                 {
                     bool done = false;
                     int z = 0;
@@ -1535,13 +1529,13 @@ namespace ImageProcessorCore.Formats.Jpg
                     int val0 = val >> 4;
                     int val1 = val & 0x0f;
 
-                    switch(val1)
+                    switch (val1)
                     {
                         case 0:
-                            if(val0 != 0x0f)
+                            if (val0 != 0x0f)
                             {
                                 eobRun = (ushort)(1 << val0);
-                                if(val0 != 0)
+                                if (val0 != 0)
                                 {
                                     uint bits = decodeBits(val0);
                                     eobRun |= (ushort)bits;
@@ -1552,7 +1546,7 @@ namespace ImageProcessorCore.Formats.Jpg
                         case 1:
                             z = delta;
                             bool bit = decodeBit();
-                            if(!bit)
+                            if (!bit)
                                 z = -z;
                             break;
                         default:
@@ -1560,15 +1554,15 @@ namespace ImageProcessorCore.Formats.Jpg
                     }
 
                     zig = refineNonZeroes(b, zig, zigEnd, val0, delta);
-                    if(zig > zigEnd)
+                    if (zig > zigEnd)
                         throw new Exception("too many coefficients");
 
-                    if(z != 0)
+                    if (z != 0)
                         b[unzig[zig]] = z;
                 }
             }
 
-            if(eobRun > 0)
+            if (eobRun > 0)
             {
                 eobRun--;
                 refineNonZeroes(b, zig, zigEnd, -1, delta);
@@ -1582,19 +1576,19 @@ namespace ImageProcessorCore.Formats.Jpg
             for( ; zig <= zigEnd; zig++)
             {
                 int u = unzig[zig];
-                if(b[u] == 0)
+                if (b[u] == 0)
                 {
-                    if(nz == 0)
+                    if (nz == 0)
                         break;
                     nz--;
                     continue;
                 }
 
                 bool bit = decodeBit();
-                if(!bit)
+                if (!bit)
                     continue;
 
-                if(b[u] >= 0)
+                if (b[u] >= 0)
                     b[u] += delta;
                 else
                     b[u] -= delta;
@@ -1605,7 +1599,7 @@ namespace ImageProcessorCore.Formats.Jpg
 
         private void makeImg(int mxx, int myy)
         {
-            if(nComp == 1)
+            if (nComp == 1)
             {
                 var m = new img_gray(8*mxx, 8*myy);
                 img1 = m.subimage(0, 0, width, height);
@@ -1618,7 +1612,7 @@ namespace ImageProcessorCore.Formats.Jpg
                 var vRatio = v0 / comp[1].v;
 
                 var ratio = img_ycbcr.YCbCrSubsampleRatio.YCbCrSubsampleRatio444;
-                switch((hRatio<<4) | vRatio)
+                switch ((hRatio<<4) | vRatio)
                 {
                     case 0x11:
                         ratio = img_ycbcr.YCbCrSubsampleRatio.YCbCrSubsampleRatio444;

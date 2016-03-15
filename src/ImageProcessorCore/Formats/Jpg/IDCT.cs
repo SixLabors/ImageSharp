@@ -1,3 +1,8 @@
+// <copyright file="IDCT.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
 namespace ImageProcessorCore.Formats
 {
     internal class IDCT
@@ -107,14 +112,14 @@ namespace ImageProcessorCore.Formats
                 // we do not bother to check for the all-zero case.
 
                 // Prescale.
-                int y0 = (src[8 * 0 + x] << 8) + 8192;
-                int y1 = src[8 * 4 + x] << 8;
-                int y2 = src[8 * 6 + x];
-                int y3 = src[8 * 2 + x];
-                int y4 = src[8 * 1 + x];
-                int y5 = src[8 * 7 + x];
-                int y6 = src[8 * 5 + x];
-                int y7 = src[8 * 3 + x];
+                int y0 = (src[x] << 8) + 8192;
+                int y1 = src[32 + x] << 8;
+                int y2 = src[48 + x];
+                int y3 = src[16 + x];
+                int y4 = src[8 + x];
+                int y5 = src[56 + x];
+                int y6 = src[40 + x];
+                int y7 = src[24 + x];
 
                 // Stage 1.
                 int y8 = w7 * (y4 + y5) + 4;
@@ -144,14 +149,14 @@ namespace ImageProcessorCore.Formats
                 y4 = (r2 * (y4 - y5) + 128) >> 8;
 
                 // Stage 4.
-                src[8 * 0 + x] = (y7 + y1) >> 14;
-                src[8 * 1 + x] = (y3 + y2) >> 14;
-                src[8 * 2 + x] = (y0 + y4) >> 14;
-                src[8 * 3 + x] = (y8 + y6) >> 14;
-                src[8 * 4 + x] = (y8 - y6) >> 14;
-                src[8 * 5 + x] = (y0 - y4) >> 14;
-                src[8 * 6 + x] = (y3 - y2) >> 14;
-                src[8 * 7 + x] = (y7 - y1) >> 14;
+                src[x] = (y7 + y1) >> 14;
+                src[8 + x] = (y3 + y2) >> 14;
+                src[16 + x] = (y0 + y4) >> 14;
+                src[24 + x] = (y8 + y6) >> 14;
+                src[32 + x] = (y8 - y6) >> 14;
+                src[40 + x] = (y0 - y4) >> 14;
+                src[48 + x] = (y3 - y2) >> 14;
+                src[56 + x] = (y7 - y1) >> 14;
             }
         }
     }

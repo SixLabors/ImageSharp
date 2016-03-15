@@ -8,7 +8,6 @@ namespace ImageProcessorCore.Formats
     using System;
     using System.IO;
     using System.Threading.Tasks;
-    using ImageProcessorCore.Formats;
 
     /// <summary>
     /// Image decoder for generating an image out of a jpg stream.
@@ -95,8 +94,8 @@ namespace ImageProcessorCore.Formats
             Guard.NotNull(image, "image");
             Guard.NotNull(stream, "stream");
 
-            Decoder decoder = new Decoder();
-            decoder.decode(stream, false);
+            JpegDecoderCore decoder = new JpegDecoderCore();
+            decoder.Decode(stream, image, false);
 
             int pixelWidth = decoder.width;
             int pixelHeight = decoder.height;
@@ -121,33 +120,19 @@ namespace ImageProcessorCore.Formats
                             pixels[offset + 3] = 1;
                         }
                     });
+
+                image.SetPixels(pixelWidth, pixelHeight, pixels);
             }
             else if (decoder.nComp == 3)
             {
-                Parallel.For(
-                    0,
-                    pixelHeight,
-                    y =>
-                        {
-                            var yoff = decoder.imgrgb.get_row_offset(y);
-                            for (int x = 0; x < pixelWidth; x++)
-                            {
-                                int offset = ((y * pixelWidth) + x) * 4;
-                                int sourceOffset = yoff + (3 * x);
-
-                                pixels[offset + 0] = decoder.imgrgb.pixels[sourceOffset];
-                                pixels[offset + 1] = decoder.imgrgb.pixels[sourceOffset + 1];
-                                pixels[offset + 2] = decoder.imgrgb.pixels[sourceOffset + 2];
-                                pixels[offset + 3] = 1;
-                            }
-                        });
+                // pixels = decoder.imgrgb.pixels;
             }
             else
             {
                 throw new NotSupportedException("JpegDecoder only supports RGB and Grayscale color spaces.");
             }
 
-            image.SetPixels(pixelWidth, pixelHeight, pixels);
+            //image.SetPixels(pixelWidth, pixelHeight, pixels);
         }
 
         /// <summary>

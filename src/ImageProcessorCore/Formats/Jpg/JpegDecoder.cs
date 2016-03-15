@@ -8,7 +8,7 @@ namespace ImageProcessorCore.Formats
     using System;
     using System.IO;
     using System.Threading.Tasks;
-	using ImageProcessorCore.Formats.Jpg;
+    using ImageProcessorCore.Formats.Jpg;
 
     /// <summary>
     /// Image decoder for generating an image out of a jpg stream.
@@ -95,22 +95,22 @@ namespace ImageProcessorCore.Formats
             Guard.NotNull(image, "image");
             Guard.NotNull(stream, "stream");
 
-			Decoder decoder = new Decoder();
-			decoder.decode(stream, false);
+            Decoder decoder = new Decoder();
+            decoder.decode(stream, false);
 
             int pixelWidth = decoder.width;
             int pixelHeight = decoder.height;
 
             float[] pixels = new float[pixelWidth * pixelHeight * 4];
 
-			if(decoder.nComp == 1)
-			{
+            if(decoder.nComp == 1)
+            {
                 Parallel.For(
                     0,
                     pixelHeight,
                     y =>
                     {
-						var yoff = decoder.img1.get_row_offset(y);
+                        var yoff = decoder.img1.get_row_offset(y);
                         for (int x = 0; x < pixelWidth; x++)
                         {
                             int offset = ((y * pixelWidth) + x) * 4;
@@ -121,15 +121,15 @@ namespace ImageProcessorCore.Formats
                             pixels[offset + 3] = 1;
                         }
                     });
-			}
-			else if(decoder.nComp == 3)
+            }
+            else if(decoder.nComp == 3)
             {
                 Parallel.For(
                     0,
                     pixelHeight,
                     y =>
                         {
-							var yoff = decoder.imgrgb.get_row_offset(y);
+                            var yoff = decoder.imgrgb.get_row_offset(y);
                             for (int x = 0; x < pixelWidth; x++)
                             {
                                 int offset = ((y * pixelWidth) + x) * 4;

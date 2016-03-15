@@ -3,7 +3,7 @@ namespace ImageProcessorCore.Formats
     using System;
     using System.IO;
 
-    internal partial class Encoder
+    internal class JpegEncoderCore
     {
         private const int sof0Marker = 0xc0; // Start Of Frame (Baseline).
         private const int sof1Marker = 0xc1; // Start Of Frame (Extended Sequential).
@@ -214,7 +214,7 @@ namespace ImageProcessorCore.Formats
 
         // w is the writer to write to. err is the first error encountered during
         // writing. All attempted writes after the first error become no-ops.
-        private Stream w;
+        private Stream outputStream;
         // buf is a scratch buffer.
         private byte[] buf = new byte[16];
         // bits and nBits are accumulated bits to write to w.
@@ -228,7 +228,7 @@ namespace ImageProcessorCore.Formats
         {
             var data = new byte[1];
             data[0] = b;
-            w.Write(data, 0, 1);
+            outputStream.Write(data, 0, 1);
         }
 
         // emit emits the least significant nBits bits of bits to the bit-stream.
@@ -286,7 +286,7 @@ namespace ImageProcessorCore.Formats
             buf[1] = marker;
             buf[2] = (byte)(markerlen >> 8);
             buf[3] = (byte)(markerlen & 0xff);
-            w.Write(buf, 0, 4);
+            outputStream.Write(buf, 0, 4);
         }
 
         // writeDQT writes the Define Quantization Table marker.
@@ -297,7 +297,7 @@ namespace ImageProcessorCore.Formats
             for (int i = 0; i < nQuantIndex; i++)
             {
                 writeByte((byte)i);
-                w.Write(quant[i], 0, quant[i].Length);
+                outputStream.Write(quant[i], 0, quant[i].Length);
             }
         }
 
@@ -332,7 +332,7 @@ namespace ImageProcessorCore.Formats
                     buf[3 * i + 8] = chroma2[i];
                 }
             }
-            w.Write(buf, 0, 3 * (nComponent - 1) + 9);
+            outputStream.Write(buf, 0, 3 * (nComponent - 1) + 9);
         }
 
         // writeDHT writes the Define Huffman Table marker.
@@ -359,8 +359,8 @@ namespace ImageProcessorCore.Formats
                 var s = specs[i];
 
                 writeByte(headers[i]);
-                w.Write(s.count, 0, s.count.Length);
-                w.Write(s.values, 0, s.values.Length);
+                outputStream.Write(s.count, 0, s.count.Length);
+                outputStream.Write(s.values, 0, s.values.Length);
             }
         }
 
@@ -470,7 +470,7 @@ namespace ImageProcessorCore.Formats
         // writeSOS writes the StartOfScan marker.
         private void writeSOS(ImageBase m)
         {
-            w.Write(sosHeaderYCbCr, 0, sosHeaderYCbCr.Length);
+            outputStream.Write(sosHeaderYCbCr, 0, sosHeaderYCbCr.Length);
 
             Block b = new Block();
             Block[] cb = new Block[4];
@@ -505,18 +505,24 @@ namespace ImageProcessorCore.Formats
 
         // Encode writes the Image m to w in JPEG 4:2:0 baseline format with the given
         // options. Default parameters are used if a nil *Options is passed.
-        public void Encode(Stream w, ImageBase m, int quality)
+        public void Encode(Stream stream, ImageBase m, int quality)
         {
-            this.w = w;
+            this.outputStream = stream;
 
             for (int i = 0; i < theHuffmanSpec.Length; i++)
+            {
                 theHuffmanLUT[i] = new huffmanLUT(theHuffmanSpec[i]);
+            }
 
             for (int i = 0; i < nQuantIndex; i++)
+            {
                 quant[i] = new byte[Block.blockSize];
+            }
 
             if (m.Width >= (1 << 16) || m.Height >= (1 << 16))
-                throw new Exception("jpeg: image is too large to encode");
+            {
+                throw new ImageFormatException($"Image is too large to encode at {m.Width}x{m.Height}.");
+            }
 
             if (quality < 1) quality = 1;
             if (quality > 100) quality = 100;
@@ -524,9 +530,13 @@ namespace ImageProcessorCore.Formats
             // Convert from a quality rating to a scaling factor.
             int scale;
             if (quality < 50)
+            {
                 scale = 5000 / quality;
+            }
             else
+            {
                 scale = 200 - quality * 2;
+            }
 
             // Initialize the quantization tables.
             for (int i = 0; i < nQuantIndex; i++)
@@ -547,7 +557,7 @@ namespace ImageProcessorCore.Formats
             // Write the Start Of Image marker.
             buf[0] = 0xff;
             buf[1] = 0xd8;
-            w.Write(buf, 0, 2);
+            stream.Write(buf, 0, 2);
 
             // Write the quantization tables.
             writeDQT();
@@ -564,8 +574,8 @@ namespace ImageProcessorCore.Formats
             // Write the End Of Image marker.
             buf[0] = 0xff;
             buf[1] = 0xd9;
-            w.Write(buf, 0, 2);
-            w.Flush();
+            stream.Write(buf, 0, 2);
+            stream.Flush();
         }
 
         // div returns a/b rounded to the nearest integer, instead of rounded to zero.

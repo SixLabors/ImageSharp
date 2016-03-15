@@ -34,12 +34,12 @@ namespace ImageProcessorCore.Formats.Jpg
         private static void IDCT(Block src)
         {
             // Horizontal 1-D IDCT.
-            for(int y = 0; y < 8; y++)
+            for (int y = 0; y < 8; y++)
             {
                 int y8 = y * 8;
 
                 // If all the AC components are zero, then the IDCT is trivial.
-                if(src[y8+1] == 0 && src[y8+2] == 0 && src[y8+3] == 0 &&
+                if (src[y8+1] == 0 && src[y8+2] == 0 && src[y8+3] == 0 &&
                     src[y8+4] == 0 && src[y8+5] == 0 && src[y8+6] == 0 && src[y8+7] == 0)
                 {
                     int dc = src[y8+0] << 3;
@@ -103,7 +103,7 @@ namespace ImageProcessorCore.Formats.Jpg
             }
 
             // Vertical 1-D IDCT.
-            for(int x = 0; x < 8; x++)
+            for (int x = 0; x < 8; x++)
             {
                 // Similar to the horizontal 1-D IDCT case, if all the AC components are zero, then the IDCT is trivial.
                 // However, after performing the horizontal 1-D IDCT, there are typically non-zero AC components, so

@@ -189,9 +189,9 @@ namespace ImageProcessorCore.Formats.Jpg
             {
                 int maxValue = 0;
 
-                foreach(var v in s.values)
+                foreach (var v in s.values)
                 {
-                    if(v > maxValue)
+                    if (v > maxValue)
                         maxValue = v;
                 }
 
@@ -200,10 +200,10 @@ namespace ImageProcessorCore.Formats.Jpg
                 int code = 0;
                 int k = 0;
 
-                for(int i = 0; i < s.count.Length; i++)
+                for (int i = 0; i < s.count.Length; i++)
                 {
                     int nBits = (i+1) << 24;
-                    for(int j = 0; j < s.count[i]; j++)
+                    for (int j = 0; j < s.count[i]; j++)
                     {
                         values[s.values[k]] = (uint)(nBits | code);
                         code++;
@@ -240,11 +240,11 @@ namespace ImageProcessorCore.Formats.Jpg
             nBits += this.nBits;
             bits <<= (int)(32 - nBits);
             bits |= this.bits;
-            while(nBits >= 8)
+            while (nBits >= 8)
             {
                 byte b = (byte)(bits >> 24);
                 writeByte(b);
-                if(b == 0xff)
+                if (b == 0xff)
                     writeByte(0x00);
                 bits <<= 8;
                 nBits -= 8;
@@ -266,19 +266,19 @@ namespace ImageProcessorCore.Formats.Jpg
         {
             int a = v;
             int b = v;
-            if(a < 0)
+            if (a < 0)
             {
                 a = -v;
                 b = v-1;
             }
             uint nBits = 0;
-            if(a < 0x100)
+            if (a < 0x100)
                 nBits = bitCount[a];
             else
                 nBits = 8 + (uint)bitCount[a>>8];
 
             emitHuff(h, (int)((runLength<<4)|nBits));
-            if(nBits > 0)
+            if (nBits > 0)
                 emit((uint)b & (uint)((1 << ((int)nBits)) - 1), nBits);
         }
 
@@ -297,7 +297,7 @@ namespace ImageProcessorCore.Formats.Jpg
         {
             int markerlen = 2 + nQuantIndex*(1+Block.blockSize);
             writeMarkerHeader(dqtMarker, markerlen);
-            for(int i = 0; i < nQuantIndex; i++)
+            for (int i = 0; i < nQuantIndex; i++)
             { 
                 writeByte((byte)i);
                 w.Write(quant[i], 0, quant[i].Length);
@@ -318,7 +318,7 @@ namespace ImageProcessorCore.Formats.Jpg
             buf[3] = (byte)(wid >> 8);
             buf[4] = (byte)(wid & 0xff);
             buf[5] = (byte)(nComponent);
-            if(nComponent == 1)
+            if (nComponent == 1)
             {
                 buf[6] = 1;
                 // No subsampling for grayscale image.
@@ -327,7 +327,7 @@ namespace ImageProcessorCore.Formats.Jpg
             }
             else
             {
-                for(int i = 0; i < nComponent; i++)
+                for (int i = 0; i < nComponent; i++)
                 {
                     buf[3*i+6] = (byte)(i + 1);
                     // We use 4:2:0 chroma subsampling.
@@ -345,17 +345,17 @@ namespace ImageProcessorCore.Formats.Jpg
             int markerlen = 2;
             huffmanSpec[] specs = theHuffmanSpec;
 
-            if(nComponent == 1)
+            if (nComponent == 1)
             {
                 // Drop the Chrominance tables.
                 specs = new huffmanSpec[] { theHuffmanSpec[0], theHuffmanSpec[1] };
             }
 
-            foreach(var s in specs)
+            foreach (var s in specs)
                 markerlen += 1 + 16 + s.values.Length;
 
             writeMarkerHeader(dhtMarker, markerlen);
-            for(int i = 0; i < specs.Length; i++)
+            for (int i = 0; i < specs.Length; i++)
             {
                 var s = specs[i];
 
@@ -380,17 +380,17 @@ namespace ImageProcessorCore.Formats.Jpg
             var h = (huffIndex)(2*(int)q+1);
             int runLength = 0;
             
-            for(int zig = 1; zig < Block.blockSize; zig++)
+            for (int zig = 1; zig < Block.blockSize; zig++)
             {
                 int ac = div(b[unzig[zig]], 8*quant[(int)q][zig]);
 
-                if(ac == 0)
+                if (ac == 0)
                 {
                     runLength++;
                 }
                 else
                 {
-                    while(runLength > 15)
+                    while (runLength > 15)
                     {
                         emitHuff(h, 0xf0);
                         runLength -= 16;
@@ -400,7 +400,7 @@ namespace ImageProcessorCore.Formats.Jpg
                     runLength = 0;
                 }
             }
-            if(runLength > 0)
+            if (runLength > 0)
                 emitHuff(h, 0x00);
             return dc;
         }
@@ -411,9 +411,9 @@ namespace ImageProcessorCore.Formats.Jpg
         {
             int xmax = m.Width - 1;
             int ymax = m.Height - 1;
-            for(int j = 0; j < 8; j++)
+            for (int j = 0; j < 8; j++)
             {
-                for(int i = 0; i < 8; i++)
+                for (int i = 0; i < 8; i++)
                 {
                     byte yy, cb, cr;
 
@@ -469,12 +469,12 @@ namespace ImageProcessorCore.Formats.Jpg
         // dst block.
         private void scale(Block dst, Block[] src)
         {
-            for(int i = 0; i < 4; i++)
+            for (int i = 0; i < 4; i++)
             {
                 int dstOff = ((i&2)<<4) | ((i&1)<<2);
-                for(int y = 0; y < 4; y++)
+                for (int y = 0; y < 4; y++)
                 {
-                    for(int x = 0; x < 4; x++)
+                    for (int x = 0; x < 4; x++)
                     {
                         int j = 16*y + 2*x;
                         int sum = src[i][j] + src[i][j+1] + src[i][j+8] + src[i][j+9];
@@ -519,14 +519,14 @@ namespace ImageProcessorCore.Formats.Jpg
             Block[] cr = new Block[4];
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
 
-            for(int i = 0; i < 4; i++) cb[i] = new Block();
-            for(int i = 0; i < 4; i++) cr[i] = new Block();
+            for (int i = 0; i < 4; i++) cb[i] = new Block();
+            for (int i = 0; i < 4; i++) cr[i] = new Block();
 
-            for(int y = 0; y < m.Height; y += 16)
+            for (int y = 0; y < m.Height; y += 16)
             {
-                for(int x = 0; x < m.Width; x += 16)
+                for (int x = 0; x < m.Width; x += 16)
                 {
-                    for(int i = 0; i < 4; i++)
+                    for (int i = 0; i < 4; i++)
                     {
                         int xOff = (i & 1) * 8;
                         int yOff = (i & 2) * 4;
@@ -551,34 +551,34 @@ namespace ImageProcessorCore.Formats.Jpg
         {
             this.w = w;
 
-            for(int i = 0; i < theHuffmanSpec.Length; i++)
+            for (int i = 0; i < theHuffmanSpec.Length; i++)
                 theHuffmanLUT[i] = new huffmanLUT(theHuffmanSpec[i]);
 
-            for(int i = 0; i < nQuantIndex; i++)
+            for (int i = 0; i < nQuantIndex; i++)
                 quant[i] = new byte[Block.blockSize];
 
-            if(m.Width >= (1<<16) || m.Height >= (1<<16))
+            if (m.Width >= (1<<16) || m.Height >= (1<<16))
                 throw new Exception("jpeg: image is too large to encode");
 
-            if(quality < 1) quality = 1;
-            if(quality > 100) quality = 100;
+            if (quality < 1) quality = 1;
+            if (quality > 100) quality = 100;
 
             // Convert from a quality rating to a scaling factor.
             int scale;
-            if(quality < 50)
+            if (quality < 50)
                 scale = 5000 / quality;
             else
                 scale = 200 - quality*2;
 
             // Initialize the quantization tables.
-            for(int i = 0; i < nQuantIndex; i++)
+            for (int i = 0; i < nQuantIndex; i++)
             {
-                for(int j = 0; j < Block.blockSize; j++)
+                for (int j = 0; j < Block.blockSize; j++)
                 {
                     int x = unscaledQuant[i,j];
                     x = (x*scale + 50) / 100;
-                    if(x < 1) x = 1;
-                    if(x > 255) x = 255;
+                    if (x < 1) x = 1;
+                    if (x > 255) x = 255;
                     quant[i][j] = (byte)x;
                 }
             }
@@ -613,7 +613,7 @@ namespace ImageProcessorCore.Formats.Jpg
         // div returns a/b rounded to the nearest integer, instead of rounded to zero.
         private static int div(int a, int b)
         {
-            if(a >= 0)
+            if (a >= 0)
                 return (a + (b >> 1)) / b;
             else
                 return -((-a + (b >> 1)) / b);

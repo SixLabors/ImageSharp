@@ -27,7 +27,7 @@ namespace ImageProcessorCore.Formats.Jpg
         private static void FDCT(Block b)
         {
             // Pass 1: process rows.
-            for(int y = 0; y < 8; y++)
+            for (int y = 0; y < 8; y++)
             {
                 int x0 = b[y*8+0];
                 int x1 = b[y*8+1];
@@ -85,7 +85,7 @@ namespace ImageProcessorCore.Formats.Jpg
 
             // Pass 2: process columns.
             // We remove pass1Bits scaling, but leave results scaled up by an overall factor of 8.
-            for(int x = 0; x < 8; x++)
+            for (int x = 0; x < 8; x++)
             {
                 int tmp0 = b[0*8+x] + b[7*8+x];
                 int tmp1 = b[1*8+x] + b[6*8+x];

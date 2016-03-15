@@ -4,7 +4,7 @@ namespace ImageProcessorCore.Formats.Jpg
 	using System.IO;
 	using System.Threading.Tasks;
 
-	public partial class Decoder
+	internal partial class Decoder
 	{
 		private class errMissingFF00 : Exception { }
 		private class errShortHuffmanData : Exception { }
@@ -61,12 +61,20 @@ namespace ImageProcessorCore.Formats.Jpg
 			53, 60, 61, 54, 47, 55, 62, 63,
 		};
 
+		private class component
+		{
+			public int h; // Horizontal sampling factor.
+			public int v; // Vertical sampling factor.
+			public byte c; // Component identifier.
+			public byte tq; // Quantization table destination selector.
+		}
+
 		public Decoder()
 		{
 			huff = new huffman_class[maxTc + 1, maxTh + 1];
 			quant = new Block[maxTq + 1];
 			tmp = new byte[2 * Block.blockSize];
-			comp = new Component[maxComponents];
+			comp = new component[maxComponents];
 			progCoeffs = new Block[maxComponents][];
 			bits = new bits_class();
 			bytes = new bytes_class();
@@ -79,10 +87,10 @@ namespace ImageProcessorCore.Formats.Jpg
 				quant[i] = new Block();
 
 			for(int i = 0; i < comp.Length; i++)
-				comp[i] = new Component();
+				comp[i] = new component();
 		}
 
-		public class img_ycbcr
+		private class img_ycbcr
 		{
 			public enum YCbCrSubsampleRatio
 			{
@@ -320,9 +328,9 @@ namespace ImageProcessorCore.Formats.Jpg
 		public int width, height;
 		public int nComp;
 		public img_gray img1; //grayscale
-		public img_ycbcr img3; //YCrCb
-		public img_rgb imgrgb; //YCrCb
+		public img_rgb imgrgb; //RGB
 
+		private img_ycbcr img3; //YCrCb
 		private Stream r;
 		private bits_class bits;
 		private bytes_class bytes;
@@ -335,7 +343,7 @@ namespace ImageProcessorCore.Formats.Jpg
 		private bool adobeTransformValid;
 		private byte adobeTransform;
 		private ushort eobRun; // End-of-Band run, specified in section G.1.2.2.
-		private Component[] comp;
+		private component[] comp;
 		private Block[][] progCoeffs; // Saved state between progressive-mode scans.
 		private huffman_class[,] huff;
 		private Block[] quant; // Quantization tables, in zig-zag order.
@@ -362,7 +370,7 @@ namespace ImageProcessorCore.Formats.Jpg
 
 		// receiveExtend is the composition of RECEIVE and EXTEND, specified in section
 		// F.2.2.1.
-		public int receiveExtend(byte t)
+		private int receiveExtend(byte t)
 		{
 			if(bits.n < t)
 				ensureNBits(t);
@@ -378,7 +386,7 @@ namespace ImageProcessorCore.Formats.Jpg
 
 		// processDHT processes a Define Huffman Table marker, and initializes a huffman
 		// struct from its contents. Specified in section B.2.4.2.
-		public void processDHT(int n)
+		private void processDHT(int n)
 		{
 			while(n > 0)
 			{
@@ -524,7 +532,7 @@ namespace ImageProcessorCore.Formats.Jpg
 			throw new Exception("bad Huffman code");
 		}
 
-		public bool decodeBit()
+		private bool decodeBit()
 		{
 			if(bits.n == 0)
 				ensureNBits(1);
@@ -535,7 +543,7 @@ namespace ImageProcessorCore.Formats.Jpg
 			return ret;
 		}
 
-		public uint decodeBits(int n)
+		private uint decodeBits(int n)
 		{
 			if(bits.n < n)
 				ensureNBits(n);
@@ -549,7 +557,7 @@ namespace ImageProcessorCore.Formats.Jpg
 
 		// fill fills up the bytes.buf buffer from the underlying io.Reader. It
 		// should only be called when there are no unread bytes in bytes.
-		public void fill()
+		private void fill()
 		{
 			if(bytes.i != bytes.j)
 				throw new Exception("jpeg: fill called when unread bytes exist");
@@ -576,7 +584,7 @@ namespace ImageProcessorCore.Formats.Jpg
 		// requires at least 8 bits for look-up, which means that Huffman decoding can
 		// sometimes overshoot and read one or two too many bytes. Two-byte overshoot
 		// can happen when expecting to read a 0xff 0x00 byte-stuffed byte.
-		public void unreadByteStuffedByte()
+		private void unreadByteStuffedByte()
 		{
 			bytes.i -= bytes.nUnreadable;
 			bytes.nUnreadable = 0;
@@ -590,7 +598,7 @@ namespace ImageProcessorCore.Formats.Jpg
 
 		// readByte returns the next byte, whether buffered or not buffere It does
 		// not care about byte stuffing.
-		public byte readByte()
+		private byte readByte()
 		{
 			while(bytes.i == bytes.j)
 				fill();
@@ -601,7 +609,7 @@ namespace ImageProcessorCore.Formats.Jpg
 		}
 
 		// readByteStuffedByte is like readByte but is for byte-stuffed Huffman data.
-		public byte readByteStuffedByte()
+		private byte readByteStuffedByte()
 		{
 			byte x;
 
@@ -666,7 +674,7 @@ namespace ImageProcessorCore.Formats.Jpg
 		}
 
 		// ignore ignores the next n bytes.
-		public void ignore(int n)
+		private void ignore(int n)
 		{
 			// Unread the overshot bytes, if any.
 			if(bytes.nUnreadable != 0)
@@ -690,7 +698,7 @@ namespace ImageProcessorCore.Formats.Jpg
 		}
 
 		// Specified in section B.2.2.
-		public void processSOF(int n)
+		private void processSOF(int n)
 		{
 			if(nComp != 0)
 				throw new Exception("multiple SOF markers");
@@ -837,7 +845,7 @@ namespace ImageProcessorCore.Formats.Jpg
 		}
 
 		// Specified in section B.2.4.1.
-		public void processDQT(int n)
+		private void processDQT(int n)
 		{
 			while(n > 0)
 			{
@@ -888,7 +896,7 @@ namespace ImageProcessorCore.Formats.Jpg
 		}
 
 		// Specified in section B.2.4.4.
-		public void processDRI(int n)
+		private void processDRI(int n)
 		{
 			if(n != 2)
 				throw new Exception("DRI has wrong length");
@@ -897,7 +905,7 @@ namespace ImageProcessorCore.Formats.Jpg
 			ri = ((int)tmp[0]<<8) + (int)tmp[1];
 		}
 
-		public void processApp0Marker(int n)
+		private void processApp0Marker(int n)
 		{
 			if(n < 5)
 			{
@@ -913,7 +921,7 @@ namespace ImageProcessorCore.Formats.Jpg
 				ignore(n);
 		}
 
-		public void processApp14Marker(int n)
+		private void processApp14Marker(int n)
 		{
 			if(n < 12)
 			{
@@ -935,7 +943,7 @@ namespace ImageProcessorCore.Formats.Jpg
 		}
 
 		// decode reads a JPEG image from r and returns it as an image.Image.
-		public object decode(Stream r, bool configOnly)
+		public void decode(Stream r, bool configOnly)
 		{
 			this.r = r;
 
@@ -1015,7 +1023,7 @@ namespace ImageProcessorCore.Formats.Jpg
 						progressive = (marker == sof2Marker);
 						processSOF(n);
 						if(configOnly && jfif)
-							return null;
+							return;
 						break;
 					case dhtMarker:
 						if(configOnly)
@@ -1031,7 +1039,7 @@ namespace ImageProcessorCore.Formats.Jpg
 						break;
 					case sosMarker:
 						if(configOnly)
-							return null;
+							return;
 						else
 							processSOS(n);
 						break;
@@ -1059,19 +1067,13 @@ namespace ImageProcessorCore.Formats.Jpg
 			}
 
 			if(img1 != null)
-				return img1;
-			if(img3 != null)
+				return;
+			else if(img3 != null)
 			{
 				if(comp[0].c == 'R' && comp[1].c == 'G' && comp[2].c == 'B')
-				{
 					imgrgb = convert_direct_to_rgb(width, height);
-					return imgrgb;
-				}
 				else
-				{
 					imgrgb = convert_to_rgb(width, height);
-					return imgrgb;
-				}
 			}
 
 			/*if img3 != nil {

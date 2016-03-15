@@ -3,7 +3,7 @@ namespace ImageProcessorCore.Formats.Jpg
     using System;
     using System.IO;
 
-	public partial class Encoder
+	internal partial class Encoder
 	{
 		// Trigonometric constants in 13-bit fixed point format.
 		private const int fix_0_298631336 = 2446;

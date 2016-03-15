@@ -18,7 +18,7 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// The quality.
         /// </summary>
-        private int quality = 100;
+        private int quality = 75;
 
         /// <summary>
         /// Gets or sets the quality, that will be used to encode the image. Quality

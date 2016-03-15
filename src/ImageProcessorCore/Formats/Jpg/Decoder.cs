@@ -2,6 +2,7 @@ namespace ImageProcessorCore.Formats.Jpg
 {
 	using System;
 	using System.IO;
+	using System.Threading.Tasks;
 
 	public partial class Decoder
 	{
@@ -62,7 +63,7 @@ namespace ImageProcessorCore.Formats.Jpg
 
 		public Decoder()
 		{
-       		huff = new huffman_class[maxTc + 1, maxTh + 1];
+			huff = new huffman_class[maxTc + 1, maxTh + 1];
 			quant = new Block[maxTq + 1];
 			tmp = new byte[2 * Block.blockSize];
 			comp = new Component[maxComponents];
@@ -1088,26 +1089,31 @@ namespace ImageProcessorCore.Formats.Jpg
 		private img_rgb convert_to_rgb(int w, int h)
 		{
 			var ret = new img_rgb(w, h);
-			
 			int cScale = comp[0].h / comp[1].h;
-			for(var y = 0; y < h; y++)
-			{
-				int po = ret.get_row_offset(y);
-				int yo = img3.get_row_y_offset(y);
-				int co = img3.get_row_c_offset(y);
-				for(int x = 0; x < w; x++)
-				{
-					byte yy = img3.pix_y[yo+x];
-					byte cb = img3.pix_cb[co+x/cScale];
-					byte cr = img3.pix_cr[co+x/cScale];
 
-					byte r, g, b;
-					Colors.YCbCrToRGB(yy, cb, cr, out r, out g, out b);
-					ret.pixels[po+3*x+0] = r;
-					ret.pixels[po+3*x+1] = g;
-					ret.pixels[po+3*x+2] = b;
+			Parallel.For(
+				0,
+				h,
+				y =>
+				{
+					int po = ret.get_row_offset(y);
+					int yo = img3.get_row_y_offset(y);
+					int co = img3.get_row_c_offset(y);
+
+					for (int x = 0; x < w; x++)
+					{
+						byte yy = img3.pix_y[yo+x];
+						byte cb = img3.pix_cb[co+x/cScale];
+						byte cr = img3.pix_cr[co+x/cScale];
+
+						byte r, g, b;
+						Colors.YCbCrToRGB(yy, cb, cr, out r, out g, out b);
+						ret.pixels[po+3*x+0] = r;
+						ret.pixels[po+3*x+1] = g;
+						ret.pixels[po+3*x+2] = b;
+					}
 				}
-			}
+			);
 
 			return ret;
 		}

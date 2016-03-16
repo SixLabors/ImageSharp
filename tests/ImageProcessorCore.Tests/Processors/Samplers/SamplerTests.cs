@@ -92,7 +92,7 @@
                     string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
                     using (FileStream output = File.OpenWrite($"TestOutput/Resize/{filename}"))
                     {
-                        image.Resize(image.Width / 2, image.Height / 2, sampler, this.ProgressUpdate)
+                        image.Resize(image.Width / 2, image.Height / 2, sampler, false, this.ProgressUpdate)
                              .Save(output);
                     }
 
@@ -120,7 +120,7 @@
                     string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
                     using (FileStream output = File.OpenWrite($"TestOutput/Resize/{filename}"))
                     {
-                        image.Resize(image.Width / 3, 0, new TriangleResampler(), this.ProgressUpdate)
+                        image.Resize(image.Width / 3, 0, new TriangleResampler(), false, this.ProgressUpdate)
                              .Save(output);
                     }
 
@@ -148,7 +148,7 @@
                     string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
                     using (FileStream output = File.OpenWrite($"TestOutput/Resize/{filename}"))
                     {
-                        image.Resize(0, image.Height / 3, new TriangleResampler(), this.ProgressUpdate)
+                        image.Resize(0, image.Height / 3, new TriangleResampler(), false, this.ProgressUpdate)
                              .Save(output);
                     }
 
@@ -202,7 +202,7 @@
                     string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
                     using (FileStream output = File.OpenWrite($"TestOutput/Rotate/{filename}"))
                     {
-                        image.Rotate(45, sampler, this.ProgressUpdate)
+                        image.Rotate(45, sampler, false, this.ProgressUpdate)
                              //.BackgroundColor(Color.Aqua)
                              .Save(output);
                     }

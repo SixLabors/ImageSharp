@@ -1,4 +1,9 @@
-﻿namespace ImageProcessorCore.Formats
+﻿// <copyright file="JpegEncoderCore.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
+namespace ImageProcessorCore.Formats
 {
     using System;
     using System.IO;

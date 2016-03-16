@@ -73,6 +73,7 @@ namespace ImageProcessorCore.Samplers
             int endX = targetRectangle.Right;
             float negativeAngle = -this.angle;
             Point centre = Rectangle.Center(sourceRectangle);
+            bool compand = this.Compand;
 
             if (this.Sampler is NearestNeighborResampler)
             {
@@ -144,15 +145,20 @@ namespace ImageProcessorCore.Samplers
 
                                     if (sourceRectangle.Contains(rotated.X, rotated.Y))
                                     {
-                                        Color sourceColor = Color.Expand(source[rotated.X, rotated.Y]);
+                                        Color sourceColor = compand ? Color.Expand(source[rotated.X, rotated.Y]) : source[rotated.X, rotated.Y];
                                         destination += sourceColor * yw.Value * xw.Value;
                                     }
                                 }
                             }
 
-                            destination = Color.Compress(destination);
+                            if (compand)
+                            {
+                                destination = Color.Compress(destination);
+                            }
+
                             target[x, y] = destination;
                         }
+
                         this.OnRowProcessed();
                     }
                 });

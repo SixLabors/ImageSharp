@@ -3,17 +3,17 @@
 ## This branch contains the new cross platform version: ImageProcessorCore.
 
 ---
-#ImageProcessor Needs Your Help
+## ImageProcessor Needs Your Help
 
-### ImageProcessor is the work of a very, very, small number of developers who struggle balancing time to contribute to the project with family time and work commitments. If the project is to survive we need more contribution from the community at large. There are several issues, most notably [#324](https://github.com/JimBobSquarePants/ImageProcessor/issues/324) that we cannot possibly solve on our own.
+**ImageProcessor is the work of a very, very, small number of developers who struggle balancing time to contribute to the project with family time and work commitments. If the project is to survive we need more contribution from the community at large. There are several issues, most notably [#264](https://github.com/JimBobSquarePants/ImageProcessor/issues/264) that we cannot possibly solve on our own.**
 
-### We, and we believe many others in the community at large want a first-class 2D imaging library with a simple API that is not simply a wrapper round an existing library. We want it to have a low contribution bar which we believe can only happen if the library is written in C#. We want it to be written to cover as many use cases as possible. We want to write the same code once and have it work on any platform supporting CoreFX.
+**We, and we believe many others in the community at large want a first-class 2D imaging library with a simple API that is not simply a wrapper round an existing library. We want it to have a low contribution bar which we believe can only happen if the library is written in C#. We want it to be written to cover as many use cases as possible. We want to write the same code once and have it work on any platform supporting CoreFX.**
 
-### With your help we can make all that a reality.
+**With your help we can make all that a reality.**
 
-### If you can donate any time to improve on the project, be it helping with documentation, tests or contributing code please do.
+**If you can donate any time to improve on the project, be it helping with documentation, tests or contributing code please do.**
 
-### Thankyou for reading this.
+**Thankyou for reading this**
 ---
 
 This is a complete rewrite from the ground up to allow the processing of images without the use of `System.Drawing` using a cross-platform class library. It's still in early stages but progress has been pretty quick.
@@ -50,8 +50,8 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
 
 ###What works so far/ What is planned?
 
-- Encoding/decoding of image formats (plugable)
- - [x] jpeg (Includes progressive)
+- Encoding/decoding of image formats (plugable), progressive required
+ - [x] jpeg (Includes Subsampling, Progressive required)
  - [x] bmp (More bmp format saving support required, 24bit just now)
  - [x] png (Need updating for saving indexed support)
  - [x] gif
@@ -69,7 +69,7 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
  - [x] Size
  - [x] Point
  - [x] Ellipse
-- Resampling algorithms. (Performance improvements?)
+- Resampling algorithms. (Optional gamma correction, Performance improvements?)
  - [x] Box
  - [x] Bicubic
  - [x] Lanczos3
@@ -94,10 +94,20 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
  - [x] BlackWhite
  - [x] Greyscale BT709
  - [x] Greyscale BT601
+ - [x] Hue
+ - [x] Saturation
  - [x] Lomograph
  - [x] Polaroid
  - [x] Kodachrome
  - [x] Sepia
+ - [x] Achromatomaly 
+ - [x] Achromatopsia
+ - [x] Deuteranomaly
+ - [x] Deuteranopia
+ - [x] Protanomaly
+ - [x] Protanopia
+ - [x] Tritanomaly
+ - [x] Tritanopia
 - Edge Detection
  - [x] Kayyali
  - [x] Kirsch
@@ -119,12 +129,11 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
  - [x] BackgroundColor
  - [x] Brightness
  - [x] Pixelate
- - [x] Saturation
- - [x] Hue
  - [x] Blend
  - [ ] Mask
  - [x] Vignette
  - [x] Glow
+ - [x] Threshold
 - Effects
  - [ ] Path brush (Need help) [#264](https://github.com/JimBobSquarePants/ImageProcessor/issues/264)
  - [ ] Pattern brush (Need help) [#264](https://github.com/JimBobSquarePants/ImageProcessor/issues/264)
@@ -142,7 +151,7 @@ With this version the API will change dramatically. Without the constraints of `
 
 Image methods are also fluent which allow chaining much like the `ImageFactory` class in the Framework version.
 
-Here's an example of the code required to resize an image using the default Robidoux resampler then turn the colors into their greyscale equivalent using the BT709 standard matrix.
+Here's an example of the code required to resize an image using the default Bicubic resampler then turn the colors into their greyscale equivalent using the BT709 standard matrix.
 
 ```csharp
 using (FileStream stream = File.OpenRead("foo.jpg"))

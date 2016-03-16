@@ -19,15 +19,22 @@ namespace ImageProcessorCore.Formats
         private int quality = 75;
 
         /// <summary>
-        /// The subsamples used to encode the image.
+        /// The subsamples scheme used to encode the image.
         /// </summary>
         private JpegSubsample subsample = JpegSubsample.Ratio420;
-        private bool subsampleSet = false;
+
+        /// <summary>
+        /// Whether subsampling has been specifically set.
+        /// </summary>
+        private bool subsampleSet;
 
         /// <summary>
         /// Gets or sets the quality, that will be used to encode the image. Quality
         /// index must be between 0 and 100 (compression from max to min).
         /// </summary>
+        /// <remarks>
+        /// If the quality is less than or equal to 80, the subsampling ratio will switch to <see cref="JpegSubsample.Ratio420"/>
+        /// </remarks>
         /// <value>The quality of the jpg image from 0 to 100.</value>
         public int Quality
         {
@@ -42,7 +49,11 @@ namespace ImageProcessorCore.Formats
         public JpegSubsample Subsample
         {
             get { return this.subsample; }
-            set { this.subsample = value; subsampleSet = true; }
+            set
+            {
+                this.subsample = value;
+                this.subsampleSet = true;
+            }
         }
 
         /// <inheritdoc/>
@@ -73,10 +84,14 @@ namespace ImageProcessorCore.Formats
             Guard.NotNull(stream, nameof(stream));
 
             JpegEncoderCore encode = new JpegEncoderCore();
-            if(subsampleSet)
+            if (this.subsampleSet)
+            {
                 encode.Encode(stream, image, this.Quality, this.Subsample);
+            }
             else
-                encode.Encode(stream, image, this.Quality, this.Quality >= 80 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420);
+            {
+                encode.Encode(stream, image, this.Quality, this.Quality >= 80 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420);              
+            }
         }
     }
 }

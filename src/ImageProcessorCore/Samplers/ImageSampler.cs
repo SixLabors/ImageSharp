@@ -11,5 +11,7 @@ namespace ImageProcessorCore.Samplers
     /// </summary>
     public abstract class ImageSampler : ParallelImageProcessor, IImageSampler
     {
+        /// <inheritdoc/>
+        public virtual bool Compand { get; set; } = false;
     }
 }

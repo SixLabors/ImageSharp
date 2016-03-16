@@ -57,6 +57,7 @@ namespace ImageProcessorCore.Samplers
             int targetBottom = targetRectangle.Bottom;
             int startX = targetRectangle.X;
             int endX = targetRectangle.Right;
+            bool compand = this.Compand;
 
             if (this.Sampler is NearestNeighborResampler)
             {
@@ -107,11 +108,15 @@ namespace ImageProcessorCore.Samplers
                         foreach (Weight xw in horizontalValues)
                         {
                             int originX = xw.Index;
-                            Color sourceColor = Color.Expand(source[originX, y]);
+                            Color sourceColor = compand ? Color.Expand(source[originX, y]) : source[originX, y];
                             destination += sourceColor * xw.Value;
                         }
 
-                        destination = Color.Compress(destination);
+                        if (compand)
+                        {
+                            destination = Color.Compress(destination);
+                        }
+
                         this.firstPass[x, y] = destination;
                     }
                 });
@@ -135,11 +140,15 @@ namespace ImageProcessorCore.Samplers
                             {
                                 int originY = yw.Index;
                                 int originX = x;
-                                Color sourceColor = Color.Expand(this.firstPass[originX, originY]);
+                                Color sourceColor = compand ? Color.Expand(this.firstPass[originX, originY]) : this.firstPass[originX, originY];
                                 destination += sourceColor * yw.Value;
                             }
 
-                            destination = Color.Compress(destination);
+                            if (compand)
+                            {
+                                destination = Color.Compress(destination);
+                            }
+
                             target[x, y] = destination;
                         }
                         this.OnRowProcessed();

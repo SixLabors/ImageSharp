@@ -93,7 +93,22 @@ namespace ImageProcessorCore.Samplers
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
         public static Image Resize(this Image source, int width, int height, ProgressEventHandler progressHandler = null)
         {
-            return Resize(source, width, height, new BicubicResampler(), progressHandler);
+            return Resize(source, width, height, new BicubicResampler(), false, progressHandler);
+        }
+
+        /// <summary>
+        /// Resizes an image to the given width and height.
+        /// </summary>
+        /// <param name="source">The image to resize.</param>
+        /// <param name="width">The target image width.</param>
+        /// <param name="height">The target image height.</param>
+        /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
+        /// <returns>The <see cref="Image"/></returns>
+        /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
+        public static Image Resize(this Image source, int width, int height, bool compand, ProgressEventHandler progressHandler = null)
+        {
+            return Resize(source, width, height, new BicubicResampler(), compand, progressHandler);
         }
 
         /// <summary>
@@ -103,12 +118,13 @@ namespace ImageProcessorCore.Samplers
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
         /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
+        /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
-        public static Image Resize(this Image source, int width, int height, IResampler sampler, ProgressEventHandler progressHandler = null)
+        public static Image Resize(this Image source, int width, int height, IResampler sampler, bool compand, ProgressEventHandler progressHandler = null)
         {
-            return Resize(source, width, height, sampler, source.Bounds, progressHandler);
+            return Resize(source, width, height, sampler, source.Bounds, compand, progressHandler);
         }
 
         /// <summary>
@@ -122,10 +138,11 @@ namespace ImageProcessorCore.Samplers
         /// <param name="sourceRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
+        /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
-        public static Image Resize(this Image source, int width, int height, IResampler sampler, Rectangle sourceRectangle, ProgressEventHandler progressHandler = null)
+        public static Image Resize(this Image source, int width, int height, IResampler sampler, Rectangle sourceRectangle, bool compand = false, ProgressEventHandler progressHandler = null)
         {
             if (width == 0 && height > 0)
             {
@@ -137,7 +154,7 @@ namespace ImageProcessorCore.Samplers
                 height = source.Height * width / source.Width;
             }
 
-            Resize processor = new Resize(sampler);
+            Resize processor = new Resize(sampler) { Compand = compand };
             processor.OnProgress += progressHandler;
 
             try
@@ -159,7 +176,20 @@ namespace ImageProcessorCore.Samplers
         /// <returns>The <see cref="Image"/></returns>
         public static Image Rotate(this Image source, float degrees, ProgressEventHandler progressHandler = null)
         {
-            return Rotate(source, degrees, new BicubicResampler(), progressHandler);
+            return Rotate(source, degrees, new BicubicResampler(), false, progressHandler);
+        }
+
+        /// <summary>
+        /// Rotates an image by the given angle in degrees.
+        /// </summary>
+        /// <param name="source">The image to resize.</param>
+        /// <param name="degrees">The angle in degrees to perform the rotation.</param>
+        /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
+        /// <returns>The <see cref="Image"/></returns>
+        public static Image Rotate(this Image source, float degrees, bool compand, ProgressEventHandler progressHandler = null)
+        {
+            return Rotate(source, degrees, new BicubicResampler(), compand, progressHandler);
         }
 
         /// <summary>
@@ -168,11 +198,12 @@ namespace ImageProcessorCore.Samplers
         /// <param name="source">The image to resize.</param>
         /// <param name="degrees">The angle in degrees to perform the rotation.</param>
         /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
+        /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/></returns>
-        public static Image Rotate(this Image source, float degrees, IResampler sampler, ProgressEventHandler progressHandler = null)
+        public static Image Rotate(this Image source, float degrees, IResampler sampler, bool compand, ProgressEventHandler progressHandler = null)
         {
-            Rotate processor = new Rotate(sampler) { Angle = degrees };
+            Rotate processor = new Rotate(sampler) { Angle = degrees, Compand = compand };
             processor.OnProgress += progressHandler;
 
             try

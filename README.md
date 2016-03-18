@@ -55,6 +55,9 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
  - [x] bmp (More bmp format saving support required, 24bit just now)
  - [x] png (Need updating for saving indexed support)
  - [x] gif
+- Quantizers (IQuantizer with alpha channel support)
+ - [x] Octree
+ - [x] Wu
 - Basic color structs with implicit operators. Vector backed. [#260](https://github.com/JimBobSquarePants/ImageProcessor/issues/260)
  - [x] Color - Float based, premultiplied alpha, No limit to r, g, b, a values allowing for a fuller color range.
  - [x] BGRA32

@@ -12,7 +12,7 @@ namespace ImageProcessorCore.Formats
     /// Encapsulates methods to calculate the colour palette if an image using an Octree pattern.
     /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>
     /// </summary>
-    public class OctreeQuantizer : Quantizer
+    public sealed class OctreeQuantizer : Quantizer
     {
         /// <summary>
         /// Stores the tree

@@ -45,17 +45,17 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// The index count.
         /// </summary>
-        private const int IndexCount = (1 << WuQuantizer.IndexBits) + 1;
+        private const int IndexCount = (1 << IndexBits) + 1;
 
         /// <summary>
         /// The index alpha count.
         /// </summary>
-        private const int IndexAlphaCount = (1 << WuQuantizer.IndexAlphaBits) + 1;
+        private const int IndexAlphaCount = (1 << IndexAlphaBits) + 1;
 
         /// <summary>
         /// The table length.
         /// </summary>
-        private const int TableLength = WuQuantizer.IndexCount * WuQuantizer.IndexCount * WuQuantizer.IndexCount * WuQuantizer.IndexAlphaCount;
+        private const int TableLength = IndexCount * IndexCount * IndexCount * IndexAlphaCount;
 
         /// <summary>
         /// Maximum allowed color depth
@@ -114,25 +114,25 @@ namespace ImageProcessorCore.Formats
             Guard.MustBeBetweenOrEqualTo(maxColors, 1, 256, nameof(maxColors));
 
             this.maxColors = maxColors;
-            this.vwt = new long[WuQuantizer.TableLength];
-            this.vmr = new long[WuQuantizer.TableLength];
-            this.vmg = new long[WuQuantizer.TableLength];
-            this.vmb = new long[WuQuantizer.TableLength];
-            this.vma = new long[WuQuantizer.TableLength];
-            this.m2 = new double[WuQuantizer.TableLength];
-            this.tag = new byte[WuQuantizer.TableLength];
+            this.vwt = new long[TableLength];
+            this.vmr = new long[TableLength];
+            this.vmg = new long[TableLength];
+            this.vmb = new long[TableLength];
+            this.vma = new long[TableLength];
+            this.m2 = new double[TableLength];
+            this.tag = new byte[TableLength];
         }
 
         /// <inheritdoc/>
         public QuantizedImage Quantize(ImageBase image)
         {
             Guard.NotNull(image, nameof(image));
-      
+
             int colorCount = this.maxColors;
 
             this.Clear();
 
-            this.Hist3d(image);
+            this.Build3DHistogram(image);
             this.M3d();
 
             Box[] cube;
@@ -151,13 +151,13 @@ namespace ImageProcessorCore.Formats
         /// <returns>The index.</returns>
         private static int Ind(int r, int g, int b, int a)
         {
-            return (r << ((WuQuantizer.IndexBits * 2) + WuQuantizer.IndexAlphaBits))
-                + (r << (WuQuantizer.IndexBits + WuQuantizer.IndexAlphaBits + 1))
-                + (g << (WuQuantizer.IndexBits + WuQuantizer.IndexAlphaBits))
-                + (r << (WuQuantizer.IndexBits * 2))
-                + (r << (WuQuantizer.IndexBits + 1))
-                + (g << WuQuantizer.IndexBits)
-                + ((r + g + b) << WuQuantizer.IndexAlphaBits)
+            return (r << ((IndexBits * 2) + IndexAlphaBits))
+                + (r << (IndexBits + IndexAlphaBits + 1))
+                + (g << (IndexBits + IndexAlphaBits))
+                + (r << (IndexBits * 2))
+                + (r << (IndexBits + 1))
+                + (g << IndexBits)
+                + ((r + g + b) << IndexAlphaBits)
                 + r + g + b + a;
         }
 
@@ -169,22 +169,22 @@ namespace ImageProcessorCore.Formats
         /// <returns>The result.</returns>
         private static double Volume(Box cube, long[] moment)
         {
-            return moment[WuQuantizer.Ind(cube.R1, cube.G1, cube.B1, cube.A1)]
-                - moment[WuQuantizer.Ind(cube.R1, cube.G1, cube.B1, cube.A0)]
-                - moment[WuQuantizer.Ind(cube.R1, cube.G1, cube.B0, cube.A1)]
-                + moment[WuQuantizer.Ind(cube.R1, cube.G1, cube.B0, cube.A0)]
-                - moment[WuQuantizer.Ind(cube.R1, cube.G0, cube.B1, cube.A1)]
-                + moment[WuQuantizer.Ind(cube.R1, cube.G0, cube.B1, cube.A0)]
-                + moment[WuQuantizer.Ind(cube.R1, cube.G0, cube.B0, cube.A1)]
-                - moment[WuQuantizer.Ind(cube.R1, cube.G0, cube.B0, cube.A0)]
-                - moment[WuQuantizer.Ind(cube.R0, cube.G1, cube.B1, cube.A1)]
-                + moment[WuQuantizer.Ind(cube.R0, cube.G1, cube.B1, cube.A0)]
-                + moment[WuQuantizer.Ind(cube.R0, cube.G1, cube.B0, cube.A1)]
-                - moment[WuQuantizer.Ind(cube.R0, cube.G1, cube.B0, cube.A0)]
-                + moment[WuQuantizer.Ind(cube.R0, cube.G0, cube.B1, cube.A1)]
-                - moment[WuQuantizer.Ind(cube.R0, cube.G0, cube.B1, cube.A0)]
-                - moment[WuQuantizer.Ind(cube.R0, cube.G0, cube.B0, cube.A1)]
-                + moment[WuQuantizer.Ind(cube.R0, cube.G0, cube.B0, cube.A0)];
+            return moment[Ind(cube.R1, cube.G1, cube.B1, cube.A1)]
+                - moment[Ind(cube.R1, cube.G1, cube.B1, cube.A0)]
+                - moment[Ind(cube.R1, cube.G1, cube.B0, cube.A1)]
+                + moment[Ind(cube.R1, cube.G1, cube.B0, cube.A0)]
+                - moment[Ind(cube.R1, cube.G0, cube.B1, cube.A1)]
+                + moment[Ind(cube.R1, cube.G0, cube.B1, cube.A0)]
+                + moment[Ind(cube.R1, cube.G0, cube.B0, cube.A1)]
+                - moment[Ind(cube.R1, cube.G0, cube.B0, cube.A0)]
+                - moment[Ind(cube.R0, cube.G1, cube.B1, cube.A1)]
+                + moment[Ind(cube.R0, cube.G1, cube.B1, cube.A0)]
+                + moment[Ind(cube.R0, cube.G1, cube.B0, cube.A1)]
+                - moment[Ind(cube.R0, cube.G1, cube.B0, cube.A0)]
+                + moment[Ind(cube.R0, cube.G0, cube.B1, cube.A1)]
+                - moment[Ind(cube.R0, cube.G0, cube.B1, cube.A0)]
+                - moment[Ind(cube.R0, cube.G0, cube.B0, cube.A1)]
+                + moment[Ind(cube.R0, cube.G0, cube.B0, cube.A0)];
         }
 
         /// <summary>
@@ -200,47 +200,47 @@ namespace ImageProcessorCore.Formats
             {
                 // Red
                 case 0:
-                    return -moment[WuQuantizer.Ind(cube.R0, cube.G1, cube.B1, cube.A1)]
-                        + moment[WuQuantizer.Ind(cube.R0, cube.G1, cube.B1, cube.A0)]
-                        + moment[WuQuantizer.Ind(cube.R0, cube.G1, cube.B0, cube.A1)]
-                        - moment[WuQuantizer.Ind(cube.R0, cube.G1, cube.B0, cube.A0)]
-                        + moment[WuQuantizer.Ind(cube.R0, cube.G0, cube.B1, cube.A1)]
-                        - moment[WuQuantizer.Ind(cube.R0, cube.G0, cube.B1, cube.A0)]
-                        - moment[WuQuantizer.Ind(cube.R0, cube.G0, cube.B0, cube.A1)]
-                        + moment[WuQuantizer.Ind(cube.R0, cube.G0, cube.B0, cube.A0)];
+                    return -moment[Ind(cube.R0, cube.G1, cube.B1, cube.A1)]
+                        + moment[Ind(cube.R0, cube.G1, cube.B1, cube.A0)]
+                        + moment[Ind(cube.R0, cube.G1, cube.B0, cube.A1)]
+                        - moment[Ind(cube.R0, cube.G1, cube.B0, cube.A0)]
+                        + moment[Ind(cube.R0, cube.G0, cube.B1, cube.A1)]
+                        - moment[Ind(cube.R0, cube.G0, cube.B1, cube.A0)]
+                        - moment[Ind(cube.R0, cube.G0, cube.B0, cube.A1)]
+                        + moment[Ind(cube.R0, cube.G0, cube.B0, cube.A0)];
 
                 // Green
                 case 1:
-                    return -moment[WuQuantizer.Ind(cube.R1, cube.G0, cube.B1, cube.A1)]
-                        + moment[WuQuantizer.Ind(cube.R1, cube.G0, cube.B1, cube.A0)]
-                        + moment[WuQuantizer.Ind(cube.R1, cube.G0, cube.B0, cube.A1)]
-                        - moment[WuQuantizer.Ind(cube.R1, cube.G0, cube.B0, cube.A0)]
-                        + moment[WuQuantizer.Ind(cube.R0, cube.G0, cube.B1, cube.A1)]
-                        - moment[WuQuantizer.Ind(cube.R0, cube.G0, cube.B1, cube.A0)]
-                        - moment[WuQuantizer.Ind(cube.R0, cube.G0, cube.B0, cube.A1)]
-                        + moment[WuQuantizer.Ind(cube.R0, cube.G0, cube.B0, cube.A0)];
+                    return -moment[Ind(cube.R1, cube.G0, cube.B1, cube.A1)]
+                        + moment[Ind(cube.R1, cube.G0, cube.B1, cube.A0)]
+                        + moment[Ind(cube.R1, cube.G0, cube.B0, cube.A1)]
+                        - moment[Ind(cube.R1, cube.G0, cube.B0, cube.A0)]
+                        + moment[Ind(cube.R0, cube.G0, cube.B1, cube.A1)]
+                        - moment[Ind(cube.R0, cube.G0, cube.B1, cube.A0)]
+                        - moment[Ind(cube.R0, cube.G0, cube.B0, cube.A1)]
+                        + moment[Ind(cube.R0, cube.G0, cube.B0, cube.A0)];
 
                 // Blue
                 case 2:
-                    return -moment[WuQuantizer.Ind(cube.R1, cube.G1, cube.B0, cube.A1)]
-                        + moment[WuQuantizer.Ind(cube.R1, cube.G1, cube.B0, cube.A0)]
-                        + moment[WuQuantizer.Ind(cube.R1, cube.G0, cube.B0, cube.A1)]
-                        - moment[WuQuantizer.Ind(cube.R1, cube.G0, cube.B0, cube.A0)]
-                        + moment[WuQuantizer.Ind(cube.R0, cube.G1, cube.B0, cube.A1)]
-                        - moment[WuQuantizer.Ind(cube.R0, cube.G1, cube.B0, cube.A0)]
-                        - moment[WuQuantizer.Ind(cube.R0, cube.G0, cube.B0, cube.A1)]
-                        + moment[WuQuantizer.Ind(cube.R0, cube.G0, cube.B0, cube.A0)];
+                    return -moment[Ind(cube.R1, cube.G1, cube.B0, cube.A1)]
+                        + moment[Ind(cube.R1, cube.G1, cube.B0, cube.A0)]
+                        + moment[Ind(cube.R1, cube.G0, cube.B0, cube.A1)]
+                        - moment[Ind(cube.R1, cube.G0, cube.B0, cube.A0)]
+                        + moment[Ind(cube.R0, cube.G1, cube.B0, cube.A1)]
+                        - moment[Ind(cube.R0, cube.G1, cube.B0, cube.A0)]
+                        - moment[Ind(cube.R0, cube.G0, cube.B0, cube.A1)]
+                        + moment[Ind(cube.R0, cube.G0, cube.B0, cube.A0)];
 
                 // Alpha
                 case 3:
-                    return -moment[WuQuantizer.Ind(cube.R1, cube.G1, cube.B1, cube.A0)]
-                        + moment[WuQuantizer.Ind(cube.R1, cube.G1, cube.B0, cube.A0)]
-                        + moment[WuQuantizer.Ind(cube.R1, cube.G0, cube.B1, cube.A0)]
-                        - moment[WuQuantizer.Ind(cube.R1, cube.G0, cube.B0, cube.A0)]
-                        + moment[WuQuantizer.Ind(cube.R0, cube.G1, cube.B1, cube.A0)]
-                        - moment[WuQuantizer.Ind(cube.R0, cube.G1, cube.B0, cube.A0)]
-                        - moment[WuQuantizer.Ind(cube.R0, cube.G0, cube.B1, cube.A0)]
-                        + moment[WuQuantizer.Ind(cube.R0, cube.G0, cube.B0, cube.A0)];
+                    return -moment[Ind(cube.R1, cube.G1, cube.B1, cube.A0)]
+                        + moment[Ind(cube.R1, cube.G1, cube.B0, cube.A0)]
+                        + moment[Ind(cube.R1, cube.G0, cube.B1, cube.A0)]
+                        - moment[Ind(cube.R1, cube.G0, cube.B0, cube.A0)]
+                        + moment[Ind(cube.R0, cube.G1, cube.B1, cube.A0)]
+                        - moment[Ind(cube.R0, cube.G1, cube.B0, cube.A0)]
+                        - moment[Ind(cube.R0, cube.G0, cube.B1, cube.A0)]
+                        + moment[Ind(cube.R0, cube.G0, cube.B0, cube.A0)];
 
                 default:
                     throw new ArgumentOutOfRangeException(nameof(direction));
@@ -261,50 +261,50 @@ namespace ImageProcessorCore.Formats
             {
                 // Red
                 case 0:
-                    return moment[WuQuantizer.Ind(position, cube.G1, cube.B1, cube.A1)]
-                        - moment[WuQuantizer.Ind(position, cube.G1, cube.B1, cube.A0)]
-                        - moment[WuQuantizer.Ind(position, cube.G1, cube.B0, cube.A1)]
-                        + moment[WuQuantizer.Ind(position, cube.G1, cube.B0, cube.A0)]
-                        - moment[WuQuantizer.Ind(position, cube.G0, cube.B1, cube.A1)]
-                        + moment[WuQuantizer.Ind(position, cube.G0, cube.B1, cube.A0)]
-                        + moment[WuQuantizer.Ind(position, cube.G0, cube.B0, cube.A1)]
-                        - moment[WuQuantizer.Ind(position, cube.G0, cube.B0, cube.A0)];
+                    return moment[Ind(position, cube.G1, cube.B1, cube.A1)]
+                        - moment[Ind(position, cube.G1, cube.B1, cube.A0)]
+                        - moment[Ind(position, cube.G1, cube.B0, cube.A1)]
+                        + moment[Ind(position, cube.G1, cube.B0, cube.A0)]
+                        - moment[Ind(position, cube.G0, cube.B1, cube.A1)]
+                        + moment[Ind(position, cube.G0, cube.B1, cube.A0)]
+                        + moment[Ind(position, cube.G0, cube.B0, cube.A1)]
+                        - moment[Ind(position, cube.G0, cube.B0, cube.A0)];
 
                 // Green
                 case 1:
-                    return moment[WuQuantizer.Ind(cube.R1, position, cube.B1, cube.A1)]
-                        - moment[WuQuantizer.Ind(cube.R1, position, cube.B1, cube.A0)]
-                        - moment[WuQuantizer.Ind(cube.R1, position, cube.B0, cube.A1)]
-                        + moment[WuQuantizer.Ind(cube.R1, position, cube.B0, cube.A0)]
-                        - moment[WuQuantizer.Ind(cube.R0, position, cube.B1, cube.A1)]
-                        + moment[WuQuantizer.Ind(cube.R0, position, cube.B1, cube.A0)]
-                        + moment[WuQuantizer.Ind(cube.R0, position, cube.B0, cube.A1)]
-                        - moment[WuQuantizer.Ind(cube.R0, position, cube.B0, cube.A0)];
+                    return moment[Ind(cube.R1, position, cube.B1, cube.A1)]
+                        - moment[Ind(cube.R1, position, cube.B1, cube.A0)]
+                        - moment[Ind(cube.R1, position, cube.B0, cube.A1)]
+                        + moment[Ind(cube.R1, position, cube.B0, cube.A0)]
+                        - moment[Ind(cube.R0, position, cube.B1, cube.A1)]
+                        + moment[Ind(cube.R0, position, cube.B1, cube.A0)]
+                        + moment[Ind(cube.R0, position, cube.B0, cube.A1)]
+                        - moment[Ind(cube.R0, position, cube.B0, cube.A0)];
 
                 // Blue
                 case 2:
-                    return moment[WuQuantizer.Ind(cube.R1, cube.G1, position, cube.A1)]
-                        - moment[WuQuantizer.Ind(cube.R1, cube.G1, position, cube.A0)]
-                        - moment[WuQuantizer.Ind(cube.R1, cube.G0, position, cube.A1)]
-                        + moment[WuQuantizer.Ind(cube.R1, cube.G0, position, cube.A0)]
-                        - moment[WuQuantizer.Ind(cube.R0, cube.G1, position, cube.A1)]
-                        + moment[WuQuantizer.Ind(cube.R0, cube.G1, position, cube.A0)]
-                        + moment[WuQuantizer.Ind(cube.R0, cube.G0, position, cube.A1)]
-                        - moment[WuQuantizer.Ind(cube.R0, cube.G0, position, cube.A0)];
+                    return moment[Ind(cube.R1, cube.G1, position, cube.A1)]
+                        - moment[Ind(cube.R1, cube.G1, position, cube.A0)]
+                        - moment[Ind(cube.R1, cube.G0, position, cube.A1)]
+                        + moment[Ind(cube.R1, cube.G0, position, cube.A0)]
+                        - moment[Ind(cube.R0, cube.G1, position, cube.A1)]
+                        + moment[Ind(cube.R0, cube.G1, position, cube.A0)]
+                        + moment[Ind(cube.R0, cube.G0, position, cube.A1)]
+                        - moment[Ind(cube.R0, cube.G0, position, cube.A0)];
 
                 // Alpha
                 case 3:
-                    return moment[WuQuantizer.Ind(cube.R1, cube.G1, cube.B1, position)]
-                        - moment[WuQuantizer.Ind(cube.R1, cube.G1, cube.B0, position)]
-                        - moment[WuQuantizer.Ind(cube.R1, cube.G0, cube.B1, position)]
-                        + moment[WuQuantizer.Ind(cube.R1, cube.G0, cube.B0, position)]
-                        - moment[WuQuantizer.Ind(cube.R0, cube.G1, cube.B1, position)]
-                        + moment[WuQuantizer.Ind(cube.R0, cube.G1, cube.B0, position)]
-                        + moment[WuQuantizer.Ind(cube.R0, cube.G0, cube.B1, position)]
-                        - moment[WuQuantizer.Ind(cube.R0, cube.G0, cube.B0, position)];
+                    return moment[Ind(cube.R1, cube.G1, cube.B1, position)]
+                        - moment[Ind(cube.R1, cube.G1, cube.B0, position)]
+                        - moment[Ind(cube.R1, cube.G0, cube.B1, position)]
+                        + moment[Ind(cube.R1, cube.G0, cube.B0, position)]
+                        - moment[Ind(cube.R0, cube.G1, cube.B1, position)]
+                        + moment[Ind(cube.R0, cube.G1, cube.B0, position)]
+                        + moment[Ind(cube.R0, cube.G0, cube.B1, position)]
+                        - moment[Ind(cube.R0, cube.G0, cube.B0, position)];
 
                 default:
-                    throw new ArgumentOutOfRangeException("direction");
+                    throw new ArgumentOutOfRangeException(nameof(direction));
             }
         }
 
@@ -313,22 +313,24 @@ namespace ImageProcessorCore.Formats
         /// </summary>
         private void Clear()
         {
-            Array.Clear(this.vwt, 0, WuQuantizer.TableLength);
-            Array.Clear(this.vmr, 0, WuQuantizer.TableLength);
-            Array.Clear(this.vmg, 0, WuQuantizer.TableLength);
-            Array.Clear(this.vmb, 0, WuQuantizer.TableLength);
-            Array.Clear(this.vma, 0, WuQuantizer.TableLength);
-            Array.Clear(this.m2, 0, WuQuantizer.TableLength);
+            Array.Clear(this.vwt, 0, TableLength);
+            Array.Clear(this.vmr, 0, TableLength);
+            Array.Clear(this.vmg, 0, TableLength);
+            Array.Clear(this.vmb, 0, TableLength);
+            Array.Clear(this.vma, 0, TableLength);
+            Array.Clear(this.m2, 0, TableLength);
 
-            Array.Clear(this.tag, 0, WuQuantizer.TableLength);
+            Array.Clear(this.tag, 0, TableLength);
         }
 
         /// <summary>
         /// Builds a 3-D color histogram of <c>counts, r/g/b, c^2</c>.
         /// </summary>
         /// <param name="image">The image.</param>
-        private void Hist3d(ImageBase image)
+        private void Build3DHistogram(ImageBase image)
         {
+
+
             // TODO: Parallel
             for (int y = 0; y < image.Height; y++)
             {
@@ -341,12 +343,12 @@ namespace ImageProcessorCore.Formats
                     byte b = color.B;
                     byte a = color.A;
 
-                    int inr = r >> (8 - WuQuantizer.IndexBits);
-                    int ing = g >> (8 - WuQuantizer.IndexBits);
-                    int inb = b >> (8 - WuQuantizer.IndexBits);
-                    int ina = a >> (8 - WuQuantizer.IndexAlphaBits);
+                    int inr = r >> (8 - IndexBits);
+                    int ing = g >> (8 - IndexBits);
+                    int inb = b >> (8 - IndexBits);
+                    int ina = a >> (8 - IndexAlphaBits);
 
-                    int ind = WuQuantizer.Ind(inr + 1, ing + 1, inb + 1, ina + 1);
+                    int ind = Ind(inr + 1, ing + 1, inb + 1, ina + 1);
 
                     this.vwt[ind]++;
                     this.vmr[ind] += r;
@@ -364,39 +366,39 @@ namespace ImageProcessorCore.Formats
         /// </summary>
         private void M3d()
         {
-            long[] volume = new long[WuQuantizer.IndexCount * WuQuantizer.IndexAlphaCount];
-            long[] volume_r = new long[WuQuantizer.IndexCount * WuQuantizer.IndexAlphaCount];
-            long[] volume_g = new long[WuQuantizer.IndexCount * WuQuantizer.IndexAlphaCount];
-            long[] volume_b = new long[WuQuantizer.IndexCount * WuQuantizer.IndexAlphaCount];
-            long[] volume_a = new long[WuQuantizer.IndexCount * WuQuantizer.IndexAlphaCount];
-            double[] volume2 = new double[WuQuantizer.IndexCount * WuQuantizer.IndexAlphaCount];
+            long[] volume = new long[IndexCount * IndexAlphaCount];
+            long[] volume_r = new long[IndexCount * IndexAlphaCount];
+            long[] volume_g = new long[IndexCount * IndexAlphaCount];
+            long[] volume_b = new long[IndexCount * IndexAlphaCount];
+            long[] volume_a = new long[IndexCount * IndexAlphaCount];
+            double[] volume2 = new double[IndexCount * IndexAlphaCount];
 
-            long[] area = new long[WuQuantizer.IndexAlphaCount];
-            long[] area_r = new long[WuQuantizer.IndexAlphaCount];
-            long[] area_g = new long[WuQuantizer.IndexAlphaCount];
-            long[] area_b = new long[WuQuantizer.IndexAlphaCount];
-            long[] area_a = new long[WuQuantizer.IndexAlphaCount];
-            double[] area2 = new double[WuQuantizer.IndexAlphaCount];
+            long[] area = new long[IndexAlphaCount];
+            long[] area_r = new long[IndexAlphaCount];
+            long[] area_g = new long[IndexAlphaCount];
+            long[] area_b = new long[IndexAlphaCount];
+            long[] area_a = new long[IndexAlphaCount];
+            double[] area2 = new double[IndexAlphaCount];
 
-            for (int r = 1; r < WuQuantizer.IndexCount; r++)
+            for (int r = 1; r < IndexCount; r++)
             {
-                Array.Clear(volume, 0, WuQuantizer.IndexCount * WuQuantizer.IndexAlphaCount);
-                Array.Clear(volume_r, 0, WuQuantizer.IndexCount * WuQuantizer.IndexAlphaCount);
-                Array.Clear(volume_g, 0, WuQuantizer.IndexCount * WuQuantizer.IndexAlphaCount);
-                Array.Clear(volume_b, 0, WuQuantizer.IndexCount * WuQuantizer.IndexAlphaCount);
-                Array.Clear(volume_a, 0, WuQuantizer.IndexCount * WuQuantizer.IndexAlphaCount);
-                Array.Clear(volume2, 0, WuQuantizer.IndexCount * WuQuantizer.IndexAlphaCount);
+                Array.Clear(volume, 0, IndexCount * IndexAlphaCount);
+                Array.Clear(volume_r, 0, IndexCount * IndexAlphaCount);
+                Array.Clear(volume_g, 0, IndexCount * IndexAlphaCount);
+                Array.Clear(volume_b, 0, IndexCount * IndexAlphaCount);
+                Array.Clear(volume_a, 0, IndexCount * IndexAlphaCount);
+                Array.Clear(volume2, 0, IndexCount * IndexAlphaCount);
 
-                for (int g = 1; g < WuQuantizer.IndexCount; g++)
+                for (int g = 1; g < IndexCount; g++)
                 {
-                    Array.Clear(area, 0, WuQuantizer.IndexAlphaCount);
-                    Array.Clear(area_r, 0, WuQuantizer.IndexAlphaCount);
-                    Array.Clear(area_g, 0, WuQuantizer.IndexAlphaCount);
-                    Array.Clear(area_b, 0, WuQuantizer.IndexAlphaCount);
-                    Array.Clear(area_a, 0, WuQuantizer.IndexAlphaCount);
-                    Array.Clear(area2, 0, WuQuantizer.IndexAlphaCount);
+                    Array.Clear(area, 0, IndexAlphaCount);
+                    Array.Clear(area_r, 0, IndexAlphaCount);
+                    Array.Clear(area_g, 0, IndexAlphaCount);
+                    Array.Clear(area_b, 0, IndexAlphaCount);
+                    Array.Clear(area_a, 0, IndexAlphaCount);
+                    Array.Clear(area2, 0, IndexAlphaCount);
 
-                    for (int b = 1; b < WuQuantizer.IndexCount; b++)
+                    for (int b = 1; b < IndexCount; b++)
                     {
                         long line = 0;
                         long line_r = 0;
@@ -405,9 +407,9 @@ namespace ImageProcessorCore.Formats
                         long line_a = 0;
                         double line2 = 0;
 
-                        for (int a = 1; a < WuQuantizer.IndexAlphaCount; a++)
+                        for (int a = 1; a < IndexAlphaCount; a++)
                         {
-                            int ind1 = WuQuantizer.Ind(r, g, b, a);
+                            int ind1 = Ind(r, g, b, a);
 
                             line += this.vwt[ind1];
                             line_r += this.vmr[ind1];
@@ -423,7 +425,7 @@ namespace ImageProcessorCore.Formats
                             area_a[a] += line_a;
                             area2[a] += line2;
 
-                            int inv = (b * WuQuantizer.IndexAlphaCount) + a;
+                            int inv = (b * IndexAlphaCount) + a;
 
                             volume[inv] += area[a];
                             volume_r[inv] += area_r[a];
@@ -432,7 +434,7 @@ namespace ImageProcessorCore.Formats
                             volume_a[inv] += area_a[a];
                             volume2[inv] += area2[a];
 
-                            int ind2 = ind1 - WuQuantizer.Ind(1, 0, 0, 0);
+                            int ind2 = ind1 - Ind(1, 0, 0, 0);
 
                             this.vwt[ind1] = this.vwt[ind2] + volume[inv];
                             this.vmr[ind1] = this.vmr[ind2] + volume_r[inv];
@@ -453,30 +455,30 @@ namespace ImageProcessorCore.Formats
         /// <returns>The result.</returns>
         private double Var(Box cube)
         {
-            double dr = WuQuantizer.Volume(cube, this.vmr);
-            double dg = WuQuantizer.Volume(cube, this.vmg);
-            double db = WuQuantizer.Volume(cube, this.vmb);
-            double da = WuQuantizer.Volume(cube, this.vma);
+            double dr = Volume(cube, this.vmr);
+            double dg = Volume(cube, this.vmg);
+            double db = Volume(cube, this.vmb);
+            double da = Volume(cube, this.vma);
 
             double xx =
-                this.m2[WuQuantizer.Ind(cube.R1, cube.G1, cube.B1, cube.A1)]
-                - this.m2[WuQuantizer.Ind(cube.R1, cube.G1, cube.B1, cube.A0)]
-                - this.m2[WuQuantizer.Ind(cube.R1, cube.G1, cube.B0, cube.A1)]
-                + this.m2[WuQuantizer.Ind(cube.R1, cube.G1, cube.B0, cube.A0)]
-                - this.m2[WuQuantizer.Ind(cube.R1, cube.G0, cube.B1, cube.A1)]
-                + this.m2[WuQuantizer.Ind(cube.R1, cube.G0, cube.B1, cube.A0)]
-                + this.m2[WuQuantizer.Ind(cube.R1, cube.G0, cube.B0, cube.A1)]
-                - this.m2[WuQuantizer.Ind(cube.R1, cube.G0, cube.B0, cube.A0)]
-                - this.m2[WuQuantizer.Ind(cube.R0, cube.G1, cube.B1, cube.A1)]
-                + this.m2[WuQuantizer.Ind(cube.R0, cube.G1, cube.B1, cube.A0)]
-                + this.m2[WuQuantizer.Ind(cube.R0, cube.G1, cube.B0, cube.A1)]
-                - this.m2[WuQuantizer.Ind(cube.R0, cube.G1, cube.B0, cube.A0)]
-                + this.m2[WuQuantizer.Ind(cube.R0, cube.G0, cube.B1, cube.A1)]
-                - this.m2[WuQuantizer.Ind(cube.R0, cube.G0, cube.B1, cube.A0)]
-                - this.m2[WuQuantizer.Ind(cube.R0, cube.G0, cube.B0, cube.A1)]
-                + this.m2[WuQuantizer.Ind(cube.R0, cube.G0, cube.B0, cube.A0)];
+                this.m2[Ind(cube.R1, cube.G1, cube.B1, cube.A1)]
+                - this.m2[Ind(cube.R1, cube.G1, cube.B1, cube.A0)]
+                - this.m2[Ind(cube.R1, cube.G1, cube.B0, cube.A1)]
+                + this.m2[Ind(cube.R1, cube.G1, cube.B0, cube.A0)]
+                - this.m2[Ind(cube.R1, cube.G0, cube.B1, cube.A1)]
+                + this.m2[Ind(cube.R1, cube.G0, cube.B1, cube.A0)]
+                + this.m2[Ind(cube.R1, cube.G0, cube.B0, cube.A1)]
+                - this.m2[Ind(cube.R1, cube.G0, cube.B0, cube.A0)]
+                - this.m2[Ind(cube.R0, cube.G1, cube.B1, cube.A1)]
+                + this.m2[Ind(cube.R0, cube.G1, cube.B1, cube.A0)]
+                + this.m2[Ind(cube.R0, cube.G1, cube.B0, cube.A1)]
+                - this.m2[Ind(cube.R0, cube.G1, cube.B0, cube.A0)]
+                + this.m2[Ind(cube.R0, cube.G0, cube.B1, cube.A1)]
+                - this.m2[Ind(cube.R0, cube.G0, cube.B1, cube.A0)]
+                - this.m2[Ind(cube.R0, cube.G0, cube.B0, cube.A1)]
+                + this.m2[Ind(cube.R0, cube.G0, cube.B0, cube.A0)];
 
-            return xx - (((dr * dr) + (dg * dg) + (db * db) + (da * da)) / WuQuantizer.Volume(cube, this.vwt));
+            return xx - (((dr * dr) + (dg * dg) + (db * db) + (da * da)) / Volume(cube, this.vwt));
         }
 
         /// <summary>
@@ -499,22 +501,22 @@ namespace ImageProcessorCore.Formats
         /// <returns>The result.</returns>
         private double Maximize(Box cube, int direction, int first, int last, out int cut, double whole_r, double whole_g, double whole_b, double whole_a, double whole_w)
         {
-            long base_r = WuQuantizer.Bottom(cube, direction, this.vmr);
-            long base_g = WuQuantizer.Bottom(cube, direction, this.vmg);
-            long base_b = WuQuantizer.Bottom(cube, direction, this.vmb);
-            long base_a = WuQuantizer.Bottom(cube, direction, this.vma);
-            long base_w = WuQuantizer.Bottom(cube, direction, this.vwt);
+            long base_r = Bottom(cube, direction, this.vmr);
+            long base_g = Bottom(cube, direction, this.vmg);
+            long base_b = Bottom(cube, direction, this.vmb);
+            long base_a = Bottom(cube, direction, this.vma);
+            long base_w = Bottom(cube, direction, this.vwt);
 
             double max = 0.0;
             cut = -1;
 
             for (int i = first; i < last; i++)
             {
-                double half_r = base_r + WuQuantizer.Top(cube, direction, i, this.vmr);
-                double half_g = base_g + WuQuantizer.Top(cube, direction, i, this.vmg);
-                double half_b = base_b + WuQuantizer.Top(cube, direction, i, this.vmb);
-                double half_a = base_a + WuQuantizer.Top(cube, direction, i, this.vma);
-                double half_w = base_w + WuQuantizer.Top(cube, direction, i, this.vwt);
+                double half_r = base_r + Top(cube, direction, i, this.vmr);
+                double half_g = base_g + Top(cube, direction, i, this.vmg);
+                double half_b = base_b + Top(cube, direction, i, this.vmb);
+                double half_a = base_a + Top(cube, direction, i, this.vma);
+                double half_w = base_w + Top(cube, direction, i, this.vwt);
 
                 double temp;
 
@@ -562,11 +564,11 @@ namespace ImageProcessorCore.Formats
         /// <returns>Returns a value indicating whether the box has been split.</returns>
         private bool Cut(Box set1, Box set2)
         {
-            double whole_r = WuQuantizer.Volume(set1, this.vmr);
-            double whole_g = WuQuantizer.Volume(set1, this.vmg);
-            double whole_b = WuQuantizer.Volume(set1, this.vmb);
-            double whole_a = WuQuantizer.Volume(set1, this.vma);
-            double whole_w = WuQuantizer.Volume(set1, this.vwt);
+            double whole_r = Volume(set1, this.vmr);
+            double whole_g = Volume(set1, this.vmg);
+            double whole_b = Volume(set1, this.vmb);
+            double whole_a = Volume(set1, this.vma);
+            double whole_w = Volume(set1, this.vwt);
 
             int cutr;
             int cutg;
@@ -663,7 +665,7 @@ namespace ImageProcessorCore.Formats
                     {
                         for (int a = cube.A0 + 1; a <= cube.A1; a++)
                         {
-                            this.tag[WuQuantizer.Ind(r, g, b, a)] = label;
+                            this.tag[Ind(r, g, b, a)] = label;
                         }
                     }
                 }
@@ -686,8 +688,8 @@ namespace ImageProcessorCore.Formats
             }
 
             cube[0].R0 = cube[0].G0 = cube[0].B0 = cube[0].A0 = 0;
-            cube[0].R1 = cube[0].G1 = cube[0].B1 = WuQuantizer.IndexCount - 1;
-            cube[0].A1 = WuQuantizer.IndexAlphaCount - 1;
+            cube[0].R1 = cube[0].G1 = cube[0].B1 = IndexCount - 1;
+            cube[0].A1 = IndexAlphaCount - 1;
 
             int next = 0;
 
@@ -736,30 +738,28 @@ namespace ImageProcessorCore.Formats
             List<Bgra32> pallette = new List<Bgra32>();
             byte[] pixels = new byte[image.Width * image.Height];
 
-            Parallel.For(
-                0,
-                colorCount,
-                k =>
-                    {
-                        this.Mark(cube[k], (byte)k);
+            // Can't make this parallel.
+            for (int k = 0; k < colorCount; k++)
+            {
+                this.Mark(cube[k], (byte)k);
 
-                        double weight = WuQuantizer.Volume(cube[k], this.vwt);
+                double weight = Volume(cube[k], this.vwt);
 
-                        // TODO: Epsilon
-                        if (Math.Abs(weight) > .0001)
-                        {
-                            byte r = (byte)(WuQuantizer.Volume(cube[k], this.vmr) / weight);
-                            byte g = (byte)(WuQuantizer.Volume(cube[k], this.vmg) / weight);
-                            byte b = (byte)(WuQuantizer.Volume(cube[k], this.vmb) / weight);
-                            byte a = (byte)(WuQuantizer.Volume(cube[k], this.vma) / weight);
+                // TODO: Epsilon
+                if (Math.Abs(weight) > .0001)
+                {
+                    byte r = (byte)(Volume(cube[k], this.vmr) / weight);
+                    byte g = (byte)(Volume(cube[k], this.vmg) / weight);
+                    byte b = (byte)(Volume(cube[k], this.vmb) / weight);
+                    byte a = (byte)(Volume(cube[k], this.vma) / weight);
 
-                            pallette.Add(new Bgra32(b, g, r, a));
-                        }
-                        else
-                        {
-                            pallette.Add(new Bgra32(0, 0, 0));
-                        }
-                    });
+                    pallette.Add(new Bgra32(b, g, r, a));
+                }
+                else
+                {
+                    pallette.Add(new Bgra32(0, 0, 0));
+                }
+            }
 
             // TODO: Optimize here.
             int i = 0;
@@ -768,12 +768,12 @@ namespace ImageProcessorCore.Formats
                 for (int x = 0; x < image.Width; x++)
                 {
                     Bgra32 color = image[x, y];
-                    int a = color.A >> (8 - WuQuantizer.IndexAlphaBits);
-                    int r = color.R >> (8 - WuQuantizer.IndexBits);
-                    int g = color.G >> (8 - WuQuantizer.IndexBits);
-                    int b = color.B >> (8 - WuQuantizer.IndexBits);
+                    int a = color.A >> (8 - IndexAlphaBits);
+                    int r = color.R >> (8 - IndexBits);
+                    int g = color.G >> (8 - IndexBits);
+                    int b = color.B >> (8 - IndexBits);
 
-                    int ind = WuQuantizer.Ind(r + 1, g + 1, b + 1, a + 1);
+                    int ind = Ind(r + 1, g + 1, b + 1, a + 1);
                     pixels[i++] = this.tag[ind];
                 }
             }

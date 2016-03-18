@@ -26,7 +26,7 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// The quantizer for reducing the color count.
         /// </summary>
-        public IQuantizer Quantizer { get; set; } = new WuQuantizer();
+        public IQuantizer Quantizer { get; set; } = new OctreeQuantizer();
 
         /// <inheritdoc/>
         public string Extension => "gif";
@@ -130,12 +130,12 @@ namespace ImageProcessorCore.Formats
         /// <returns>The <see cref="QuantizedImage"/></returns>
         private QuantizedImage WriteColorTable(ImageBase image, Stream stream, int quality, int bitDepth)
         {
-            // Quantize the image returning a pallete.
+            // Quantize the image returning a palette.
             QuantizedImage quantizedImage = this.Quantizer.Quantize(image, quality.Clamp(1, 255));
 
-            // Grab the pallete and write it to the stream.
-            Bgra32[] pallete = quantizedImage.Palette;
-            int pixelCount = pallete.Length;
+            // Grab the palette and write it to the stream.
+            Bgra32[] palette = quantizedImage.Palette;
+            int pixelCount = palette.Length;
 
             // Get max colors for bit depth.
             int colorTableLength = (int)Math.Pow(2, bitDepth) * 3;
@@ -145,7 +145,7 @@ namespace ImageProcessorCore.Formats
                 i =>
                     {
                         int offset = i * 3;
-                        Bgra32 color = pallete[i];
+                        Bgra32 color = palette[i];
 
                         colorTable[offset] = color.R;
                         colorTable[offset + 1] = color.G;

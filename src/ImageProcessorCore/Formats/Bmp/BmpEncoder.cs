@@ -101,7 +101,6 @@ namespace ImageProcessorCore.Formats
                 amount = 4 - amount;
             }
 
-            // TODO: Make this parallel.
             for (int y = image.Height - 1; y >= 0; y--)
             {
                 for (int x = 0; x < image.Width; x++)

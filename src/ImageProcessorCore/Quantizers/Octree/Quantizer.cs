@@ -58,7 +58,7 @@ namespace ImageProcessorCore.Quantizers
 
             byte[] quantizedPixels = new byte[width * height];
 
-            // Get the pallete
+            // Get the palette
             List<Bgra32> palette = this.GetPalette();
 
             this.SecondPass(image, quantizedPixels, width, height);

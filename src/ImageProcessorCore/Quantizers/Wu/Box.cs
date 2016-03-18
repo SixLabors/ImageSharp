@@ -1,7 +1,12 @@
-﻿namespace ImageProcessorCore.Formats
+﻿// <copyright file="Box.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
+namespace ImageProcessorCore.Quantizers
 {
     /// <summary>
-    /// A box.
+    /// Represents a box color cube.
     /// </summary>
     internal sealed class Box
     {

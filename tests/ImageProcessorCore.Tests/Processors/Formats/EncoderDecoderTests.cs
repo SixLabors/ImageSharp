@@ -54,7 +54,7 @@
                 using (FileStream stream = File.OpenRead(file))
                 {
                     Image image = new Image(stream);
-                    IQuantizer quantizer = new OctreeQuantizer();
+                    IQuantizer quantizer = new WuAlphaColorQuantizer();
                     QuantizedImage quantizedImage = quantizer.Quantize(image);
 
                     using (FileStream output = File.OpenWrite($"TestOutput/Quantize/{Path.GetFileName(file)}"))

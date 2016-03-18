@@ -40,7 +40,7 @@ namespace ImageProcessorCore
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="quality">The quality to save the image to. Between 1 and 100.</param>
         /// <exception cref="ArgumentNullException">Thrown if the stream is null.</exception>
-        public static void SaveAsJpeg(this ImageBase source, Stream stream, int quality = 80) => new JpegEncoder { Quality = quality }.Encode(source, stream);
+        public static void SaveAsJpeg(this ImageBase source, Stream stream, int quality = 75) => new JpegEncoder { Quality = quality }.Encode(source, stream);
 
         /// <summary>
         /// Saves the image to the given stream with the gif format.

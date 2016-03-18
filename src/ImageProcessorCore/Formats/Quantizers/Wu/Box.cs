@@ -31,7 +31,7 @@
         public int B0 { get; set; }
 
         /// <summary>
-        /// Gets or sets the max green value, inclusive.
+        /// Gets or sets the max blue value, inclusive.
         /// </summary>
         public int B1 { get; set; }
 

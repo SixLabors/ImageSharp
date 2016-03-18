@@ -10,6 +10,8 @@ namespace ImageProcessorCore.Formats
     using System.Linq;
     using System.Threading.Tasks;
 
+    using ImageProcessorCore.Quantizers;
+
     /// <summary>
     /// Image encoder for writing image data to a stream in gif format.
     /// </summary>
@@ -20,6 +22,8 @@ namespace ImageProcessorCore.Formats
         /// </summary>
         /// <remarks>For gifs the value ranges from 1 to 256.</remarks>
         public int Quality { get; set; }
+
+        public IQuantizer Quantizer { get; set; }
 
         /// <inheritdoc/>
         public string Extension => "gif";
@@ -35,7 +39,7 @@ namespace ImageProcessorCore.Formats
             extension = extension.StartsWith(".") ? extension.Substring(1) : extension;
             return extension.Equals(this.Extension, StringComparison.OrdinalIgnoreCase);
         }
-
+        
         /// <inheritdoc/>
         public void Encode(ImageBase imageBase, Stream stream)
         {

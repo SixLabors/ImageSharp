@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageProcessorCore.Formats
+namespace ImageProcessorCore.Quantizers
 {
     /// <summary>
     /// Provides methods for allowing quantization of images pixels.

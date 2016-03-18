@@ -17,27 +17,12 @@ namespace ImageProcessorCore.Quantizers
         /// <summary>
         /// Stores the tree
         /// </summary>
-        private readonly Octree octree;
+        private Octree octree;
 
         /// <summary>
         /// Maximum allowed color depth
         /// </summary>
-        private readonly int maxColors;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="OctreeQuantizer"/> class.
-        /// </summary>
-        /// <remarks>
-        /// The Octree quantizer is a two pass algorithm. The initial pass sets up the Octree,
-        /// the second pass quantizes a color based on the nodes in the tree.
-        /// <para>
-        /// Defaults to return a maximum of 255 colors plus transparency with 8 significant bits.
-        /// </para>
-        /// </remarks>
-        public OctreeQuantizer()
-            : this(255, 8)
-        {
-        }
+        private int colors;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OctreeQuantizer"/> class.
@@ -46,24 +31,29 @@ namespace ImageProcessorCore.Quantizers
         /// The Octree quantizer is a two pass algorithm. The initial pass sets up the Octree,
         /// the second pass quantizes a color based on the nodes in the tree
         /// </remarks>
-        /// <param name="maxColors">The maximum number of colors to return</param>
-        /// <param name="maxColorBits">The number of significant bits</param>
-        public OctreeQuantizer(int maxColors, int maxColorBits)
+        public OctreeQuantizer()
             : base(false)
         {
-            Guard.MustBeBetweenOrEqualTo(maxColors, 1, 255, nameof(maxColors));
-            Guard.MustBeBetweenOrEqualTo(maxColorBits, 1, 8, nameof(maxColorBits));
-
-            // Construct the Octree
-            this.octree = new Octree(maxColorBits);
-
-            this.maxColors = maxColors;
         }
 
         /// <summary>
         /// Gets or sets the transparency threshold.
         /// </summary>
         public byte Threshold { get; set; } = 128;
+
+        /// <inheritdoc/>
+        public override QuantizedImage Quantize(ImageBase image, int maxColors)
+        {
+            this.colors = maxColors.Clamp(1, 255);
+
+            if (this.octree == null)
+            {
+                // Construct the Octree
+                this.octree = new Octree(this.GetBitsNeededForColorDepth(maxColors));
+            }
+
+            return base.Quantize(image, maxColors);
+        }
 
         /// <summary>
         /// Process the pixel in the first pass of the algorithm
@@ -93,7 +83,7 @@ namespace ImageProcessorCore.Quantizers
         protected override byte QuantizePixel(Bgra32 pixel)
         {
             // The color at [maxColors] is set to transparent
-            byte paletteIndex = (byte)this.maxColors;
+            byte paletteIndex = (byte)this.colors;
 
             // Get the palette index if it's transparency meets criterea.
             if (pixel.A > this.Threshold)
@@ -113,9 +103,10 @@ namespace ImageProcessorCore.Quantizers
         protected override List<Bgra32> GetPalette()
         {
             // First off convert the Octree to maxColors colors
-            List<Bgra32> palette = this.octree.Palletize(Math.Max(this.maxColors - 1, 1));
+            List<Bgra32> palette = this.octree.Palletize(Math.Max(this.colors, 1));
 
             palette.Add(Bgra32.Empty);
+            this.TransparentIndex = this.colors;
 
             return palette;
         }
@@ -124,13 +115,13 @@ namespace ImageProcessorCore.Quantizers
         /// Returns how many bits are required to store the specified number of colors.
         /// Performs a Log2() on the value.
         /// </summary>
-        /// <param name="colors">The number of colors.</param>
+        /// <param name="colorCount">The number of colors.</param>
         /// <returns>
         /// The <see cref="int"/>
         /// </returns>
-        private int GetBitsNeededForColorDepth(int colors)
+        private int GetBitsNeededForColorDepth(int colorCount)
         {
-            return (int)Math.Ceiling(Math.Log(colors, 2));
+            return (int)Math.Ceiling(Math.Log(colorCount, 2));
         }
 
         /// <summary>

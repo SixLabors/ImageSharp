@@ -3,8 +3,9 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageProcessorCore.Formats
+namespace ImageProcessorCore.Quantizers
 {
+    using System;
     using System.Collections.Generic;
 
     /// <summary>
@@ -33,19 +34,26 @@ namespace ImageProcessorCore.Formats
             this.singlePass = singlePass;
         }
 
+        /// <summary>
+        /// Gets or sets the transparency index.
+        /// </summary>
+        public int TransparentIndex { get; protected set; }
+
         /// <inheritdoc/>
-        public QuantizedImage Quantize(ImageBase imageBase)
+        public virtual QuantizedImage Quantize(ImageBase image, int maxColors)
         {
+            Guard.NotNull(image, nameof(image));
+
             // Get the size of the source image
-            int height = imageBase.Height;
-            int width = imageBase.Width;
+            int height = image.Height;
+            int width = image.Width;
 
             // Call the FirstPass function if not a single pass algorithm.
             // For something like an Octree quantizer, this will run through
             // all image pixels, build a data structure, and create a palette.
             if (!this.singlePass)
             {
-                this.FirstPass(imageBase, width, height);
+                this.FirstPass(image, width, height);
             }
 
             byte[] quantizedPixels = new byte[width * height];
@@ -53,9 +61,9 @@ namespace ImageProcessorCore.Formats
             // Get the pallete
             List<Bgra32> palette = this.GetPalette();
 
-            this.SecondPass(imageBase, quantizedPixels, width, height);
+            this.SecondPass(image, quantizedPixels, width, height);
 
-            return new QuantizedImage(width, height, palette.ToArray(), quantizedPixels);
+            return new QuantizedImage(width, height, palette.ToArray(), quantizedPixels, this.TransparentIndex);
         }
 
         /// <summary>
@@ -121,9 +129,7 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Override this to process the pixel in the first pass of the algorithm
         /// </summary>
-        /// <param name="pixel">
-        /// The pixel to quantize
-        /// </param>
+        /// <param name="pixel">The pixel to quantize</param>
         /// <remarks>
         /// This function need only be overridden if your quantize algorithm needs two passes,
         /// such as an Octree quantizer.
@@ -135,9 +141,7 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Override this to process the pixel in the second pass of the algorithm
         /// </summary>
-        /// <param name="pixel">
-        /// The pixel to quantize
-        /// </param>
+        /// <param name="pixel">The pixel to quantize</param>
         /// <returns>
         /// The quantized value
         /// </returns>

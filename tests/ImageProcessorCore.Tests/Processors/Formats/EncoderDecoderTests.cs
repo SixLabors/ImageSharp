@@ -7,6 +7,9 @@
 
     using Xunit;
     using System.Linq;
+
+    using ImageProcessorCore.Quantizers;
+
     public class EncoderDecoderTests : ProcessorTestBase
     {
         [Fact]
@@ -55,7 +58,7 @@
                 {
                     Image image = new Image(stream);
                     IQuantizer quantizer = new OctreeQuantizer();
-                    QuantizedImage quantizedImage = quantizer.Quantize(image);
+                    QuantizedImage quantizedImage = quantizer.Quantize(image, 256);
 
                     using (FileStream output = File.OpenWrite($"TestOutput/Quantize/{Path.GetFileName(file)}"))
                     {

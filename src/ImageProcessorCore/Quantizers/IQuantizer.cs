@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageProcessorCore.Formats
+namespace ImageProcessorCore.Quantizers
 {
     /// <summary>
     /// Provides methods for allowing quantization of images pixels.
@@ -13,10 +13,11 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Quantize an image and return the resulting output pixels.
         /// </summary>
-        /// <param name="imageBase">The image to quantize.</param>
+        /// <param name="image">The image to quantize.</param>
+        /// <param name="maxColors">The maximum number of colors to return.</param>
         /// <returns>
         /// A <see cref="T:QuantizedImage"/> representing a quantized version of the image pixels.
         /// </returns>
-        QuantizedImage Quantize(ImageBase imageBase);
+        QuantizedImage Quantize(ImageBase image, int maxColors);
     }
 }

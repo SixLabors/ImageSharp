@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageProcessorCore.Formats
+namespace ImageProcessorCore.Quantizers
 {
     using System.Collections.Generic;
 
@@ -121,9 +121,7 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Override this to process the pixel in the first pass of the algorithm
         /// </summary>
-        /// <param name="pixel">
-        /// The pixel to quantize
-        /// </param>
+        /// <param name="pixel">The pixel to quantize</param>
         /// <remarks>
         /// This function need only be overridden if your quantize algorithm needs two passes,
         /// such as an Octree quantizer.
@@ -135,9 +133,7 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Override this to process the pixel in the second pass of the algorithm
         /// </summary>
-        /// <param name="pixel">
-        /// The pixel to quantize
-        /// </param>
+        /// <param name="pixel">The pixel to quantize</param>
         /// <returns>
         /// The quantized value
         /// </returns>

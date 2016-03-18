@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageProcessorCore.Formats
+namespace ImageProcessorCore.Quantizers
 {
     using System;
     using System.Collections.Generic;
@@ -118,6 +118,19 @@ namespace ImageProcessorCore.Formats
             palette.Add(Bgra32.Empty);
 
             return palette;
+        }
+
+        /// <summary>
+        /// Returns how many bits are required to store the specified number of colors.
+        /// Performs a Log2() on the value.
+        /// </summary>
+        /// <param name="colors">The number of colors.</param>
+        /// <returns>
+        /// The <see cref="int"/>
+        /// </returns>
+        private int GetBitsNeededForColorDepth(int colors)
+        {
+            return (int)Math.Ceiling(Math.Log(colors, 2));
         }
 
         /// <summary>

@@ -7,6 +7,9 @@
 
     using Xunit;
     using System.Linq;
+
+    using ImageProcessorCore.Quantizers;
+
     public class EncoderDecoderTests : ProcessorTestBase
     {
         [Fact]

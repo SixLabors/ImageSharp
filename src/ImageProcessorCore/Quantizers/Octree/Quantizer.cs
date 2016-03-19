@@ -37,7 +37,7 @@ namespace ImageProcessorCore.Quantizers
         /// <summary>
         /// Gets or sets the transparency index.
         /// </summary>
-        public int TransparentIndex { get; protected set; }
+        public int TransparentIndex { get; protected set; } = -1;
 
         /// <inheritdoc/>
         public virtual QuantizedImage Quantize(ImageBase image, int maxColors)

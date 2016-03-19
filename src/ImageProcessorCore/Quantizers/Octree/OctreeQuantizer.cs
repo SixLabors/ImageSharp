@@ -150,11 +150,6 @@ namespace ImageProcessorCore.Quantizers
             private readonly int maxColorBits;
 
             /// <summary>
-            /// Number of leaves in the tree
-            /// </summary>
-            private int leafCount;
-
-            /// <summary>
             /// Store the last node quantized
             /// </summary>
             private OctreeNode previousNode;
@@ -173,7 +168,7 @@ namespace ImageProcessorCore.Quantizers
             public Octree(int maxColorBits)
             {
                 this.maxColorBits = maxColorBits;
-                this.leafCount = 0;
+                this.Leaves = 0;
                 this.reducibleNodes = new OctreeNode[9];
                 this.root = new OctreeNode(0, this.maxColorBits, this);
                 this.previousColor = 0;
@@ -183,11 +178,7 @@ namespace ImageProcessorCore.Quantizers
             /// <summary>
             /// Gets or sets the number of leaves in the tree
             /// </summary>
-            public int Leaves
-            {
-                get { return this.leafCount; }
-                set { this.leafCount = value; }
-            }
+            private int Leaves { get; set; }
 
             /// <summary>
             /// Gets the array of reducible nodes
@@ -292,7 +283,7 @@ namespace ImageProcessorCore.Quantizers
                 this.reducibleNodes[index] = node.NextReducible;
 
                 // Decrement the leaf count after reducing the node
-                this.leafCount -= node.Reduce();
+                this.Leaves -= node.Reduce();
 
                 // And just in case I've reduced the last color to be added, and the next color to
                 // be added is the same, invalidate the previousNode...

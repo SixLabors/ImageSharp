@@ -131,7 +131,7 @@ namespace ImageProcessorCore.Formats
         private QuantizedImage WriteColorTable(ImageBase image, Stream stream, int quality, int bitDepth)
         {
             // Quantize the image returning a palette.
-            QuantizedImage quantizedImage = this.Quantizer.Quantize(image, quality.Clamp(1, 255));
+            QuantizedImage quantizedImage = this.Quantizer.Quantize(image, quality);
 
             // Grab the palette and write it to the stream.
             Bgra32[] palette = quantizedImage.Palette;
@@ -162,6 +162,7 @@ namespace ImageProcessorCore.Formats
         /// </summary>
         /// <param name="image">The <see cref="ImageBase"/> to encode.</param>
         /// <param name="stream">The stream to write to.</param>
+        /// <param name="transparencyIndex">The index of the color in the color palette to make transparent.</param>
         private void WriteGraphicalControlExtension(ImageBase image, Stream stream, int transparencyIndex)
         {
             // TODO: Check transparency logic.
@@ -189,7 +190,7 @@ namespace ImageProcessorCore.Formats
 
             this.WriteByte(stream, packed);
             this.WriteShort(stream, extension.DelayTime);
-            this.WriteByte(stream, extension.TransparencyIndex);
+            this.WriteByte(stream, extension.TransparencyIndex == -1 ? 255 : extension.TransparencyIndex);
             this.WriteByte(stream, GifConstants.Terminator);
         }
 

@@ -715,7 +715,7 @@ namespace ImageProcessorCore.Quantizers
         {
             List<Bgra32> pallette = new List<Bgra32>();
             byte[] pixels = new byte[image.Width * image.Height];
-            int transparentIndex = 0;
+            int transparentIndex = -1;
 
             for (int k = 0; k < colorCount; k++)
             {

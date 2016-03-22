@@ -62,7 +62,7 @@
 
                     using (FileStream output = File.OpenWrite($"TestOutput/Quantize/{Path.GetFileName(file)}"))
                     {
-                        quantizedImage.ToImage().Save(output);
+                        quantizedImage.ToImage().Save(output, image.CurrentImageFormat);
                     }
                 }
             }

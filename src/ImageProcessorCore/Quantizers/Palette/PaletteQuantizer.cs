@@ -35,9 +35,16 @@ namespace ImageProcessorCore.Quantizers
         public PaletteQuantizer(Color[] palette = null)
             : base(true)
         {
-            this.colors = palette == null
-                ? ColorConstants.WebSafeColors.Select(c => (Bgra32)c).ToArray()
-                : palette.Select(c => (Bgra32)c).ToArray();
+            if (palette == null)
+            {
+                List<Bgra32> safe = ColorConstants.WebSafeColors.Select(c => (Bgra32)c).ToList();
+                safe.Insert(0, Bgra32.Empty);
+                this.colors = safe.ToArray();
+            }
+            else
+            {
+                this.colors = palette.Select(c => (Bgra32)c).ToArray();
+            }
         }
 
         /// <inheritdoc/>
@@ -61,8 +68,8 @@ namespace ImageProcessorCore.Quantizers
             else
             {
                 // Not found - loop through the palette and find the nearest match.
-                // Firstly check the alpha value - if 0, lookup the transparent color
-                if (pixel.A == 0)
+                // Firstly check the alpha value - if less than the threshold, lookup the transparent color
+                if (!(pixel.A > this.Threshold))
                 {
                     // Transparent. Lookup the first color with an alpha value of 0
                     for (int index = 0; index < this.colors.Length; index++)
@@ -91,7 +98,7 @@ namespace ImageProcessorCore.Quantizers
                         int redDistance = paletteColor.R - red;
                         int greenDistance = paletteColor.G - green;
                         int blueDistance = paletteColor.B - blue;
-                        
+
                         int distance = (redDistance * redDistance) +
                                        (greenDistance * greenDistance) +
                                        (blueDistance * blueDistance);
@@ -111,7 +118,7 @@ namespace ImageProcessorCore.Quantizers
                 }
 
                 // Now I have the color, pop it into the cache for next time
-                this.colorMap.Add(colorHash, colorIndex);
+                this.colorMap[colorHash] = colorIndex;
             }
 
             return colorIndex;

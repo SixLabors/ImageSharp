@@ -7,6 +7,7 @@ namespace ImageProcessorCore.Quantizers
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading.Tasks;
 
     /// <summary>
     /// Encapsulates methods to calculate the color palette of an image.
@@ -38,6 +39,9 @@ namespace ImageProcessorCore.Quantizers
         /// Gets or sets the transparency index.
         /// </summary>
         public int TransparentIndex { get; protected set; } = -1;
+
+        /// <inheritdoc/>
+        public byte Threshold { get; set; }
 
         /// <inheritdoc/>
         public virtual QuantizedImage Quantize(ImageBase image, int maxColors)
@@ -95,35 +99,17 @@ namespace ImageProcessorCore.Quantizers
         /// <param name="height">The height in pixels of the image</param>
         protected virtual void SecondPass(ImageBase source, byte[] output, int width, int height)
         {
-            int i = 0;
-
-            // Convert the first pixel, so that I have values going into the loop.
-            // Implicit cast here from Color.
-            Bgra32 previousPixel = source[0, 0];
-            byte pixelValue = this.QuantizePixel(previousPixel);
-
-            output[0] = pixelValue;
-
-            for (int y = 0; y < height; y++)
-            {
-                for (int x = 0; x < width; x++)
-                {
-                    Bgra32 sourcePixel = source[x, y];
-
-                    // Check if this is the same as the last pixel. If so use that value
-                    // rather than calculating it again. This is an inexpensive optimization.
-                    if (sourcePixel != previousPixel)
+            Parallel.For(
+                0,
+                source.Height,
+                y =>
                     {
-                        // Quantize the pixel
-                        pixelValue = this.QuantizePixel(sourcePixel);
-
-                        // And setup the previous pointer
-                        previousPixel = sourcePixel;
-                    }
-
-                    output[i++] = pixelValue;
-                }
-            }
+                        for (int x = 0; x < source.Width; x++)
+                        {
+                            Bgra32 sourcePixel = source[x, y];
+                            output[(y * source.Width) + x] = this.QuantizePixel(sourcePixel);
+                        }
+                    });
         }
 
         /// <summary>

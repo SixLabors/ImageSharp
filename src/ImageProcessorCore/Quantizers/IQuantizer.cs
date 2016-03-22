@@ -11,6 +11,11 @@ namespace ImageProcessorCore.Quantizers
     public interface IQuantizer
     {
         /// <summary>
+        /// Gets or sets the transparency threshold.
+        /// </summary>
+        byte Threshold { get; set; }
+
+        /// <summary>
         /// Quantize an image and return the resulting output pixels.
         /// </summary>
         /// <param name="image">The image to quantize.</param>

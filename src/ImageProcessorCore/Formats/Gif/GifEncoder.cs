@@ -24,9 +24,14 @@ namespace ImageProcessorCore.Formats
         public int Quality { get; set; }
 
         /// <summary>
+        /// Gets or sets the transparency threshold.
+        /// </summary>
+        public byte Threshold { get; set; } = 128;
+
+        /// <summary>
         /// The quantizer for reducing the color count.
         /// </summary>
-        public IQuantizer Quantizer { get; set; } = new OctreeQuantizer();
+        public IQuantizer Quantizer { get; set; }
 
         /// <inheritdoc/>
         public string Extension => "gif";
@@ -50,6 +55,11 @@ namespace ImageProcessorCore.Formats
             Guard.NotNull(stream, nameof(stream));
 
             Image image = (Image)imageBase;
+
+            if (this.Quantizer == null)
+            {
+                this.Quantizer = new OctreeQuantizer { Threshold = this.Threshold };
+            }
 
             // Write the header.
             // File Header signature and version.

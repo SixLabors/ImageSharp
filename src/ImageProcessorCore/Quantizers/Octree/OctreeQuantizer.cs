@@ -36,11 +36,6 @@ namespace ImageProcessorCore.Quantizers
         {
         }
 
-        /// <summary>
-        /// Gets or sets the transparency threshold.
-        /// </summary>
-        public byte Threshold { get; set; } = 128;
-
         /// <inheritdoc/>
         public override QuantizedImage Quantize(ImageBase image, int maxColors)
         {

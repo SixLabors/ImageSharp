@@ -7,6 +7,7 @@ namespace ImageProcessorCore.Quantizers
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading.Tasks;
 
     /// <summary>
     /// An implementation of Wu's color quantizer with alpha channel.
@@ -109,6 +110,9 @@ namespace ImageProcessorCore.Quantizers
             this.m2 = new double[TableLength];
             this.tag = new byte[TableLength];
         }
+
+        /// <inheritdoc/>
+        public byte Threshold { get; set; }
 
         /// <inheritdoc/>
         public QuantizedImage Quantize(ImageBase image, int maxColors)
@@ -730,7 +734,7 @@ namespace ImageProcessorCore.Quantizers
                     byte b = (byte)(Volume(cube[k], this.vmb) / weight);
                     byte a = (byte)(Volume(cube[k], this.vma) / weight);
 
-                    var color = new Bgra32(b, g, r, a);
+                    Bgra32 color = new Bgra32(b, g, r, a);
 
                     if (color == Bgra32.Empty)
                     {
@@ -746,22 +750,29 @@ namespace ImageProcessorCore.Quantizers
                 }
             }
 
-            // TODO: Optimize here.
-            int i = 0;
-            for (int y = 0; y < image.Height; y++)
-            {
-                for (int x = 0; x < image.Width; x++)
-                {
-                    Bgra32 color = image[x, y];
-                    int a = color.A >> (8 - IndexAlphaBits);
-                    int r = color.R >> (8 - IndexBits);
-                    int g = color.G >> (8 - IndexBits);
-                    int b = color.B >> (8 - IndexBits);
+            Parallel.For(
+                0,
+                image.Height,
+                y =>
+                    {
+                        for (int x = 0; x < image.Width; x++)
+                        {
+                            Bgra32 color = image[x, y];
+                            int a = color.A >> (8 - IndexAlphaBits);
+                            int r = color.R >> (8 - IndexBits);
+                            int g = color.G >> (8 - IndexBits);
+                            int b = color.B >> (8 - IndexBits);
 
-                    int ind = GetPaletteIndex(r + 1, g + 1, b + 1, a + 1);
-                    pixels[i++] = this.tag[ind];
-                }
-            }
+                            if (transparentIndex > -1 && color.A <= this.Threshold)
+                            {
+                                pixels[(y * image.Width) + x] = (byte)transparentIndex;
+                                continue;
+                            }
+
+                            int ind = GetPaletteIndex(r + 1, g + 1, b + 1, a + 1);
+                            pixels[(y * image.Width) + x] = this.tag[ind];
+                        }
+                    });
 
             return new QuantizedImage(image.Width, image.Height, pallette.ToArray(), pixels, transparentIndex);
         }

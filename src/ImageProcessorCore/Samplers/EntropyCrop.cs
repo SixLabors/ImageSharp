@@ -61,9 +61,9 @@ namespace ImageProcessorCore.Samplers
         /// <inheritdoc/>
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
+            // Jump out, we'll deal with that later.
             if (source.Bounds == target.Bounds)
             {
-                target.SetPixels(target.Width, target.Height, source.Pixels);
                 return;
             }
 
@@ -71,9 +71,9 @@ namespace ImageProcessorCore.Samplers
             int startX = targetRectangle.X;
             int targetX = this.cropRectangle.X;
             int endX = this.cropRectangle.Width;
-            int maxX = endX - 1;
+            int maxX = this.cropRectangle.Right - 1;
             int maxY = this.cropRectangle.Bottom - 1;
-
+            
             Parallel.For(
             startY,
             endY,
@@ -89,8 +89,19 @@ namespace ImageProcessorCore.Samplers
 
                     target[x, y] = source[offsetX, offsetY];
                 }
+
                 this.OnRowProcessed();
             });
+        }
+
+        /// <inheritdoc/>
+        protected override void AfterApply(ImageBase source, ImageBase target, Rectangle targetRectangle, Rectangle sourceRectangle)
+        {
+            // Copy the pixels over.
+            if (source.Bounds == target.Bounds)
+            {
+                target.ClonePixels(target.Width, target.Height, source.Pixels);
+            }
         }
     }
 }

@@ -89,7 +89,11 @@ namespace ImageProcessorCore.Formats
                 0,
                 8);
 
-            this.Quality = image.Quality.Clamp(1, int.MaxValue);
+            if (image.Quality > 0)
+            {
+
+                this.Quality = image.Quality.Clamp(1, int.MaxValue);
+            }
 
             this.bitDepth = this.Quality <= 256
                                ? (byte)(this.GetBitsNeededForColorDepth(this.Quality).Clamp(1, 8))
@@ -234,11 +238,7 @@ namespace ImageProcessorCore.Formats
             // Write the transparency data
             if (this.quantized.TransparentIndex > -1)
             {
-                byte[] buffer = BitConverter.GetBytes(this.quantized.TransparentIndex);
-
-                Array.Reverse(buffer);
-
-                this.WriteChunk(stream, PngChunkTypes.PaletteAlpha, buffer);
+                this.WriteChunk(stream, PngChunkTypes.PaletteAlpha, new[] { (byte)this.quantized.TransparentIndex });
             }
         }
 

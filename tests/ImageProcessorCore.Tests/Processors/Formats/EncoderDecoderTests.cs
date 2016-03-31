@@ -69,6 +69,29 @@
         }
 
         [Fact]
+        public void ImageCanSaveIndexedPng()
+        {
+            if (!Directory.Exists("TestOutput/Indexed"))
+            {
+                Directory.CreateDirectory("TestOutput/Indexed");
+            }
+
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    Image image = new Image(stream);
+
+                    using (FileStream output = File.OpenWrite($"TestOutput/Indexed/{Path.GetFileNameWithoutExtension(file)}.png"))
+                    {
+                        image.Quality = 255;
+                        image.Save(output, new PngFormat());
+                    }
+                }
+            }
+        }
+
+        [Fact]
         public void ImageCanConvertFormat()
         {
             if (!Directory.Exists("TestOutput/Format"))

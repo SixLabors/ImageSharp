@@ -9,6 +9,8 @@ namespace ImageProcessorCore.Formats
     using System.IO;
     using System.Threading.Tasks;
 
+    using ImageProcessorCore.Quantizers;
+
     /// <summary>
     /// Image encoder for writing image data to a stream in png format.
     /// </summary>
@@ -20,10 +22,16 @@ namespace ImageProcessorCore.Formats
         private const int MaxBlockSize = 65535;
 
         /// <summary>
+        /// The number of bits required to encode the colors in the png.
+        /// </summary>
+        private byte bitDepth;
+
+        private QuantizedImage quantized;
+
+        /// <summary>
         /// Gets or sets the quality of output for images.
         /// </summary>
-        /// <remarks>Png is a lossless format so this is not used in this encoder.</remarks>
-        public int Quality { get; set; }
+        public int Quality { get; set; } = int.MaxValue;
 
         /// <inheritdoc/>
         public string MimeType => "image/png";
@@ -50,6 +58,16 @@ namespace ImageProcessorCore.Formats
         /// </summary>
         /// <value>The gamma value of the image.</value>
         public double Gamma { get; set; } = 2.2F;
+
+        /// <summary>
+        /// The quantizer for reducing the color count.
+        /// </summary>
+        public IQuantizer Quantizer { get; set; }
+
+        /// <summary>
+        /// Gets or sets the transparency threshold.
+        /// </summary>
+        public byte Threshold { get; set; } = 128;
 
         /// <inheritdoc/>
         public bool IsSupportedFileExtension(string extension)
@@ -83,18 +101,35 @@ namespace ImageProcessorCore.Formats
                 0,
                 8);
 
+            this.Quality = image.Quality.Clamp(1, int.MaxValue);
+
+            this.bitDepth = this.Quality <= 256
+                               ? (byte)(this.GetBitsNeededForColorDepth(this.Quality).Clamp(1, 8))
+                               : (byte)8;
+
+            // Png only supports in four pixel depths: 1, 2, 4, and 8 bits when using the PLTE chunk
+            if (this.bitDepth == 3)
+            {
+                this.bitDepth = 4;
+            }
+            else if (this.bitDepth >= 5 || this.bitDepth <= 7)
+            {
+                this.bitDepth = 8;
+            }
+
             PngHeader header = new PngHeader
             {
                 Width = image.Width,
                 Height = image.Height,
-                ColorType = 6, // Each pixel is an R,G,B triple, followed by an alpha sample.
-                BitDepth = 8,
+                ColorType = (byte)(this.Quality <= 256 ? 3 : 6), // 3 = indexed, 6= Each pixel is an R,G,B triple, followed by an alpha sample.
+                BitDepth = this.bitDepth,
                 FilterMethod = 0, // None
                 CompressionMethod = 0,
                 InterlaceMethod = 0
             };
 
             this.WriteHeaderChunk(stream, header);
+            this.WritePaletteChunk(stream, header, image);
             this.WritePhysicalChunk(stream, image);
             this.WriteGammaChunk(stream);
             this.WriteDataChunks(stream, image);
@@ -142,6 +177,79 @@ namespace ImageProcessorCore.Formats
             Array.Reverse(buffer);
 
             stream.Write(buffer, 0, 4);
+        }
+
+        /// <summary>
+        /// Writes the header chunk to the stream.
+        /// </summary>
+        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+        /// <param name="header">The <see cref="PngHeader"/>.</param>
+        private void WriteHeaderChunk(Stream stream, PngHeader header)
+        {
+            byte[] chunkData = new byte[13];
+
+            WriteInteger(chunkData, 0, header.Width);
+            WriteInteger(chunkData, 4, header.Height);
+
+            chunkData[8] = header.BitDepth;
+            chunkData[9] = header.ColorType;
+            chunkData[10] = header.CompressionMethod;
+            chunkData[11] = header.FilterMethod;
+            chunkData[12] = header.InterlaceMethod;
+
+            this.WriteChunk(stream, PngChunkTypes.Header, chunkData);
+        }
+
+        /// <summary>
+        /// Writes the palette chunk to the stream.
+        /// </summary>
+        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+        /// <param name="header">The <see cref="PngHeader"/>.</param>
+        private void WritePaletteChunk(Stream stream, PngHeader header, ImageBase image)
+        {
+            if (this.Quality > 256)
+            {
+                return;
+            }
+
+            if (this.Quantizer == null)
+            {
+                this.Quantizer = new WuQuantizer { Threshold = this.Threshold };
+            }
+
+            // Quantize the image returning a palette.
+            this.quantized = this.Quantizer.Quantize(image, this.Quality);
+
+            // Grab the palette and write it to the stream.
+            Bgra32[] palette = this.quantized.Palette;
+            int pixelCount = palette.Length;
+
+            // Get max colors for bit depth.
+            int colorTableLength = (int)Math.Pow(2, header.BitDepth) * 3;
+            byte[] colorTable = new byte[colorTableLength];
+
+            Parallel.For(0, pixelCount,
+                i =>
+                {
+                    int offset = i * 3;
+                    Bgra32 color = palette[i];
+
+                    colorTable[offset] = color.R;
+                    colorTable[offset + 1] = color.G;
+                    colorTable[offset + 2] = color.B;
+                });
+
+            this.WriteChunk(stream, PngChunkTypes.Palette, colorTable);
+
+            // Write the transparency data
+            if (this.quantized.TransparentIndex > -1)
+            {
+                byte[] buffer = BitConverter.GetBytes(this.quantized.TransparentIndex);
+
+                Array.Reverse(buffer);
+
+                this.WriteChunk(stream, PngChunkTypes.PaletteAlpha, buffer);
+            }
         }
 
         /// <summary>
@@ -199,45 +307,86 @@ namespace ImageProcessorCore.Formats
         /// <param name="image">The image base.</param>
         private void WriteDataChunks(Stream stream, ImageBase image)
         {
+            byte[] data;
             int imageWidth = image.Width;
             int imageHeight = image.Height;
 
-            byte[] data = new byte[(imageWidth * imageHeight * 4) + image.Height];
-
-            int rowLength = (imageWidth * 4) + 1;
-
-            Parallel.For(0, imageHeight, y =>
+            // Indexed image.
+            if (this.Quality <= 256)
             {
-                byte compression = 0;
-                if (y > 0)
+                // TODO: I think I need to split then pad the beginning of each row.
+                // Split the array etc. Code below doesn't do this right.
+                // Time to read the spec... Again.
+
+                //data = new byte[(imageWidth * imageHeight) + image.Height];
+                //int rowLength = imageWidth;
+
+                //Parallel.For(0, imageHeight, y =>
+                //{
+                //    byte compression = 0;
+                //    if (y > 0)
+                //    {
+                //        compression = 2;
+                //    }
+
+                //    data[y * rowLength] = compression;
+
+                //    for (int x = 0; x < imageWidth; x++)
+                //    {
+                //        // Calculate the offset for the new array.
+                //        int dataOffset = (y * rowLength) + x + 1;
+                //        data[dataOffset + 1] = this.quantized.Pixels[(y * rowLength) + x];
+
+                //        if (y > 0)
+                //        {
+                //            data[dataOffset] -= this.quantized.Pixels[((y - 1) * rowLength) + x];
+                //        }
+                //    }
+                //});
+
+                // This outputs image but doesn't pad.
+                data = this.quantized.Pixels;
+            }
+            else
+            {
+                // TrueColor image.
+                data = new byte[(imageWidth * imageHeight * 4) + image.Height];
+
+                int rowLength = (imageWidth * 4) + 1;
+
+                Parallel.For(0, imageHeight, y =>
                 {
-                    compression = 2;
-                }
-
-                data[y * rowLength] = compression;
-
-                for (int x = 0; x < imageWidth; x++)
-                {
-                    Bgra32 color = Color.ToNonPremultiplied(image[x, y]);
-
-                    // Calculate the offset for the new array.
-                    int dataOffset = (y * rowLength) + (x * 4) + 1;
-                    data[dataOffset] = color.R;
-                    data[dataOffset + 1] = color.G;
-                    data[dataOffset + 2] = color.B;
-                    data[dataOffset + 3] = color.A;
-
+                    byte compression = 0;
                     if (y > 0)
                     {
-                        color = Color.ToNonPremultiplied(image[x, y - 1]);
-
-                        data[dataOffset] -= color.R;
-                        data[dataOffset + 1] -= color.G;
-                        data[dataOffset + 2] -= color.B;
-                        data[dataOffset + 3] -= color.A;
+                        compression = 2;
                     }
-                }
-            });
+
+                    data[y * rowLength] = compression;
+
+                    for (int x = 0; x < imageWidth; x++)
+                    {
+                        Bgra32 color = Color.ToNonPremultiplied(image[x, y]);
+
+                        // Calculate the offset for the new array.
+                        int dataOffset = (y * rowLength) + (x * 4) + 1;
+                        data[dataOffset] = color.R;
+                        data[dataOffset + 1] = color.G;
+                        data[dataOffset + 2] = color.B;
+                        data[dataOffset + 3] = color.A;
+
+                        if (y > 0)
+                        {
+                            color = Color.ToNonPremultiplied(image[x, y - 1]);
+
+                            data[dataOffset] -= color.R;
+                            data[dataOffset + 1] -= color.G;
+                            data[dataOffset + 2] -= color.B;
+                            data[dataOffset + 3] -= color.A;
+                        }
+                    }
+                });
+            }
 
             byte[] buffer;
             int bufferLength;
@@ -290,27 +439,6 @@ namespace ImageProcessorCore.Formats
         }
 
         /// <summary>
-        /// Writes the header chunk to the stream.
-        /// </summary>
-        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        /// <param name="header">The <see cref="PngHeader"/>.</param>
-        private void WriteHeaderChunk(Stream stream, PngHeader header)
-        {
-            byte[] chunkData = new byte[13];
-
-            WriteInteger(chunkData, 0, header.Width);
-            WriteInteger(chunkData, 4, header.Height);
-
-            chunkData[8] = header.BitDepth;
-            chunkData[9] = header.ColorType;
-            chunkData[10] = header.CompressionMethod;
-            chunkData[11] = header.FilterMethod;
-            chunkData[12] = header.InterlaceMethod;
-
-            this.WriteChunk(stream, PngChunkTypes.Header, chunkData);
-        }
-
-        /// <summary>
         /// Writes a chunk to the stream.
         /// </summary>
         /// <param name="stream">The <see cref="Stream"/> to write to.</param>
@@ -355,6 +483,19 @@ namespace ImageProcessorCore.Formats
             }
 
             WriteInteger(stream, (uint)crc32.Value);
+        }
+
+        /// <summary>
+        /// Returns how many bits are required to store the specified number of colors.
+        /// Performs a Log2() on the value.
+        /// </summary>
+        /// <param name="colors">The number of colors.</param>
+        /// <returns>
+        /// The <see cref="int"/>
+        /// </returns>
+        private int GetBitsNeededForColorDepth(int colors)
+        {
+            return (int)Math.Ceiling(Math.Log(colors, 2));
         }
     }
 }

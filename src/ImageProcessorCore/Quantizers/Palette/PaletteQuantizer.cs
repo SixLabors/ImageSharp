@@ -6,6 +6,7 @@
 namespace ImageProcessorCore.Quantizers
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
 
@@ -18,7 +19,7 @@ namespace ImageProcessorCore.Quantizers
         /// <summary>
         /// A lookup table for colors
         /// </summary>
-        private readonly Dictionary<int, byte> colorMap = new Dictionary<int, byte>();
+        private readonly ConcurrentDictionary<string, byte> colorMap = new ConcurrentDictionary<string, byte>();
 
         /// <summary>
         /// List of all colors in the palette
@@ -58,7 +59,7 @@ namespace ImageProcessorCore.Quantizers
         protected override byte QuantizePixel(Bgra32 pixel)
         {
             byte colorIndex = 0;
-            int colorHash = pixel.Bgra;
+            string colorHash = pixel.ToString();
 
             // Check if the color is in the lookup table
             if (this.colorMap.ContainsKey(colorHash))
@@ -118,7 +119,7 @@ namespace ImageProcessorCore.Quantizers
                 }
 
                 // Now I have the color, pop it into the cache for next time
-                this.colorMap[colorHash] = colorIndex;
+                this.colorMap.TryAdd(colorHash, colorIndex);
             }
 
             return colorIndex;

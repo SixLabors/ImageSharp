@@ -15,7 +15,7 @@ namespace ImageProcessorCore.Formats
     /// Performs the png encoding operation.
     /// TODO: Perf. There's lots of array parsing going on here. This should be unmanaged.
     /// </summary>
-    internal class PngEncoderCore
+    internal sealed class PngEncoderCore
     {
         /// <summary>
         /// The maximum block size, defaults at 64k for uncompressed blocks.
@@ -89,14 +89,12 @@ namespace ImageProcessorCore.Formats
                 0,
                 8);
 
-            if (image.Quality > 0)
-            {
-
-                this.Quality = image.Quality.Clamp(1, int.MaxValue);
-            }
+            // Ensure that quality can be set but has a fallback.
+            int quality = this.Quality > 0 ? this.Quality : image.Quality;
+            this.Quality = quality > 0 ? quality.Clamp(1, int.MaxValue) : int.MaxValue;
 
             this.bitDepth = this.Quality <= 256
-                               ? (byte)(this.GetBitsNeededForColorDepth(this.Quality).Clamp(1, 8))
+                               ? (byte)(ImageMaths.GetBitsNeededForColorDepth(this.Quality).Clamp(1, 8))
                                : (byte)8;
 
             // Png only supports in four pixel depths: 1, 2, 4, and 8 bits when using the PLTE chunk
@@ -462,19 +460,6 @@ namespace ImageProcessorCore.Formats
             }
 
             WriteInteger(stream, (uint)crc32.Value);
-        }
-
-        /// <summary>
-        /// Returns how many bits are required to store the specified number of colors.
-        /// Performs a Log2() on the value.
-        /// </summary>
-        /// <param name="colors">The number of colors.</param>
-        /// <returns>
-        /// The <see cref="int"/>
-        /// </returns>
-        private int GetBitsNeededForColorDepth(int colors)
-        {
-            return (int)Math.Ceiling(Math.Log(colors, 2));
         }
     }
 }

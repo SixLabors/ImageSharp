@@ -30,19 +30,8 @@ namespace ImageProcessorCore
         /// <param name="b">The blue component of this <see cref="Bgra32"/>.</param>
         /// <param name="g">The green component of this <see cref="Bgra32"/>.</param>
         /// <param name="r">The red component of this <see cref="Bgra32"/>.</param>
-        public Bgra32(byte b, byte g, byte r)
-            : this(b, g, r, 255)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Bgra32"/> struct.
-        /// </summary>
-        /// <param name="b">The blue component of this <see cref="Bgra32"/>.</param>
-        /// <param name="g">The green component of this <see cref="Bgra32"/>.</param>
-        /// <param name="r">The red component of this <see cref="Bgra32"/>.</param>
         /// <param name="a">The alpha component of this <see cref="Bgra32"/>.</param>
-        public Bgra32(byte b, byte g, byte r, byte a)
+        public Bgra32(byte b, byte g, byte r, byte a = 255)
             : this()
         {
             this.backingVector = Vector4.Clamp(new Vector4(b, g, r, a), Vector4.Zero, new Vector4(255));
@@ -129,13 +118,7 @@ namespace ImageProcessorCore
             return !left.Equals(right);
         }
 
-        /// <summary>
-        /// Indicates whether this instance and a specified object are equal.
-        /// </summary>
-        /// <returns>
-        /// true if <paramref name="obj"/> and this instance are the same type and represent the same value; otherwise, false.
-        /// </returns>
-        /// <param name="obj">Another object to compare to. </param>
+        /// <inheritdoc/>
         public override bool Equals(object obj)
         {
             if (obj is Bgra32)
@@ -148,23 +131,13 @@ namespace ImageProcessorCore
             return false;
         }
 
-        /// <summary>
-        /// Returns the hash code for this instance.
-        /// </summary>
-        /// <returns>
-        /// A 32-bit signed integer that is the hash code for this instance.
-        /// </returns>
+        /// <inheritdoc/>
         public override int GetHashCode()
         {
             return GetHashCode(this);
         }
 
-        /// <summary>
-        /// Returns the fully qualified type name of this instance.
-        /// </summary>
-        /// <returns>
-        /// A <see cref="T:System.String"/> containing a fully qualified type name.
-        /// </returns>
+        /// <inheritdoc/>
         public override string ToString()
         {
             if (this.IsEmpty)
@@ -175,13 +148,7 @@ namespace ImageProcessorCore
             return $"Bgra32 [ B={this.B}, G={this.G}, R={this.R}, A={this.A} ]";
         }
 
-        /// <summary>
-        /// Indicates whether the current object is equal to another object of the same type.
-        /// </summary>
-        /// <returns>
-        /// True if the current object is equal to the <paramref name="other"/> parameter; otherwise, false.
-        /// </returns>
-        /// <param name="other">An object to compare with this object.</param>
+        /// <inheritdoc/>
         public bool Equals(Bgra32 other)
         {
             return this.backingVector.Equals(other.backingVector);

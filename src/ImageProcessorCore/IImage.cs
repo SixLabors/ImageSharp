@@ -91,5 +91,13 @@ namespace ImageProcessorCore
         /// <param name="format">The format to save the image as.</param>
         /// <exception cref="ArgumentNullException">Thrown if the stream is null.</exception>
         void Save(Stream stream, IImageFormat format);
+
+        /// <summary>
+        /// Saves the image to the given stream using the given image encoder.
+        /// </summary>
+        /// <param name="stream">The stream to save the image to.</param>
+        /// <param name="encoder">The encoder to save the image with.</param>
+        /// <exception cref="ArgumentNullException">Thrown if the stream is null.</exception>
+        void Save(Stream stream, IImageEncoder encoder);
     }
 }

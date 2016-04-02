@@ -1,12 +1,7 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="ColorConversionTests.cs" company="James Jackson-South">
-//   Copyright © James Jackson-South and contributors.
-//   Licensed under the Apache License, Version 2.0.
+﻿// <copyright file="ColorConversionTests.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
 // </copyright>
-// <summary>
-//   Test conversion between the various color structs.
-// </summary>
-// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessorCore.Tests
 {

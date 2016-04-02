@@ -51,13 +51,14 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
 ###What works so far/ What is planned?
 
 - Encoding/decoding of image formats (plugable), progressive required
- - [x] jpeg (Includes Subsampling, Progressive required)
- - [x] bmp (More bmp format saving support required, 24bit just now)
- - [x] png (Need updating for saving indexed support)
- - [x] gif
+ - [x] Jpeg (Includes Subsampling. Progressive writing required)
+ - [x] Bmp (Read: 32bit, 24bit, 16 bit. Write: 32bit, 24bit just now)
+ - [x] Png (Read: TrueColor, Grayscale, Indexed. Write: True color, Indexed just now)
+ - [x] Gif (Includes animated)
+ - [ ] Tiff
 - Quantizers (IQuantizer with alpha channel support + thresholding)
  - [x] Octree
- - [x] Wu
+ - [x] Xiaolin Wu
  - [x] Palette
 - Basic color structs with implicit operators. Vector backed. [#260](https://github.com/JimBobSquarePants/ImageProcessor/issues/260)
  - [x] Color - Float based, premultiplied alpha, No limit to r, g, b, a values allowing for a fuller color range.
@@ -68,8 +69,8 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
  - [x] HSV
  - [x] HSL
  - [x] YCbCr
-- Basic shape primitives (Unfinished and could possible be updated by using Vector2, Vector3, etc)
- - [x] Rectangle
+- Basic shape primitives (Vector backed)
+ - [x] Rectangle (Doesn't contain all System.Drawing methods)
  - [x] Size
  - [x] Point
  - [x] Ellipse
@@ -122,7 +123,7 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
  - [x] RobertsCross
  - [x] Scharr
  - [x] Sobel
-- Blurring/ Sharpening
+- Blurring/Sharpening
  - [x] Gaussian blur
  - [x] Gaussian sharpening
  - [x] Box Blur
@@ -143,10 +144,11 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
  - [ ] Pattern brush (Need help) [#264](https://github.com/JimBobSquarePants/ImageProcessor/issues/264)
  - [ ] Elliptical brush (Need help) [#264](https://github.com/JimBobSquarePants/ImageProcessor/issues/264)
  - [ ] Gradient brush (vignette? Need help) [#264](https://github.com/JimBobSquarePants/ImageProcessor/issues/264)
+- Metadata
+ - [ ] EXIF (In progress but there's a lot of quirks in parsing EXIF. [#78](https://github.com/JimBobSquarePants/ImageProcessor/issues/78))
 - Other stuff I haven't thought of.
  
 ###What might never happen
-- Exif manipulation - There's a lot of quirks in parsing EXIF and I'd need a ton of help to get it all coded. [#78](https://github.com/JimBobSquarePants/ImageProcessor/issues/78)
 - Font support (Depends on new System.Text stuff) I don't know where to start coding this so if you have any pointers please chip in.
 
 ###API Changes

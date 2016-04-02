@@ -216,6 +216,13 @@ namespace ImageProcessorCore
             format.Encoder.Encode(this, stream);
         }
 
+        /// <inheritdoc/>
+        public void Save(Stream stream, IImageEncoder encoder)
+        {
+            Guard.NotNull(stream, nameof(stream));
+            encoder.Encode(this, stream);
+        }
+
         /// <summary>
         /// Loads the image from the given stream.
         /// </summary>

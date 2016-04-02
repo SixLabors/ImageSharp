@@ -8,7 +8,7 @@ namespace ImageProcessorCore.Tests
 
     using Xunit;
 
-    public class FilterTests : ProcessorTestBase
+    public class FilterTests : FileTestBase
     {
         public static readonly TheoryData<string, IImageProcessor> Filters = new TheoryData<string, IImageProcessor>
         {

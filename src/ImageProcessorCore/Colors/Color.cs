@@ -35,24 +35,13 @@ namespace ImageProcessorCore
         private Vector4 backingVector;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Color"/> struct with the alpha component set to 1.
-        /// </summary>
-        /// <param name="r">The red component of this <see cref="Color"/>.</param>
-        /// <param name="g">The green component of this <see cref="Color"/>.</param>
-        /// <param name="b">The blue component of this <see cref="Color"/>.</param>
-        public Color(float r, float g, float b)
-            : this(r, g, b, 1)
-        {
-        }
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="Color"/> struct.
         /// </summary>
         /// <param name="r">The red component of this <see cref="Color"/>.</param>
         /// <param name="g">The green component of this <see cref="Color"/>.</param>
         /// <param name="b">The blue component of this <see cref="Color"/>.</param>
         /// <param name="a">The alpha component of this <see cref="Color"/>.</param>
-        public Color(float r, float g, float b, float a)
+        public Color(float r, float g, float b, float a = 1)
             : this()
         {
             this.backingVector = new Vector4(r, g, b, a);

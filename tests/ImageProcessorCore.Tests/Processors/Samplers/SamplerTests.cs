@@ -8,7 +8,7 @@
     using Xunit;
     using Filters;
 
-    public class SamplerTests : ProcessorTestBase
+    public class SamplerTests : FileTestBase
     {
         public static readonly TheoryData<string, IResampler> ReSamplers =
             new TheoryData<string, IResampler>

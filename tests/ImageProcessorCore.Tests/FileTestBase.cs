@@ -1,9 +1,7 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="ProcessorTestBase.cs" company="James Jackson-South">
-//   Copyright © James Jackson-South and contributors.
-//   Licensed under the Apache License, Version 2.0.
+﻿// <copyright file="FileTestBase.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
 // </copyright>
-// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessorCore.Tests
 {
@@ -12,14 +10,14 @@ namespace ImageProcessorCore.Tests
     using Xunit;
 
     /// <summary>
-    /// The processor test base.
+    /// The test base class for reading and writing to files.
     /// </summary>
-    public abstract class ProcessorTestBase
+    public abstract class FileTestBase
     {
         /// <summary>
         /// The collection of image files to test against.
         /// </summary>
-        public static readonly List<string> Files = new List<string>
+        protected static readonly List<string> Files = new List<string>
         {
             //"TestImages/Formats/Jpg/Floorplan.jpeg", // Perf: Enable for local testing only
             "TestImages/Formats/Jpg/Calliphora.jpg",

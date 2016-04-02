@@ -12,7 +12,7 @@ namespace ImageProcessorCore.Formats
     /// <summary>
     /// Performs the bmp decoding operation.
     /// </summary>
-    internal class BmpDecoderCore
+    internal sealed class BmpDecoderCore
     {
         /// <summary>
         /// The mask for the red part of the color for 16 bit rgb bitmaps.

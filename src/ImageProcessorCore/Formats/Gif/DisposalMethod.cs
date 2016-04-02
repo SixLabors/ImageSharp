@@ -8,6 +8,7 @@ namespace ImageProcessorCore.Formats
     /// <summary>
     /// Provides enumeration for instructing the decoder what to do with the last image
     /// in an animation sequence.
+    /// <see href="http://www.w3.org/Graphics/GIF/spec-gif89a.txt"/> section 23
     /// </summary>
     public enum DisposalMethod
     {

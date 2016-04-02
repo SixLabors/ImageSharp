@@ -9,12 +9,12 @@ namespace ImageProcessorCore.Formats
     using System.IO;
 
     /// <summary>
-    /// Decompresses data using the LZW algorithms.
+    /// Decompresses and decodes data using the dynamic LZW algorithms.
     /// </summary>
     internal sealed class LzwDecoder
     {
         /// <summary>
-        /// One more than the maximum value 12 bit integer.
+        /// The max decoder pixel stack size.
         /// </summary>
         private const int MaxStackSize = 4096;
 
@@ -24,7 +24,7 @@ namespace ImageProcessorCore.Formats
         private const int NullCode = -1;
 
         /// <summary>
-        /// The stream.
+        /// The stream to decode.
         /// </summary>
         private readonly Stream stream;
 
@@ -68,167 +68,131 @@ namespace ImageProcessorCore.Formats
             // Calculate the available code.
             int availableCode = clearCode + 2;
 
-            // Jillzhangs Code (Not From Me) see: http://giflib.codeplex.com/
-            // TODO: It's imperative that this code is cleaned up and commented properly.
-            // TODO: Unfortunately I can't figure out the character encoding to translate from the original Chinese.
-            int code; // ÓÃÓÚ´æ´¢µ±Ç°µÄ±àÂëÖµ
-            int oldCode = NullCode; // ÓÃÓÚ´æ´¢ÉÏÒ»´ÎµÄ±àÂëÖµ
-            int codeMask = (1 << codeSize) - 1; // ±íÊ¾±àÂëµÄ×î´óÖµ£¬Èç¹ûcodeSize=5,Ôòcode_mask=31
-            int bits = 0; // ÔÚ±àÂëÁ÷ÖÐÊý¾ÝµÄ±£´æÐÎÊ½Îªbyte£¬¶øÊµ¼Ê±àÂë¹ý³ÌÖÐÊÇÕÒÊµ¼Ê±àÂëÎ»À´´æ´¢µÄ£¬±ÈÈçµ±codeSize=5µÄÊ±ºò£¬ÄÇÃ´Êµ¼ÊÉÏ5bitµÄÊý¾Ý¾ÍÓ¦¸Ã¿ÉÒÔ±íÊ¾Ò»¸ö±àÂë£¬ÕâÑùÈ¡³öÀ´µÄ1¸ö×Ö½Ú¾Í¸»ÓàÁË3¸öbit£¬Õâ3¸öbitÓÃÓÚºÍµÚ¶þ¸ö×Ö½ÚµÄºóÁ½¸öbit½øÐÐ×éºÏ£¬ÔÙ´ÎÐÎ³É±àÂëÖµ£¬Èç´ËÀàÍÆ
+            // Jillzhangs Code see: http://giflib.codeplex.com/
+            // Adapted from John Cristy's ImageMagick.
+            int code;
+            int oldCode = NullCode;
+            int codeMask = (1 << codeSize) - 1;
+            int bits = 0;
 
-            int[] prefix = new int[MaxStackSize]; // ÓÃÓÚ±£´æÇ°×ºµÄ¼¯ºÏ
-            int[] suffix = new int[MaxStackSize]; // ÓÃÓÚ±£´æºó×º
-            int[] pixelStatck = new int[MaxStackSize + 1]; // ÓÃÓÚÁÙÊ±±£´æÊý¾ÝÁ÷
+            int[] prefix = new int[MaxStackSize];
+            int[] suffix = new int[MaxStackSize];
+            int[] pixelStatck = new int[MaxStackSize + 1];
 
             int top = 0;
-            int count = 0; // ÔÚÏÂÃæµÄÑ­»·ÖÐ£¬Ã¿´Î»á»ñÈ¡Ò»¶¨Á¿µÄ±àÂëµÄ×Ö½ÚÊý×é£¬¶ø´¦ÀíÕâÐ(c)Êý×éµÄÊ±ºòÐèÒª1¸ö¸ö×Ö½ÚÀ´´¦Àí£¬count¾ÍÊÇ±íÊ¾»¹Òª´¦ÀíµÄ×Ö½ÚÊýÄ¿
-            int bi = 0; // count±íÊ¾»¹Ê£¶àÉÙ×Ö½ÚÐèÒª´¦Àí£¬¶øbiÔò±íÊ¾±¾´ÎÒÑ¾­´¦ÀíµÄ¸öÊý
-            int xyz = 0; // i´ú±íµ±Ç°´¦ÀíµÃµ½ÏñËØÊý
+            int count = 0;
+            int bi = 0;
+            int xyz = 0;
 
-            int data = 0; // ±íÊ¾µ±Ç°´¦ÀíµÄÊý¾ÝµÄÖµ
-            int first = 0; // Ò»¸ö×Ö·û´®ÖØµÄµÚÒ»¸ö×Ö½Ú
+            int data = 0;
+            int first = 0;
 
-            // ÏÈÉú³ÉÔªÊý¾ÝµÄÇ°×º¼¯ºÏºÍºó×º¼¯ºÏ£¬ÔªÊý¾ÝµÄÇ°×º¾ùÎª0£¬¶øºó×ºÓëÔªÊý¾ÝÏàµÈ£¬Í¬Ê±±àÂëÒ²ÓëÔªÊý¾ÝÏàµÈ
             for (code = 0; code < clearCode; code++)
             {
-                // Ç°×º³õÊ¼Îª0
                 prefix[code] = 0;
-
-                // ºó×º=ÔªÊý¾Ý=±àÂë
                 suffix[code] = (byte)code;
             }
 
             byte[] buffer = null;
             while (xyz < pixels.Length)
             {
-                // ×î´óÏñËØÊýÒÑ¾­È·¶¨ÎªpixelCount = width * width
                 if (top == 0)
                 {
                     if (bits < codeSize)
                     {
-                        // Èç¹ûµ±Ç°µÄÒª´¦ÀíµÄbitÊýÐ¡ÓÚ±àÂëÎ»´óÐ¡£¬ÔòÐèÒª¼ÓÔØÊý¾Ý
+                        //  Load bytes until there are enough bits for a code.
                         if (count == 0)
                         {
-                            // Èç¹ûcountÎª0£¬±íÊ¾Òª´Ó±àÂëÁ÷ÖÐ¶ÁÒ»¸öÊý¾Ý¶ÎÀ´½øÐÐ·ÖÎö
+                            // Read a new data block.
                             buffer = this.ReadBlock();
                             count = buffer.Length;
                             if (count == 0)
                             {
-                                // ÔÙ´ÎÏë¶ÁÈ¡Êý¾Ý¶Î£¬È´Ã»ÓÐ¶Áµ½Êý¾Ý£¬´ËÊ±¾Í±íÃ÷ÒÑ¾­´¦ÀíÍêÁË
                                 break;
                             }
 
-                            // ÖØÐÂ¶ÁÈ¡Ò»¸öÊý¾Ý¶Îºó£¬Ó¦¸Ã½«ÒÑ¾­´¦ÀíµÄ¸öÊýÖÃ0
                             bi = 0;
                         }
 
-                        // »ñÈ¡±¾´ÎÒª´¦ÀíµÄÊý¾ÝµÄÖµ
                         if (buffer != null)
                         {
-                            data += buffer[bi] << bits; // ´Ë´¦ÎªºÎÒªÒÆÎ»ÄØ£¬±ÈÈçµÚÒ»´Î´¦ÀíÁË1¸ö×Ö½ÚÎª176£¬µÚÒ»´ÎÖ»Òª´¦Àí5bit¾Í¹»ÁË£¬Ê£ÏÂ3bitÁô¸øÏÂ¸ö×Ö½Ú½øÐÐ×éºÏ¡£Ò²¾ÍÊÇµÚ¶þ¸ö×Ö½ÚµÄºóÁ½Î»+µÚÒ»¸ö×Ö½ÚµÄÇ°ÈýÎ»×é³ÉµÚ¶þ´ÎÊä³öÖµ
+                            data += buffer[bi] << bits;
                         }
 
-                        bits += 8; // ±¾´ÎÓÖ´¦ÀíÁËÒ»¸ö×Ö½Ú£¬ËùÒÔÐèÒª+8
-                        bi++; // ½«´¦ÀíÏÂÒ»¸ö×Ö½Ú
-                        count--; // ÒÑ¾­´¦Àí¹ýµÄ×Ö½ÚÊý+1
+                        bits += 8;
+                        bi++;
+                        count--;
                         continue;
                     }
 
-                    // Èç¹ûÒÑ¾­ÓÐ×ã¹»µÄbitÊý¿É¹(c)´¦Àí£¬ÏÂÃæ¾ÍÊÇ´¦Àí¹ý³Ì
-                    // »ñÈ¡±àÂë
-                    code = data & codeMask; // »ñÈ¡dataÊý¾ÝµÄ±àÂëÎ»´óÐ¡bitµÄÊý¾Ý
-                    data >>= codeSize; // ½«±àÂëÊý¾Ý½ØÈ¡ºó£¬Ô­À´µÄÊý¾Ý¾ÍÊ£ÏÂ¼¸¸öbitÁË£¬´ËÊ±½«ÕâÐ(c)bitÓÒÒÆ£¬ÎªÏÂ´Î×÷×¼±¸
-                    bits -= codeSize; // Í¬Ê±ÐèÒª½«µ±Ç°Êý¾ÝµÄbitÊý¼õÈ¥±àÂëÎ»³¤£¬ÒòÎªÒÑ¾­µÃµ½ÁË´¦Àí¡£
+                    // Get the next code
+                    code = data & codeMask;
+                    data >>= codeSize;
+                    bits -= codeSize;
 
-                    // ÏÂÃæ¸ù¾Ý»ñÈ¡µÄcodeÖµÀ´½øÐÐ´¦Àí
+                    //  Interpret the code
                     if (code > availableCode || code == endCode)
                     {
-                        // µ±±àÂëÖµ´óÓÚ×î´ó±àÂëÖµ»òÕßÎª½áÊø±ê¼ÇµÄÊ±ºò£¬Í£Ö¹´¦Àí
                         break;
                     }
 
                     if (code == clearCode)
                     {
-                        // Èç¹ûµ±Ç°ÊÇÇå³ý±ê¼Ç£¬ÔòÖØÐÂ³õÊ¼»¯±äÁ¿£¬ºÃÖØÐÂÔÙÀ´
+                        // Reset the decoder
                         codeSize = dataSize + 1;
-
-                        // ÖØÐÂ³õÊ¼»¯×î´ó±àÂëÖµ
                         codeMask = (1 << codeSize) - 1;
-
-                        // ³õÊ¼»¯ÏÂÒ»²½Ó¦¸Ã´¦ÀíµÃ±àÂëÖµ
                         availableCode = clearCode + 2;
-
-                        // ½«±£´æµ½old_codeÖÐµÄÖµÇå³ý£¬ÒÔ±ãÖØÍ·ÔÙÀ´
                         oldCode = NullCode;
                         continue;
                     }
 
-                    // ÏÂÃæÊÇcodeÊôÓÚÄÜÑ¹ËõµÄ±àÂë·¶Î§ÄÚµÄµÄ´¦Àí¹ý³Ì
                     if (oldCode == NullCode)
                     {
-                        // Èç¹ûµ±Ç°±àÂëÖµÎª¿Õ,±íÊ¾ÊÇµÚÒ»´Î»ñÈ¡±àÂë
                         pixelStatck[top++] = suffix[code]; // »ñÈ¡µ½1¸öÊý¾ÝÁ÷µÄÊý¾Ý
-
-                        // ±¾´Î±àÂë´¦ÀíÍê³É£¬½«±àÂëÖµ±£´æµ½old_codeÖÐ
                         oldCode = code;
-
-                        // µÚÒ»¸ö×Ö·ûÎªµ±Ç°±àÂë
                         first = code;
                         continue;
                     }
 
-                    int inCode = code; // ÔÚlzwÖÐ£¬Èç¹ûÈÏÊ¶ÁËÒ»¸ö±àÂëËù´ú±íµÄÊý¾Ýentry£¬Ôò½«±àÂë×÷ÎªÏÂÒ»´ÎµÄprefix£¬´Ë´¦inCode´ú±í´«µÝ¸øÏÂÒ»´Î×÷ÎªÇ°×ºµÄ±àÂëÖµ
+                    int inCode = code;
                     if (code == availableCode)
                     {
-                        // Èç¹ûµ±Ç°±àÂëºÍ±¾´ÎÓ¦¸ÃÉú³ÉµÄ±àÂëÏàÍ¬
-                        // ÄÇÃ´ÏÂÒ»¸öÊý¾Ý×Ö½Ú¾ÍµÈÓÚµ±Ç°´¦Àí×Ö·û´®µÄµÚÒ»¸ö×Ö½Ú
                         pixelStatck[top++] = (byte)first;
 
-                        code = oldCode; // »ØËÝµ½ÉÏÒ»¸ö±àÂë
+                        code = oldCode;
                     }
 
                     while (code > clearCode)
                     {
-                        // Èç¹ûµ±Ç°±àÂë´óÓÚÇå³ý±ê¼Ç£¬±íÊ¾±àÂëÖµÊÇÄÜÑ¹ËõÊý¾ÝµÄ
                         pixelStatck[top++] = suffix[code];
-                        code = prefix[code]; // »ØËÝµ½ÉÏÒ»¸ö±àÂë
+                        code = prefix[code];
                     }
 
                     first = suffix[code];
 
-                    // »ñÈ¡ÏÂÒ»¸öÊý¾Ý
                     pixelStatck[top++] = suffix[code];
 
                     // Fix for Gifs that have "deferred clear code" as per here :
                     // https://bugzilla.mozilla.org/show_bug.cgi?id=55918
                     if (availableCode < MaxStackSize)
                     {
-                        // ÉèÖÃµ±Ç°Ó¦¸Ã±àÂëÎ»ÖÃµÄÇ°×º
                         prefix[availableCode] = oldCode;
-
-                        // ÉèÖÃµ±Ç°Ó¦¸Ã±àÂëÎ»ÖÃµÄºó×º
                         suffix[availableCode] = first;
-
-                        // ÏÂ´ÎÓ¦¸ÃµÃµ½µÄ±àÂëÖµ
                         availableCode++;
                         if (availableCode == codeMask + 1 && availableCode < MaxStackSize)
                         {
-                            // Ôö¼Ó±àÂëÎ»Êý
                             codeSize++;
-
-                            // ÖØÉè×î´ó±àÂëÖµ
                             codeMask = (1 << codeSize) - 1;
                         }
                     }
 
-                    // »¹Ô­old_code
                     oldCode = inCode;
                 }
 
-                // »ØËÝµ½ÉÏÒ»¸ö´¦ÀíÎ»ÖÃ
+                //  Pop a pixel off the pixel stack.
                 top--;
 
-                // »ñÈ¡ÔªÊý¾Ý
+                // Clear missing pixels
                 pixels[xyz++] = (byte)pixelStatck[top];
             }
 

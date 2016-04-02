@@ -128,15 +128,15 @@ namespace ImageProcessorCore.Formats
             writer.Write((ushort)descriptor.Width);
             writer.Write((ushort)descriptor.Height);
 
-            PackedByte pb = new PackedByte();
-            pb.SetBit(0, descriptor.GlobalColorTableFlag); // 1   : Global color table flag = 1 || 0 (GCT used/ not used)
-            pb.SetBits(1, 3, descriptor.GlobalColorTableSize); // 2-4 : color resolution
-            pb.SetBit(4, false); // 5   : GCT sort flag = 0
-            pb.SetBits(5, 3, descriptor.GlobalColorTableSize); // 6-8 : GCT size. 2^(N+1)
+            PackedField field = new PackedField();
+            field.SetBit(0, descriptor.GlobalColorTableFlag); // 1   : Global color table flag = 1 || 0 (GCT used/ not used)
+            field.SetBits(1, 3, descriptor.GlobalColorTableSize); // 2-4 : color resolution
+            field.SetBit(4, false); // 5   : GCT sort flag = 0
+            field.SetBits(5, 3, descriptor.GlobalColorTableSize); // 6-8 : GCT size. 2^(N+1)
 
             // Reduce the number of writes
             byte[] arr = {
-                pb.Byte,
+                field.Byte,
                 descriptor.BackgroundColorIndex, // Background Color Index
                 descriptor.PixelAspectRatio // Pixel aspect ratio. Assume 1:1
             };
@@ -169,7 +169,7 @@ namespace ImageProcessorCore.Formats
                 writer.Write((byte)1); // Data sub-block index (always 1)
 
                 // 0 means loop indefinitely. Count is set as play n + 1 times.
-                repeatCount = Math.Max((ushort)0, repeatCount);
+                repeatCount = (ushort)(Math.Max((ushort)0, repeatCount) - 1);
 
                 writer.Write(repeatCount); // Repeat count for images.
 
@@ -208,14 +208,14 @@ namespace ImageProcessorCore.Formats
 
             writer.Write(intro);
 
-            PackedByte pb = new PackedByte();
-            pb.SetBits(3, 3, (int)extension.DisposalMethod); // 1-3 : Reserved, 4-6 : Disposal
+            PackedField field = new PackedField();
+            field.SetBits(3, 3, (int)extension.DisposalMethod); // 1-3 : Reserved, 4-6 : Disposal
 
             // TODO: Allow this as an option.
-            pb.SetBit(6, false); // 7 : User input - 0 = none
-            pb.SetBit(7, extension.TransparencyFlag); // 8: Has transparent.
+            field.SetBit(6, false); // 7 : User input - 0 = none
+            field.SetBit(7, extension.TransparencyFlag); // 8: Has transparent.
 
-            writer.Write(pb.Byte);
+            writer.Write(field.Byte);
             writer.Write((ushort)extension.DelayTime);
             writer.Write((byte)(extension.TransparencyIndex == -1 ? 255 : extension.TransparencyIndex));
             writer.Write(GifConstants.Terminator);
@@ -235,13 +235,13 @@ namespace ImageProcessorCore.Formats
             writer.Write((ushort)image.Width);
             writer.Write((ushort)image.Height);
 
-            PackedByte pb = new PackedByte();
-            pb.SetBit(0, true); // 1: Local color table flag = 1 (LCT used)
-            pb.SetBit(1, false); // 2: Interlace flag 0
-            pb.SetBit(2, false); // 3: Sort flag 0
-            pb.SetBits(5, 3, this.bitDepth - 1); // 4-5: Reserved, 6-8 : LCT size. 2^(N+1)
+            PackedField field = new PackedField();
+            field.SetBit(0, true); // 1: Local color table flag = 1 (LCT used)
+            field.SetBit(1, false); // 2: Interlace flag 0
+            field.SetBit(2, false); // 3: Sort flag 0
+            field.SetBits(5, 3, this.bitDepth - 1); // 4-5: Reserved, 6-8 : LCT size. 2^(N+1)
 
-            writer.Write(pb.Byte);
+            writer.Write(field.Byte);
         }
 
         /// <summary>
@@ -283,12 +283,7 @@ namespace ImageProcessorCore.Formats
             byte[] indexedPixels = image.Pixels;
 
             LzwEncoder encoder = new LzwEncoder(indexedPixels, (byte)this.bitDepth);
-
-            LzwEncoder2 e = new LzwEncoder2(indexedPixels);
-            e.Encode(writer.BaseStream);
-
-            //encoder.Encode(writer.BaseStream);
-            //writer.Write(GifConstants.Terminator);
+            encoder.Encode(writer.BaseStream);
         }
     }
 }

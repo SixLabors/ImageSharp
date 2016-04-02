@@ -1,4 +1,4 @@
-﻿// <copyright file="PackedByte.cs" company="James Jackson-South">
+﻿// <copyright file="PackedField.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -10,36 +10,13 @@ namespace ImageProcessorCore.Formats
     /// <summary>
     /// Represents a byte of data in a GIF data stream which contains a number
     /// of data items.
-    /// TODO: Finish me.
     /// </summary>
-    internal struct PackedByte
+    internal struct PackedField : IEquatable<PackedField>
     {
         /// <summary>
         /// The individual bits representing the packed byte.
         /// </summary>
         private static readonly bool[] Bits = new bool[8];
-
-        #region constructor( int )
-        ///// <summary>
-        ///// Constructor.
-        ///// Sets the bits in the packed fields to the corresponding bits from
-        ///// the supplied byte.
-        ///// </summary>
-        ///// <param name="data">
-        ///// A single byte of data, consisting of fields which may be of one or
-        ///// more bits.
-        ///// </param>
-        //public PackedByte(int data) : this(data)
-        //{
-        //    for (int i = 0; i < 8; i++)
-        //    {
-        //        var bitShift = 7 - i;
-        //        var bitValue = (data >> bitShift) & 1;
-        //        bool bit = bitValue == 1;
-        //        _bits[i] = bit;
-        //    }
-        //}
-        #endregion
 
         /// <summary>
         /// Gets the byte which represents the data items held in this instance.
@@ -69,6 +46,19 @@ namespace ImageProcessorCore.Formats
         }
 
         /// <summary>
+        /// Returns a new <see cref="PackedField"/>  with the bits in the packed fields to 
+        /// the corresponding bits from the supplied byte.
+        /// </summary>
+        /// <param name="value">The value to pack.</param>
+        /// <returns>The <see cref="PackedField"/></returns>
+        public static PackedField FromInt(byte value)
+        {
+            PackedField packed = new PackedField();
+            packed.SetBits(0, 8, value);
+            return packed;
+        }
+
+        /// <summary>
         /// Sets the specified bit within the packed fields to the supplied 
         /// value.
         /// </summary>
@@ -94,16 +84,9 @@ namespace ImageProcessorCore.Formats
         /// Sets the specified bits within the packed fields to the supplied 
         /// value.
         /// </summary>
-        /// <param name="startIndex">
-        /// The zero-based index within the packed fields of the first bit to 
-        /// set.
-        /// </param>
-        /// <param name="length">
-        /// The number of bits to set.
-        /// </param>
-        /// <param name="valueToSet">
-        /// The value to set the bits to.
-        /// </param>
+        /// <param name="startIndex">The zero-based index within the packed fields of the first bit to  set.</param>
+        /// <param name="length">The number of bits to set.</param>
+        /// <param name="valueToSet">The value to set the bits to.</param>
         public void SetBits(int startIndex, int length, int valueToSet)
         {
             if (startIndex < 0 || startIndex > 7)
@@ -133,9 +116,7 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Gets the value of the specified bit within the byte.
         /// </summary>
-        /// <param name="index">
-        /// The zero-based index of the bit to get.
-        /// </param>
+        /// <param name="index">The zero-based index of the bit to get.</param>
         /// <returns>
         /// The value of the specified bit within the byte.
         /// </returns>
@@ -152,12 +133,8 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Gets the value of the specified bits within the byte.
         /// </summary>
-        /// <param name="startIndex">
-        /// The zero-based index of the first bit to get.
-        /// </param>
-        /// <param name="length">
-        /// The number of bits to get.
-        /// </param>
+        /// <param name="startIndex">The zero-based index of the first bit to get.</param>
+        /// <param name="length">The number of bits to get.</param>
         /// <returns>
         /// The value of the specified bits within the byte.
         /// </returns>
@@ -186,6 +163,32 @@ namespace ImageProcessorCore.Formats
                 bitShift--;
             }
             return returnValue;
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            PackedField? field = obj as PackedField?;
+
+            return this.Byte == field?.Byte;
+        }
+
+        /// <inheritdoc/>
+        public bool Equals(PackedField other)
+        {
+            return this.Byte.Equals(other.Byte);
+        }
+
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            return $"PackedField [ Byte={this.Byte} ]";
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            return this.Byte.GetHashCode();
         }
     }
 }

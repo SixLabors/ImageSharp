@@ -30,7 +30,7 @@ At present the code is pre-release but when ready it will be available on [Nuget
 
 **Pre-release downloads**
 
-We already have a [MyGet package repository](https://www.myget.org/F/imageprocessor/api/v3/index.json) - for bleeding-edge / development NuGet releases.
+We already have a [MyGet package repository](https://www.myget.org/gallery/imageprocessor) - for bleeding-edge / development NuGet releases.
 
 ### Manual build
 

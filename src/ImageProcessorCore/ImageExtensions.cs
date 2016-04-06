@@ -164,6 +164,7 @@ namespace ImageProcessorCore
                 }
             }
 
+            source.Dispose();
             return transformedImage;
         }
     }

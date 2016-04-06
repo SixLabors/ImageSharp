@@ -73,5 +73,11 @@ namespace ImageProcessorCore.Filters
                     }
                 });
         }
+
+        /// <inheritdoc/>
+        protected override void AfterApply(ImageBase source, ImageBase target, Rectangle targetRectangle, Rectangle sourceRectangle)
+        {
+            this.toBlend?.Dispose();
+        }
     }
 }

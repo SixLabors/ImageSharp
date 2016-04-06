@@ -17,7 +17,7 @@ namespace ImageProcessorCore
         /// </summary>
         /// <remarks>
         /// The returned array has a length of Width * Height * 4 bytes
-        /// and stores the blue, the green, the red and the alpha value for
+        /// and stores the red, the green, the blue, and the alpha value for
         /// each pixel in this order.
         /// </remarks>
         float[] Pixels { get; }

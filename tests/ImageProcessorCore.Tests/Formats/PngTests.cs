@@ -25,12 +25,13 @@ namespace ImageProcessorCore.Tests
             {
                 using (FileStream stream = File.OpenRead(file))
                 {
-                    Image image = new Image(stream);
-
-                    using (FileStream output = File.OpenWrite($"TestOutput/Encode/Png/{Path.GetFileNameWithoutExtension(file)}.png"))
+                    using (Image image = new Image(stream))
                     {
-                        image.Quality = 256;
-                        image.Save(output, new PngFormat());
+                        using (FileStream output = File.OpenWrite($"TestOutput/Encode/Png/{Path.GetFileNameWithoutExtension(file)}.png"))
+                        {
+                            image.Quality = 256;
+                            image.Save(output, new PngFormat());
+                        }
                     }
                 }
             }

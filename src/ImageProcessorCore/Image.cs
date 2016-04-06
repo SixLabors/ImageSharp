@@ -45,7 +45,7 @@ namespace ImageProcessorCore
                  new BmpFormat(),
                  new JpegFormat(),
                  new PngFormat(),
-                 new GifFormat(),
+                 new GifFormat()
             });
 
         /// <summary>
@@ -221,6 +221,30 @@ namespace ImageProcessorCore
         {
             Guard.NotNull(stream, nameof(stream));
             encoder.Encode(this, stream);
+        }
+
+        /// <inheritdoc/>
+        protected override void Dispose(bool disposing)
+        {
+            if (this.IsDisposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                // Dispose of any managed resources here.
+                if (this.Frames.Any())
+                {
+                    foreach (ImageFrame frame in this.Frames)
+                    {
+                        frame.Dispose();
+                    }
+                    this.Frames.Clear();
+                }
+            }
+
+            base.Dispose(disposing);
         }
 
         /// <summary>

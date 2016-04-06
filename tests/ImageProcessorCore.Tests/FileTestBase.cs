@@ -29,7 +29,7 @@ namespace ImageProcessorCore.Tests
             //"TestImages/Formats/Png/indexed.png", // Perf: Enable for local testing only
             "TestImages/Formats/Png/splash.png",
             "TestImages/Formats/Gif/rings.gif",
-            //"TestImages/Formats/Gif/giphy.gif" // Perf: Enable for local testing only
+            "TestImages/Formats/Gif/giphy.gif" // Perf: Enable for local testing only
         };
         
         protected void ProgressUpdate(object sender, ProgressEventArgs e)

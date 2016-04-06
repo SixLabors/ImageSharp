@@ -153,7 +153,7 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
 
 ###API Changes
 
-With this version the API will change dramatically. Without the constraints of `System.Drawing` I have been able to develop something much more flexible, easier to code against, and much, much less prone to memory leaks. Gone are using image classes which implements `IDisposable`, Gone are system wide proces locks with Images and processors thread safe usable in parallel processing utilizing all the availables cores. 
+With this version the API will change dramatically. Without the constraints of `System.Drawing` I have been able to develop something much more flexible, easier to code against, and much, much less prone to memory leaks. Gone are system wide proces locks with Images and processors thread safe usable in parallel processing utilizing all the availables cores. 
 
 Image methods are also fluent which allow chaining much like the `ImageFactory` class in the Framework version.
 
@@ -161,14 +161,12 @@ Here's an example of the code required to resize an image using the default Bicu
 
 ```csharp
 using (FileStream stream = File.OpenRead("foo.jpg"))
+using (Image image = new Image(stream))
+using (FileStream output = File.OpenWrite("bar.jpg"))
 {
-    Image image = new Image(stream);
-    using (FileStream output = File.OpenWrite("bar.jpg"))
-    {
-        image.Resize(image.Width / 2, image.Height / 2)
-             .Greyscale()
-             .Save(output);
-    }
+    image.Resize(image.Width / 2, image.Height / 2)
+         .Greyscale()
+         .Save(output);
 }
 ```
 
@@ -176,19 +174,17 @@ It will also be possible to pass collections of processors as params to manipula
 
 ```csharp
 using (FileStream stream = File.OpenRead("foo.jpg"))
+using (Image image = new Image(stream)
+using (FileStream output = File.OpenWrite("bar.jpg"))
 {
-    Image image = new Image(stream);
-    using (FileStream output = File.OpenWrite("bar.jpg"))
+    List<IImageProcessor> processors = new List<IImageProcessor>()
     {
-        List<IImageProcessor> processors = new List<IImageProcessor>()
-        {
-            new GuassianBlur(5),
-            new Sobel { Greyscale = true }
-        };
+        new GuassianBlur(5),
+        new Sobel { Greyscale = true }
+    };
 
-        image.Process(processors.ToArray())
-             .Save(output);
-    }
+    image.Process(processors.ToArray())
+         .Save(output);
 }
 ```
 Individual processors can be initialised and apply processing against images. This allows nesting which will allow the powerful combination of processing methods:

@@ -50,7 +50,7 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
 
 ###What works so far/ What is planned?
 
-- Encoding/decoding of image formats (plugable), progressive required
+- Encoding/decoding of image formats (plugable).
  - [x] Jpeg (Includes Subsampling. Progressive writing required)
  - [x] Bmp (Read: 32bit, 24bit, 16 bit. Write: 32bit, 24bit just now)
  - [x] Png (Read: TrueColor, Grayscale, Indexed. Write: True color, Indexed just now)
@@ -174,7 +174,7 @@ It will also be possible to pass collections of processors as params to manipula
 
 ```csharp
 using (FileStream stream = File.OpenRead("foo.jpg"))
-using (Image image = new Image(stream)
+using (Image image = new Image(stream))
 using (FileStream output = File.OpenWrite("bar.jpg"))
 {
     List<IImageProcessor> processors = new List<IImageProcessor>()

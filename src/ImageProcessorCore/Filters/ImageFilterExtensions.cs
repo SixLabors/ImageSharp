@@ -73,7 +73,10 @@ namespace ImageProcessorCore.Filters
         /// Combines the given image together with the current one by blending their pixels.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
-        /// <param name="image">The image to blend with the currently processing image.</param>
+        /// <param name="image">
+        /// The image to blend with the currently processing image. 
+        /// Disposal of this image is the responsibility of the developer.
+        /// </param>
         /// <param name="percent">The opacity of the image image to blend. Must be between 0 and 100.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
@@ -86,7 +89,10 @@ namespace ImageProcessorCore.Filters
         /// Combines the given image together with the current one by blending their pixels.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
-        /// <param name="image">The image to blend with the currently processing image.</param>
+        /// <param name="image">
+        /// The image to blend with the currently processing image. 
+        /// Disposal of this image is the responsibility of the developer.
+        /// </param>
         /// <param name="percent">The opacity of the image image to blend. Must be between 0 and 100.</param>
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.

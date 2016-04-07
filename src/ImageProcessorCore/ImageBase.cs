@@ -24,6 +24,9 @@ namespace ImageProcessorCore
         /// </summary>
         private float[] pixelsArray;
 
+        /// <summary>
+        /// Provides a way to access the pixels from unmanaged memory.
+        /// </summary>
         private GCHandle pixelsHandle;
 
         /// <summary>

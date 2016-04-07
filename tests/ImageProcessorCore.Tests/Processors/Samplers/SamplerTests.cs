@@ -65,6 +65,7 @@
                     using (FileStream output = File.OpenWrite($"TestOutput/Sample/{Path.GetFileName(filename)}"))
                     {
                         processor.OnProgress += this.ProgressUpdate;
+                        // Not Chainable.
                         image = image.Process(image.Width / 2, image.Height / 2, processor);
                         image.Save(output);
                         processor.OnProgress -= this.ProgressUpdate;
@@ -96,7 +97,7 @@
                         using (FileStream output = File.OpenWrite($"TestOutput/Resize/{filename}"))
                         {
                             image.Resize(image.Width / 2, image.Height / 2, sampler, false, this.ProgressUpdate)
-                                .Save(output);
+                                 .Save(output);
                         }
                     }
                     Trace.WriteLine($"{name}: {watch.ElapsedMilliseconds}ms");

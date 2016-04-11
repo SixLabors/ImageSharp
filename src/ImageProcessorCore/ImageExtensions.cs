@@ -53,6 +53,7 @@ namespace ImageProcessorCore
 
         /// <summary>
         /// Applies the collection of processors to the image.
+        /// <remarks>This method does not resize the target image.</remarks>
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="processors">Any processors to apply to the image.</param>
@@ -85,6 +86,9 @@ namespace ImageProcessorCore
 
         /// <summary>
         /// Applies the collection of processors to the image.
+        /// <remarks>
+        /// This method is not chainable.
+        /// </remarks>
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="width">The target image width.</param>
@@ -164,6 +168,8 @@ namespace ImageProcessorCore
                 }
             }
 
+            // Clean up.
+            source.Dispose();
             return transformedImage;
         }
     }

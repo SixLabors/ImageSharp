@@ -42,20 +42,21 @@ namespace ImageProcessorCore.Samplers
         /// <inheritdoc/>
         protected override void OnApply(ImageBase source, ImageBase target, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
-            ImageBase temp = new Image(source.Width, source.Height);
+            using (ImageBase temp = new Image(source.Width, source.Height))
+            {
+                // Detect the edges.
+                new Sobel().Apply(temp, source, sourceRectangle);
 
-            // Detect the edges.
-            new Sobel().Apply(temp, source, sourceRectangle);
+                // Apply threshold binarization filter.
+                new Threshold(.5f).Apply(temp, temp, sourceRectangle);
 
-            // Apply threshold binarization filter.
-            new Threshold(.5f).Apply(temp, temp, sourceRectangle);
+                // Search for the first white pixels
+                Rectangle rectangle = ImageMaths.GetFilteredBoundingRectangle(temp, 0);
 
-            // Search for the first white pixels
-            Rectangle rectangle = ImageMaths.GetFilteredBoundingRectangle(temp, 0);
-
-            // Reset the target pixel to the correct size.
-            target.SetPixels(rectangle.Width, rectangle.Height, new float[rectangle.Width * rectangle.Height * 4]);
-            this.cropRectangle = rectangle;
+                // Reset the target pixel to the correct size.
+                target.SetPixels(rectangle.Width, rectangle.Height, new float[rectangle.Width * rectangle.Height * 4]);
+                this.cropRectangle = rectangle;
+            }
         }
 
         /// <inheritdoc/>
@@ -73,7 +74,7 @@ namespace ImageProcessorCore.Samplers
             int endX = this.cropRectangle.Width;
             int maxX = this.cropRectangle.Right - 1;
             int maxY = this.cropRectangle.Bottom - 1;
-            
+
             Parallel.For(
             startY,
             endY,

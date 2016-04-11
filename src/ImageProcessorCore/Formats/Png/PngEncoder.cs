@@ -18,7 +18,7 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Gets or sets the quality of output for images.
         /// </summary>
-        public int Quality { get; set; } = int.MaxValue;
+        public int Quality { get; set; }
 
         /// <inheritdoc/>
         public string MimeType => "image/png";

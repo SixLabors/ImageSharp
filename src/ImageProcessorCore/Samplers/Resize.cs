@@ -54,7 +54,6 @@ namespace ImageProcessorCore.Samplers
 
             int sourceBottom = source.Bounds.Bottom;
             int targetY = targetRectangle.Y;
-            int targetBottom = targetRectangle.Bottom;
             int startX = targetRectangle.X;
             int endX = targetRectangle.Right;
             bool compand = this.Compand;
@@ -70,20 +69,18 @@ namespace ImageProcessorCore.Samplers
                     endY,
                     y =>
                     {
-                        if (y >= targetY && y < targetBottom)
+                        // Y coordinates of source points
+                        int originY = (int)((y - targetY) * heightFactor);
+
+                        for (int x = startX; x < endX; x++)
                         {
-                            // Y coordinates of source points
-                            int originY = (int)((y - targetY) * heightFactor);
+                            // X coordinates of source points
+                            int originX = (int)((x - startX) * widthFactor);
 
-                            for (int x = startX; x < endX; x++)
-                            {
-                                // X coordinates of source points
-                                int originX = (int)((x - startX) * widthFactor);
-
-                                target[x, y] = source[originX, originY];
-                            }
-                            this.OnRowProcessed();
+                            target[x, y] = source[originX, originY];
                         }
+
+                        this.OnRowProcessed();
                     });
 
                 // Break out now.
@@ -127,32 +124,30 @@ namespace ImageProcessorCore.Samplers
                 endY,
                 y =>
                 {
-                    if (y >= targetY && y < targetBottom)
+                    Weight[] verticalValues = this.VerticalWeights[y].Values;
+
+                    for (int x = startX; x < endX; x++)
                     {
-                        Weight[] verticalValues = this.VerticalWeights[y].Values;
+                        // Destination color components
+                        Color destination = new Color();
 
-                        for (int x = startX; x < endX; x++)
+                        foreach (Weight yw in verticalValues)
                         {
-                            // Destination color components
-                            Color destination = new Color();
-
-                            foreach (Weight yw in verticalValues)
-                            {
-                                int originY = yw.Index;
-                                int originX = x;
-                                Color sourceColor = compand ? Color.Expand(this.firstPass[originX, originY]) : this.firstPass[originX, originY];
-                                destination += sourceColor * yw.Value;
-                            }
-
-                            if (compand)
-                            {
-                                destination = Color.Compress(destination);
-                            }
-
-                            target[x, y] = destination;
+                            int originY = yw.Index;
+                            int originX = x;
+                            Color sourceColor = compand ? Color.Expand(this.firstPass[originX, originY]) : this.firstPass[originX, originY];
+                            destination += sourceColor * yw.Value;
                         }
-                        this.OnRowProcessed();
+
+                        if (compand)
+                        {
+                            destination = Color.Compress(destination);
+                        }
+
+                        target[x, y] = destination;
                     }
+
+                    this.OnRowProcessed();
                 });
         }
 
@@ -164,6 +159,8 @@ namespace ImageProcessorCore.Samplers
             {
                 target.ClonePixels(target.Width, target.Height, source.Pixels);
             }
+
+            this.firstPass?.Dispose();
         }
     }
 }

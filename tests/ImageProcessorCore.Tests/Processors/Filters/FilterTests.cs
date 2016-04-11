@@ -70,15 +70,16 @@ namespace ImageProcessorCore.Tests
                 using (FileStream stream = File.OpenRead(file))
                 {
                     Stopwatch watch = Stopwatch.StartNew();
-                    Image image = new Image(stream);
-                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
-                    using (FileStream output = File.OpenWrite($"TestOutput/Filter/{ Path.GetFileName(filename) }"))
+                    using (Image image = new Image(stream))
                     {
-                        processor.OnProgress += this.ProgressUpdate;
-                        image.Process(processor).Save(output);
-                        processor.OnProgress -= this.ProgressUpdate;
+                        string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
+                        using (FileStream output = File.OpenWrite($"TestOutput/Filter/{Path.GetFileName(filename)}"))
+                        {
+                            processor.OnProgress += this.ProgressUpdate;
+                            image.Process(processor).Save(output);
+                            processor.OnProgress -= this.ProgressUpdate;
+                        }
                     }
-
                     Trace.WriteLine($"{ name }: { watch.ElapsedMilliseconds}ms");
                 }
             }

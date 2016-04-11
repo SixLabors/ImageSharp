@@ -37,10 +37,7 @@ namespace ImageProcessorCore
         {
             try
             {
-                // We don't want to affect the original source pixels so we make clone here.
-                ImageFrame frame = source as ImageFrame;
-                Image temp = frame != null ? new Image(frame) : new Image((Image)source);
-                this.OnApply(temp, target, target.Bounds, sourceRectangle);
+                this.OnApply(source, target, target.Bounds, sourceRectangle);
 
                 this.numRowsProcessed = 0;
                 this.totalRows = sourceRectangle.Height;
@@ -54,24 +51,27 @@ namespace ImageProcessorCore
                     for (int p = 0; p < partitionCount; p++)
                     {
                         int current = p;
-                        tasks[p] = Task.Run(() =>
-                        {
-                            int batchSize = sourceRectangle.Height / partitionCount;
-                            int yStart = sourceRectangle.Y + (current * batchSize);
-                            int yEnd = current == partitionCount - 1 ? sourceRectangle.Bottom : yStart + batchSize;
+                        tasks[p] = Task.Run(
+                            () =>
+                                {
+                                    int batchSize = sourceRectangle.Height / partitionCount;
+                                    int yStart = sourceRectangle.Y + (current * batchSize);
+                                    int yEnd = current == partitionCount - 1
+                                                   ? sourceRectangle.Bottom
+                                                   : yStart + batchSize;
 
-                            this.Apply(target, temp, target.Bounds, sourceRectangle, yStart, yEnd);
-                        });
+                                    this.Apply(target, source, target.Bounds, sourceRectangle, yStart, yEnd);
+                                });
                     }
 
                     Task.WaitAll(tasks);
                 }
                 else
                 {
-                    this.Apply(target, temp, target.Bounds, sourceRectangle, sourceRectangle.Y, sourceRectangle.Bottom);
+                    this.Apply(target, source, target.Bounds, sourceRectangle, sourceRectangle.Y, sourceRectangle.Bottom);
                 }
 
-                this.AfterApply(temp, target, target.Bounds, sourceRectangle);
+                this.AfterApply(source, target, target.Bounds, sourceRectangle);
             }
             catch (Exception ex)
             {
@@ -93,10 +93,7 @@ namespace ImageProcessorCore
                     sourceRectangle = source.Bounds;
                 }
 
-                // We don't want to affect the original source pixels so we make clone here.
-                ImageFrame frame = source as ImageFrame;
-                Image temp = frame != null ? new Image(frame) : new Image((Image)source);
-                this.OnApply(temp, target, target.Bounds, sourceRectangle);
+                this.OnApply(source, target, target.Bounds, sourceRectangle);
 
                 targetRectangle = target.Bounds;
                 this.numRowsProcessed = 0;
@@ -117,7 +114,7 @@ namespace ImageProcessorCore
                             int yStart = current * batchSize;
                             int yEnd = current == partitionCount - 1 ? targetRectangle.Bottom : yStart + batchSize;
 
-                            this.Apply(target, temp, targetRectangle, sourceRectangle, yStart, yEnd);
+                            this.Apply(target, source, targetRectangle, sourceRectangle, yStart, yEnd);
                         });
                     }
 
@@ -125,14 +122,13 @@ namespace ImageProcessorCore
                 }
                 else
                 {
-                    this.Apply(target, temp, targetRectangle, sourceRectangle, targetRectangle.Y, targetRectangle.Bottom);
+                    this.Apply(target, source, targetRectangle, sourceRectangle, targetRectangle.Y, targetRectangle.Bottom);
                 }
 
-                this.AfterApply(temp, target, target.Bounds, sourceRectangle);
+                this.AfterApply(source, target, target.Bounds, sourceRectangle);
             }
             catch (Exception ex)
             {
-
                 throw new ImageProcessingException($"An error occured when processing the image using {this.GetType().Name}. See the inner exception for more detail.", ex);
             }
         }

@@ -11,6 +11,8 @@ namespace ImageProcessorCore.Samplers
 
     /// <summary>
     /// Provides methods that allow the resampling of images using various algorithms.
+    /// <see href="http://www.realtimerendering.com/resources/GraphicsGems/category.html#Image Processing_link"/>
+    /// <see href="http://www.realtimerendering.com/resources/GraphicsGems/gemsiii/filter_rcg.c"/>
     /// </summary>
     public abstract class Resampler : ImageSampler
     {
@@ -52,73 +54,170 @@ namespace ImageProcessorCore.Samplers
         /// </returns>
         protected Weights[] PrecomputeWeights(int destinationSize, int sourceSize)
         {
+            float xscale = destinationSize / (float)sourceSize;
+            float width;
             IResampler sampler = this.Sampler;
-            float ratio = sourceSize / (float)destinationSize;
-            float scale = ratio;
+            float fwidth = sampler.Radius;
+            float fscale;
+            double left;
+            double right;
+            double weight = 0;
+            int n = 0;
+            int k;
 
-            // When shrinking, broaden the effective kernel support so that we still
-            // visit every source pixel.
-            if (scale < 1)
-            {
-                scale = 1;
-            }
-
-            float scaledRadius = (float)Math.Ceiling(scale * sampler.Radius);
             Weights[] result = new Weights[destinationSize];
 
-            // Make the weights slices, one source for each column or row.
-            Parallel.For(
-                0,
-                destinationSize,
-                i =>
+            // When expanding, broaden the effective kernel support so that we still
+            // visit every source pixel.
+            if (xscale < 0)
+            {
+                width = sampler.Radius / xscale;
+                fscale = 1 / xscale;
+
+                // Make the weights slices, one source for each column or row.
+                for (int i = 0; i < destinationSize; i++)
                 {
-                    float center = ((i + .5f) * ratio) - 0.5f;
-                    int start = (int)Math.Ceiling(center - scaledRadius);
-
-                    if (start < 0)
-                    {
-                        start = 0;
-                    }
-
-                    int end = (int)Math.Floor(center + scaledRadius);
-
-                    if (end > sourceSize)
-                    {
-                        end = sourceSize;
-
-                        if (end < start)
-                        {
-                            end = start;
-                        }
-                    }
-
+                    float centre = i / xscale;
+                    left = Math.Ceiling(centre - width);
+                    right = Math.Floor(centre + width);
                     float sum = 0;
                     result[i] = new Weights();
-
                     List<Weight> builder = new List<Weight>();
-                    for (int a = start; a < end; a++)
+                    for (double j = left; j <= right; j++)
                     {
-                        float w = sampler.GetValue((a - center) / scale);
-
-                        if (w < 0 || w > 0)
+                        weight = centre - j;
+                        weight = sampler.GetValue((float)weight / fscale) / fscale;
+                        if (j < 0)
                         {
-                            sum += w;
-                            builder.Add(new Weight(a, w));
+                            n = (int)-j;
                         }
-                    }
+                        else if (j >= sourceSize)
+                        {
+                            n = (int)((sourceSize - j) + sourceSize - 1);
+                        }
+                        else
+                        {
+                            n = (int)j;
+                        }
 
-                    // Normalise the values
-                    if (sum > 0 || sum < 0)
-                    {
-                        builder.ForEach(w => w.Value /= sum);
+                        sum++;
+                        builder.Add(new Weight(n, (float)weight));
                     }
 
                     result[i].Values = builder.ToArray();
                     result[i].Sum = sum;
-                });
+                }
+            }
+            else
+            {
+                // Make the weights slices, one source for each column or row.
+                for (int i = 0; i < destinationSize; i++)
+                {
+                    float centre = i / xscale;
+                    left = Math.Ceiling(centre - fwidth);
+                    right = Math.Floor(centre + fwidth);
+                    float sum = 0;
+                    result[i] = new Weights();
+
+                    List<Weight> builder = new List<Weight>();
+                    for (double j = left; j <= right; j++)
+                    {
+                        weight = centre - j;
+                        weight = sampler.GetValue((float)weight);
+                        if (j < 0)
+                        {
+                            n = (int)-j;
+                        }
+                        else if (j >= sourceSize)
+                        {
+                            n = (int)((sourceSize - j) + sourceSize - 1);
+                        }
+                        else
+                        {
+                            n = (int)j;
+                        }
+
+                        sum++;
+                        builder.Add(new Weight(n, (float)weight));
+                    }
+
+                    result[i].Values = builder.ToArray();
+                    result[i].Sum = sum;
+                }
+            }
 
             return result;
         }
+
+        //protected Weights[] PrecomputeWeights(int destinationSize, int sourceSize)
+        //{
+        //    IResampler sampler = this.Sampler;
+        //    float ratio = sourceSize / (float)destinationSize;
+        //    float scale = ratio;
+
+        //    // When shrinking, broaden the effective kernel support so that we still
+        //    // visit every source pixel.
+        //    if (scale < 1)
+        //    {
+        //        scale = 1;
+        //    }
+
+        //    float scaledRadius = (float)Math.Ceiling(scale * sampler.Radius);
+        //    Weights[] result = new Weights[destinationSize];
+
+        //    // Make the weights slices, one source for each column or row.
+        //    Parallel.For(
+        //        0,
+        //        destinationSize,
+        //        i =>
+        //        {
+        //            float center = ((i + .5f) * ratio) - 0.5f;
+        //            int start = (int)Math.Ceiling(center - scaledRadius);
+
+        //            if (start < 0)
+        //            {
+        //                start = 0;
+        //            }
+
+        //            int end = (int)Math.Floor(center + scaledRadius);
+
+        //            if (end > sourceSize)
+        //            {
+        //                end = sourceSize;
+
+        //                if (end < start)
+        //                {
+        //                    end = start;
+        //                }
+        //            }
+
+        //            float sum = 0;
+        //            result[i] = new Weights();
+
+        //            List<Weight> builder = new List<Weight>();
+        //            for (int a = start; a < end; a++)
+        //            {
+        //                float w = sampler.GetValue((a - center) / scale);
+
+        //                if (w < 0 || w > 0)
+        //                {
+        //                    sum += w;
+        //                    builder.Add(new Weight(a, w));
+        //                }
+        //            }
+
+        //            // Normalise the values
+        //            if (sum > 0 || sum < 0)
+        //            {
+        //                builder.ForEach(w => w.Value /= sum);
+        //            }
+
+        //            result[i].Values = builder.ToArray();
+        //            result[i].Sum = sum;
+        //        });
+
+        //    return result;
+        //}
 
         /// <summary>
         /// Represents the weight to be added to a scaled pixel.

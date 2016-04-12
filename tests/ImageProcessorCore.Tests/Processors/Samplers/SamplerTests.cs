@@ -15,13 +15,13 @@
             {
                 { "Bicubic", new BicubicResampler() },
                 { "Triangle", new TriangleResampler() },
+                { "NearestNeighbor", new NearestNeighborResampler() },
                 // Perf: Enable for local testing only
                 //{ "Box", new BoxResampler() },
                 //{ "Lanczos3", new Lanczos3Resampler() },
                 //{ "Lanczos5", new Lanczos5Resampler() },
                 //{ "Lanczos8", new Lanczos8Resampler() },
                 //{ "MitchellNetravali", new MitchellNetravaliResampler() },
-                { "NearestNeighbor", new NearestNeighborResampler() },
                 //{ "Hermite", new HermiteResampler() },
                 //{ "Spline", new SplineResampler() },
                 //{ "Robidoux", new RobidouxResampler() },
@@ -92,7 +92,7 @@
                     string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
                     using (FileStream output = File.OpenWrite($"TestOutput/Resize/{filename}"))
                     {
-                        image.Resize(image.Width * 2, image.Height * 2, sampler, false, this.ProgressUpdate)
+                        image.Resize(image.Width / 2, image.Height / 2, sampler, false, this.ProgressUpdate)
                              .Save(output);
                     }
 
@@ -184,9 +184,8 @@
             }
         }
 
-        [Theory]
-        [MemberData("ReSamplers")]
-        public void ImageShouldRotate(string name, IResampler sampler)
+        [Fact]
+        public void ImageShouldRotate()
         {
             if (!Directory.Exists("TestOutput/Rotate"))
             {
@@ -199,15 +198,15 @@
                 {
                     Stopwatch watch = Stopwatch.StartNew();
                     Image image = new Image(stream);
-                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
+                    string filename = Path.GetFileName(file);
                     using (FileStream output = File.OpenWrite($"TestOutput/Rotate/{filename}"))
                     {
-                        image.Rotate(45, sampler, false, this.ProgressUpdate)
-                             //.BackgroundColor(Color.Aqua)
+                        image.Rotate(45, this.ProgressUpdate)
+                             .BackgroundColor(Color.Pink)
                              .Save(output);
                     }
 
-                    Trace.WriteLine($"{name}: {watch.ElapsedMilliseconds}ms");
+                    Trace.WriteLine($"{watch.ElapsedMilliseconds}ms");
                 }
             }
         }

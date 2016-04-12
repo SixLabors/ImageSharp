@@ -176,34 +176,7 @@ namespace ImageProcessorCore.Samplers
         /// <returns>The <see cref="Image"/></returns>
         public static Image Rotate(this Image source, float degrees, ProgressEventHandler progressHandler = null)
         {
-            return Rotate(source, degrees, new BicubicResampler(), false, progressHandler);
-        }
-
-        /// <summary>
-        /// Rotates an image by the given angle in degrees.
-        /// </summary>
-        /// <param name="source">The image to resize.</param>
-        /// <param name="degrees">The angle in degrees to perform the rotation.</param>
-        /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
-        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
-        /// <returns>The <see cref="Image"/></returns>
-        public static Image Rotate(this Image source, float degrees, bool compand, ProgressEventHandler progressHandler = null)
-        {
-            return Rotate(source, degrees, new BicubicResampler(), compand, progressHandler);
-        }
-
-        /// <summary>
-        /// Rotates an image by the given angle in degrees.
-        /// </summary>
-        /// <param name="source">The image to resize.</param>
-        /// <param name="degrees">The angle in degrees to perform the rotation.</param>
-        /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
-        /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
-        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
-        /// <returns>The <see cref="Image"/></returns>
-        public static Image Rotate(this Image source, float degrees, IResampler sampler, bool compand, ProgressEventHandler progressHandler = null)
-        {
-            Rotate processor = new Rotate(sampler) { Angle = degrees, Compand = compand };
+            Rotate processor = new Rotate { Angle = degrees };
             processor.OnProgress += progressHandler;
 
             try

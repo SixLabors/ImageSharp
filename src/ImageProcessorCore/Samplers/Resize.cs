@@ -114,13 +114,6 @@ namespace ImageProcessorCore.Samplers
                             destination += sourceColor * xw.Value;
                         }
 
-                        //foreach (Weight xw in horizontalValues)
-                        //{
-                        //    int originX = xw.Index;
-                        //    Color sourceColor = compand ? Color.Expand(source[originX, y]) : source[originX, y];
-                        //    destination += sourceColor * xw.Value;
-                        //}
-
                         if (compand)
                         {
                             destination = Color.Compress(destination);
@@ -150,18 +143,9 @@ namespace ImageProcessorCore.Samplers
                             {
                                 Weight yw = verticalValues[i];
                                 int originY = yw.Index;
-                                int originX = x;
-                                Color sourceColor = compand ? Color.Expand(this.firstPass[originX, originY]) : this.firstPass[originX, originY];
+                                Color sourceColor = compand ? Color.Expand(this.firstPass[x, originY]) : this.firstPass[x, originY];
                                 destination += sourceColor * yw.Value;
                             }
-
-                            //foreach (Weight yw in verticalValues)
-                            //{
-                            //    int originY = yw.Index;
-                            //    int originX = x;
-                            //    Color sourceColor = compand ? Color.Expand(this.firstPass[originX, originY]) : this.firstPass[originX, originY];
-                            //    destination += sourceColor * yw.Value;
-                            //}
 
                             if (compand)
                             {
@@ -170,6 +154,7 @@ namespace ImageProcessorCore.Samplers
 
                             target[x, y] = destination;
                         }
+
                         this.OnRowProcessed();
                     }
                 });

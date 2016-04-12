@@ -17,12 +17,7 @@ namespace ImageProcessorCore.Samplers
         /// <inheritdoc/>
         public float GetValue(float x)
         {
-            if (x < 0)
-            {
-                x = -x;
-            }
-
-            if (x <= 0.5)
+            if (x > -0.5 && x <= 0.5)
             {
                 return 1;
             }

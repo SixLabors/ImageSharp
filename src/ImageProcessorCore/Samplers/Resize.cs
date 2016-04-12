@@ -54,6 +54,7 @@ namespace ImageProcessorCore.Samplers
 
             int sourceBottom = source.Bounds.Bottom;
             int targetY = targetRectangle.Y;
+            int targetBottom = targetRectangle.Bottom;
             int startX = targetRectangle.X;
             int endX = targetRectangle.Right;
             bool compand = this.Compand;
@@ -69,18 +70,20 @@ namespace ImageProcessorCore.Samplers
                     endY,
                     y =>
                     {
-                        // Y coordinates of source points
-                        int originY = (int)((y - targetY) * heightFactor);
-
-                        for (int x = startX; x < endX; x++)
+                        if (y >= targetY && y < targetBottom)
                         {
-                            // X coordinates of source points
-                            int originX = (int)((x - startX) * widthFactor);
+                            // Y coordinates of source points
+                            int originY = (int)((y - targetY) * heightFactor);
 
-                            target[x, y] = source[originX, originY];
+                            for (int x = startX; x < endX; x++)
+                            {
+                                // X coordinates of source points
+                                int originX = (int)((x - startX) * widthFactor);
+
+                                target[x, y] = source[originX, originY];
+                            }
+                            this.OnRowProcessed();
                         }
-
-                        this.OnRowProcessed();
                     });
 
                 // Break out now.
@@ -97,13 +100,15 @@ namespace ImageProcessorCore.Samplers
                 {
                     for (int x = startX; x < endX; x++)
                     {
+                        float sum = this.HorizontalWeights[x].Sum;
                         Weight[] horizontalValues = this.HorizontalWeights[x].Values;
 
                         // Destination color components
                         Color destination = new Color();
 
-                        foreach (Weight xw in horizontalValues)
+                        for (int i = 0; i < sum; i++)
                         {
+                            Weight xw = horizontalValues[i];
                             int originX = xw.Index;
                             Color sourceColor = compand ? Color.Expand(source[originX, y]) : source[originX, y];
                             destination += sourceColor * xw.Value;
@@ -124,30 +129,34 @@ namespace ImageProcessorCore.Samplers
                 endY,
                 y =>
                 {
-                    Weight[] verticalValues = this.VerticalWeights[y].Values;
-
-                    for (int x = startX; x < endX; x++)
+                    if (y >= targetY && y < targetBottom)
                     {
-                        // Destination color components
-                        Color destination = new Color();
+                        float sum = this.VerticalWeights[y].Sum;
+                        Weight[] verticalValues = this.VerticalWeights[y].Values;
 
-                        foreach (Weight yw in verticalValues)
+                        for (int x = startX; x < endX; x++)
                         {
-                            int originY = yw.Index;
-                            int originX = x;
-                            Color sourceColor = compand ? Color.Expand(this.firstPass[originX, originY]) : this.firstPass[originX, originY];
-                            destination += sourceColor * yw.Value;
+                            // Destination color components
+                            Color destination = new Color();
+
+                            for (int i = 0; i < sum; i++)
+                            {
+                                Weight yw = verticalValues[i];
+                                int originY = yw.Index;
+                                Color sourceColor = compand ? Color.Expand(this.firstPass[x, originY]) : this.firstPass[x, originY];
+                                destination += sourceColor * yw.Value;
+                            }
+
+                            if (compand)
+                            {
+                                destination = Color.Compress(destination);
+                            }
+
+                            target[x, y] = destination;
                         }
 
-                        if (compand)
-                        {
-                            destination = Color.Compress(destination);
-                        }
-
-                        target[x, y] = destination;
+                        this.OnRowProcessed();
                     }
-
-                    this.OnRowProcessed();
                 });
         }
 
@@ -159,8 +168,6 @@ namespace ImageProcessorCore.Samplers
             {
                 target.ClonePixels(target.Width, target.Height, source.Pixels);
             }
-
-            this.firstPass?.Dispose();
         }
     }
 }

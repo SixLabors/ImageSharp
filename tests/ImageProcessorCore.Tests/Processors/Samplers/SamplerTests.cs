@@ -92,7 +92,7 @@
                     string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
                     using (FileStream output = File.OpenWrite($"TestOutput/Resize/{filename}"))
                     {
-                        image.Resize(image.Width / 2, image.Height / 2, sampler, false, this.ProgressUpdate)
+                        image.Resize(image.Width * 2, image.Height * 2, sampler, false, this.ProgressUpdate)
                              .Save(output);
                     }
 

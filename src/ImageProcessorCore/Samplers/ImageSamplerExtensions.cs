@@ -170,13 +170,26 @@ namespace ImageProcessorCore.Samplers
         /// <summary>
         /// Rotates an image by the given angle in degrees.
         /// </summary>
-        /// <param name="source">The image to resize.</param>
+        /// <param name="source">The image to rotate.</param>
         /// <param name="degrees">The angle in degrees to perform the rotation.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/></returns>
         public static Image Rotate(this Image source, float degrees, ProgressEventHandler progressHandler = null)
         {
-            Rotate processor = new Rotate { Angle = degrees };
+            return Rotate(source, degrees, Rectangle.Center(source.Bounds), progressHandler);
+        }
+
+        /// <summary>
+        /// Rotates an image by the given angle in degrees around the given center point.
+        /// </summary>
+        /// <param name="source">The image to rotate.</param>
+        /// <param name="degrees">The angle in degrees to perform the rotation.</param>
+        /// <param name="center">The center point at which to skew the image.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
+        /// <returns>The <see cref="Image"/></returns>
+        public static Image Rotate(this Image source, float degrees, Point center, ProgressEventHandler progressHandler = null)
+        {
+            Rotate processor = new Rotate { Angle = degrees, Center = center };
             processor.OnProgress += progressHandler;
 
             try
@@ -192,7 +205,7 @@ namespace ImageProcessorCore.Samplers
         /// <summary>
         /// Rotates and flips an image by the given instructions.
         /// </summary>
-        /// <param name="source">The image to resize.</param>
+        /// <param name="source">The image to rotate, flip, or both.</param>
         /// <param name="rotateType">The <see cref="RotateType"/> to perform the rotation.</param>
         /// <param name="flipType">The <see cref="FlipType"/> to perform the flip.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
@@ -200,6 +213,43 @@ namespace ImageProcessorCore.Samplers
         public static Image RotateFlip(this Image source, RotateType rotateType, FlipType flipType, ProgressEventHandler progressHandler = null)
         {
             RotateFlip processor = new RotateFlip(rotateType, flipType);
+            processor.OnProgress += progressHandler;
+
+            try
+            {
+                return source.Process(source.Width, source.Height, source.Bounds, source.Bounds, processor);
+            }
+            finally
+            {
+                processor.OnProgress -= progressHandler;
+            }
+        }
+
+        /// <summary>
+        /// Skews an image by the given angles in degrees.
+        /// </summary>
+        /// <param name="source">The image to skew.</param>
+        /// <param name="degreesX">The angle in degrees to perform the rotation along the x-axis.</param>
+        /// <param name="degreesY">The angle in degrees to perform the rotation along the y-axis.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
+        /// <returns>The <see cref="Image"/></returns>
+        public static Image Skew(this Image source, float degreesX, float degreesY, ProgressEventHandler progressHandler = null)
+        {
+            return Skew(source, degreesX, degreesY, Rectangle.Center(source.Bounds), progressHandler);
+        }
+
+        /// <summary>
+        /// Skews an image by the given angles in degrees around the given center point.
+        /// </summary>
+        /// <param name="source">The image to skew.</param>
+        /// <param name="degreesX">The angle in degrees to perform the rotation along the x-axis.</param>
+        /// <param name="degreesY">The angle in degrees to perform the rotation along the y-axis.</param>
+        /// <param name="center">The center point at which to skew the image.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
+        /// <returns>The <see cref="Image"/></returns>
+        public static Image Skew(this Image source, float degreesX, float degreesY, Point center, ProgressEventHandler progressHandler = null)
+        {
+            Skew processor = new Skew { AngleX = degreesX, AngleY = degreesY, Center = center };
             processor.OnProgress += progressHandler;
 
             try

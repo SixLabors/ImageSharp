@@ -171,6 +171,21 @@ namespace ImageProcessorCore
             return new Point(Vector2.Transform(point.backingVector, Matrix3x2.CreateRotation(radians, origin.backingVector)));
         }
 
+        /// <summary>
+        /// Skews a point around a given origin by the specified angles in degrees.
+        /// </summary>
+        /// <param name="point">The point to rotate</param>
+        /// <param name="origin">The center point to rotate around.</param>
+        /// <param name="degreesX">The x-angle in degrees.</param>
+        /// <param name="degreesY">The y-angle in degrees.</param>
+        /// <returns></returns>
+        public static Point Skew(Point point, Point origin, float degreesX, float degreesY)
+        {
+            float radiansX = (float)ImageMaths.DegreesToRadians(degreesX);
+            float radiansY = (float)ImageMaths.DegreesToRadians(degreesY);
+            return new Point(Vector2.Transform(point.backingVector, Matrix3x2.CreateSkew(degreesX, degreesY, origin.backingVector)));
+        }
+
         /// <inheritdoc/>
         public override int GetHashCode()
         {

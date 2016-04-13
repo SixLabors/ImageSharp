@@ -1,4 +1,4 @@
-﻿// <copyright file="Rotate.cs" company="James Jackson-South">
+﻿// <copyright file="Skew.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -8,23 +8,28 @@ namespace ImageProcessorCore.Samplers
     using System.Threading.Tasks;
 
     /// <summary>
-    /// Provides methods that allow the rotating of images.
+    /// Provides methods that allow the skewing of images.
     /// </summary>
-    public class Rotate : ImageSampler
+    public class Skew : ImageSampler
     {
         /// <summary>
-        /// The angle of rotation.
+        /// The angle of rotation along the x-axis.
         /// </summary>
-        private float angle;
+        private float angleX;
 
         /// <summary>
-        /// Gets or sets the angle of rotation.
+        /// The angle of rotation along the y-axis.
         /// </summary>
-        public float Angle
+        private float angleY;
+
+        /// <summary>
+        /// Gets or sets the angle of rotation along the x-axis in degrees.
+        /// </summary>
+        public float AngleX
         {
             get
             {
-                return this.angle;
+                return this.angleX;
             }
 
             set
@@ -39,7 +44,33 @@ namespace ImageProcessorCore.Samplers
                     value += 360;
                 }
 
-                this.angle = value;
+                this.angleX = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the angle of rotation along the y-axis in degrees.
+        /// </summary>
+        public float AngleY
+        {
+            get
+            {
+                return this.angleY;
+            }
+
+            set
+            {
+                if (value > 360)
+                {
+                    value -= 360;
+                }
+
+                if (value < 0)
+                {
+                    value += 360;
+                }
+
+                this.angleY = value;
             }
         }
 
@@ -55,7 +86,8 @@ namespace ImageProcessorCore.Samplers
             int targetBottom = targetRectangle.Bottom;
             int startX = targetRectangle.X;
             int endX = targetRectangle.Right;
-            float negativeAngle = -this.angle;
+            float negativeAngleX = -this.angleX;
+            float negativeAngleY = -this.angleY;
             Point centre = this.Center == Point.Empty ? Rectangle.Center(sourceRectangle) : this.Center;
 
             // Scaling factors
@@ -77,11 +109,11 @@ namespace ImageProcessorCore.Samplers
                             // X coordinates of source points
                             int originX = (int)((x - startX) * widthFactor);
 
-                            // Rotate at the centre point
-                            Point rotated = Point.Rotate(new Point(originX, originY), centre, negativeAngle);
-                            if (sourceRectangle.Contains(rotated.X, rotated.Y))
+                            // Skew at the centre point
+                            Point skewed = Point.Skew(new Point(originX, originY), centre, negativeAngleX, negativeAngleY);
+                            if (sourceRectangle.Contains(skewed.X, skewed.Y))
                             {
-                                target[x, y] = source[rotated.X, rotated.Y];
+                                target[x, y] = source[skewed.X, skewed.Y];
                             }
                         }
                         this.OnRowProcessed();

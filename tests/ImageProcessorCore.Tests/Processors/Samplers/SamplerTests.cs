@@ -202,7 +202,32 @@
                     using (FileStream output = File.OpenWrite($"TestOutput/Rotate/{filename}"))
                     {
                         image.Rotate(45, this.ProgressUpdate)
-                             .BackgroundColor(Color.Pink)
+                             .Save(output);
+                    }
+
+                    Trace.WriteLine($"{watch.ElapsedMilliseconds}ms");
+                }
+            }
+        }
+
+        [Fact]
+        public void ImageShouldSkew()
+        {
+            if (!Directory.Exists("TestOutput/Skew"))
+            {
+                Directory.CreateDirectory("TestOutput/Skew");
+            }
+
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    Stopwatch watch = Stopwatch.StartNew();
+                    Image image = new Image(stream);
+                    string filename = Path.GetFileName(file);
+                    using (FileStream output = File.OpenWrite($"TestOutput/Skew/{filename}"))
+                    {
+                        image.Skew(45, 45, this.ProgressUpdate)
                              .Save(output);
                     }
 

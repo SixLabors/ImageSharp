@@ -92,9 +92,10 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
  - [x] Rectangular Crop
  - [ ] Elliptical Crop
  - [x] Entropy Crop
-- Rotation
+- Rotation/Skew
  - [x] Flip (90, 270, FlipType etc)
- - [x] Rotate by angle
+ - [x] Rotate by angle and center point.
+ - [x] Skew by x/y angles and center point.
 - ColorMatrix operations (Uses Matrix4x4)
  - [x] BlackWhite
  - [x] Greyscale BT709

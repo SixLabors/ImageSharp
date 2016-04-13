@@ -18,11 +18,11 @@ namespace ImageProcessorCore.Tests
     public class EncoderDecoderTests : FileTestBase
     {
         [Fact]
-        public void ImageCanEncodeToDominantPixel()
+        public void ImageCanEncodeToString()
         {
-            if (!Directory.Exists("TestOutput/Dominant"))
+            if (!Directory.Exists("TestOutput/ToString"))
             {
-                Directory.CreateDirectory("TestOutput/Dominant");
+                Directory.CreateDirectory("TestOutput/ToString");
             }
 
             foreach (string file in Files)
@@ -32,10 +32,8 @@ namespace ImageProcessorCore.Tests
                     Stopwatch watch = Stopwatch.StartNew();
                     using (Image image = new Image(stream))
                     {
-                        string filename = "TestOutput/Dominant/" + Path.GetFileNameWithoutExtension(file) + ".txt";
-                        string filename2 = "TestOutput/Dominant/Pixel-" + Path.GetFileNameWithoutExtension(file) + ".txt";
-                        File.WriteAllText(filename, image.ToBase64GifString());
-                        File.WriteAllText(filename2, image.ToBase64GifPixelString());
+                        string filename = "TestOutput/ToString/" + Path.GetFileNameWithoutExtension(file) + ".txt";
+                        File.WriteAllText(filename, image.ToString());
                     }
 
                     Trace.WriteLine($"{watch.ElapsedMilliseconds}ms");

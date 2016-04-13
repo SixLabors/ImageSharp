@@ -223,6 +223,21 @@ namespace ImageProcessorCore
             encoder.Encode(this, stream);
         }
 
+        /// <summary>
+        /// Returns a Base64 encoded string from the given image. 
+        /// </summary>
+        /// <example>data:image/gif;base64,R0lGODlhAQABAIABAEdJRgAAACwAAAAAAQABAAACAkQBAA==</example>
+        /// <returns>The <see cref="string"/></returns>
+        public override string ToString()
+        {
+            using (MemoryStream stream = new MemoryStream())
+            {
+                this.Save(stream);
+                stream.Flush();
+                return $"data:{this.CurrentImageFormat.Encoder.MimeType};base64,{Convert.ToBase64String(stream.ToArray())}";
+            }
+        }
+
         /// <inheritdoc/>
         protected override void Dispose(bool disposing)
         {
@@ -277,7 +292,7 @@ namespace ImageProcessorCore
                 if (maxHeaderSize > 0)
                 {
                     byte[] header = new byte[maxHeaderSize];
-                    
+
                     stream.Position = 0;
                     stream.Read(header, 0, maxHeaderSize);
                     stream.Position = 0;

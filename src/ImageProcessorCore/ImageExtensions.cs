@@ -10,6 +10,7 @@ namespace ImageProcessorCore
 
     using Formats;
 
+    using ImageProcessorCore.Quantizers;
     using ImageProcessorCore.Samplers;
 
     /// <summary>
@@ -50,6 +51,53 @@ namespace ImageProcessorCore
         /// <param name="quality">The quality to save the image to representing the number of colors. Between 1 and 100.</param>
         /// <exception cref="ArgumentNullException">Thrown if the stream is null.</exception>
         public static void SaveAsGif(this ImageBase source, Stream stream, int quality = 256) => new GifEncoder() { Quality = quality }.Encode(source, stream);
+
+        /// <summary>
+        /// Returns a 1x1 pixel Base64 encoded gif from the given image containing a single dominant color. 
+        /// </summary>
+        /// <remarks>
+        /// The idea and code is based on the article at <see href="https://manu.ninja/dominant-colors-for-lazy-loading-images"/>
+        /// </remarks>
+        /// <param name="source">The image this method extends.</param>
+        /// <returns>The <see cref="string"/></returns>
+        public static string ToBase64GifPixelString(this Image source)
+        {
+            // Leave the original image intact
+            using (Image temp = new Image(source))
+            {
+                Bgra32 color = new OctreeQuantizer().Quantize(temp.Resize(250, 250), 1).Palette[0];
+
+                byte[] gif = {
+                0x47, 0x49, 0x46, 0x38, 0x39, 0x61, // Header
+                0x01, 0x00, 0x01, 0x00, 0x80, 0x01, 0x00, // Logical Screen Descriptor
+                color.R, color.G, color.B, 0x00, 0x00, 0x00, // Global Color Table
+                0x2C, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, // Image Descriptor
+                0x02, 0x02, 0x44, 0x01, 0x00 // Image Data
+               };
+
+                return "data:image/gif;base64," + Convert.ToBase64String(gif);
+            }
+        }
+
+        /// <summary>
+        /// Returns a 3x3 pixel Base64 encoded gif from the given image. 
+        /// </summary>
+        /// <remarks>
+        /// The idea and code is based on the article at <see href="https://manu.ninja/dominant-colors-for-lazy-loading-images"/>
+        /// </remarks>
+        /// <param name="source">The image this method extends.</param>
+        /// <returns>The <see cref="string"/></returns>
+        public static string ToBase64GifString(this Image source)
+        {
+            // Leave the original image intact
+            using (Image temp = new Image(source))
+            using (MemoryStream stream = new MemoryStream())
+            {
+                temp.Resize(3, 3).SaveAsGif(stream);
+                stream.Flush();
+                return "data:image/gif;base64," + Convert.ToBase64String(stream.ToArray());
+            }
+        }
 
         /// <summary>
         /// Applies the collection of processors to the image.

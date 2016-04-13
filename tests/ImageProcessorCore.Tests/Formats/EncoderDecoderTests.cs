@@ -18,6 +18,32 @@ namespace ImageProcessorCore.Tests
     public class EncoderDecoderTests : FileTestBase
     {
         [Fact]
+        public void ImageCanEncodeToDominantPixel()
+        {
+            if (!Directory.Exists("TestOutput/Dominant"))
+            {
+                Directory.CreateDirectory("TestOutput/Dominant");
+            }
+
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    Stopwatch watch = Stopwatch.StartNew();
+                    using (Image image = new Image(stream))
+                    {
+                        string filename = "TestOutput/Dominant/" + Path.GetFileNameWithoutExtension(file) + ".txt";
+                        string filename2 = "TestOutput/Dominant/Pixel-" + Path.GetFileNameWithoutExtension(file) + ".txt";
+                        File.WriteAllText(filename, image.ToBase64GifString());
+                        File.WriteAllText(filename2, image.ToBase64GifPixelString());
+                    }
+
+                    Trace.WriteLine($"{watch.ElapsedMilliseconds}ms");
+                }
+            }
+        }
+
+        [Fact]
         public void DecodeThenEncodeImageFromStreamShouldSucceed()
         {
             if (!Directory.Exists("TestOutput/Encode"))

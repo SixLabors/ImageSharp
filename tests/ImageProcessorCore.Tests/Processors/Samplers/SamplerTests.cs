@@ -281,8 +281,10 @@
             {
                 using (FileStream stream = File.OpenRead(file))
                 {
-                    Image image = new Image(stream);
+                    
                     string filename = Path.GetFileNameWithoutExtension(file) + "-Crop" + Path.GetExtension(file);
+
+                    using (Image image = new Image(stream))
                     using (FileStream output = File.OpenWrite($"TestOutput/Crop/{filename}"))
                     {
                         image.Crop(image.Width / 2, image.Height / 2, this.ProgressUpdate).Save(output);

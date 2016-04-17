@@ -10,7 +10,6 @@ namespace ImageProcessorCore
 
     using Formats;
 
-    using ImageProcessorCore.Quantizers;
     using ImageProcessorCore.Samplers;
 
     /// <summary>
@@ -51,21 +50,6 @@ namespace ImageProcessorCore
         /// <param name="quality">The quality to save the image to representing the number of colors. Between 1 and 100.</param>
         /// <exception cref="ArgumentNullException">Thrown if the stream is null.</exception>
         public static void SaveAsGif(this ImageBase source, Stream stream, int quality = 256) => new GifEncoder { Quality = quality }.Encode(source, stream);
-
-        /// <summary>
-        /// Returns a Base64 encoded string from the given image. 
-        /// </summary>
-        /// <param name="source">The image this method extends.</param>
-        /// <returns>The <see cref="string"/></returns>
-        public static string ToBase64String(this Image source)
-        {
-            using (MemoryStream stream = new MemoryStream())
-            {
-                source.Save(stream);
-                stream.Flush();
-                return $"data:{source.CurrentImageFormat.Encoder.MimeType};base64,{Convert.ToBase64String(stream.ToArray())}";
-            }
-        }
 
         /// <summary>
         /// Applies the collection of processors to the image.

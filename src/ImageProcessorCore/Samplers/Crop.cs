@@ -29,7 +29,7 @@ namespace ImageProcessorCore.Samplers
                 {
                     for (int x = startX; x < endX; x++)
                     {
-                        target[x, y] = source[x, y];
+                        target[x, y] = source[x + sourceRectangle.X, y + sourceRectangle.Y];
                     }
 
                     this.OnRowProcessed();

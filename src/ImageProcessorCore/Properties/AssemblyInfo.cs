@@ -30,4 +30,5 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyFileVersion("1.0.0.0")]
 
 // Ensure the internals can be tested.
+[assembly: InternalsVisibleTo("ImageProcessorCore.Benchmarks")]
 [assembly: InternalsVisibleTo("ImageProcessorCore.Tests")]

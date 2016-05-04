@@ -1,0 +1,29 @@
+﻿{
+  "version": "1.0.0-*",
+  "description": "ImageProcessorCore.Benchmarks Console Application",
+  "authors": [ "James.South" ],
+  "tags": [ "" ],
+  "projectUrl": "",
+  "licenseUrl": "",
+
+  "compilationOptions": {
+    "emitEntryPoint": true
+  },
+
+  "dependencies": {
+    "ImageProcessorCore": "1.0.0-*",
+    "BenchmarkDotNet": "0.9.5"
+  },
+
+  "commands": {
+    "ImageProcessorCore.Benchmarks": "ImageProcessorCore.Benchmarks"
+  },
+
+  "frameworks": {
+    "dnx46": {
+      "frameworkAssemblies": {
+        "System.Drawing": "4.0.0.0"
+      }
+    }
+  }
+}

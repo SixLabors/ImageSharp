@@ -27,6 +27,11 @@
     "Microsoft.NETCore.Platforms": "1.0.1-beta-23516"
   },
   "frameworks": {
-    "dotnet5.5": { }
+    "dotnet5.5": { },
+    "dnx46": {
+      "frameworkAssemblies": {
+        "System.Runtime": "4.0.0.0"
+      }
+    }
   }
 }

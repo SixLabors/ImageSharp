@@ -206,3 +206,6 @@ FakesAssemblies/
 # ASP.NET 5
 project.lock.json
 artifacts/
+
+#BenchmarkDotNet
+**/BenchmarkDotNet.Artifacts/

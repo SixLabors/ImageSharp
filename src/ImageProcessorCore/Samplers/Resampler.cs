@@ -80,7 +80,7 @@ namespace ImageProcessorCore.Samplers
                     result[i] = new Weights
                     {
                         Sum = 0,
-                        Values = new Weight[(int)Math.Floor((2 * width) + 1)]
+                        Values = new Weight[(int)(right - left + 1)]
                     };
 
                     for (double j = left; j <= right; j++)
@@ -116,7 +116,7 @@ namespace ImageProcessorCore.Samplers
                     result[i] = new Weights
                     {
                         Sum = 0,
-                        Values = new Weight[(int)((radius * 2) + 1)]
+                        Values = new Weight[(int)(right - left + 1)]
                     };
 
                     for (double j = left; j <= right; j++)

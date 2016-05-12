@@ -1,5 +1,6 @@
 # ImageProcessor
 
+<img src="build/icons/imageprocessor-logo-512.png" width="128" height="128"/>
 
 ## This branch contains the new cross platform version: ImageProcessorCore.
 

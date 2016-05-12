@@ -11,7 +11,7 @@
 
     public class Resize
     {
-        [Benchmark(Baseline = true, Description = "System Drawing Resize")]
+        [Benchmark(Baseline = true, Description = "System.Drawing Resize")]
         public Size ResizeSystemDrawing()
         {
             using (Bitmap source = new Bitmap(400, 400))
@@ -31,7 +31,7 @@
             }
         }
 
-        [Benchmark(Description = "ImageProcessor.Core Resize")]
+        [Benchmark(Description = "ImageProcessorCore Resize")]
         public CoreSize ResizeCore()
         {
             using (CoreImage image = new CoreImage(400, 400))

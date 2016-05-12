@@ -1,4 +1,4 @@
-﻿{
+{
   "version": "1.0.0-*",
   "description": "ImageProcessorCore.Benchmarks Console Application",
   "authors": [ "James.South" ],
@@ -12,7 +12,7 @@
 
   "dependencies": {
     "ImageProcessorCore": "1.0.0-*",
-    "BenchmarkDotNet": "0.9.5"
+    "BenchmarkDotNet": "0.9.6"
   },
 
   "commands": {

@@ -7,6 +7,7 @@ namespace ImageProcessorCore
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.ObjectModel;
     using System.Diagnostics;
     using System.IO;
     using System.Linq;
@@ -18,8 +19,8 @@ namespace ImageProcessorCore
     /// Encapsulates an image, which consists of the pixel data for a graphics image and its attributes.
     /// </summary>
     /// <remarks>
-    /// The image data is always stored in BGRA format, where the blue, green, red, and
-    /// alpha values are simple bytes.
+    /// The image data is always stored in RGBA format, where the red, green, blue, and
+    /// alpha values are floats.
     /// </remarks>
     [DebuggerDisplay("Image: {Width}x{Height}")]
     public class Image : ImageBase, IImage
@@ -37,25 +38,13 @@ namespace ImageProcessorCore
         public const double DefaultVerticalResolution = 96;
 
         /// <summary>
-        /// The default collection of <see cref="IImageFormat"/>.
-        /// </summary>
-        private static readonly Lazy<List<IImageFormat>> DefaultFormats =
-            new Lazy<List<IImageFormat>>(() => new List<IImageFormat>
-            {
-                 new BmpFormat(),
-                 new JpegFormat(),
-                 new PngFormat(),
-                 new GifFormat()
-            });
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="Image"/> class.
         /// </summary>
         public Image()
         {
             this.HorizontalResolution = DefaultHorizontalResolution;
             this.VerticalResolution = DefaultVerticalResolution;
-            this.CurrentImageFormat = DefaultFormats.Value.First(f => f.GetType() == typeof(PngFormat));
+            this.CurrentImageFormat = Bootstrapper.Instance.ImageFormats.First(f => f.GetType() == typeof(PngFormat));
         }
 
         /// <summary>
@@ -69,7 +58,7 @@ namespace ImageProcessorCore
         {
             this.HorizontalResolution = DefaultHorizontalResolution;
             this.VerticalResolution = DefaultVerticalResolution;
-            this.CurrentImageFormat = DefaultFormats.Value.First(f => f.GetType() == typeof(PngFormat));
+            this.CurrentImageFormat = Bootstrapper.Instance.ImageFormats.First(f => f.GetType() == typeof(PngFormat));
         }
 
         /// <summary>
@@ -92,6 +81,7 @@ namespace ImageProcessorCore
             this.RepeatCount = other.RepeatCount;
             this.HorizontalResolution = other.HorizontalResolution;
             this.VerticalResolution = other.VerticalResolution;
+            this.Formats = other.Formats;
             this.CurrentImageFormat = other.CurrentImageFormat;
         }
 
@@ -112,7 +102,7 @@ namespace ImageProcessorCore
 
             // Most likely a gif
             // TODO: Should this be aproperty on ImageFrame?
-            this.CurrentImageFormat = DefaultFormats.Value.First(f => f.GetType() == typeof(GifFormat));
+            this.CurrentImageFormat = Bootstrapper.Instance.ImageFormats.First(f => f.GetType() == typeof(GifFormat));
         }
 
         /// <summary>
@@ -125,7 +115,7 @@ namespace ImageProcessorCore
         public Image(Stream stream)
         {
             Guard.NotNull(stream, nameof(stream));
-            this.Load(stream, Formats);
+            this.Load(stream, Bootstrapper.Instance.ImageFormats.ToList());
         }
 
         /// <summary>
@@ -141,13 +131,13 @@ namespace ImageProcessorCore
         public Image(Stream stream, params IImageFormat[] formats)
         {
             Guard.NotNull(stream, nameof(stream));
-            this.Load(stream, formats);
+            this.Load(stream, formats.ToList());
         }
 
         /// <summary>
         /// Gets a list of supported image formats.
         /// </summary>
-        public static IList<IImageFormat> Formats => DefaultFormats.Value;
+        public IReadOnlyCollection<IImageFormat> Formats { get; internal set; } = Bootstrapper.Instance.ImageFormats;
 
         /// <inheritdoc/>
         public double HorizontalResolution { get; set; }
@@ -258,24 +248,24 @@ namespace ImageProcessorCore
                     this.Frames.Clear();
                 }
             }
-
+            
             base.Dispose(disposing);
         }
 
         /// <summary>
         /// Loads the image from the given stream.
         /// </summary>
-        /// <param name="stream">
-        /// The stream containing image information.
-        /// </param>
-        /// <param name="formats">
-        /// The collection of <see cref="IImageFormat"/>.
-        /// </param>
+        /// <param name="stream">The stream containing image information.</param>
+        /// <param name="formats">The collection of <see cref="IImageFormat"/>.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         private void Load(Stream stream, IList<IImageFormat> formats)
         {
+            if (!formats.Any()) { return; }
+
+            this.Formats = new ReadOnlyCollection<IImageFormat>(formats);
+
             if (!stream.CanRead)
             {
                 throw new NotSupportedException("Cannot read from the stream.");
@@ -286,24 +276,21 @@ namespace ImageProcessorCore
                 throw new NotSupportedException("The stream does not support seeking.");
             }
 
-            if (formats.Count > 0)
+            int maxHeaderSize = formats.Max(x => x.Decoder.HeaderSize);
+            if (maxHeaderSize > 0)
             {
-                int maxHeaderSize = formats.Max(x => x.Decoder.HeaderSize);
-                if (maxHeaderSize > 0)
+                byte[] header = new byte[maxHeaderSize];
+
+                stream.Position = 0;
+                stream.Read(header, 0, maxHeaderSize);
+                stream.Position = 0;
+
+                IImageFormat format = formats.FirstOrDefault(x => x.Decoder.IsSupportedFileFormat(header));
+                if (format != null)
                 {
-                    byte[] header = new byte[maxHeaderSize];
-
-                    stream.Position = 0;
-                    stream.Read(header, 0, maxHeaderSize);
-                    stream.Position = 0;
-
-                    IImageFormat format = formats.FirstOrDefault(x => x.Decoder.IsSupportedFileFormat(header));
-                    if (format != null)
-                    {
-                        format.Decoder.Decode(this, stream);
-                        this.CurrentImageFormat = format;
-                        return;
-                    }
+                    format.Decoder.Decode(this, stream);
+                    this.CurrentImageFormat = format;
+                    return;
                 }
             }
 

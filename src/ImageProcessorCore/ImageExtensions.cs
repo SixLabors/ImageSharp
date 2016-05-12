@@ -144,8 +144,10 @@ namespace ImageProcessorCore
                 : new Image
                 {
                     // Several properties require copying
+                    // TODO: Check why we need to set these?
                     HorizontalResolution = source.HorizontalResolution,
                     VerticalResolution = source.VerticalResolution,
+                    Formats = source.Formats,
                     CurrentImageFormat = source.CurrentImageFormat,
                     RepeatCount = source.RepeatCount
                 };

@@ -29,12 +29,13 @@
         "Microsoft.NETCore.Platforms": "1.0.1-beta-23516"
       }
     },
-    "net452": {
+    "net451": {
       "dependencies": {
-        "System.Numerics.Vectors": "4.0.0"
+        "System.Numerics.Vectors": "4.0.0",
+        "System.Runtime": "4.0.0"
       },
       "frameworkAssemblies": {
-        "System.Runtime": ""
+        "System.Runtime": "4.0.0"
       }
     }
   }

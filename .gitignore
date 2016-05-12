@@ -17,7 +17,8 @@
 [Rr]eleases/
 x64/
 x86/
-build/
+src/**/build/
+tests/**/build/
 bld/
 [Bb]in/
 [Oo]bj/

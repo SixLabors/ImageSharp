@@ -30,8 +30,11 @@ namespace ImageProcessorCore
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
+        /// <param name="quality">The quality to save the image to representing the number of colors. 
+        /// Anything equal to 256 and below will cause the encoder to save the image in an indexed format.
+        /// </param>
         /// <exception cref="ArgumentNullException">Thrown if the stream is null.</exception>
-        public static void SaveAsPng(this ImageBase source, Stream stream) => new PngEncoder().Encode(source, stream);
+        public static void SaveAsPng(this ImageBase source, Stream stream, int quality = int.MaxValue) => new PngEncoder { Quality = quality }.Encode(source, stream);
 
         /// <summary>
         /// Saves the image to the given stream with the jpeg format.
@@ -47,7 +50,7 @@ namespace ImageProcessorCore
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
-        /// <param name="quality">The quality to save the image to representing the number of colors. Between 1 and 100.</param>
+        /// <param name="quality">The quality to save the image to representing the number of colors. Between 1 and 256.</param>
         /// <exception cref="ArgumentNullException">Thrown if the stream is null.</exception>
         public static void SaveAsGif(this ImageBase source, Stream stream, int quality = 256) => new GifEncoder { Quality = quality }.Encode(source, stream);
 

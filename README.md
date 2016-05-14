@@ -1,15 +1,20 @@
-# ImageProcessor
+# ImageProcessorCore
 
 <img src="build/icons/imageprocessor-logo-512.png" width="128" height="128"/>
 
-## This branch contains the new cross platform version: ImageProcessorCore.
+**ImageProcessorCore** is a new cross-platform 2D graphics API to allow the processing of images without the use of `System.Drawing`. It's still in early stages but progress has been pretty quick.
+
+[![Build status](https://ci.appveyor.com/api/projects/status/8ypr7527dnao04yr/branch/Core?svg=true)](https://ci.appveyor.com/project/JamesSouth/imageprocessor/branch/Core)
+[![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/JimBobSquarePants/ImageProcessor?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
+For the older `ImageFactory` based API that uses `System.Drawing` please check out the [Framework](https://github.com/JimBobSquarePants/ImageProcessor/tree/Framework) branch.
 
 ---
 ## ImageProcessor Needs Your Help
 
 **ImageProcessor is the work of a very, very, small number of developers who struggle balancing time to contribute to the project with family time and work commitments. If the project is to survive we need more contribution from the community at large. There are several issues, most notably [#264](https://github.com/JimBobSquarePants/ImageProcessor/issues/264) and [#347](https://github.com/JimBobSquarePants/ImageProcessor/issues/347) that we cannot possibly solve on our own.**
 
-**We, and we believe many others in the community at large want a first-class 2D imaging library with a simple API that is not simply a wrapper round an existing library. We want it to have a low contribution bar which we believe can only happen if the library is written in C#. We want it to be written to cover as many use cases as possible. We want to write the same code once and have it work on any platform supporting CoreFX.**
+**We, and we believe many others in the community at large want a first-class 2D imaging library with a simple API that is not simply a wrapper round an existing library. We want it to have a low contribution bar which we believe can only happen if the library is written in C#. We want it to be written to cover as many use cases as possible. We want to write the same code once and have it work on any platform supporting .NET Core.**
 
 **With your help we can make all that a reality.**
 
@@ -17,15 +22,6 @@
 
 **Thankyou for reading this**
 ---
-
-This is a complete rewrite from the ground up to allow the processing of images without the use of `System.Drawing` using a cross-platform class library. It's still in early stages but progress has been pretty quick.
-
-[![Build status](https://ci.appveyor.com/api/projects/status/8ypr7527dnao04yr/branch/Core?svg=true)](https://ci.appveyor.com/project/JamesSouth/imageprocessor/branch/Core)
-[![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/JimBobSquarePants/ImageProcessor?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-
-###Why am I writing this?
-
-With NETCore there is currently no version of `System.Drawing` to allow continued progress of the existing ImageProcessor library. 
 
 ### Installation
 At present the code is pre-release but when ready it will be available on [Nuget](http://www.nuget.org). 
@@ -164,8 +160,8 @@ Here's an example of the code required to resize an image using the default Bicu
 
 ```csharp
 using (FileStream stream = File.OpenRead("foo.jpg"))
-using (Image image = new Image(stream))
 using (FileStream output = File.OpenWrite("bar.jpg"))
+using (Image image = new Image(stream))
 {
     image.Resize(image.Width / 2, image.Height / 2)
          .Greyscale()
@@ -177,8 +173,8 @@ It will also be possible to pass collections of processors as params to manipula
 
 ```csharp
 using (FileStream stream = File.OpenRead("foo.jpg"))
-using (Image image = new Image(stream))
 using (FileStream output = File.OpenWrite("bar.jpg"))
+using (Image image = new Image(stream))
 {
     List<IImageProcessor> processors = new List<IImageProcessor>()
     {
@@ -202,7 +198,7 @@ All in all this should allow image processing to be much more accessible to deve
 
 Please... Spread the word, contribute algorithms, submit performance improvements, unit tests. Help me set up CI for nightly releases. 
 
-Performance is a biggie, if you know anything about the new vector types and can apply some fancy new stuff with that it would be awesome. 
+[Performance is a biggie](https://github.com/JimBobSquarePants/ImageProcessor/issues/347), if you know anything about the new vector types and can apply some fancy new stuff with that it would be awesome. 
 
 There's a lot of developers out there who could write this stuff a lot better and faster than I and I would love to see what we collectively can come up with so please, if you can help in any way it would be most welcome and benificial for all.
 

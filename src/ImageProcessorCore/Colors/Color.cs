@@ -8,6 +8,7 @@ namespace ImageProcessorCore
     using System;
     using System.ComponentModel;
     using System.Numerics;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Represents a four-component color using red, green, blue, and alpha data. 
@@ -316,6 +317,7 @@ namespace ImageProcessorCore
         /// <returns>
         /// The <see cref="Color"/>
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Color Average(Color first, Color second)
         {
             return new Color((first.backingVector + second.backingVector) * .5f);
@@ -361,6 +363,7 @@ namespace ImageProcessorCore
         /// </summary>
         /// <param name="color">The <see cref="Color"/> to convert.</param>
         /// <returns>The <see cref="Color"/>.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Color FromNonPremultiplied(Color color)
         {
             return new Color(FromNonPremultiplied(color.backingVector, color.A));
@@ -383,6 +386,7 @@ namespace ImageProcessorCore
         /// </summary>
         /// <param name="color">The <see cref="Color"/> to convert.</param>
         /// <returns>The <see cref="Color"/>.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Color ToNonPremultiplied(Color color)
         {
             float a = color.A;
@@ -398,6 +402,7 @@ namespace ImageProcessorCore
         /// Gets a <see cref="Vector4"/> representation for this <see cref="Color"/>.
         /// </summary>
         /// <returns>A <see cref="Vector4"/> representation for this object.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector4 ToVector4()
         {
             return new Vector4(this.R, this.G, this.B, this.A);
@@ -430,6 +435,7 @@ namespace ImageProcessorCore
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override bool Equals(object obj)
         {
             if (obj is Color)
@@ -447,6 +453,7 @@ namespace ImageProcessorCore
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool AlmostEquals(Color other, float precision)
         {
             Vector4 result = Vector4.Abs(this.backingVector - other.backingVector);
@@ -466,6 +473,7 @@ namespace ImageProcessorCore
         /// <returns>
         /// The <see cref="float"/>.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static float Compress(float signal)
         {
             if (signal <= 0.0031308f)
@@ -485,6 +493,7 @@ namespace ImageProcessorCore
         /// <returns>
         /// The <see cref="float"/>.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static float Expand(float signal)
         {
             if (signal <= 0.04045f)

@@ -2,7 +2,7 @@
 
 <img src="build/icons/imageprocessor-logo-512.png" width="128" height="128"/>
 
-**ImageProcessorCore** is a new cross-platform 2D graphics API to allow the processing of images without the use of `System.Drawing`. It's still in early stages but progress has been pretty quick.
+**ImageProcessorCore** is a new cross-platform 2D graphics API designed to allow the processing of images without the use of `System.Drawing`. It's still in early stages but progress has been pretty quick.
 
 [![Build status](https://ci.appveyor.com/api/projects/status/8ypr7527dnao04yr/branch/Core?svg=true)](https://ci.appveyor.com/project/JamesSouth/imageprocessor/branch/Core)
 [![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/JimBobSquarePants/ImageProcessor?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
@@ -182,8 +182,11 @@ using (Image image = new Image(stream))
         new Sobel { Greyscale = true }
     };
 
-    image.Process(processors.ToArray())
-         .Save(output);
+    foreach (IImageProcessor processor in processors){
+
+        image.Process(processor)
+             .Save(output);
+    }
 }
 ```
 Individual processors can be initialised and apply processing against images. This allows nesting which will allow the powerful combination of processing methods:

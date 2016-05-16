@@ -19,6 +19,8 @@ namespace ImageProcessorCore.Samplers
             int targetBottom = targetRectangle.Bottom;
             int startX = targetRectangle.X;
             int endX = targetRectangle.Right;
+            int sourceX = sourceRectangle.X;
+            int sourceY = sourceRectangle.Y;
 
             Parallel.For(
             startY,
@@ -29,7 +31,7 @@ namespace ImageProcessorCore.Samplers
                 {
                     for (int x = startX; x < endX; x++)
                     {
-                        target[x, y] = source[x + sourceRectangle.X, y + sourceRectangle.Y];
+                        target[x, y] = source[x + sourceX, y + sourceY];
                     }
 
                     this.OnRowProcessed();

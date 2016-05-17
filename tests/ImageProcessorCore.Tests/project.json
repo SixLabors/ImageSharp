@@ -2,22 +2,21 @@
   "version": "1.0.0-*",
   "description": "ImageProcessorCore.Tests Class Library",
   "authors": [ "James Jackson-South and contributors" ],
-  "tags": [ "" ],
-  "projectUrl": "",
-  "licenseUrl": "",
+  "packOptions": {
+    "projectUrl": "https://github.com/JimBobSquarePants/ImageProcessor",
+    "licenseUrl": "http://www.apache.org/licenses/LICENSE-2.0",
+    "tags": [
+      "Image Resize Crop Quality Gif Jpg Jpeg Bitmap Png Fluent Animated"
+    ]
+  },
   "dependencies": {
     "ImageProcessorCore": "1.0.0-*",
-    "Microsoft.CSharp": "4.0.1-beta-23516",
-    "Microsoft.NETCore": "5.0.1-beta-23516",
-    "Microsoft.NETCore.Platforms": "1.0.1-beta-23516",
-    "System.Collections": "4.0.11-beta-23516",
-    "System.Linq": "4.0.1-beta-23516",
-    "System.Threading": "4.0.11-beta-23516",
     "xunit": "2.2.0-beta1-build3239",
     "xunit.runner.dnx": "2.1.0-rc1-build204"
   },
   "frameworks": {
-    "dnxcore50": { }
+    "dnx451": {
+    }
   },
   "commands": {
     "test": "xunit.runner.dnx"

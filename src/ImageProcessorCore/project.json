@@ -13,26 +13,19 @@
     ]
   },
   "buildOptions": {
-    "allowUnsafe": true
+    "allowUnsafe": true,
+    "debugType": "portable"
   },
   "dependencies": {
     "NETStandard.Library": "1.5.0-rc2-24027",
     "System.Numerics.Vectors": "4.1.1-rc2-24027"
   },
   "frameworks": {
-    "netstandard1.5": {
-      "imports": "dnxcore50",
+    "netstandard1.1": {
       "dependencies": {
         "System.Threading": "4.0.11-rc2-24027",
         "System.Threading.Tasks": "4.0.11-rc2-24027",
         "System.Threading.Tasks.Parallel": "4.0.1-rc2-24027"
-      }
-    },
-    "net4.5.1": {
-      "frameworkAssemblies": {
-        "System.Threading": "4.0.0",
-        "System.Threading.Tasks": "4.0.0",
-        "System.Threading.Tasks.Parallel": "4.0.0"
       }
     }
   }

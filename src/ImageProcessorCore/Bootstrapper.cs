@@ -48,7 +48,7 @@ namespace ImageProcessorCore
         /// <summary>
         /// Gets the list of supported <see cref="IImageFormat"/>
         /// </summary>
-        public IReadOnlyCollection<IImageFormat> ImageFormats => new ReadOnlyCollection<IImageFormat>(imageFormats);
+        public IReadOnlyCollection<IImageFormat> ImageFormats => new ReadOnlyCollection<IImageFormat>(this.imageFormats);
 
         /// <summary>
         /// Adds a new <see cref="IImageFormat"/> to the collection of supported image formats.

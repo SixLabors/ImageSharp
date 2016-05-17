@@ -4,6 +4,7 @@ os: Visual Studio 2015
 init:
 - cmd: >-
     choco install dotnetcli
+
     set PATH=C:\Program Files\dotnet\bin;%PATH%
 
 assembly_info:

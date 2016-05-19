@@ -20,7 +20,12 @@
     "ImageProcessorCore.Benchmarks": "ImageProcessorCore.Benchmarks"
   },
   "frameworks": {
-    "net4.5.1": {
+    "net451": {
+      "dependencies": {
+      },
+      "imports": [
+        "dnx451"
+      ],
       "frameworkAssemblies": {
         "System.Drawing": "4.0.0.0"
       }

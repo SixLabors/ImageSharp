@@ -1,6 +1,9 @@
 version: v1.0.0.{build}
 os: Visual Studio 2015
 
+init:
+  - ps: iex ((new-object net.webclient).DownloadString('https://gist.githubusercontent.com/PureKrome/0f79e25693d574807939/raw/8cf3160c9516ef1f4effc825c0a44acc918a0b5a/appveyor-build-info.ps'))
+  
 install:
 # Use the install script to grab the latest dotnet install
 - ps: iex .\dotnet-latest.ps1

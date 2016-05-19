@@ -3,7 +3,7 @@ os: Visual Studio 2015
 
 init:
 - cmd: >-
-    choco install dotnetcli
+- ps: .\build\dotnet-latest.ps1
     set PATH=C:\Program Files\dotnet\bin;%PATH%
 
 assembly_info:
@@ -33,13 +33,13 @@ test: off
 artifacts:
 - path: artifacts\bin\ImageProcessorCore\**\*.nupkg
 
-# deploy:
-#     # MyGet Deployment for builds & releases
-#  - provider: NuGet
-#    server: https://www.myget.org/F/imageprocessor/api/v2/package
-#    symbol_server: https://nuget.symbolsource.org/MyGet/imageprocessor
-#    api_key:
-#      secure: fz0rUrt3B1HczUC1ZehwVsrFSWX9WZGDQoueDztLte9/+yQG+BBU7UrO+coE8lUf
-#    artifact: /.*\.nupkg/
-#    on:
-#      branch: Core
+deploy:
+    # MyGet Deployment for builds & releases
+ - provider: NuGet
+   server: https://www.myget.org/F/imageprocessor/api/v2/package
+   symbol_server: https://nuget.symbolsource.org/MyGet/imageprocessor
+   api_key:
+     secure: fz0rUrt3B1HczUC1ZehwVsrFSWX9WZGDQoueDztLte9/+yQG+BBU7UrO+coE8lUf
+   artifact: /.*\.nupkg/
+   on:
+     branch: Core

@@ -1,4 +1,4 @@
-# Set up everything for using the dotnet cli. This means we do not have to wait for Appveyor images to be updated.
+# Set up everything for using the dotnet cli. This should mean we do not have to wait for Appveyor images to be updated.
 
 # Clean and recreate the folder in which all output packages should be placed
 $ArtifactsPath = "artifacts"

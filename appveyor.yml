@@ -2,7 +2,7 @@ version: v1.0.0.{build}
 os: Visual Studio 2015
 
 init:
-- ps: .\dotnet-latest.ps1
+- ps: & dotnet-latest.ps1
 - cmd: >-
     set PATH=C:\Program Files\dotnet\bin;%PATH%
 

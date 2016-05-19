@@ -159,6 +159,29 @@ namespace ImageProcessorCore
         }
 
         /// <summary>
+        /// Rotates a point around a given a rotation matrix.
+        /// </summary>
+        /// <param name="point">The point to rotate</param>
+        /// <param name="rotation">Rotation matrix used</param>
+        /// <returns></returns>
+        public static Point Rotate( Point point, Matrix3x2 rotation )
+        {
+            return new Point( Vector2.Transform( point.backingVector, rotation ) );
+        }
+
+        /// <summary>
+        /// Creates a rotation matrix for
+        /// </summary>
+        /// <param name="origion">The origin point to rotate around</param>
+        /// <param name="degrees">Rotation in degrees</param>
+        /// <returns></returns>
+        public static Matrix3x2 CreateRotatation( Point origin, float degrees )
+        {
+            float radians = (float)ImageMaths.DegreesToRadians( degrees );
+            return Matrix3x2.CreateRotation( radians, origin.backingVector );
+        }
+
+        /// <summary>
         /// Rotates a point around a given origin by the specified angle in degrees.
         /// </summary>
         /// <param name="point">The point to rotate</param>

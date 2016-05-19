@@ -3,6 +3,8 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+using System.Numerics;
+
 namespace ImageProcessorCore.Samplers
 {
     using System.Threading.Tasks;
@@ -62,6 +64,8 @@ namespace ImageProcessorCore.Samplers
             float widthFactor = source.Width / (float)target.Width;
             float heightFactor = source.Height / (float)target.Height;
 
+            Matrix3x2 rotation = Point.CreateRotatation( centre, negativeAngle );
+
             Parallel.For(
                 startY,
                 endY,
@@ -78,7 +82,7 @@ namespace ImageProcessorCore.Samplers
                             int originX = (int)((x - startX) * widthFactor);
 
                             // Rotate at the centre point
-                            Point rotated = Point.Rotate(new Point(originX, originY), centre, negativeAngle);
+                            Point rotated = Point.Rotate(new Point(originX, originY), rotation);
                             if (sourceRectangle.Contains(rotated.X, rotated.Y))
                             {
                                 target[x, y] = source[rotated.X, rotated.Y];

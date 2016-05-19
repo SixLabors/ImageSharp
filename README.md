@@ -35,10 +35,10 @@ We already have a [MyGet package repository](https://www.myget.org/gallery/image
 If you prefer, you can compile ImageProcessorCore yourself (please do and help!), you'll need:
 
 - Visual Studio 2015 (or above)
-- The [Windows 10 development tools](https://dev.windows.com/en-us/downloads) - Click `Get Visual Studio Community`.
-- Dnvm and Dnx installed
-
-To install the last two please see the instructions at the [DotNet documentation](http://dotnet.readthedocs.org/en/latest/getting-started/installing-core-windows.html)
+- The [.NET Core SDK Installer
+(Preview 1)](https://www.microsoft.com/net/download) - Click `.NET Core SDK Installer
+(Preview 1)`
+- The [.NET Core Tooling Preview 1 for Visual Studio 2015](https://dev.windows.com/en-us/downloads) - Click `.NET Core Tooling Preview 1 for Visual Studio 2015`.
 
 To clone it locally click the "Clone in Windows" button above or run the following git commands.
 

@@ -5,37 +5,27 @@
   "authors": [
     "James Jackson-South and contributors"
   ],
-  "tags": [
-    "Image Resize Crop Quality Gif Jpg Jpeg Bitmap Png Fluent Animated"
-  ],
-  "compilationOptions": {
-    "allowUnsafe": true
+  "packOptions": {
+    "projectUrl": "https://github.com/JimBobSquarePants/ImageProcessor",
+    "licenseUrl": "http://www.apache.org/licenses/LICENSE-2.0",
+    "tags": [
+      "Image Resize Crop Quality Gif Jpg Jpeg Bitmap Png Fluent Animated"
+    ]
   },
-  "projectUrl": "https://github.com/JimBobSquarePants/ImageProcessor",
-  "licenseUrl": "http://www.apache.org/licenses/LICENSE-2.0",
+  "buildOptions": {
+    "allowUnsafe": true,
+    "debugType": "portable"
+  },
+  "dependencies": {
+    "NETStandard.Library": "1.5.0-rc2-24027",
+    "System.Numerics.Vectors": "4.1.1-rc2-24027"
+  },
   "frameworks": {
-    "dotnet5.5": {
+    "netstandard1.1": {
       "dependencies": {
-        "System.Collections": "4.0.11-beta-23516",
-        "System.Linq": "4.0.1-beta-23516",
-        "System.Threading": "4.0.11-beta-23516",
-        "System.Runtime": "4.0.21-beta-23516",
-        "Microsoft.CSharp": "4.0.1-beta-23516",
-        "Microsoft.NETCore.Portable.Compatibility": "1.0.1-beta-23516",
-        "System.Runtime.Extensions": "4.0.11-beta-23516",
-        "System.Reflection": "4.1.0-beta-23516",
-        "System.IO": "4.0.11-beta-23516",
-        "Microsoft.NETCore": "5.0.1-beta-23516",
-        "Microsoft.NETCore.Platforms": "1.0.1-beta-23516"
-      }
-    },
-    "net451": {
-      "dependencies": {
-        "System.Numerics.Vectors": "4.0.0",
-        "System.Runtime": "4.0.0"
-      },
-      "frameworkAssemblies": {
-        "System.Runtime": "4.0.0"
+        "System.Threading": "4.0.11-rc2-24027",
+        "System.Threading.Tasks": "4.0.11-rc2-24027",
+        "System.Threading.Tasks.Parallel": "4.0.1-rc2-24027"
       }
     }
   }

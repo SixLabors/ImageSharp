@@ -1,6 +1,15 @@
 version: v1.0.0.{build}
 os: Visual Studio 2015
 
+install:
+# Use the install script to grab the latest dotnet install
+- ps: iex .\dotnet-latest.ps1
+
+# Prepend newly installed Python to the PATH of this build (this cannot be
+  # done from inside the powershell script as it would require to restart
+  # the parent CMD process).
+- "SET PATH=C:\\Program Files\\dotnet\\bin;%PATH%"
+
 assembly_info:
   patch: true
   file: '**\AssemblyInfo.*'
@@ -9,17 +18,7 @@ assembly_info:
 
 before_build:
 - cmd: >-
-    dnvm install 1.0.0-rc1-update1 -r clr
-
-    dnvm install 1.0.0-rc1-update1 -r coreclr -arch x64 -alias x64
-
-    dnvm use 1.0.0-rc1-update1 -r coreclr -a x64
-
-    dnvm list
-
-    dnu restore src\ImageProcessorCore
-
-    dnu restore tests\ImageProcessorCore.Tests
+    dotnet restore src\ImageProcessorCore
 
     cd build
 
@@ -31,19 +30,10 @@ before_build:
 
 build_script:
 - cmd: >-
-    dnu build src\ImageProcessorCore
+    dotnet pack src\ImageProcessorCore --configuration Release --output "artifacts\bin\ImageProcessorCore"
 
-    dnu build tests\ImageProcessorCore.Tests
+test: off
 
-    dnu pack src\ImageProcessorCore --configuration Release --out "artifacts\bin\ImageProcessorCore"
-
-test_script:
-- cmd: >-
-    dnvm use 1.0.0-rc1-update1 -r coreclr -a x64
-
-    cd tests/ImageProcessorCore.Tests
-
-    dnx test
 artifacts:
 - path: artifacts\bin\ImageProcessorCore\**\*.nupkg
 

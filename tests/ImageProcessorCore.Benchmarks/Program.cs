@@ -11,7 +11,7 @@
     {
         public static void Main(string[] args)
         {
-            //Use reflection for a more maintainable way of creating the benchmark switcher,
+            // Use reflection for a more maintainable way of creating the benchmark switcher,
             Type[] benchmarks = typeof(Program).Assembly.GetTypes()
                 .Where(t => t.GetMethods(BindingFlags.Instance | BindingFlags.Public)
                                 .Any(m => m.GetCustomAttributes(typeof(BenchmarkAttribute), false).Any()))

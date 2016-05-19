@@ -1,10 +1,14 @@
 version: v1.0.0.{build}
 os: Visual Studio 2015
 
-init:
+install:
+# Use the install script to grab the latest dotnet install
 - ps: iex .\dotnet-latest.ps1
-- cmd: >-
-    set PATH=C:\Program Files\dotnet\bin;%PATH%
+
+# Prepend newly installed Python to the PATH of this build (this cannot be
+  # done from inside the powershell script as it would require to restart
+  # the parent CMD process).
+- "SET PATH=C:\\Program Files\\dotnet\\bin;%PATH%"
 
 assembly_info:
   patch: true

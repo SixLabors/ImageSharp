@@ -44,7 +44,7 @@ deploy:
     # MyGet Deployment for builds & releases
  - provider: NuGet
    server: https://www.myget.org/F/imageprocessor/api/v2/package
-   symbol_server: https://nuget.symbolsource.org/MyGet/imageprocessor
+   # symbol_server: https://nuget.symbolsource.org/MyGet/imageprocessor
    api_key:
      secure: fz0rUrt3B1HczUC1ZehwVsrFSWX9WZGDQoueDztLte9/+yQG+BBU7UrO+coE8lUf
    artifact: /.*\.nupkg/

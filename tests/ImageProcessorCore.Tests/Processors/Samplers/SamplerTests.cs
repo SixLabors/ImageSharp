@@ -141,7 +141,7 @@
                 Directory.CreateDirectory("TestOutput/Resize");
             }
 
-            var name = "FixedHeight";
+            string name = "FixedHeight";
 
             foreach (string file in Files)
             {
@@ -160,6 +160,73 @@
                     Trace.WriteLine($"{name}: {watch.ElapsedMilliseconds}ms");
                 }
             }
+        }
+
+        [Fact]
+        public void ImageShouldResizeWithCropMode()
+        {
+            if (!Directory.Exists("TestOutput/ResizeCrop"))
+            {
+                Directory.CreateDirectory("TestOutput/ResizeCrop");
+            }
+
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    Stopwatch watch = Stopwatch.StartNew();
+                    string filename = Path.GetFileName(file);
+
+                    using (Image image = new Image(stream))
+                    using (FileStream output = File.OpenWrite($"TestOutput/ResizeCrop/{filename}"))
+                    {
+                        ResizeOptions options = new ResizeOptions()
+                        {
+                            Size = new Size(image.Width / 2, image.Height)
+                        };
+
+                        image.Resize(options, this.ProgressUpdate)
+                             .Save(output);
+                    }
+
+                    Trace.WriteLine($"{filename}: {watch.ElapsedMilliseconds}ms");
+                }
+            }
+
+        }
+
+        [Fact]
+        public void ImageShouldResizeWithPadMode()
+        {
+            if (!Directory.Exists("TestOutput/ResizePad"))
+            {
+                Directory.CreateDirectory("TestOutput/ResizePad");
+            }
+
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    Stopwatch watch = Stopwatch.StartNew();
+                    string filename = Path.GetFileName(file);
+
+                    using (Image image = new Image(stream))
+                    using (FileStream output = File.OpenWrite($"TestOutput/ResizePad/{filename}"))
+                    {
+                        ResizeOptions options = new ResizeOptions()
+                        {
+                            Size = new Size(image.Width + 200, image.Height),
+                            Mode = ResizeMode.Pad
+                        };
+
+                        image.Resize(options, this.ProgressUpdate)
+                             .Save(output);
+                    }
+
+                    Trace.WriteLine($"{filename}: {watch.ElapsedMilliseconds}ms");
+                }
+            }
+
         }
 
         [Theory]
@@ -281,7 +348,7 @@
             {
                 using (FileStream stream = File.OpenRead(file))
                 {
-                    
+
                     string filename = Path.GetFileNameWithoutExtension(file) + "-Crop" + Path.GetExtension(file);
 
                     using (Image image = new Image(stream))

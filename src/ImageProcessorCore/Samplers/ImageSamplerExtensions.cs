@@ -83,6 +83,32 @@ namespace ImageProcessorCore.Samplers
         }
 
         /// <summary>
+        /// Resizes an image in accordance with the given <see cref="ResizeOptions"/>.
+        /// </summary>
+        /// <param name="source">The image to resize.</param>
+        /// <param name="options">The resize options.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
+        /// <returns>The <see cref="Image"/></returns>
+        /// <remarks>Passing zero for one of height or width within the resize options will automatically preserve the aspect ratio of the original image</remarks>
+        public static Image Resize(this Image source, ResizeOptions options, ProgressEventHandler progressHandler = null)
+        {
+            // Ensure size is populated acros both dimensions.
+            if (options.Size.Width == 0 && options.Size.Height > 0)
+            {
+                options.Size = new Size(source.Width * options.Size.Height / source.Height, options.Size.Height);
+            }
+
+            if (options.Size.Height == 0 && options.Size.Width > 0)
+            {
+                options.Size = new Size(options.Size.Width, source.Height * options.Size.Width / source.Width);
+            }
+
+            Rectangle targetRectangle = ResizeHelper.CalculateTargetLocationAndBounds(source, options);
+
+            return Resize(source, options.Size.Width, options.Size.Height, options.Sampler, source.Bounds, targetRectangle, options.Compand, progressHandler);
+        }
+
+        /// <summary>
         /// Resizes an image to the given width and height.
         /// </summary>
         /// <param name="source">The image to resize.</param>
@@ -124,7 +150,7 @@ namespace ImageProcessorCore.Samplers
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
         public static Image Resize(this Image source, int width, int height, IResampler sampler, bool compand, ProgressEventHandler progressHandler = null)
         {
-            return Resize(source, width, height, sampler, source.Bounds, compand, progressHandler);
+            return Resize(source, width, height, sampler, source.Bounds, new Rectangle(0, 0, width, height), compand, progressHandler);
         }
 
         /// <summary>
@@ -138,11 +164,14 @@ namespace ImageProcessorCore.Samplers
         /// <param name="sourceRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
+        /// <param name="targetRectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the target image object to draw to.
+        /// </param>
         /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
-        public static Image Resize(this Image source, int width, int height, IResampler sampler, Rectangle sourceRectangle, bool compand = false, ProgressEventHandler progressHandler = null)
+        public static Image Resize(this Image source, int width, int height, IResampler sampler, Rectangle sourceRectangle, Rectangle targetRectangle, bool compand = false, ProgressEventHandler progressHandler = null)
         {
             if (width == 0 && height > 0)
             {
@@ -159,7 +188,7 @@ namespace ImageProcessorCore.Samplers
 
             try
             {
-                return source.Process(width, height, sourceRectangle, new Rectangle(0, 0, width, height), processor);
+                return source.Process(width, height, sourceRectangle, targetRectangle, processor);
             }
             finally
             {

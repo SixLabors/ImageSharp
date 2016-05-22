@@ -93,9 +93,13 @@ namespace ImageProcessorCore
                     sourceRectangle = source.Bounds;
                 }
 
-                this.OnApply(source, target, target.Bounds, sourceRectangle);
+                if (targetRectangle == Rectangle.Empty)
+                {
+                    targetRectangle = target.Bounds;
+                }
 
-                targetRectangle = target.Bounds;
+                this.OnApply(source, target, targetRectangle, sourceRectangle);
+
                 this.numRowsProcessed = 0;
                 this.totalRows = targetRectangle.Bottom;
 

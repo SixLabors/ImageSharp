@@ -191,6 +191,14 @@ namespace ImageProcessorCore
             this.Width = width;
             this.Height = height;
 
+            // Ensure nothing is preserved if previously allocated.
+            if (this.pixelsHandle.IsAllocated)
+            {
+                this.pixelsArray = null;
+                this.pixelsHandle.Free();
+                this.pixelsBase = null;
+            }
+
             this.pixelsArray = pixels;
             this.pixelsHandle = GCHandle.Alloc(this.pixelsArray, GCHandleType.Pinned);
             this.pixelsBase = (float*)this.pixelsHandle.AddrOfPinnedObject().ToPointer();

@@ -215,7 +215,8 @@
                         ResizeOptions options = new ResizeOptions()
                         {
                             Size = new Size(image.Width , image.Height + 200),
-                            Mode = ResizeMode.Pad
+                            Mode = ResizeMode.Pad,
+                            Sampler = new NearestNeighborResampler()
                         };
 
                         image.Resize(options, this.ProgressUpdate)

@@ -69,26 +69,21 @@ namespace ImageProcessorCore.Samplers
             }
 
             int targetY = this.cropRectangle.Y;
-            int startX = targetRectangle.X;
-            int targetX = this.cropRectangle.X;
-            int endX = this.cropRectangle.Width;
-            int maxX = this.cropRectangle.Right - 1;
-            int maxY = this.cropRectangle.Bottom - 1;
+            int targetBottom = this.cropRectangle.Bottom;
+            int startX = this.cropRectangle.X;
+            int endX = this.cropRectangle.Right;
 
             Parallel.For(
             startY,
             endY,
             y =>
             {
-                for (int x = startX; x < endX; x++)
+                if (y >= targetY && y < targetBottom)
                 {
-                    int offsetY = y + targetY;
-                    offsetY = offsetY.Clamp(0, maxY);
-
-                    int offsetX = x + targetX;
-                    offsetX = offsetX.Clamp(0, maxX);
-
-                    target[x, y] = source[offsetX, offsetY];
+                    for (int x = startX; x < endX; x++)
+                    {
+                        target[x - startX, y - targetY] = source[x, y];
+                    }
                 }
 
                 this.OnRowProcessed();

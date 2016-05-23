@@ -28,8 +28,13 @@ namespace ImageProcessorCore.Samplers
             {
                 case ResizeMode.Pad:
                     return CalculatePadRectangle(source, options);
+                case ResizeMode.BoxPad:
+                    return CalculateBoxPadRectangle(source, options);
+                case ResizeMode.Max:
+                    return CalculateMaxRectangle(source, options);
+                case ResizeMode.Min:
+                    return CalculateMinRectangle(source, options);
 
-                // TODO: Additional modes
                 // Default case ResizeMode.Crop
                 default:
                     return CalculateCropRectangle(source, options);
@@ -230,6 +235,173 @@ namespace ImageProcessorCore.Samplers
             }
 
             return new Rectangle(destinationX, destinationY, destinationWidth, destinationHeight);
+        }
+
+        /// <summary>
+        /// Calculates the target rectangle for box pad mode.
+        /// </summary>
+        /// <param name="source">The source image.</param>
+        /// <param name="options">The resize options.</param>
+        /// <returns>
+        /// The <see cref="Rectangle"/>.
+        /// </returns>
+        private static Rectangle CalculateBoxPadRectangle(ImageBase source, ResizeOptions options)
+        {
+            int width = options.Size.Width;
+            int height = options.Size.Height;
+
+            if (width <= 0 || height <= 0)
+            {
+                return new Rectangle(0, 0, source.Width, source.Height);
+            }
+
+            int sourceWidth = source.Width;
+            int sourceHeight = source.Height;
+
+            // Fractional variants for preserving aspect ratio.
+            double percentHeight = Math.Abs(height / (double)sourceHeight);
+            double percentWidth = Math.Abs(width / (double)sourceWidth);
+
+            int boxPadHeight = height > 0 ? height : Convert.ToInt32(sourceHeight * percentWidth);
+            int boxPadWidth = width > 0 ? width : Convert.ToInt32(sourceWidth * percentHeight);
+
+            // Only calculate if upscaling. 
+            if (sourceWidth < boxPadWidth && sourceHeight < boxPadHeight)
+            {
+                int destinationX;
+                int destinationY;
+                int destinationWidth = sourceWidth;
+                int destinationHeight = sourceHeight;
+                width = boxPadWidth;
+                height = boxPadHeight;
+
+                switch (options.Position)
+                {
+                    case AnchorPosition.Left:
+                        destinationY = (height - sourceHeight) / 2;
+                        destinationX = 0;
+                        break;
+                    case AnchorPosition.Right:
+                        destinationY = (height - sourceHeight) / 2;
+                        destinationX = width - sourceWidth;
+                        break;
+                    case AnchorPosition.TopRight:
+                        destinationY = 0;
+                        destinationX = width - sourceWidth;
+                        break;
+                    case AnchorPosition.Top:
+                        destinationY = 0;
+                        destinationX = (width - sourceWidth) / 2;
+                        break;
+                    case AnchorPosition.TopLeft:
+                        destinationY = 0;
+                        destinationX = 0;
+                        break;
+                    case AnchorPosition.BottomRight:
+                        destinationY = height - sourceHeight;
+                        destinationX = width - sourceWidth;
+                        break;
+                    case AnchorPosition.Bottom:
+                        destinationY = height - sourceHeight;
+                        destinationX = (width - sourceWidth) / 2;
+                        break;
+                    case AnchorPosition.BottomLeft:
+                        destinationY = height - sourceHeight;
+                        destinationX = 0;
+                        break;
+                    default:
+                        destinationY = (height - sourceHeight) / 2;
+                        destinationX = (width - sourceWidth) / 2;
+                        break;
+                }
+
+                return new Rectangle(destinationX, destinationY, destinationWidth, destinationHeight);
+            }
+
+            // Switch to pad mode to downscale and calculate from there. 
+            return CalculatePadRectangle(source, options);
+        }
+
+        /// <summary>
+        /// Calculates the target rectangle for max mode.
+        /// </summary>
+        /// <param name="source">The source image.</param>
+        /// <param name="options">The resize options.</param>
+        /// <returns>
+        /// The <see cref="Rectangle"/>.
+        /// </returns>
+        private static Rectangle CalculateMaxRectangle(ImageBase source, ResizeOptions options)
+        {
+            int width = options.Size.Width;
+            int height = options.Size.Height;
+            int destinationWidth = width;
+            int destinationHeight = height;
+
+            // Fractional variants for preserving aspect ratio.
+            double percentHeight = Math.Abs(height / (double)source.Height);
+            double percentWidth = Math.Abs(width / (double)source.Width);
+
+            // Integers must be cast to doubles to get needed precision
+            double ratio = (double)options.Size.Height / options.Size.Width;
+            double sourceRatio = (double)source.Height / source.Width;
+
+            if (sourceRatio < ratio)
+            {
+                destinationHeight = Convert.ToInt32(source.Height * percentWidth);
+            }
+            else
+            {
+                destinationWidth = Convert.ToInt32(source.Width * percentHeight);
+            }
+
+            return new Rectangle(0, 0, destinationWidth, destinationHeight);
+        }
+
+        /// <summary>
+        /// Calculates the target rectangle for min mode.
+        /// </summary>
+        /// <param name="source">The source image.</param>
+        /// <param name="options">The resize options.</param>
+        /// <returns>
+        /// The <see cref="Rectangle"/>.
+        /// </returns>
+        private static Rectangle CalculateMinRectangle(ImageBase source, ResizeOptions options)
+        {
+            int width = options.Size.Width;
+            int height = options.Size.Height;
+            int destinationWidth;
+            int destinationHeight;
+
+            // Fractional variants for preserving aspect ratio.
+            double percentHeight = Math.Abs(height / (double)source.Height);
+            double percentWidth = Math.Abs(width / (double)source.Width);
+
+            height = height > 0 ? height : Convert.ToInt32(source.Height * percentWidth);
+            width = width > 0 ? width : Convert.ToInt32(source.Width * percentHeight);
+
+            double sourceRatio = (double)source.Height / source.Width;
+
+            // Find the shortest distance to go.
+            int widthDiff = source.Width - width;
+            int heightDiff = source.Height - height;
+
+            if (widthDiff < heightDiff)
+            {
+                destinationHeight = Convert.ToInt32(width * sourceRatio);
+                destinationWidth = width;
+            }
+            else if (widthDiff > heightDiff)
+            {
+                destinationHeight = height;
+                destinationWidth = Convert.ToInt32(height / sourceRatio);
+            }
+            else
+            {
+                destinationWidth = width;
+                destinationHeight = height;
+            }
+
+            return new Rectangle(0, 0, destinationWidth, destinationHeight);
         }
     }
 }

@@ -182,7 +182,7 @@
                     {
                         ResizeOptions options = new ResizeOptions()
                         {
-                            Size = new Size(image.Width / 2, image.Height)
+                            Size = new Size(image.Width , image.Height / 2)
                         };
 
                         image.Resize(options, this.ProgressUpdate)
@@ -192,7 +192,6 @@
                     Trace.WriteLine($"{filename}: {watch.ElapsedMilliseconds}ms");
                 }
             }
-
         }
 
         [Fact]
@@ -215,7 +214,7 @@
                     {
                         ResizeOptions options = new ResizeOptions()
                         {
-                            Size = new Size(image.Width + 200, image.Height),
+                            Size = new Size(image.Width , image.Height + 200),
                             Mode = ResizeMode.Pad
                         };
 
@@ -226,7 +225,105 @@
                     Trace.WriteLine($"{filename}: {watch.ElapsedMilliseconds}ms");
                 }
             }
+        }
 
+        [Fact]
+        public void ImageShouldResizeWithBoxPadMode()
+        {
+            if (!Directory.Exists("TestOutput/ResizeBoxPad"))
+            {
+                Directory.CreateDirectory("TestOutput/ResizeBoxPad");
+            }
+
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    Stopwatch watch = Stopwatch.StartNew();
+                    string filename = Path.GetFileName(file);
+
+                    using (Image image = new Image(stream))
+                    using (FileStream output = File.OpenWrite($"TestOutput/ResizeBoxPad/{filename}"))
+                    {
+                        ResizeOptions options = new ResizeOptions()
+                        {
+                            Size = new Size(image.Width + 200, image.Height + 200),
+                            Mode = ResizeMode.BoxPad
+                        };
+
+                        image.Resize(options, this.ProgressUpdate)
+                             .Save(output);
+                    }
+
+                    Trace.WriteLine($"{filename}: {watch.ElapsedMilliseconds}ms");
+                }
+            }
+        }
+
+        [Fact]
+        public void ImageShouldResizeWithMaxMode()
+        {
+            if (!Directory.Exists("TestOutput/ResizeMax"))
+            {
+                Directory.CreateDirectory("TestOutput/ResizeMax");
+            }
+
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    Stopwatch watch = Stopwatch.StartNew();
+                    string filename = Path.GetFileName(file);
+
+                    using (Image image = new Image(stream))
+                    using (FileStream output = File.OpenWrite($"TestOutput/ResizeMax/{filename}"))
+                    {
+                        ResizeOptions options = new ResizeOptions()
+                        {
+                            Size = new Size(image.Width + 200, image.Height),
+                            Mode = ResizeMode.Max
+                        };
+
+                        image.Resize(options, this.ProgressUpdate)
+                             .Save(output);
+                    }
+
+                    Trace.WriteLine($"{filename}: {watch.ElapsedMilliseconds}ms");
+                }
+            }
+        }
+
+        [Fact]
+        public void ImageShouldResizeWithMinMode()
+        {
+            if (!Directory.Exists("TestOutput/ResizeMin"))
+            {
+                Directory.CreateDirectory("TestOutput/ResizeMin");
+            }
+
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    Stopwatch watch = Stopwatch.StartNew();
+                    string filename = Path.GetFileName(file);
+
+                    using (Image image = new Image(stream))
+                    using (FileStream output = File.OpenWrite($"TestOutput/ResizeMin/{filename}"))
+                    {
+                        ResizeOptions options = new ResizeOptions()
+                        {
+                            Size = new Size(image.Width + 200, image.Height),
+                            Mode = ResizeMode.Min
+                        };
+
+                        image.Resize(options, this.ProgressUpdate)
+                             .Save(output);
+                    }
+
+                    Trace.WriteLine($"{filename}: {watch.ElapsedMilliseconds}ms");
+                }
+            }
         }
 
         [Theory]

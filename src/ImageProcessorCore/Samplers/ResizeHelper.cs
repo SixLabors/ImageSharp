@@ -26,6 +26,8 @@ namespace ImageProcessorCore.Samplers
         {
             switch (options.Mode)
             {
+                case ResizeMode.Crop:
+                    return CalculateCropRectangle(source, options);
                 case ResizeMode.Pad:
                     return CalculatePadRectangle(source, options);
                 case ResizeMode.BoxPad:
@@ -35,9 +37,9 @@ namespace ImageProcessorCore.Samplers
                 case ResizeMode.Min:
                     return CalculateMinRectangle(source, options);
 
-                // Default case ResizeMode.Crop
+                // Last case ResizeMode.Stretch:
                 default:
-                    return CalculateCropRectangle(source, options);
+                    return CalculateStretchRectangle(source, options);
             }
         }
 
@@ -348,12 +350,16 @@ namespace ImageProcessorCore.Samplers
             if (sourceRatio < ratio)
             {
                 destinationHeight = Convert.ToInt32(source.Height * percentWidth);
+                height = destinationHeight;
             }
             else
             {
                 destinationWidth = Convert.ToInt32(source.Width * percentHeight);
+                width = destinationWidth;
             }
 
+            // Replace the size to match the rectangle.
+            options.Size = new Size(width, height);
             return new Rectangle(0, 0, destinationWidth, destinationHeight);
         }
 
@@ -372,12 +378,12 @@ namespace ImageProcessorCore.Samplers
             int destinationWidth;
             int destinationHeight;
 
-            // Fractional variants for preserving aspect ratio.
-            double percentHeight = Math.Abs(height / (double)source.Height);
-            double percentWidth = Math.Abs(width / (double)source.Width);
-
-            height = height > 0 ? height : Convert.ToInt32(source.Height * percentWidth);
-            width = width > 0 ? width : Convert.ToInt32(source.Width * percentHeight);
+            // Don't upscale
+            if (width > source.Width || height > source.Height)
+            {
+                options.Size = new Size(source.Width, source.Height);
+                return new Rectangle(0, 0, source.Width, source.Height);
+            }
 
             double sourceRatio = (double)source.Height / source.Width;
 
@@ -401,7 +407,22 @@ namespace ImageProcessorCore.Samplers
                 destinationHeight = height;
             }
 
+            // Replace the size to match the rectangle.
+            options.Size = new Size(width, height);
             return new Rectangle(0, 0, destinationWidth, destinationHeight);
+        }
+
+        /// <summary>
+        /// Calculates the target rectangle for stretch mode.
+        /// </summary>
+        /// <param name="source">The source image.</param>
+        /// <param name="options">The resize options.</param>
+        /// <returns>
+        /// The <see cref="Rectangle"/>.
+        /// </returns>
+        private static Rectangle CalculateStretchRectangle(ImageBase source, ResizeOptions options)
+        {
+            return new Rectangle(0, 0, options.Size.Width, options.Size.Height);
         }
     }
 }

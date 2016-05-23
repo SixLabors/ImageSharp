@@ -56,8 +56,10 @@ namespace ImageProcessorCore.Samplers
             int width = target.Width;
             int height = target.Height;
             int sourceHeight = sourceRectangle.Height;
-            int targetY = targetRectangle.Y;
-            int targetBottom = targetRectangle.Bottom;
+            int targetX = target.Bounds.X;
+            int targetY = target.Bounds.Y;
+            int targetRight = target.Bounds.Right;
+            int targetBottom = target.Bounds.Bottom;
             int startX = targetRectangle.X;
             int endX = targetRectangle.Right;
             bool compand = this.Compand;
@@ -65,25 +67,28 @@ namespace ImageProcessorCore.Samplers
             if (this.Sampler is NearestNeighborResampler)
             {
                 // Scaling factors
-                float widthFactor = source.Width / (float)target.Width;
-                float heightFactor = source.Height / (float)target.Height;
+                float widthFactor = sourceRectangle.Width / (float)targetRectangle.Width;
+                float heightFactor = sourceRectangle.Height / (float)targetRectangle.Height;
 
                 Parallel.For(
                     startY,
                     endY,
                     y =>
                     {
-                        if (y >= targetY && y < targetBottom)
+                        if (targetY <= y && y < targetBottom)
                         {
                             // Y coordinates of source points
-                            int originY = (int)((y - targetY) * heightFactor);
+                            int originY = (int)((y - startY) * heightFactor);
 
                             for (int x = startX; x < endX; x++)
                             {
-                                // X coordinates of source points
-                                int originX = (int)((x - startX) * widthFactor);
+                                if (targetX <= x && x < targetRight)
+                                {
+                                    // X coordinates of source points
+                                    int originX = (int)((x - startX) * widthFactor);
 
-                                target[x, y] = source[originX, originY];
+                                    target[x, y] = source[originX, originY];
+                                }
                             }
 
                             this.OnRowProcessed();

@@ -6,6 +6,7 @@
 namespace ImageProcessorCore
 {
     using System;
+    using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
 
     /// <summary>
@@ -134,7 +135,7 @@ namespace ImageProcessorCore
         public int FrameDelay { get; set; }
 
         /// <inheritdoc/>
-        public Color this[int x, int y]
+        public Color this[int x, int y, [CallerLineNumber] int line = 0]
         {
             get
             {

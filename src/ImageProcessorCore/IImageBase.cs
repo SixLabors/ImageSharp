@@ -6,6 +6,7 @@
 namespace ImageProcessorCore
 {
     using System;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Encapsulates the basic properties and methods required to manipulate images.
@@ -67,7 +68,7 @@ namespace ImageProcessorCore
         /// than zero and smaller than the width of the pixel.
         /// </param>
         /// <returns>The <see cref="Color"/> at the specified position.</returns>
-        Color this[int x, int y] { get; set; }
+        Color this[int x, int y, [CallerLineNumber] int line = 0] { get; set; }
 
         /// <summary>
         /// Sets the pixel array of the image to the given value.

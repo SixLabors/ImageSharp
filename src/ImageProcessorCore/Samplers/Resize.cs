@@ -5,7 +5,6 @@
 
 namespace ImageProcessorCore.Samplers
 {
-    using System;
     using System.Threading.Tasks;
 
     /// <summary>
@@ -56,6 +55,7 @@ namespace ImageProcessorCore.Samplers
 
             int width = target.Width;
             int height = target.Height;
+            int sourceHeight = sourceRectangle.Height;
             int targetY = targetRectangle.Y;
             int targetBottom = targetRectangle.Bottom;
             int startX = targetRectangle.X;
@@ -103,9 +103,11 @@ namespace ImageProcessorCore.Samplers
                 endY,
                 y =>
                 {
+                    // Ensure offsets are normalised for cropping and padding.
+                    int offsetY = y - startY;
+
                     for (int x = startX; x < endX; x++)
                     {
-                        // Ensure offsets are normalised for cropping and padding.
                         int offsetX = x - startX;
 
                         float sum = this.HorizontalWeights[offsetX].Sum;
@@ -118,7 +120,7 @@ namespace ImageProcessorCore.Samplers
                         {
                             Weight xw = horizontalValues[i];
                             int originX = xw.Index;
-                            Color sourceColor = compand ? Color.Expand(source[originX, y]) : source[originX, y];
+                            Color sourceColor = compand ? Color.Expand(source[originX, offsetY]) : source[originX, offsetY];
                             destination += sourceColor * xw.Value;
                         }
 
@@ -127,9 +129,9 @@ namespace ImageProcessorCore.Samplers
                             destination = Color.Compress(destination);
                         }
 
-                        if (x >= 0 && x < width)
+                        if (x >= 0 && x < width && offsetY >= 0 && offsetY < sourceHeight)
                         {
-                            this.firstPass[x, y] = destination;
+                            this.firstPass[x, offsetY] = destination;
                         }
                     }
                 });
@@ -142,7 +144,6 @@ namespace ImageProcessorCore.Samplers
                 {
                     // Ensure offsets are normalised for cropping and padding.
                     int offsetY = y - startY;
-
                     float sum = this.VerticalWeights[offsetY].Sum;
                     Weight[] verticalValues = this.VerticalWeights[offsetY].Values;
 

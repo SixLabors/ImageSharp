@@ -40,6 +40,9 @@ namespace ImageProcessorCore.Samplers
         /// <returns>The <see cref="Image"/></returns>
         public static Image Crop(this Image source, int width, int height, Rectangle sourceRectangle, ProgressEventHandler progressHandler = null)
         {
+            Guard.MustBeGreaterThan(width, 0, nameof(width));
+            Guard.MustBeGreaterThan(height, 0, nameof(height));
+            
             if (sourceRectangle.Width < width || sourceRectangle.Height < height)
             {
                 // If the source rectangle is smaller than the target perform a
@@ -182,6 +185,9 @@ namespace ImageProcessorCore.Samplers
             {
                 height = source.Height * width / source.Width;
             }
+
+            Guard.MustBeGreaterThan(width, 0, nameof(width));
+            Guard.MustBeGreaterThan(height, 0, nameof(height));
 
             Resize processor = new Resize(sampler) { Compand = compand };
             processor.OnProgress += progressHandler;

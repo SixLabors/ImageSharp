@@ -182,7 +182,7 @@
                     {
                         ResizeOptions options = new ResizeOptions()
                         {
-                            Size = new Size(image.Width , image.Height / 2)
+                            Size = new Size(image.Width / 2, image.Height)
                         };
 
                         image.Resize(options, this.ProgressUpdate)
@@ -214,9 +214,8 @@
                     {
                         ResizeOptions options = new ResizeOptions()
                         {
-                            Size = new Size(image.Width , image.Height + 200),
-                            Mode = ResizeMode.Pad,
-                            Sampler = new NearestNeighborResampler()
+                            Size = new Size(image.Width + 200, image.Height),
+                            Mode = ResizeMode.Pad
                         };
 
                         image.Resize(options, this.ProgressUpdate)
@@ -281,8 +280,9 @@
                     {
                         ResizeOptions options = new ResizeOptions()
                         {
-                            Size = new Size(image.Width + 200, image.Height),
-                            Mode = ResizeMode.Max
+                            Size = new Size(300, 300),
+                            Mode = ResizeMode.Max,
+                            //Sampler = new NearestNeighborResampler()
                         };
 
                         image.Resize(options, this.ProgressUpdate)
@@ -314,8 +314,41 @@
                     {
                         ResizeOptions options = new ResizeOptions()
                         {
-                            Size = new Size(image.Width + 200, image.Height),
+                            Size = new Size(image.Width - 50, image.Height - 25),
                             Mode = ResizeMode.Min
+                        };
+
+                        image.Resize(options, this.ProgressUpdate)
+                             .Save(output);
+                    }
+
+                    Trace.WriteLine($"{filename}: {watch.ElapsedMilliseconds}ms");
+                }
+            }
+        }
+
+        [Fact]
+        public void ImageShouldResizeWithStretchMode()
+        {
+            if (!Directory.Exists("TestOutput/ResizeStretch"))
+            {
+                Directory.CreateDirectory("TestOutput/ResizeStretch");
+            }
+
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    Stopwatch watch = Stopwatch.StartNew();
+                    string filename = Path.GetFileName(file);
+
+                    using (Image image = new Image(stream))
+                    using (FileStream output = File.OpenWrite($"TestOutput/ResizeStretch/{filename}"))
+                    {
+                        ResizeOptions options = new ResizeOptions()
+                        {
+                            Size = new Size(image.Width - 200, image.Height),
+                            Mode = ResizeMode.Stretch
                         };
 
                         image.Resize(options, this.ProgressUpdate)

@@ -151,7 +151,7 @@ namespace ImageProcessorCore.Samplers
         protected struct Weight
         {
             /// <summary>
-            /// Initializes a new instance of the <see cref="Weight"/> class.
+            /// Initializes a new instance of the <see cref="Weight"/> struct.
             /// </summary>
             /// <param name="index">The index.</param>
             /// <param name="value">The value.</param>

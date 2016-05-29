@@ -67,6 +67,18 @@ namespace ImageProcessorCore.Formats
                 this.ReadFileHeader();
                 this.ReadInfoHeader();
 
+                // see http://www.drdobbs.com/architecture-and-design/the-bmp-file-format-part-1/184409517
+                // If the height is negative, then this is a Windows bitmap whose origin
+                // is the upper-left corner and not the lower-left.The inverted flag
+                // indicates a lower-left origin.Our code will be outputting an
+                // upper-left origin pixel array.
+                bool inverted = false;
+                if (this.infoHeader.Height < 0)
+                {
+                    inverted = true;
+                    this.infoHeader.Height = -this.infoHeader.Height;
+                }
+
                 int colorMapSize = -1;
 
                 if (this.infoHeader.ClrUsed == 0)
@@ -118,15 +130,15 @@ namespace ImageProcessorCore.Formats
 
                         if (this.infoHeader.BitsPerPixel == 32)
                         {
-                            this.ReadRgb32(imageData, this.infoHeader.Width, this.infoHeader.Height);
+                            this.ReadRgb32(imageData, this.infoHeader.Width, this.infoHeader.Height, inverted);
                         }
                         else if (this.infoHeader.BitsPerPixel == 24)
                         {
-                            this.ReadRgb24(imageData, this.infoHeader.Width, this.infoHeader.Height);
+                            this.ReadRgb24(imageData, this.infoHeader.Width, this.infoHeader.Height, inverted);
                         }
                         else if (this.infoHeader.BitsPerPixel == 16)
                         {
-                            this.ReadRgb16(imageData, this.infoHeader.Width, this.infoHeader.Height);
+                            this.ReadRgb16(imageData, this.infoHeader.Width, this.infoHeader.Height, inverted);
                         }
                         else if (this.infoHeader.BitsPerPixel <= 8)
                         {
@@ -135,7 +147,8 @@ namespace ImageProcessorCore.Formats
                                 palette,
                                 this.infoHeader.Width,
                                 this.infoHeader.Height,
-                                this.infoHeader.BitsPerPixel);
+                                this.infoHeader.BitsPerPixel,
+                                inverted);
                         }
 
                         break;
@@ -157,11 +170,11 @@ namespace ImageProcessorCore.Formats
         /// <param name="y">The y- value representing the current row.</param>
         /// <param name="height">The height of the bitmap.</param>
         /// <returns>The <see cref="int"/> representing the inverted value.</returns>
-        private static int Invert(int y, int height)
+        private static int Invert(int y, int height, bool inverted)
         {
             int row;
 
-            if (height > 0)
+            if (!inverted)
             {
                 row = height - y - 1;
             }
@@ -181,7 +194,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="bits">The number of bits per pixel.</param>
-        private void ReadRgbPalette(float[] imageData, byte[] colors, int width, int height, int bits)
+        private void ReadRgbPalette(float[] imageData, byte[] colors, int width, int height, int bits, bool inverted)
         {
             // Pixels per byte (bits per pixel)
             int ppb = 8 / bits;
@@ -214,7 +227,7 @@ namespace ImageProcessorCore.Formats
                             int offset = rowOffset + x;
 
                             // Revert the y value, because bitmaps are saved from down to top
-                            int row = Invert(y, height);
+                            int row = Invert(y, height, inverted);
 
                             int colOffset = x * ppb;
 
@@ -240,7 +253,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="imageData">The <see cref="T:float[]"/> image data to assign the palette to.</param>
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
-        private void ReadRgb16(float[] imageData, int width, int height)
+        private void ReadRgb16(float[] imageData, int width, int height, bool inverted)
         {
             // We divide here as we will store the colors in our floating point format.
             const float ScaleR = 0.25F; // (256 / 32) / 32
@@ -257,7 +270,7 @@ namespace ImageProcessorCore.Formats
                         int rowOffset = y * ((width * 2) + alignment);
 
                         // Revert the y value, because bitmaps are saved from down to top
-                        int row = Invert(y, height);
+                        int row = Invert(y, height, inverted);
 
                         for (int x = 0; x < width; x++)
                         {
@@ -286,7 +299,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="imageData">The <see cref="T:float[]"/> image data to assign the palette to.</param>
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
-        private void ReadRgb24(float[] imageData, int width, int height)
+        private void ReadRgb24(float[] imageData, int width, int height, bool inverted)
         {
             int alignment;
             byte[] data = this.GetImageArray(width, height, 3, out alignment);
@@ -299,7 +312,7 @@ namespace ImageProcessorCore.Formats
                         int rowOffset = y * ((width * 3) + alignment);
 
                         // Revert the y value, because bitmaps are saved from down to top
-                        int row = Invert(y, height);
+                        int row = Invert(y, height, inverted);
 
                         for (int x = 0; x < width; x++)
                         {
@@ -322,7 +335,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="imageData">The <see cref="T:float[]"/> image data to assign the palette to.</param>
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
-        private void ReadRgb32(float[] imageData, int width, int height)
+        private void ReadRgb32(float[] imageData, int width, int height, bool inverted)
         {
             int alignment;
             byte[] data = this.GetImageArray(width, height, 4, out alignment);
@@ -335,7 +348,7 @@ namespace ImageProcessorCore.Formats
                         int rowOffset = y * ((width * 4) + alignment);
 
                         // Revert the y value, because bitmaps are saved from down to top
-                        int row = Invert(y, height);
+                        int row = Invert(y, height, inverted);
 
                         for (int x = 0; x < width; x++)
                         {

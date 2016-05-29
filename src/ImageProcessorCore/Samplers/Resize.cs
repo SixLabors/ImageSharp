@@ -47,7 +47,6 @@ namespace ImageProcessorCore.Samplers
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             // Jump out, we'll deal with that later.
-            // TODO: Add rectangle comparison.
             if (source.Bounds == target.Bounds && sourceRectangle == targetRectangle)
             {
                 return;
@@ -104,80 +103,77 @@ namespace ImageProcessorCore.Samplers
             // First process the columns. Since we are not using multiple threads startY and endY
             // are the upper and lower bounds of the source rectangle.
             Parallel.For(
-                startY,
-                endY,
+                0,
+                sourceHeight,
                 y =>
-                {
-                    // Ensure offsets are normalised for cropping and padding.
-                    int offsetY = y - startY;
-
-                    for (int x = startX; x < endX; x++)
                     {
-                        int offsetX = x - startX;
-
-                        float sum = this.HorizontalWeights[offsetX].Sum;
-                        Weight[] horizontalValues = this.HorizontalWeights[offsetX].Values;
-
-                        // Destination color components
-                        Color destination = new Color();
-
-                        for (int i = 0; i < sum; i++)
+                        for (int x = startX; x < endX; x++)
                         {
-                            Weight xw = horizontalValues[i];
-                            int originX = xw.Index;
-                            Color sourceColor = compand ? Color.Expand(source[originX, offsetY]) : source[originX, offsetY];
-                            destination += sourceColor * xw.Value;
-                        }
+                            if (x >= 0 && x < width)
+                            {
+                                // Ensure offsets are normalised for cropping and padding.
+                                int offsetX = x - startX;
+                                float sum = this.HorizontalWeights[offsetX].Sum;
+                                Weight[] horizontalValues = this.HorizontalWeights[offsetX].Values;
 
-                        if (compand)
-                        {
-                            destination = Color.Compress(destination);
-                        }
+                                // Destination color components
+                                Color destination = new Color();
 
-                        if (x >= 0 && x < width && offsetY >= 0 && offsetY < sourceHeight)
-                        {
-                            this.firstPass[x, offsetY] = destination;
+                                for (int i = 0; i < sum; i++)
+                                {
+                                    Weight xw = horizontalValues[i];
+                                    int originX = xw.Index;
+                                    Color sourceColor = compand ? Color.Expand(source[originX, y]) : source[originX, y];
+                                    destination += sourceColor * xw.Value;
+                                }
+
+                                if (compand)
+                                {
+                                    destination = Color.Compress(destination);
+                                }
+
+                                this.firstPass[x, y] = destination;
+                            }
                         }
-                    }
-                });
+                    });
 
             // Now process the rows.
             Parallel.For(
                 startY,
                 endY,
                 y =>
-                {
-                    // Ensure offsets are normalised for cropping and padding.
-                    int offsetY = y - startY;
-                    float sum = this.VerticalWeights[offsetY].Sum;
-                    Weight[] verticalValues = this.VerticalWeights[offsetY].Values;
-
-                    for (int x = 0; x < width; x++)
                     {
-                        // Destination color components
-                        Color destination = new Color();
-
-                        for (int i = 0; i < sum; i++)
-                        {
-                            Weight yw = verticalValues[i];
-                            int originY = yw.Index;
-                            Color sourceColor = compand ? Color.Expand(this.firstPass[x, originY]) : this.firstPass[x, originY];
-                            destination += sourceColor * yw.Value;
-                        }
-
-                        if (compand)
-                        {
-                            destination = Color.Compress(destination);
-                        }
-
                         if (y >= 0 && y < height)
                         {
-                            target[x, y] = destination;
-                        }
-                    }
+                            // Ensure offsets are normalised for cropping and padding.
+                            int offsetY = y - startY;
+                            float sum = this.VerticalWeights[offsetY].Sum;
+                            Weight[] verticalValues = this.VerticalWeights[offsetY].Values;
 
-                    this.OnRowProcessed();
-                });
+                            for (int x = 0; x < width; x++)
+                            {
+                                // Destination color components
+                                Color destination = new Color();
+
+                                for (int i = 0; i < sum; i++)
+                                {
+                                    Weight yw = verticalValues[i];
+                                    int originY = yw.Index;
+                                    Color sourceColor = compand ? Color.Expand(this.firstPass[x, originY]) : this.firstPass[x, originY];
+                                    destination += sourceColor * yw.Value;
+                                }
+
+                                if (compand)
+                                {
+                                    destination = Color.Compress(destination);
+                                }
+
+                                target[x, y] = destination;
+                            }
+                        }
+
+                        this.OnRowProcessed();
+                    });
         }
 
         /// <inheritdoc/>

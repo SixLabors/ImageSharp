@@ -394,12 +394,14 @@ namespace ImageProcessorCore.Samplers
             if (widthDiff < heightDiff)
             {
                 destinationHeight = Convert.ToInt32(width * sourceRatio);
+                height = destinationHeight;
                 destinationWidth = width;
             }
             else if (widthDiff > heightDiff)
             {
-                destinationHeight = height;
                 destinationWidth = Convert.ToInt32(height / sourceRatio);
+                destinationHeight = height;
+                width = destinationWidth;
             }
             else
             {

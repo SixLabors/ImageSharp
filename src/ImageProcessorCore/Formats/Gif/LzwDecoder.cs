@@ -100,7 +100,7 @@ namespace ImageProcessorCore.Formats
                 {
                     if (bits < codeSize)
                     {
-                        //  Load bytes until there are enough bits for a code.
+                        // Load bytes until there are enough bits for a code.
                         if (count == 0)
                         {
                             // Read a new data block.
@@ -130,7 +130,7 @@ namespace ImageProcessorCore.Formats
                     data >>= codeSize;
                     bits -= codeSize;
 
-                    //  Interpret the code
+                    // Interpret the code
                     if (code > availableCode || code == endCode)
                     {
                         break;
@@ -148,7 +148,7 @@ namespace ImageProcessorCore.Formats
 
                     if (oldCode == NullCode)
                     {
-                        pixelStatck[top++] = suffix[code]; // »ñÈ¡µ½1¸öÊý¾ÝÁ÷µÄÊý¾Ý
+                        pixelStatck[top++] = suffix[code]; 
                         oldCode = code;
                         first = code;
                         continue;
@@ -189,7 +189,7 @@ namespace ImageProcessorCore.Formats
                     oldCode = inCode;
                 }
 
-                //  Pop a pixel off the pixel stack.
+                // Pop a pixel off the pixel stack.
                 top--;
 
                 // Clear missing pixels

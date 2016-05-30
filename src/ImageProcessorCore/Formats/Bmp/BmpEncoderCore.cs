@@ -42,6 +42,7 @@ namespace ImageProcessorCore.Formats
                 rowWidth += 4 - amount;
             }
 
+            // Do not use IDisposable pattern here as we want to preserve the stream. 
             EndianBinaryWriter writer = new EndianBinaryWriter(EndianBitConverter.Little, stream);
 
             int bpp = (int)this.bmpBitsPerPixel;

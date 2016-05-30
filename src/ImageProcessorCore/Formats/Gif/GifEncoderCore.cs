@@ -56,47 +56,46 @@ namespace ImageProcessorCore.Formats
                 this.Quantizer = new OctreeQuantizer { Threshold = this.Threshold };
             }
 
-            using (EndianBinaryWriter writer = new EndianBinaryWriter(EndianBitConverter.Little, stream))
+            EndianBinaryWriter writer = new EndianBinaryWriter(EndianBitConverter.Little, stream);
+
+            // Ensure that quality can be set but has a fallback.
+            int quality = this.Quality > 0 ? this.Quality : imageBase.Quality;
+            this.Quality = quality > 0 ? quality.Clamp(1, 256) : 256;
+
+            // Get the number of bits.
+            this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(this.Quality);
+
+            // Quantize the image returning a palette.
+            QuantizedImage quantized = this.Quantizer.Quantize(image, this.Quality);
+
+            // Write the header.
+            this.WriteHeader(writer);
+
+            // Write the LSD. We'll use local color tables for now.
+            this.WriteLogicalScreenDescriptor(image, writer, quantized.TransparentIndex);
+
+            // Write the first frame.
+            this.WriteGraphicalControlExtension(imageBase, writer, quantized.TransparentIndex);
+            this.WriteImageDescriptor(image, writer);
+            this.WriteColorTable(quantized, writer);
+            this.WriteImageData(quantized, writer);
+
+            // Write additional frames.
+            if (image.Frames.Any())
             {
-                // Ensure that quality can be set but has a fallback.
-                int quality = this.Quality > 0 ? this.Quality : imageBase.Quality;
-                this.Quality = quality > 0 ? quality.Clamp(1, 256) : 256;
-
-                // Get the number of bits.
-                this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(this.Quality);
-
-                // Quantize the image returning a palette.
-                QuantizedImage quantized = this.Quantizer.Quantize(image, this.Quality);
-
-                // Write the header.
-                this.WriteHeader(writer);
-
-                // Write the LSD. We'll use local color tables for now.
-                this.WriteLogicalScreenDescriptor(image, writer, quantized.TransparentIndex);
-
-                // Write the first frame.
-                this.WriteGraphicalControlExtension(imageBase, writer, quantized.TransparentIndex);
-                this.WriteImageDescriptor(image, writer);
-                this.WriteColorTable(quantized, writer);
-                this.WriteImageData(quantized, writer);
-
-                // Write additional frames.
-                if (image.Frames.Any())
+                this.WriteApplicationExtension(writer, image.RepeatCount, image.Frames.Count);
+                foreach (ImageFrame frame in image.Frames)
                 {
-                    this.WriteApplicationExtension(writer, image.RepeatCount, image.Frames.Count);
-                    foreach (ImageFrame frame in image.Frames)
-                    {
-                        QuantizedImage quantizedFrame = this.Quantizer.Quantize(frame, this.Quality);
-                        this.WriteGraphicalControlExtension(frame, writer, quantizedFrame.TransparentIndex);
-                        this.WriteImageDescriptor(frame, writer);
-                        this.WriteColorTable(quantizedFrame, writer);
-                        this.WriteImageData(quantizedFrame, writer);
-                    }
+                    QuantizedImage quantizedFrame = this.Quantizer.Quantize(frame, this.Quality);
+                    this.WriteGraphicalControlExtension(frame, writer, quantizedFrame.TransparentIndex);
+                    this.WriteImageDescriptor(frame, writer);
+                    this.WriteColorTable(quantizedFrame, writer);
+                    this.WriteImageData(quantizedFrame, writer);
                 }
-
-                // TODO: Write Comments extension etc
-                writer.Write(GifConstants.EndIntroducer);
             }
+
+            // TODO: Write Comments extension etc
+            writer.Write(GifConstants.EndIntroducer);
         }
 
         /// <summary>

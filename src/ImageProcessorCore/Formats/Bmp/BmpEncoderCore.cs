@@ -42,35 +42,34 @@ namespace ImageProcessorCore.Formats
                 rowWidth += 4 - amount;
             }
 
-            using (EndianBinaryWriter writer = new EndianBinaryWriter(EndianBitConverter.Little, stream))
+            EndianBinaryWriter writer = new EndianBinaryWriter(EndianBitConverter.Little, stream);
+
+            int bpp = (int)this.bmpBitsPerPixel;
+
+            BmpFileHeader fileHeader = new BmpFileHeader
             {
-                int bpp = (int)this.bmpBitsPerPixel;
+                Type = 19778, // BM
+                Offset = 54,
+                FileSize = 54 + (image.Height * rowWidth * bpp)
+            };
 
-                BmpFileHeader fileHeader = new BmpFileHeader
-                {
-                    Type = 19778, // BM
-                    Offset = 54,
-                    FileSize = 54 + (image.Height * rowWidth * bpp)
-                };
+            BmpInfoHeader infoHeader = new BmpInfoHeader
+            {
+                HeaderSize = 40,
+                Height = image.Height,
+                Width = image.Width,
+                BitsPerPixel = (short)(8 * bpp),
+                Planes = 1,
+                ImageSize = image.Height * rowWidth * bpp,
+                ClrUsed = 0,
+                ClrImportant = 0
+            };
 
-                BmpInfoHeader infoHeader = new BmpInfoHeader
-                {
-                    HeaderSize = 40,
-                    Height = image.Height,
-                    Width = image.Width,
-                    BitsPerPixel = (short)(8 * bpp),
-                    Planes = 1,
-                    ImageSize = image.Height * rowWidth * bpp,
-                    ClrUsed = 0,
-                    ClrImportant = 0
-                };
+            WriteHeader(writer, fileHeader);
+            this.WriteInfo(writer, infoHeader);
+            this.WriteImage(writer, image);
 
-                WriteHeader(writer, fileHeader);
-                this.WriteInfo(writer, infoHeader);
-                this.WriteImage(writer, image);
-
-                writer.Flush();
-            }
+            writer.Flush();
         }
 
         /// <summary>

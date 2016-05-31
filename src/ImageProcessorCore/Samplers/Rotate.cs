@@ -3,10 +3,9 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-using System.Numerics;
-
 namespace ImageProcessorCore.Samplers
 {
+    using System.Numerics;
     using System.Threading.Tasks;
 
     /// <summary>
@@ -15,12 +14,20 @@ namespace ImageProcessorCore.Samplers
     public class Rotate : ImageSampler
     {
         /// <summary>
-        /// The angle of rotation.
+        /// The image used for storing the first pass pixels.
+        /// </summary>
+        private Image firstPass;
+
+        /// <summary>
+        /// The angle of rotation in degrees.
         /// </summary>
         private float angle;
 
+        /// <inheritdoc/>
+        public override int Parallelism { get; set; } = 1;
+
         /// <summary>
-        /// Gets or sets the angle of rotation.
+        /// Gets or sets the angle of rotation in degrees.
         /// </summary>
         public float Angle
         {
@@ -50,47 +57,84 @@ namespace ImageProcessorCore.Samplers
         /// </summary>
         public Point Center { get; set; }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether to expand the canvas to fit the rotated image.
+        /// </summary>
+        public bool Expand { get; set; }
+
+        /// <inheritdoc/>
+        protected override void OnApply(ImageBase source, ImageBase target, Rectangle targetRectangle, Rectangle sourceRectangle)
+        {
+            // If we are expanding we need to pad the bounds of the source rectangle.
+            // We can use the resizer in nearest neighbor mode to do this fairly quickly.
+            if (this.Expand)
+            {
+                // First find out how the target rectangle should be.
+                Rectangle rectangle = ImageMaths.GetBoundingRotatedRectangle(source.Width, source.Height, -this.angle);
+                Rectangle rectangle2 = ImageMaths.GetBoundingRotatedRectangle(sourceRectangle, -this.angle, this.Center);
+                ResizeOptions options = new ResizeOptions
+                {
+                    Size = new Size(rectangle.Width, rectangle.Height),
+                    Mode = ResizeMode.BoxPad,
+                    Sampler = new NearestNeighborResampler()
+                };
+
+                // Get the padded bounds and resize the image.
+                Rectangle bounds = ResizeHelper.CalculateTargetLocationAndBounds(source, options);
+                this.firstPass = new Image(rectangle.Width, rectangle.Height);
+                target.SetPixels(rectangle.Width, rectangle.Height, new float[rectangle.Width * rectangle.Height * 4]);
+                new Resize(new NearestNeighborResampler()).Apply(this.firstPass, source, rectangle.Width, rectangle.Height, bounds, sourceRectangle);
+            }
+            else
+            {
+                // Just clone the pixels across.
+                this.firstPass = new Image(source.Width, source.Height);
+                this.firstPass.ClonePixels(source.Width, source.Height, source.Pixels);
+            }
+        }
+
         /// <inheritdoc/>
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-            int targetY = targetRectangle.Y;
-            int targetBottom = targetRectangle.Bottom;
-            int startX = targetRectangle.X;
-            int endX = targetRectangle.Right;
+            int targetY = this.firstPass.Bounds.Y;
+            int targetHeight = this.firstPass.Height;
+            int startX = this.firstPass.Bounds.X;
+            int endX = this.firstPass.Bounds.Right;
             float negativeAngle = -this.angle;
-            Point centre = this.Center == Point.Empty ? Rectangle.Center(sourceRectangle) : this.Center;
+            Point centre = this.Center == Point.Empty ? Rectangle.Center(this.firstPass.Bounds) : this.Center;
+            Matrix3x2 rotation = Point.CreateRotation(centre, negativeAngle);
 
-            // Scaling factors
-            float widthFactor = source.Width / (float)target.Width;
-            float heightFactor = source.Height / (float)target.Height;
-
-            Matrix3x2 rotation = Point.CreateRotatation( centre, negativeAngle );
-
+            // Since we are not working in parallel we use full height and width of the first pass image.
             Parallel.For(
-                startY,
-                endY,
+                0,
+                targetHeight,
                 y =>
                 {
-                    if (y >= targetY && y < targetBottom)
+                    // Y coordinates of source points
+                    int originY = y - targetY;
+
+                    for (int x = startX; x < endX; x++)
                     {
-                        // Y coordinates of source points
-                        int originY = (int)((y - targetY) * heightFactor);
+                        // X coordinates of source points
+                        int originX = x - startX;
 
-                        for (int x = startX; x < endX; x++)
+                        // Rotate at the centre point
+                        Point rotated = Point.Rotate(new Point(originX, originY), rotation);
+                        if (this.firstPass.Bounds.Contains(rotated.X, rotated.Y))
                         {
-                            // X coordinates of source points
-                            int originX = (int)((x - startX) * widthFactor);
-
-                            // Rotate at the centre point
-                            Point rotated = Point.Rotate(new Point(originX, originY), rotation);
-                            if (sourceRectangle.Contains(rotated.X, rotated.Y))
-                            {
-                                target[x, y] = source[rotated.X, rotated.Y];
-                            }
+                            target[x, y] = this.firstPass[rotated.X, rotated.Y];
                         }
-                        this.OnRowProcessed();
                     }
+
+                    this.OnRowProcessed();
                 });
+        }
+
+        /// <inheritdoc/>
+        protected override void AfterApply(ImageBase source, ImageBase target, Rectangle targetRectangle, Rectangle sourceRectangle)
+        {
+            // Cleanup.
+            this.firstPass.Dispose();
         }
     }
 }

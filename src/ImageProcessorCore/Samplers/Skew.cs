@@ -5,6 +5,7 @@
 
 namespace ImageProcessorCore.Samplers
 {
+    using System.Numerics;
     using System.Threading.Tasks;
 
     /// <summary>
@@ -89,10 +90,7 @@ namespace ImageProcessorCore.Samplers
             float negativeAngleX = -this.angleX;
             float negativeAngleY = -this.angleY;
             Point centre = this.Center == Point.Empty ? Rectangle.Center(sourceRectangle) : this.Center;
-
-            // Scaling factors
-            float widthFactor = source.Width / (float)target.Width;
-            float heightFactor = source.Height / (float)target.Height;
+            Matrix3x2 skew = Point.CreateSkew(centre, negativeAngleX, negativeAngleY);
 
             Parallel.For(
                 startY,
@@ -102,20 +100,21 @@ namespace ImageProcessorCore.Samplers
                     if (y >= targetY && y < targetBottom)
                     {
                         // Y coordinates of source points
-                        int originY = (int)((y - targetY) * heightFactor);
+                        int originY = y - targetY;
 
                         for (int x = startX; x < endX; x++)
                         {
                             // X coordinates of source points
-                            int originX = (int)((x - startX) * widthFactor);
+                            int originX = x - startX;
 
                             // Skew at the centre point
-                            Point skewed = Point.Skew(new Point(originX, originY), centre, negativeAngleX, negativeAngleY);
+                            Point skewed = Point.Skew(new Point(originX, originY), skew);
                             if (sourceRectangle.Contains(skewed.X, skewed.Y))
                             {
                                 target[x, y] = source[skewed.X, skewed.Y];
                             }
                         }
+
                         this.OnRowProcessed();
                     }
                 });

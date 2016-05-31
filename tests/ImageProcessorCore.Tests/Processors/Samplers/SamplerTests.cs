@@ -452,6 +452,7 @@
                 Directory.CreateDirectory("TestOutput/Skew");
             }
 
+            // Matches live example http://www.w3schools.com/css/tryit.asp?filename=trycss3_transform_skew
             foreach (string file in Files)
             {
                 using (FileStream stream = File.OpenRead(file))
@@ -463,7 +464,7 @@
                     using (Image image = new Image(stream))
                     using (FileStream output = File.OpenWrite($"TestOutput/Skew/{filename}"))
                     {
-                        image.Skew(45, 45, this.ProgressUpdate)
+                        image.Skew(20, 10, this.ProgressUpdate)
                              .Save(output);
                     }
 

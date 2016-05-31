@@ -282,7 +282,7 @@ namespace ImageProcessorCore.Samplers
         }
 
         /// <summary>
-        /// Skews an image by the given angles in degrees.
+        /// Skews an image by the given angles in degrees, expanding the image to fit the skewed result.
         /// </summary>
         /// <param name="source">The image to skew.</param>
         /// <param name="degreesX">The angle in degrees to perform the rotation along the x-axis.</param>
@@ -291,7 +291,7 @@ namespace ImageProcessorCore.Samplers
         /// <returns>The <see cref="Image"/></returns>
         public static Image Skew(this Image source, float degreesX, float degreesY, ProgressEventHandler progressHandler = null)
         {
-            return Skew(source, degreesX, degreesY, Point.Empty, progressHandler);
+            return Skew(source, degreesX, degreesY, Point.Empty, true, progressHandler);
         }
 
         /// <summary>
@@ -301,11 +301,12 @@ namespace ImageProcessorCore.Samplers
         /// <param name="degreesX">The angle in degrees to perform the rotation along the x-axis.</param>
         /// <param name="degreesY">The angle in degrees to perform the rotation along the y-axis.</param>
         /// <param name="center">The center point at which to skew the image.</param>
+        /// <param name="expand">Whether to expand the image to fit the skewed result.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/></returns>
-        public static Image Skew(this Image source, float degreesX, float degreesY, Point center, ProgressEventHandler progressHandler = null)
+        public static Image Skew(this Image source, float degreesX, float degreesY, Point center, bool expand, ProgressEventHandler progressHandler = null)
         {
-            Skew processor = new Skew { AngleX = degreesX, AngleY = degreesY, Center = center };
+            Skew processor = new Skew { AngleX = degreesX, AngleY = degreesY, Center = center, Expand = expand };
             processor.OnProgress += progressHandler;
 
             try

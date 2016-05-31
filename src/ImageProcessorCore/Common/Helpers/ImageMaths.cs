@@ -14,12 +14,6 @@ namespace ImageProcessorCore
     internal static class ImageMaths
     {
         /// <summary>
-        /// Represents PI, the ratio of a circle's circumference to its diameter.
-        /// </summary>
-        // ReSharper disable once InconsistentNaming
-        public const float PI = 3.1415926535897931f;
-
-        /// <summary>
         /// Returns how many bits are required to store the specified number of colors.
         /// Performs a Log2() on the value.
         /// </summary>
@@ -41,7 +35,7 @@ namespace ImageProcessorCore
         public static float Gaussian(float x, float sigma)
         {
             const float Numerator = 1.0f;
-            float denominator = (float)(Math.Sqrt(2 * PI) * sigma);
+            float denominator = (float)(Math.Sqrt(2 * Math.PI) * sigma);
 
             float exponentNumerator = -x * x;
             float exponentDenominator = (float)(2 * Math.Pow(sigma, 2));
@@ -90,9 +84,7 @@ namespace ImageProcessorCore
         /// <summary>
         /// Gets the result of a sine cardinal function for the given value.
         /// </summary>
-        /// <param name="x">
-        /// The value to calculate the result for.
-        /// </param>
+        /// <param name="x">The value to calculate the result for.</param>
         /// <returns>
         /// The <see cref="float"/>.
         /// </returns>
@@ -102,7 +94,7 @@ namespace ImageProcessorCore
 
             if (Math.Abs(x) > Epsilon)
             {
-                x *= PI;
+                x *= (float)Math.PI;
                 return Clean((float)Math.Sin(x) / x);
             }
 
@@ -118,7 +110,7 @@ namespace ImageProcessorCore
         /// </returns>
         public static float DegreesToRadians(float degrees)
         {
-            return degrees * (PI / 180);
+            return degrees * (float)(Math.PI / 180);
         }
 
         /// <summary>
@@ -138,12 +130,16 @@ namespace ImageProcessorCore
             return new Rectangle(topLeft.X, topLeft.Y, bottomRight.X - topLeft.X, bottomRight.Y - topLeft.Y);
         }
 
-        // http://gamedev.stackexchange.com/questions/22840/create-a-rectangle-struct-to-be-rotated-and-have-a-intersects-function
-        public static Rectangle GetBoundingRotatedRectangle(Rectangle rectangle, float degrees, Point center)
+        /// <summary>
+        /// Gets the bounding <see cref="Rectangle"/> from the given matrix.
+        /// </summary>
+        /// <param name="rectangle">The source rectangle.</param>
+        /// <param name="matrix">The transformation matrix.</param>
+        /// <returns>
+        /// The <see cref="Rectangle"/>.
+        /// </returns>
+        public static Rectangle GetBoundingRectangle(Rectangle rectangle, Matrix3x2 matrix)
         {
-            float radians = DegreesToRadians(degrees);
-            Matrix3x2 matrix = Matrix3x2.CreateRotation(radians, center.ToVector2());
-
             Vector2 leftTop = Vector2.Transform(new Vector2(rectangle.Left, rectangle.Top), matrix);
             Vector2 rightTop = Vector2.Transform(new Vector2(rectangle.Right, rectangle.Top), matrix);
             Vector2 leftBottom = Vector2.Transform(new Vector2(rectangle.Left, rectangle.Bottom), matrix);
@@ -152,55 +148,16 @@ namespace ImageProcessorCore
             Vector2 min = Vector2.Min(Vector2.Min(leftTop, rightTop), Vector2.Min(leftBottom, rightBottom));
             Vector2 max = Vector2.Max(Vector2.Max(leftTop, rightTop), Vector2.Max(leftBottom, rightBottom));
 
-            // TODO: minY is wrong - negative 
-            return new Rectangle((int)min.X, (int)min.Y, (int)(max.X - min.X), (int)(max.Y - min.Y));
-        }
-
-        /// <summary>
-        /// Calculates the new size after rotation.
-        /// </summary>
-        /// <param name="width">The width of the image.</param>
-        /// <param name="height">The height of the image.</param>
-        /// <param name="angleInDegrees">The angle of rotation.</param>
-        /// <returns>The new size of the image</returns>
-        public static Rectangle GetBoundingRotatedRectangle(int width, int height, float angleInDegrees)
-        {
-            // Check first clockwise.
-            double radians = DegreesToRadians(angleInDegrees);
-            double radiansSin = Math.Sin(radians);
-            double radiansCos = Math.Cos(radians);
-            double width1 = (height * radiansSin) + (width * radiansCos);
-            double height1 = (width * radiansSin) + (height * radiansCos);
-
-            // Find dimensions in the other direction
-            radiansSin = Math.Sin(-radians);
-            radiansCos = Math.Cos(-radians);
-            double width2 = (height * radiansSin) + (width * radiansCos);
-            double height2 = (width * radiansSin) + (height * radiansCos);
-
-            // Get the external vertex for the rotation
-            Rectangle result = new Rectangle(
-                0,
-                0,
-                Convert.ToInt32(Math.Max(Math.Abs(width1), Math.Abs(width2))),
-                Convert.ToInt32(Math.Max(Math.Abs(height1), Math.Abs(height2))));
-
-            return result;
+            return new Rectangle(0, 0, (int)(max.X - min.X), (int)(max.Y - min.Y));
         }
 
         /// <summary>
         /// Finds the bounding rectangle based on the first instance of any color component other
         /// than the given one.
         /// </summary>
-        /// <param name="bitmap">
-        /// The <see cref="Image"/> to search within.
-        /// </param>
-        /// <param name="componentValue">
-        /// The color component value to remove.
-        /// </param>
-        /// <param name="channel">
-        /// The <see cref="RgbaComponent"/> channel to test against.
-        /// </param>
+        /// <param name="bitmap">The <see cref="Image"/> to search within.</param>
+        /// <param name="componentValue">The color component value to remove.</param>
+        /// <param name="channel">The <see cref="RgbaComponent"/> channel to test against.</param>
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>

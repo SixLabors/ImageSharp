@@ -2,7 +2,6 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
-
 namespace ImageProcessorCore
 {
     using System;
@@ -166,7 +165,7 @@ namespace ImageProcessorCore
         /// <returns>The rotation <see cref="Matrix3x2"/></returns>
         public static Matrix3x2 CreateRotation(Point origin, float degrees)
         {
-            float radians = (float)ImageMaths.DegreesToRadians(degrees);
+            float radians = ImageMaths.DegreesToRadians(degrees);
             return Matrix3x2.CreateRotation(radians, origin.backingVector);
         }
 
@@ -202,8 +201,8 @@ namespace ImageProcessorCore
         /// <returns>The rotation <see cref="Matrix3x2"/></returns>
         public static Matrix3x2 CreateSkew(Point origin, float degreesX, float degreesY)
         {
-            float radiansX = (float)ImageMaths.DegreesToRadians(degreesX);
-            float radiansY = (float)ImageMaths.DegreesToRadians(degreesY);
+            float radiansX = ImageMaths.DegreesToRadians(degreesX);
+            float radiansY = ImageMaths.DegreesToRadians(degreesY);
             return Matrix3x2.CreateSkew(radiansX, radiansY, origin.backingVector);
         }
 

@@ -69,9 +69,10 @@ namespace ImageProcessorCore.Samplers
             // We can use the resizer in nearest neighbor mode to do this fairly quickly.
             if (this.Expand)
             {
-                // First find out how the target rectangle should be.
-                Rectangle rectangle = ImageMaths.GetBoundingRotatedRectangle(source.Width, source.Height, -this.angle);
-                Rectangle rectangle2 = ImageMaths.GetBoundingRotatedRectangle(sourceRectangle, -this.angle, this.Center);
+                // First find out how big the target rectangle should be.
+                Point centre = this.Center == Point.Empty ? Rectangle.Center(sourceRectangle) : this.Center;
+                Matrix3x2 rotation = Point.CreateRotation(centre, -this.angle);
+                Rectangle rectangle = ImageMaths.GetBoundingRectangle(sourceRectangle, rotation);
                 ResizeOptions options = new ResizeOptions
                 {
                     Size = new Size(rectangle.Width, rectangle.Height),
@@ -96,30 +97,23 @@ namespace ImageProcessorCore.Samplers
         /// <inheritdoc/>
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-            int targetY = this.firstPass.Bounds.Y;
-            int targetHeight = this.firstPass.Height;
+            int height = this.firstPass.Height;
             int startX = this.firstPass.Bounds.X;
             int endX = this.firstPass.Bounds.Right;
-            float negativeAngle = -this.angle;
             Point centre = this.Center == Point.Empty ? Rectangle.Center(this.firstPass.Bounds) : this.Center;
-            Matrix3x2 rotation = Point.CreateRotation(centre, negativeAngle);
+            Matrix3x2 rotation = Point.CreateRotation(centre, -this.angle);
 
-            // Since we are not working in parallel we use full height and width of the first pass image.
+            // Since we are not working in parallel we use full height and width 
+            // of the first pass image.
             Parallel.For(
                 0,
-                targetHeight,
+                height,
                 y =>
                 {
-                    // Y coordinates of source points
-                    int originY = y - targetY;
-
                     for (int x = startX; x < endX; x++)
                     {
-                        // X coordinates of source points
-                        int originX = x - startX;
-
                         // Rotate at the centre point
-                        Point rotated = Point.Rotate(new Point(originX, originY), rotation);
+                        Point rotated = Point.Rotate(new Point(x, y), rotation);
                         if (this.firstPass.Bounds.Contains(rotated.X, rotated.Y))
                         {
                             target[x, y] = this.firstPass[rotated.X, rotated.Y];

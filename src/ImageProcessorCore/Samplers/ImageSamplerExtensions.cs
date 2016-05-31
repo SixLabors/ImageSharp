@@ -42,7 +42,7 @@ namespace ImageProcessorCore.Samplers
         {
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
-            
+
             if (sourceRectangle.Width < width || sourceRectangle.Height < height)
             {
                 // If the source rectangle is smaller than the target perform a
@@ -86,6 +86,26 @@ namespace ImageProcessorCore.Samplers
         }
 
         /// <summary>
+        /// Evenly pads an image to fit the new dimensions.
+        /// </summary>
+        /// <param name="source">The source image to pad.</param>
+        /// <param name="width">The new width.</param>
+        /// <param name="height">The new height.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image Pad(this Image source, int width, int height, ProgressEventHandler progressHandler = null)
+        {
+            ResizeOptions options = new ResizeOptions
+            {
+                Size = new Size(width, height),
+                Mode = ResizeMode.BoxPad,
+                Sampler = new NearestNeighborResampler()
+            };
+
+            return Resize(source, options, progressHandler);
+        }
+
+        /// <summary>
         /// Resizes an image in accordance with the given <see cref="ResizeOptions"/>.
         /// </summary>
         /// <param name="source">The image to resize.</param>
@@ -95,7 +115,7 @@ namespace ImageProcessorCore.Samplers
         /// <remarks>Passing zero for one of height or width within the resize options will automatically preserve the aspect ratio of the original image</remarks>
         public static Image Resize(this Image source, ResizeOptions options, ProgressEventHandler progressHandler = null)
         {
-            // Ensure size is populated acros both dimensions.
+            // Ensure size is populated across both dimensions.
             if (options.Size.Width == 0 && options.Size.Height > 0)
             {
                 options.Size = new Size(source.Width * options.Size.Height / source.Height, options.Size.Height);
@@ -203,7 +223,7 @@ namespace ImageProcessorCore.Samplers
         }
 
         /// <summary>
-        /// Rotates an image by the given angle in degrees.
+        /// Rotates an image by the given angle in degrees, expanding the image to fit the rotated result.
         /// </summary>
         /// <param name="source">The image to rotate.</param>
         /// <param name="degrees">The angle in degrees to perform the rotation.</param>
@@ -211,7 +231,7 @@ namespace ImageProcessorCore.Samplers
         /// <returns>The <see cref="Image"/></returns>
         public static Image Rotate(this Image source, float degrees, ProgressEventHandler progressHandler = null)
         {
-            return Rotate(source, degrees, Rectangle.Center(source.Bounds), progressHandler);
+            return Rotate(source, degrees, Point.Empty, true, progressHandler);
         }
 
         /// <summary>
@@ -219,12 +239,13 @@ namespace ImageProcessorCore.Samplers
         /// </summary>
         /// <param name="source">The image to rotate.</param>
         /// <param name="degrees">The angle in degrees to perform the rotation.</param>
-        /// <param name="center">The center point at which to skew the image.</param>
+        /// <param name="center">The center point at which to rotate the image.</param>
+        /// <param name="expand">Whether to expand the image to fit the rotated result.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/></returns>
-        public static Image Rotate(this Image source, float degrees, Point center, ProgressEventHandler progressHandler = null)
+        public static Image Rotate(this Image source, float degrees, Point center, bool expand, ProgressEventHandler progressHandler = null)
         {
-            Rotate processor = new Rotate { Angle = degrees, Center = center };
+            Rotate processor = new Rotate { Angle = degrees, Center = center, Expand = expand };
             processor.OnProgress += progressHandler;
 
             try
@@ -270,7 +291,7 @@ namespace ImageProcessorCore.Samplers
         /// <returns>The <see cref="Image"/></returns>
         public static Image Skew(this Image source, float degreesX, float degreesY, ProgressEventHandler progressHandler = null)
         {
-            return Skew(source, degreesX, degreesY, Rectangle.Center(source.Bounds), progressHandler);
+            return Skew(source, degreesX, degreesY, Point.Empty, progressHandler);
         }
 
         /// <summary>

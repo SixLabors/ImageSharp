@@ -112,15 +112,13 @@ namespace ImageProcessorCore
         /// <summary>
         /// Returns the given degrees converted to radians.
         /// </summary>
-        /// <param name="angleInDegrees">
-        /// The angle in degrees.
-        /// </param>
+        /// <param name="degrees">The angle in degrees.</param>
         /// <returns>
-        /// The <see cref="double"/> representing the degree as radians.
+        /// The <see cref="float"/> representing the degree as radians.
         /// </returns>
-        public static double DegreesToRadians(double angleInDegrees)
+        public static float DegreesToRadians(float degrees)
         {
-            return angleInDegrees * (PI / 180);
+            return degrees * (PI / 180);
         }
 
         /// <summary>
@@ -138,6 +136,24 @@ namespace ImageProcessorCore
         public static Rectangle GetBoundingRectangle(Point topLeft, Point bottomRight)
         {
             return new Rectangle(topLeft.X, topLeft.Y, bottomRight.X - topLeft.X, bottomRight.Y - topLeft.Y);
+        }
+
+        // http://gamedev.stackexchange.com/questions/22840/create-a-rectangle-struct-to-be-rotated-and-have-a-intersects-function
+        public static Rectangle GetBoundingRotatedRectangle(Rectangle rectangle, float degrees, Point center)
+        {
+            float radians = DegreesToRadians(degrees);
+            Matrix3x2 matrix = Matrix3x2.CreateRotation(radians, center.ToVector2());
+
+            Vector2 leftTop = Vector2.Transform(new Vector2(rectangle.Left, rectangle.Top), matrix);
+            Vector2 rightTop = Vector2.Transform(new Vector2(rectangle.Right, rectangle.Top), matrix);
+            Vector2 leftBottom = Vector2.Transform(new Vector2(rectangle.Left, rectangle.Bottom), matrix);
+            Vector2 rightBottom = Vector2.Transform(new Vector2(rectangle.Right, rectangle.Bottom), matrix);
+
+            Vector2 min = Vector2.Min(Vector2.Min(leftTop, rightTop), Vector2.Min(leftBottom, rightBottom));
+            Vector2 max = Vector2.Max(Vector2.Max(leftTop, rightTop), Vector2.Max(leftBottom, rightBottom));
+
+            // TODO: minY is wrong - negative 
+            return new Rectangle((int)min.X, (int)min.Y, (int)(max.X - min.X), (int)(max.Y - min.Y));
         }
 
         /// <summary>

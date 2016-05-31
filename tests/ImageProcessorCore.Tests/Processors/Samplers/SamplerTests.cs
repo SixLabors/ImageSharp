@@ -435,7 +435,7 @@
                     using (Image image = new Image(stream))
                     using (FileStream output = File.OpenWrite($"TestOutput/Rotate/{filename}"))
                     {
-                        image.Rotate(45, this.ProgressUpdate)
+                        image.Rotate(63, this.ProgressUpdate)
                              .Save(output);
                     }
 

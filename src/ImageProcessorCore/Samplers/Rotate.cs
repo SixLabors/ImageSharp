@@ -76,8 +76,7 @@ namespace ImageProcessorCore.Samplers
                 ResizeOptions options = new ResizeOptions
                 {
                     Size = new Size(rectangle.Width, rectangle.Height),
-                    Mode = ResizeMode.BoxPad,
-                    Sampler = new NearestNeighborResampler()
+                    Mode = ResizeMode.BoxPad
                 };
 
                 // Get the padded bounds and resize the image.
@@ -98,8 +97,8 @@ namespace ImageProcessorCore.Samplers
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             int height = this.firstPass.Height;
-            int startX = this.firstPass.Bounds.X;
-            int endX = this.firstPass.Bounds.Right;
+            int startX = 0;
+            int endX = this.firstPass.Width;
             Point centre = this.Center == Point.Empty ? Rectangle.Center(this.firstPass.Bounds) : this.Center;
             Matrix3x2 rotation = Point.CreateRotation(centre, -this.angle);
 

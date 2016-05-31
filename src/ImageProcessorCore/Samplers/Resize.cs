@@ -184,6 +184,9 @@ namespace ImageProcessorCore.Samplers
             {
                 target.ClonePixels(target.Width, target.Height, source.Pixels);
             }
+
+            // Clean up
+            this.firstPass?.Dispose();
         }
     }
 }

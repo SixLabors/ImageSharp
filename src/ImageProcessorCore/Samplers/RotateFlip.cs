@@ -2,7 +2,6 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
-
 namespace ImageProcessorCore.Samplers
 {
     using System;
@@ -43,13 +42,13 @@ namespace ImageProcessorCore.Samplers
             switch (this.RotateType)
             {
                 case RotateType.Rotate90:
-                    Rotate90(target, source);
+                    this.Rotate90(target, source);
                     break;
                 case RotateType.Rotate180:
-                    Rotate180(target, source);
+                    this.Rotate180(target, source);
                     break;
                 case RotateType.Rotate270:
-                    Rotate270(target, source);
+                    this.Rotate270(target, source);
                     break;
                 default:
                     target.ClonePixels(target.Width, target.Height, source.Pixels);
@@ -60,10 +59,10 @@ namespace ImageProcessorCore.Samplers
             {
                 // No default needed as we have already set the pixels.
                 case FlipType.Vertical:
-                    FlipX(target);
+                    this.FlipX(target);
                     break;
                 case FlipType.Horizontal:
-                    FlipY(target);
+                    this.FlipY(target);
                     break;
             }
         }
@@ -79,7 +78,7 @@ namespace ImageProcessorCore.Samplers
             int height = source.Height;
             Image temp = new Image(height, width);
 
-            Parallel.For(0, height,
+            Parallel.For(0, height, 
                 y =>
                 {
                     for (int x = 0; x < width; x++)
@@ -90,6 +89,7 @@ namespace ImageProcessorCore.Samplers
                         newY = width - newY - 1;
                         temp[newX, newY] = source[x, y];
                     }
+
                     this.OnRowProcessed();
                 });
 
@@ -106,7 +106,7 @@ namespace ImageProcessorCore.Samplers
             int width = source.Width;
             int height = source.Height;
 
-            Parallel.For(0, height,
+            Parallel.For(0, height, 
                 y =>
                 {
                     for (int x = 0; x < width; x++)
@@ -115,6 +115,7 @@ namespace ImageProcessorCore.Samplers
                         int newY = height - y - 1;
                         target[newX, newY] = source[x, y];
                     }
+
                     this.OnRowProcessed();
                 });
         }
@@ -130,7 +131,7 @@ namespace ImageProcessorCore.Samplers
             int height = source.Height;
             Image temp = new Image(height, width);
 
-            Parallel.For(0, height,
+            Parallel.For(0, height, 
                 y =>
                 {
                     for (int x = 0; x < width; x++)
@@ -138,6 +139,7 @@ namespace ImageProcessorCore.Samplers
                         int newX = height - y - 1;
                         temp[newX, x] = source[x, y];
                     }
+
                     this.OnRowProcessed();
                 });
 
@@ -157,7 +159,7 @@ namespace ImageProcessorCore.Samplers
             ImageBase temp = new Image(width, height);
             temp.ClonePixels(width, height, target.Pixels);
 
-            Parallel.For(0, halfHeight,
+            Parallel.For(0, halfHeight, 
                 y =>
                     {
                         for (int x = 0; x < width; x++)
@@ -166,6 +168,7 @@ namespace ImageProcessorCore.Samplers
                             target[x, y] = temp[x, newY];
                             target[x, newY] = temp[x, y];
                         }
+
                         this.OnRowProcessed();
                     });
         }
@@ -183,7 +186,7 @@ namespace ImageProcessorCore.Samplers
             ImageBase temp = new Image(width, height);
             temp.ClonePixels(width, height, target.Pixels);
 
-            Parallel.For(0, height,
+            Parallel.For(0, height, 
                 y =>
                 {
                     for (int x = 0; x < halfWidth; x++)
@@ -192,6 +195,7 @@ namespace ImageProcessorCore.Samplers
                         target[x, y] = temp[newX, y];
                         target[newX, y] = temp[x, y];
                     }
+
                     this.OnRowProcessed();
                 });
         }

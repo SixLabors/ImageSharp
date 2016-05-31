@@ -72,7 +72,7 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
  - [x] Size
  - [x] Point
  - [x] Ellipse
-- Resampling algorithms. (Optional gamma correction, Performance improvements?)
+- Resampling algorithms. (Optional gamma correction, resize modes, Performance improvements?)
  - [x] Box
  - [x] Bicubic
  - [x] Lanczos3
@@ -86,13 +86,18 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
  - [x] Spline
  - [x] Triangle
  - [x] Welch
+- Padding 
+ - [x] Pad
+ - [x] ResizeMode.Pad
+ - [x] ResizeMode.BoxPad
 - Cropping
  - [x] Rectangular Crop
  - [ ] Elliptical Crop
  - [x] Entropy Crop
+ - [x] ResizeMode.Crop
 - Rotation/Skew
  - [x] Flip (90, 270, FlipType etc)
- - [x] Rotate by angle and center point.
+ - [x] Rotate by angle and center point (Expandable canvas).
  - [x] Skew by x/y angles and center point.
 - ColorMatrix operations (Uses Matrix4x4)
  - [x] BlackWhite

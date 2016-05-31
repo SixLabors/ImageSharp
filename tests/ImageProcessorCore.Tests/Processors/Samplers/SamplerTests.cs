@@ -76,6 +76,34 @@
             }
         }
 
+        [Fact]
+        public void ImageShouldPad()
+        {
+            if (!Directory.Exists("TestOutput/Pad"))
+            {
+                Directory.CreateDirectory("TestOutput/Pad");
+            }
+
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    Stopwatch watch = Stopwatch.StartNew();
+
+                    string filename = Path.GetFileName(file);
+
+                    using (Image image = new Image(stream))
+                    using (FileStream output = File.OpenWrite($"TestOutput/Pad/{filename}"))
+                    {
+                        image.Pad(image.Width + 50, image.Height + 50, this.ProgressUpdate)
+                             .Save(output);
+                    }
+
+                    Trace.WriteLine($"{watch.ElapsedMilliseconds}ms");
+                }
+            }
+        }
+
         [Theory]
         [MemberData("ReSamplers")]
         public void ImageShouldResize(string name, IResampler sampler)

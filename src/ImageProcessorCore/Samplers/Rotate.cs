@@ -71,7 +71,7 @@ namespace ImageProcessorCore.Samplers
             {
                 // First find out how the target rectangle should be.
                 Rectangle rectangle = ImageMaths.GetBoundingRotatedRectangle(source.Width, source.Height, -this.angle);
-
+                Rectangle rectangle2 = ImageMaths.GetBoundingRotatedRectangle(sourceRectangle, -this.angle, this.Center);
                 ResizeOptions options = new ResizeOptions
                 {
                     Size = new Size(rectangle.Width, rectangle.Height),
@@ -102,7 +102,7 @@ namespace ImageProcessorCore.Samplers
             int endX = this.firstPass.Bounds.Right;
             float negativeAngle = -this.angle;
             Point centre = this.Center == Point.Empty ? Rectangle.Center(this.firstPass.Bounds) : this.Center;
-            Matrix3x2 rotation = Point.CreateRotatation(centre, negativeAngle);
+            Matrix3x2 rotation = Point.CreateRotation(centre, negativeAngle);
 
             // Since we are not working in parallel we use full height and width of the first pass image.
             Parallel.For(

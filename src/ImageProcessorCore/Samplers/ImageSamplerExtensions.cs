@@ -239,7 +239,7 @@ namespace ImageProcessorCore.Samplers
         /// </summary>
         /// <param name="source">The image to rotate.</param>
         /// <param name="degrees">The angle in degrees to perform the rotation.</param>
-        /// <param name="center">The center point at which to skew the image.</param>
+        /// <param name="center">The center point at which to rotate the image.</param>
         /// <param name="expand">Whether to expand the image to fit the rotated result.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/></returns>
@@ -291,7 +291,7 @@ namespace ImageProcessorCore.Samplers
         /// <returns>The <see cref="Image"/></returns>
         public static Image Skew(this Image source, float degreesX, float degreesY, ProgressEventHandler progressHandler = null)
         {
-            return Skew(source, degreesX, degreesY, Rectangle.Center(source.Bounds), progressHandler);
+            return Skew(source, degreesX, degreesY, Point.Empty, progressHandler);
         }
 
         /// <summary>

@@ -2,7 +2,6 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
-
 namespace ImageProcessorCore.Samplers
 {
     using System;
@@ -57,7 +56,7 @@ namespace ImageProcessorCore.Samplers
             float radius = sampler.Radius;
             double left;
             double right;
-            double weight;
+            float weight;
             int index;
             int sum;
 
@@ -79,14 +78,12 @@ namespace ImageProcessorCore.Samplers
 
                     result[i] = new Weights
                     {
-                        Sum = 0,
                         Values = new Weight[(int)(right - left + 1)]
                     };
 
                     for (double j = left; j <= right; j++)
                     {
-                        weight = centre - j;
-                        weight = sampler.GetValue((float)(weight / filterScale)) / filterScale;
+                        weight = sampler.GetValue((float)((centre - j) / filterScale)) / filterScale;
                         if (j < 0)
                         {
                             index = (int)-j;
@@ -101,7 +98,7 @@ namespace ImageProcessorCore.Samplers
                         }
 
                         sum = (int)result[i].Sum++;
-                        result[i].Values[sum] = new Weight(index, (float)weight);
+                        result[i].Values[sum] = new Weight(index, weight);
                     }
                 }
             }
@@ -115,14 +112,12 @@ namespace ImageProcessorCore.Samplers
                     right = Math.Floor(centre + radius);
                     result[i] = new Weights
                     {
-                        Sum = 0,
                         Values = new Weight[(int)(right - left + 1)]
                     };
 
                     for (double j = left; j <= right; j++)
                     {
-                        weight = centre - j;
-                        weight = sampler.GetValue((float)weight);
+                        weight = sampler.GetValue((float)(centre - j));
                         if (j < 0)
                         {
                             index = (int)-j;
@@ -137,7 +132,7 @@ namespace ImageProcessorCore.Samplers
                         }
 
                         sum = (int)result[i].Sum++;
-                        result[i].Values[sum] = new Weight(index, (float)weight);
+                        result[i].Values[sum] = new Weight(index, weight);
                     }
                 }
             }

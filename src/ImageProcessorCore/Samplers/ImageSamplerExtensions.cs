@@ -199,11 +199,13 @@ namespace ImageProcessorCore.Samplers
             if (width == 0 && height > 0)
             {
                 width = source.Width * height / source.Height;
+                targetRectangle.Width = width;
             }
 
             if (height == 0 && width > 0)
             {
                 height = source.Height * width / source.Width;
+                targetRectangle.Height = height;
             }
 
             Guard.MustBeGreaterThan(width, 0, nameof(width));

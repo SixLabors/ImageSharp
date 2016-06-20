@@ -42,8 +42,6 @@ namespace ImageProcessorCore
         /// </summary>
         public Image()
         {
-            this.HorizontalResolution = DefaultHorizontalResolution;
-            this.VerticalResolution = DefaultVerticalResolution;
             this.CurrentImageFormat = Bootstrapper.Instance.ImageFormats.First(f => f.GetType() == typeof(PngFormat));
         }
 
@@ -56,8 +54,6 @@ namespace ImageProcessorCore
         public Image(int width, int height)
             : base(width, height)
         {
-            this.HorizontalResolution = DefaultHorizontalResolution;
-            this.VerticalResolution = DefaultVerticalResolution;
             this.CurrentImageFormat = Bootstrapper.Instance.ImageFormats.First(f => f.GetType() == typeof(PngFormat));
         }
 
@@ -97,9 +93,6 @@ namespace ImageProcessorCore
         public Image(ImageFrame other)
             : base(other)
         {
-            this.HorizontalResolution = DefaultHorizontalResolution;
-            this.VerticalResolution = DefaultVerticalResolution;
-
             // Most likely a gif
             // TODO: Should this be aproperty on ImageFrame?
             this.CurrentImageFormat = Bootstrapper.Instance.ImageFormats.First(f => f.GetType() == typeof(GifFormat));
@@ -140,10 +133,10 @@ namespace ImageProcessorCore
         public IReadOnlyCollection<IImageFormat> Formats { get; internal set; } = Bootstrapper.Instance.ImageFormats;
 
         /// <inheritdoc/>
-        public double HorizontalResolution { get; set; }
+        public double HorizontalResolution { get; set; } = DefaultHorizontalResolution;
 
         /// <inheritdoc/>
-        public double VerticalResolution { get; set; }
+        public double VerticalResolution { get; set; } = DefaultVerticalResolution;
 
         /// <inheritdoc/>
         public double InchWidth

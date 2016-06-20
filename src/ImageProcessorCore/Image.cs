@@ -229,19 +229,16 @@ namespace ImageProcessorCore
                 return;
             }
 
-            if (disposing)
+            // Dispose of the unmanaged resources for each frame here.
+            if (this.Frames.Any())
             {
-                // Dispose of any managed resources here.
-                if (this.Frames.Any())
+                foreach (ImageFrame frame in this.Frames)
                 {
-                    foreach (ImageFrame frame in this.Frames)
-                    {
-                        frame.Dispose();
-                    }
-                    this.Frames.Clear();
+                    frame.Dispose();
                 }
+                this.Frames.Clear();
             }
-            
+
             base.Dispose(disposing);
         }
 

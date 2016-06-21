@@ -5,7 +5,6 @@
 
 namespace ImageProcessorCore
 {
-    using Processors
     using System.Collections.Generic;
     using System.Linq;
 

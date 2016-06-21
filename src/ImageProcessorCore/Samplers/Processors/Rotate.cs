@@ -63,7 +63,7 @@ namespace ImageProcessorCore.Processors
         public bool Expand { get; set; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase source, ImageBase target, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
             // If we are expanding we need to pad the bounds of the source rectangle.
             // We can use the resizer in nearest neighbor mode to do this fairly quickly.

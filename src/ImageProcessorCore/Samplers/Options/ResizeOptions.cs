@@ -3,8 +3,9 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageProcessorCore.Samplers
+namespace ImageProcessorCore
 {
+    using Processors
     using System.Collections.Generic;
     using System.Linq;
 

@@ -6,7 +6,6 @@
 namespace ImageProcessorCore.Filters
 {
     using System;
-    using System.Numerics;
     using System.Threading.Tasks;
 
     /// <summary>

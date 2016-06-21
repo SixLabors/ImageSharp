@@ -32,8 +32,8 @@
 
         public static readonly TheoryData<string, IImageSampler> Samplers = new TheoryData<string, IImageSampler>
         {
-             { "Resize", new Resize(new BicubicResampler()) },
-             { "Crop", new Crop() }
+             { "Resize", new ResizeProcessor(new BicubicResampler()) },
+             { "Crop", new CropProcessor() }
         };
 
         public static readonly TheoryData<RotateType, FlipType> RotateFlips = new TheoryData<RotateType, FlipType>

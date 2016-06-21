@@ -5,8 +5,6 @@
 
 namespace ImageProcessorCore
 {
-    using Processors;
-
     /// <summary>
     /// Extension methods for the <see cref="Image"/> type.
     /// </summary>
@@ -35,7 +33,7 @@ namespace ImageProcessorCore
         /// <returns>The <see cref="Image"/></returns>
         public static Image Rotate(this Image source, float degrees, Point center, bool expand, ProgressEventHandler progressHandler = null)
         {
-            Rotate processor = new Rotate { Angle = degrees, Center = center, Expand = expand };
+            RotateProcessor processor = new RotateProcessor { Angle = degrees, Center = center, Expand = expand };
             processor.OnProgress += progressHandler;
 
             try

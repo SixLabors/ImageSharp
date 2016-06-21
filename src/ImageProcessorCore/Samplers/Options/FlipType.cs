@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageProcessorCore.Samplers
+namespace ImageProcessorCore
 {
     /// <summary>
     /// Provides enumeration over how a image should be flipped.
@@ -11,7 +11,7 @@ namespace ImageProcessorCore.Samplers
     public enum FlipType
     {
         /// <summary>
-        /// Dont flip the image.
+        /// Don't flip the image.
         /// </summary>
         None,
 

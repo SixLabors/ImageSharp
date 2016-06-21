@@ -15,7 +15,7 @@ namespace ImageProcessorCore.Filters
         public bool Greyscale { get; set; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase source, ImageBase target, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
             if (this.Greyscale)
             {

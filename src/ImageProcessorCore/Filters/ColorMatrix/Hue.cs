@@ -40,7 +40,7 @@
         public override bool Compand => false;
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase source, ImageBase target, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
             float radians = (float)ImageMaths.DegreesToRadians(this.Angle);
             double cosradians = Math.Cos(radians);

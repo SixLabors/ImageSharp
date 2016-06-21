@@ -3,7 +3,7 @@
     using System.Diagnostics;
     using System.IO;
 
-    using ImageProcessorCore.Samplers;
+    using ImageProcessorCore.Processors;
 
     using Xunit;
     using Filters;

@@ -45,7 +45,7 @@ namespace ImageProcessorCore.Filters
         public Color LowerColor => Color.Black;
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase source, ImageBase target, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
             new GreyscaleBt709().Apply(source, source, sourceRectangle);
         }

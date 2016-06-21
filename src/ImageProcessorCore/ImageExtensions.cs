@@ -9,13 +9,12 @@ namespace ImageProcessorCore
     using System.IO;
 
     using Formats;
-
-    using ImageProcessorCore.Samplers;
+    using Processors;
 
     /// <summary>
-    /// Exstension methods for the <see cref="Image"/> type.
+    /// Extension methods for the <see cref="Image"/> type.
     /// </summary>
-    public static class ImageExtensions
+    public static partial class ImageExtensions
     {
         /// <summary>
         /// Saves the image to the given stream with the bmp format.
@@ -34,7 +33,7 @@ namespace ImageProcessorCore
         /// Anything equal to 256 and below will cause the encoder to save the image in an indexed format.
         /// </param>
         /// <exception cref="ArgumentNullException">Thrown if the stream is null.</exception>
-        public static void SaveAsPng(this ImageBase source, Stream stream, int quality = int.MaxValue) => new PngEncoder { Quality = quality }.Encode(source, stream);
+        public static void SaveAsPng(this ImageBase source, Stream stream, int quality = Int32.MaxValue) => new PngEncoder { Quality = quality }.Encode(source, stream);
 
         /// <summary>
         /// Saves the image to the given stream with the jpeg format.

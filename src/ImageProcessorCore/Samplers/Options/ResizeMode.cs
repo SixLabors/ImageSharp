@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageProcessorCore.Samplers
+namespace ImageProcessorCore
 {
     /// <summary>
     /// Enumerated resize modes to apply to resized images.

@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageProcessorCore.Samplers
+namespace ImageProcessorCore
 {
     /// <summary>
     /// Provides enumeration over how the image should be rotated.

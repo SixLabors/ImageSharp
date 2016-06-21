@@ -388,6 +388,42 @@
             }
         }
 
+        [Fact]
+        public void ImageShouldNotDispose()
+        {
+            if (!Directory.Exists("TestOutput/Dispose"))
+            {
+                Directory.CreateDirectory("TestOutput/Dispose");
+            }
+
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    Stopwatch watch = Stopwatch.StartNew();
+                    string filename = Path.GetFileName(file);
+
+                    Image image = new Image(stream);
+                    image = image.BackgroundColor(Color.RebeccaPurple);
+                    using (FileStream output = File.OpenWrite($"TestOutput/Dispose/{filename}"))
+                    {
+                        ResizeOptions options = new ResizeOptions()
+                        {
+                            Size = new Size(image.Width - 200, image.Height),
+                            Mode = ResizeMode.Stretch
+                        };
+
+                        image.Resize(options, this.ProgressUpdate)
+                             .Save(output);
+                    }
+
+                    image.Dispose();
+
+                    Trace.WriteLine($"{filename}: {watch.ElapsedMilliseconds}ms");
+                }
+            }
+        }
+
         [Theory]
         [MemberData("RotateFlips")]
         public void ImageShouldRotateFlip(RotateType rotateType, FlipType flipType)

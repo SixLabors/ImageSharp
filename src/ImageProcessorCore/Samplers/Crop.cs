@@ -5,8 +5,6 @@
 
 namespace ImageProcessorCore
 {
-    using Processors;
-
     /// <summary>
     /// Extension methods for the <see cref="Image"/> type.
     /// </summary>
@@ -52,7 +50,7 @@ namespace ImageProcessorCore
                 source = source.Resize(sourceRectangle.Width, sourceRectangle.Height);
             }
 
-            Crop processor = new Crop();
+            CropProcessor processor = new CropProcessor();
             processor.OnProgress += progressHandler;
 
             try

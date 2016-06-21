@@ -5,8 +5,6 @@
 
 namespace ImageProcessorCore
 {
-    using Processors;
-
     /// <summary>
     /// Extension methods for the <see cref="Image"/> type.
     /// </summary>
@@ -37,7 +35,7 @@ namespace ImageProcessorCore
         /// <returns>The <see cref="Image"/></returns>
         public static Image Skew(this Image source, float degreesX, float degreesY, Point center, bool expand, ProgressEventHandler progressHandler = null)
         {
-            Skew processor = new Skew { AngleX = degreesX, AngleY = degreesY, Center = center, Expand = expand };
+            SkewProcessor processor = new SkewProcessor { AngleX = degreesX, AngleY = degreesY, Center = center, Expand = expand };
             processor.OnProgress += progressHandler;
 
             try

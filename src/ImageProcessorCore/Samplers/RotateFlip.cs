@@ -5,8 +5,6 @@
 
 namespace ImageProcessorCore
 {
-    using Processors;
-
     /// <summary>
     /// Extension methods for the <see cref="Image"/> type.
     /// </summary>
@@ -22,7 +20,7 @@ namespace ImageProcessorCore
         /// <returns>The <see cref="Image"/></returns>
         public static Image RotateFlip(this Image source, RotateType rotateType, FlipType flipType, ProgressEventHandler progressHandler = null)
         {
-            RotateFlip processor = new RotateFlip(rotateType, flipType);
+            RotateFlipProcessor processor = new RotateFlipProcessor(rotateType, flipType);
             processor.OnProgress += progressHandler;
 
             try

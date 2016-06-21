@@ -1,8 +1,8 @@
-﻿// <copyright file="RotateFlip.cs" company="James Jackson-South">
+﻿// <copyright file="RotateFlipProcessor.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
-namespace ImageProcessorCore.Processors
+namespace ImageProcessorCore
 {
     using System;
     using System.Threading.Tasks;
@@ -10,14 +10,14 @@ namespace ImageProcessorCore.Processors
     /// <summary>
     /// Provides methods that allow the rotation and flipping of an image around its center point.
     /// </summary>
-    public class RotateFlip : ImageSampler
+    public class RotateFlipProcessor : ImageSampler
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="RotateFlip"/> class.
+        /// Initializes a new instance of the <see cref="RotateFlipProcessor"/> class.
         /// </summary>
         /// <param name="rotateType">The <see cref="RotateType"/> used to perform rotation.</param>
         /// <param name="flipType">The <see cref="FlipType"/> used to perform flipping.</param>
-        public RotateFlip(RotateType rotateType, FlipType flipType)
+        public RotateFlipProcessor(RotateType rotateType, FlipType flipType)
         {
             this.RotateType = rotateType;
             this.FlipType = flipType;

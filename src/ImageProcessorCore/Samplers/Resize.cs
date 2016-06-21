@@ -5,8 +5,6 @@
 
 namespace ImageProcessorCore
 {
-    using Processors;
-
     /// <summary>
     /// Extension methods for the <see cref="Image"/> type.
     /// </summary>
@@ -118,7 +116,7 @@ namespace ImageProcessorCore
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
 
-            Resize processor = new Resize(sampler) { Compand = compand };
+            ResizeProcessor processor = new ResizeProcessor(sampler) { Compand = compand };
             processor.OnProgress += progressHandler;
 
             try

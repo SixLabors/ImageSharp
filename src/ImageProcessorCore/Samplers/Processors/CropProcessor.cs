@@ -1,16 +1,16 @@
-﻿// <copyright file="Crop.cs" company="James Jackson-South">
+﻿// <copyright file="CropProcessor.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageProcessorCore.Processors
+namespace ImageProcessorCore
 {
     using System.Threading.Tasks;
 
     /// <summary>
     /// Provides methods to allow the cropping of an image.
     /// </summary>
-    public class Crop : ImageSampler
+    public class CropProcessor : ImageSampler
     {
         /// <inheritdoc/>
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)

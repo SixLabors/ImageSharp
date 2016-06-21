@@ -1,17 +1,17 @@
-﻿// <copyright file="Rotate.cs" company="James Jackson-South">
+﻿// <copyright file="SkewProcessor.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageProcessorCore.Processors
+namespace ImageProcessorCore
 {
     using System.Numerics;
     using System.Threading.Tasks;
 
     /// <summary>
-    /// Provides methods that allow the rotating of images.
+    /// Provides methods that allow the skewing of images.
     /// </summary>
-    public class Rotate : ImageSampler
+    public class SkewProcessor : ImageSampler
     {
         /// <summary>
         /// The image used for storing the first pass pixels.
@@ -19,21 +19,26 @@ namespace ImageProcessorCore.Processors
         private Image firstPass;
 
         /// <summary>
-        /// The angle of rotation in degrees.
+        /// The angle of rotation along the x-axis.
         /// </summary>
-        private float angle;
+        private float angleX;
+
+        /// <summary>
+        /// The angle of rotation along the y-axis.
+        /// </summary>
+        private float angleY;
 
         /// <inheritdoc/>
         public override int Parallelism { get; set; } = 1;
 
         /// <summary>
-        /// Gets or sets the angle of rotation in degrees.
+        /// Gets or sets the angle of rotation along the x-axis in degrees.
         /// </summary>
-        public float Angle
+        public float AngleX
         {
             get
             {
-                return this.angle;
+                return this.angleX;
             }
 
             set
@@ -48,7 +53,33 @@ namespace ImageProcessorCore.Processors
                     value += 360;
                 }
 
-                this.angle = value;
+                this.angleX = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the angle of rotation along the y-axis in degrees.
+        /// </summary>
+        public float AngleY
+        {
+            get
+            {
+                return this.angleY;
+            }
+
+            set
+            {
+                if (value > 360)
+                {
+                    value -= 360;
+                }
+
+                if (value < 0)
+                {
+                    value += 360;
+                }
+
+                this.angleY = value;
             }
         }
 
@@ -58,7 +89,7 @@ namespace ImageProcessorCore.Processors
         public Point Center { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether to expand the canvas to fit the rotated image.
+        /// Gets or sets a value indicating whether to expand the canvas to fit the skewed image.
         /// </summary>
         public bool Expand { get; set; }
 
@@ -71,8 +102,8 @@ namespace ImageProcessorCore.Processors
             {
                 // First find out how big the target rectangle should be.
                 Point centre = this.Center == Point.Empty ? Rectangle.Center(sourceRectangle) : this.Center;
-                Matrix3x2 rotation = Point.CreateRotation(centre, -this.angle);
-                Rectangle rectangle = ImageMaths.GetBoundingRectangle(sourceRectangle, rotation);
+                Matrix3x2 skew = Point.CreateSkew(centre, -this.angleX, -this.angleY);
+                Rectangle rectangle = ImageMaths.GetBoundingRectangle(sourceRectangle, skew);
                 ResizeOptions options = new ResizeOptions
                 {
                     Size = new Size(rectangle.Width, rectangle.Height),
@@ -83,7 +114,7 @@ namespace ImageProcessorCore.Processors
                 Rectangle bounds = ResizeHelper.CalculateTargetLocationAndBounds(source, options);
                 this.firstPass = new Image(rectangle.Width, rectangle.Height);
                 target.SetPixels(rectangle.Width, rectangle.Height, new float[rectangle.Width * rectangle.Height * 4]);
-                new Resize(new NearestNeighborResampler()).Apply(this.firstPass, source, rectangle.Width, rectangle.Height, bounds, sourceRectangle);
+                new ResizeProcessor(new NearestNeighborResampler()).Apply(this.firstPass, source, rectangle.Width, rectangle.Height, bounds, sourceRectangle);
             }
             else
             {
@@ -100,7 +131,7 @@ namespace ImageProcessorCore.Processors
             int startX = 0;
             int endX = this.firstPass.Width;
             Point centre = this.Center == Point.Empty ? Rectangle.Center(this.firstPass.Bounds) : this.Center;
-            Matrix3x2 rotation = Point.CreateRotation(centre, -this.angle);
+            Matrix3x2 skew = Point.CreateSkew(centre, -this.angleX, -this.angleY);
 
             // Since we are not working in parallel we use full height and width 
             // of the first pass image.
@@ -111,11 +142,11 @@ namespace ImageProcessorCore.Processors
                 {
                     for (int x = startX; x < endX; x++)
                     {
-                        // Rotate at the centre point
-                        Point rotated = Point.Rotate(new Point(x, y), rotation);
-                        if (this.firstPass.Bounds.Contains(rotated.X, rotated.Y))
+                        // Skew at the centre point
+                        Point skewed = Point.Skew(new Point(x, y), skew);
+                        if (this.firstPass.Bounds.Contains(skewed.X, skewed.Y))
                         {
-                            target[x, y] = this.firstPass[rotated.X, rotated.Y];
+                            target[x, y] = this.firstPass[skewed.X, skewed.Y];
                         }
                     }
 

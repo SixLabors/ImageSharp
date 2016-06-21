@@ -5,8 +5,6 @@
 
 namespace ImageProcessorCore
 {
-    using Processors;
-
     /// <summary>
     /// Extension methods for the <see cref="Image"/> type.
     /// </summary>
@@ -21,7 +19,7 @@ namespace ImageProcessorCore
         /// <returns>The <see cref="Image"/></returns>
         public static Image EntropyCrop(this Image source, float threshold = .5f, ProgressEventHandler progressHandler = null)
         {
-            EntropyCrop processor = new EntropyCrop(threshold);
+            EntropyCropProcessor processor = new EntropyCropProcessor(threshold);
             processor.OnProgress += progressHandler;
 
             try

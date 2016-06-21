@@ -1,9 +1,9 @@
-﻿// <copyright file="EntropyCrop.cs" company="James Jackson-South">
+﻿// <copyright file="EntropyCropProcessor.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageProcessorCore.Processors
+namespace ImageProcessorCore
 {
     using System;
     using System.Threading.Tasks;
@@ -14,7 +14,7 @@ namespace ImageProcessorCore.Processors
     /// Provides methods to allow the cropping of an image to preserve areas of highest
     /// entropy.
     /// </summary>
-    public class EntropyCrop : ImageSampler
+    public class EntropyCropProcessor : ImageSampler
     {
         /// <summary>
         /// The rectangle for cropping
@@ -22,13 +22,13 @@ namespace ImageProcessorCore.Processors
         private Rectangle cropRectangle;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="EntropyCrop"/> class.
+        /// Initializes a new instance of the <see cref="EntropyCropProcessor"/> class.
         /// </summary>
         /// <param name="threshold">The threshold to split the image. Must be between 0 and 1.</param>
         /// <exception cref="ArgumentException">
         /// <paramref name="threshold"/> is less than 0 or is greater than 1.
         /// </exception>
-        public EntropyCrop(float threshold)
+        public EntropyCropProcessor(float threshold)
         {
             Guard.MustBeBetweenOrEqualTo(threshold, 0, 1, nameof(threshold));
             this.Value = threshold;

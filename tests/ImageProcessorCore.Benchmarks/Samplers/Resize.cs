@@ -5,7 +5,7 @@
 
     using BenchmarkDotNet.Attributes;
 
-    using ImageProcessorCore.Samplers;
+    using ImageProcessorCore.Processors;
     using CoreImage = ImageProcessorCore.Image;
     using CoreSize = ImageProcessorCore.Size;
 

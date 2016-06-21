@@ -37,7 +37,7 @@ namespace ImageProcessorCore
         {
             try
             {
-                this.OnApply(source, target, target.Bounds, sourceRectangle);
+                this.OnApply(target, source, target.Bounds, sourceRectangle);
 
                 this.numRowsProcessed = 0;
                 this.totalRows = sourceRectangle.Height;
@@ -71,7 +71,7 @@ namespace ImageProcessorCore
                     this.Apply(target, source, target.Bounds, sourceRectangle, sourceRectangle.Y, sourceRectangle.Bottom);
                 }
 
-                this.AfterApply(source, target, target.Bounds, sourceRectangle);
+                this.AfterApply(target, source, target.Bounds, sourceRectangle);
             }
             catch (Exception ex)
             {
@@ -98,7 +98,7 @@ namespace ImageProcessorCore
                     targetRectangle = target.Bounds;
                 }
 
-                this.OnApply(source, target, targetRectangle, sourceRectangle);
+                this.OnApply(target, source, targetRectangle, sourceRectangle);
 
                 this.numRowsProcessed = 0;
                 this.totalRows = targetRectangle.Bottom;
@@ -129,7 +129,7 @@ namespace ImageProcessorCore
                     this.Apply(target, source, targetRectangle, sourceRectangle, targetRectangle.Y, targetRectangle.Bottom);
                 }
 
-                this.AfterApply(source, target, target.Bounds, sourceRectangle);
+                this.AfterApply(target, source, target.Bounds, sourceRectangle);
             }
             catch (Exception ex)
             {
@@ -140,8 +140,8 @@ namespace ImageProcessorCore
         /// <summary>
         /// This method is called before the process is applied to prepare the processor.
         /// </summary>
-        /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="target">Target image to apply the process to.</param>
+        /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="targetRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the location and size of the drawn image.
         /// The image is scaled to fit the rectangle.
@@ -149,7 +149,7 @@ namespace ImageProcessorCore
         /// <param name="sourceRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
-        protected virtual void OnApply(ImageBase source, ImageBase target, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected virtual void OnApply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
         }
 
@@ -177,8 +177,8 @@ namespace ImageProcessorCore
         /// <summary>
         /// This method is called after the process is applied to prepare the processor.
         /// </summary>
-        /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="target">Target image to apply the process to.</param>
+        /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="targetRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the location and size of the drawn image.
         /// The image is scaled to fit the rectangle.
@@ -186,7 +186,7 @@ namespace ImageProcessorCore
         /// <param name="sourceRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
-        protected virtual void AfterApply(ImageBase source, ImageBase target, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected virtual void AfterApply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
         }
 

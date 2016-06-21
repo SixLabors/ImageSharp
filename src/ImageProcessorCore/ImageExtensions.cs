@@ -127,6 +127,7 @@ namespace ImageProcessorCore
         /// <param name="clone">Whether to clone the image.</param>
         /// <param name="action">The <see cref="Action"/> to perform against the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
+        /// <exception cref="ObjectDisposedException">Thrown if the <paramref name="source"/> has been disposed.</exception>
         private static Image PerformAction(Image source, bool clone, Action<ImageBase, ImageBase> action)
         {
             if (source.IsDisposed)
@@ -142,7 +143,6 @@ namespace ImageProcessorCore
                     // TODO: Check why we need to set these?
                     HorizontalResolution = source.HorizontalResolution,
                     VerticalResolution = source.VerticalResolution,
-                    Formats = source.Formats,
                     CurrentImageFormat = source.CurrentImageFormat,
                     RepeatCount = source.RepeatCount
                 };
@@ -165,9 +165,9 @@ namespace ImageProcessorCore
                 }
             }
 
-            // According to http://stackoverflow.com/questions/37921815/idisposable-unmanaged-fields-reference-types-and-assignments/37922955#37922955
+            // According to http://stackoverflow.com/questions/37921815/idisposable-unmanaged-fields-reference-types-and-assignments
             // There's no need to dispose of the original image as the GC will get around to cleaning it up now there are no references to the original data.
-            // TODO: Investigate how log this is held onto and try to keep that to a minimum.
+            // TODO: Investigate how long this is held onto and try to keep that to a minimum.
             source = transformedImage;
             return source;
         }

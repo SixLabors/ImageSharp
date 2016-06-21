@@ -7,7 +7,6 @@ namespace ImageProcessorCore
 {
     using System;
     using System.Collections.Generic;
-    using System.Collections.ObjectModel;
     using System.Diagnostics;
     using System.IO;
     using System.Linq;
@@ -77,25 +76,7 @@ namespace ImageProcessorCore
             this.RepeatCount = other.RepeatCount;
             this.HorizontalResolution = other.HorizontalResolution;
             this.VerticalResolution = other.VerticalResolution;
-            this.Formats = other.Formats;
             this.CurrentImageFormat = other.CurrentImageFormat;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Image"/> class.
-        /// </summary>
-        /// <param name="other">
-        /// The other <see cref="ImageFrame"/> to create this instance from.
-        /// </param>
-        /// <exception cref="ArgumentNullException">
-        /// Thrown if the given <see cref="ImageFrame"/> is null.
-        /// </exception>
-        public Image(ImageFrame other)
-            : base(other)
-        {
-            // Most likely a gif
-            // TODO: Should this be aproperty on ImageFrame?
-            this.CurrentImageFormat = Bootstrapper.Instance.ImageFormats.First(f => f.GetType() == typeof(GifFormat));
         }
 
         /// <summary>
@@ -108,29 +89,13 @@ namespace ImageProcessorCore
         public Image(Stream stream)
         {
             Guard.NotNull(stream, nameof(stream));
-            this.Load(stream, Bootstrapper.Instance.ImageFormats.ToList());
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Image"/> class.
-        /// </summary>
-        /// <param name="stream">
-        /// The stream containing image information.
-        /// </param>
-        /// <param name="formats">
-        /// The collection of <see cref="IImageFormat"/>.
-        /// </param>
-        /// <exception cref="ArgumentNullException">Thrown if the stream is null.</exception>
-        public Image(Stream stream, params IImageFormat[] formats)
-        {
-            Guard.NotNull(stream, nameof(stream));
-            this.Load(stream, formats.ToList());
+            this.Load(stream);
         }
 
         /// <summary>
         /// Gets a list of supported image formats.
         /// </summary>
-        public IReadOnlyCollection<IImageFormat> Formats { get; internal set; } = Bootstrapper.Instance.ImageFormats;
+        public IReadOnlyCollection<IImageFormat> Formats { get; } = Bootstrapper.Instance.ImageFormats;
 
         /// <inheritdoc/>
         public double HorizontalResolution { get; set; } = DefaultHorizontalResolution;
@@ -246,15 +211,12 @@ namespace ImageProcessorCore
         /// Loads the image from the given stream.
         /// </summary>
         /// <param name="stream">The stream containing image information.</param>
-        /// <param name="formats">The collection of <see cref="IImageFormat"/>.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
-        private void Load(Stream stream, IList<IImageFormat> formats)
+        private void Load(Stream stream)
         {
-            if (!formats.Any()) { return; }
-
-            this.Formats = new ReadOnlyCollection<IImageFormat>(formats);
+            if (!this.Formats.Any()) { return; }
 
             if (!stream.CanRead)
             {
@@ -266,7 +228,7 @@ namespace ImageProcessorCore
                 throw new NotSupportedException("The stream does not support seeking.");
             }
 
-            int maxHeaderSize = formats.Max(x => x.Decoder.HeaderSize);
+            int maxHeaderSize = this.Formats.Max(x => x.Decoder.HeaderSize);
             if (maxHeaderSize > 0)
             {
                 byte[] header = new byte[maxHeaderSize];
@@ -275,7 +237,7 @@ namespace ImageProcessorCore
                 stream.Read(header, 0, maxHeaderSize);
                 stream.Position = 0;
 
-                IImageFormat format = formats.FirstOrDefault(x => x.Decoder.IsSupportedFileFormat(header));
+                IImageFormat format = this.Formats.FirstOrDefault(x => x.Decoder.IsSupportedFileFormat(header));
                 if (format != null)
                 {
                     format.Decoder.Decode(this, stream);
@@ -287,7 +249,7 @@ namespace ImageProcessorCore
             StringBuilder stringBuilder = new StringBuilder();
             stringBuilder.AppendLine("Image cannot be loaded. Available formats:");
 
-            foreach (IImageFormat format in formats)
+            foreach (IImageFormat format in this.Formats)
             {
                 stringBuilder.AppendLine("-" + format);
             }

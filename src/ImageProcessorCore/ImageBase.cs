@@ -41,7 +41,7 @@ namespace ImageProcessorCore
         /// method will not dispose again. This help not to prolong the entity's
         /// life in the Garbage Collector.
         /// </remarks>
-        protected bool IsDisposed;
+        internal bool IsDisposed;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageBase"/> class.

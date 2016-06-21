@@ -78,9 +78,7 @@ namespace ImageProcessorCore
         /// <returns>The <see cref="Image"/>.</returns>
         public static Image Process(this Image source, Rectangle sourceRectangle, IImageProcessor processor)
         {
-            source = PerformAction(source, true, (sourceImage, targetImage) => processor.Apply(targetImage, sourceImage, sourceRectangle));
-
-            return source;
+            return PerformAction(source, true, (sourceImage, targetImage) => processor.Apply(targetImage, sourceImage, sourceRectangle));
         }
 
         /// <summary>
@@ -94,7 +92,7 @@ namespace ImageProcessorCore
         /// <param name="height">The target image height.</param>
         /// <param name="sampler">The processor to apply to the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        internal static Image Process(this Image source, int width, int height, IImageSampler sampler)
+        public static Image Process(this Image source, int width, int height, IImageSampler sampler)
         {
             return Process(source, width, height, source.Bounds, default(Rectangle), sampler);
         }
@@ -102,8 +100,7 @@ namespace ImageProcessorCore
         /// <summary>
         /// Applies the collection of processors to the image.
         /// <remarks>
-        /// This method does will resize the target image if the source and target
-        /// rectangles are different.
+        /// This method does will resize the target image if the source and target rectangles are different.
         /// </remarks>
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
@@ -120,9 +117,7 @@ namespace ImageProcessorCore
         /// <returns>The <see cref="Image"/>.</returns>
         public static Image Process(this Image source, int width, int height, Rectangle sourceRectangle, Rectangle targetRectangle, IImageSampler sampler)
         {
-            source = PerformAction(source, false, (sourceImage, targetImage) => sampler.Apply(targetImage, sourceImage, width, height, targetRectangle, sourceRectangle));
-
-            return source;
+           return PerformAction(source, false, (sourceImage, targetImage) => sampler.Apply(targetImage, sourceImage, width, height, targetRectangle, sourceRectangle));
         }
 
         /// <summary>
@@ -134,6 +129,11 @@ namespace ImageProcessorCore
         /// <returns>The <see cref="Image"/>.</returns>
         private static Image PerformAction(Image source, bool clone, Action<ImageBase, ImageBase> action)
         {
+            if (source.IsDisposed)
+            {
+                throw new ObjectDisposedException("Image");
+            }
+
             Image transformedImage = clone
                 ? new Image(source)
                 : new Image
@@ -165,9 +165,11 @@ namespace ImageProcessorCore
                 }
             }
 
-            // Clean up.
-            source.Dispose();
-            return transformedImage;
+            // According to http://stackoverflow.com/questions/37921815/idisposable-unmanaged-fields-reference-types-and-assignments/37922955#37922955
+            // There's no need to dispose of the original image as the GC will get around to cleaning it up now there are no references to the original data.
+            // TODO: Investigate how log this is held onto and try to keep that to a minimum.
+            source = transformedImage;
+            return source;
         }
     }
 }

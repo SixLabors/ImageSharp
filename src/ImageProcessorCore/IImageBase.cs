@@ -68,7 +68,7 @@ namespace ImageProcessorCore
         /// than zero and smaller than the width of the pixel.
         /// </param>
         /// <returns>The <see cref="Color"/> at the specified position.</returns>
-        Color this[int x, int y, [CallerLineNumber] int line = 0] { get; set; }
+        Color this[int x, int y] { get; set; }
 
         /// <summary>
         /// Sets the pixel array of the image to the given value.

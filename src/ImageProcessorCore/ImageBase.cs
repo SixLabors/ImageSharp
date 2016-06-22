@@ -135,7 +135,7 @@ namespace ImageProcessorCore
         public int FrameDelay { get; set; }
 
         /// <inheritdoc/>
-        public Color this[int x, int y, [CallerLineNumber] int line = 0]
+        public Color this[int x, int y]
         {
             get
             {

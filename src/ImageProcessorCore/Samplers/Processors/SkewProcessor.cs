@@ -15,7 +15,6 @@ namespace ImageProcessorCore
     /// </summary>
     public class SkewProcessor : ImageSampler
     {
- 
         /// <summary>
         /// The angle of rotation along the x-axis.
         /// </summary>
@@ -41,16 +40,6 @@ namespace ImageProcessorCore
 
             set
             {
-                if (value > 360)
-                {
-                    value -= 360;
-                }
-
-                if (value < 0)
-                {
-                    value += 360;
-                }
-
                 this.angleX = value;
             }
         }
@@ -67,16 +56,6 @@ namespace ImageProcessorCore
 
             set
             {
-                if (value > 360)
-                {
-                    value -= 360;
-                }
-
-                if (value < 0)
-                {
-                    value += 360;
-                }
-
                 this.angleY = value;
             }
         }
@@ -110,54 +89,51 @@ namespace ImageProcessorCore
 
                 // Get the padded bounds and resize the image.
                 Rectangle bounds = ResizeHelper.CalculateTargetLocationAndBounds(source, options);
-               target.SetPixels(rectangle.Width, rectangle.Height, new float[rectangle.Width * rectangle.Height * 4]);
+                target.SetPixels(rectangle.Width, rectangle.Height, new float[rectangle.Width * rectangle.Height * 4]);
             }
         }
 
         /// <inheritdoc/>
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-
             int skewMaxX = target.Width - source.Width;
             int skewMaxY = target.Height - source.Height;
+            int offesetX = 0;
+            int offesetY = 0;
 
-            int[] deltaX = new int[source.Height];
-            for (int i = 0; i < deltaX.Length; i++)
+            if (ImageMaths.DegreesToRadians(angleX) < 0)
             {
-                deltaX[i] = GetSkewDelta(i, angleX);
-                if (angleX < 0)
-                {
-                    deltaX[i] += skewMaxX;
-                }
+                offesetX = skewMaxX;
+                skewMaxX = -skewMaxX;
+
             }
+            if (ImageMaths.DegreesToRadians(angleY) < 0)
+            {
+                offesetY = skewMaxY;
+              //  skewMaxY = -skewMaxY;
+
+            }
+
+
 
 
             Parallel.For(
              0,
-             source.Width,
-             sx =>
+             source.Height,
+             sy =>
              {
-                 int deltaY = GetSkewDelta(sx, angleY);
-                 if (AngleY < 0)
+
+                 for (int sx = 0; sx < source.Width; sx++)
                  {
-                     deltaY += skewMaxY;
-                 }
-                 for (int sy = 0; sy < source.Height; sy++)
-                 {
-                     target[deltaX[sy] + sx, deltaY + sy] = source[sx, sy];
+                     int skewY = ((skewMaxX * (sy)) / (source.Height - 1)) + offesetX;
+                     int skewX = ((skewMaxY * (sx-source.Width-1)) / (source.Width - 1))+ offesetY;
+                     target[skewY + sx,  sy +skewX ] = source[sx, sy];
                  }
                  this.OnRowProcessed();
              });
-        }
 
-        private int GetSkewDelta(int sy, float angle)
-        {
-            float radians = ImageMaths.DegreesToRadians(angle);
-            double delta = Math.Tan(radians);
-            delta = delta * sy;
-            return ((int)delta);
-        }
 
+        }
 
 
         /// <inheritdoc/>

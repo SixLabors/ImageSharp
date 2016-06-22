@@ -3,6 +3,8 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+using System;
+
 namespace ImageProcessorCore
 {
     using System.Numerics;
@@ -13,11 +15,7 @@ namespace ImageProcessorCore
     /// </summary>
     public class SkewProcessor : ImageSampler
     {
-        /// <summary>
-        /// The image used for storing the first pass pixels.
-        /// </summary>
-        private Image firstPass;
-
+ 
         /// <summary>
         /// The angle of rotation along the x-axis.
         /// </summary>
@@ -112,53 +110,60 @@ namespace ImageProcessorCore
 
                 // Get the padded bounds and resize the image.
                 Rectangle bounds = ResizeHelper.CalculateTargetLocationAndBounds(source, options);
-                this.firstPass = new Image(rectangle.Width, rectangle.Height);
-                target.SetPixels(rectangle.Width, rectangle.Height, new float[rectangle.Width * rectangle.Height * 4]);
-                new ResizeProcessor(new NearestNeighborResampler()).Apply(this.firstPass, source, rectangle.Width, rectangle.Height, bounds, sourceRectangle);
-            }
-            else
-            {
-                // Just clone the pixels across.
-                this.firstPass = new Image(source.Width, source.Height);
-                this.firstPass.ClonePixels(source.Width, source.Height, source.Pixels);
+               target.SetPixels(rectangle.Width, rectangle.Height, new float[rectangle.Width * rectangle.Height * 4]);
             }
         }
 
         /// <inheritdoc/>
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-            int height = this.firstPass.Height;
-            int startX = 0;
-            int endX = this.firstPass.Width;
-            Point centre = this.Center == Point.Empty ? Rectangle.Center(this.firstPass.Bounds) : this.Center;
-            Matrix3x2 skew = Point.CreateSkew(centre, -this.angleX, -this.angleY);
 
-            // Since we are not working in parallel we use full height and width 
-            // of the first pass image.
-            Parallel.For(
-                0,
-                height,
-                y =>
+            int skewMaxX = target.Width - source.Width;
+            int skewMaxY = target.Height - source.Height;
+
+            int[] deltaX = new int[source.Height];
+            for (int i = 0; i < deltaX.Length; i++)
+            {
+                deltaX[i] = GetSkewDelta(i, angleX);
+                if (angleX < 0)
                 {
-                    for (int x = startX; x < endX; x++)
-                    {
-                        // Skew at the centre point
-                        Point skewed = Point.Skew(new Point(x, y), skew);
-                        if (this.firstPass.Bounds.Contains(skewed.X, skewed.Y))
-                        {
-                            target[x, y] = this.firstPass[skewed.X, skewed.Y];
-                        }
-                    }
+                    deltaX[i] += skewMaxX;
+                }
+            }
 
-                    this.OnRowProcessed();
-                });
+
+            Parallel.For(
+             0,
+             source.Width,
+             sx =>
+             {
+                 int deltaY = GetSkewDelta(sx, angleY);
+                 if (AngleY < 0)
+                 {
+                     deltaY += skewMaxY;
+                 }
+                 for (int sy = 0; sy < source.Height; sy++)
+                 {
+                     target[deltaX[sy] + sx, deltaY + sy] = source[sx, sy];
+                 }
+                 this.OnRowProcessed();
+             });
         }
+
+        private int GetSkewDelta(int sy, float angle)
+        {
+            float radians = ImageMaths.DegreesToRadians(angle);
+            double delta = Math.Tan(radians);
+            delta = delta * sy;
+            return ((int)delta);
+        }
+
+
 
         /// <inheritdoc/>
         protected override void AfterApply(ImageBase source, ImageBase target, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
             // Cleanup.
-            this.firstPass.Dispose();
         }
     }
 }

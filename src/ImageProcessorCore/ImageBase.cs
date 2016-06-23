@@ -6,42 +6,17 @@
 namespace ImageProcessorCore
 {
     using System;
-    using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
 
     /// <summary>
     /// The base class of all images. Encapsulates the basic properties and methods
     /// required to manipulate images.
     /// </summary>
-    public abstract unsafe class ImageBase : IImageBase, IDisposable
+    public abstract class ImageBase
     {
-        /// <summary>
-        /// The position of the first pixel in the bitmap.
-        /// </summary>
-        private float* pixelsBase;
-
         /// <summary>
         /// The array of pixels.
         /// </summary>
         private float[] pixelsArray;
-
-        /// <summary>
-        /// Provides a way to access the pixels from unmanaged memory.
-        /// </summary>
-        private GCHandle pixelsHandle;
-
-        /// <summary>
-        /// A value indicating whether this instance of the given entity has been disposed.
-        /// </summary>
-        /// <value><see langword="true"/> if this instance has been disposed; otherwise, <see langword="false"/>.</value>
-        /// <remarks>
-        /// If the entity is disposed, it must not be disposed a second
-        /// time. The isDisposed field is set the first time the entity
-        /// is disposed. If the isDisposed field is true, then the Dispose()
-        /// method will not dispose again. This help not to prolong the entity's
-        /// life in the Garbage Collector.
-        /// </remarks>
-        internal bool IsDisposed;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageBase"/> class.
@@ -68,8 +43,6 @@ namespace ImageProcessorCore
 
             // Assign the pointer and pixels.
             this.pixelsArray = new float[width * height * 4];
-            this.pixelsHandle = GCHandle.Alloc(this.pixelsArray, GCHandleType.Pinned);
-            this.pixelsBase = (float*)this.pixelsHandle.AddrOfPinnedObject().ToPointer();
         }
 
         /// <summary>
@@ -90,17 +63,9 @@ namespace ImageProcessorCore
             this.Quality = other.Quality;
             this.FrameDelay = other.FrameDelay;
 
-            // Assign the pointer and copy the pixels.
+            // Copy the pixels.
             this.pixelsArray = new float[this.Width * this.Height * 4];
-            this.pixelsHandle = GCHandle.Alloc(this.pixelsArray, GCHandleType.Pinned);
-            this.pixelsBase = (float*)this.pixelsHandle.AddrOfPinnedObject().ToPointer();
             Array.Copy(other.pixelsArray, this.pixelsArray, other.pixelsArray.Length);
-        }
-
-        /// <inheritdoc/>
-        ~ImageBase()
-        {
-            this.Dispose(false);
         }
 
         /// <summary>
@@ -113,67 +78,65 @@ namespace ImageProcessorCore
         /// </summary>
         public static int MaxHeight { get; set; } = int.MaxValue;
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Gets the image pixels as byte array.
+        /// </summary>
+        /// <remarks>
+        /// The returned array has a length of Width * Height * 4 bytes
+        /// and stores the red, the green, the blue, and the alpha value for
+        /// each pixel in this order.
+        /// </remarks>
         public float[] Pixels => this.pixelsArray;
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Gets the width in pixels.
+        /// </summary>
         public int Width { get; private set; }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Gets the height in pixels.
+        /// </summary>
         public int Height { get; private set; }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Gets the pixel ratio made up of the width and height.
+        /// </summary>
         public double PixelRatio => (double)this.Width / this.Height;
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Gets the <see cref="Rectangle"/> representing the bounds of the image.
+        /// </summary>
         public Rectangle Bounds => new Rectangle(0, 0, this.Width, this.Height);
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Gets or sets th quality of the image. This affects the output quality of lossy image formats.
+        /// </summary>
         public int Quality { get; set; }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Gets or sets the frame delay for animated images.
+        /// If not 0, this field specifies the number of hundredths (1/100) of a second to
+        /// wait before continuing with the processing of the Data Stream.
+        /// The clock starts ticking immediately after the graphic is rendered.
+        /// </summary>
         public int FrameDelay { get; set; }
 
-        /// <inheritdoc/>
-        public Color this[int x, int y]
-        {
-            get
-            {
-#if DEBUG
-                if ((x < 0) || (x >= this.Width))
-                {
-                    throw new ArgumentOutOfRangeException(nameof(x), "Value cannot be less than zero or greater than the bitmap width.");
-                }
-
-                if ((y < 0) || (y >= this.Height))
-                {
-                    throw new ArgumentOutOfRangeException(nameof(y), "Value cannot be less than zero or greater than the bitmap height.");
-                }
-#endif
-                return *((Color*)(this.pixelsBase + ((y * this.Width) + x) * 4));
-            }
-
-            set
-            {
-#if DEBUG
-                if ((x < 0) || (x >= this.Width))
-                {
-                    throw new ArgumentOutOfRangeException(nameof(x), "Value cannot be less than zero or greater than the bitmap width.");
-                }
-
-                if ((y < 0) || (y >= this.Height))
-                {
-                    throw new ArgumentOutOfRangeException(nameof(y), "Value cannot be less than zero or greater than the bitmap height.");
-                }
-#endif
-                *(Color*)(this.pixelsBase + (((y * this.Width) + x) * 4)) = value;
-            }
-        }
-
-        /// <inheritdoc/>
+        /// <summary>
+        /// Sets the pixel array of the image to the given value.
+        /// </summary>
+        /// <param name="width">The new width of the image. Must be greater than zero.</param>
+        /// <param name="height">The new height of the image. Must be greater than zero.</param>
+        /// <param name="pixels">
+        /// The array with colors. Must be a multiple of four times the width and height.
+        /// </param>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown if either <paramref name="width"/> or <paramref name="height"/> are less than or equal to 0.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown if the <paramref name="pixels"/> length is not equal to Width * Height * 4.
+        /// </exception>
         public void SetPixels(int width, int height, float[] pixels)
         {
-#if DEBUG
             if (width <= 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(width), "Width must be greater than or equals than zero.");
@@ -188,90 +151,62 @@ namespace ImageProcessorCore
             {
                 throw new ArgumentException("Pixel array must have the length of Width * Height * 4.");
             }
-#endif
+
             this.Width = width;
             this.Height = height;
-
-            // Ensure nothing is preserved if previously allocated.
-            if (this.pixelsHandle.IsAllocated)
-            {
-                this.pixelsArray = null;
-                this.pixelsHandle.Free();
-                this.pixelsBase = null;
-            }
-
             this.pixelsArray = pixels;
-            this.pixelsHandle = GCHandle.Alloc(this.pixelsArray, GCHandleType.Pinned);
-            this.pixelsBase = (float*)this.pixelsHandle.AddrOfPinnedObject().ToPointer();
-        }
-
-        /// <inheritdoc/>
-        public void ClonePixels(int width, int height, float[] pixels)
-        {
-#if DEBUG
-            if (width <= 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(width), "Width must be greater than or equals than zero.");
-            }
-
-            if (height <= 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(height), "Height must be greater than or equal than zero.");
-            }
-
-            if (pixels.Length != width * height * 4)
-            {
-                throw new ArgumentException("Pixel array must have the length of Width * Height * 4.");
-            }
-#endif
-            this.Width = width;
-            this.Height = height;
-
-            // Assign the pointer and copy the pixels.
-            this.pixelsArray = new float[pixels.Length];
-            this.pixelsHandle = GCHandle.Alloc(this.pixelsArray, GCHandleType.Pinned);
-            this.pixelsBase = (float*)this.pixelsHandle.AddrOfPinnedObject().ToPointer();
-            Array.Copy(pixels, this.pixelsArray, pixels.Length);
-        }
-
-        /// <inheritdoc/>
-        public void Dispose()
-        {
-            this.Dispose(true);
-
-            // This object will be cleaned up by the Dispose method.
-            // Therefore, you should call GC.SuppressFinalize to
-            // take this object off the finalization queue 
-            // and prevent finalization code for this object
-            // from executing a second time.
-            GC.SuppressFinalize(this);
         }
 
         /// <summary>
-        /// Disposes the object and frees resources for the Garbage Collector.
+        /// Sets the pixel array of the image to the given value, creating a copy of 
+        /// the original pixels.
         /// </summary>
-        /// <param name="disposing">If true, the object gets disposed.</param>
-        protected virtual void Dispose(bool disposing)
+        /// <param name="width">The new width of the image. Must be greater than zero.</param>
+        /// <param name="height">The new height of the image. Must be greater than zero.</param>
+        /// <param name="pixels">
+        /// The array with colors. Must be a multiple of four times the width and height.
+        /// </param>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown if either <paramref name="width"/> or <paramref name="height"/> are less than or equal to 0.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown if the <paramref name="pixels"/> length is not equal to Width * Height * 4.
+        /// </exception>
+        public void ClonePixels(int width, int height, float[] pixels)
         {
-            if (this.IsDisposed)
+           if (width <= 0)
             {
-                return;
+                throw new ArgumentOutOfRangeException(nameof(width), "Width must be greater than or equals than zero.");
             }
 
-            if (disposing)
+            if (height <= 0)
             {
-                // Dispose of any managed resources here.
-                this.pixelsArray = null;
+                throw new ArgumentOutOfRangeException(nameof(height), "Height must be greater than or equal than zero.");
             }
 
-            if (this.pixelsHandle.IsAllocated)
+            if (pixels.Length != width * height * 4)
             {
-                this.pixelsHandle.Free();
-                this.pixelsBase = null;
+                throw new ArgumentException("Pixel array must have the length of Width * Height * 4.");
             }
 
-            // Note disposing is done.
-            this.IsDisposed = true;
+            this.Width = width;
+            this.Height = height;
+
+            // Copy the pixels.
+            this.pixelsArray = new float[pixels.Length];
+            Array.Copy(pixels, this.pixelsArray, pixels.Length);
+        }
+
+        /// <summary>
+        /// Locks the image providing access to the pixels.
+        /// <remarks>
+        /// It is imperative that the accessor is correctly disposed off after use.
+        /// </remarks>
+        /// </summary>
+        /// <returns>The <see cref="PixelAccessor"/></returns>
+        public PixelAccessor Lock()
+        {
+            return new PixelAccessor(this);
         }
     }
 }

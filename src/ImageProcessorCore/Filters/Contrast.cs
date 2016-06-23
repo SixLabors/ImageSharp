@@ -42,24 +42,29 @@ namespace ImageProcessorCore.Filters
             int endX = sourceRectangle.Right;
             Vector4 contrastVector = new Vector4(contrast, contrast, contrast, 1);
             Vector4 shiftVector = new Vector4(.5f, .5f, .5f, 1);
-            Parallel.For(
-                startY,
-                endY,
-                y =>
-                    {
-                        if (y >= sourceY && y < sourceBottom)
+
+            using (PixelAccessor sourcePixels = source.Lock())
+            using (PixelAccessor targetPixels = target.Lock())
+            {
+                Parallel.For(
+                    startY,
+                    endY,
+                    y =>
                         {
-                            for (int x = startX; x < endX; x++)
+                            if (y >= sourceY && y < sourceBottom)
                             {
-                                Vector4 color = Color.Expand(source[x, y]).ToVector4();
-                                color -= shiftVector;
-                                color *= contrastVector;
-                                color += shiftVector;
-                                target[x, y] = Color.Compress(new Color(color));
+                                for (int x = startX; x < endX; x++)
+                                {
+                                    Vector4 color = Color.Expand(sourcePixels[x, y]).ToVector4();
+                                    color -= shiftVector;
+                                    color *= contrastVector;
+                                    color += shiftVector;
+                                    targetPixels[x, y] = Color.Compress(new Color(color));
+                                }
+                                this.OnRowProcessed();
                             }
-                            this.OnRowProcessed();
-                        }
-                    });
+                        });
+            }
         }
     }
 }

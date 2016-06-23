@@ -22,21 +22,25 @@ namespace ImageProcessorCore
             int sourceX = sourceRectangle.X;
             int sourceY = sourceRectangle.Y;
 
-            Parallel.For(
-            startY,
-            endY,
-            y =>
+            using (PixelAccessor sourcePixels = source.Lock())
+            using (PixelAccessor targetPixels = target.Lock())
             {
-                if (y >= targetY && y < targetBottom)
-                {
-                    for (int x = startX; x < endX; x++)
-                    {
-                        target[x, y] = source[x + sourceX, y + sourceY];
-                    }
+                Parallel.For(
+                    startY,
+                    endY,
+                    y =>
+                        {
+                            if (y >= targetY && y < targetBottom)
+                            {
+                                for (int x = startX; x < endX; x++)
+                                {
+                                    targetPixels[x, y] = sourcePixels[x + sourceX, y + sourceY];
+                                }
 
-                    this.OnRowProcessed();
-                }
-            });
+                                this.OnRowProcessed();
+                            }
+                        });
+            }
         }
     }
 }

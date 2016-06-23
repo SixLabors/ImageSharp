@@ -28,7 +28,10 @@ namespace ImageProcessorCore.Filters
             int endX = sourceRectangle.Right;
             Matrix4x4 matrix = this.Matrix;
 
-            Parallel.For(
+            using (PixelAccessor sourcePixels = source.Lock())
+            using (PixelAccessor targetPixels = target.Lock())
+            {
+                Parallel.For(
                 startY,
                 endY,
                 y =>
@@ -37,11 +40,13 @@ namespace ImageProcessorCore.Filters
                         {
                             for (int x = startX; x < endX; x++)
                             {
-                                target[x, y] = this.ApplyMatrix(source[x, y], matrix);
+                                targetPixels[x, y] = this.ApplyMatrix(sourcePixels[x, y], matrix);
                             }
+
                             this.OnRowProcessed();
                         }
                     });
+            }
         }
 
         /// <summary>

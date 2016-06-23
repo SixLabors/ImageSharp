@@ -41,33 +41,38 @@ namespace ImageProcessorCore.Filters
             int endX = sourceRectangle.Right;
             Color backgroundColor = this.Value;
 
-            Parallel.For(
-                startY,
-                endY,
-                y =>
-                {
-                    if (y >= sourceY && y < sourceBottom)
-                    {
-                        for (int x = startX; x < endX; x++)
+            using (PixelAccessor sourcePixels = source.Lock())
+            using (PixelAccessor targetPixels = target.Lock())
+            {
+                Parallel.For(
+                    startY,
+                    endY,
+                    y =>
                         {
-                            Color color = source[x, y];
-                            float a = color.A;
-
-                            if (a < 1 && a > 0)
+                            if (y >= sourceY && y < sourceBottom)
                             {
-                                color = Color.Lerp(color, backgroundColor, .5f);
-                            }
+                                for (int x = startX; x < endX; x++)
+                                {
+                                    Color color = sourcePixels[x, y];
+                                    float a = color.A;
 
-                            if (Math.Abs(a) < Epsilon)
-                            {
-                                color = backgroundColor;
-                            }
+                                    if (a < 1 && a > 0)
+                                    {
+                                        color = Color.Lerp(color, backgroundColor, .5f);
+                                    }
 
-                            target[x, y] = color;
-                        }
-                        this.OnRowProcessed();
-                    }
-                });
+                                    if (Math.Abs(a) < Epsilon)
+                                    {
+                                        color = backgroundColor;
+                                    }
+
+                                    targetPixels[x, y] = color;
+                                }
+
+                                this.OnRowProcessed();
+                            }
+                        });
+            }
         }
     }
 }

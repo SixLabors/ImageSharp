@@ -70,7 +70,6 @@
                         processor.OnProgress -= this.ProgressUpdate;
                     }
 
-                    image.Dispose();
                     Trace.WriteLine($"{ name }: { watch.ElapsedMilliseconds}ms");
                 }
             }
@@ -92,7 +91,7 @@
 
                     string filename = Path.GetFileName(file);
 
-                    using (Image image = new Image(stream))
+                    Image image = new Image(stream);
                     using (FileStream output = File.OpenWrite($"TestOutput/Pad/{filename}"))
                     {
                         image.Pad(image.Width + 50, image.Height + 50, this.ProgressUpdate)
@@ -120,7 +119,7 @@
                     Stopwatch watch = Stopwatch.StartNew();
                     string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
 
-                    using (Image image = new Image(stream))
+                    Image image = new Image(stream);
                     using (FileStream output = File.OpenWrite($"TestOutput/Resize/{filename}"))
                     {
                         image.Resize(image.Width / 2, image.Height / 2, sampler, false, this.ProgressUpdate)
@@ -149,7 +148,7 @@
                     Stopwatch watch = Stopwatch.StartNew();
                     string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
 
-                    using (Image image = new Image(stream))
+                    Image image = new Image(stream);
                     using (FileStream output = File.OpenWrite($"TestOutput/Resize/{filename}"))
                     {
                         image.Resize(image.Width / 3, 0, new TriangleResampler(), false, this.ProgressUpdate)
@@ -178,7 +177,7 @@
                     Stopwatch watch = Stopwatch.StartNew();
                     string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
 
-                    using (Image image = new Image(stream))
+                    Image image = new Image(stream);
                     using (FileStream output = File.OpenWrite($"TestOutput/Resize/{filename}"))
                     {
                         image.Resize(0, image.Height / 3, new TriangleResampler(), false, this.ProgressUpdate)
@@ -205,7 +204,7 @@
                     Stopwatch watch = Stopwatch.StartNew();
                     string filename = Path.GetFileName(file);
 
-                    using (Image image = new Image(stream))
+                    Image image = new Image(stream);
                     using (FileStream output = File.OpenWrite($"TestOutput/ResizeCrop/{filename}"))
                     {
                         ResizeOptions options = new ResizeOptions()
@@ -237,7 +236,7 @@
                     Stopwatch watch = Stopwatch.StartNew();
                     string filename = Path.GetFileName(file);
 
-                    using (Image image = new Image(stream))
+                    Image image = new Image(stream);
                     using (FileStream output = File.OpenWrite($"TestOutput/ResizePad/{filename}"))
                     {
                         ResizeOptions options = new ResizeOptions()
@@ -270,7 +269,7 @@
                     Stopwatch watch = Stopwatch.StartNew();
                     string filename = Path.GetFileName(file);
 
-                    using (Image image = new Image(stream))
+                    Image image = new Image(stream);
                     using (FileStream output = File.OpenWrite($"TestOutput/ResizeBoxPad/{filename}"))
                     {
                         ResizeOptions options = new ResizeOptions()
@@ -303,7 +302,7 @@
                     Stopwatch watch = Stopwatch.StartNew();
                     string filename = Path.GetFileName(file);
 
-                    using (Image image = new Image(stream))
+                    Image image = new Image(stream);
                     using (FileStream output = File.OpenWrite($"TestOutput/ResizeMax/{filename}"))
                     {
                         ResizeOptions options = new ResizeOptions()
@@ -337,7 +336,7 @@
                     Stopwatch watch = Stopwatch.StartNew();
                     string filename = Path.GetFileName(file);
 
-                    using (Image image = new Image(stream))
+                    Image image = new Image(stream);
                     using (FileStream output = File.OpenWrite($"TestOutput/ResizeMin/{filename}"))
                     {
                         ResizeOptions options = new ResizeOptions()
@@ -370,7 +369,7 @@
                     Stopwatch watch = Stopwatch.StartNew();
                     string filename = Path.GetFileName(file);
 
-                    using (Image image = new Image(stream))
+                    Image image = new Image(stream);
                     using (FileStream output = File.OpenWrite($"TestOutput/ResizeStretch/{filename}"))
                     {
                         ResizeOptions options = new ResizeOptions()
@@ -417,8 +416,6 @@
                              .Save(output);
                     }
 
-                    image.Dispose();
-
                     Trace.WriteLine($"{filename}: {watch.ElapsedMilliseconds}ms");
                 }
             }
@@ -440,7 +437,7 @@
                     Stopwatch watch = Stopwatch.StartNew();
                     string filename = Path.GetFileNameWithoutExtension(file) + "-" + rotateType + flipType + Path.GetExtension(file);
 
-                    using (Image image = new Image(stream))
+                    Image image = new Image(stream);
                     using (FileStream output = File.OpenWrite($"TestOutput/RotateFlip/{filename}"))
                     {
                         image.RotateFlip(rotateType, flipType, this.ProgressUpdate)
@@ -468,7 +465,7 @@
 
                     string filename = Path.GetFileName(file);
 
-                    using (Image image = new Image(stream))
+                    Image image = new Image(stream);
                     using (FileStream output = File.OpenWrite($"TestOutput/Rotate/{filename}"))
                     {
                         image.Rotate(63, this.ProgressUpdate)
@@ -497,7 +494,7 @@
 
                     string filename = Path.GetFileName(file);
 
-                    using (Image image = new Image(stream))
+                    Image image = new Image(stream);
                     using (FileStream output = File.OpenWrite($"TestOutput/Skew/{filename}"))
                     {
                         image.Skew(20, 10, this.ProgressUpdate)
@@ -523,7 +520,7 @@
                 {
                     string filename = Path.GetFileNameWithoutExtension(file) + "-EntropyCrop" + Path.GetExtension(file);
 
-                    using (Image image = new Image(stream))
+                    Image image = new Image(stream);
                     using (FileStream output = File.OpenWrite($"TestOutput/EntropyCrop/{filename}"))
                     {
                         image.EntropyCrop(.5f, this.ProgressUpdate).Save(output);
@@ -547,7 +544,7 @@
 
                     string filename = Path.GetFileNameWithoutExtension(file) + "-Crop" + Path.GetExtension(file);
 
-                    using (Image image = new Image(stream))
+                    Image image = new Image(stream);
                     using (FileStream output = File.OpenWrite($"TestOutput/Crop/{filename}"))
                     {
                         image.Crop(image.Width / 2, image.Height / 2, this.ProgressUpdate).Save(output);

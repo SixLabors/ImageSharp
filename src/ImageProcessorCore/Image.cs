@@ -19,10 +19,10 @@ namespace ImageProcessorCore
     /// </summary>
     /// <remarks>
     /// The image data is always stored in RGBA format, where the red, green, blue, and
-    /// alpha values are floats.
+    /// alpha values are floating point numbers.
     /// </remarks>
     [DebuggerDisplay("Image: {Width}x{Height}")]
-    public class Image : ImageBase, IImage
+    public class Image : ImageBase
     {
         /// <summary>
         /// The default horizontal resolution value (dots per inch) in x direction.
@@ -97,13 +97,26 @@ namespace ImageProcessorCore
         /// </summary>
         public IReadOnlyCollection<IImageFormat> Formats { get; } = Bootstrapper.Instance.ImageFormats;
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Gets or sets the resolution of the image in x- direction. It is defined as
+        ///  number of dots per inch and should be an positive value.
+        /// </summary>
+        /// <value>The density of the image in x- direction.</value>
         public double HorizontalResolution { get; set; } = DefaultHorizontalResolution;
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Gets or sets the resolution of the image in y- direction. It is defined as
+        /// number of dots per inch and should be an positive value.
+        /// </summary>
+        /// <value>The density of the image in y- direction.</value>
         public double VerticalResolution { get; set; } = DefaultVerticalResolution;
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Gets the width of the image in inches. It is calculated as the width of the image
+        /// in pixels multiplied with the density. When the density is equals or less than zero
+        /// the default value is used.
+        /// </summary>
+        /// <value>The width of the image in inches.</value>
         public double InchWidth
         {
             get
@@ -119,7 +132,12 @@ namespace ImageProcessorCore
             }
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Gets the height of the image in inches. It is calculated as the height of the image
+        /// in pixels multiplied with the density. When the density is equals or less than zero
+        /// the default value is used.
+        /// </summary>
+        /// <value>The height of the image in inches.</value>
         public double InchHeight
         {
             get
@@ -135,36 +153,66 @@ namespace ImageProcessorCore
             }
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Gets a value indicating whether this image is animated.
+        /// </summary>
+        /// <value>
+        /// <c>True</c> if this image is animated; otherwise, <c>false</c>.
+        /// </value>
         public bool IsAnimated => this.Frames.Count > 0;
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Gets or sets the number of times any animation is repeated.
+        /// <remarks>0 means to repeat indefinitely.</remarks>
+        /// </summary>
         public ushort RepeatCount { get; set; }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Gets the other frames for the animation.
+        /// </summary>
+        /// <value>The list of frame images.</value>
         public IList<ImageFrame> Frames { get; } = new List<ImageFrame>();
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Gets the list of properties for storing meta information about this image.
+        /// </summary>
+        /// <value>A list of image properties.</value>
         public IList<ImageProperty> Properties { get; } = new List<ImageProperty>();
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Gets the currently loaded image format.
+        /// </summary>
         public IImageFormat CurrentImageFormat { get; internal set; }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Saves the image to the given stream using the currently loaded image format.
+        /// </summary>
+        /// <param name="stream">The stream to save the image to.</param>
+        /// <exception cref="ArgumentNullException">Thrown if the stream is null.</exception>
         public void Save(Stream stream)
         {
             Guard.NotNull(stream, nameof(stream));
             this.CurrentImageFormat.Encoder.Encode(this, stream);
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Saves the image to the given stream using the given image format.
+        /// </summary>
+        /// <param name="stream">The stream to save the image to.</param>
+        /// <param name="format">The format to save the image as.</param>
+        /// <exception cref="ArgumentNullException">Thrown if the stream is null.</exception>
         public void Save(Stream stream, IImageFormat format)
         {
             Guard.NotNull(stream, nameof(stream));
             format.Encoder.Encode(this, stream);
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Saves the image to the given stream using the given image encoder.
+        /// </summary>
+        /// <param name="stream">The stream to save the image to.</param>
+        /// <param name="encoder">The encoder to save the image with.</param>
+        /// <exception cref="ArgumentNullException">Thrown if the stream is null.</exception>
         public void Save(Stream stream, IImageEncoder encoder)
         {
             Guard.NotNull(stream, nameof(stream));
@@ -184,27 +232,6 @@ namespace ImageProcessorCore
                 stream.Flush();
                 return $"data:{this.CurrentImageFormat.Encoder.MimeType};base64,{Convert.ToBase64String(stream.ToArray())}";
             }
-        }
-
-        /// <inheritdoc/>
-        protected override void Dispose(bool disposing)
-        {
-            if (this.IsDisposed)
-            {
-                return;
-            }
-
-            // Dispose of the unmanaged resources for each frame here.
-            if (this.Frames.Any())
-            {
-                foreach (ImageFrame frame in this.Frames)
-                {
-                    frame.Dispose();
-                }
-                this.Frames.Clear();
-            }
-
-            base.Dispose(disposing);
         }
 
         /// <summary>

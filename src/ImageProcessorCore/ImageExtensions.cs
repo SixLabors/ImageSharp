@@ -9,6 +9,7 @@ namespace ImageProcessorCore
     using System.IO;
 
     using Formats;
+    using Processors;
 
     /// <summary>
     /// Extension methods for the <see cref="Image"/> type.

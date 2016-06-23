@@ -71,7 +71,10 @@ namespace ImageProcessorCore.Filters
             int maxY = sourceBottom - 1;
             int maxX = endX - 1;
 
-            Parallel.For(
+            using (PixelAccessor sourcePixels = source.Lock())
+            using (PixelAccessor targetPixels = target.Lock())
+            {
+                Parallel.For(
                 startY,
                 endY,
                 y =>
@@ -97,16 +100,17 @@ namespace ImageProcessorCore.Filters
 
                                     offsetX = offsetX.Clamp(0, maxX);
 
-                                    Color currentColor = source[offsetX, offsetY];
+                                    Color currentColor = sourcePixels[offsetX, offsetY];
                                     destination += kernel[fy, fx] * currentColor;
                                 }
                             }
 
-                            target[x, y] = destination; 
+                            targetPixels[x, y] = destination;
                         }
                         this.OnRowProcessed();
                     }
                 });
+            }
         }
     }
 }

@@ -22,22 +22,27 @@ namespace ImageProcessorCore.Filters
             int endX = sourceRectangle.Right;
             Vector3 inverseVector = Vector3.One;
 
-            Parallel.For(
-                startY,
-                endY,
-                y =>
-                    {
-                        if (y >= sourceY && y < sourceBottom)
+            using (PixelAccessor sourcePixels = source.Lock())
+            using (PixelAccessor targetPixels = target.Lock())
+            {
+                Parallel.For(
+                    startY,
+                    endY,
+                    y =>
                         {
-                            for (int x = startX; x < endX; x++)
+                            if (y >= sourceY && y < sourceBottom)
                             {
-                                Color color = source[x, y];
-                                Vector3 vector = inverseVector - color.ToVector3();
-                                target[x, y] = new Color(vector, color.A);
+                                for (int x = startX; x < endX; x++)
+                                {
+                                    Color color = sourcePixels[x, y];
+                                    Vector3 vector = inverseVector - color.ToVector3();
+                                    targetPixels[x, y] = new Color(vector, color.A);
+                                }
+
+                                this.OnRowProcessed();
                             }
-                            this.OnRowProcessed();
-                        }
-                    });
+                        });
+            }
         }
     }
 }

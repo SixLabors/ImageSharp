@@ -27,22 +27,22 @@ namespace ImageProcessorCore.Tests
                 using (FileStream stream = File.OpenRead(file))
                 {
                     Stopwatch watch = Stopwatch.StartNew();
-                    using (Image image = new Image(stream))
+
+                    Image image = new Image(stream);
+                    string encodeFilename = "TestOutput/Encode/Bitmap/" + "24-" + Path.GetFileNameWithoutExtension(file) + ".bmp";
+
+                    using (FileStream output = File.OpenWrite(encodeFilename))
                     {
-                        string encodeFilename = "TestOutput/Encode/Bitmap/" + "24-" + Path.GetFileNameWithoutExtension(file) + ".bmp";
-
-                        using (FileStream output = File.OpenWrite(encodeFilename))
-                        {
-                            image.Save(output, new BmpEncoder { BitsPerPixel = BmpBitsPerPixel.Pixel24 });
-                        }
-
-                        encodeFilename = "TestOutput/Encode/Bitmap/" + "32-" + Path.GetFileNameWithoutExtension(file) + ".bmp";
-
-                        using (FileStream output = File.OpenWrite(encodeFilename))
-                        {
-                            image.Save(output, new BmpEncoder { BitsPerPixel = BmpBitsPerPixel.Pixel32 });
-                        }
+                        image.Save(output, new BmpEncoder { BitsPerPixel = BmpBitsPerPixel.Pixel24 });
                     }
+
+                    encodeFilename = "TestOutput/Encode/Bitmap/" + "32-" + Path.GetFileNameWithoutExtension(file) + ".bmp";
+
+                    using (FileStream output = File.OpenWrite(encodeFilename))
+                    {
+                        image.Save(output, new BmpEncoder { BitsPerPixel = BmpBitsPerPixel.Pixel32 });
+                    }
+
 
                     Trace.WriteLine($"{file} : {watch.ElapsedMilliseconds}ms");
                 }

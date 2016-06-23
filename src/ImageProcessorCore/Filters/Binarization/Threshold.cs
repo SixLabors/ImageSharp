@@ -60,7 +60,10 @@ namespace ImageProcessorCore.Filters
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
 
-            Parallel.For(
+            using (PixelAccessor sourcePixels = source.Lock())
+            using (PixelAccessor targetPixels = target.Lock())
+            {
+                Parallel.For(
                 startY,
                 endY,
                 y =>
@@ -69,14 +72,15 @@ namespace ImageProcessorCore.Filters
                         {
                             for (int x = startX; x < endX; x++)
                             {
-                                Color color = source[x, y];
+                                Color color = sourcePixels[x, y];
 
                                 // Any channel will do since it's greyscale.
-                                target[x, y] = color.B >= threshold ? upper : lower;
+                                targetPixels[x, y] = color.B >= threshold ? upper : lower;
                             }
                             this.OnRowProcessed();
                         }
                     });
+            }
         }
     }
 }

@@ -135,30 +135,27 @@ namespace ImageProcessorCore
 
             // Since we are not working in parallel we use full height and width 
             // of the first pass image.
-            Parallel.For(
-                0,
-                height,
-                y =>
-                {
-                    for (int x = startX; x < endX; x++)
-                    {
-                        // Skew at the centre point
-                        Point skewed = Point.Skew(new Point(x, y), skew);
-                        if (this.firstPass.Bounds.Contains(skewed.X, skewed.Y))
+            using (PixelAccessor firstPassPixels = this.firstPass.Lock())
+            using (PixelAccessor targetPixels = target.Lock())
+            {
+                Parallel.For(
+                    0,
+                    height,
+                    y =>
                         {
-                            target[x, y] = this.firstPass[skewed.X, skewed.Y];
-                        }
-                    }
+                            for (int x = startX; x < endX; x++)
+                            {
+                                // Skew at the centre point
+                                Point skewed = Point.Skew(new Point(x, y), skew);
+                                if (this.firstPass.Bounds.Contains(skewed.X, skewed.Y))
+                                {
+                                    targetPixels[x, y] = firstPassPixels[skewed.X, skewed.Y];
+                                }
+                            }
 
-                    this.OnRowProcessed();
-                });
-        }
-
-        /// <inheritdoc/>
-        protected override void AfterApply(ImageBase source, ImageBase target, Rectangle targetRectangle, Rectangle sourceRectangle)
-        {
-            // Cleanup.
-            this.firstPass.Dispose();
+                            this.OnRowProcessed();
+                        });
+            }
         }
     }
 }

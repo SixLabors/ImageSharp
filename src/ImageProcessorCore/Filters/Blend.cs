@@ -15,7 +15,7 @@ namespace ImageProcessorCore.Filters
         /// <summary>
         /// The image to blend.
         /// </summary>
-        private readonly ImageBase toBlend;
+        private readonly ImageBase blend;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Blend"/> class.
@@ -28,7 +28,7 @@ namespace ImageProcessorCore.Filters
         public Blend(ImageBase image, int alpha = 100)
         {
             Guard.MustBeBetweenOrEqualTo(alpha, 0, 100, nameof(alpha));
-            this.toBlend = image;
+            this.blend = image;
             this.Value = alpha;
         }
 
@@ -44,38 +44,43 @@ namespace ImageProcessorCore.Filters
             int sourceBottom = sourceRectangle.Bottom;
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
-            Rectangle bounds = this.toBlend.Bounds;
+            Rectangle bounds = this.blend.Bounds;
             float alpha = this.Value / 100f;
 
-            Parallel.For(
-                startY,
-                endY,
-                y =>
-                {
-                    if (y >= sourceY && y < sourceBottom)
-                    {
-                        for (int x = startX; x < endX; x++)
+            using (PixelAccessor toBlendPixels = this.blend.Lock())
+            using (PixelAccessor sourcePixels = source.Lock())
+            using (PixelAccessor targetPixels = target.Lock())
+            {
+                Parallel.For(
+                    startY,
+                    endY,
+                    y =>
                         {
-                            Color color = source[x, y];
-
-                            if (bounds.Contains(x, y))
+                            if (y >= sourceY && y < sourceBottom)
                             {
-                                Color blendedColor = this.toBlend[x, y];
-
-                                if (blendedColor.A > 0)
+                                for (int x = startX; x < endX; x++)
                                 {
-                                    // Lerping colors is dependent on the alpha of the blended color
-                                    float alphaFactor = alpha > 0 ? alpha : blendedColor.A;
-                                    color = Color.Lerp(color, blendedColor, alphaFactor);
+                                    Color color = sourcePixels[x, y];
+
+                                    if (bounds.Contains(x, y))
+                                    {
+                                        Color blendedColor = toBlendPixels[x, y];
+
+                                        if (blendedColor.A > 0)
+                                        {
+                                            // Lerping colors is dependent on the alpha of the blended color
+                                            float alphaFactor = alpha > 0 ? alpha : blendedColor.A;
+                                            color = Color.Lerp(color, blendedColor, alphaFactor);
+                                        }
+                                    }
+
+                                    targetPixels[x, y] = color;
                                 }
+
+                                this.OnRowProcessed();
                             }
-
-                            target[x, y] = color;
-                        }
-
-                        this.OnRowProcessed();
-                    }
-                });
+                        });
+            }
         }
     }
 }

@@ -42,7 +42,10 @@ namespace ImageProcessorCore.Filters
             int maxY = sourceBottom - 1;
             int maxX = endX - 1;
 
-            Parallel.For(
+            using (PixelAccessor sourcePixels = source.Lock())
+            using (PixelAccessor targetPixels = target.Lock())
+            {
+                Parallel.For(
                 startY,
                 endY,
                 y =>
@@ -58,8 +61,8 @@ namespace ImageProcessorCore.Filters
                             float gY = 0;
                             float bY = 0;
 
-                        // Apply each matrix multiplier to the color components for each pixel.
-                        for (int fy = 0; fy < kernelYHeight; fy++)
+                            // Apply each matrix multiplier to the color components for each pixel.
+                            for (int fy = 0; fy < kernelYHeight; fy++)
                             {
                                 int fyr = fy - radiusY;
                                 int offsetY = y + fyr;
@@ -73,7 +76,7 @@ namespace ImageProcessorCore.Filters
 
                                     offsetX = offsetX.Clamp(0, maxX);
 
-                                    Color currentColor = source[offsetX, offsetY];
+                                    Color currentColor = sourcePixels[offsetX, offsetY];
                                     float r = currentColor.R;
                                     float g = currentColor.G;
                                     float b = currentColor.B;
@@ -98,12 +101,13 @@ namespace ImageProcessorCore.Filters
                             float green = (float)Math.Sqrt((gX * gX) + (gY * gY));
                             float blue = (float)Math.Sqrt((bX * bX) + (bY * bY));
 
-                            Color targetColor = target[x, y];
-                            target[x, y] = new Color(red, green, blue, targetColor.A);
+                            Color targetColor = targetPixels[x, y];
+                            targetPixels[x, y] = new Color(red, green, blue, targetColor.A);
                         }
                         this.OnRowProcessed();
                     }
                 });
+            }
         }
     }
 }

@@ -407,7 +407,7 @@
                     {
                         ResizeOptions options = new ResizeOptions()
                         {
-                            Size = new Size(image.Width - 200, image.Height),
+                            Size = new Size(image.Width - 10, image.Height),
                             Mode = ResizeMode.Stretch
                         };
 

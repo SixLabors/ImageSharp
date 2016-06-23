@@ -48,46 +48,50 @@ namespace ImageProcessorCore.Filters
             // Get the range on the y-plane to choose from.
             IEnumerable<int> range = EnumerableExtensions.SteppedRange(startY, i => i < endY, size);
 
-            Parallel.ForEach(
-                range,
-                y =>
-                {
-                    if (y >= sourceY && y < sourceBottom)
-                    {
-                        for (int x = startX; x < endX; x += size)
+            using (PixelAccessor sourcePixels = source.Lock())
+            using (PixelAccessor targetPixels = target.Lock())
+            {
+                Parallel.ForEach(
+                    range,
+                    y =>
                         {
-
-                            int offsetX = offset;
-                            int offsetY = offset;
-
-                            // Make sure that the offset is within the boundary of the 
-                            // image.
-                            while (y + offsetY >= sourceBottom)
+                            if (y >= sourceY && y < sourceBottom)
                             {
-                                offsetY--;
-                            }
-
-                            while (x + offsetX >= endX)
-                            {
-                                offsetX--;
-                            }
-
-                            // Get the pixel color in the centre of the soon to be pixelated area.
-                            // ReSharper disable AccessToDisposedClosure
-                            Color pixel = source[x + offsetX, y + offsetY];
-
-                            // For each pixel in the pixelate size, set it to the centre color.
-                            for (int l = y; l < y + size && l < sourceBottom; l++)
-                            {
-                                for (int k = x; k < x + size && k < endX; k++)
+                                for (int x = startX; x < endX; x += size)
                                 {
-                                    target[k, l] = pixel;
+
+                                    int offsetX = offset;
+                                    int offsetY = offset;
+
+                                    // Make sure that the offset is within the boundary of the 
+                                    // image.
+                                    while (y + offsetY >= sourceBottom)
+                                    {
+                                        offsetY--;
+                                    }
+
+                                    while (x + offsetX >= endX)
+                                    {
+                                        offsetX--;
+                                    }
+
+                                    // Get the pixel color in the centre of the soon to be pixelated area.
+                                    // ReSharper disable AccessToDisposedClosure
+                                    Color pixel = sourcePixels[x + offsetX, y + offsetY];
+
+                                    // For each pixel in the pixelate size, set it to the centre color.
+                                    for (int l = y; l < y + size && l < sourceBottom; l++)
+                                    {
+                                        for (int k = x; k < x + size && k < endX; k++)
+                                        {
+                                            targetPixels[k, l] = pixel;
+                                        }
+                                    }
                                 }
+                                this.OnRowProcessed();
                             }
-                        }
-                        this.OnRowProcessed();
-                    }
-                });
+                        });
+            }
         }
     }
 }

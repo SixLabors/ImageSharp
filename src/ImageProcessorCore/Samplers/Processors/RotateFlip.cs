@@ -78,20 +78,26 @@ namespace ImageProcessorCore
             int height = source.Height;
             Image temp = new Image(height, width);
 
-            Parallel.For(0, height, 
-                y =>
-                {
-                    for (int x = 0; x < width; x++)
-                    {
-                        int newX = height - y - 1;
-                        newX = height - newX - 1;
-                        int newY = width - x - 1;
-                        newY = width - newY - 1;
-                        temp[newX, newY] = source[x, y];
-                    }
+            using (PixelAccessor sourcePixels = source.Lock())
+            using (PixelAccessor tempPixels = temp.Lock())
+            {
+                Parallel.For(
+                    0,
+                    height,
+                    y =>
+                        {
+                            for (int x = 0; x < width; x++)
+                            {
+                                int newX = height - y - 1;
+                                newX = height - newX - 1;
+                                int newY = width - x - 1;
+                                newY = width - newY - 1;
+                                tempPixels[newX, newY] = sourcePixels[x, y];
+                            }
 
-                    this.OnRowProcessed();
-                });
+                            this.OnRowProcessed();
+                        });
+            }
 
             target.SetPixels(height, width, temp.Pixels);
         }
@@ -106,18 +112,24 @@ namespace ImageProcessorCore
             int width = source.Width;
             int height = source.Height;
 
-            Parallel.For(0, height, 
-                y =>
-                {
-                    for (int x = 0; x < width; x++)
-                    {
-                        int newX = width - x - 1;
-                        int newY = height - y - 1;
-                        target[newX, newY] = source[x, y];
-                    }
+            using (PixelAccessor sourcePixels = source.Lock())
+            using (PixelAccessor targetPixels = target.Lock())
+            {
+                Parallel.For(
+                    0,
+                    height,
+                    y =>
+                        {
+                            for (int x = 0; x < width; x++)
+                            {
+                                int newX = width - x - 1;
+                                int newY = height - y - 1;
+                                targetPixels[newX, newY] = sourcePixels[x, y];
+                            }
 
-                    this.OnRowProcessed();
-                });
+                            this.OnRowProcessed();
+                        });
+            }
         }
 
         /// <summary>
@@ -131,17 +143,23 @@ namespace ImageProcessorCore
             int height = source.Height;
             Image temp = new Image(height, width);
 
-            Parallel.For(0, height, 
-                y =>
-                {
-                    for (int x = 0; x < width; x++)
-                    {
-                        int newX = height - y - 1;
-                        temp[newX, x] = source[x, y];
-                    }
+            using (PixelAccessor sourcePixels = source.Lock())
+            using (PixelAccessor tempPixels = temp.Lock())
+            {
+                Parallel.For(
+                    0,
+                    height,
+                    y =>
+                        {
+                            for (int x = 0; x < width; x++)
+                            {
+                                int newX = height - y - 1;
+                                tempPixels[newX, x] = sourcePixels[x, y];
+                            }
 
-                    this.OnRowProcessed();
-                });
+                            this.OnRowProcessed();
+                        });
+            }
 
             target.SetPixels(height, width, temp.Pixels);
         }
@@ -159,18 +177,24 @@ namespace ImageProcessorCore
             ImageBase temp = new Image(width, height);
             temp.ClonePixels(width, height, target.Pixels);
 
-            Parallel.For(0, halfHeight, 
-                y =>
-                    {
-                        for (int x = 0; x < width; x++)
+            using (PixelAccessor targetPixels = target.Lock())
+            using (PixelAccessor tempPixels = temp.Lock())
+            {
+                Parallel.For(
+                    0,
+                    halfHeight,
+                    y =>
                         {
-                            int newY = height - y - 1;
-                            target[x, y] = temp[x, newY];
-                            target[x, newY] = temp[x, y];
-                        }
+                            for (int x = 0; x < width; x++)
+                            {
+                                int newY = height - y - 1;
+                                targetPixels[x, y] = tempPixels[x, newY];
+                                targetPixels[x, newY] = tempPixels[x, y];
+                            }
 
-                        this.OnRowProcessed();
-                    });
+                            this.OnRowProcessed();
+                        });
+            }
         }
 
         /// <summary>
@@ -186,18 +210,24 @@ namespace ImageProcessorCore
             ImageBase temp = new Image(width, height);
             temp.ClonePixels(width, height, target.Pixels);
 
-            Parallel.For(0, height, 
-                y =>
-                {
-                    for (int x = 0; x < halfWidth; x++)
-                    {
-                        int newX = width - x - 1;
-                        target[x, y] = temp[newX, y];
-                        target[newX, y] = temp[x, y];
-                    }
+            using (PixelAccessor targetPixels = target.Lock())
+            using (PixelAccessor tempPixels = temp.Lock())
+            {
+                Parallel.For(
+                    0,
+                    height,
+                    y =>
+                        {
+                            for (int x = 0; x < halfWidth; x++)
+                            {
+                                int newX = width - x - 1;
+                                targetPixels[x, y] = tempPixels[newX, y];
+                                targetPixels[newX, y] = tempPixels[x, y];
+                            }
 
-                    this.OnRowProcessed();
-                });
+                            this.OnRowProcessed();
+                        });
+            }
         }
     }
 }

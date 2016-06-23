@@ -40,19 +40,23 @@ namespace ImageProcessorCore.Filters
             float rY = this.RadiusY > 0 ? this.RadiusY : targetRectangle.Height / 2f;
             float maxDistance = (float)Math.Sqrt(rX * rX + rY * rY);
 
-            Parallel.For(
-                startY,
-                endY,
-                y =>
-                    {
-                        for (int x = startX; x < endX; x++)
+            using (PixelAccessor sourcePixels = source.Lock())
+            using (PixelAccessor targetPixels = target.Lock())
+            {
+                Parallel.For(
+                    startY,
+                    endY,
+                    y =>
                         {
-                            float distance = Vector2.Distance(centre, new Vector2(x, y));
-                            Color sourceColor = target[x, y];
-                            target[x, y] = Color.Lerp(vignetteColor, sourceColor, 1 - .9f * distance / maxDistance);
-                        }
-                        this.OnRowProcessed();
-                    });
+                            for (int x = startX; x < endX; x++)
+                            {
+                                float distance = Vector2.Distance(centre, new Vector2(x, y));
+                                Color sourceColor = sourcePixels[x, y];
+                                targetPixels[x, y] = Color.Lerp(vignetteColor, sourceColor, 1 - .9f * distance / maxDistance);
+                            }
+                            this.OnRowProcessed();
+                        });
+            }
         }
     }
 }

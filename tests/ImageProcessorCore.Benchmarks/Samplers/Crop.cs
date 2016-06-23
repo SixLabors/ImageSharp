@@ -4,8 +4,6 @@
     using System.Drawing.Drawing2D;
 
     using BenchmarkDotNet.Attributes;
-
-    using ImageProcessorCore.Processors;
     using CoreImage = ImageProcessorCore.Image;
     using CoreSize = ImageProcessorCore.Size;
 
@@ -34,11 +32,9 @@
         [Benchmark(Description = "ImageProcessorCore Crop")]
         public CoreSize CropResizeCore()
         {
-            using (CoreImage image = new CoreImage(400, 400))
-            {
-                image.Crop(100, 100);
-                return new CoreSize(image.Width, image.Height);
-            }
+            CoreImage image = new CoreImage(400, 400);
+            image.Crop(100, 100);
+            return new CoreSize(image.Width, image.Height);
         }
     }
 }

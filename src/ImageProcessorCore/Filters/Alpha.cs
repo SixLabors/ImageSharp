@@ -42,22 +42,28 @@ namespace ImageProcessorCore.Filters
             int endX = sourceRectangle.Right;
             Vector4 alphaVector = new Vector4(1, 1, 1, alpha);
 
-            Parallel.For(
-                startY,
-                endY,
-                y =>
-                    {
-                        if (y >= sourceY && y < sourceBottom)
+            using (PixelAccessor sourcePixels = source.Lock())
+            using (PixelAccessor targetPixels = target.Lock())
+            {
+                Parallel.For(
+                    startY,
+                    endY,
+                    y =>
                         {
-                            for (int x = startX; x < endX; x++)
+                            if (y >= sourceY && y < sourceBottom)
                             {
-                                Vector4 color = Color.ToNonPremultiplied(source[x, y]).ToVector4();
-                                color *= alphaVector;
-                                target[x, y] = Color.FromNonPremultiplied(new Color(color));
+                                for (int x = startX; x < endX; x++)
+                                {
+                                    Vector4 color = Color.ToNonPremultiplied(sourcePixels[x, y]).ToVector4();
+                                    color *= alphaVector;
+                                    targetPixels[x, y] = Color.FromNonPremultiplied(new Color(color));
+                                }
+
+                                this.OnRowProcessed();
                             }
-                            this.OnRowProcessed();
-                        }
-                    });
+                        });
+
+            }
         }
     }
 }

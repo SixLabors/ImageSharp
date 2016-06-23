@@ -3,10 +3,9 @@
     using System.Diagnostics;
     using System.IO;
 
-    using ImageProcessorCore.Processors;
+    using Processors;
 
     using Xunit;
-    using Filters;
 
     public class SamplerTests : FileTestBase
     {

@@ -1,47 +1,49 @@
 ﻿// <copyright file="Invert.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
+// </copyright>-------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessorCore.Filters
+namespace ImageProcessorCore
 {
-    using System.Numerics;
-    using System.Threading.Tasks;
+    using Processors;
 
     /// <summary>
-    /// An <see cref="IImageProcessor"/> to invert the colors of an <see cref="Image"/>.
+    /// Extension methods for the <see cref="Image"/> type.
     /// </summary>
-    public class Invert : ParallelImageProcessor
+    public static partial class ImageExtensions
     {
-        /// <inheritdoc/>
-        protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        /// <summary>
+        /// Inverts the colors of the image.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image Invert(this Image source, ProgressEventHandler progressHandler = null)
         {
-            int sourceY = sourceRectangle.Y;
-            int sourceBottom = sourceRectangle.Bottom;
-            int startX = sourceRectangle.X;
-            int endX = sourceRectangle.Right;
-            Vector3 inverseVector = Vector3.One;
+            return Invert(source, source.Bounds, progressHandler);
+        }
 
-            using (PixelAccessor sourcePixels = source.Lock())
-            using (PixelAccessor targetPixels = target.Lock())
+        /// <summary>
+        /// Inverts the colors of the image.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="rectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
+        /// </param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image Invert(this Image source, Rectangle rectangle, ProgressEventHandler progressHandler = null)
+        {
+            InvertProcessor processor = new InvertProcessor();
+            processor.OnProgress += progressHandler;
+
+            try
             {
-                Parallel.For(
-                    startY,
-                    endY,
-                    y =>
-                        {
-                            if (y >= sourceY && y < sourceBottom)
-                            {
-                                for (int x = startX; x < endX; x++)
-                                {
-                                    Color color = sourcePixels[x, y];
-                                    Vector3 vector = inverseVector - color.ToVector3();
-                                    targetPixels[x, y] = new Color(vector, color.A);
-                                }
-
-                                this.OnRowProcessed();
-                            }
-                        });
+                return source.Process(rectangle, processor);
+            }
+            finally
+            {
+                processor.OnProgress -= progressHandler;
             }
         }
     }

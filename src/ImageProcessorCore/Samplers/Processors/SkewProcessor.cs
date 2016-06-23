@@ -116,21 +116,22 @@ namespace ImageProcessorCore
                       deltaX = (((skewMaxX * sy)) / (source.Height - 1));
                   }
 
+
                   for (int sx = 0; sx < source.Width; sx++)
                   {
                       int deltaY;
                       if (revY)
                       {
-                          deltaY = ((((skewMaxY * -sx ))+ (skewMaxY-1)) -(skewMaxY-1)) / (source.Width - 1) + skewMaxY;
+                          deltaY = ((((-skewMaxY*(sx + deltaX)))/(source.Width-skewMaxX - 1)))+skewMaxY;
                           //deltaY = (((skewMaxY * sx)) / (source.Height - 1));
-                         // deltaY = -deltaY + skewMaxY;
-                          //deltaY = 0;
+                          // deltaY = -deltaY + skewMaxY;
+                         // deltaY = sx+deltaX;
                       }
                       else
                       {
                           deltaY = ((skewMaxY * sx) / (source.Width - 1));
                       }
-                      target[deltaX + sx, sy + deltaY] = source[sx, sy];
+                      target[deltaX + sx, Math.Abs(sy + deltaY)%(target.Height-1)] = source[sx, sy];
                   }
                   this.OnRowProcessed();
               });

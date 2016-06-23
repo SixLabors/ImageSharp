@@ -3,12 +3,10 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageProcessorCore
+namespace ImageProcessorCore.Processors
 {
     using System;
     using System.Threading.Tasks;
-
-    using Filters;
 
     /// <summary>
     /// Provides methods to allow the cropping of an image to preserve areas of highest
@@ -45,10 +43,10 @@ namespace ImageProcessorCore
             ImageBase temp = new Image(source.Width, source.Height);
 
             // Detect the edges.
-            new Sobel().Apply(temp, source, sourceRectangle);
+            new SobelProcessor().Apply(temp, source, sourceRectangle);
 
             // Apply threshold binarization filter.
-            new Threshold(.5f).Apply(temp, temp, sourceRectangle);
+            new ThresholdProcessor(.5f).Apply(temp, temp, sourceRectangle);
 
             // Search for the first white pixels
             Rectangle rectangle = ImageMaths.GetFilteredBoundingRectangle(temp, 0);

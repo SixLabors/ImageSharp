@@ -5,6 +5,8 @@
 
 namespace ImageProcessorCore
 {
+    using Processors;
+
     /// <summary>
     /// Extension methods for the <see cref="Image"/> type.
     /// </summary>

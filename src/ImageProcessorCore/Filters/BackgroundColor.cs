@@ -1,77 +1,36 @@
 ﻿// <copyright file="BackgroundColor.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
+// </copyright>-------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessorCore.Filters
+namespace ImageProcessorCore
 {
-    using System;
-    using System.Threading.Tasks;
+    using Processors;
 
     /// <summary>
-    /// Sets the background color of the image.
+    /// Extension methods for the <see cref="Image"/> type.
     /// </summary>
-    public class BackgroundColor : ParallelImageProcessor
+    public static partial class ImageExtensions
     {
         /// <summary>
-        /// The epsilon for comparing floating point numbers.
+        /// Combines the given image together with the current one by blending their pixels.
         /// </summary>
-        private const float Epsilon = 0.001f;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="BackgroundColor"/> class.
-        /// </summary>
-        /// <param name="color">The <see cref="Color"/> to set the background color to.</param>
-        public BackgroundColor(Color color)
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="color">The color to set as the background.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image BackgroundColor(this Image source, Color color, ProgressEventHandler progressHandler = null)
         {
-            this.Value = Color.FromNonPremultiplied(color);
-        }
+            BackgroundColorProcessor processor = new BackgroundColorProcessor(color);
+            processor.OnProgress += progressHandler;
 
-        /// <summary>
-        /// Gets the background color value.
-        /// </summary>
-        public Color Value { get; }
-
-        /// <inheritdoc/>
-        protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
-        {
-            int sourceY = sourceRectangle.Y;
-            int sourceBottom = sourceRectangle.Bottom;
-            int startX = sourceRectangle.X;
-            int endX = sourceRectangle.Right;
-            Color backgroundColor = this.Value;
-
-            using (PixelAccessor sourcePixels = source.Lock())
-            using (PixelAccessor targetPixels = target.Lock())
+            try
             {
-                Parallel.For(
-                    startY,
-                    endY,
-                    y =>
-                        {
-                            if (y >= sourceY && y < sourceBottom)
-                            {
-                                for (int x = startX; x < endX; x++)
-                                {
-                                    Color color = sourcePixels[x, y];
-                                    float a = color.A;
-
-                                    if (a < 1 && a > 0)
-                                    {
-                                        color = Color.Lerp(color, backgroundColor, .5f);
-                                    }
-
-                                    if (Math.Abs(a) < Epsilon)
-                                    {
-                                        color = backgroundColor;
-                                    }
-
-                                    targetPixels[x, y] = color;
-                                }
-
-                                this.OnRowProcessed();
-                            }
-                        });
+                return source.Process(source.Bounds, processor);
+            }
+            finally
+            {
+                processor.OnProgress -= progressHandler;
             }
         }
     }

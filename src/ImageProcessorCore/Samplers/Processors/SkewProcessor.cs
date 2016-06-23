@@ -116,13 +116,13 @@ namespace ImageProcessorCore
                       deltaX = (((skewMaxX * sy)) / (source.Height - 1));
                   }
 
-
+                  int off = (skewMaxY*skewMaxX)/(source.Width - skewMaxX - 1);
                   for (int sx = 0; sx < source.Width; sx++)
                   {
                       int deltaY;
                       if (revY)
                       {
-                          deltaY = ((((-skewMaxY*(sx + deltaX)))/(source.Width-skewMaxX - 1)))+skewMaxY;
+                          deltaY = ((((-skewMaxY*(sx + deltaX)))/(source.Width-skewMaxX - 1)))+skewMaxY+off;
                           //deltaY = (((skewMaxY * sx)) / (source.Height - 1));
                           // deltaY = -deltaY + skewMaxY;
                          // deltaY = sx+deltaX;

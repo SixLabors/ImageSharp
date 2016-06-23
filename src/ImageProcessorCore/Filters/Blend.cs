@@ -1,81 +1,60 @@
 ﻿// <copyright file="Blend.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
+// </copyright>-------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessorCore.Filters
+namespace ImageProcessorCore
 {
-    using System.Threading.Tasks;
+    using Processors;
 
     /// <summary>
-    /// Combines two images together by blending the pixels.
+    /// Extension methods for the <see cref="Image"/> type.
     /// </summary>
-    public class Blend : ParallelImageProcessor
+    public static partial class ImageExtensions
     {
         /// <summary>
-        /// The image to blend.
+        /// Combines the given image together with the current one by blending their pixels.
         /// </summary>
-        private readonly ImageBase toBlend;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Blend"/> class.
-        /// </summary>
+        /// <param name="source">The image this method extends.</param>
         /// <param name="image">
         /// The image to blend with the currently processing image. 
         /// Disposal of this image is the responsibility of the developer.
         /// </param>
-        /// <param name="alpha">The opacity of the image to blend. Between 0 and 100.</param>
-        public Blend(ImageBase image, int alpha = 100)
+        /// <param name="percent">The opacity of the image image to blend. Must be between 0 and 100.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image Blend(this Image source, ImageBase image, int percent = 50, ProgressEventHandler progressHandler = null)
         {
-            Guard.MustBeBetweenOrEqualTo(alpha, 0, 100, nameof(alpha));
-            this.toBlend = image;
-            this.Value = alpha;
+            return Blend(source, image, percent, source.Bounds, progressHandler);
         }
 
         /// <summary>
-        /// Gets the alpha percentage value.
+        /// Combines the given image together with the current one by blending their pixels.
         /// </summary>
-        public int Value { get; }
-
-        /// <inheritdoc/>
-        protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="image">
+        /// The image to blend with the currently processing image. 
+        /// Disposal of this image is the responsibility of the developer.
+        /// </param>
+        /// <param name="percent">The opacity of the image image to blend. Must be between 0 and 100.</param>
+        /// <param name="rectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
+        /// </param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image Blend(this Image source, ImageBase image, int percent, Rectangle rectangle, ProgressEventHandler progressHandler = null)
         {
-            int sourceY = sourceRectangle.Y;
-            int sourceBottom = sourceRectangle.Bottom;
-            int startX = sourceRectangle.X;
-            int endX = sourceRectangle.Right;
-            Rectangle bounds = this.toBlend.Bounds;
-            float alpha = this.Value / 100f;
+            BlendProcessor processor = new BlendProcessor(image, percent);
+            processor.OnProgress += progressHandler;
 
-            Parallel.For(
-                startY,
-                endY,
-                y =>
-                {
-                    if (y >= sourceY && y < sourceBottom)
-                    {
-                        for (int x = startX; x < endX; x++)
-                        {
-                            Color color = source[x, y];
-
-                            if (bounds.Contains(x, y))
-                            {
-                                Color blendedColor = this.toBlend[x, y];
-
-                                if (blendedColor.A > 0)
-                                {
-                                    // Lerping colors is dependent on the alpha of the blended color
-                                    float alphaFactor = alpha > 0 ? alpha : blendedColor.A;
-                                    color = Color.Lerp(color, blendedColor, alphaFactor);
-                                }
-                            }
-
-                            target[x, y] = color;
-                        }
-
-                        this.OnRowProcessed();
-                    }
-                });
+            try
+            {
+                return source.Process(rectangle, processor);
+            }
+            finally
+            {
+                processor.OnProgress -= progressHandler;
+            }
         }
     }
 }

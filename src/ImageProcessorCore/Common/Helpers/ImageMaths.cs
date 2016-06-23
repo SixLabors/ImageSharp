@@ -171,35 +171,35 @@ namespace ImageProcessorCore
             Point topLeft = new Point();
             Point bottomRight = new Point();
 
-            Func<ImageBase, int, int, float, bool> delegateFunc;
+            Func<PixelAccessor, int, int, float, bool> delegateFunc;
 
             // Determine which channel to check against
             switch (channel)
             {
                 case RgbaComponent.R:
-                    delegateFunc = (imageBase, x, y, b) => Math.Abs(imageBase[x, y].R - b) > Epsilon;
+                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].R - b) > Epsilon;
                     break;
 
                 case RgbaComponent.G:
-                    delegateFunc = (imageBase, x, y, b) => Math.Abs(imageBase[x, y].G - b) > Epsilon;
+                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].G - b) > Epsilon;
                     break;
 
                 case RgbaComponent.A:
-                    delegateFunc = (imageBase, x, y, b) => Math.Abs(imageBase[x, y].A - b) > Epsilon;
+                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].A - b) > Epsilon;
                     break;
 
                 default:
-                    delegateFunc = (imageBase, x, y, b) => Math.Abs(imageBase[x, y].B - b) > Epsilon;
+                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].B - b) > Epsilon;
                     break;
             }
 
-            Func<ImageBase, int> getMinY = imageBase =>
+            Func<PixelAccessor, int> getMinY = pixels =>
             {
                 for (int y = 0; y < height; y++)
                 {
                     for (int x = 0; x < width; x++)
                     {
-                        if (delegateFunc(imageBase, x, y, componentValue))
+                        if (delegateFunc(pixels, x, y, componentValue))
                         {
                             return y;
                         }
@@ -209,13 +209,13 @@ namespace ImageProcessorCore
                 return 0;
             };
 
-            Func<ImageBase, int> getMaxY = imageBase =>
+            Func<PixelAccessor, int> getMaxY = pixels =>
             {
                 for (int y = height - 1; y > -1; y--)
                 {
                     for (int x = 0; x < width; x++)
                     {
-                        if (delegateFunc(imageBase, x, y, componentValue))
+                        if (delegateFunc(pixels, x, y, componentValue))
                         {
                             return y;
                         }
@@ -225,13 +225,13 @@ namespace ImageProcessorCore
                 return height;
             };
 
-            Func<ImageBase, int> getMinX = imageBase =>
+            Func<PixelAccessor, int> getMinX = pixels =>
             {
                 for (int x = 0; x < width; x++)
                 {
                     for (int y = 0; y < height; y++)
                     {
-                        if (delegateFunc(imageBase, x, y, componentValue))
+                        if (delegateFunc(pixels, x, y, componentValue))
                         {
                             return x;
                         }
@@ -241,13 +241,13 @@ namespace ImageProcessorCore
                 return 0;
             };
 
-            Func<ImageBase, int> getMaxX = imageBase =>
+            Func<PixelAccessor, int> getMaxX = pixels =>
             {
                 for (int x = width - 1; x > -1; x--)
                 {
                     for (int y = 0; y < height; y++)
                     {
-                        if (delegateFunc(imageBase, x, y, componentValue))
+                        if (delegateFunc(pixels, x, y, componentValue))
                         {
                             return x;
                         }
@@ -257,10 +257,13 @@ namespace ImageProcessorCore
                 return height;
             };
 
-            topLeft.Y = getMinY(bitmap);
-            topLeft.X = getMinX(bitmap);
-            bottomRight.Y = (getMaxY(bitmap) + 1).Clamp(0, height);
-            bottomRight.X = (getMaxX(bitmap) + 1).Clamp(0, width);
+            using (PixelAccessor bitmapPixels = bitmap.Lock())
+            {
+                topLeft.Y = getMinY(bitmapPixels);
+                topLeft.X = getMinX(bitmapPixels);
+                bottomRight.Y = (getMaxY(bitmapPixels) + 1).Clamp(0, height);
+                bottomRight.X = (getMaxX(bitmapPixels) + 1).Clamp(0, width);
+            }
 
             return GetBoundingRectangle(topLeft, bottomRight);
         }

@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageProcessorCore
+namespace ImageProcessorCore.Processors
 {
     using System;
     using System.Threading.Tasks;
@@ -62,7 +62,13 @@ namespace ImageProcessorCore
         }
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply(
+            ImageBase target,
+            ImageBase source,
+            Rectangle targetRectangle,
+            Rectangle sourceRectangle,
+            int startY,
+            int endY)
         {
             // Jump out, we'll deal with that later.
             if (source.Bounds == target.Bounds && sourceRectangle == targetRectangle)
@@ -87,30 +93,34 @@ namespace ImageProcessorCore
                 float widthFactor = sourceRectangle.Width / (float)targetRectangle.Width;
                 float heightFactor = sourceRectangle.Height / (float)targetRectangle.Height;
 
-                Parallel.For(
-                    startY,
-                    endY,
-                    y =>
-                    {
-                        if (targetY <= y && y < targetBottom)
-                        {
-                            // Y coordinates of source points
-                            int originY = (int)((y - startY) * heightFactor);
-
-                            for (int x = startX; x < endX; x++)
+                using (PixelAccessor sourcePixels = source.Lock())
+                using (PixelAccessor targetPixels = target.Lock())
+                {
+                    Parallel.For(
+                        startY,
+                        endY,
+                        y =>
                             {
-                                if (targetX <= x && x < targetRight)
+                                if (targetY <= y && y < targetBottom)
                                 {
-                                    // X coordinates of source points
-                                    int originX = (int)((x - startX) * widthFactor);
+                                    // Y coordinates of source points
+                                    int originY = (int)((y - startY) * heightFactor);
 
-                                    target[x, y] = source[originX, originY];
+                                    for (int x = startX; x < endX; x++)
+                                    {
+                                        if (targetX <= x && x < targetRight)
+                                        {
+                                            // X coordinates of source points
+                                            int originX = (int)((x - startX) * widthFactor);
+
+                                            targetPixels[x, y] = sourcePixels[originX, originY];
+                                        }
+                                    }
+
+                                    this.OnRowProcessed();
                                 }
-                            }
-
-                            this.OnRowProcessed();
-                        }
-                    });
+                            });
+                }
 
                 // Break out now.
                 return;
@@ -120,78 +130,90 @@ namespace ImageProcessorCore
             // A 2-pass 1D algorithm appears to be faster than splitting a 1-pass 2D algorithm 
             // First process the columns. Since we are not using multiple threads startY and endY
             // are the upper and lower bounds of the source rectangle.
-            Parallel.For(
-                0,
-                sourceHeight,
-                y =>
-                    {
-                        for (int x = startX; x < endX; x++)
+            using (PixelAccessor sourcePixels = source.Lock())
+            using (PixelAccessor firstPassPixels = this.firstPass.Lock())
+            using (PixelAccessor targetPixels = target.Lock())
+            {
+                Parallel.For(
+                    0,
+                    sourceHeight,
+                    y =>
                         {
-                            if (x >= 0 && x < width)
+                            for (int x = startX; x < endX; x++)
+                            {
+                                if (x >= 0 && x < width)
+                                {
+                                    // Ensure offsets are normalised for cropping and padding.
+                                    int offsetX = x - startX;
+                                    float sum = this.HorizontalWeights[offsetX].Sum;
+                                    Weight[] horizontalValues = this.HorizontalWeights[offsetX].Values;
+
+                                    // Destination color components
+                                    Color destination = new Color();
+
+                                    for (int i = 0; i < sum; i++)
+                                    {
+                                        Weight xw = horizontalValues[i];
+                                        int originX = xw.Index;
+                                        Color sourceColor = compand
+                                            ? Color.Expand(sourcePixels[originX, y])
+                                            : sourcePixels[originX, y];
+
+                                        destination += sourceColor * xw.Value;
+                                    }
+
+                                    if (compand)
+                                    {
+                                        destination = Color.Compress(destination);
+                                    }
+
+                                    firstPassPixels[x, y] = destination;
+                                }
+                            }
+                        });
+
+                // Now process the rows.
+                Parallel.For(
+                    startY,
+                    endY,
+                    y =>
+                        {
+                            if (y >= 0 && y < height)
                             {
                                 // Ensure offsets are normalised for cropping and padding.
-                                int offsetX = x - startX;
-                                float sum = this.HorizontalWeights[offsetX].Sum;
-                                Weight[] horizontalValues = this.HorizontalWeights[offsetX].Values;
+                                int offsetY = y - startY;
+                                float sum = this.VerticalWeights[offsetY].Sum;
+                                Weight[] verticalValues = this.VerticalWeights[offsetY].Values;
 
-                                // Destination color components
-                                Color destination = new Color();
-
-                                for (int i = 0; i < sum; i++)
+                                for (int x = 0; x < width; x++)
                                 {
-                                    Weight xw = horizontalValues[i];
-                                    int originX = xw.Index;
-                                    Color sourceColor = compand ? Color.Expand(source[originX, y]) : source[originX, y];
-                                    destination += sourceColor * xw.Value;
-                                }
+                                    // Destination color components
+                                    Color destination = new Color();
 
-                                if (compand)
-                                {
-                                    destination = Color.Compress(destination);
-                                }
+                                    for (int i = 0; i < sum; i++)
+                                    {
+                                        Weight yw = verticalValues[i];
+                                        int originY = yw.Index;
+                                        Color sourceColor = compand
+                                            ? Color.Expand(firstPassPixels[x, originY])
+                                            : firstPassPixels[x, originY];
 
-                                this.firstPass[x, y] = destination;
+                                        destination += sourceColor * yw.Value;
+                                    }
+
+                                    if (compand)
+                                    {
+                                        destination = Color.Compress(destination);
+                                    }
+
+                                    targetPixels[x, y] = destination;
+                                }
                             }
-                        }
-                    });
 
-            // Now process the rows.
-            Parallel.For(
-                startY,
-                endY,
-                y =>
-                    {
-                        if (y >= 0 && y < height)
-                        {
-                            // Ensure offsets are normalised for cropping and padding.
-                            int offsetY = y - startY;
-                            float sum = this.VerticalWeights[offsetY].Sum;
-                            Weight[] verticalValues = this.VerticalWeights[offsetY].Values;
+                            this.OnRowProcessed();
+                        });
 
-                            for (int x = 0; x < width; x++)
-                            {
-                                // Destination color components
-                                Color destination = new Color();
-
-                                for (int i = 0; i < sum; i++)
-                                {
-                                    Weight yw = verticalValues[i];
-                                    int originY = yw.Index;
-                                    Color sourceColor = compand ? Color.Expand(this.firstPass[x, originY]) : this.firstPass[x, originY];
-                                    destination += sourceColor * yw.Value;
-                                }
-
-                                if (compand)
-                                {
-                                    destination = Color.Compress(destination);
-                                }
-
-                                target[x, y] = destination;
-                            }
-                        }
-
-                        this.OnRowProcessed();
-                    });
+            }
         }
 
         /// <inheritdoc/>
@@ -202,9 +224,6 @@ namespace ImageProcessorCore
             {
                 target.ClonePixels(target.Width, target.Height, source.Pixels);
             }
-
-            // Clean up
-            this.firstPass?.Dispose();
         }
 
         /// <summary>

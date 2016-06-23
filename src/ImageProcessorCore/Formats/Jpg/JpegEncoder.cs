@@ -90,7 +90,7 @@ namespace ImageProcessorCore.Formats
             }
             else
             {
-                encode.Encode(stream, image, this.Quality, this.Quality >= 80 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420);              
+                encode.Encode(stream, image, this.Quality, this.Quality >= 80 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420);
             }
         }
     }

@@ -123,7 +123,12 @@ namespace ImageProcessorCore.Formats
             this.WritePaletteChunk(stream, header, image);
             this.WritePhysicalChunk(stream, image);
             this.WriteGammaChunk(stream);
-            this.WriteDataChunks(stream, image);
+
+            using (PixelAccessor pixels = image.Lock())
+            {
+                this.WriteDataChunks(stream, pixels);
+            }
+
             this.WriteEndChunk(stream);
             stream.Flush();
         }
@@ -292,12 +297,12 @@ namespace ImageProcessorCore.Formats
         /// Writes the pixel information to the stream.
         /// </summary>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        /// <param name="image">The image base.</param>
-        private void WriteDataChunks(Stream stream, ImageBase image)
+        /// <param name="pixels">The image pixels.</param>
+        private void WriteDataChunks(Stream stream, PixelAccessor pixels)
         {
             byte[] data;
-            int imageWidth = image.Width;
-            int imageHeight = image.Height;
+            int imageWidth = pixels.Width;
+            int imageHeight = pixels.Height;
 
             // Indexed image.
             if (this.Quality <= 256)
@@ -327,7 +332,7 @@ namespace ImageProcessorCore.Formats
             else
             {
                 // TrueColor image.
-                data = new byte[(imageWidth * imageHeight * 4) + image.Height];
+                data = new byte[(imageWidth * imageHeight * 4) + pixels.Height];
 
                 int rowLength = (imageWidth * 4) + 1;
 
@@ -343,7 +348,7 @@ namespace ImageProcessorCore.Formats
 
                     for (int x = 0; x < imageWidth; x++)
                     {
-                        Bgra32 color = Color.ToNonPremultiplied(image[x, y]);
+                        Bgra32 color = Color.ToNonPremultiplied(pixels[x, y]);
 
                         // Calculate the offset for the new array.
                         int dataOffset = (y * rowLength) + (x * 4) + 1;
@@ -354,7 +359,7 @@ namespace ImageProcessorCore.Formats
 
                         if (y > 0)
                         {
-                            color = Color.ToNonPremultiplied(image[x, y - 1]);
+                            color = Color.ToNonPremultiplied(pixels[x, y - 1]);
 
                             data[dataOffset] -= color.R;
                             data[dataOffset + 1] -= color.G;

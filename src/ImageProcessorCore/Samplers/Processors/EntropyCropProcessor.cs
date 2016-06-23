@@ -3,12 +3,10 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageProcessorCore
+namespace ImageProcessorCore.Processors
 {
     using System;
     using System.Threading.Tasks;
-
-    using ImageProcessorCore.Filters;
 
     /// <summary>
     /// Provides methods to allow the cropping of an image to preserve areas of highest
@@ -42,21 +40,20 @@ namespace ImageProcessorCore
         /// <inheritdoc/>
         protected override void OnApply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
-            using (ImageBase temp = new Image(source.Width, source.Height))
-            {
-                // Detect the edges.
-                new Sobel().Apply(temp, source, sourceRectangle);
+            ImageBase temp = new Image(source.Width, source.Height);
 
-                // Apply threshold binarization filter.
-                new Threshold(.5f).Apply(temp, temp, sourceRectangle);
+            // Detect the edges.
+            new SobelProcessor().Apply(temp, source, sourceRectangle);
 
-                // Search for the first white pixels
-                Rectangle rectangle = ImageMaths.GetFilteredBoundingRectangle(temp, 0);
+            // Apply threshold binarization filter.
+            new ThresholdProcessor(.5f).Apply(temp, temp, sourceRectangle);
 
-                // Reset the target pixel to the correct size.
-                target.SetPixels(rectangle.Width, rectangle.Height, new float[rectangle.Width * rectangle.Height * 4]);
-                this.cropRectangle = rectangle;
-            }
+            // Search for the first white pixels
+            Rectangle rectangle = ImageMaths.GetFilteredBoundingRectangle(temp, 0);
+
+            // Reset the target pixel to the correct size.
+            target.SetPixels(rectangle.Width, rectangle.Height, new float[rectangle.Width * rectangle.Height * 4]);
+            this.cropRectangle = rectangle;
         }
 
         /// <inheritdoc/>
@@ -73,21 +70,25 @@ namespace ImageProcessorCore
             int startX = this.cropRectangle.X;
             int endX = this.cropRectangle.Right;
 
-            Parallel.For(
-            startY,
-            endY,
-            y =>
+            using (PixelAccessor sourcePixels = source.Lock())
+            using (PixelAccessor targetPixels = target.Lock())
             {
-                if (y >= targetY && y < targetBottom)
-                {
-                    for (int x = startX; x < endX; x++)
-                    {
-                        target[x - startX, y - targetY] = source[x, y];
-                    }
-                }
+                Parallel.For(
+                    startY,
+                    endY,
+                    y =>
+                        {
+                            if (y >= targetY && y < targetBottom)
+                            {
+                                for (int x = startX; x < endX; x++)
+                                {
+                                    targetPixels[x - startX, y - targetY] = sourcePixels[x, y];
+                                }
+                            }
 
-                this.OnRowProcessed();
-            });
+                            this.OnRowProcessed();
+                        });
+            }
         }
 
         /// <inheritdoc/>

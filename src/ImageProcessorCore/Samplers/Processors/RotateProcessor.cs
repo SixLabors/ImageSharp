@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageProcessorCore
+namespace ImageProcessorCore.Processors
 {
     using System.Numerics;
     using System.Threading.Tasks;
@@ -104,30 +104,27 @@ namespace ImageProcessorCore
 
             // Since we are not working in parallel we use full height and width 
             // of the first pass image.
-            Parallel.For(
-                0,
-                height,
-                y =>
-                {
-                    for (int x = startX; x < endX; x++)
-                    {
-                        // Rotate at the centre point
-                        Point rotated = Point.Rotate(new Point(x, y), rotation);
-                        if (this.firstPass.Bounds.Contains(rotated.X, rotated.Y))
+            using (PixelAccessor firstPassPixels = this.firstPass.Lock())
+            using (PixelAccessor targetPixels = target.Lock())
+            {
+                Parallel.For(
+                    0,
+                    height,
+                    y =>
                         {
-                            target[x, y] = this.firstPass[rotated.X, rotated.Y];
-                        }
-                    }
+                            for (int x = startX; x < endX; x++)
+                            {
+                                // Rotate at the centre point
+                                Point rotated = Point.Rotate(new Point(x, y), rotation);
+                                if (this.firstPass.Bounds.Contains(rotated.X, rotated.Y))
+                                {
+                                    targetPixels[x, y] = firstPassPixels[rotated.X, rotated.Y];
+                                }
+                            }
 
-                    this.OnRowProcessed();
-                });
-        }
-
-        /// <inheritdoc/>
-        protected override void AfterApply(ImageBase source, ImageBase target, Rectangle targetRectangle, Rectangle sourceRectangle)
-        {
-            // Cleanup.
-            this.firstPass.Dispose();
+                            this.OnRowProcessed();
+                        });
+            }
         }
     }
 }

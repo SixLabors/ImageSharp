@@ -50,21 +50,24 @@ namespace ImageProcessorCore.Quantizers
             // Get the size of the source image
             int height = image.Height;
             int width = image.Width;
-
-            // Call the FirstPass function if not a single pass algorithm.
-            // For something like an Octree quantizer, this will run through
-            // all image pixels, build a data structure, and create a palette.
-            if (!this.singlePass)
-            {
-                this.FirstPass(image, width, height);
-            }
-
             byte[] quantizedPixels = new byte[width * height];
+            List<Bgra32> palette;
 
-            // Get the palette
-            List<Bgra32> palette = this.GetPalette();
+            using (PixelAccessor pixels = image.Lock())
+            {
+                // Call the FirstPass function if not a single pass algorithm.
+                // For something like an Octree quantizer, this will run through
+                // all image pixels, build a data structure, and create a palette.
+                if (!this.singlePass)
+                {
+                    this.FirstPass(pixels, width, height);
+                }
+                
+                // Get the palette
+                palette = this.GetPalette();
 
-            this.SecondPass(image, quantizedPixels, width, height);
+                this.SecondPass(pixels, quantizedPixels, width, height);
+            }
 
             return new QuantizedImage(width, height, palette.ToArray(), quantizedPixels, this.TransparentIndex);
         }
@@ -75,7 +78,7 @@ namespace ImageProcessorCore.Quantizers
         /// <param name="source">The source data</param>
         /// <param name="width">The width in pixels of the image.</param>
         /// <param name="height">The height in pixels of the image.</param>
-        protected virtual void FirstPass(ImageBase source, int width, int height)
+        protected virtual void FirstPass(PixelAccessor source, int width, int height)
         {
             // Loop through each row
             for (int y = 0; y < height; y++)
@@ -96,7 +99,7 @@ namespace ImageProcessorCore.Quantizers
         /// <param name="output">The output pixel array</param>
         /// <param name="width">The width in pixels of the image</param>
         /// <param name="height">The height in pixels of the image</param>
-        protected virtual void SecondPass(ImageBase source, byte[] output, int width, int height)
+        protected virtual void SecondPass(PixelAccessor source, byte[] output, int width, int height)
         {
             Parallel.For(
                 0,

@@ -1,65 +1,52 @@
 ﻿// <copyright file="Contrast.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
+// </copyright>-------------------------------------------------------------------------------------------------------------------
 
-namespace ImageProcessorCore.Filters
+namespace ImageProcessorCore
 {
-    using System;
-    using System.Numerics;
-    using System.Threading.Tasks;
+    using Processors;
 
     /// <summary>
-    /// An <see cref="IImageProcessor"/> to change the contrast of an <see cref="Image"/>.
+    /// Extension methods for the <see cref="Image"/> type.
     /// </summary>
-    public class Contrast : ParallelImageProcessor
+    public static partial class ImageExtensions
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="Contrast"/> class.
+        /// Alters the contrast component of the image.
         /// </summary>
-        /// <param name="contrast">The new contrast of the image. Must be between -100 and 100.</param>
-        /// <exception cref="ArgumentException">
-        /// <paramref name="contrast"/> is less than -100 or is greater than 100.
-        /// </exception>
-        public Contrast(int contrast)
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="amount">The new contrast of the image. Must be between -100 and 100.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image Contrast(this Image source, int amount, ProgressEventHandler progressHandler = null)
         {
-            Guard.MustBeBetweenOrEqualTo(contrast, -100, 100, nameof(contrast));
-            this.Value = contrast;
+            return Contrast(source, amount, source.Bounds, progressHandler);
         }
 
         /// <summary>
-        /// Gets the contrast value.
+        /// Alters the contrast component of the image.
         /// </summary>
-        public int Value { get; }
-
-        /// <inheritdoc/>
-        protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="amount">The new contrast of the image. Must be between -100 and 100.</param>
+        /// <param name="rectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
+        /// </param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image Contrast(this Image source, int amount, Rectangle rectangle, ProgressEventHandler progressHandler = null)
         {
-            float contrast = (100f + this.Value) / 100f;
-            int sourceY = sourceRectangle.Y;
-            int sourceBottom = sourceRectangle.Bottom;
-            int startX = sourceRectangle.X;
-            int endX = sourceRectangle.Right;
-            Vector4 contrastVector = new Vector4(contrast, contrast, contrast, 1);
-            Vector4 shiftVector = new Vector4(.5f, .5f, .5f, 1);
-            Parallel.For(
-                startY,
-                endY,
-                y =>
-                    {
-                        if (y >= sourceY && y < sourceBottom)
-                        {
-                            for (int x = startX; x < endX; x++)
-                            {
-                                Vector4 color = Color.Expand(source[x, y]).ToVector4();
-                                color -= shiftVector;
-                                color *= contrastVector;
-                                color += shiftVector;
-                                target[x, y] = Color.Compress(new Color(color));
-                            }
-                            this.OnRowProcessed();
-                        }
-                    });
+            ContrastProcessor processor = new ContrastProcessor(amount);
+            processor.OnProgress += progressHandler;
+
+            try
+            {
+                return source.Process(rectangle, processor);
+            }
+            finally
+            {
+                processor.OnProgress -= progressHandler;
+            }
         }
     }
 }

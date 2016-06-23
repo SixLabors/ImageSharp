@@ -9,6 +9,7 @@ namespace ImageProcessorCore
     using System.IO;
 
     using Formats;
+    using Processors;
 
     /// <summary>
     /// Extension methods for the <see cref="Image"/> type.
@@ -128,11 +129,6 @@ namespace ImageProcessorCore
         /// <exception cref="ObjectDisposedException">Thrown if the <paramref name="source"/> has been disposed.</exception>
         private static Image PerformAction(Image source, bool clone, Action<ImageBase, ImageBase> action)
         {
-            if (source.IsDisposed)
-            {
-                throw new ObjectDisposedException("Image");
-            }
-
             Image transformedImage = clone
                 ? new Image(source)
                 : new Image
@@ -163,9 +159,6 @@ namespace ImageProcessorCore
                 }
             }
 
-            // According to http://stackoverflow.com/questions/37921815/idisposable-unmanaged-fields-reference-types-and-assignments
-            // There's no need to dispose of the original image as the GC will get around to cleaning it up now there are no references to the original data.
-            // TODO: Investigate how long this is held onto and try to keep that to a minimum.
             source = transformedImage;
             return source;
         }

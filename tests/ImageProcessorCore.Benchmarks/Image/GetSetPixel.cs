@@ -23,10 +23,11 @@
         [Benchmark(Description = "ImageProcessorCore GetSet Pixel")]
         public CoreColor ResizeCore()
         {
-            using (CoreImage image = new CoreImage(400, 400))
+            CoreImage image = new CoreImage(400, 400);
+            using (PixelAccessor imagePixels = image.Lock())
             {
-                image[200, 200] = CoreColor.White;
-                return image[200, 200];
+                imagePixels[200, 200] = CoreColor.White;
+                return imagePixels[200, 200];
             }
         }
     }

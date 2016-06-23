@@ -123,13 +123,16 @@ namespace ImageProcessorCore.Quantizers
 
             this.Clear();
 
-            this.Build3DHistogram(image);
-            this.Get3DMoments();
+            using (PixelAccessor imagePixels = image.Lock())
+            {
+                this.Build3DHistogram(imagePixels);
+                this.Get3DMoments();
 
-            Box[] cube;
-            this.BuildCube(out cube, ref colorCount);
+                Box[] cube;
+                this.BuildCube(out cube, ref colorCount);
 
-            return this.GenerateResult(image, colorCount, cube);
+                return this.GenerateResult(imagePixels, colorCount, cube);
+            }
         }
 
         /// <summary>
@@ -318,7 +321,7 @@ namespace ImageProcessorCore.Quantizers
         /// Builds a 3-D color histogram of <c>counts, r/g/b, c^2</c>.
         /// </summary>
         /// <param name="image">The image.</param>
-        private void Build3DHistogram(ImageBase image)
+        private void Build3DHistogram(PixelAccessor image)
         {
             for (int y = 0; y < image.Height; y++)
             {
@@ -711,15 +714,17 @@ namespace ImageProcessorCore.Quantizers
         /// <summary>
         /// Generates the quantized result.
         /// </summary>
-        /// <param name="image">The image.</param>
+        /// <param name="imagePixels">The image pixels.</param>
         /// <param name="colorCount">The color count.</param>
         /// <param name="cube">The cube.</param>
         /// <returns>The result.</returns>
-        private QuantizedImage GenerateResult(ImageBase image, int colorCount, Box[] cube)
+        private QuantizedImage GenerateResult(PixelAccessor imagePixels, int colorCount, Box[] cube)
         {
             List<Bgra32> pallette = new List<Bgra32>();
-            byte[] pixels = new byte[image.Width * image.Height];
+            byte[] pixels = new byte[imagePixels.Width * imagePixels.Height];
             int transparentIndex = -1;
+            int width = imagePixels.Width;
+            int height = imagePixels.Height;
 
             for (int k = 0; k < colorCount; k++)
             {
@@ -752,12 +757,12 @@ namespace ImageProcessorCore.Quantizers
 
             Parallel.For(
                 0,
-                image.Height,
+                height,
                 y =>
                     {
-                        for (int x = 0; x < image.Width; x++)
+                        for (int x = 0; x < width; x++)
                         {
-                            Bgra32 color = image[x, y];
+                            Bgra32 color = imagePixels[x, y];
                             int a = color.A >> (8 - IndexAlphaBits);
                             int r = color.R >> (8 - IndexBits);
                             int g = color.G >> (8 - IndexBits);
@@ -765,16 +770,17 @@ namespace ImageProcessorCore.Quantizers
 
                             if (transparentIndex > -1 && color.A <= this.Threshold)
                             {
-                                pixels[(y * image.Width) + x] = (byte)transparentIndex;
+                                pixels[(y * width) + x] = (byte)transparentIndex;
                                 continue;
                             }
 
                             int ind = GetPaletteIndex(r + 1, g + 1, b + 1, a + 1);
-                            pixels[(y * image.Width) + x] = this.tag[ind];
+                            pixels[(y * width) + x] = this.tag[ind];
                         }
                     });
 
-            return new QuantizedImage(image.Width, image.Height, pallette.ToArray(), pixels, transparentIndex);
+
+            return new QuantizedImage(width, height, pallette.ToArray(), pixels, transparentIndex);
         }
     }
 }

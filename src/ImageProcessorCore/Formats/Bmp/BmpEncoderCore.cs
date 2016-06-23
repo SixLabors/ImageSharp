@@ -132,15 +132,18 @@ namespace ImageProcessorCore.Formats
                 amount = 4 - amount;
             }
 
-            switch (this.bmpBitsPerPixel)
+            using (PixelAccessor pixels = image.Lock())
             {
-                case BmpBitsPerPixel.Pixel32:
-                    this.Write32bit(writer, image, amount);
-                    break;
+                switch (this.bmpBitsPerPixel)
+                {
+                    case BmpBitsPerPixel.Pixel32:
+                        this.Write32bit(writer, pixels, amount);
+                        break;
 
-                case BmpBitsPerPixel.Pixel24:
-                    this.Write24bit(writer, image, amount);
-                    break;
+                    case BmpBitsPerPixel.Pixel24:
+                        this.Write24bit(writer, pixels, amount);
+                        break;
+                }
             }
         }
 
@@ -148,18 +151,18 @@ namespace ImageProcessorCore.Formats
         /// Writes the 32bit color palette to the stream.
         /// </summary>
         /// <param name="writer">The <see cref="EndianBinaryWriter"/> containing the stream to write to.</param>
-        /// <param name="image">The <see cref="ImageBase"/> containing pixel data.</param>
+        /// <param name="pixels">The <see cref="PixelAccessor"/> containing pixel data.</param>
         /// <param name="amount">The amount to pad each row by.</param>
-        private void Write32bit(EndianBinaryWriter writer, ImageBase image, int amount)
+        private void Write32bit(EndianBinaryWriter writer, PixelAccessor pixels, int amount)
         {
-            for (int y = image.Height - 1; y >= 0; y--)
+            for (int y = pixels.Height - 1; y >= 0; y--)
             {
-                for (int x = 0; x < image.Width; x++)
+                for (int x = 0; x < pixels.Width; x++)
                 {
                     // Limit the output range and multiply out from our floating point.
                     // Convert back to b-> g-> r-> a order.
                     // Convert to non-premultiplied color.
-                    Bgra32 color = Color.ToNonPremultiplied(image[x, y]);
+                    Bgra32 color = Color.ToNonPremultiplied(pixels[x, y]);
 
                     // We can take advantage of BGRA here
                     writer.Write(color.Bgra);
@@ -177,18 +180,18 @@ namespace ImageProcessorCore.Formats
         /// Writes the 24bit color palette to the stream.
         /// </summary>
         /// <param name="writer">The <see cref="EndianBinaryWriter"/> containing the stream to write to.</param>
-        /// <param name="image">The <see cref="ImageBase"/> containing pixel data.</param>
+        /// <param name="pixels">The <see cref="PixelAccessor"/> containing pixel data.</param>
         /// <param name="amount">The amount to pad each row by.</param>
-        private void Write24bit(EndianBinaryWriter writer, ImageBase image, int amount)
+        private void Write24bit(EndianBinaryWriter writer, PixelAccessor pixels, int amount)
         {
-            for (int y = image.Height - 1; y >= 0; y--)
+            for (int y = pixels.Height - 1; y >= 0; y--)
             {
-                for (int x = 0; x < image.Width; x++)
+                for (int x = 0; x < pixels.Width; x++)
                 {
                     // Limit the output range and multiply out from our floating point.
                     // Convert back to b-> g-> r-> a order.
                     // Convert to non-premultiplied color.
-                    Bgra32 color = Color.ToNonPremultiplied(image[x, y]);
+                    Bgra32 color = Color.ToNonPremultiplied(pixels[x, y]);
 
                     // Allocate 1 array instead of allocating 3.
                     writer.Write(new[] { color.B, color.G, color.R });

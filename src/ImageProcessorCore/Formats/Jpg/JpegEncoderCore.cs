@@ -423,15 +423,15 @@ namespace ImageProcessorCore.Formats
 
         // toYCbCr converts the 8x8 region of m whose top-left corner is p to its
         // YCbCr values.
-        private void toYCbCr(ImageBase m, int x, int y, Block yBlock, Block cbBlock, Block crBlock)
+        private void toYCbCr(PixelAccessor pixels, int x, int y, Block yBlock, Block cbBlock, Block crBlock)
         {
-            int xmax = m.Width - 1;
-            int ymax = m.Height - 1;
+            int xmax = pixels.Width - 1;
+            int ymax = pixels.Height - 1;
             for (int j = 0; j < 8; j++)
             {
                 for (int i = 0; i < 8; i++)
                 {
-                    YCbCr color = m[Math.Min(x + i, xmax), Math.Min(y + j, ymax)];
+                    YCbCr color = pixels[Math.Min(x + i, xmax), Math.Min(y + j, ymax)];
                     int index = (8 * j) + i;
                     yBlock[index] = (int)color.Y;
                     cbBlock[index] = (int)color.Cb;
@@ -486,17 +486,17 @@ namespace ImageProcessorCore.Formats
 
 
         // writeSOS writes the StartOfScan marker.
-        private void writeSOS(ImageBase m)
+        private void writeSOS(PixelAccessor pixels)
         {
             outputStream.Write(sosHeaderYCbCr, 0, sosHeaderYCbCr.Length);
 
             switch (subsample)
             {
                 case JpegSubsample.Ratio444:
-                    encode444(m);
+                    encode444(pixels);
                     break;
                 case JpegSubsample.Ratio420:
-                    encode420(m);
+                    encode420(pixels);
                     break;
             }
 
@@ -504,18 +504,18 @@ namespace ImageProcessorCore.Formats
             emit(0x7f, 7);
         }
 
-        private void encode444(ImageBase m)
+        private void encode444(PixelAccessor pixels)
         {
             Block b = new Block();
             Block cb = new Block();
             Block cr = new Block();
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
 
-            for (int y = 0; y < m.Height; y += 8)
+            for (int y = 0; y < pixels.Height; y += 8)
             {
-                for (int x = 0; x < m.Width; x += 8)
+                for (int x = 0; x < pixels.Width; x += 8)
                 {
-                    toYCbCr(m, x, y, b, cb, cr);
+                    toYCbCr(pixels, x, y, b, cb, cr);
                     prevDCY = writeBlock(b, (quantIndex)0, prevDCY);
                     prevDCCb = writeBlock(cb, (quantIndex)1, prevDCCb);
                     prevDCCr = writeBlock(cr, (quantIndex)1, prevDCCr);
@@ -523,7 +523,7 @@ namespace ImageProcessorCore.Formats
             }
         }
 
-        private void encode420(ImageBase m)
+        private void encode420(PixelAccessor pixels)
         {
             Block b = new Block();
             Block[] cb = new Block[4];
@@ -533,16 +533,16 @@ namespace ImageProcessorCore.Formats
             for (int i = 0; i < 4; i++) cb[i] = new Block();
             for (int i = 0; i < 4; i++) cr[i] = new Block();
 
-            for (int y = 0; y < m.Height; y += 16)
+            for (int y = 0; y < pixels.Height; y += 16)
             {
-                for (int x = 0; x < m.Width; x += 16)
+                for (int x = 0; x < pixels.Width; x += 16)
                 {
                     for (int i = 0; i < 4; i++)
                     {
                         int xOff = (i & 1) * 8;
                         int yOff = (i & 2) * 4;
 
-                        toYCbCr(m, x + xOff, y + yOff, b, cb[i], cr[i]);
+                        toYCbCr(pixels, x + xOff, y + yOff, b, cb[i], cr[i]);
                         prevDCY = writeBlock(b, (quantIndex)0, prevDCY);
                     }
                     scale_16x16_8x8(b, cb);
@@ -555,7 +555,7 @@ namespace ImageProcessorCore.Formats
 
         // Encode writes the Image m to w in JPEG 4:2:0 baseline format with the given
         // options. Default parameters are used if a nil *Options is passed.
-        public void Encode(Stream stream, ImageBase m, int quality, JpegSubsample subsample)
+        public void Encode(Stream stream, ImageBase image, int quality, JpegSubsample subsample)
         {
             this.outputStream = stream;
             this.subsample = subsample;
@@ -570,9 +570,9 @@ namespace ImageProcessorCore.Formats
                 quant[i] = new byte[Block.blockSize];
             }
 
-            if (m.Width >= (1 << 16) || m.Height >= (1 << 16))
+            if (image.Width >= (1 << 16) || image.Height >= (1 << 16))
             {
-                throw new ImageFormatException($"Image is too large to encode at {m.Width}x{m.Height}.");
+                throw new ImageFormatException($"Image is too large to encode at {image.Width}x{image.Height}.");
             }
 
             if (quality < 1) quality = 1;
@@ -614,13 +614,16 @@ namespace ImageProcessorCore.Formats
             writeDQT();
 
             // Write the image dimensions.
-            writeSOF0(m.Width, m.Height, nComponent);
+            writeSOF0(image.Width, image.Height, nComponent);
 
             // Write the Huffman tables.
             writeDHT(nComponent);
 
             // Write the image data.
-            writeSOS(m);
+            using (PixelAccessor pixels = image.Lock())
+            {
+                writeSOS(pixels);
+            }
 
             // Write the End Of Image marker.
             buf[0] = 0xff;

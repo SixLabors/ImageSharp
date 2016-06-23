@@ -54,7 +54,7 @@ namespace ImageProcessorCore
 
             // Assign the pointer.
             // If buffer is allocated on Large Object Heap i.e > 85Kb, then we are going to pin it instead of making a copy.
-            if (size > (85 * 1024))
+            if (size > 87040)
             {
                 this.pixelsHandle = GCHandle.Alloc(image.Pixels, GCHandleType.Pinned);
                 this.pixelsBase = (float*)this.pixelsHandle.AddrOfPinnedObject().ToPointer();

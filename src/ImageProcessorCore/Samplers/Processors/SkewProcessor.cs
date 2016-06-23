@@ -123,9 +123,7 @@ namespace ImageProcessorCore
                       if (revY)
                       {
                           deltaY = ((((-skewMaxY*(sx + deltaX)))/(source.Width-skewMaxX - 1)))+skewMaxY+off;
-                          //deltaY = (((skewMaxY * sx)) / (source.Height - 1));
-                          // deltaY = -deltaY + skewMaxY;
-                         // deltaY = sx+deltaX;
+                        
                       }
                       else
                       {

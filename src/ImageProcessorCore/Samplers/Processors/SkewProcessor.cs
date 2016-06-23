@@ -98,41 +98,42 @@ namespace ImageProcessorCore
         {
             int skewMaxX = target.Width - source.Width;
             int skewMaxY = target.Height - source.Height;
-            int offesetX = 0;
-            int offesetY = 0;
 
-            if (ImageMaths.DegreesToRadians(angleX) < 0)
-            {
-                offesetX = skewMaxX;
-                skewMaxX = -skewMaxX;
-
-            }
-            if (ImageMaths.DegreesToRadians(angleY) < 0)
-            {
-                offesetY = skewMaxY;
-              //  skewMaxY = -skewMaxY;
-
-            }
-
-
-
-
+            bool revX = ImageMaths.DegreesToRadians(angleX) < 0;
+            bool revY = ImageMaths.DegreesToRadians(angleY) < 0;
             Parallel.For(
-             0,
-             source.Height,
-             sy =>
-             {
+              0,
+              source.Height,
+              sy =>
+              {
+                  int deltaX;
+                  if (revX)
+                  {
+                      deltaX = ((skewMaxX * (-sy + (source.Height - 1))) / (source.Height - 1));
+                  }
+                  else
+                  {
+                      deltaX = (((skewMaxX * sy)) / (source.Height - 1));
+                  }
 
-                 for (int sx = 0; sx < source.Width; sx++)
-                 {
-                     int skewY = ((skewMaxX * (sy)) / (source.Height - 1)) + offesetX;
-                     int skewX = ((skewMaxY * (sx-source.Width-1)) / (source.Width - 1))+ offesetY;
-                     target[skewY + sx,  sy +skewX ] = source[sx, sy];
-                 }
-                 this.OnRowProcessed();
-             });
-
-
+                  for (int sx = 0; sx < source.Width; sx++)
+                  {
+                      int deltaY;
+                      if (revY)
+                      {
+                          deltaY = ((((skewMaxY * -sx ))+ (skewMaxY-1)) -(skewMaxY-1)) / (source.Width - 1) + skewMaxY;
+                          //deltaY = (((skewMaxY * sx)) / (source.Height - 1));
+                         // deltaY = -deltaY + skewMaxY;
+                          //deltaY = 0;
+                      }
+                      else
+                      {
+                          deltaY = ((skewMaxY * sx) / (source.Width - 1));
+                      }
+                      target[deltaX + sx, sy + deltaY] = source[sx, sy];
+                  }
+                  this.OnRowProcessed();
+              });
         }
 
 

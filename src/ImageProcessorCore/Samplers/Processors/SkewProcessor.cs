@@ -4,6 +4,7 @@
 // </copyright>
 
 using System;
+using System.Linq;
 
 namespace ImageProcessorCore
 {
@@ -98,31 +99,12 @@ namespace ImageProcessorCore
         /// <inheritdoc/>
         protected override void OnApply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
-            // If we are expanding we need to pad the bounds of the source rectangle.
-            // We can use the resizer in nearest neighbor mode to do this fairly quickly.
             if (this.Expand)
             {
-                // First find out how big the target rectangle should be.
-                Point centre = this.Center == Point.Empty ? Rectangle.Center(sourceRectangle) : this.Center;
-                Matrix3x2 skew = Point.CreateSkew(centre, -this.angleX, -this.angleY);
-                Rectangle rectangle = ImageMaths.GetBoundingRectangle(sourceRectangle, skew);
-                ResizeOptions options = new ResizeOptions
-                {
-                    Size = new Size(rectangle.Width, rectangle.Height),
-                    Mode = ResizeMode.BoxPad
-                };
-
-                // Get the padded bounds and resize the image.
-                Rectangle bounds = ResizeHelper.CalculateTargetLocationAndBounds(source, options);
-           //     this.firstPass = new Image(rectangle.Width, rectangle.Height);
-                target.SetPixels(rectangle.Width, rectangle.Height, new float[rectangle.Width * rectangle.Height * 4]);
-              //  new ResizeProcessor(new NearestNeighborResampler()).Apply(this.firstPass, source, rectangle.Width, rectangle.Height, bounds, sourceRectangle);
-            }
-            else
-            {
-                // Just clone the pixels across.
-             //   this.firstPass = new Image(source.Width, source.Height);
-             //   this.firstPass.ClonePixels(source.Width, source.Height, source.Pixels);
+                Point centre = new Point(0,0);
+                Matrix3x2 skew = Point.CreateSkew(centre, -this.angleX, -angleY);
+                Rectangle rect = ImageMaths.GetBoundingRectangle(source.Bounds, skew);
+                target.SetPixels(rect.Width, rect.Height, new float[rect.Width*rect.Height*4]);
             }
         }
 
@@ -132,11 +114,9 @@ namespace ImageProcessorCore
             int height = target.Height;
             int startX = 0;
             int endX = target.Width;
-            Point centre = Rectangle.Center(source.Bounds);
+            Point centre;
+            centre = new Point(0,0);
             Matrix3x2 skew = Point.CreateSkew(centre, -this.angleX, -this.angleY);
-
-            // Since we are not working in parallel we use full height and width 
-            // of the first pass image.
             Parallel.For(
                 0,
                 height,
@@ -144,14 +124,15 @@ namespace ImageProcessorCore
                 {
                     for (int x = startX; x < endX; x++)
                     {
-                        // Skew at the centre point
                         Point skewed = Point.Skew(new Point(x, y), skew);
                         if (source.Bounds.Contains(skewed.X, skewed.Y))
                         {
                             target[x, y] = source[skewed.X, skewed.Y];
                         }
+
                         else
                         {
+                            // just for debugging.
                             Color c= source[Math.Abs(skewed.X%(source.Width-1)), Math.Abs(skewed.Y % (source.Height - 1))];
                             c.B = 0;
                             c.G = 0;
@@ -159,16 +140,9 @@ namespace ImageProcessorCore
                         }
                     
                     }
-
                     this.OnRowProcessed();
                 });
         }
 
-        /// <inheritdoc/>
-        protected override void AfterApply(ImageBase source, ImageBase target, Rectangle targetRectangle, Rectangle sourceRectangle)
-        {
-            // Cleanup.
-           // this.firstPass.Dispose();
-        }
     }
 }

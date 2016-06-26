@@ -148,8 +148,8 @@ namespace ImageProcessorCore
             Vector2 rightBottom = Vector2.Transform(new Vector2(rectangle.Right, rectangle.Bottom), matrix);
 
             Vector2[] allCorners = { leftTop, rightTop, leftBottom, rightBottom };
-            float extentX = allCorners.Select(v => v.X).Max() - allCorners.Select(v => v.X).Min();
-            float extentY = allCorners.Select(v => v.Y).Max() - allCorners.Select(v => v.Y).Min();
+            float extentX = allCorners.Select(v => v.X).Max()- allCorners.Select(v => v.X).Min();
+            float extentY = allCorners.Select(v => v.Y).Max()- allCorners.Select(v => v.Y).Min();
             return new Rectangle(0, 0, (int)extentX, (int)extentY);
         }
 

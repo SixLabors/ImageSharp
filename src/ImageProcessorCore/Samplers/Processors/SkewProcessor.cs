@@ -16,6 +16,11 @@ namespace ImageProcessorCore
     public class SkewProcessor : ImageSampler
     {
         /// <summary>
+        /// The image used for storing the first pass pixels.
+        /// </summary>
+     //   private Image firstPass;
+
+        /// <summary>
         /// The angle of rotation along the x-axis.
         /// </summary>
         private float angleX;
@@ -40,6 +45,16 @@ namespace ImageProcessorCore
 
             set
             {
+                if (value > 360)
+                {
+                    value -= 360;
+                }
+
+                if (value < 0)
+                {
+                    value += 360;
+                }
+
                 this.angleX = value;
             }
         }
@@ -56,6 +71,16 @@ namespace ImageProcessorCore
 
             set
             {
+                if (value > 360)
+                {
+                    value -= 360;
+                }
+
+                if (value < 0)
+                {
+                    value += 360;
+                }
+
                 this.angleY = value;
             }
         }
@@ -89,57 +114,61 @@ namespace ImageProcessorCore
 
                 // Get the padded bounds and resize the image.
                 Rectangle bounds = ResizeHelper.CalculateTargetLocationAndBounds(source, options);
+           //     this.firstPass = new Image(rectangle.Width, rectangle.Height);
                 target.SetPixels(rectangle.Width, rectangle.Height, new float[rectangle.Width * rectangle.Height * 4]);
+              //  new ResizeProcessor(new NearestNeighborResampler()).Apply(this.firstPass, source, rectangle.Width, rectangle.Height, bounds, sourceRectangle);
+            }
+            else
+            {
+                // Just clone the pixels across.
+             //   this.firstPass = new Image(source.Width, source.Height);
+             //   this.firstPass.ClonePixels(source.Width, source.Height, source.Pixels);
             }
         }
 
         /// <inheritdoc/>
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-            int skewMaxX = target.Width - source.Width;
-            int skewMaxY = target.Height - source.Height;
+            int height = target.Height;
+            int startX = 0;
+            int endX = target.Width;
+            Point centre = Rectangle.Center(source.Bounds);
+            Matrix3x2 skew = Point.CreateSkew(centre, -this.angleX, -this.angleY);
 
-            bool revX = ImageMaths.DegreesToRadians(angleX) < 0;
-            bool revY = ImageMaths.DegreesToRadians(angleY) < 0;
+            // Since we are not working in parallel we use full height and width 
+            // of the first pass image.
             Parallel.For(
-              0,
-              source.Height,
-              sy =>
-              {
-                  int deltaX;
-                  if (revX)
-                  {
-                      deltaX = ((skewMaxX * (-sy + (source.Height - 1))) / (source.Height - 1));
-                  }
-                  else
-                  {
-                      deltaX = (((skewMaxX * sy)) / (source.Height - 1));
-                  }
+                0,
+                height,
+                y =>
+                {
+                    for (int x = startX; x < endX; x++)
+                    {
+                        // Skew at the centre point
+                        Point skewed = Point.Skew(new Point(x, y), skew);
+                        if (source.Bounds.Contains(skewed.X, skewed.Y))
+                        {
+                            target[x, y] = source[skewed.X, skewed.Y];
+                        }
+                        else
+                        {
+                            Color c= source[Math.Abs(skewed.X%(source.Width-1)), Math.Abs(skewed.Y % (source.Height - 1))];
+                            c.B = 0;
+                            c.G = 0;
+                            target[x, y]=c;
+                        }
+                    
+                    }
 
-                  int off = (skewMaxY*skewMaxX)/(source.Width - skewMaxX - 1);
-                  for (int sx = 0; sx < source.Width; sx++)
-                  {
-                      int deltaY;
-                      if (revY)
-                      {
-                          deltaY = ((((-skewMaxY*(sx + deltaX)))/(source.Width-skewMaxX - 1)))+skewMaxY+off;
-                        
-                      }
-                      else
-                      {
-                          deltaY = ((skewMaxY * sx) / (source.Width - 1));
-                      }
-                      target[deltaX + sx, Math.Abs(sy + deltaY)%(target.Height-1)] = source[sx, sy];
-                  }
-                  this.OnRowProcessed();
-              });
+                    this.OnRowProcessed();
+                });
         }
-
 
         /// <inheritdoc/>
         protected override void AfterApply(ImageBase source, ImageBase target, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
             // Cleanup.
+           // this.firstPass.Dispose();
         }
     }
 }

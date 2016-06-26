@@ -500,7 +500,7 @@
                     using (Image image = new Image(stream))
                     using (FileStream output = File.OpenWrite($"TestOutput/Skew/{filename}"))
                     {
-                        image.Skew(50, -60, this.ProgressUpdate)
+                        image.Skew(45, 0, this.ProgressUpdate)
                              .Save(output);
                     }
 

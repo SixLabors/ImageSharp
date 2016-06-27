@@ -46,15 +46,6 @@ namespace ImageProcessorCore
 
             set
             {
-                if (value > 360)
-                {
-                    value -= 360;
-                }
-
-                if (value < 0)
-                {
-                    value += 360;
-                }
 
                 this.angleX = value;
             }
@@ -72,15 +63,7 @@ namespace ImageProcessorCore
 
             set
             {
-                if (value > 360)
-                {
-                    value -= 360;
-                }
 
-                if (value < 0)
-                {
-                    value += 360;
-                }
 
                 this.angleY = value;
             }
@@ -101,10 +84,12 @@ namespace ImageProcessorCore
         {
             if (this.Expand)
             {
-                Point centre = new Point(0,0);
+                Point centre = new Point(0, 0);
                 Matrix3x2 skew = Point.CreateSkew(centre, -this.angleX, -angleY);
-                Rectangle rect = ImageMaths.GetBoundingRectangle(source.Bounds, skew);
-                target.SetPixels(rect.Width, rect.Height, new float[rect.Width*rect.Height*4]);
+                Matrix3x2 invSkew;
+                Matrix3x2.Invert(skew, out invSkew);
+                Rectangle rect = ImageMaths.GetBoundingRectangle(source.Bounds, invSkew);
+                target.SetPixels(rect.Width, rect.Height, new float[rect.Width * rect.Height * 4]);
             }
         }
 
@@ -114,9 +99,23 @@ namespace ImageProcessorCore
             int height = target.Height;
             int startX = 0;
             int endX = target.Width;
-            Point centre;
-            centre = new Point(0,0);
-            Matrix3x2 skew = Point.CreateSkew(centre, -this.angleX, -this.angleY);
+            Point centre = new Point(0, 0);
+
+            Matrix3x2 invSkew = new Matrix3x2();
+            var skew = Point.CreateSkew(centre, -this.angleX, -this.angleY);
+            Matrix3x2.Invert(skew, out invSkew);
+
+            Vector2 rightTop = Vector2.Transform(new Vector2(source.Width, 0), invSkew);
+            Vector2 leftBottom = Vector2.Transform(new Vector2(0, source.Height), invSkew);
+        
+
+            if (angleX < 0 && AngleY > 0)
+                skew = Point.CreateSkew(new Point((int)-leftBottom.X, (int)leftBottom.Y), -this.angleX, -this.angleY);
+            if (angleX > 0 && AngleY < 0)
+                skew = Point.CreateSkew(new Point((int)rightTop.X, (int)-rightTop.Y), -this.angleX, -this.angleY);
+            if (angleX < 0 && AngleY < 0)
+                skew = Point.CreateSkew(new Point(target.Width-1, target.Height-1), -this.angleX, -this.angleY);
+
             Parallel.For(
                 0,
                 height,
@@ -129,16 +128,6 @@ namespace ImageProcessorCore
                         {
                             target[x, y] = source[skewed.X, skewed.Y];
                         }
-
-                        else
-                        {
-                            // just for debugging.
-                            Color c= source[Math.Abs(skewed.X%(source.Width-1)), Math.Abs(skewed.Y % (source.Height - 1))];
-                            c.B = 0;
-                            c.G = 0;
-                            target[x, y]=c;
-                        }
-                    
                     }
                     this.OnRowProcessed();
                 });

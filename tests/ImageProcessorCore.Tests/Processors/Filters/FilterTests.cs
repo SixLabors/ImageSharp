@@ -1,4 +1,8 @@
-﻿
+﻿// <copyright file="FilterTests.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
 namespace ImageProcessorCore.Tests
 {
     using System.Diagnostics;
@@ -7,7 +11,6 @@ namespace ImageProcessorCore.Tests
     using Processors;
 
     using Xunit;
-
     public class FilterTests : FileTestBase
     {
         public static readonly TheoryData<string, IImageProcessor> Filters = new TheoryData<string, IImageProcessor>
@@ -79,8 +82,6 @@ namespace ImageProcessorCore.Tests
                         image.Process(processor).Save(output);
                         processor.OnProgress -= this.ProgressUpdate;
                     }
-
-                    Trace.WriteLine($"{ name }: { watch.ElapsedMilliseconds}ms");
                 }
             }
         }

@@ -1,6 +1,10 @@
-﻿namespace ImageProcessorCore.Tests
+﻿// <copyright file="SamplerTests.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
+namespace ImageProcessorCore.Tests
 {
-    using System.Diagnostics;
     using System.IO;
 
     using Processors;
@@ -57,7 +61,6 @@
             {
                 using (FileStream stream = File.OpenRead(file))
                 {
-                    Stopwatch watch = Stopwatch.StartNew();
                     Image image = new Image(stream);
                     string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
 
@@ -68,8 +71,6 @@
                         image.Save(output);
                         processor.OnProgress -= this.ProgressUpdate;
                     }
-
-                    Trace.WriteLine($"{ name }: { watch.ElapsedMilliseconds}ms");
                 }
             }
         }
@@ -86,8 +87,6 @@
             {
                 using (FileStream stream = File.OpenRead(file))
                 {
-                    Stopwatch watch = Stopwatch.StartNew();
-
                     string filename = Path.GetFileName(file);
 
                     Image image = new Image(stream);
@@ -96,8 +95,6 @@
                         image.Pad(image.Width + 50, image.Height + 50, this.ProgressUpdate)
                              .Save(output);
                     }
-
-                    Trace.WriteLine($"{watch.ElapsedMilliseconds}ms");
                 }
             }
         }
@@ -115,7 +112,6 @@
             {
                 using (FileStream stream = File.OpenRead(file))
                 {
-                    Stopwatch watch = Stopwatch.StartNew();
                     string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
 
                     Image image = new Image(stream);
@@ -124,8 +120,6 @@
                         image.Resize(image.Width / 2, image.Height / 2, sampler, false, this.ProgressUpdate)
                              .Save(output);
                     }
-
-                    Trace.WriteLine($"{name}: {watch.ElapsedMilliseconds}ms");
                 }
             }
         }
@@ -144,7 +138,6 @@
             {
                 using (FileStream stream = File.OpenRead(file))
                 {
-                    Stopwatch watch = Stopwatch.StartNew();
                     string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
 
                     Image image = new Image(stream);
@@ -153,8 +146,6 @@
                         image.Resize(image.Width / 3, 0, new TriangleResampler(), false, this.ProgressUpdate)
                              .Save(output);
                     }
-
-                    Trace.WriteLine($"{name}: {watch.ElapsedMilliseconds}ms");
                 }
             }
         }
@@ -173,7 +164,6 @@
             {
                 using (FileStream stream = File.OpenRead(file))
                 {
-                    Stopwatch watch = Stopwatch.StartNew();
                     string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
 
                     Image image = new Image(stream);
@@ -182,8 +172,6 @@
                         image.Resize(0, image.Height / 3, new TriangleResampler(), false, this.ProgressUpdate)
                              .Save(output);
                     }
-
-                    Trace.WriteLine($"{name}: {watch.ElapsedMilliseconds}ms");
                 }
             }
         }
@@ -200,7 +188,6 @@
             {
                 using (FileStream stream = File.OpenRead(file))
                 {
-                    Stopwatch watch = Stopwatch.StartNew();
                     string filename = Path.GetFileName(file);
 
                     Image image = new Image(stream);
@@ -214,8 +201,6 @@
                         image.Resize(options, this.ProgressUpdate)
                              .Save(output);
                     }
-
-                    Trace.WriteLine($"{filename}: {watch.ElapsedMilliseconds}ms");
                 }
             }
         }
@@ -232,7 +217,6 @@
             {
                 using (FileStream stream = File.OpenRead(file))
                 {
-                    Stopwatch watch = Stopwatch.StartNew();
                     string filename = Path.GetFileName(file);
 
                     Image image = new Image(stream);
@@ -247,8 +231,6 @@
                         image.Resize(options, this.ProgressUpdate)
                              .Save(output);
                     }
-
-                    Trace.WriteLine($"{filename}: {watch.ElapsedMilliseconds}ms");
                 }
             }
         }
@@ -265,7 +247,6 @@
             {
                 using (FileStream stream = File.OpenRead(file))
                 {
-                    Stopwatch watch = Stopwatch.StartNew();
                     string filename = Path.GetFileName(file);
 
                     Image image = new Image(stream);
@@ -280,8 +261,6 @@
                         image.Resize(options, this.ProgressUpdate)
                              .Save(output);
                     }
-
-                    Trace.WriteLine($"{filename}: {watch.ElapsedMilliseconds}ms");
                 }
             }
         }
@@ -298,7 +277,6 @@
             {
                 using (FileStream stream = File.OpenRead(file))
                 {
-                    Stopwatch watch = Stopwatch.StartNew();
                     string filename = Path.GetFileName(file);
 
                     Image image = new Image(stream);
@@ -314,8 +292,6 @@
                         image.Resize(options, this.ProgressUpdate)
                              .Save(output);
                     }
-
-                    Trace.WriteLine($"{filename}: {watch.ElapsedMilliseconds}ms");
                 }
             }
         }
@@ -332,7 +308,6 @@
             {
                 using (FileStream stream = File.OpenRead(file))
                 {
-                    Stopwatch watch = Stopwatch.StartNew();
                     string filename = Path.GetFileName(file);
 
                     Image image = new Image(stream);
@@ -347,8 +322,6 @@
                         image.Resize(options, this.ProgressUpdate)
                              .Save(output);
                     }
-
-                    Trace.WriteLine($"{filename}: {watch.ElapsedMilliseconds}ms");
                 }
             }
         }
@@ -365,7 +338,6 @@
             {
                 using (FileStream stream = File.OpenRead(file))
                 {
-                    Stopwatch watch = Stopwatch.StartNew();
                     string filename = Path.GetFileName(file);
 
                     Image image = new Image(stream);
@@ -380,8 +352,6 @@
                         image.Resize(options, this.ProgressUpdate)
                              .Save(output);
                     }
-
-                    Trace.WriteLine($"{filename}: {watch.ElapsedMilliseconds}ms");
                 }
             }
         }
@@ -398,7 +368,6 @@
             {
                 using (FileStream stream = File.OpenRead(file))
                 {
-                    Stopwatch watch = Stopwatch.StartNew();
                     string filename = Path.GetFileName(file);
 
                     Image image = new Image(stream);
@@ -414,8 +383,6 @@
                         image.Resize(options, this.ProgressUpdate)
                              .Save(output);
                     }
-
-                    Trace.WriteLine($"{filename}: {watch.ElapsedMilliseconds}ms");
                 }
             }
         }
@@ -433,7 +400,6 @@
             {
                 using (FileStream stream = File.OpenRead(file))
                 {
-                    Stopwatch watch = Stopwatch.StartNew();
                     string filename = Path.GetFileNameWithoutExtension(file) + "-" + rotateType + flipType + Path.GetExtension(file);
 
                     Image image = new Image(stream);
@@ -442,8 +408,6 @@
                         image.RotateFlip(rotateType, flipType, this.ProgressUpdate)
                              .Save(output);
                     }
-
-                    Trace.WriteLine($"{rotateType + "-" + flipType}: {watch.ElapsedMilliseconds}ms");
                 }
             }
         }
@@ -460,8 +424,6 @@
             {
                 using (FileStream stream = File.OpenRead(file))
                 {
-                    Stopwatch watch = Stopwatch.StartNew();
-
                     string filename = Path.GetFileName(file);
 
                     Image image = new Image(stream);
@@ -470,8 +432,6 @@
                         image.Rotate(63, this.ProgressUpdate)
                              .Save(output);
                     }
-
-                    Trace.WriteLine($"{watch.ElapsedMilliseconds}ms");
                 }
             }
         }
@@ -489,8 +449,6 @@
             {
                 using (FileStream stream = File.OpenRead(file))
                 {
-                    Stopwatch watch = Stopwatch.StartNew();
-
                     string filename = Path.GetFileName(file);
 
                     Image image = new Image(stream);
@@ -499,8 +457,6 @@
                         image.Skew(20, 10, this.ProgressUpdate)
                              .Save(output);
                     }
-
-                    Trace.WriteLine($"{watch.ElapsedMilliseconds}ms");
                 }
             }
         }

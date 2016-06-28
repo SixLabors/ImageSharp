@@ -28,7 +28,8 @@
         "dnx451"
       ],
       "frameworkAssemblies": {
-        "System.Drawing": "4.0.0.0"
+        "System.Drawing": "",
+        "System.Runtime": ""
       }
     }
   }

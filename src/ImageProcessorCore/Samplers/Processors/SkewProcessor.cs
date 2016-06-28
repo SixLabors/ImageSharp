@@ -13,75 +13,18 @@ namespace ImageProcessorCore.Processors
     /// </summary>
     public class SkewProcessor : ImageSampler
     {
-        /// <summary>
-        /// The image used for storing the first pass pixels.
-        /// </summary>
-        private Image firstPass;
-
-        /// <summary>
-        /// The angle of rotation along the x-axis.
-        /// </summary>
-        private float angleX;
-
-        /// <summary>
-        /// The angle of rotation along the y-axis.
-        /// </summary>
-        private float angleY;
-
         /// <inheritdoc/>
         public override int Parallelism { get; set; } = 1;
 
         /// <summary>
         /// Gets or sets the angle of rotation along the x-axis in degrees.
         /// </summary>
-        public float AngleX
-        {
-            get
-            {
-                return this.angleX;
-            }
-
-            set
-            {
-                if (value > 360)
-                {
-                    value -= 360;
-                }
-
-                if (value < 0)
-                {
-                    value += 360;
-                }
-
-                this.angleX = value;
-            }
-        }
+        public float AngleX { get; set; }
 
         /// <summary>
         /// Gets or sets the angle of rotation along the y-axis in degrees.
         /// </summary>
-        public float AngleY
-        {
-            get
-            {
-                return this.angleY;
-            }
-
-            set
-            {
-                if (value > 360)
-                {
-                    value -= 360;
-                }
-
-                if (value < 0)
-                {
-                    value += 360;
-                }
-
-                this.angleY = value;
-            }
-        }
+        public float AngleY { get; set; }
 
         /// <summary>
         /// Gets or sets the center point.
@@ -96,65 +39,64 @@ namespace ImageProcessorCore.Processors
         /// <inheritdoc/>
         protected override void OnApply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
-            // If we are expanding we need to pad the bounds of the source rectangle.
-            // We can use the resizer in nearest neighbor mode to do this fairly quickly.
             if (this.Expand)
             {
-                // First find out how big the target rectangle should be.
-                Point centre = this.Center == Point.Empty ? Rectangle.Center(sourceRectangle) : this.Center;
-                Matrix3x2 skew = Point.CreateSkew(centre, -this.angleX, -this.angleY);
-                Rectangle rectangle = ImageMaths.GetBoundingRectangle(sourceRectangle, skew);
-                ResizeOptions options = new ResizeOptions
-                {
-                    Size = new Size(rectangle.Width, rectangle.Height),
-                    Mode = ResizeMode.BoxPad
-                };
-
-                // Get the padded bounds and resize the image.
-                Rectangle bounds = ResizeHelper.CalculateTargetLocationAndBounds(source, options);
-                this.firstPass = new Image(rectangle.Width, rectangle.Height);
-                target.SetPixels(rectangle.Width, rectangle.Height, new float[rectangle.Width * rectangle.Height * 4]);
-                new ResizeProcessor(new NearestNeighborResampler()).Apply(this.firstPass, source, rectangle.Width, rectangle.Height, bounds, sourceRectangle);
-            }
-            else
-            {
-                // Just clone the pixels across.
-                this.firstPass = new Image(source.Width, source.Height);
-                this.firstPass.ClonePixels(source.Width, source.Height, source.Pixels);
+                Point centre = this.Center;
+                Matrix3x2 skew = Point.CreateSkew(centre, -this.AngleX, -this.AngleY);
+                Matrix3x2 invertedSkew;
+                Matrix3x2.Invert(skew, out invertedSkew);
+                Rectangle bounds = ImageMaths.GetBoundingRectangle(source.Bounds, invertedSkew);
+                target.SetPixels(bounds.Width, bounds.Height, new float[bounds.Width * bounds.Height * 4]);
             }
         }
 
         /// <inheritdoc/>
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-            int height = this.firstPass.Height;
+            int height = target.Height;
             int startX = 0;
-            int endX = this.firstPass.Width;
-            Point centre = this.Center == Point.Empty ? Rectangle.Center(this.firstPass.Bounds) : this.Center;
-            Matrix3x2 skew = Point.CreateSkew(centre, -this.angleX, -this.angleY);
+            int endX = target.Width;
+            Point centre = this.Center;
 
-            // Since we are not working in parallel we use full height and width 
-            // of the first pass image.
-            using (PixelAccessor firstPassPixels = this.firstPass.Lock())
+            Matrix3x2 invertedSkew;
+            Matrix3x2 skew = Point.CreateSkew(centre, -this.AngleX, -this.AngleY);
+            Matrix3x2.Invert(skew, out invertedSkew);
+            Vector2 rightTop = Vector2.Transform(new Vector2(source.Width, 0), invertedSkew);
+            Vector2 leftBottom = Vector2.Transform(new Vector2(0, source.Height), invertedSkew);
+
+            if (this.AngleX < 0 && this.AngleY > 0)
+            {
+                skew = Point.CreateSkew(new Point((int)-leftBottom.X, (int)leftBottom.Y), -this.AngleX, -this.AngleY);
+            }
+
+            if (this.AngleX > 0 && this.AngleY < 0)
+            {
+                skew = Point.CreateSkew(new Point((int)rightTop.X, (int)-rightTop.Y), -this.AngleX, -this.AngleY);
+            }
+
+            if (this.AngleX < 0 && this.AngleY < 0)
+            {
+                skew = Point.CreateSkew(new Point(target.Width - 1, target.Height - 1), -this.AngleX, -this.AngleY);
+            }
+
+            using (PixelAccessor sourcePixels = source.Lock())
             using (PixelAccessor targetPixels = target.Lock())
             {
                 Parallel.For(
                     0,
                     height,
                     y =>
+                    {
+                        for (int x = startX; x < endX; x++)
                         {
-                            for (int x = startX; x < endX; x++)
+                            Point skewed = Point.Skew(new Point(x, y), skew);
+                            if (source.Bounds.Contains(skewed.X, skewed.Y))
                             {
-                                // Skew at the centre point
-                                Point skewed = Point.Skew(new Point(x, y), skew);
-                                if (this.firstPass.Bounds.Contains(skewed.X, skewed.Y))
-                                {
-                                    targetPixels[x, y] = firstPassPixels[skewed.X, skewed.Y];
-                                }
+                                targetPixels[x, y] = sourcePixels[skewed.X, skewed.Y];
                             }
-
-                            this.OnRowProcessed();
-                        });
+                        }
+                        this.OnRowProcessed();
+                    });
             }
         }
     }

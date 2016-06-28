@@ -29,13 +29,9 @@ namespace ImageProcessorCore.Tests
             {
                 using (FileStream stream = File.OpenRead(file))
                 {
-                    Stopwatch watch = Stopwatch.StartNew();
-
                     Image image = new Image(stream);
                     string filename = "TestOutput/ToString/" + Path.GetFileNameWithoutExtension(file) + ".txt";
                     File.WriteAllText(filename, image.ToString());
-
-                    Trace.WriteLine($"{watch.ElapsedMilliseconds}ms");
                 }
             }
         }
@@ -52,8 +48,6 @@ namespace ImageProcessorCore.Tests
             {
                 using (FileStream stream = File.OpenRead(file))
                 {
-                    Stopwatch watch = Stopwatch.StartNew();
-
                     Image image = new Image(stream);
                     string encodeFilename = "TestOutput/Encode/" + Path.GetFileName(file);
 
@@ -61,8 +55,6 @@ namespace ImageProcessorCore.Tests
                     {
                         image.Save(output);
                     }
-
-                    Trace.WriteLine($"{file} : {watch.ElapsedMilliseconds}ms");
                 }
             }
         }

@@ -26,8 +26,6 @@ namespace ImageProcessorCore.Tests
             {
                 using (FileStream stream = File.OpenRead(file))
                 {
-                    Stopwatch watch = Stopwatch.StartNew();
-
                     Image image = new Image(stream);
                     string encodeFilename = "TestOutput/Encode/Bitmap/" + "24-" + Path.GetFileNameWithoutExtension(file) + ".bmp";
 
@@ -42,9 +40,6 @@ namespace ImageProcessorCore.Tests
                     {
                         image.Save(output, new BmpEncoder { BitsPerPixel = BmpBitsPerPixel.Pixel32 });
                     }
-
-
-                    Trace.WriteLine($"{file} : {watch.ElapsedMilliseconds}ms");
                 }
             }
         }

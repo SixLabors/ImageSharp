@@ -113,7 +113,7 @@ namespace ImageProcessorCore
                     throw new ArgumentOutOfRangeException(nameof(y), "Value cannot be less than zero or greater than the bitmap height.");
                 }
 #endif
-                return *((Color*)(this.pixelsBase + ((y * this.Width) + x) * 4));
+                return *((Color*)(this.pixelsBase + (((y * this.Width) + x) * 4)));
             }
 
             set

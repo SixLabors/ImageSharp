@@ -471,7 +471,7 @@
                     using (Image image = new Image(stream))
                     using (FileStream output = File.OpenWrite($"TestOutput/Rotate/{filename}"))
                     {
-                        image.Rotate(20, this.ProgressUpdate)
+                        image.Rotate(-170, this.ProgressUpdate)
                              .Save(output);
                     }
 
@@ -500,7 +500,7 @@
                     using (Image image = new Image(stream))
                     using (FileStream output = File.OpenWrite($"TestOutput/Skew/{filename}"))
                     {
-                        image.Skew(20, 10, this.ProgressUpdate)
+                        image.Skew(-20, -10, this.ProgressUpdate)
                              .Save(output);
                     }
 

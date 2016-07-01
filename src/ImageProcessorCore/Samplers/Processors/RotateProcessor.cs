@@ -41,10 +41,6 @@ namespace ImageProcessorCore
             }
         }
 
-        /// <summary>
-        /// Gets or sets the center point.
-        /// </summary>
-        public Point Center { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether to expand the canvas to fit the rotated image.
@@ -54,22 +50,12 @@ namespace ImageProcessorCore
         /// <inheritdoc/>
         protected override void OnApply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
-            // If we are expanding we need to pad the bounds of the source rectangle.
-            // We can use the resizer in nearest neighbor mode to do this fairly quickly.
             if (this.Expand)
             {
                 // First find out how big the target rectangle should be.
-                Point centre = this.Center == Point.Empty ? Rectangle.Center(sourceRectangle) : this.Center;
+                Point centre = Rectangle.Center(sourceRectangle);
                 Matrix3x2 rotation = Point.CreateRotation(centre, -this.angle);
                 Rectangle rectangle = ImageMaths.GetBoundingRectangle(sourceRectangle, rotation);
-                ResizeOptions options = new ResizeOptions
-                {
-                    Size = new Size(rectangle.Width, rectangle.Height),
-                    Mode = ResizeMode.BoxPad
-                };
-
-                // Get the padded bounds and resize the image.
-                Rectangle bounds = ResizeHelper.CalculateTargetLocationAndBounds(source, options);
                 target.SetPixels(rectangle.Width, rectangle.Height, new float[rectangle.Width * rectangle.Height * 4]);
             }
         }
@@ -78,14 +64,10 @@ namespace ImageProcessorCore
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
 
-            Point centre = Rectangle.Center(source.Bounds);
-            Matrix3x2 rotation = Point.CreateRotation(centre, -this.angle);
-
-             rotation = Point.CreateRotation(new Point(0,0), -this.angle);
-
-            Matrix3x2 tran =Matrix3x2.CreateTranslation(-target.Width/2, -target.Height/2);
+            Matrix3x2 rotation = Point.CreateRotation(new Point(0,0), -this.angle);
+            Matrix3x2 tran =Matrix3x2.CreateTranslation(-target.Width/2f, -target.Height/2f);
             rotation = tran* rotation;
-            Matrix3x2 tran2 = Matrix3x2.CreateTranslation(source.Width / 2, source.Height / 2);
+            Matrix3x2 tran2 = Matrix3x2.CreateTranslation(source.Width / 2f, source.Height / 2f);
             rotation = rotation*tran2;
 
 

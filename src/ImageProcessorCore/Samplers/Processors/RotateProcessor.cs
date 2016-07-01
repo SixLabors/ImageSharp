@@ -16,7 +16,6 @@ namespace ImageProcessorCore
         /// <summary>
         /// The image used for storing the first pass pixels.
         /// </summary>
-        private Image firstPass;
 
         /// <summary>
         /// The angle of rotation in degrees.
@@ -38,16 +37,6 @@ namespace ImageProcessorCore
 
             set
             {
-                if (value > 360)
-                {
-                    value -= 360;
-                }
-
-                if (value < 0)
-                {
-                    value += 360;
-                }
-
                 this.angle = value;
             }
         }
@@ -81,41 +70,37 @@ namespace ImageProcessorCore
 
                 // Get the padded bounds and resize the image.
                 Rectangle bounds = ResizeHelper.CalculateTargetLocationAndBounds(source, options);
-                this.firstPass = new Image(rectangle.Width, rectangle.Height);
                 target.SetPixels(rectangle.Width, rectangle.Height, new float[rectangle.Width * rectangle.Height * 4]);
-                new ResizeProcessor(new NearestNeighborResampler()).Apply(this.firstPass, source, rectangle.Width, rectangle.Height, bounds, sourceRectangle);
-            }
-            else
-            {
-                // Just clone the pixels across.
-                this.firstPass = new Image(source.Width, source.Height);
-                this.firstPass.ClonePixels(source.Width, source.Height, source.Pixels);
             }
         }
 
         /// <inheritdoc/>
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-            int height = this.firstPass.Height;
-            int startX = 0;
-            int endX = this.firstPass.Width;
-            Point centre = this.Center == Point.Empty ? Rectangle.Center(this.firstPass.Bounds) : this.Center;
+
+            Point centre = Rectangle.Center(source.Bounds);
             Matrix3x2 rotation = Point.CreateRotation(centre, -this.angle);
 
-            // Since we are not working in parallel we use full height and width 
-            // of the first pass image.
+             rotation = Point.CreateRotation(new Point(0,0), -this.angle);
+
+            Matrix3x2 tran =Matrix3x2.CreateTranslation(-target.Width/2, -target.Height/2);
+            rotation = tran* rotation;
+            Matrix3x2 tran2 = Matrix3x2.CreateTranslation(source.Width / 2, source.Height / 2);
+            rotation = rotation*tran2;
+
+
             Parallel.For(
                 0,
-                height,
+                target.Height,
                 y =>
                 {
-                    for (int x = startX; x < endX; x++)
+                    for (int x = 0; x < target.Width; x++)
                     {
                         // Rotate at the centre point
                         Point rotated = Point.Rotate(new Point(x, y), rotation);
-                        if (this.firstPass.Bounds.Contains(rotated.X, rotated.Y))
+                        if (source.Bounds.Contains(rotated.X, rotated.Y))
                         {
-                            target[x, y] = this.firstPass[rotated.X, rotated.Y];
+                            target[x, y] = source[rotated.X, rotated.Y];
                         }
                     }
 
@@ -126,8 +111,7 @@ namespace ImageProcessorCore
         /// <inheritdoc/>
         protected override void AfterApply(ImageBase source, ImageBase target, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
-            // Cleanup.
-            this.firstPass.Dispose();
+       
         }
     }
 }

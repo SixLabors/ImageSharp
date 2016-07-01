@@ -13,12 +13,10 @@ namespace ImageProcessorCore
     /// </summary>
     public class RotateProcessor : ImageSampler
     {
-        /// <summary>
-        /// The image used for storing the first pass pixels.
-        /// </summary>
+        private Matrix3x2 processMatrix;
 
         /// <summary>
-        /// The angle of rotation in degrees.
+        /// The angle of processMatrix in degrees.
         /// </summary>
         private float angle;
 
@@ -26,7 +24,7 @@ namespace ImageProcessorCore
         public override int Parallelism { get; set; } = 1;
 
         /// <summary>
-        /// Gets or sets the angle of rotation in degrees.
+        /// Gets or sets the angle of processMatrix in degrees.
         /// </summary>
         public float Angle
         {
@@ -40,8 +38,6 @@ namespace ImageProcessorCore
                 this.angle = value;
             }
         }
-
-
         /// <summary>
         /// Gets or sets a value indicating whether to expand the canvas to fit the rotated image.
         /// </summary>
@@ -50,50 +46,26 @@ namespace ImageProcessorCore
         /// <inheritdoc/>
         protected override void OnApply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
+            processMatrix = Point.CreateRotation(new Point(0, 0), -this.angle);
             if (this.Expand)
             {
-                // First find out how big the target rectangle should be.
-                Point centre = Rectangle.Center(sourceRectangle);
-                Matrix3x2 rotation = Point.CreateRotation(centre, -this.angle);
-                Rectangle rectangle = ImageMaths.GetBoundingRectangle(sourceRectangle, rotation);
-                target.SetPixels(rectangle.Width, rectangle.Height, new float[rectangle.Width * rectangle.Height * 4]);
+                processMatrix = Point.CreateRotation(new Point(0,0), -this.angle);
+                ProcessMatrixHelper.CreateNewTarget(target, sourceRectangle,processMatrix);
             }
         }
 
         /// <inheritdoc/>
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-
-            Matrix3x2 rotation = Point.CreateRotation(new Point(0, 0), -this.angle);
-            Matrix3x2 tran = Matrix3x2.CreateTranslation(-target.Width / 2f, -target.Height / 2f);
-            rotation = tran * rotation;
-            Matrix3x2 tran2 = Matrix3x2.CreateTranslation(source.Width / 2f, source.Height / 2f);
-            rotation = rotation * tran2;
-
-
+            var apply = ProcessMatrixHelper.Matrix3X2(target, source,processMatrix);
             Parallel.For(
                 0,
                 target.Height,
                 y =>
                 {
-                    for (int x = 0; x < target.Width; x++)
-                    {
-                        // Rotate at the centre point
-                        Point rotated = Point.Rotate(new Point(x, y), rotation);
-                        if (source.Bounds.Contains(rotated.X, rotated.Y))
-                        {
-                            target[x, y] = source[rotated.X, rotated.Y];
-                        }
-                    }
-
-                    this.OnRowProcessed();
+                    ProcessMatrixHelper.DrawHorizontalData(target, source, y, apply);
+                    OnRowProcessed();
                 });
-        }
-
-        /// <inheritdoc/>
-        protected override void AfterApply(ImageBase source, ImageBase target, Rectangle targetRectangle, Rectangle sourceRectangle)
-        {
-
         }
     }
 }

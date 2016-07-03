@@ -1,7 +1,7 @@
 ﻿// <copyright file="Rotate.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>-------------------------------------------------------------------------------------------------------------------
+// </copyright>
 
 namespace ImageProcessorCore
 {
@@ -21,21 +21,20 @@ namespace ImageProcessorCore
         /// <returns>The <see cref="Image"/></returns>
         public static Image Rotate(this Image source, float degrees, ProgressEventHandler progressHandler = null)
         {
-            return Rotate(source, degrees, Point.Empty, true, progressHandler);
+            return Rotate(source, degrees, true, progressHandler);
         }
 
         /// <summary>
-        /// Rotates an image by the given angle in degrees around the given center point.
+        /// Rotates an image by the given angle in degrees.
         /// </summary>
         /// <param name="source">The image to rotate.</param>
         /// <param name="degrees">The angle in degrees to perform the rotation.</param>
-        /// <param name="center">The center point at which to rotate the image.</param>
         /// <param name="expand">Whether to expand the image to fit the rotated result.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/></returns>
-        public static Image Rotate(this Image source, float degrees, Point center, bool expand, ProgressEventHandler progressHandler = null)
+        public static Image Rotate(this Image source, float degrees, bool expand, ProgressEventHandler progressHandler = null)
         {
-            RotateProcessor processor = new RotateProcessor { Angle = degrees, Center = center, Expand = expand };
+            RotateProcessor processor = new RotateProcessor { Angle = degrees, Expand = expand };
             processor.OnProgress += progressHandler;
 
             try

@@ -16,7 +16,7 @@ namespace ImageProcessorCore
         /// <summary>
         /// The position of the first pixel in the bitmap.
         /// </summary>
-        private float* pixelsBase;
+        private Color* pixelsBase;
 
         /// <summary>
         /// Provides a way to access the pixels from unmanaged memory.
@@ -48,27 +48,12 @@ namespace ImageProcessorCore
             Guard.MustBeGreaterThan(image.Width, 0, "image width");
             Guard.MustBeGreaterThan(image.Height, 0, "image height");
 
-            int size = image.Pixels.Length;
             this.Width = image.Width;
             this.Height = image.Height;
 
             // Assign the pointer.
-            // If buffer is allocated on Large Object Heap i.e > 85Kb, then we are going to pin it instead of making a copy.
-            if (size > 87040)
-            {
-                this.pixelsHandle = GCHandle.Alloc(image.Pixels, GCHandleType.Pinned);
-                this.pixelsBase = (float*)this.pixelsHandle.AddrOfPinnedObject().ToPointer();
-            }
-            else
-            {
-                fixed (float* pbuffer = image.Pixels)
-                {
-                    // TODO: This isn't actually copying. 
-                    // We need to allocate and copy the pixels into unmanaged memory.
-                    // Will need to research how to do this.
-                    this.pixelsBase = pbuffer;
-                }
-            }
+            this.pixelsHandle = GCHandle.Alloc(image.Pixels, GCHandleType.Pinned);
+            this.pixelsBase = (Color*)this.pixelsHandle.AddrOfPinnedObject().ToPointer();
         }
 
         /// <summary>
@@ -116,7 +101,7 @@ namespace ImageProcessorCore
                     throw new ArgumentOutOfRangeException(nameof(y), "Value cannot be less than zero or greater than the bitmap height.");
                 }
 #endif
-                return *((Color*)(this.pixelsBase + (((y * this.Width) + x) * 4)));
+                return *(this.pixelsBase + ((y * this.Width) + x));
             }
 
             set
@@ -132,7 +117,7 @@ namespace ImageProcessorCore
                     throw new ArgumentOutOfRangeException(nameof(y), "Value cannot be less than zero or greater than the bitmap height.");
                 }
 #endif
-                *(Color*)(this.pixelsBase + (((y * this.Width) + x) * 4)) = value;
+                *(this.pixelsBase + ((y * this.Width) + x)) = value;
             }
         }
 

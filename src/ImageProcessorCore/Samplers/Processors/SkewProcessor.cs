@@ -18,9 +18,6 @@ namespace ImageProcessorCore.Processors
         /// </summary>
         private Matrix3x2 processMatrix;
 
-        /// <inheritdoc/>
-        public override int Parallelism { get; set; } = 1;
-
         /// <summary>
         /// Gets or sets the angle of rotation along the x-axis in degrees.
         /// </summary>

@@ -9,7 +9,7 @@ namespace ImageProcessorCore.Processors
     /// Applies sampling methods to an image. 
     /// All processors requiring resampling or resizing should inherit from this.
     /// </summary>
-    public abstract class ImageSampler : ParallelImageProcessor, IImageSampler
+    public abstract class ImageSampler : ImageProcessor, IImageSampler
     {
         /// <inheritdoc/>
         public virtual bool Compand { get; set; } = false;

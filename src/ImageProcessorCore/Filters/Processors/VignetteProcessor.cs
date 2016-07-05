@@ -12,7 +12,7 @@ namespace ImageProcessorCore.Processors
     /// <summary>
     /// Creates a vignette effect on the image
     /// </summary>
-    public class VignetteProcessor : ParallelImageProcessor
+    public class VignetteProcessor : ImageProcessor
     {
         /// <summary>
         /// Gets or sets the vignette color to apply.

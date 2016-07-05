@@ -12,7 +12,7 @@ namespace ImageProcessorCore.Processors
     /// <summary>
     /// An <see cref="IImageProcessor"/> to invert the colors of an <see cref="Image"/>.
     /// </summary>
-    public class PixelateProcessor : ParallelImageProcessor
+    public class PixelateProcessor : ImageProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="PixelateProcessor"/> class.
@@ -26,9 +26,6 @@ namespace ImageProcessorCore.Processors
             Guard.MustBeGreaterThan(size, 0, nameof(size));
             this.Value = size;
         }
-
-        /// <inheritdoc/>
-        public override int Parallelism { get; set; } = 1;
 
         /// <summary>
         /// Gets or the pixel size.
@@ -59,7 +56,6 @@ namespace ImageProcessorCore.Processors
                             {
                                 for (int x = startX; x < endX; x += size)
                                 {
-
                                     int offsetX = offset;
                                     int offsetY = offset;
 
@@ -88,6 +84,7 @@ namespace ImageProcessorCore.Processors
                                         }
                                     }
                                 }
+
                                 this.OnRowProcessed();
                             }
                         });

@@ -12,7 +12,7 @@ namespace ImageProcessorCore.Processors
     /// <summary>
     /// An <see cref="IImageProcessor"/> to change the Alpha of an <see cref="Image"/>.
     /// </summary>
-    public class AlphaProcessor : ParallelImageProcessor
+    public class AlphaProcessor : ImageProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="AlphaProcessor"/> class.

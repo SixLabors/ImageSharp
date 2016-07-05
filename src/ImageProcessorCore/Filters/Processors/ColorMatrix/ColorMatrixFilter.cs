@@ -11,7 +11,7 @@ namespace ImageProcessorCore.Processors
     /// <summary>
     /// The color matrix filter.
     /// </summary>
-    public abstract class ColorMatrixFilter : ParallelImageProcessor, IColorMatrixFilter
+    public abstract class ColorMatrixFilter : ImageProcessor, IColorMatrixFilter
     {
         /// <inheritdoc/>
         public abstract Matrix4x4 Matrix { get; }
@@ -22,8 +22,6 @@ namespace ImageProcessorCore.Processors
         /// <inheritdoc/>
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-            int sourceY = sourceRectangle.Y;
-            int sourceBottom = sourceRectangle.Bottom;
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
             Matrix4x4 matrix = this.Matrix;
@@ -36,15 +34,12 @@ namespace ImageProcessorCore.Processors
                 endY,
                 y =>
                     {
-                        if (y >= sourceY && y < sourceBottom)
+                        for (int x = startX; x < endX; x++)
                         {
-                            for (int x = startX; x < endX; x++)
-                            {
-                                targetPixels[x, y] = this.ApplyMatrix(sourcePixels[x, y], matrix);
-                            }
-
-                            this.OnRowProcessed();
+                            targetPixels[x, y] = this.ApplyMatrix(sourcePixels[x, y], matrix);
                         }
+
+                        this.OnRowProcessed();
                     });
             }
         }

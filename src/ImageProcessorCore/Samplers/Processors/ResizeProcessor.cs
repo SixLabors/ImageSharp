@@ -31,9 +31,6 @@ namespace ImageProcessorCore.Processors
             this.Sampler = sampler;
         }
 
-        /// <inheritdoc/>
-        public override int Parallelism { get; set; } = 1;
-
         /// <summary>
         /// Gets the sampler to perform the resize operation.
         /// </summary>
@@ -62,13 +59,7 @@ namespace ImageProcessorCore.Processors
         }
 
         /// <inheritdoc/>
-        protected override void Apply(
-            ImageBase target,
-            ImageBase source,
-            Rectangle targetRectangle,
-            Rectangle sourceRectangle,
-            int startY,
-            int endY)
+        protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             // Jump out, we'll deal with that later.
             if (source.Bounds == target.Bounds && sourceRectangle == targetRectangle)

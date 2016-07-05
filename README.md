@@ -34,11 +34,8 @@ We already have a [MyGet package repository](https://www.myget.org/gallery/image
 
 If you prefer, you can compile ImageProcessorCore yourself (please do and help!), you'll need:
 
-- Visual Studio 2015 (or above)
-- The [.NET Core SDK Installer
-(Preview 1)](https://www.microsoft.com/net/download) - Click `.NET Core SDK Installer
-(Preview 1)`
-- The [.NET Core Tooling Preview 1 for Visual Studio 2015](https://dev.windows.com/en-us/downloads) - Click `.NET Core Tooling Preview 1 for Visual Studio 2015`.
+- [Visual Studio 2015 with Update 3 (or above)](https://www.visualstudio.com/news/releasenotes/vs2015-update3-vs)
+- The [.NET Core 1.0 SDK Installer](https://www.microsoft.com/net/core#windows) - Non VSCode link.
 
 To clone it locally click the "Clone in Windows" button above or run the following git commands.
 

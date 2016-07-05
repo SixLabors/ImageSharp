@@ -63,6 +63,9 @@ namespace ImageProcessorCore
             {
                 fixed (float* pbuffer = image.Pixels)
                 {
+                    // TODO: This isn't actually copying. 
+                    // We need to allocate and copy the pixels into unmanaged memory.
+                    // Will need to research how to do this.
                     this.pixelsBase = pbuffer;
                 }
             }

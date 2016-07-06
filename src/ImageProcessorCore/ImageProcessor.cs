@@ -1,4 +1,4 @@
-﻿// <copyright file="ParallelImageProcessor.cs" company="James Jackson-South">
+﻿// <copyright file="ImageProcessor.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -7,20 +7,14 @@ namespace ImageProcessorCore.Processors
 {
     using System;
     using System.Threading;
-    using System.Threading.Tasks;
 
     /// <summary>
-    /// Allows the application of processors using parallel processing.
+    /// Allows the application of processors to images.
     /// </summary>
-    public abstract class ParallelImageProcessor : IImageProcessor
+    public abstract class ImageProcessor : IImageProcessor
     {
         /// <inheritdoc/>
         public event ProgressEventHandler OnProgress;
-
-        /// <summary>
-        /// Gets or sets the count of workers to run the process in parallel.
-        /// </summary>
-        public virtual int Parallelism { get; set; } = Environment.ProcessorCount * 2;
 
         /// <summary>
         /// The number of rows processed by a derived class.
@@ -42,34 +36,7 @@ namespace ImageProcessorCore.Processors
                 this.numRowsProcessed = 0;
                 this.totalRows = sourceRectangle.Height;
 
-                if (this.Parallelism > 1)
-                {
-                    int partitionCount = this.Parallelism;
-
-                    Task[] tasks = new Task[partitionCount];
-
-                    for (int p = 0; p < partitionCount; p++)
-                    {
-                        int current = p;
-                        tasks[p] = Task.Run(
-                            () =>
-                                {
-                                    int batchSize = sourceRectangle.Height / partitionCount;
-                                    int yStart = sourceRectangle.Y + (current * batchSize);
-                                    int yEnd = current == partitionCount - 1
-                                                   ? sourceRectangle.Bottom
-                                                   : yStart + batchSize;
-
-                                    this.Apply(target, source, target.Bounds, sourceRectangle, yStart, yEnd);
-                                });
-                    }
-
-                    Task.WaitAll(tasks);
-                }
-                else
-                {
-                    this.Apply(target, source, target.Bounds, sourceRectangle, sourceRectangle.Y, sourceRectangle.Bottom);
-                }
+                this.Apply(target, source, target.Bounds, sourceRectangle, sourceRectangle.Y, sourceRectangle.Bottom);
 
                 this.AfterApply(target, source, target.Bounds, sourceRectangle);
             }
@@ -88,6 +55,7 @@ namespace ImageProcessorCore.Processors
                 float[] pixels = new float[width * height * 4];
                 target.SetPixels(width, height, pixels);
 
+                // Ensure we always have bounds.
                 if (sourceRectangle == Rectangle.Empty)
                 {
                     sourceRectangle = source.Bounds;
@@ -101,33 +69,9 @@ namespace ImageProcessorCore.Processors
                 this.OnApply(target, source, targetRectangle, sourceRectangle);
 
                 this.numRowsProcessed = 0;
-                this.totalRows = targetRectangle.Bottom;
+                this.totalRows = targetRectangle.Height;
 
-                if (this.Parallelism > 1)
-                {
-                    int partitionCount = this.Parallelism;
-
-                    Task[] tasks = new Task[partitionCount];
-
-                    for (int p = 0; p < partitionCount; p++)
-                    {
-                        int current = p;
-                        tasks[p] = Task.Run(() =>
-                        {
-                            int batchSize = targetRectangle.Bottom / partitionCount;
-                            int yStart = current * batchSize;
-                            int yEnd = current == partitionCount - 1 ? targetRectangle.Bottom : yStart + batchSize;
-
-                            this.Apply(target, source, targetRectangle, sourceRectangle, yStart, yEnd);
-                        });
-                    }
-
-                    Task.WaitAll(tasks);
-                }
-                else
-                {
-                    this.Apply(target, source, targetRectangle, sourceRectangle, targetRectangle.Y, targetRectangle.Bottom);
-                }
+                this.Apply(target, source, targetRectangle, sourceRectangle, targetRectangle.Y, targetRectangle.Bottom);
 
                 this.AfterApply(target, source, target.Bounds, sourceRectangle);
             }

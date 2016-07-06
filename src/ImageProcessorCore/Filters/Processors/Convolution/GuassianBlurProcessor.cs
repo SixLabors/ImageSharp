@@ -77,9 +77,6 @@ namespace ImageProcessorCore.Processors
         public override float[,] KernelY => this.kernelY;
 
         /// <inheritdoc/>
-        public override int Parallelism => 1;
-
-        /// <inheritdoc/>
         protected override void OnApply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
             if (this.kernelY == null)

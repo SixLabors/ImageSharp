@@ -11,10 +11,12 @@ namespace ImageProcessorCore.Processors
     /// <summary>
     /// Provides methods that allow the skewing of images.
     /// </summary>
-    public class SkewProcessor : ImageSampler
+    public class SkewProcessor : Matrix3x2Processor
     {
-        /// <inheritdoc/>
-        public override int Parallelism { get; set; } = 1;
+        /// <summary>
+        /// The tranform matrix to apply.
+        /// </summary>
+        private Matrix3x2 processMatrix;
 
         /// <summary>
         /// Gets or sets the angle of rotation along the x-axis in degrees.
@@ -27,76 +29,44 @@ namespace ImageProcessorCore.Processors
         public float AngleY { get; set; }
 
         /// <summary>
-        /// Gets or sets the center point.
-        /// </summary>
-        public Point Center { get; set; }
-
-        /// <summary>
         /// Gets or sets a value indicating whether to expand the canvas to fit the skewed image.
         /// </summary>
-        public bool Expand { get; set; }
+        public bool Expand { get; set; } = true;
 
         /// <inheritdoc/>
         protected override void OnApply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
+            this.processMatrix = Point.CreateSkew(new Point(0, 0), -this.AngleX, -this.AngleY);
             if (this.Expand)
             {
-                Point centre = this.Center;
-                Matrix3x2 skew = Point.CreateSkew(centre, -this.AngleX, -this.AngleY);
-                Matrix3x2 invertedSkew;
-                Matrix3x2.Invert(skew, out invertedSkew);
-                Rectangle bounds = ImageMaths.GetBoundingRectangle(source.Bounds, invertedSkew);
-                target.SetPixels(bounds.Width, bounds.Height, new float[bounds.Width * bounds.Height * 4]);
+                CreateNewTarget(target, sourceRectangle, this.processMatrix);
             }
         }
 
         /// <inheritdoc/>
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-            int height = target.Height;
-            int startX = 0;
-            int endX = target.Width;
-            Point centre = this.Center;
-
-            Matrix3x2 invertedSkew;
-            Matrix3x2 skew = Point.CreateSkew(centre, -this.AngleX, -this.AngleY);
-            Matrix3x2.Invert(skew, out invertedSkew);
-            Vector2 rightTop = Vector2.Transform(new Vector2(source.Width, 0), invertedSkew);
-            Vector2 leftBottom = Vector2.Transform(new Vector2(0, source.Height), invertedSkew);
-
-            if (this.AngleX < 0 && this.AngleY > 0)
-            {
-                skew = Point.CreateSkew(new Point((int)-leftBottom.X, (int)leftBottom.Y), -this.AngleX, -this.AngleY);
-            }
-
-            if (this.AngleX > 0 && this.AngleY < 0)
-            {
-                skew = Point.CreateSkew(new Point((int)rightTop.X, (int)-rightTop.Y), -this.AngleX, -this.AngleY);
-            }
-
-            if (this.AngleX < 0 && this.AngleY < 0)
-            {
-                skew = Point.CreateSkew(new Point(target.Width - 1, target.Height - 1), -this.AngleX, -this.AngleY);
-            }
+            Matrix3x2 matrix = GetCenteredMatrix(target, source, this.processMatrix);
 
             using (PixelAccessor sourcePixels = source.Lock())
             using (PixelAccessor targetPixels = target.Lock())
             {
                 Parallel.For(
                     0,
-                    height,
+                    target.Height,
                     y =>
-                    {
-                        for (int x = startX; x < endX; x++)
                         {
-                            Point skewed = Point.Skew(new Point(x, y), skew);
-                            if (source.Bounds.Contains(skewed.X, skewed.Y))
+                            for (int x = 0; x < target.Width; x++)
                             {
-                                targetPixels[x, y] = sourcePixels[skewed.X, skewed.Y];
+                                Point transformedPoint = Point.Skew(new Point(x, y), matrix);
+                                if (source.Bounds.Contains(transformedPoint.X, transformedPoint.Y))
+                                {
+                                    targetPixels[x, y] = sourcePixels[transformedPoint.X, transformedPoint.Y];
+                                }
                             }
-                        }
-                        this.OnRowProcessed();
-                    });
+
+                            OnRowProcessed();
+                        });
             }
         }
     }

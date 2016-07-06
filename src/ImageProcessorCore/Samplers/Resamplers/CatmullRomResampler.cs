@@ -6,7 +6,9 @@
 namespace ImageProcessorCore
 {
     /// <summary>
-    /// The function implements the Catmull-Rom algorithm.
+    /// The Catmull-Rom filter is a well known standard Cubic Filter often used as a interpolation function.
+    /// This filter produces a reasonably sharp edge, but without a the pronounced gradient change on large 
+    /// scale image enlargements that a 'Lagrange' filter can produce.
     /// <see href="http://www.imagemagick.org/Usage/filter/#cubic_bc"/>
     /// </summary>
     public class CatmullRomResampler : IResampler

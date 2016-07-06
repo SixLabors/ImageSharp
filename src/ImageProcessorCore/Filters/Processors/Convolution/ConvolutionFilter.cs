@@ -10,7 +10,7 @@ namespace ImageProcessorCore.Processors
     /// <summary>
     /// Defines a filter that uses a 2 dimensional matrix to perform convolution against an image.
     /// </summary>
-    public abstract class ConvolutionFilter : ParallelImageProcessor
+    public abstract class ConvolutionFilter : ImageProcessor
     {
         /// <summary>
         /// Gets the 2d gradient operator.

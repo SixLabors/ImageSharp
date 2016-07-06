@@ -35,9 +35,6 @@ namespace ImageProcessorCore.Processors
         public RotateType RotateType { get; }
 
         /// <inheritdoc/>
-        public override int Parallelism { get; set; } = 1;
-
-        /// <inheritdoc/>
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             switch (this.RotateType)

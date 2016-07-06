@@ -1,9 +1,11 @@
 ﻿namespace GenericImage
 {
-    public interface IImageBase<T>
-        where T : struct
+    using GenericImage.PackedVectors;
+
+    public interface IImageBase<TPacked>
+        where TPacked : IPackedVector
     {
-        T[] Pixels { get; }
+        TPacked[] Pixels { get; }
 
         int Width { get; }
 

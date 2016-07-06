@@ -13,7 +13,7 @@
         /// <summary>
         /// The position of the first pixel in the bitmap.
         /// </summary>
-        private ulong* pixelsBase;
+        private Rgba64* pixelsBase;
 
         /// <summary>
         /// Provides a way to access the pixels from unmanaged memory.
@@ -39,30 +39,17 @@
         /// <param name="image">
         /// The image to provide pixel access for.
         /// </param>
-        public PixelAccessorRgba64(IImageBase<ulong> image)
+        public PixelAccessorRgba64(IImageBase<Rgba64> image)
         {
             //Guard.NotNull(image, nameof(image));
             //Guard.MustBeGreaterThan(image.Width, 0, "image width");
             //Guard.MustBeGreaterThan(image.Height, 0, "image height");
 
-            int size = image.Pixels.Length;
             this.Width = image.Width;
             this.Height = image.Height;
 
-            // Assign the pointer.
-            // If buffer is allocated on Large Object Heap i.e > 85Kb, then we are going to pin it instead of making a copy.
-            if (size > 87040)
-            {
-                this.pixelsHandle = GCHandle.Alloc(image.Pixels, GCHandleType.Pinned);
-                this.pixelsBase = (ulong*)this.pixelsHandle.AddrOfPinnedObject().ToPointer();
-            }
-            else
-            {
-                fixed (ulong* pbuffer = image.Pixels)
-                {
-                    this.pixelsBase = pbuffer;
-                }
-            }
+            this.pixelsHandle = GCHandle.Alloc(image.Pixels, GCHandleType.Pinned);
+            this.pixelsBase = (Rgba64*)this.pixelsHandle.AddrOfPinnedObject().ToPointer();
         }
 
         /// <summary>
@@ -110,7 +97,7 @@
                     throw new ArgumentOutOfRangeException(nameof(y), "Value cannot be less than zero or greater than the bitmap height.");
                 }
 #endif
-                return *((Rgba64*)(this.pixelsBase + (((y * this.Width) + x) * 4)));
+                return *(this.pixelsBase + ((y * this.Width) + x));
             }
 
             set
@@ -126,7 +113,7 @@
                     throw new ArgumentOutOfRangeException(nameof(y), "Value cannot be less than zero or greater than the bitmap height.");
                 }
 #endif
-                *(Rgba64*)(this.pixelsBase + (((y * this.Width) + x) * 4)) = (Rgba64)value;
+                *(this.pixelsBase + ((y * this.Width) + x)) = (Rgba64)value;
             }
         }
 

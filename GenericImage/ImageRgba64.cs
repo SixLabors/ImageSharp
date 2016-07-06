@@ -1,15 +1,17 @@
 ﻿namespace GenericImage
 {
-    public class ImageRgba64 : IImageBase<ulong>
+    using GenericImage.PackedVectors;
+
+    public class ImageRgba64 : IImageBase<Rgba64>
     {
         public ImageRgba64(int width, int height)
         {
             this.Width = width;
             this.Height = height;
-            this.Pixels = new ulong[width * height * 4];
+            this.Pixels = new Rgba64[width * height];
         }
 
-        public ulong[] Pixels { get; }
+        public Rgba64[] Pixels { get; }
 
         public int Width { get; }
 

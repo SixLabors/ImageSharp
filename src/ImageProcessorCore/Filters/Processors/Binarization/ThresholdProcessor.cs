@@ -13,7 +13,7 @@ namespace ImageProcessorCore.Processors
     /// <see cref="Image"/>. The image will be converted to greyscale before thresholding 
     /// occurs.
     /// </summary>
-    public class ThresholdProcessor : ParallelImageProcessor
+    public class ThresholdProcessor : ImageProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ThresholdProcessor"/> class.

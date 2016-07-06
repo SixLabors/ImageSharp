@@ -30,7 +30,7 @@ namespace ImageProcessorCore.Processors
         };
 
         /// <inheritdoc/>
-        protected override void AfterApply(ImageBase source, ImageBase target, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected override void AfterApply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
             new VignetteProcessor { Color = new Color(102 / 255f, 34 / 255f, 0) }.Apply(target, target, targetRectangle);
             new GlowProcessor

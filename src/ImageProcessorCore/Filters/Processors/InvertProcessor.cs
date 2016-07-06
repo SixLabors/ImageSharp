@@ -11,7 +11,7 @@ namespace ImageProcessorCore.Processors
     /// <summary>
     /// An <see cref="IImageProcessor"/> to invert the colors of an <see cref="Image"/>.
     /// </summary>
-    public class InvertProcessor : ParallelImageProcessor
+    public class InvertProcessor : ImageProcessor
     {
         /// <inheritdoc/>
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)

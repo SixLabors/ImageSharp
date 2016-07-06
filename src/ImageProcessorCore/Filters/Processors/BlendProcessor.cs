@@ -10,7 +10,7 @@ namespace ImageProcessorCore.Processors
     /// <summary>
     /// Combines two images together by blending the pixels.
     /// </summary>
-    public class BlendProcessor : ParallelImageProcessor
+    public class BlendProcessor : ImageProcessor
     {
         /// <summary>
         /// The image to blend.

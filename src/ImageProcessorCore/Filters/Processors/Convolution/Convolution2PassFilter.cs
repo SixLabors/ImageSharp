@@ -10,7 +10,7 @@ namespace ImageProcessorCore.Processors
     /// <summary>
     /// Defines a filter that uses two one-dimensional matrices to perform two-pass convolution against an image.
     /// </summary>
-    public abstract class Convolution2PassFilter : ParallelImageProcessor
+    public abstract class Convolution2PassFilter : ImageProcessor
     {
         /// <summary>
         /// Gets the horizontal gradient operator.
@@ -64,7 +64,6 @@ namespace ImageProcessorCore.Processors
             int radiusY = kernelHeight >> 1;
             int radiusX = kernelWidth >> 1;
 
-            int sourceY = sourceRectangle.Y;
             int sourceBottom = sourceRectangle.Bottom;
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
@@ -79,36 +78,34 @@ namespace ImageProcessorCore.Processors
                 endY,
                 y =>
                 {
-                    if (y >= sourceY && y < sourceBottom)
+                    for (int x = startX; x < endX; x++)
                     {
-                        for (int x = startX; x < endX; x++)
+                        Color destination = new Color();
+
+                        // Apply each matrix multiplier to the color components for each pixel.
+                        for (int fy = 0; fy < kernelHeight; fy++)
                         {
-                            Color destination = new Color();
+                            int fyr = fy - radiusY;
+                            int offsetY = y + fyr;
 
-                            // Apply each matrix multiplier to the color components for each pixel.
-                            for (int fy = 0; fy < kernelHeight; fy++)
+                            offsetY = offsetY.Clamp(0, maxY);
+
+                            for (int fx = 0; fx < kernelWidth; fx++)
                             {
-                                int fyr = fy - radiusY;
-                                int offsetY = y + fyr;
+                                int fxr = fx - radiusX;
+                                int offsetX = x + fxr;
 
-                                offsetY = offsetY.Clamp(0, maxY);
+                                offsetX = offsetX.Clamp(0, maxX);
 
-                                for (int fx = 0; fx < kernelWidth; fx++)
-                                {
-                                    int fxr = fx - radiusX;
-                                    int offsetX = x + fxr;
-
-                                    offsetX = offsetX.Clamp(0, maxX);
-
-                                    Color currentColor = sourcePixels[offsetX, offsetY];
-                                    destination += kernel[fy, fx] * currentColor;
-                                }
+                                Color currentColor = sourcePixels[offsetX, offsetY];
+                                destination += kernel[fy, fx] * currentColor;
                             }
-
-                            targetPixels[x, y] = destination;
                         }
-                        this.OnRowProcessed();
+
+                        targetPixels[x, y] = destination;
                     }
+
+                    this.OnRowProcessed();
                 });
             }
         }

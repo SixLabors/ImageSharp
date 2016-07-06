@@ -34,5 +34,11 @@
         /// </summary>
         /// <returns>The <see cref="Vector4"/>.</returns>
         Vector4 ToVector4();
+
+        /// <summary>
+        /// Expands the packed representation into a <see cref="T:byte[]"/>.
+        /// </summary>
+        /// <returns>The <see cref="Vector4"/>.</returns>
+        byte[] ToBytes();
     }
 }

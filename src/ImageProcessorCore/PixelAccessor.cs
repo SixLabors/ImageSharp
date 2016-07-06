@@ -9,14 +9,14 @@ namespace ImageProcessorCore
     using System.Runtime.InteropServices;
 
     /// <summary>
-    /// Provides per-pixel access to an images pixels.
+    /// Provides per-pixel access to an images pixels as 8 bit unsigned components.
     /// </summary>
-    public sealed unsafe class PixelAccessor : IDisposable
+    public sealed unsafe class PixelAccessor : IPixelAccessor
     {
         /// <summary>
         /// The position of the first pixel in the bitmap.
         /// </summary>
-        private Color* pixelsBase;
+        private Bgra32* pixelsBase;
 
         /// <summary>
         /// Provides a way to access the pixels from unmanaged memory.
@@ -42,7 +42,7 @@ namespace ImageProcessorCore
         /// <param name="image">
         /// The image to provide pixel access for.
         /// </param>
-        public PixelAccessor(ImageBase image)
+        public PixelAccessor(ImageBase<Bgra32> image)
         {
             Guard.NotNull(image, nameof(image));
             Guard.MustBeGreaterThan(image.Width, 0, "image width");
@@ -51,9 +51,8 @@ namespace ImageProcessorCore
             this.Width = image.Width;
             this.Height = image.Height;
 
-            // Assign the pointer.
             this.pixelsHandle = GCHandle.Alloc(image.Pixels, GCHandleType.Pinned);
-            this.pixelsBase = (Color*)this.pixelsHandle.AddrOfPinnedObject().ToPointer();
+            this.pixelsBase = (Bgra32*)this.pixelsHandle.AddrOfPinnedObject().ToPointer();
         }
 
         /// <summary>
@@ -85,8 +84,8 @@ namespace ImageProcessorCore
         /// The y-coordinate of the pixel. Must be greater
         /// than zero and smaller than the width of the pixel.
         /// </param>
-        /// <returns>The <see cref="Color"/> at the specified position.</returns>
-        public Color this[int x, int y]
+        /// <returns>The <see cref="IPackedVector"/> at the specified position.</returns>
+        public IPackedVector this[int x, int y]
         {
             get
             {
@@ -117,7 +116,7 @@ namespace ImageProcessorCore
                     throw new ArgumentOutOfRangeException(nameof(y), "Value cannot be less than zero or greater than the bitmap height.");
                 }
 #endif
-                *(this.pixelsBase + ((y * this.Width) + x)) = value;
+                *(this.pixelsBase + ((y * this.Width) + x)) = (Bgra32)value;
             }
         }
 

@@ -39,7 +39,7 @@
         /// <param name="image">
         /// The image to provide pixel access for.
         /// </param>
-        public PixelAccessorRgba32(IImageBase<Rgba32> image)
+        public PixelAccessorRgba32(ImageBase<Rgba32> image)
         {
             //Guard.NotNull(image, nameof(image));
             //Guard.MustBeGreaterThan(image.Width, 0, "image width");

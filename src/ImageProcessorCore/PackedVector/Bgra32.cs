@@ -1,67 +1,72 @@
-﻿namespace GenericImage.PackedVectors
+﻿// <copyright file="Bgra32.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
+namespace ImageProcessorCore
 {
     using System;
     using System.Numerics;
 
     /// <summary>
-    /// Packed vector type containing four 16-bit unsigned normalized values ranging from 0 to 1.
+    /// Packed vector type containing four 8-bit unsigned normalized values ranging from 0 to 1.
     /// </summary>
-    public struct Rgba64 : IPackedVector<ulong>, IEquatable<Rgba64>
+    public struct Bgra32 : IPackedVector<uint>, IEquatable<Bgra32>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="Rgba64"/> struct. 
+        /// Initializes a new instance of the <see cref="Bgra32"/> struct. 
         /// </summary>
-        /// <param name="r">The red component.</param>
-        /// <param name="g">The green component.</param>
         /// <param name="b">The blue component.</param>
+        /// <param name="g">The green component.</param>
+        /// <param name="r">The red component.</param>
         /// <param name="a">The alpha component.</param>
-        public Rgba64(float r, float g, float b, float a)
+        public Bgra32(float b, float g, float r, float a)
         {
-            Vector4 clamped = Vector4.Clamp(new Vector4(r, g, b, a), Vector4.Zero, Vector4.One) * 65535f;
+            Vector4 clamped = Vector4.Clamp(new Vector4(b, g, r, a), Vector4.Zero, Vector4.One) * 255f;
             this.PackedValue = Pack(ref clamped);
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Rgba64"/> struct. 
+        /// Initializes a new instance of the <see cref="Bgra32"/> struct. 
         /// </summary>
         /// <param name="vector">
         /// The vector containing the components for the packed vector.
         /// </param>
-        public Rgba64(Vector4 vector)
+        public Bgra32(Vector4 vector)
         {
-            Vector4 clamped = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * 65535f;
+            Vector4 clamped = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * 255f;
             this.PackedValue = Pack(ref clamped);
         }
 
         /// <inheritdoc/>
-        public ulong PackedValue { get; set; }
+        public uint PackedValue { get; set; }
 
         /// <summary>
-        /// Compares two <see cref="Rgba64"/> objects for equality.
+        /// Compares two <see cref="Bgra32"/> objects for equality.
         /// </summary>
         /// <param name="left">
-        /// The <see cref="Rgba64"/> on the left side of the operand.
+        /// The <see cref="Bgra32"/> on the left side of the operand.
         /// </param>
         /// <param name="right">
-        /// The <see cref="Rgba64"/> on the right side of the operand.
+        /// The <see cref="Bgra32"/> on the right side of the operand.
         /// </param>
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        public static bool operator ==(Rgba64 left, Rgba64 right)
+        public static bool operator ==(Bgra32 left, Bgra32 right)
         {
             return left.PackedValue == right.PackedValue;
         }
 
         /// <summary>
-        /// Compares two <see cref="Rgba64"/> objects for equality.
+        /// Compares two <see cref="Bgra32"/> objects for equality.
         /// </summary>
-        /// <param name="left">The <see cref="Rgba64"/> on the left side of the operand.</param>
-        /// <param name="right">The <see cref="Rgba64"/> on the right side of the operand.</param>
+        /// <param name="left">The <see cref="Bgra32"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="Bgra32"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        public static bool operator !=(Rgba64 left, Rgba64 right)
+        public static bool operator !=(Bgra32 left, Bgra32 right)
         {
             return left.PackedValue != right.PackedValue;
         }
@@ -69,14 +74,14 @@
         /// <inheritdoc/>
         public void PackVector(Vector4 vector)
         {
-            Vector4 clamped = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * 65535f;
+            Vector4 clamped = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * 255f;
             this.PackedValue = Pack(ref clamped);
         }
 
         /// <inheritdoc/>
         public void PackBytes(byte x, byte y, byte z, byte w)
         {
-            Vector4 vector = (new Vector4(x, y, z, w) / 255f) * 65535f;
+            Vector4 vector = new Vector4(x, y, z, w);
             this.PackedValue = Pack(ref vector);
         }
 
@@ -84,10 +89,10 @@
         public Vector4 ToVector4()
         {
             return new Vector4(
-                (this.PackedValue >> 32) & 0xFFFF,
-                (this.PackedValue >> 16) & 0xFFFF,
-                this.PackedValue & 0xFFFF,
-                (this.PackedValue >> 48) & 0xFFFF) / 65535f;
+                this.PackedValue & 0xFF,
+                (this.PackedValue >> 8) & 0xFF,
+                (this.PackedValue >> 16) & 0xFF,
+                (this.PackedValue >> 24) & 0xFF) / 255f;
         }
 
         /// <inheritdoc/>
@@ -95,21 +100,21 @@
         {
             return new[]
             {
-                (byte)((this.PackedValue >> 40) & 255),
-                (byte)((this.PackedValue >> 24) & 255),
-                (byte)((this.PackedValue >> 8) & 255),
-                (byte)((this.PackedValue >> 56) & 255)
+                (byte)(this.PackedValue & 0xFF),
+                (byte)((this.PackedValue >> 8) & 0xFF),
+                (byte)((this.PackedValue >> 16) & 0xFF),
+                (byte)((this.PackedValue >> 24) & 0xFF)
             };
         }
 
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            return (obj is Rgba64) && this.Equals((Rgba64)obj);
+            return (obj is Bgra32) && this.Equals((Bgra32)obj);
         }
 
         /// <inheritdoc/>
-        public bool Equals(Rgba64 other)
+        public bool Equals(Bgra32 other)
         {
             return this.PackedValue == other.PackedValue;
         }
@@ -136,26 +141,26 @@
         /// The vector containing the components for the packed vector.
         /// </param>
         /// <returns>
-        /// The <see cref="ulong"/>.
+        /// The <see cref="uint"/>.
         /// </returns>
-        private static ulong Pack(ref Vector4 vector)
+        private static uint Pack(ref Vector4 vector)
         {
-            return ((ulong)Math.Round(vector.X) << 32) |
-                   ((ulong)Math.Round(vector.Y) << 16) |
-                   (ulong)Math.Round(vector.Z) |
-                   ((ulong)Math.Round(vector.W) << 48);
+            return (uint)Math.Round(vector.X) |
+                   ((uint)Math.Round(vector.Y) << 8) |
+                   ((uint)Math.Round(vector.Z) << 16) |
+                   ((uint)Math.Round(vector.W) << 24);
         }
 
         /// <summary>
         /// Returns the hash code for this instance.
         /// </summary>
         /// <param name="packed">
-        /// The instance of <see cref="Rgba64"/> to return the hash code for.
+        /// The instance of <see cref="Bgra32"/> to return the hash code for.
         /// </param>
         /// <returns>
         /// A 32-bit signed integer that is the hash code for this instance.
         /// </returns>
-        private int GetHashCode(Rgba64 packed)
+        private int GetHashCode(Bgra32 packed)
         {
             return packed.PackedValue.GetHashCode();
         }

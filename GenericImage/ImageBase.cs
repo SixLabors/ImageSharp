@@ -1,20 +1,17 @@
-﻿// <copyright file="ImageBase.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
-// Licensed under the Apache License, Version 2.0.
-// </copyright>
-
-namespace ImageProcessorCore
+﻿namespace GenericImage
 {
     using System;
 
+    using GenericImage.PackedVectors;
+
     /// <summary>
-    /// The base class of all images. Encapsulates the basic properties and methods required to manipulate images 
+    /// Encapsulates the basic properties and methods required to manipulate images 
     /// in different pixel formats.
     /// </summary>
     /// <typeparam name="TPacked">
     /// The packed vector pixels format.
     /// </typeparam>
-    public abstract class ImageBase<TPacked> : IImageBase<TPacked>
+    public abstract class ImageBase<TPacked>
         where TPacked : IPackedVector
     {
         /// <summary>
@@ -34,8 +31,8 @@ namespace ImageProcessorCore
         /// </exception>
         protected ImageBase(int width, int height)
         {
-            Guard.MustBeGreaterThan(width, 0, nameof(width));
-            Guard.MustBeGreaterThan(height, 0, nameof(height));
+            // Guard.MustBeGreaterThan(width, 0, nameof(width));
+            // Guard.MustBeGreaterThan(height, 0, nameof(height));
 
             this.Width = width;
             this.Height = height;
@@ -53,7 +50,7 @@ namespace ImageProcessorCore
         /// </exception>
         protected ImageBase(ImageBase<TPacked> other)
         {
-            Guard.NotNull(other, nameof(other), "Other image cannot be null.");
+            // Guard.NotNull(other, nameof(other), "Other image cannot be null.");
 
             this.Width = other.Width;
             this.Height = other.Height;
@@ -88,7 +85,7 @@ namespace ImageProcessorCore
         /// <summary>
         /// Gets the <see cref="Rectangle"/> representing the bounds of the image.
         /// </summary>
-        public Rectangle Bounds => new Rectangle(0, 0, this.Width, this.Height);
+       // public Rectangle Bounds => new Rectangle(0, 0, this.Width, this.Height);
 
         /// <summary>
         /// Gets or sets th quality of the image. This affects the output quality of lossy image formats.

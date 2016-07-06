@@ -12,7 +12,7 @@ namespace ImageProcessorCore.Processors
     /// <summary>
     /// Creates a glow effect on the image
     /// </summary>
-    public class GlowProcessor : ParallelImageProcessor
+    public class GlowProcessor : ImageProcessor
     {
         /// <summary>
         /// Gets or sets the glow color to apply.

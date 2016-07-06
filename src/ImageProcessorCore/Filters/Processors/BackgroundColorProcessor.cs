@@ -11,7 +11,7 @@ namespace ImageProcessorCore.Processors
     /// <summary>
     /// Sets the background color of the image.
     /// </summary>
-    public class BackgroundColorProcessor : ParallelImageProcessor
+    public class BackgroundColorProcessor : ImageProcessor
     {
         /// <summary>
         /// The epsilon for comparing floating point numbers.

@@ -15,8 +15,6 @@ namespace ImageProcessorCore.Processors
         /// <inheritdoc/>
         protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-            int targetY = targetRectangle.Y;
-            int targetBottom = targetRectangle.Bottom;
             int startX = targetRectangle.X;
             int endX = targetRectangle.Right;
             int sourceX = sourceRectangle.X;
@@ -30,15 +28,12 @@ namespace ImageProcessorCore.Processors
                     endY,
                     y =>
                         {
-                            if (y >= targetY && y < targetBottom)
+                            for (int x = startX; x < endX; x++)
                             {
-                                for (int x = startX; x < endX; x++)
-                                {
-                                    targetPixels[x, y] = sourcePixels[x + sourceX, y + sourceY];
-                                }
-
-                                this.OnRowProcessed();
+                                targetPixels[x, y] = sourcePixels[x + sourceX, y + sourceY];
                             }
+
+                            this.OnRowProcessed();
                         });
             }
         }

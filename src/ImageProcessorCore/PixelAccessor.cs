@@ -9,8 +9,12 @@ namespace ImageProcessorCore
     using System.Runtime.InteropServices;
 
     /// <summary>
-    /// Provides per-pixel access to an images pixels as 8 bit unsigned components.
+    /// Provides per-pixel access to an images pixels.
     /// </summary>
+    /// <remarks>
+    /// The image data is always stored in <see cref="Bgra32"/> format, where the blue, green, red, and
+    /// alpha values are 8 bit unsigned bytes.
+    /// </remarks>
     public sealed unsafe class PixelAccessor : IPixelAccessor
     {
         /// <summary>

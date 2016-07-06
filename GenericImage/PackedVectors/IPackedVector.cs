@@ -30,6 +30,15 @@
         void PackVector(Vector4 vector);
 
         /// <summary>
+        /// Sets the packed representation from a <see cref="Vector4"/>.
+        /// </summary>
+        /// <param name="x">The x-component.</param>
+        /// <param name="y">The y-component.</param>
+        /// <param name="z">The z-component.</param>
+        /// <param name="w">The w-component.</param>
+        void PackBytes(byte x, byte y, byte z, byte w);
+
+        /// <summary>
         /// Expands the packed representation into a <see cref="Vector4"/>.
         /// </summary>
         /// <returns>The <see cref="Vector4"/>.</returns>

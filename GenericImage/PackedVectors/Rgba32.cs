@@ -4,7 +4,7 @@
     using System.Numerics;
 
     /// <summary>
-    /// Packed vector type containing four 8-bit unsigned normalized values ranging from 0 to 255.
+    /// Packed vector type containing four 8-bit unsigned normalized values ranging from 0 to 1.
     /// </summary>
     public struct Rgba32 : IPackedVector<uint>, IEquatable<Rgba32>
     {
@@ -17,18 +17,20 @@
         /// <param name="a">The alpha component.</param>
         public Rgba32(float r, float g, float b, float a)
         {
-            this.PackedValue = Pack(r, g, b, a);
+            Vector4 clamped = Vector4.Clamp(new Vector4(r, g, b, a), Vector4.Zero, Vector4.One) * 255f;
+            this.PackedValue = Pack(ref clamped);
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Rgba32"/> struct. 
         /// </summary>
         /// <param name="vector">
-        /// Vector containing the components for the packed vector.
+        /// The vector containing the components for the packed vector.
         /// </param>
         public Rgba32(Vector4 vector)
         {
-            this.PackedValue = Pack(vector.X, vector.Y, vector.Z, vector.W);
+            Vector4 clamped = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * 255f;
+            this.PackedValue = Pack(ref clamped);
         }
 
         /// <inheritdoc/>
@@ -67,18 +69,25 @@
         /// <inheritdoc/>
         public void PackVector(Vector4 vector)
         {
-            Vector4 clamped = Vector4.Clamp(vector, Vector4.Zero, Vector4.One);
-            this.PackedValue = Pack(clamped.X, clamped.Y, clamped.Z, clamped.W);
+            Vector4 clamped = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * 255f;
+            this.PackedValue = Pack(ref clamped);
+        }
+
+        /// <inheritdoc/>
+        public void PackBytes(byte x, byte y, byte z, byte w)
+        {
+            Vector4 vector = new Vector4(x, y, z, w);
+            this.PackedValue = Pack(ref vector);
         }
 
         /// <inheritdoc/>
         public Vector4 ToVector4()
         {
             return new Vector4(
-                ((this.PackedValue >> 16) & 0xFF) / 255f,
-                ((this.PackedValue >> 8) & 0xFF) / 255f,
-                (this.PackedValue & 0xFF) / 255f,
-                ((this.PackedValue >> 24) & 0xFF) / 255f);
+                (this.PackedValue >> 16) & 0xFF,
+                (this.PackedValue >> 8) & 0xFF,
+                this.PackedValue & 0xFF,
+                (this.PackedValue >> 24) & 0xFF) / 255f;
         }
 
         /// <inheritdoc/>
@@ -123,19 +132,18 @@
         /// <summary>
         /// Sets the packed representation from the given component values.
         /// </summary>
-        /// <param name="x">The x component.</param>
-        /// <param name="y">The y component.</param>
-        /// <param name="z">The z component.</param>
-        /// <param name="w">The w component.</param>
+        /// <param name="vector">
+        /// The vector containing the components for the packed vector.
+        /// </param>
         /// <returns>
         /// The <see cref="uint"/>.
         /// </returns>
-        private static uint Pack(float x, float y, float z, float w)
+        private static uint Pack(ref Vector4 vector)
         {
-            return ((uint)Math.Round(x * 255f) << 16) |
-                   ((uint)Math.Round(y * 255f) << 8) |
-                   (uint)Math.Round(z * 255f) |
-                   ((uint)Math.Round(w * 255f) << 24);
+            return ((uint)Math.Round(vector.X) << 16) |
+                   ((uint)Math.Round(vector.Y) << 8) |
+                   (uint)Math.Round(vector.Z) |
+                   ((uint)Math.Round(vector.W) << 24);
         }
 
         /// <summary>

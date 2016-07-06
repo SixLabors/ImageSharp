@@ -84,9 +84,9 @@
         public Vector4 ToVector4()
         {
             return new Vector4(
-                this.PackedValue & 0xFFFF,
-                (this.PackedValue >> 16) & 0xFFFF,
                 (this.PackedValue >> 32) & 0xFFFF,
+                (this.PackedValue >> 16) & 0xFFFF,
+                this.PackedValue & 0xFFFF,
                 (this.PackedValue >> 48) & 0xFFFF) / 65535f;
         }
 
@@ -140,9 +140,9 @@
         /// </returns>
         private static ulong Pack(ref Vector4 vector)
         {
-            return (ulong)Math.Round(vector.X) |
+            return ((ulong)Math.Round(vector.Z) << 32) |
                    ((ulong)Math.Round(vector.Y) << 16) |
-                   ((ulong)Math.Round(vector.Z) << 32) |
+                   (ulong)Math.Round(vector.X) |
                    ((ulong)Math.Round(vector.W) << 48);
         }
 

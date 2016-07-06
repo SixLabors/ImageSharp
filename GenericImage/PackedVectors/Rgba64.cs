@@ -17,18 +17,20 @@
         /// <param name="a">The alpha component.</param>
         public Rgba64(float r, float g, float b, float a)
         {
-            this.PackedValue = Pack(r, g, b, a);
+            Vector4 clamped = Vector4.Clamp(new Vector4(r, g, b, a), Vector4.Zero, Vector4.One) * 65535f;
+            this.PackedValue = Pack(ref clamped);
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Rgba64"/> struct. 
         /// </summary>
         /// <param name="vector">
-        /// Vector containing the components for the packed vector.
+        /// The vector containing the components for the packed vector.
         /// </param>
         public Rgba64(Vector4 vector)
         {
-            this.PackedValue = Pack(vector.X, vector.Y, vector.Z, vector.W);
+            Vector4 clamped = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * 65535f;
+            this.PackedValue = Pack(ref clamped);
         }
 
         /// <inheritdoc/>
@@ -67,23 +69,37 @@
         /// <inheritdoc/>
         public void PackVector(Vector4 vector)
         {
-            this.PackedValue = Pack(vector.X, vector.Y, vector.Z, vector.W);
+            Vector4 clamped = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * 65535f;
+            this.PackedValue = Pack(ref clamped);
+        }
+
+        /// <inheritdoc/>
+        public void PackBytes(byte x, byte y, byte z, byte w)
+        {
+            Vector4 vector = (new Vector4(x, y, z, w) / 255f) * 65535f;
+            this.PackedValue = Pack(ref vector);
         }
 
         /// <inheritdoc/>
         public Vector4 ToVector4()
         {
             return new Vector4(
-                (this.PackedValue & 0xFFFF) / 65535f,
-                ((this.PackedValue >> 16) & 0xFFFF) / 65535f,
-                ((this.PackedValue >> 32) & 0xFFFF) / 65535f,
-                ((this.PackedValue >> 48) & 0xFFFF) / 65535f);
+                this.PackedValue & 0xFFFF,
+                (this.PackedValue >> 16) & 0xFFFF,
+                (this.PackedValue >> 32) & 0xFFFF,
+                (this.PackedValue >> 48) & 0xFFFF) / 65535f;
         }
 
         /// <inheritdoc/>
         public byte[] ToBytes()
         {
-            throw new NotImplementedException();
+            return new[]
+            {
+                (byte)((this.PackedValue >> 40) & 255),
+                (byte)((this.PackedValue >> 24) & 255),
+                (byte)((this.PackedValue >> 8) & 255),
+                (byte)((this.PackedValue >> 56) & 255)
+            };
         }
 
         /// <inheritdoc/>
@@ -116,19 +132,18 @@
         /// <summary>
         /// Sets the packed representation from the given component values.
         /// </summary>
-        /// <param name="x">The x component.</param>
-        /// <param name="y">The y component.</param>
-        /// <param name="z">The z component.</param>
-        /// <param name="w">The w component.</param>
+        /// <param name="vector">
+        /// The vector containing the components for the packed vector.
+        /// </param>
         /// <returns>
         /// The <see cref="ulong"/>.
         /// </returns>
-        private static ulong Pack(float x, float y, float z, float w)
+        private static ulong Pack(ref Vector4 vector)
         {
-            return (ulong)Math.Round(ImageMaths.Clamp(x, 0, 1) * 65535f) |
-                   ((ulong)Math.Round(ImageMaths.Clamp(y, 0, 1) * 65535f) << 16) |
-                   ((ulong)Math.Round(ImageMaths.Clamp(z, 0, 1) * 65535f) << 32) |
-                   ((ulong)Math.Round(ImageMaths.Clamp(w, 0, 1) * 65535f) << 48);
+            return (ulong)Math.Round(vector.X) |
+                   ((ulong)Math.Round(vector.Y) << 16) |
+                   ((ulong)Math.Round(vector.Z) << 32) |
+                   ((ulong)Math.Round(vector.W) << 48);
         }
 
         /// <summary>

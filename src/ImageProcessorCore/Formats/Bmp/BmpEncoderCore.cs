@@ -29,7 +29,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
         /// <param name="bitsPerPixel">The <see cref="BmpBitsPerPixel"/></param>
         public void Encode<TPackedVector>(ImageBase<TPackedVector> image, Stream stream, BmpBitsPerPixel bitsPerPixel)
-            where TPackedVector : IPackedVector
+            where TPackedVector : IPackedVector, new()
         {
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
@@ -128,7 +128,7 @@ namespace ImageProcessorCore.Formats
         /// The <see cref="ImageBase{TPackedVector}"/> containing pixel data.
         /// </param>
         private void WriteImage<TPackedVector>(EndianBinaryWriter writer, ImageBase<TPackedVector> image)
-            where TPackedVector : IPackedVector
+            where TPackedVector : IPackedVector, new()
         {
             // TODO: Add more compression formats.
             int amount = (image.Width * (int)this.bmpBitsPerPixel) % 4;

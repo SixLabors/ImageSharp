@@ -44,6 +44,7 @@ namespace ImageProcessorCore.Formats
         /// <typeparam name="TPackedVector">The type of pixels contained within the image.</typeparam>
         /// <param name="image">The <see cref="ImageBase{TPackedVector}"/> to decode to.</param>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        void Decode<TPackedVector>(Image<TPackedVector> image, Stream stream) where TPackedVector : IPackedVector, new();
+        void Decode<TPackedVector>(Image<TPackedVector> image, Stream stream)
+            where TPackedVector : IPackedVector, new();
     }
 }

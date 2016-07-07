@@ -6,8 +6,8 @@ namespace ImageProcessorCore
         where TPackedVector : IPackedVector, new()
     {
         TPackedVector[] Pixels { get; }
-        void ClonePixels(int width, int height, IEnumerable<TPackedVector> pixels);
-        IPixelAccessor<TPackedVector> Lock();
+        void ClonePixels(int width, int height, TPackedVector[] pixels);
+        IPixelAccessor Lock();
         void SetPixels(int width, int height, TPackedVector[] pixels);
     }
 

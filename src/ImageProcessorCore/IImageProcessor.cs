@@ -27,8 +27,9 @@ namespace ImageProcessorCore.Processors
         event ProgressEventHandler OnProgress;
 
         /// <summary>
-        /// Applies the process to the specified portion of the specified <see cref="ImageBase"/>.
+        /// Applies the process to the specified portion of the specified <see cref="ImageBase{TPackedVector}"/>.
         /// </summary>
+        /// <typeparam name="TPackedVector">The type of pixels contained within the image.</typeparam>
         /// <param name="target">Target image to apply the process to.</param>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="sourceRectangle">
@@ -44,12 +45,13 @@ namespace ImageProcessorCore.Processors
         /// <exception cref="System.ArgumentException">
         /// <paramref name="sourceRectangle"/> doesnt fit the dimension of the image.
         /// </exception>
-        void Apply(ImageBase target, ImageBase source, Rectangle sourceRectangle);
+        void Apply<TPackedVector>(ImageBase<TPackedVector> target, ImageBase<TPackedVector> source, Rectangle sourceRectangle) where TPackedVector : IPackedVector;
 
         /// <summary>
-        /// Applies the process to the specified portion of the specified <see cref="ImageBase"/> at the specified
+        /// Applies the process to the specified portion of the specified <see cref="ImageBase{TPackedVector}"/> at the specified
         /// location and with the specified size.
         /// </summary>
+        /// <typeparam name="TPackedVector">The type of pixels contained within the image.</typeparam>
         /// <param name="target">Target image to apply the process to.</param>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="width">The target width.</param>
@@ -65,6 +67,6 @@ namespace ImageProcessorCore.Processors
         /// The method keeps the source image unchanged and returns the
         /// the result of image process as new image.
         /// </remarks>
-        void Apply(ImageBase target, ImageBase source, int width, int height, Rectangle targetRectangle, Rectangle sourceRectangle);
+        void Apply<TPackedVector>(ImageBase<TPackedVector> target, ImageBase<TPackedVector> source, int width, int height, Rectangle targetRectangle, Rectangle sourceRectangle) where TPackedVector : IPackedVector;
     }
 }

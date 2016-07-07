@@ -27,7 +27,8 @@ namespace ImageProcessorCore.Processors
         private int totalRows;
 
         /// <inheritdoc/>
-        public void Apply(ImageBase target, ImageBase source, Rectangle sourceRectangle)
+        public void Apply<TPackedVector>(ImageBase<TPackedVector> target, ImageBase<TPackedVector> source, Rectangle sourceRectangle)
+             where TPackedVector : IPackedVector
         {
             try
             {
@@ -48,11 +49,12 @@ namespace ImageProcessorCore.Processors
         }
 
         /// <inheritdoc/>
-        public void Apply(ImageBase target, ImageBase source, int width, int height, Rectangle targetRectangle = default(Rectangle), Rectangle sourceRectangle = default(Rectangle))
+        public void Apply<TPackedVector>(ImageBase<TPackedVector> target, ImageBase<TPackedVector> source, int width, int height, Rectangle targetRectangle = default(Rectangle), Rectangle sourceRectangle = default(Rectangle))
+            where TPackedVector : IPackedVector
         {
             try
             {
-                float[] pixels = new float[width * height * 4];
+                TPackedVector[] pixels = new TPackedVector[width * height];
                 target.SetPixels(width, height, pixels);
 
                 // Ensure we always have bounds.
@@ -93,14 +95,16 @@ namespace ImageProcessorCore.Processors
         /// <param name="sourceRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
-        protected virtual void OnApply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected virtual void OnApply<TPackedVector>(ImageBase<TPackedVector> target, ImageBase<TPackedVector> source, Rectangle targetRectangle, Rectangle sourceRectangle)
+            where TPackedVector : IPackedVector
         {
         }
 
         /// <summary>
-        /// Applies the process to the specified portion of the specified <see cref="ImageBase"/> at the specified location
+        /// Applies the process to the specified portion of the specified <see cref="ImageBase{TPackedVector}"/> at the specified location
         /// and with the specified size.
         /// </summary>
+        /// <typeparam name="TPackedVector">The type of pixels contained within the image.</typeparam>
         /// <param name="target">Target image to apply the process to.</param>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="targetRectangle">
@@ -116,11 +120,12 @@ namespace ImageProcessorCore.Processors
         /// The method keeps the source image unchanged and returns the
         /// the result of image process as new image.
         /// </remarks>
-        protected abstract void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY);
+        protected abstract void Apply<TPackedVector>(ImageBase<TPackedVector> target, ImageBase<TPackedVector> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY) where TPackedVector : IPackedVector;
 
         /// <summary>
         /// This method is called after the process is applied to prepare the processor.
         /// </summary>
+        /// <typeparam name="TPackedVector">The type of pixels contained within the image.</typeparam>
         /// <param name="target">Target image to apply the process to.</param>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="targetRectangle">
@@ -130,7 +135,8 @@ namespace ImageProcessorCore.Processors
         /// <param name="sourceRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
-        protected virtual void AfterApply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected virtual void AfterApply<TPackedVector>(ImageBase<TPackedVector> target, ImageBase<TPackedVector> source, Rectangle targetRectangle, Rectangle sourceRectangle)
+            where TPackedVector : IPackedVector
         {
         }
 

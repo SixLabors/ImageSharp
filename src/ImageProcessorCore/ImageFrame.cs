@@ -1,21 +1,26 @@
-﻿namespace ImageProcessorCore
+﻿// <copyright file="ImageFrame.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
+namespace ImageProcessorCore
 {
     /// <summary>
     /// Represents a single frame in a animation.
     /// </summary>
-    /// <remarks>
-    /// The image data is always stored in <see cref="Bgra32"/> format, where the blue, green, red, and
-    /// alpha values are 8 bit unsigned bytes.
-    /// </remarks>
-    public class ImageFrame : ImageBase<Bgra32>, IImageFrame<Bgra32>
+    /// <typeparam name="TPackedVector">
+    /// The packed vector containing pixel information.
+    /// </typeparam>
+    public class ImageFrame<TPackedVector> : ImageBase<TPackedVector>
+        where TPackedVector : IPackedVector
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageFrame"/> class. 
+        /// Initializes a new instance of the <see cref="ImageFrame{TPackedVector}"/> class. 
         /// </summary>
         /// <param name="frame">
         /// The frame to create the frame from.
         /// </param>
-        public ImageFrame(ImageFrame frame)
+        public ImageFrame(ImageFrame<TPackedVector> frame)
             : base(frame)
         {
         }
@@ -23,7 +28,7 @@
         /// <inheritdoc />
         public override IPixelAccessor Lock()
         {
-            return new PixelAccessor(this);
+            return Bootstrapper.Instance.GetPixelAccessor(this);
         }
     }
 }

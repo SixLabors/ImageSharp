@@ -8,19 +8,21 @@ namespace ImageProcessorCore
     using Processors;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image"/> type.
+    /// Extension methods for the <see cref="Image{IPackedVector}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
         /// <summary>
         /// Resizes an image in accordance with the given <see cref="ResizeOptions"/>.
         /// </summary>
+        /// <typeparam name="TPackedVector">The type of pixels contained within the image.</typeparam>
         /// <param name="source">The image to resize.</param>
         /// <param name="options">The resize options.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
-        /// <returns>The <see cref="Image"/></returns>
+        /// <returns>The <see cref="Image{TPackedVector}"/></returns>
         /// <remarks>Passing zero for one of height or width within the resize options will automatically preserve the aspect ratio of the original image</remarks>
-        public static Image Resize(this Image source, ResizeOptions options, ProgressEventHandler progressHandler = null)
+        public static Image<TPackedVector> Resize<TPackedVector>(this Image<TPackedVector> source, ResizeOptions options, ProgressEventHandler progressHandler = null)
+            where TPackedVector : IPackedVector, new()
         {
             // Ensure size is populated across both dimensions.
             if (options.Size.Width == 0 && options.Size.Height > 0)
@@ -41,13 +43,15 @@ namespace ImageProcessorCore
         /// <summary>
         /// Resizes an image to the given width and height.
         /// </summary>
+        /// <typeparam name="TPackedVector">The type of pixels contained within the image.</typeparam>
         /// <param name="source">The image to resize.</param>
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
-        /// <returns>The <see cref="Image"/></returns>
+        /// <returns>The <see cref="Image{TPackedVector}"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
-        public static Image Resize(this Image source, int width, int height, ProgressEventHandler progressHandler = null)
+        public static Image<TPackedVector> Resize<TPackedVector>(this Image<TPackedVector> source, int width, int height, ProgressEventHandler progressHandler = null)
+            where TPackedVector : IPackedVector, new()
         {
             return Resize(source, width, height, new BicubicResampler(), false, progressHandler);
         }
@@ -55,14 +59,16 @@ namespace ImageProcessorCore
         /// <summary>
         /// Resizes an image to the given width and height.
         /// </summary>
+        /// <typeparam name="TPackedVector">The type of pixels contained within the image.</typeparam>
         /// <param name="source">The image to resize.</param>
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
         /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
-        /// <returns>The <see cref="Image"/></returns>
+        /// <returns>The <see cref="Image{TPackedVector}"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
-        public static Image Resize(this Image source, int width, int height, bool compand, ProgressEventHandler progressHandler = null)
+        public static Image<TPackedVector> Resize<TPackedVector>(this Image<TPackedVector> source, int width, int height, bool compand, ProgressEventHandler progressHandler = null)
+            where TPackedVector : IPackedVector, new()
         {
             return Resize(source, width, height, new BicubicResampler(), compand, progressHandler);
         }
@@ -70,15 +76,17 @@ namespace ImageProcessorCore
         /// <summary>
         /// Resizes an image to the given width and height with the given sampler.
         /// </summary>
+        /// <typeparam name="TPackedVector">The type of pixels contained within the image.</typeparam>
         /// <param name="source">The image to resize.</param>
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
         /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
         /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
-        /// <returns>The <see cref="Image"/></returns>
+        /// <returns>The <see cref="Image{TPackedVector}"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
-        public static Image Resize(this Image source, int width, int height, IResampler sampler, bool compand, ProgressEventHandler progressHandler = null)
+        public static Image<TPackedVector> Resize<TPackedVector>(this Image<TPackedVector> source, int width, int height, IResampler sampler, bool compand, ProgressEventHandler progressHandler = null)
+            where TPackedVector : IPackedVector, new()
         {
             return Resize(source, width, height, sampler, source.Bounds, new Rectangle(0, 0, width, height), compand, progressHandler);
         }
@@ -87,6 +95,7 @@ namespace ImageProcessorCore
         /// Resizes an image to the given width and height with the given sampler and
         /// source rectangle.
         /// </summary>
+        /// <typeparam name="TPackedVector">The type of pixels contained within the image.</typeparam>
         /// <param name="source">The image to resize.</param>
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
@@ -99,9 +108,10 @@ namespace ImageProcessorCore
         /// </param>
         /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
-        /// <returns>The <see cref="Image"/></returns>
+        /// <returns>The <see cref="Image{TPackedVector}"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
-        public static Image Resize(this Image source, int width, int height, IResampler sampler, Rectangle sourceRectangle, Rectangle targetRectangle, bool compand = false, ProgressEventHandler progressHandler = null)
+        public static Image<TPackedVector> Resize<TPackedVector>(this Image<TPackedVector> source, int width, int height, IResampler sampler, Rectangle sourceRectangle, Rectangle targetRectangle, bool compand = false, ProgressEventHandler progressHandler = null)
+            where TPackedVector : IPackedVector, new()
         {
             if (width == 0 && height > 0)
             {

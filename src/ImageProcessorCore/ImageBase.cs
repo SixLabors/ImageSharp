@@ -11,11 +11,11 @@ namespace ImageProcessorCore
     /// The base class of all images. Encapsulates the basic properties and methods required to manipulate images 
     /// in different pixel formats.
     /// </summary>
-    /// <typeparam name="TPacked">
+    /// <typeparam name="TPackedVector">
     /// The packed vector pixels format.
     /// </typeparam>
-    public abstract class ImageBase<TPacked> : IImageBase<TPacked>
-        where TPacked : IPackedVector
+    public abstract class ImageBase<TPackedVector> : IImageBase<TPackedVector>
+        where TPackedVector : IPackedVector, new()
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageBase{TPacked}"/> class.
@@ -39,7 +39,7 @@ namespace ImageProcessorCore
 
             this.Width = width;
             this.Height = height;
-            this.Pixels = new TPacked[width * height];
+            this.Pixels = new TPackedVector[width * height];
         }
 
         /// <summary>
@@ -51,7 +51,7 @@ namespace ImageProcessorCore
         /// <exception cref="ArgumentNullException">
         /// Thrown if the given <see cref="ImageBase{TPacked}"/> is null.
         /// </exception>
-        protected ImageBase(ImageBase<TPacked> other)
+        protected ImageBase(ImageBase<TPackedVector> other)
         {
             Guard.NotNull(other, nameof(other), "Other image cannot be null.");
 
@@ -61,14 +61,24 @@ namespace ImageProcessorCore
             this.FrameDelay = other.FrameDelay;
 
             // Copy the pixels.
-            this.Pixels = new TPacked[this.Width * this.Height];
+            this.Pixels = new TPackedVector[this.Width * this.Height];
             Array.Copy(other.Pixels, this.Pixels, other.Pixels.Length);
         }
 
         /// <summary>
+        /// Gets or sets the maximum allowable width in pixels.
+        /// </summary>
+        public int MaxWidth { get; set; } = int.MaxValue;
+
+        /// <summary>
+        /// Gets or sets the maximum allowable height in pixels.
+        /// </summary>
+        public int MaxHeight { get; set; } = int.MaxValue;
+
+        /// <summary>
         /// Gets the pixels as an array of the given packed pixel format.
         /// </summary>
-        public TPacked[] Pixels { get; private set; }
+        public TPackedVector[] Pixels { get; private set; }
 
         /// <summary>
         /// Gets the width in pixels.
@@ -117,7 +127,7 @@ namespace ImageProcessorCore
         /// <exception cref="ArgumentException">
         /// Thrown if the <paramref name="pixels"/> length is not equal to Width * Height.
         /// </exception>
-        public void SetPixels(int width, int height, TPacked[] pixels)
+        public void SetPixels(int width, int height, TPackedVector[] pixels)
         {
             if (width <= 0)
             {
@@ -154,7 +164,7 @@ namespace ImageProcessorCore
         /// <exception cref="ArgumentException">
         /// Thrown if the <paramref name="pixels"/> length is not equal to Width * Height.
         /// </exception>
-        public void ClonePixels(int width, int height, TPacked[] pixels)
+        public void ClonePixels(int width, int height, TPackedVector[] pixels)
         {
             if (width <= 0)
             {
@@ -175,7 +185,7 @@ namespace ImageProcessorCore
             this.Height = height;
 
             // Copy the pixels.
-            this.Pixels = new TPacked[pixels.Length];
+            this.Pixels = new TPackedVector[pixels.Length];
             Array.Copy(pixels, this.Pixels, pixels.Length);
         }
 
@@ -186,6 +196,6 @@ namespace ImageProcessorCore
         /// </remarks>
         /// </summary>
         /// <returns>The <see cref="IPixelAccessor"/></returns>
-        public abstract IPixelAccessor Lock();
+        public abstract IPixelAccessor<TPackedVector> Lock();
     }
 }

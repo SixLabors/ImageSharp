@@ -15,7 +15,8 @@ namespace ImageProcessorCore
     /// The image data is always stored in <see cref="Bgra32"/> format, where the blue, green, red, and
     /// alpha values are 8 bit unsigned bytes.
     /// </remarks>
-    public sealed unsafe class Bgra32PixelAccessor : IPixelAccessor
+    public sealed unsafe class Bgra32PixelAccessor<TPackedVector> : IPixelAccessor<Bgra32>
+
     {
         /// <summary>
         /// The position of the first pixel in the bitmap.
@@ -46,7 +47,7 @@ namespace ImageProcessorCore
         /// <param name="image">
         /// The image to provide pixel access for.
         /// </param>
-        public Bgra32PixelAccessor(IImageBase<IPackedVector> image)
+        public Bgra32PixelAccessor(IImageBase image)
         {
             Guard.NotNull(image, nameof(image));
             Guard.MustBeGreaterThan(image.Width, 0, "image width");
@@ -55,7 +56,7 @@ namespace ImageProcessorCore
             this.Width = image.Width;
             this.Height = image.Height;
 
-            this.pixelsHandle = GCHandle.Alloc(image.Pixels, GCHandleType.Pinned);
+            this.pixelsHandle = GCHandle.Alloc(((ImageBase<Bgra32>)image).Pixels, GCHandleType.Pinned);
             this.pixelsBase = (Bgra32*)this.pixelsHandle.AddrOfPinnedObject().ToPointer();
         }
 
@@ -89,7 +90,7 @@ namespace ImageProcessorCore
         /// than zero and smaller than the width of the pixel.
         /// </param>
         /// <returns>The <see cref="IPackedVector"/> at the specified position.</returns>
-        public IPackedVector this[int x, int y]
+        public Bgra32 this[int x, int y]
         {
             get
             {
@@ -120,7 +121,7 @@ namespace ImageProcessorCore
                     throw new ArgumentOutOfRangeException(nameof(y), "Value cannot be less than zero or greater than the bitmap height.");
                 }
 #endif
-                *(this.pixelsBase + ((y * this.Width) + x)) = (Bgra32)value;
+                *(this.pixelsBase + ((y * this.Width) + x)) = value;
             }
         }
 

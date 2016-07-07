@@ -45,7 +45,8 @@ namespace ImageProcessorCore.Processors
         /// <exception cref="System.ArgumentException">
         /// <paramref name="sourceRectangle"/> doesnt fit the dimension of the image.
         /// </exception>
-        void Apply<TPackedVector>(ImageBase<TPackedVector> target, ImageBase<TPackedVector> source, Rectangle sourceRectangle) where TPackedVector : IPackedVector;
+        void Apply<TPackedVector>(ImageBase<TPackedVector> target, ImageBase<TPackedVector> source, Rectangle sourceRectangle)
+            where TPackedVector : IPackedVector, new();
 
         /// <summary>
         /// Applies the process to the specified portion of the specified <see cref="ImageBase{TPackedVector}"/> at the specified
@@ -67,6 +68,7 @@ namespace ImageProcessorCore.Processors
         /// The method keeps the source image unchanged and returns the
         /// the result of image process as new image.
         /// </remarks>
-        void Apply<TPackedVector>(ImageBase<TPackedVector> target, ImageBase<TPackedVector> source, int width, int height, Rectangle targetRectangle, Rectangle sourceRectangle) where TPackedVector : IPackedVector;
+        void Apply<TPackedVector>(ImageBase<TPackedVector> target, ImageBase<TPackedVector> source, int width, int height, Rectangle targetRectangle, Rectangle sourceRectangle)
+            where TPackedVector : IPackedVector, new();
     }
 }

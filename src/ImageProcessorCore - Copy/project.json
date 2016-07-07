@@ -1,0 +1,38 @@
+{
+  "version": "1.0.0-*",
+  "title": "ImageProcessorCore",
+  "description": "A cross-platform library for processing of image files written in C#",
+  "authors": [
+    "James Jackson-South and contributors"
+  ],
+  "packOptions": {
+    "projectUrl": "https://github.com/JimBobSquarePants/ImageProcessor",
+    "licenseUrl": "http://www.apache.org/licenses/LICENSE-2.0",
+    "tags": [
+      "Image Resize Crop Quality Gif Jpg Jpeg Bitmap Png Fluent Animated"
+    ]
+  },
+  "buildOptions": {
+    "allowUnsafe": true,
+    "debugType": "portable"
+  },
+  "dependencies": {
+    "System.Collections": "4.0.11",
+    "System.Diagnostics.Debug": "4.0.11",
+    "System.Diagnostics.Tools": "4.0.1",
+    "System.IO": "4.1.0",
+    "System.IO.Compression": "4.1.0",
+    "System.Linq": "4.1.0",
+    "System.Numerics.Vectors": "4.1.1",
+    "System.Resources.ResourceManager": "4.0.1",
+    "System.Runtime.Extensions": "4.1.0",
+    "System.Runtime.InteropServices": "4.1.0",
+    "System.Text.Encoding.Extensions": "4.0.11",
+    "System.Threading": "4.0.11",
+    "System.Threading.Tasks": "4.0.11",
+    "System.Threading.Tasks.Parallel": "4.0.1"
+  },
+  "frameworks": {
+    "netstandard1.1": {}
+  }
+}

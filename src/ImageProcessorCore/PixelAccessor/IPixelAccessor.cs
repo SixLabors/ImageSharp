@@ -10,7 +10,7 @@ namespace ImageProcessorCore
     /// <summary>
     /// Encapsulates properties to provides per-pixel access to an images pixels.
     /// </summary>
-    public interface IPixelAccessor<TPackedVector> : IDisposable where TPackedVector : IPackedVector, new()
+    public interface IPixelAccessor : IDisposable
     {
         /// <summary>
         /// Gets the width of the image in pixels.
@@ -34,7 +34,7 @@ namespace ImageProcessorCore
         /// than zero and smaller than the width of the pixel.
         /// </param>
         /// <returns>The <see cref="TPackedVector"/> at the specified position.</returns>
-        TPackedVector this[int x, int y]
+        IPackedVector this[int x, int y]
         {
             get;
             set;

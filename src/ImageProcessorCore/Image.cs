@@ -21,7 +21,7 @@ namespace ImageProcessorCore
     /// The packed vector containing pixel information.
     /// </typeparam>
     public class Image<TPackedVector> : ImageBase<TPackedVector>
-        where TPackedVector : IPackedVector
+        where TPackedVector : IPackedVector, new()
     {
         /// <summary>
         /// The default horizontal resolution value (dots per inch) in x direction.
@@ -40,7 +40,7 @@ namespace ImageProcessorCore
         /// </summary>
         public Image()
         {
-            this.CurrentImageFormat = Bootstrapper.Instance.ImageFormats.First(f => f.GetType() == typeof(PngFormat));
+            this.CurrentImageFormat = Bootstrapper.Instance.ImageFormats.First(f => f.GetType() == typeof(BmpFormat));
         }
 
         /// <summary>
@@ -52,7 +52,8 @@ namespace ImageProcessorCore
         public Image(int width, int height)
             : base(width, height)
         {
-            this.CurrentImageFormat = Bootstrapper.Instance.ImageFormats.First(f => f.GetType() == typeof(PngFormat));
+            // TODO: Change to PNG
+            this.CurrentImageFormat = Bootstrapper.Instance.ImageFormats.First(f => f.GetType() == typeof(BmpFormat));
         }
 
         /// <summary>
@@ -183,7 +184,7 @@ namespace ImageProcessorCore
         public IImageFormat CurrentImageFormat { get; internal set; }
 
         /// <inheritdoc/>
-        public override IPixelAccessor Lock()
+        public override IPixelAccessor<TPackedVector> Lock()
         {
             return Bootstrapper.Instance.GetPixelAccessor(this);
         }

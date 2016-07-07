@@ -38,9 +38,9 @@ namespace ImageProcessorCore
             this.imageFormats = new List<IImageFormat>
             {
                 new BmpFormat(),
-                new JpegFormat(),
-                new PngFormat(),
-                new GifFormat()
+                //new JpegFormat(),
+                //new PngFormat(),
+                //new GifFormat()
             };
 
             this.pixelAccessors = new Dictionary<Type, Type>
@@ -74,14 +74,16 @@ namespace ImageProcessorCore
         /// <typeparam name="TPackedVector">The type of pixel data.</typeparam>
         /// <param name="image">The image</param>
         /// <returns>The <see cref="IPixelAccessor"/></returns>
-        public IPixelAccessor GetPixelAccessor<TPackedVector>(Image<TPackedVector> image)
-            where TPackedVector : IPackedVector
+        public IPixelAccessor<TPackedVector> GetPixelAccessor<TPackedVector>(IImageBase image)
+            where TPackedVector : IPackedVector, new()
         {
             Type packed = typeof(TPackedVector);
-            if (!this.pixelAccessors.ContainsKey(packed))
+            if (this.pixelAccessors.ContainsKey(packed))
             {
                 // TODO: Double check this. It should work...
-                return (IPixelAccessor)Activator.CreateInstance(this.pixelAccessors[packed], image);
+
+                return (IPixelAccessor<TPackedVector>)new Bgra32PixelAccessor<TPackedVector>(image);
+                //return (IPixelAccessor)Activator.CreateInstance(this.pixelAccessors[packed], image);
             }
 
             StringBuilder stringBuilder = new StringBuilder();

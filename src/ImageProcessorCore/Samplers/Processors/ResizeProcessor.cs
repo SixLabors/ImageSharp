@@ -6,6 +6,7 @@
 namespace ImageProcessorCore.Processors
 {
     using System;
+    using System.Numerics;
     using System.Threading.Tasks;
 
     /// <summary>
@@ -16,7 +17,7 @@ namespace ImageProcessorCore.Processors
         /// <summary>
         /// The image used for storing the first pass pixels.
         /// </summary>
-        private Image firstPass;
+        private object firstPass;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ResizeProcessor"/> class.
@@ -47,7 +48,7 @@ namespace ImageProcessorCore.Processors
         protected Weights[] VerticalWeights { get; set; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected override void OnApply<TPackedVector>(ImageBase<TPackedVector> target, ImageBase<TPackedVector> source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
             if (!(this.Sampler is NearestNeighborResampler))
             {
@@ -55,11 +56,11 @@ namespace ImageProcessorCore.Processors
                 this.VerticalWeights = this.PrecomputeWeights(targetRectangle.Height, sourceRectangle.Height);
             }
 
-            this.firstPass = new Image(target.Width, source.Height);
+            this.firstPass = new Image<TPackedVector>(target.Width, source.Height);
         }
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply<TPackedVector>(ImageBase<TPackedVector> target, ImageBase<TPackedVector> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             // Jump out, we'll deal with that later.
             if (source.Bounds == target.Bounds && sourceRectangle == targetRectangle)
@@ -78,14 +79,17 @@ namespace ImageProcessorCore.Processors
             int endX = targetRectangle.Right;
             bool compand = this.Compand;
 
+            // TODO: Yuck! Fix this boxing nonsense
+            Image<TPackedVector> fp = (Image<TPackedVector>)this.firstPass;
+
             if (this.Sampler is NearestNeighborResampler)
             {
                 // Scaling factors
                 float widthFactor = sourceRectangle.Width / (float)targetRectangle.Width;
                 float heightFactor = sourceRectangle.Height / (float)targetRectangle.Height;
 
-                using (PixelAccessor sourcePixels = source.Lock())
-                using (PixelAccessor targetPixels = target.Lock())
+                using (IPixelAccessor<TPackedVector> sourcePixels = source.Lock())
+                using (IPixelAccessor<TPackedVector> targetPixels = target.Lock())
                 {
                     Parallel.For(
                         startY,
@@ -103,7 +107,6 @@ namespace ImageProcessorCore.Processors
                                         {
                                             // X coordinates of source points
                                             int originX = (int)((x - startX) * widthFactor);
-
                                             targetPixels[x, y] = sourcePixels[originX, originY];
                                         }
                                     }
@@ -121,9 +124,9 @@ namespace ImageProcessorCore.Processors
             // A 2-pass 1D algorithm appears to be faster than splitting a 1-pass 2D algorithm 
             // First process the columns. Since we are not using multiple threads startY and endY
             // are the upper and lower bounds of the source rectangle.
-            using (PixelAccessor sourcePixels = source.Lock())
-            using (PixelAccessor firstPassPixels = this.firstPass.Lock())
-            using (PixelAccessor targetPixels = target.Lock())
+            using (IPixelAccessor<TPackedVector> sourcePixels = source.Lock())
+            using (IPixelAccessor<TPackedVector> firstPassPixels = fp.Lock())
+            using (IPixelAccessor<TPackedVector> targetPixels = target.Lock())
             {
                 Parallel.For(
                     0,
@@ -140,25 +143,27 @@ namespace ImageProcessorCore.Processors
                                     Weight[] horizontalValues = this.HorizontalWeights[offsetX].Values;
 
                                     // Destination color components
-                                    Color destination = new Color();
+                                    Vector4 destination = new Vector4();
 
                                     for (int i = 0; i < sum; i++)
                                     {
                                         Weight xw = horizontalValues[i];
                                         int originX = xw.Index;
-                                        Color sourceColor = compand
-                                            ? Color.Expand(sourcePixels[originX, y])
-                                            : sourcePixels[originX, y];
+                                        Vector4 sourceColor = sourcePixels[originX, y].ToVector4();
+                                        //Color sourceColor = compand
+                                        //    ? Color.Expand(sourcePixels[originX, y])
+                                        //    : sourcePixels[originX, y];
 
                                         destination += sourceColor * xw.Value;
                                     }
 
-                                    if (compand)
-                                    {
-                                        destination = Color.Compress(destination);
-                                    }
-
-                                    firstPassPixels[x, y] = destination;
+                                    //if (compand)
+                                    //{
+                                    //    destination = Color.Compress(destination);
+                                    //}
+                                    TPackedVector packed = new TPackedVector();
+                                    packed.PackVector(destination);
+                                    firstPassPixels[x, y] = packed;
                                 }
                             }
                         });
@@ -179,25 +184,29 @@ namespace ImageProcessorCore.Processors
                                 for (int x = 0; x < width; x++)
                                 {
                                     // Destination color components
-                                    Color destination = new Color();
+                                    Vector4 destination = new Vector4();
 
                                     for (int i = 0; i < sum; i++)
                                     {
                                         Weight yw = verticalValues[i];
                                         int originY = yw.Index;
-                                        Color sourceColor = compand
-                                            ? Color.Expand(firstPassPixels[x, originY])
-                                            : firstPassPixels[x, originY];
+
+                                        Vector4 sourceColor = sourcePixels[x, originY].ToVector4();
+                                        //Color sourceColor = compand
+                                        //    ? Color.Expand(firstPassPixels[x, originY])
+                                        //    : firstPassPixels[x, originY];
 
                                         destination += sourceColor * yw.Value;
                                     }
 
-                                    if (compand)
-                                    {
-                                        destination = Color.Compress(destination);
-                                    }
+                                    //if (compand)
+                                    //{
+                                    //    destination = Color.Compress(destination);
+                                    //}
 
-                                    targetPixels[x, y] = destination;
+                                    TPackedVector packed = new TPackedVector();
+                                    packed.PackVector(destination);
+                                    targetPixels[x, y] = packed;
                                 }
                             }
 
@@ -208,7 +217,7 @@ namespace ImageProcessorCore.Processors
         }
 
         /// <inheritdoc/>
-        protected override void AfterApply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected override void AfterApply<TPackedVector>(ImageBase<TPackedVector> target, ImageBase<TPackedVector> source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
             // Copy the pixels over.
             if (source.Bounds == target.Bounds && sourceRectangle == targetRectangle)

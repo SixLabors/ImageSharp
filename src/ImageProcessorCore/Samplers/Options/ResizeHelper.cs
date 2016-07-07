@@ -17,12 +17,14 @@ namespace ImageProcessorCore
         /// <summary>
         /// Calculates the target location and bounds to perform the resize operation against.
         /// </summary>
+        /// <typeparam name="TPackedVector">The type of pixels contained within the image.</typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="options">The resize options.</param>
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        public static Rectangle CalculateTargetLocationAndBounds(ImageBase source, ResizeOptions options)
+        public static Rectangle CalculateTargetLocationAndBounds<TPackedVector>(ImageBase<TPackedVector> source, ResizeOptions options)
+            where TPackedVector : IPackedVector, new()
         {
             switch (options.Mode)
             {
@@ -39,19 +41,21 @@ namespace ImageProcessorCore
 
                 // Last case ResizeMode.Stretch:
                 default:
-                    return CalculateStretchRectangle(source, options);
+                    return new Rectangle(0, 0, options.Size.Width, options.Size.Height);
             }
         }
 
         /// <summary>
         /// Calculates the target rectangle for crop mode.
         /// </summary>
+        /// <typeparam name="TPackedVector">The type of pixels contained within the image.</typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="options">The resize options.</param>
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        private static Rectangle CalculateCropRectangle(ImageBase source, ResizeOptions options)
+        private static Rectangle CalculateCropRectangle<TPackedVector>(ImageBase<TPackedVector> source, ResizeOptions options)
+            where TPackedVector : IPackedVector, new()
         {
             int width = options.Size.Width;
             int height = options.Size.Height;
@@ -163,12 +167,14 @@ namespace ImageProcessorCore
         /// <summary>
         /// Calculates the target rectangle for pad mode.
         /// </summary>
+        /// <typeparam name="TPackedVector">The type of pixels contained within the image.</typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="options">The resize options.</param>
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        private static Rectangle CalculatePadRectangle(ImageBase source, ResizeOptions options)
+        private static Rectangle CalculatePadRectangle<TPackedVector>(ImageBase<TPackedVector> source, ResizeOptions options)
+            where TPackedVector : IPackedVector, new()
         {
             int width = options.Size.Width;
             int height = options.Size.Height;
@@ -242,12 +248,14 @@ namespace ImageProcessorCore
         /// <summary>
         /// Calculates the target rectangle for box pad mode.
         /// </summary>
+        /// <typeparam name="TPackedVector">The type of pixels contained within the image.</typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="options">The resize options.</param>
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        private static Rectangle CalculateBoxPadRectangle(ImageBase source, ResizeOptions options)
+        private static Rectangle CalculateBoxPadRectangle<TPackedVector>(ImageBase<TPackedVector> source, ResizeOptions options)
+            where TPackedVector : IPackedVector, new()
         {
             int width = options.Size.Width;
             int height = options.Size.Height;
@@ -327,12 +335,14 @@ namespace ImageProcessorCore
         /// <summary>
         /// Calculates the target rectangle for max mode.
         /// </summary>
+        /// <typeparam name="TPackedVector">The type of pixels contained within the image.</typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="options">The resize options.</param>
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        private static Rectangle CalculateMaxRectangle(ImageBase source, ResizeOptions options)
+        private static Rectangle CalculateMaxRectangle<TPackedVector>(ImageBase<TPackedVector> source, ResizeOptions options)
+            where TPackedVector : IPackedVector, new()
         {
             int width = options.Size.Width;
             int height = options.Size.Height;
@@ -366,12 +376,14 @@ namespace ImageProcessorCore
         /// <summary>
         /// Calculates the target rectangle for min mode.
         /// </summary>
+        /// <typeparam name="TPackedVector">The type of pixels contained within the image.</typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="options">The resize options.</param>
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        private static Rectangle CalculateMinRectangle(ImageBase source, ResizeOptions options)
+        private static Rectangle CalculateMinRectangle<TPackedVector>(ImageBase<TPackedVector> source, ResizeOptions options)
+            where TPackedVector : IPackedVector, new()
         {
             int width = options.Size.Width;
             int height = options.Size.Height;
@@ -412,19 +424,6 @@ namespace ImageProcessorCore
             // Replace the size to match the rectangle.
             options.Size = new Size(width, height);
             return new Rectangle(0, 0, destinationWidth, destinationHeight);
-        }
-
-        /// <summary>
-        /// Calculates the target rectangle for stretch mode.
-        /// </summary>
-        /// <param name="source">The source image.</param>
-        /// <param name="options">The resize options.</param>
-        /// <returns>
-        /// The <see cref="Rectangle"/>.
-        /// </returns>
-        private static Rectangle CalculateStretchRectangle(ImageBase source, ResizeOptions options)
-        {
-            return new Rectangle(0, 0, options.Size.Width, options.Size.Height);
         }
     }
 }

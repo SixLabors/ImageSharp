@@ -12,8 +12,15 @@ namespace ImageProcessorCore
     /// The packed vector containing pixel information.
     /// </typeparam>
     public class ImageFrame<TPackedVector> : ImageBase<TPackedVector>
-        where TPackedVector : IPackedVector
+        where TPackedVector : IPackedVector, new()
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ImageFrame{TPackedVector}"/> class. 
+        /// </summary>
+        public ImageFrame()
+        {
+        }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrame{TPackedVector}"/> class. 
         /// </summary>
@@ -26,7 +33,7 @@ namespace ImageProcessorCore
         }
 
         /// <inheritdoc />
-        public override IPixelAccessor Lock()
+        public override IPixelAccessor<TPackedVector> Lock()
         {
             return Bootstrapper.Instance.GetPixelAccessor(this);
         }

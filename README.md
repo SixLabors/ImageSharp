@@ -2,7 +2,9 @@
 
 <img src="build/icons/imageprocessor-logo-512.png" width="128" height="128"/>
 
-**ImageProcessorCore** is a new cross-platform 2D graphics API designed to allow the processing of images without the use of `System.Drawing`. It's still in early stages but progress has been pretty quick.
+**ImageProcessorCore** is a new cross-platform 2D graphics API designed to allow the processing of images without the use of `System.Drawing`. It's still in early stages (alpha) but progress has been pretty quick. 
+
+**Please do not use on production environments until the library reaches release candidate status.**
 
 [![Build status](https://ci.appveyor.com/api/projects/status/8ypr7527dnao04yr/branch/Core?svg=true)](https://ci.appveyor.com/project/JamesSouth/imageprocessor/branch/Core)
 [![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/JimBobSquarePants/ImageProcessor?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)

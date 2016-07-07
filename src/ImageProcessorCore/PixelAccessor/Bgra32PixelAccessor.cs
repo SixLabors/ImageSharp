@@ -1,4 +1,4 @@
-﻿// <copyright file="PixelAccessor.cs" company="James Jackson-South">
+﻿// <copyright file="Bgra32PixelAccessor.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -15,7 +15,7 @@ namespace ImageProcessorCore
     /// The image data is always stored in <see cref="Bgra32"/> format, where the blue, green, red, and
     /// alpha values are 8 bit unsigned bytes.
     /// </remarks>
-    public sealed unsafe class PixelAccessor : IPixelAccessor
+    public sealed unsafe class Bgra32PixelAccessor : IPixelAccessor
     {
         /// <summary>
         /// The position of the first pixel in the bitmap.
@@ -41,12 +41,12 @@ namespace ImageProcessorCore
         private bool isDisposed;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PixelAccessor"/> class.
+        /// Initializes a new instance of the <see cref="Bgra32PixelAccessor"/> class.
         /// </summary>
         /// <param name="image">
         /// The image to provide pixel access for.
         /// </param>
-        public PixelAccessor(ImageBase<Bgra32> image)
+        public Bgra32PixelAccessor(IImageBase<IPackedVector> image)
         {
             Guard.NotNull(image, nameof(image));
             Guard.MustBeGreaterThan(image.Width, 0, "image width");
@@ -60,9 +60,9 @@ namespace ImageProcessorCore
         }
 
         /// <summary>
-        /// Finalizes an instance of the <see cref="PixelAccessor"/> class. 
+        /// Finalizes an instance of the <see cref="Bgra32PixelAccessor"/> class. 
         /// </summary>
-        ~PixelAccessor()
+        ~Bgra32PixelAccessor()
         {
             this.Dispose();
         }

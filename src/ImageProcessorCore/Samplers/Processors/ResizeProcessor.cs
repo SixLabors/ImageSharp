@@ -15,11 +15,6 @@ namespace ImageProcessorCore.Processors
     public class ResizeProcessor : ImageSampler
     {
         /// <summary>
-        /// The image used for storing the first pass pixels.
-        /// </summary>
-        private object firstPass;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="ResizeProcessor"/> class.
         /// </summary>
         /// <param name="sampler">
@@ -55,8 +50,6 @@ namespace ImageProcessorCore.Processors
                 this.HorizontalWeights = this.PrecomputeWeights(targetRectangle.Width, sourceRectangle.Width);
                 this.VerticalWeights = this.PrecomputeWeights(targetRectangle.Height, sourceRectangle.Height);
             }
-
-            this.firstPass = new Image<TPackedVector>(target.Width, source.Height);
         }
 
         /// <inheritdoc/>
@@ -79,17 +72,14 @@ namespace ImageProcessorCore.Processors
             int endX = targetRectangle.Right;
             bool compand = this.Compand;
 
-            // TODO: Yuck! Fix this boxing nonsense
-            Image<TPackedVector> fp = (Image<TPackedVector>)this.firstPass;
-
             if (this.Sampler is NearestNeighborResampler)
             {
                 // Scaling factors
                 float widthFactor = sourceRectangle.Width / (float)targetRectangle.Width;
                 float heightFactor = sourceRectangle.Height / (float)targetRectangle.Height;
 
-                using (IPixelAccessor<TPackedVector> sourcePixels = source.Lock())
-                using (IPixelAccessor<TPackedVector> targetPixels = target.Lock())
+                using (IPixelAccessor sourcePixels = source.Lock())
+                using (IPixelAccessor targetPixels = target.Lock())
                 {
                     Parallel.For(
                         startY,
@@ -124,94 +114,114 @@ namespace ImageProcessorCore.Processors
             // A 2-pass 1D algorithm appears to be faster than splitting a 1-pass 2D algorithm 
             // First process the columns. Since we are not using multiple threads startY and endY
             // are the upper and lower bounds of the source rectangle.
-            using (IPixelAccessor<TPackedVector> sourcePixels = source.Lock())
-            using (IPixelAccessor<TPackedVector> firstPassPixels = fp.Lock())
-            using (IPixelAccessor<TPackedVector> targetPixels = target.Lock())
+            Image<TPackedVector> firstPass = new Image<TPackedVector>(target.Width, source.Height);
+            using (IPixelAccessor sourcePixels = source.Lock())
+            using (IPixelAccessor firstPassPixels = firstPass.Lock())
+            using (IPixelAccessor targetPixels = target.Lock())
             {
                 Parallel.For(
                     0,
                     sourceHeight,
                     y =>
+                    {
+                        for (int x = startX; x < endX; x++)
                         {
-                            for (int x = startX; x < endX; x++)
+                            if (x >= 0 && x < width)
                             {
-                                if (x >= 0 && x < width)
+                                // Ensure offsets are normalised for cropping and padding.
+                                int offsetX = x - startX;
+                                float sum = this.HorizontalWeights[offsetX].Sum;
+                                Weight[] horizontalValues = this.HorizontalWeights[offsetX].Values;
+
+                                // Destination color components
+                                //Color destination = new Color();
+
+                                //for (int i = 0; i < sum; i++)
+                                //{
+                                //    Weight xw = horizontalValues[i];
+                                //    int originX = xw.Index;
+                                //    Color sourceColor = compand
+                                //        ? Color.Expand(sourcePixels[originX, y])
+                                //        : sourcePixels[originX, y];
+
+                                //    destination += sourceColor * xw.Value;
+                                //}
+
+                                //if (compand)
+                                //{
+                                //    destination = Color.Compress(destination);
+                                //}
+
+                                //firstPassPixels[x, y] = destination;
+                                Vector4 destination = new Vector4();
+
+                                for (int i = 0; i < sum; i++)
                                 {
-                                    // Ensure offsets are normalised for cropping and padding.
-                                    int offsetX = x - startX;
-                                    float sum = this.HorizontalWeights[offsetX].Sum;
-                                    Weight[] horizontalValues = this.HorizontalWeights[offsetX].Values;
+                                    Weight xw = horizontalValues[i];
+                                    int originX = xw.Index;
+                                    Vector4 sourceColor = sourcePixels[originX, y].ToVector4();
+                                    //Color sourceColor = compand
+                                    //    ? Color.Expand(sourcePixels[originX, y])
+                                    //    : sourcePixels[originX, y];
 
-                                    // Destination color components
-                                    Vector4 destination = new Vector4();
-
-                                    for (int i = 0; i < sum; i++)
-                                    {
-                                        Weight xw = horizontalValues[i];
-                                        int originX = xw.Index;
-                                        Vector4 sourceColor = sourcePixels[originX, y].ToVector4();
-                                        //Color sourceColor = compand
-                                        //    ? Color.Expand(sourcePixels[originX, y])
-                                        //    : sourcePixels[originX, y];
-
-                                        destination += sourceColor * xw.Value;
-                                    }
-
-                                    //if (compand)
-                                    //{
-                                    //    destination = Color.Compress(destination);
-                                    //}
-                                    TPackedVector packed = new TPackedVector();
-                                    packed.PackVector(destination);
-                                    firstPassPixels[x, y] = packed;
+                                    destination += sourceColor * xw.Value;
                                 }
+
+                                //if (compand)
+                                //{
+                                //    destination = Color.Compress(destination);
+                                //}
+                                TPackedVector packed = new TPackedVector();
+                                packed.PackVector(destination);
+
+                                firstPassPixels[x, y] = packed;
                             }
-                        });
+                        }
+                    });
 
                 // Now process the rows.
                 Parallel.For(
                     startY,
                     endY,
                     y =>
+                    {
+                        if (y >= 0 && y < height)
                         {
-                            if (y >= 0 && y < height)
+                            // Ensure offsets are normalised for cropping and padding.
+                            int offsetY = y - startY;
+                            float sum = this.VerticalWeights[offsetY].Sum;
+                            Weight[] verticalValues = this.VerticalWeights[offsetY].Values;
+
+                            for (int x = 0; x < width; x++)
                             {
-                                // Ensure offsets are normalised for cropping and padding.
-                                int offsetY = y - startY;
-                                float sum = this.VerticalWeights[offsetY].Sum;
-                                Weight[] verticalValues = this.VerticalWeights[offsetY].Values;
+                                // Destination color components
+                                Vector4 destination = new Vector4();
 
-                                for (int x = 0; x < width; x++)
+                                for (int i = 0; i < sum; i++)
                                 {
-                                    // Destination color components
-                                    Vector4 destination = new Vector4();
-
-                                    for (int i = 0; i < sum; i++)
-                                    {
-                                        Weight yw = verticalValues[i];
-                                        int originY = yw.Index;
-
-                                        Vector4 sourceColor = sourcePixels[x, originY].ToVector4();
-                                        //Color sourceColor = compand
-                                        //    ? Color.Expand(firstPassPixels[x, originY])
-                                        //    : firstPassPixels[x, originY];
-
-                                        destination += sourceColor * yw.Value;
-                                    }
-
-                                    //if (compand)
-                                    //{
-                                    //    destination = Color.Compress(destination);
-                                    //}
-
-                                    TPackedVector packed = new TPackedVector();
-                                    packed.PackVector(destination);
-                                    targetPixels[x, y] = packed;
+                                    Weight yw = verticalValues[i];
+                                    int originY = yw.Index;
+                                    //Color sourceColor = compand
+                                    //    ? Color.Expand(firstPassPixels[x, originY])
+                                    //    : firstPassPixels[x, originY];
+                                    Vector4 sourceColor = firstPassPixels[x, originY].ToVector4();
+                                    destination += sourceColor * yw.Value;
                                 }
-                            }
 
-                            this.OnRowProcessed();
-                        });
+                                //if (compand)
+                                //{
+                                //    destination = Color.Compress(destination);
+                                //}
+
+                                TPackedVector packed = new TPackedVector();
+                                packed.PackVector(destination);
+
+                                targetPixels[x, y] = packed;
+                            }
+                        }
+
+                        this.OnRowProcessed();
+                    });
 
             }
         }

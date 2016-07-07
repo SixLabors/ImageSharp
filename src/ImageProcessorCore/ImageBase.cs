@@ -196,6 +196,6 @@ namespace ImageProcessorCore
         /// </remarks>
         /// </summary>
         /// <returns>The <see cref="IPixelAccessor"/></returns>
-        public abstract IPixelAccessor<TPackedVector> Lock();
+        public abstract IPixelAccessor Lock();
     }
 }

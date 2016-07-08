@@ -8,7 +8,6 @@ namespace ImageProcessorCore
     using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
-    using System.Text;
 
     using ImageProcessorCore.Formats;
 
@@ -28,7 +27,7 @@ namespace ImageProcessorCore
         /// </summary>
         private readonly List<IImageFormat> imageFormats;
 
-        private readonly Dictionary<Type, Type> pixelAccessors;
+        private readonly Dictionary<Type, Func<IImageBase, IPixelAccessor>> pixelAccessors;
 
         /// <summary>
         /// Prevents a default instance of the <see cref="Bootstrapper"/> class from being created.
@@ -43,9 +42,9 @@ namespace ImageProcessorCore
                 //new GifFormat()
             };
 
-            this.pixelAccessors = new Dictionary<Type, Type>
+            this.pixelAccessors = new Dictionary<Type, Func<IImageBase, IPixelAccessor>>
             {
-                { typeof(Bgra32), typeof(Bgra32PixelAccessor) }
+                { typeof(Bgra32), i=> new Bgra32PixelAccessor(i) }
             };
         }
 
@@ -80,47 +79,10 @@ namespace ImageProcessorCore
             Type packed = typeof(TPackedVector);
             if (this.pixelAccessors.ContainsKey(packed))
             {
-                // TODO: Double check this. It should work...
-
-                //return new Bgra32PixelAccessor(image);
-                return (IPixelAccessor)Activator.CreateInstance(this.pixelAccessors[packed], image);
+                return this.pixelAccessors[packed].Invoke(image);
             }
 
-            StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.AppendLine("PixelAccessor cannot be loaded. Available accessors:");
-
-            foreach (Type value in this.pixelAccessors.Values)
-            {
-                stringBuilder.AppendLine("-" + value.Name);
-            }
-
-            throw new NotSupportedException(stringBuilder.ToString());
+            throw new NotSupportedException($"PixelAccessor cannot be loaded for {packed}:");
         }
-
-        ///// <summary>
-        ///// Gets an instance of the correct <see cref="IPixelAccessor"/> for the packed vector.
-        ///// </summary>
-        ///// <typeparam name="TPackedVector">The type of pixel data.</typeparam>
-        ///// <param name="image">The image</param>
-        ///// <returns>The <see cref="IPixelAccessor"/></returns>
-        //public IPixelAccessor GetPixelAccessor<TPackedVector>(ImageFrame<TPackedVector> image)
-        //    where TPackedVector : IPackedVector, new()
-        //{
-        //    Type packed = typeof(TPackedVector);
-        //    if (!this.pixelAccessors.ContainsKey(packed))
-        //    {
-        //        return (IPixelAccessor)Activator.CreateInstance(this.pixelAccessors[packed], image);
-        //    }
-
-        //    StringBuilder stringBuilder = new StringBuilder();
-        //    stringBuilder.AppendLine("PixelAccessor cannot be loaded. Available accessors:");
-
-        //    foreach (Type value in this.pixelAccessors.Values)
-        //    {
-        //        stringBuilder.AppendLine("-" + value.Name);
-        //    }
-
-        //    throw new NotSupportedException(stringBuilder.ToString());
-        //}
     }
 }

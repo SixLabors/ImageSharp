@@ -11,9 +11,9 @@
         [Benchmark(Baseline = true, Description = "System.Drawing Resize")]
         public Size ResizeSystemDrawing()
         {
-            using (Bitmap source = new Bitmap(400, 400))
+            using (Bitmap source = new Bitmap(2000, 2000))
             {
-                using (Bitmap destination = new Bitmap(100, 100))
+                using (Bitmap destination = new Bitmap(400, 400))
                 {
                     using (Graphics graphics = Graphics.FromImage(destination))
                     {
@@ -31,8 +31,8 @@
         [Benchmark(Description = "ImageProcessorCore Resize")]
         public CoreSize ResizeCore()
         {
-            Image<Bgra32> image = new Image<Bgra32>(400, 400);
-            image.Resize(100, 100);
+            Image<Bgra32> image = new Image<Bgra32>(2000, 2000);
+            image.Resize(400, 400);
             return new CoreSize(image.Width, image.Height);
         }
     }

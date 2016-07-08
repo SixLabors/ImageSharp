@@ -43,12 +43,12 @@ namespace ImageProcessorCore.Formats
         bool IsSupportedFileExtension(string extension);
 
         /// <summary>
-        /// Encodes the image to the specified stream from the <see cref="ImageBase{TPackedVector}"/>.
+        /// Encodes the image to the specified stream from the <see cref="ImageBase{T}"/>.
         /// </summary>
-        /// <typeparam name="TPackedVector">The type of pixels contained within the image.</typeparam>
-        /// <param name="image">The <see cref="ImageBase{TPackedVector}"/> to encode from.</param>
+        /// <typeparam name="T">The type of pixels contained within the image.</typeparam>
+        /// <param name="image">The <see cref="ImageBase{T}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
-        void Encode<TPackedVector>(ImageBase<TPackedVector> image, Stream stream)
-            where TPackedVector : IPackedVector, new();
+        void Encode<T>(ImageBase<T> image, Stream stream)
+            where T : IPackedVector, new();
     }
 }

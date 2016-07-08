@@ -22,14 +22,14 @@ namespace ImageProcessorCore.Formats
         private BmpBitsPerPixel bmpBitsPerPixel;
 
         /// <summary>
-        /// Encodes the image to the specified stream from the <see cref="ImageBase{TPackedVector}"/>.
+        /// Encodes the image to the specified stream from the <see cref="ImageBase{T}"/>.
         /// </summary>
-        /// <typeparam name="TPackedVector">The type of pixels contained within the image.</typeparam>
-        /// <param name="image">The <see cref="ImageBase{TPackedVector}"/> to encode from.</param>
+        /// <typeparam name="T">The type of pixels contained within the image.</typeparam>
+        /// <param name="image">The <see cref="ImageBase{T}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
         /// <param name="bitsPerPixel">The <see cref="BmpBitsPerPixel"/></param>
-        public void Encode<TPackedVector>(ImageBase<TPackedVector> image, Stream stream, BmpBitsPerPixel bitsPerPixel)
-            where TPackedVector : IPackedVector, new()
+        public void Encode<T>(ImageBase<T> image, Stream stream, BmpBitsPerPixel bitsPerPixel)
+            where T : IPackedVector, new()
         {
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
@@ -120,15 +120,15 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Writes the pixel data to the binary stream.
         /// </summary>
-        /// <typeparam name="TPackedVector">The type of pixels contained within the image.</typeparam>
+        /// <typeparam name="T">The type of pixels contained within the image.</typeparam>
         /// <param name="writer">
         /// The <see cref="EndianBinaryWriter"/> containing the stream to write to.
         /// </param>
         /// <param name="image">
-        /// The <see cref="ImageBase{TPackedVector}"/> containing pixel data.
+        /// The <see cref="ImageBase{T}"/> containing pixel data.
         /// </param>
-        private void WriteImage<TPackedVector>(EndianBinaryWriter writer, ImageBase<TPackedVector> image)
-            where TPackedVector : IPackedVector, new()
+        private void WriteImage<T>(EndianBinaryWriter writer, ImageBase<T> image)
+            where T : IPackedVector, new()
         {
             // TODO: Add more compression formats.
             int amount = (image.Width * (int)this.bmpBitsPerPixel) % 4;
@@ -137,7 +137,7 @@ namespace ImageProcessorCore.Formats
                 amount = 4 - amount;
             }
 
-            using (IPixelAccessor<TPackedVector> pixels = image.Lock())
+            using (IPixelAccessor<T> pixels = image.Lock())
             {
                 switch (this.bmpBitsPerPixel)
                 {
@@ -155,12 +155,12 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Writes the 32bit color palette to the stream.
         /// </summary>
-        /// <typeparam name="TPackedVector">The type of pixels contained within the image.</typeparam>
+        /// <typeparam name="T">The type of pixels contained within the image.</typeparam>
         /// <param name="writer">The <see cref="EndianBinaryWriter"/> containing the stream to write to.</param>
         /// <param name="pixels">The <see cref="IPixelAccessor"/> containing pixel data.</param>
         /// <param name="amount">The amount to pad each row by.</param>
-        private void Write32bit<TPackedVector>(EndianBinaryWriter writer, IPixelAccessor<TPackedVector> pixels, int amount)
-            where TPackedVector : IPackedVector, new()
+        private void Write32bit<T>(EndianBinaryWriter writer, IPixelAccessor<T> pixels, int amount)
+            where T : IPackedVector, new()
         {
             for (int y = pixels.Height - 1; y >= 0; y--)
             {
@@ -185,8 +185,8 @@ namespace ImageProcessorCore.Formats
         /// <param name="writer">The <see cref="EndianBinaryWriter"/> containing the stream to write to.</param>
         /// <param name="pixels">The <see cref="IPixelAccessor"/> containing pixel data.</param>
         /// <param name="amount">The amount to pad each row by.</param>
-        private void Write24bit<TPackedVector>(EndianBinaryWriter writer, IPixelAccessor<TPackedVector> pixels, int amount)
-            where TPackedVector : IPackedVector, new()
+        private void Write24bit<T>(EndianBinaryWriter writer, IPixelAccessor<T> pixels, int amount)
+            where T : IPackedVector, new()
         {
             for (int y = pixels.Height - 1; y >= 0; y--)
             {

@@ -11,17 +11,17 @@ namespace ImageProcessorCore
     /// An interface that converts packed vector types to and from <see cref="Vector4"/> values, 
     /// allowing multiple encodings to be manipulated in a generic way.
     /// </summary>
-    /// <typeparam name="TPacked">
+    /// <typeparam name="T">
     /// The type of object representing the packed value.
     /// </typeparam>
-    public interface IPackedVector<TPacked> : IPackedVector
-        where TPacked : struct
+    public interface IPackedVector<T> : IPackedVector
+        where T : struct
     {
         /// <summary>
         /// Gets or sets the packed representation of the value.
         /// Typically packed in least to greatest significance order.
         /// </summary>
-        TPacked PackedValue { get; set; }
+        T PackedValue { get; set; }
     }
 
     /// <summary>

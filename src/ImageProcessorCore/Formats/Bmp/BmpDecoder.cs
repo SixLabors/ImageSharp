@@ -70,12 +70,12 @@ namespace ImageProcessorCore.Formats
         }
 
         /// <summary>
-        /// Decodes the image from the specified stream to the <see cref="ImageBase{TPackedVector}"/>.
+        /// Decodes the image from the specified stream to the <see cref="ImageBase{T}"/>.
         /// </summary>
-        /// <param name="image">The <see cref="ImageBase{TPackedVector}"/> to decode to.</param>
+        /// <param name="image">The <see cref="ImageBase{T}"/> to decode to.</param>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        public void Decode<TPackedVector>(Image<TPackedVector> image, Stream stream)
-            where TPackedVector : IPackedVector, new()
+        public void Decode<T>(Image<T> image, Stream stream)
+            where T : IPackedVector, new()
         {
             new BmpDecoderCore().Decode(image, stream);
         }

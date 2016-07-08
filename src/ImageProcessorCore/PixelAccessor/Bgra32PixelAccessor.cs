@@ -15,7 +15,7 @@ namespace ImageProcessorCore
     /// The image data is always stored in <see cref="Bgra32"/> format, where the blue, green, red, and
     /// alpha values are 8 bit unsigned bytes.
     /// </remarks>
-    public sealed unsafe class Bgra32PixelAccessor : IPixelAccessor
+    public sealed unsafe class Bgra32PixelAccessor : IPixelAccessor<Bgra32>
 
     {
         /// <summary>
@@ -90,7 +90,7 @@ namespace ImageProcessorCore
         /// than zero and smaller than the width of the pixel.
         /// </param>
         /// <returns>The <see cref="IPackedVector"/> at the specified position.</returns>
-        public IPackedVector this[int x, int y]
+        public Bgra32 this[int x, int y]
         {
             get
             {
@@ -121,7 +121,7 @@ namespace ImageProcessorCore
                     throw new ArgumentOutOfRangeException(nameof(y), "Value cannot be less than zero or greater than the bitmap height.");
                 }
 #endif
-                *(this.pixelsBase + ((y * this.Width) + x)) = (Bgra32)value;
+                *(this.pixelsBase + ((y * this.Width) + x)) = value;
             }
         }
 

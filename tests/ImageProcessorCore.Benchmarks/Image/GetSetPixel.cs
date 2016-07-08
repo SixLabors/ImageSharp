@@ -24,7 +24,7 @@
         public Bgra32 ResizeCore()
         {
             Image<Bgra32> image = new Image<Bgra32>(400, 400);
-            using (IPixelAccessor imagePixels = image.Lock())
+            using (IPixelAccessor<Bgra32> imagePixels = image.Lock())
             {
                 imagePixels[200, 200] = new Bgra32(1, 1, 1, 1);
                 return (Bgra32)imagePixels[200, 200];

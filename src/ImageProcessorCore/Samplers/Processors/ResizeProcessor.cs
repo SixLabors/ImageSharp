@@ -14,11 +14,6 @@ namespace ImageProcessorCore.Processors
     public class ResizeProcessor : ImageSampler
     {
         /// <summary>
-        /// The image used for storing the first pass pixels.
-        /// </summary>
-        private Image firstPass;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="ResizeProcessor"/> class.
         /// </summary>
         /// <param name="sampler">
@@ -54,8 +49,6 @@ namespace ImageProcessorCore.Processors
                 this.HorizontalWeights = this.PrecomputeWeights(targetRectangle.Width, sourceRectangle.Width);
                 this.VerticalWeights = this.PrecomputeWeights(targetRectangle.Height, sourceRectangle.Height);
             }
-
-            this.firstPass = new Image(target.Width, source.Height);
         }
 
         /// <inheritdoc/>
@@ -121,8 +114,9 @@ namespace ImageProcessorCore.Processors
             // A 2-pass 1D algorithm appears to be faster than splitting a 1-pass 2D algorithm 
             // First process the columns. Since we are not using multiple threads startY and endY
             // are the upper and lower bounds of the source rectangle.
+            Image firstPass = new Image(target.Width, source.Height);
             using (PixelAccessor sourcePixels = source.Lock())
-            using (PixelAccessor firstPassPixels = this.firstPass.Lock())
+            using (PixelAccessor firstPassPixels = firstPass.Lock())
             using (PixelAccessor targetPixels = target.Lock())
             {
                 Parallel.For(

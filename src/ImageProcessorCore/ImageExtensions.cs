@@ -12,7 +12,7 @@ namespace ImageProcessorCore
     using Processors;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image{TPackedVector}"/> type.
+    /// Extension methods for the <see cref="Image{T}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
@@ -57,12 +57,12 @@ namespace ImageProcessorCore
         /// Applies the collection of processors to the image.
         /// <remarks>This method does not resize the target image.</remarks>
         /// </summary>
-        /// <typeparam name="TPackedVector">The type of pixels contained within the image.</typeparam>
+        /// <typeparam name="T">The type of pixels contained within the image.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="processor">The processor to apply to the image.</param>
-        /// <returns>The <see cref="Image{TPackedVector}"/>.</returns>
-        public static Image<TPackedVector> Process<TPackedVector>(this Image<TPackedVector> source, IImageProcessor processor)
-            where TPackedVector : IPackedVector, new()
+        /// <returns>The <see cref="Image{T}"/>.</returns>
+        public static Image<T> Process<T>(this Image<T> source, IImageProcessor processor)
+            where T : IPackedVector, new()
         {
             return Process(source, source.Bounds, processor);
         }
@@ -71,15 +71,15 @@ namespace ImageProcessorCore
         /// Applies the collection of processors to the image.
         /// <remarks>This method does not resize the target image.</remarks>
         /// </summary>
-        /// <typeparam name="TPackedVector">The type of pixels contained within the image.</typeparam>
+        /// <typeparam name="T">The type of pixels contained within the image.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="sourceRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
         /// <param name="processor">The processors to apply to the image.</param>
-        /// <returns>The <see cref="Image{TPackedVector}"/>.</returns>
-        public static Image<TPackedVector> Process<TPackedVector>(this Image<TPackedVector> source, Rectangle sourceRectangle, IImageProcessor processor)
-            where TPackedVector : IPackedVector, new()
+        /// <returns>The <see cref="Image{T}"/>.</returns>
+        public static Image<T> Process<T>(this Image<T> source, Rectangle sourceRectangle, IImageProcessor processor)
+            where T : IPackedVector, new()
         {
             return PerformAction(source, true, (sourceImage, targetImage) => processor.Apply(targetImage, sourceImage, sourceRectangle));
         }
@@ -90,14 +90,14 @@ namespace ImageProcessorCore
         /// This method is not chainable.
         /// </remarks>
         /// </summary>
-        /// <typeparam name="TPackedVector">The type of pixels contained within the image.</typeparam>
+        /// <typeparam name="T">The type of pixels contained within the image.</typeparam>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
         /// <param name="sampler">The processor to apply to the image.</param>
-        /// <returns>The <see cref="Image{TPackedVector}"/>.</returns>
-        public static Image<TPackedVector> Process<TPackedVector>(this Image<TPackedVector> source, int width, int height, IImageSampler sampler)
-            where TPackedVector : IPackedVector, new()
+        /// <returns>The <see cref="Image{T}"/>.</returns>
+        public static Image<T> Process<T>(this Image<T> source, int width, int height, IImageSampler sampler)
+            where T : IPackedVector, new()
         {
             return Process(source, width, height, source.Bounds, default(Rectangle), sampler);
         }
@@ -108,7 +108,7 @@ namespace ImageProcessorCore
         /// This method does will resize the target image if the source and target rectangles are different.
         /// </remarks>
         /// </summary>
-        /// <typeparam name="TPackedVector">The type of pixels contained within the image.</typeparam>
+        /// <typeparam name="T">The type of pixels contained within the image.</typeparam>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
@@ -120,9 +120,9 @@ namespace ImageProcessorCore
         /// The image is scaled to fit the rectangle.
         /// </param>
         /// <param name="sampler">The processor to apply to the image.</param>
-        /// <returns>The <see cref="Image{TPackedVector}"/>.</returns>
-        public static Image<TPackedVector> Process<TPackedVector>(this Image<TPackedVector> source, int width, int height, Rectangle sourceRectangle, Rectangle targetRectangle, IImageSampler sampler)
-            where TPackedVector : IPackedVector, new()
+        /// <returns>The <see cref="Image{T}"/>.</returns>
+        public static Image<T> Process<T>(this Image<T> source, int width, int height, Rectangle sourceRectangle, Rectangle targetRectangle, IImageSampler sampler)
+            where T : IPackedVector, new()
         {
             return PerformAction(source, false, (sourceImage, targetImage) => sampler.Apply(targetImage, sourceImage, width, height, targetRectangle, sourceRectangle));
         }
@@ -130,17 +130,17 @@ namespace ImageProcessorCore
         /// <summary>
         /// Performs the given action on the source image.
         /// </summary>
-        /// <typeparam name="TPackedVector">The type of pixels contained within the image.</typeparam>
+        /// <typeparam name="T">The type of pixels contained within the image.</typeparam>
         /// <param name="source">The image to perform the action against.</param>
         /// <param name="clone">Whether to clone the image.</param>
         /// <param name="action">The <see cref="Action"/> to perform against the image.</param>
-        /// <returns>The <see cref="Image{TPackedVector}"/>.</returns>
-        private static Image<TPackedVector> PerformAction<TPackedVector>(Image<TPackedVector> source, bool clone, Action<ImageBase<TPackedVector>, ImageBase<TPackedVector>> action)
-             where TPackedVector : IPackedVector, new()
+        /// <returns>The <see cref="Image{T}"/>.</returns>
+        private static Image<T> PerformAction<T>(Image<T> source, bool clone, Action<ImageBase<T>, ImageBase<T>> action)
+             where T : IPackedVector, new()
         {
-            Image<TPackedVector> transformedImage = clone
-                ? new Image<TPackedVector>(source)
-                : new Image<TPackedVector>
+            Image<T> transformedImage = clone
+                ? new Image<T>(source)
+                : new Image<T>
                 {
                     // Several properties require copying
                     // TODO: Check why we need to set these?
@@ -154,10 +154,10 @@ namespace ImageProcessorCore
 
             for (int i = 0; i < source.Frames.Count; i++)
             {
-                ImageFrame<TPackedVector> sourceFrame = source.Frames[i];
-                ImageFrame<TPackedVector> tranformedFrame = clone
-                    ? new ImageFrame<TPackedVector>(sourceFrame)
-                    : new ImageFrame<TPackedVector> { FrameDelay = sourceFrame.FrameDelay };
+                ImageFrame<T> sourceFrame = source.Frames[i];
+                ImageFrame<T> tranformedFrame = clone
+                    ? new ImageFrame<T>(sourceFrame)
+                    : new ImageFrame<T> { FrameDelay = sourceFrame.FrameDelay };
 
                 action(sourceFrame, tranformedFrame);
 

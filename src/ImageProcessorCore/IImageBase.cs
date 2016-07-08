@@ -2,13 +2,13 @@
 
 namespace ImageProcessorCore
 {
-    public interface IImageBase<TPackedVector> : IImageBase
-        where TPackedVector : IPackedVector, new()
+    public interface IImageBase<T> : IImageBase
+        where T : IPackedVector, new()
     {
-        TPackedVector[] Pixels { get; }
-        void ClonePixels(int width, int height, TPackedVector[] pixels);
-        IPixelAccessor<TPackedVector> Lock();
-        void SetPixels(int width, int height, TPackedVector[] pixels);
+        T[] Pixels { get; }
+        void ClonePixels(int width, int height, T[] pixels);
+        IPixelAccessor<T> Lock();
+        void SetPixels(int width, int height, T[] pixels);
     }
 
     public interface IImageBase

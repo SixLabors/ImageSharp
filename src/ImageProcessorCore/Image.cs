@@ -17,11 +17,11 @@ namespace ImageProcessorCore
     /// <summary>
     /// Encapsulates an image, which consists of the pixel data for a graphics image and its attributes.
     /// </summary>
-    /// <typeparam name="TPackedVector">
+    /// <typeparam name="T">
     /// The packed vector containing pixel information.
     /// </typeparam>
-    public class Image<TPackedVector> : ImageBase<TPackedVector>
-        where TPackedVector : IPackedVector, new()
+    public class Image<T> : ImageBase<T>
+        where T : IPackedVector, new()
     {
         /// <summary>
         /// The default horizontal resolution value (dots per inch) in x direction.
@@ -36,7 +36,7 @@ namespace ImageProcessorCore
         public const double DefaultVerticalResolution = 96;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Image{TPackedVector}"/> class.
+        /// Initializes a new instance of the <see cref="Image{T}"/> class.
         /// </summary>
         public Image()
         {
@@ -44,7 +44,7 @@ namespace ImageProcessorCore
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Image{TPackedVector}"/> class
+        /// Initializes a new instance of the <see cref="Image{T}"/> class
         /// with the height and the width of the image.
         /// </summary>
         /// <param name="width">The width of the image in pixels.</param>
@@ -57,7 +57,7 @@ namespace ImageProcessorCore
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Image{TPackedVector}"/> class.
+        /// Initializes a new instance of the <see cref="Image{T}"/> class.
         /// </summary>
         /// <param name="stream">
         /// The stream containing image information.
@@ -70,18 +70,18 @@ namespace ImageProcessorCore
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Image{TPackedVector}"/> class
+        /// Initializes a new instance of the <see cref="Image{T}"/> class
         /// by making a copy from another image.
         /// </summary>
         /// <param name="other">The other image, where the clone should be made from.</param>
         /// <exception cref="ArgumentNullException"><paramref name="other"/> is null.</exception>
-        public Image(Image<TPackedVector> other)
+        public Image(Image<T> other)
         {
-            foreach (ImageFrame<TPackedVector> frame in other.Frames)
+            foreach (ImageFrame<T> frame in other.Frames)
             {
                 if (frame != null)
                 {
-                    this.Frames.Add(new ImageFrame<TPackedVector>(frame));
+                    this.Frames.Add(new ImageFrame<T>(frame));
                 }
             }
 
@@ -170,7 +170,7 @@ namespace ImageProcessorCore
         /// Gets the other frames for the animation.
         /// </summary>
         /// <value>The list of frame images.</value>
-        public IList<ImageFrame<TPackedVector>> Frames { get; } = new List<ImageFrame<TPackedVector>>();
+        public IList<ImageFrame<T>> Frames { get; } = new List<ImageFrame<T>>();
 
         /// <summary>
         /// Gets the list of properties for storing meta information about this image.
@@ -184,9 +184,9 @@ namespace ImageProcessorCore
         public IImageFormat CurrentImageFormat { get; internal set; }
 
         /// <inheritdoc/>
-        public override IPixelAccessor<TPackedVector> Lock()
+        public override IPixelAccessor<T> Lock()
         {
-            return Bootstrapper.Instance.GetPixelAccessor<TPackedVector>(this);
+            return Bootstrapper.Instance.GetPixelAccessor<T>(this);
         }
 
         /// <summary>

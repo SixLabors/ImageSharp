@@ -10,8 +10,8 @@ namespace ImageProcessorCore
     /// <summary>
     /// Encapsulates properties to provides per-pixel access to an images pixels.
     /// </summary>
-    public interface IPixelAccessor<TPackedVector> : IPixelAccessor
-        where TPackedVector : IPackedVector, new()
+    public interface IPixelAccessor<T> : IPixelAccessor
+        where T : IPackedVector, new()
     {
         /// <summary>
         /// Gets or sets the pixel at the specified position.
@@ -24,8 +24,8 @@ namespace ImageProcessorCore
         /// The y-coordinate of the pixel. Must be greater
         /// than zero and smaller than the width of the pixel.
         /// </param>
-        /// <returns>The <see cref="TPackedVector"/> at the specified position.</returns>
-        TPackedVector this[int x, int y]
+        /// <returns>The <see cref="T"/> at the specified position.</returns>
+        T this[int x, int y]
         {
             get;
             set;

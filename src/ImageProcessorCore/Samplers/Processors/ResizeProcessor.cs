@@ -43,7 +43,7 @@ namespace ImageProcessorCore.Processors
         protected Weights[] VerticalWeights { get; set; }
 
         /// <inheritdoc/>
-        protected override void OnApply<TPackedVector>(ImageBase<TPackedVector> target, ImageBase<TPackedVector> source, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected override void OnApply<T>(ImageBase<T> target, ImageBase<T> source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
             if (!(this.Sampler is NearestNeighborResampler))
             {
@@ -53,7 +53,7 @@ namespace ImageProcessorCore.Processors
         }
 
         /// <inheritdoc/>
-        protected override void Apply<TPackedVector>(ImageBase<TPackedVector> target, ImageBase<TPackedVector> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply<T>(ImageBase<T> target, ImageBase<T> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             // Jump out, we'll deal with that later.
             if (source.Bounds == target.Bounds && sourceRectangle == targetRectangle)
@@ -78,8 +78,8 @@ namespace ImageProcessorCore.Processors
                 float widthFactor = sourceRectangle.Width / (float)targetRectangle.Width;
                 float heightFactor = sourceRectangle.Height / (float)targetRectangle.Height;
 
-                using (IPixelAccessor<TPackedVector> sourcePixels = source.Lock())
-                using (IPixelAccessor<TPackedVector> targetPixels = target.Lock())
+                using (IPixelAccessor<T> sourcePixels = source.Lock())
+                using (IPixelAccessor<T> targetPixels = target.Lock())
                 {
                     Parallel.For(
                         startY,
@@ -114,10 +114,10 @@ namespace ImageProcessorCore.Processors
             // A 2-pass 1D algorithm appears to be faster than splitting a 1-pass 2D algorithm 
             // First process the columns. Since we are not using multiple threads startY and endY
             // are the upper and lower bounds of the source rectangle.
-            Image<TPackedVector> firstPass = new Image<TPackedVector>(target.Width, source.Height);
-            using (IPixelAccessor<TPackedVector> sourcePixels = source.Lock())
-            using (IPixelAccessor<TPackedVector> firstPassPixels = firstPass.Lock())
-            using (IPixelAccessor<TPackedVector> targetPixels = target.Lock())
+            Image<T> firstPass = new Image<T>(target.Width, source.Height);
+            using (IPixelAccessor<T> sourcePixels = source.Lock())
+            using (IPixelAccessor<T> firstPassPixels = firstPass.Lock())
+            using (IPixelAccessor<T> targetPixels = target.Lock())
             {
                 Parallel.For(
                     0,
@@ -163,7 +163,6 @@ namespace ImageProcessorCore.Processors
                                     //Color sourceColor = compand
                                     //    ? Color.Expand(sourcePixels[originX, y])
                                     //    : sourcePixels[originX, y];
-
                                     destination += sourceColor * xw.Value;
                                 }
 
@@ -171,7 +170,7 @@ namespace ImageProcessorCore.Processors
                                 //{
                                 //    destination = Color.Compress(destination);
                                 //}
-                                TPackedVector packed = new TPackedVector();
+                                T packed = new T();
                                 packed.PackVector(destination);
 
                                 firstPassPixels[x, y] = packed;
@@ -213,7 +212,7 @@ namespace ImageProcessorCore.Processors
                                 //    destination = Color.Compress(destination);
                                 //}
 
-                                TPackedVector packed = new TPackedVector();
+                                T packed = new T();
                                 packed.PackVector(destination);
 
                                 targetPixels[x, y] = packed;
@@ -227,7 +226,7 @@ namespace ImageProcessorCore.Processors
         }
 
         /// <inheritdoc/>
-        protected override void AfterApply<TPackedVector>(ImageBase<TPackedVector> target, ImageBase<TPackedVector> source, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected override void AfterApply<T>(ImageBase<T> target, ImageBase<T> source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
             // Copy the pixels over.
             if (source.Bounds == target.Bounds && sourceRectangle == targetRectangle)

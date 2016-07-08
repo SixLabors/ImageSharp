@@ -1,7 +1,7 @@
 ﻿namespace ImageProcessorCore
 {
-    public interface IImageFrame<TPacked> : IImageBase<TPacked>
-         where TPacked : IPackedVector, new()
+    public interface IImageFrame<T> : IImageBase<T>
+         where T : IPackedVector, new()
     {
     }
 }

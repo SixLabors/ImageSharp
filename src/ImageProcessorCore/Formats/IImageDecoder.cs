@@ -39,12 +39,12 @@ namespace ImageProcessorCore.Formats
         bool IsSupportedFileFormat(byte[] header);
 
         /// <summary>
-        /// Decodes the image from the specified stream to the <see cref="ImageBase{TPackedVector}"/>.
+        /// Decodes the image from the specified stream to the <see cref="ImageBase{T}"/>.
         /// </summary>
-        /// <typeparam name="TPackedVector">The type of pixels contained within the image.</typeparam>
-        /// <param name="image">The <see cref="ImageBase{TPackedVector}"/> to decode to.</param>
+        /// <typeparam name="T">The type of pixels contained within the image.</typeparam>
+        /// <param name="image">The <see cref="ImageBase{T}"/> to decode to.</param>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        void Decode<TPackedVector>(Image<TPackedVector> image, Stream stream)
-            where TPackedVector : IPackedVector, new();
+        void Decode<T>(Image<T> image, Stream stream)
+            where T : IPackedVector, new();
     }
 }

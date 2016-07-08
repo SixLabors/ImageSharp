@@ -11,21 +11,21 @@ namespace ImageProcessorCore
     /// The base class of all images. Encapsulates the basic properties and methods required to manipulate images 
     /// in different pixel formats.
     /// </summary>
-    /// <typeparam name="TPackedVector">
+    /// <typeparam name="T">
     /// The packed vector pixels format.
     /// </typeparam>
-    public abstract class ImageBase<TPackedVector> : IImageBase<TPackedVector>
-        where TPackedVector : IPackedVector, new()
+    public abstract class ImageBase<T> : IImageBase<T>
+        where T : IPackedVector, new()
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageBase{TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="ImageBase{T}"/> class.
         /// </summary>
         protected ImageBase()
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageBase{TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="ImageBase{T}"/> class.
         /// </summary>
         /// <param name="width">The width of the image in pixels.</param>
         /// <param name="height">The height of the image in pixels.</param>
@@ -39,19 +39,19 @@ namespace ImageProcessorCore
 
             this.Width = width;
             this.Height = height;
-            this.Pixels = new TPackedVector[width * height];
+            this.Pixels = new T[width * height];
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageBase{TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="ImageBase{T}"/> class.
         /// </summary>
         /// <param name="other">
-        /// The other <see cref="ImageBase{TPacked}"/> to create this instance from.
+        /// The other <see cref="ImageBase{T}"/> to create this instance from.
         /// </param>
         /// <exception cref="ArgumentNullException">
-        /// Thrown if the given <see cref="ImageBase{TPacked}"/> is null.
+        /// Thrown if the given <see cref="ImageBase{T}"/> is null.
         /// </exception>
-        protected ImageBase(ImageBase<TPackedVector> other)
+        protected ImageBase(ImageBase<T> other)
         {
             Guard.NotNull(other, nameof(other), "Other image cannot be null.");
 
@@ -61,7 +61,7 @@ namespace ImageProcessorCore
             this.FrameDelay = other.FrameDelay;
 
             // Copy the pixels.
-            this.Pixels = new TPackedVector[this.Width * this.Height];
+            this.Pixels = new T[this.Width * this.Height];
             Array.Copy(other.Pixels, this.Pixels, other.Pixels.Length);
         }
 
@@ -78,7 +78,7 @@ namespace ImageProcessorCore
         /// <summary>
         /// Gets the pixels as an array of the given packed pixel format.
         /// </summary>
-        public TPackedVector[] Pixels { get; private set; }
+        public T[] Pixels { get; private set; }
 
         /// <summary>
         /// Gets the width in pixels.
@@ -127,7 +127,7 @@ namespace ImageProcessorCore
         /// <exception cref="ArgumentException">
         /// Thrown if the <paramref name="pixels"/> length is not equal to Width * Height.
         /// </exception>
-        public void SetPixels(int width, int height, TPackedVector[] pixels)
+        public void SetPixels(int width, int height, T[] pixels)
         {
             if (width <= 0)
             {
@@ -164,7 +164,7 @@ namespace ImageProcessorCore
         /// <exception cref="ArgumentException">
         /// Thrown if the <paramref name="pixels"/> length is not equal to Width * Height.
         /// </exception>
-        public void ClonePixels(int width, int height, TPackedVector[] pixels)
+        public void ClonePixels(int width, int height, T[] pixels)
         {
             if (width <= 0)
             {
@@ -185,7 +185,7 @@ namespace ImageProcessorCore
             this.Height = height;
 
             // Copy the pixels.
-            this.Pixels = new TPackedVector[pixels.Length];
+            this.Pixels = new T[pixels.Length];
             Array.Copy(pixels, this.Pixels, pixels.Length);
         }
 
@@ -196,6 +196,6 @@ namespace ImageProcessorCore
         /// </remarks>
         /// </summary>
         /// <returns>The <see cref="IPixelAccessor"/></returns>
-        public abstract IPixelAccessor<TPackedVector> Lock();
+        public abstract IPixelAccessor<T> Lock();
     }
 }

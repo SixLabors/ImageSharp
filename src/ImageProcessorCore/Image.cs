@@ -184,7 +184,7 @@ namespace ImageProcessorCore
         public IImageFormat CurrentImageFormat { get; internal set; }
 
         /// <inheritdoc/>
-        public override IPixelAccessor Lock()
+        public override IPixelAccessor<TPackedVector> Lock()
         {
             return Bootstrapper.Instance.GetPixelAccessor<TPackedVector>(this);
         }

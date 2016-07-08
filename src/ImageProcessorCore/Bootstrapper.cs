@@ -73,13 +73,13 @@ namespace ImageProcessorCore
         /// <typeparam name="TPackedVector">The type of pixel data.</typeparam>
         /// <param name="image">The image</param>
         /// <returns>The <see cref="IPixelAccessor"/></returns>
-        public IPixelAccessor GetPixelAccessor<TPackedVector>(IImageBase image)
+        public IPixelAccessor<TPackedVector> GetPixelAccessor<TPackedVector>(IImageBase image)
             where TPackedVector : IPackedVector, new()
         {
             Type packed = typeof(TPackedVector);
             if (this.pixelAccessors.ContainsKey(packed))
             {
-                return this.pixelAccessors[packed].Invoke(image);
+                return (IPixelAccessor<TPackedVector>)this.pixelAccessors[packed].Invoke(image);
             }
 
             throw new NotSupportedException($"PixelAccessor cannot be loaded for {packed}:");

@@ -78,8 +78,8 @@ namespace ImageProcessorCore.Processors
                 float widthFactor = sourceRectangle.Width / (float)targetRectangle.Width;
                 float heightFactor = sourceRectangle.Height / (float)targetRectangle.Height;
 
-                using (IPixelAccessor sourcePixels = source.Lock())
-                using (IPixelAccessor targetPixels = target.Lock())
+                using (IPixelAccessor<TPackedVector> sourcePixels = source.Lock())
+                using (IPixelAccessor<TPackedVector> targetPixels = target.Lock())
                 {
                     Parallel.For(
                         startY,
@@ -115,9 +115,9 @@ namespace ImageProcessorCore.Processors
             // First process the columns. Since we are not using multiple threads startY and endY
             // are the upper and lower bounds of the source rectangle.
             Image<TPackedVector> firstPass = new Image<TPackedVector>(target.Width, source.Height);
-            using (IPixelAccessor sourcePixels = source.Lock())
-            using (IPixelAccessor firstPassPixels = firstPass.Lock())
-            using (IPixelAccessor targetPixels = target.Lock())
+            using (IPixelAccessor<TPackedVector> sourcePixels = source.Lock())
+            using (IPixelAccessor<TPackedVector> firstPassPixels = firstPass.Lock())
+            using (IPixelAccessor<TPackedVector> targetPixels = target.Lock())
             {
                 Parallel.For(
                     0,

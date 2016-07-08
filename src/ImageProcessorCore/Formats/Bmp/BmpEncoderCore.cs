@@ -137,7 +137,7 @@ namespace ImageProcessorCore.Formats
                 amount = 4 - amount;
             }
 
-            using (IPixelAccessor pixels = image.Lock())
+            using (IPixelAccessor<TPackedVector> pixels = image.Lock())
             {
                 switch (this.bmpBitsPerPixel)
                 {
@@ -155,10 +155,12 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Writes the 32bit color palette to the stream.
         /// </summary>
+        /// <typeparam name="TPackedVector">The type of pixels contained within the image.</typeparam>
         /// <param name="writer">The <see cref="EndianBinaryWriter"/> containing the stream to write to.</param>
         /// <param name="pixels">The <see cref="IPixelAccessor"/> containing pixel data.</param>
         /// <param name="amount">The amount to pad each row by.</param>
-        private void Write32bit(EndianBinaryWriter writer, IPixelAccessor pixels, int amount)
+        private void Write32bit<TPackedVector>(EndianBinaryWriter writer, IPixelAccessor<TPackedVector> pixels, int amount)
+            where TPackedVector : IPackedVector, new()
         {
             for (int y = pixels.Height - 1; y >= 0; y--)
             {
@@ -183,7 +185,8 @@ namespace ImageProcessorCore.Formats
         /// <param name="writer">The <see cref="EndianBinaryWriter"/> containing the stream to write to.</param>
         /// <param name="pixels">The <see cref="IPixelAccessor"/> containing pixel data.</param>
         /// <param name="amount">The amount to pad each row by.</param>
-        private void Write24bit(EndianBinaryWriter writer, IPixelAccessor pixels, int amount)
+        private void Write24bit<TPackedVector>(EndianBinaryWriter writer, IPixelAccessor<TPackedVector> pixels, int amount)
+            where TPackedVector : IPackedVector, new()
         {
             for (int y = pixels.Height - 1; y >= 0; y--)
             {

@@ -11,7 +11,7 @@ namespace ImageProcessorCore
     /// <summary>
     /// Packed vector type containing four 8-bit unsigned normalized values ranging from 0 to 1.
     /// </summary>
-    public struct Bgra32 : IPackedVector<uint>, IEquatable<Bgra32>
+    public struct Bgra32 : IPackedVector, IEquatable<Bgra32>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Bgra32"/> struct. 
@@ -40,6 +40,38 @@ namespace ImageProcessorCore
 
         /// <inheritdoc/>
         public uint PackedValue { get; set; }
+
+        // The maths are wrong here I just wanted to test the performance to see if the
+        // issues are caused by the Vector transform or something else.
+        public void Add(IPackedVector value)
+        {
+ 
+        }
+
+        public void Subtract(IPackedVector value)
+        {
+            
+        }
+
+        public void Multiply(IPackedVector value)
+        {
+
+        }
+
+        public void Multiply(float value)
+        {
+
+        }
+
+        public void Divide(IPackedVector value)
+        {
+         
+        }
+
+        public void Divide(float value)
+        {
+        
+        }
 
         /// <summary>
         /// Compares two <see cref="Bgra32"/> objects for equality.

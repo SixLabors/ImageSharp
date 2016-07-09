@@ -29,6 +29,18 @@ namespace ImageProcessorCore
     /// </summary>
     public interface IPackedVector
     {
+        void Add(IPackedVector value);
+
+        void Subtract(IPackedVector value);
+
+        void Multiply(IPackedVector value);
+
+        void Multiply(float value);
+
+        void Divide(IPackedVector value);
+
+        void Divide(float value);
+
         /// <summary>
         /// Sets the packed representation from a <see cref="Vector4"/>.
         /// </summary>

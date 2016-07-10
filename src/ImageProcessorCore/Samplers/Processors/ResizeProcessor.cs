@@ -134,7 +134,7 @@ namespace ImageProcessorCore.Processors
                                     Weight[] horizontalValues = this.HorizontalWeights[offsetX].Values;
 
                                     // Destination color components
-                                    Color destination = Color.Empty;
+                                    Color destination = new Color();
 
                                     for (int i = 0; i < sum; i++)
                                     {
@@ -173,7 +173,7 @@ namespace ImageProcessorCore.Processors
                                 for (int x = 0; x < width; x++)
                                 {
                                     // Destination color components
-                                    Color destination = Color.Empty;
+                                    Color destination = new Color();
 
                                     for (int i = 0; i < sum; i++)
                                     {

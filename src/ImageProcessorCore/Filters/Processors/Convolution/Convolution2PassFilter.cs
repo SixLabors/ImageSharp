@@ -80,7 +80,7 @@ namespace ImageProcessorCore.Processors
                 {
                     for (int x = startX; x < endX; x++)
                     {
-                        Color destination = Color.Empty;
+                        Color destination = new Color();
 
                         // Apply each matrix multiplier to the color components for each pixel.
                         for (int fy = 0; fy < kernelHeight; fy++)

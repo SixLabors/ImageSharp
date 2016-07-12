@@ -17,6 +17,8 @@
     public interface IColor<TDepth> : IColor
         where TDepth : struct
     {
+        TDepth[] Values { get; }
+
         void Add<TColor>(TColor value) where TColor : IColor<TDepth>;
 
         void Multiply<TColor>(TColor value) where TColor : IColor<TDepth>;
@@ -24,14 +26,17 @@
         void Multiply<TColor>(float value) where TColor : IColor<TDepth>;
 
         void Divide<TColor>(TColor value) where TColor : IColor<TDepth>;
+
+        void Divide<TColor>(float value) where TColor : IColor<TDepth>;
+
+        void FromBytes(byte[] bytes);
+
+        byte[] ToBytes();
     }
 
     public interface IColor
     {
-        void PackVector(Vector4 vector);
 
-        Vector4 ToVector();
 
-        byte[] ToBytes();
     }
 }

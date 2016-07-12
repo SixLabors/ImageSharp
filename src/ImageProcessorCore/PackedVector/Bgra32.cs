@@ -43,14 +43,14 @@ namespace ImageProcessorCore
 
         // The maths are wrong here I just wanted to test the performance to see if the
         // issues are caused by the Vector transform or something else.
-        public void Add(IPackedVector<uint> value)
+        public void Add(IPackedVector value)
         {
- 
+
         }
 
         public void Subtract(IPackedVector value)
         {
-            
+
         }
 
         public void Multiply(IPackedVector value)
@@ -65,12 +65,12 @@ namespace ImageProcessorCore
 
         public void Divide(IPackedVector value)
         {
-         
+
         }
 
         public void Divide(float value)
         {
-        
+
         }
 
         /// <summary>
@@ -132,11 +132,11 @@ namespace ImageProcessorCore
         {
             return new[]
             {
-                (byte)(this.PackedValue & 0xFF),
-                (byte)((this.PackedValue >> 8) & 0xFF),
-                (byte)((this.PackedValue >> 16) & 0xFF),
-                (byte)((this.PackedValue >> 24) & 0xFF)
-            };
+            (byte)(this.PackedValue & 0xFF),
+            (byte)((this.PackedValue >> 8) & 0xFF),
+            (byte)((this.PackedValue >> 16) & 0xFF),
+            (byte)((this.PackedValue >> 24) & 0xFF)
+        };
         }
 
         /// <inheritdoc/>
@@ -178,9 +178,9 @@ namespace ImageProcessorCore
         private static uint Pack(ref Vector4 vector)
         {
             return (uint)Math.Round(vector.X) |
-                   ((uint)Math.Round(vector.Y) << 8) |
-                   ((uint)Math.Round(vector.Z) << 16) |
-                   ((uint)Math.Round(vector.W) << 24);
+                    ((uint)Math.Round(vector.Y) << 8) |
+                    ((uint)Math.Round(vector.Z) << 16) |
+                    ((uint)Math.Round(vector.W) << 24);
         }
 
         /// <summary>

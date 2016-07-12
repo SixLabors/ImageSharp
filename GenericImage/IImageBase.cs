@@ -2,15 +2,16 @@
 {
     using GenericImage.PackedVectors;
 
-    public interface IImageBase<TPacked>
-        where TPacked : IPackedVector
+    public interface IImageBase<TColor, TDepth>
+        where TColor : IColor<TDepth>
+        where TDepth : struct
     {
-        TPacked[] Pixels { get; }
+        TColor[] Pixels { get; }
 
         int Width { get; }
 
         int Height { get; }
 
-        IPixelAccessor Lock();
+        IPixelAccessor<TColor> Lock();
     }
 }

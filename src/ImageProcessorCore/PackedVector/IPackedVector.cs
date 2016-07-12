@@ -22,6 +22,8 @@ namespace ImageProcessorCore
         /// Typically packed in least to greatest significance order.
         /// </summary>
         T PackedValue { get; set; }
+
+
     }
 
     /// <summary>
@@ -29,17 +31,29 @@ namespace ImageProcessorCore
     /// </summary>
     public interface IPackedVector
     {
-        void Add(IPackedVector value);
+        void Add<U>(U value);
 
-        void Subtract(IPackedVector value);
+        void Subtract<U>(U value);
 
-        void Multiply(IPackedVector value);
+        void Multiply<U>(U value);
 
         void Multiply(float value);
 
-        void Divide(IPackedVector value);
+        void Divide<U>(U value);
 
         void Divide(float value);
+
+        //void Add(IPackedVector value);
+
+        //void Subtract(IPackedVector value);
+
+        //void Multiply(IPackedVector value);
+
+        //void Multiply(float value);
+
+        //void Divide(IPackedVector value);
+
+        //void Divide(float value);
 
         /// <summary>
         /// Sets the packed representation from a <see cref="Vector4"/>.

@@ -8,21 +8,21 @@
     /// Encapsulates the basic properties and methods required to manipulate images 
     /// in different pixel formats.
     /// </summary>
-    /// <typeparam name="TPacked">
-    /// The packed vector pixels format.
-    /// </typeparam>
-    public abstract class ImageBase<TPacked>
-        where TPacked : IPackedVector
+    /// <typeparam name="TColor">The packed vector pixels format.</typeparam>
+    /// <typeparam name="TDepth">The bit depth of the image. byte, float, etc.</typeparam>
+    public abstract class ImageBase<TColor, TDepth> : IImageBase<TColor, TDepth>
+        where TColor : IColor<TDepth>
+        where TDepth : struct
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageBase{TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="ImageBase{TColor,TDepth}"/> class.
         /// </summary>
         protected ImageBase()
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageBase{TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="ImageBase{TColor,TDepth}"/> class.
         /// </summary>
         /// <param name="width">The width of the image in pixels.</param>
         /// <param name="height">The height of the image in pixels.</param>
@@ -36,19 +36,19 @@
 
             this.Width = width;
             this.Height = height;
-            this.Pixels = new TPacked[width * height];
+            this.Pixels = new TColor[width * height];
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageBase{TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="ImageBase{TColor,TDepth}"/> class.
         /// </summary>
         /// <param name="other">
-        /// The other <see cref="ImageBase{TPacked}"/> to create this instance from.
+        /// The other <see cref="ImageBase{TColor,TDepth}"/> to create this instance from.
         /// </param>
         /// <exception cref="ArgumentNullException">
-        /// Thrown if the given <see cref="ImageBase{TPacked}"/> is null.
+        /// Thrown if the given <see cref="ImageBase{TColor,TDepth}"/> is null.
         /// </exception>
-        protected ImageBase(ImageBase<TPacked> other)
+        protected ImageBase(ImageBase<TColor, TDepth> other)
         {
             // Guard.NotNull(other, nameof(other), "Other image cannot be null.");
 
@@ -58,14 +58,14 @@
             this.FrameDelay = other.FrameDelay;
 
             // Copy the pixels.
-            this.Pixels = new TPacked[this.Width * this.Height];
+            this.Pixels = new TColor[this.Width * this.Height];
             Array.Copy(other.Pixels, this.Pixels, other.Pixels.Length);
         }
 
         /// <summary>
         /// Gets the pixels as an array of the given packed pixel format.
         /// </summary>
-        public TPacked[] Pixels { get; private set; }
+        public TColor[] Pixels { get; private set; }
 
         /// <summary>
         /// Gets the width in pixels.
@@ -100,6 +100,8 @@
         /// </summary>
         public int FrameDelay { get; set; }
 
+
+
         /// <summary>
         /// Sets the pixel array of the image to the given value.
         /// </summary>
@@ -114,7 +116,7 @@
         /// <exception cref="ArgumentException">
         /// Thrown if the <paramref name="pixels"/> length is not equal to Width * Height.
         /// </exception>
-        public void SetPixels(int width, int height, TPacked[] pixels)
+        public void SetPixels(int width, int height, TColor[] pixels)
         {
             if (width <= 0)
             {
@@ -151,7 +153,7 @@
         /// <exception cref="ArgumentException">
         /// Thrown if the <paramref name="pixels"/> length is not equal to Width * Height.
         /// </exception>
-        public void ClonePixels(int width, int height, TPacked[] pixels)
+        public void ClonePixels(int width, int height, TColor[] pixels)
         {
             if (width <= 0)
             {
@@ -172,7 +174,7 @@
             this.Height = height;
 
             // Copy the pixels.
-            this.Pixels = new TPacked[pixels.Length];
+            this.Pixels = new TColor[pixels.Length];
             Array.Copy(pixels, this.Pixels, pixels.Length);
         }
 
@@ -182,7 +184,7 @@
         /// It is imperative that the accessor is correctly disposed off after use.
         /// </remarks>
         /// </summary>
-        /// <returns>The <see cref="IPixelAccessor"/></returns>
-        public abstract IPixelAccessor Lock();
+        /// <returns>The <see cref="IPixelAccessor{TColor}"/></returns>
+        public abstract IPixelAccessor<TColor> Lock();
     }
 }

@@ -2,14 +2,22 @@
 {
     using System;
 
-    using GenericImage.PackedVectors;
-
-    public interface IPixelAccessor : IDisposable
+    public interface IPixelAccessor<TColor> : IDisposable
     {
-        IPackedVector this[int x, int y]
+        TColor this[int x, int y]
         {
             get;
             set;
         }
+
+        /// <summary>
+        /// Gets the width.
+        /// </summary>
+        int Width { get; }
+
+        /// <summary>
+        /// Gets the height.
+        /// </summary>
+        int Height { get; }
     }
 }

@@ -12,7 +12,7 @@ namespace ImageProcessorCore
     using Processors;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image{T}"/> type.
+    /// Extension methods for the <see cref="Image{T, TP}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
@@ -57,10 +57,11 @@ namespace ImageProcessorCore
         /// Applies the collection of processors to the image.
         /// <remarks>This method does not resize the target image.</remarks>
         /// </summary>
-        /// <typeparam name="T">The type of pixels contained within the image.</typeparam>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="processor">The processor to apply to the image.</param>
-        /// <returns>The <see cref="Image{T}"/>.</returns>
+        /// <returns>The <see cref="Image{T, TP}"/>.</returns>
         public static Image<T, TP> Process<T, TP>(this Image<T, TP> source, IImageProcessor processor)
             where T : IPackedVector<T, TP>, new()
             where TP : struct
@@ -72,13 +73,14 @@ namespace ImageProcessorCore
         /// Applies the collection of processors to the image.
         /// <remarks>This method does not resize the target image.</remarks>
         /// </summary>
-        /// <typeparam name="T">The type of pixels contained within the image.</typeparam>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="sourceRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
         /// <param name="processor">The processors to apply to the image.</param>
-        /// <returns>The <see cref="Image{T}"/>.</returns>
+        /// <returns>The <see cref="Image{T, TP}"/>.</returns>
         public static Image<T, TP> Process<T, TP>(this Image<T, TP> source, Rectangle sourceRectangle, IImageProcessor processor)
             where T : IPackedVector<T, TP>, new()
             where TP : struct
@@ -92,12 +94,13 @@ namespace ImageProcessorCore
         /// This method is not chainable.
         /// </remarks>
         /// </summary>
-        /// <typeparam name="T">The type of pixels contained within the image.</typeparam>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
         /// <param name="sampler">The processor to apply to the image.</param>
-        /// <returns>The <see cref="Image{T}"/>.</returns>
+        /// <returns>The <see cref="Image{T, TP}"/>.</returns>
         public static Image<T, TP> Process<T, TP>(this Image<T, TP> source, int width, int height, IImageSampler sampler)
             where T : IPackedVector<T, TP>, new()
             where TP : struct
@@ -111,7 +114,8 @@ namespace ImageProcessorCore
         /// This method does will resize the target image if the source and target rectangles are different.
         /// </remarks>
         /// </summary>
-        /// <typeparam name="T">The type of pixels contained within the image.</typeparam>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
@@ -123,7 +127,7 @@ namespace ImageProcessorCore
         /// The image is scaled to fit the rectangle.
         /// </param>
         /// <param name="sampler">The processor to apply to the image.</param>
-        /// <returns>The <see cref="Image{T}"/>.</returns>
+        /// <returns>The <see cref="Image{T, TP}"/>.</returns>
         public static Image<T, TP> Process<T, TP>(this Image<T, TP> source, int width, int height, Rectangle sourceRectangle, Rectangle targetRectangle, IImageSampler sampler)
             where T : IPackedVector<T, TP>, new()
             where TP : struct
@@ -134,11 +138,12 @@ namespace ImageProcessorCore
         /// <summary>
         /// Performs the given action on the source image.
         /// </summary>
-        /// <typeparam name="T">The type of pixels contained within the image.</typeparam>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="source">The image to perform the action against.</param>
         /// <param name="clone">Whether to clone the image.</param>
         /// <param name="action">The <see cref="Action"/> to perform against the image.</param>
-        /// <returns>The <see cref="Image{T}"/>.</returns>
+        /// <returns>The <see cref="Image{T, TP}"/>.</returns>
         private static Image<T, TP> PerformAction<T, TP>(Image<T, TP> source, bool clone, Action<ImageBase<T, TP>, ImageBase<T, TP>> action)
             where T : IPackedVector<T, TP>, new()
             where TP : struct

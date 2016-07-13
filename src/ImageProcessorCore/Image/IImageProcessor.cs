@@ -27,9 +27,10 @@ namespace ImageProcessorCore.Processors
         event ProgressEventHandler OnProgress;
 
         /// <summary>
-        /// Applies the process to the specified portion of the specified <see cref="ImageBase{T}"/>.
+        /// Applies the process to the specified portion of the specified <see cref="ImageBase{T, TP}"/>.
         /// </summary>
-        /// <typeparam name="T">The type of pixels contained within the image.</typeparam>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="target">Target image to apply the process to.</param>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="sourceRectangle">
@@ -50,10 +51,11 @@ namespace ImageProcessorCore.Processors
             new() where TP : struct;
 
         /// <summary>
-        /// Applies the process to the specified portion of the specified <see cref="ImageBase{T}"/> at the specified
+        /// Applies the process to the specified portion of the specified <see cref="ImageBase{T, TP}"/> at the specified
         /// location and with the specified size.
         /// </summary>
-        /// <typeparam name="T">The type of pixels contained within the image.</typeparam>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="target">Target image to apply the process to.</param>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="width">The target width.</param>

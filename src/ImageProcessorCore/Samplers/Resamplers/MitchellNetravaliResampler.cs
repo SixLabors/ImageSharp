@@ -12,13 +12,13 @@ namespace ImageProcessorCore
     public class MitchellNetravaliResampler : IResampler
     {
         /// <inheritdoc/>
-        public float Radius => 2;
+        public double Radius => 2;
 
         /// <inheritdoc/>
-        public float GetValue(float x)
+        public double GetValue(double x)
         {
-            const float B = 1 / 3f;
-            const float C = 1 / 3f;
+            const double B = 0.333333333333333D;
+            const double C = 0.333333333333333D;
 
             return ImageMaths.GetBcValue(x, B, C);
         }

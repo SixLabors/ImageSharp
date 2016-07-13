@@ -55,11 +55,11 @@ namespace ImageProcessorCore
         /// <param name="b">The B-Spline curve variable.</param>
         /// <param name="c">The Cardinal curve variable.</param>
         /// <returns>
-        /// The <see cref="float"/>.
+        /// The <see cref="double"/>.
         /// </returns>
-        public static float GetBcValue(float x, float b, float c)
+        public static double GetBcValue(double x, double b, double c)
         {
-            float temp;
+            double temp;
 
             if (x < 0)
             {
@@ -87,16 +87,16 @@ namespace ImageProcessorCore
         /// </summary>
         /// <param name="x">The value to calculate the result for.</param>
         /// <returns>
-        /// The <see cref="float"/>.
+        /// The <see cref="double"/>.
         /// </returns>
-        public static float SinC(float x)
+        public static double SinC(double x)
         {
-            const float Epsilon = .00001f;
+            const double Epsilon = .00001d;
 
             if (Math.Abs(x) > Epsilon)
             {
-                x *= (float)Math.PI;
-                return Clean((float)Math.Sin(x) / x);
+                x *= (double)Math.PI;
+                return Clean((double)Math.Sin(x) / x);
             }
 
             return 1.0f;
@@ -272,11 +272,11 @@ namespace ImageProcessorCore
         /// </summary>
         /// <param name="x">The value to clean.</param>
         /// <returns>
-        /// The <see cref="float"/>
+        /// The <see cref="double"/>
         /// </returns>.
-        private static float Clean(float x)
+        private static double Clean(double x)
         {
-            const float Epsilon = .00001f;
+            const double Epsilon = .00001d;
 
             if (Math.Abs(x) < Epsilon)
             {

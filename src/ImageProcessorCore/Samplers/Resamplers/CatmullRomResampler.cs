@@ -14,13 +14,13 @@ namespace ImageProcessorCore
     public class CatmullRomResampler : IResampler
     {
         /// <inheritdoc/>
-        public float Radius => 2;
+        public double Radius => 2;
 
         /// <inheritdoc/>
-        public float GetValue(float x)
+        public double GetValue(double x)
         {
-            const float B = 0;
-            const float C = 1 / 2f;
+            const double B = 0;
+            const double C = 0.5d;
 
             return ImageMaths.GetBcValue(x, B, C);
         }

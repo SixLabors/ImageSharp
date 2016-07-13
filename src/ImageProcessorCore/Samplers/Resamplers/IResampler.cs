@@ -13,15 +13,15 @@ namespace ImageProcessorCore
         /// <summary>
         /// Gets the radius in which to sample pixels.
         /// </summary>
-        float Radius { get; }
+        double Radius { get; }
 
         /// <summary>
         /// Gets the result of the interpolation algorithm.
         /// </summary>
         /// <param name="x">The value to process.</param>
         /// <returns>
-        /// The <see cref="float"/>
+        /// The <see cref="double"/>
         /// </returns>
-        float GetValue(float x);
+        double GetValue(double x);
     }
 }

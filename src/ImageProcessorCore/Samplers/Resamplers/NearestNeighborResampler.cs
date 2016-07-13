@@ -12,10 +12,10 @@ namespace ImageProcessorCore
     public class NearestNeighborResampler : IResampler
     {
         /// <inheritdoc/>
-        public float Radius => 1;
+        public double Radius => 1;
 
         /// <inheritdoc/>
-        public float GetValue(float x)
+        public double GetValue(double x)
         {
             return x;
         }

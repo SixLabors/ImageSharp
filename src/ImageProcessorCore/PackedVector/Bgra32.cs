@@ -7,16 +7,43 @@ namespace ImageProcessorCore
 {
     using System;
     using System.Numerics;
+    using System.Runtime.InteropServices;
 
     /// <summary>
     /// Packed vector type containing four 8-bit unsigned normalized values ranging from 0 to 1.
     /// </summary>
+    [StructLayout(LayoutKind.Explicit)]
     public struct Bgra32 : IPackedVector<Bgra32, uint>, IEquatable<Bgra32>
     {
         /// <summary>
+        /// Gets or sets the blue component.
+        /// </summary>
+        [FieldOffset(0)]
+        public byte B;
+
+        /// <summary>
+        /// Gets or sets the green component.
+        /// </summary>
+        [FieldOffset(1)]
+        public byte G;
+
+        /// <summary>
+        /// Gets or sets the red component.
+        /// </summary>
+        [FieldOffset(2)]
+        public byte R;
+
+        /// <summary>
+        /// Gets or sets the alpha component.
+        /// </summary>
+        [FieldOffset(3)]
+        public byte A;
+
+        /// <summary>
         /// The packed value.
         /// </summary>
-        private uint packedValue;
+        [FieldOffset(0)]
+        private readonly uint packedValue;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Bgra32"/> struct. 
@@ -29,7 +56,10 @@ namespace ImageProcessorCore
             : this()
         {
             Vector4 clamped = Vector4.Clamp(new Vector4(b, g, r, a), Vector4.Zero, Vector4.One) * 255f;
-            this.packedValue = Pack(ref clamped);
+            this.B = (byte)Math.Round(clamped.X);
+            this.G = (byte)Math.Round(clamped.Y);
+            this.R = (byte)Math.Round(clamped.Z);
+            this.A = (byte)Math.Round(clamped.W);
         }
 
         /// <summary>
@@ -46,7 +76,6 @@ namespace ImageProcessorCore
             this.G = g;
             this.R = r;
             this.A = a;
-            this.packedValue = this.Pack();
         }
 
         /// <summary>
@@ -59,28 +88,11 @@ namespace ImageProcessorCore
             : this()
         {
             Vector4 clamped = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * 255f;
-            this.packedValue = Pack(ref clamped);
+            this.B = (byte)Math.Round(clamped.X);
+            this.G = (byte)Math.Round(clamped.Y);
+            this.R = (byte)Math.Round(clamped.Z);
+            this.A = (byte)Math.Round(clamped.W);
         }
-
-        /// <summary>
-        /// Gets or sets the blue component.
-        /// </summary>
-        public byte B { get; set; }
-
-        /// <summary>
-        /// Gets or sets the green component.
-        /// </summary>
-        public byte G { get; set; }
-
-        /// <summary>
-        /// Gets or sets the red component.
-        /// </summary>
-        public byte R { get; set; }
-
-        /// <summary>
-        /// Gets or sets the alpha component.
-        /// </summary>
-        public byte A { get; set; }
 
         /// <summary>
         /// Compares two <see cref="Bgra32"/> objects for equality.
@@ -113,12 +125,6 @@ namespace ImageProcessorCore
         }
 
         /// <inheritdoc/>
-        public uint PackedValue()
-        {
-            this.packedValue = this.Pack();
-            return this.packedValue;
-        }
-
         public void Add(Bgra32 value)
         {
             this.B = (byte)(this.B + value.B);
@@ -127,6 +133,7 @@ namespace ImageProcessorCore
             this.A = (byte)(this.A + value.A);
         }
 
+        /// <inheritdoc/>
         public void Subtract(Bgra32 value)
         {
             this.B = (byte)(this.B - value.B);
@@ -135,6 +142,7 @@ namespace ImageProcessorCore
             this.A = (byte)(this.A - value.A);
         }
 
+        /// <inheritdoc/>
         public void Multiply(Bgra32 value)
         {
             this.B = (byte)(this.B * value.B);
@@ -143,6 +151,7 @@ namespace ImageProcessorCore
             this.A = (byte)(this.A * value.A);
         }
 
+        /// <inheritdoc/>
         public void Multiply(float value)
         {
             this.B = (byte)(this.B * value);
@@ -151,6 +160,7 @@ namespace ImageProcessorCore
             this.A = (byte)(this.A * value);
         }
 
+        /// <inheritdoc/>
         public void Divide(Bgra32 value)
         {
             this.B = (byte)(this.B / value.B);
@@ -159,6 +169,7 @@ namespace ImageProcessorCore
             this.A = (byte)(this.A / value.A);
         }
 
+        /// <inheritdoc/>
         public void Divide(float value)
         {
             this.B = (byte)(this.B / value);
@@ -168,10 +179,19 @@ namespace ImageProcessorCore
         }
 
         /// <inheritdoc/>
+        public uint PackedValue()
+        {
+            return this.packedValue;
+        }
+
+        /// <inheritdoc/>
         public void PackVector(Vector4 vector)
         {
             Vector4 clamped = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * 255f;
-            this.packedValue = Pack(ref clamped);
+            this.B = (byte)Math.Round(clamped.X);
+            this.G = (byte)Math.Round(clamped.Y);
+            this.R = (byte)Math.Round(clamped.Z);
+            this.A = (byte)Math.Round(clamped.W);
         }
 
         /// <inheritdoc/>
@@ -181,17 +201,12 @@ namespace ImageProcessorCore
             this.G = y;
             this.R = z;
             this.A = w;
-            this.packedValue = this.Pack();
         }
 
         /// <inheritdoc/>
         public Vector4 ToVector4()
         {
-            return new Vector4(
-                this.packedValue & 0xFF,
-                (this.packedValue >> 8) & 0xFF,
-                (this.packedValue >> 16) & 0xFF,
-                (this.packedValue >> 24) & 0xFF) / 255f;
+            return new Vector4(this.B, this.G, this.R, this.A) / 255f;
         }
 
         /// <inheritdoc/>
@@ -199,10 +214,10 @@ namespace ImageProcessorCore
         {
             return new[]
             {
-                (byte)(this.packedValue & 0xFF),
-                (byte)((this.packedValue >> 8) & 0xFF),
-                (byte)((this.packedValue >> 16) & 0xFF),
-                (byte)((this.packedValue >> 24) & 0xFF)
+                this.B,
+                this.G,
+                this.R,
+                this.A
             };
         }
 
@@ -231,34 +246,6 @@ namespace ImageProcessorCore
         public override int GetHashCode()
         {
             return this.GetHashCode(this);
-        }
-
-        /// <summary>
-        /// Sets the packed representation from the given component values.
-        /// </summary>
-        /// <param name="vector">
-        /// The vector containing the components for the packed vector.
-        /// </param>
-        /// <returns>
-        /// The <see cref="uint"/>.
-        /// </returns>
-        private static uint Pack(ref Vector4 vector)
-        {
-            return (uint)Math.Round(vector.X) |
-                   ((uint)Math.Round(vector.Y) << 8) |
-                   ((uint)Math.Round(vector.Z) << 16) |
-                   ((uint)Math.Round(vector.W) << 24);
-        }
-
-        /// <summary>
-        /// Sets the packed representation from the given component values.
-        /// </summary>
-        /// <returns>
-        /// The <see cref="uint"/>.
-        /// </returns>
-        private uint Pack()
-        {
-            return this.B | ((uint)this.G << 8) | ((uint)this.R << 16) | ((uint)this.A << 24);
         }
 
         /// <summary>

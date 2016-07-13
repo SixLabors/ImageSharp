@@ -1,14 +1,7 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="ImageProperty.cs" company="James Jackson-South">
-//   Copyright (c) James Jackson-South and contributors.
-//   Licensed under the Apache License, Version 2.0.
+﻿// <copyright file="ImageProperty.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
 // </copyright>
-// <summary>
-//   Stores meta information about a image, like the name of the author,
-//   the copyright information, the date, where the image was created
-//   or some other information.
-// </summary>
-// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessorCore
 {
@@ -24,12 +17,8 @@ namespace ImageProcessorCore
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageProperty"/> struct.
         /// </summary>
-        /// <param name="name">
-        /// The name of the property.
-        /// </param>
-        /// <param name="value">
-        /// The value of the property.
-        /// </param>
+        /// <param name="name">The name of the property.</param>
+        /// <param name="value">The value of the property.</param>
         public ImageProperty(string name, string value)
         {
             this.Name = name;

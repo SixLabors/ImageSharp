@@ -17,9 +17,8 @@ namespace ImageProcessorCore
     /// <summary>
     /// Encapsulates an image, which consists of the pixel data for a graphics image and its attributes.
     /// </summary>
-    /// <typeparam name="T">
-    /// The packed vector containing pixel information.
-    /// </typeparam>
+    /// <typeparam name="T">The pixel format.</typeparam>
+    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
     public class Image<T, TP> : ImageBase<T, TP>
         where T : IPackedVector<T, TP>, new()
         where TP : struct
@@ -37,7 +36,7 @@ namespace ImageProcessorCore
         public const double DefaultVerticalResolution = 96;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Image{T}"/> class.
+        /// Initializes a new instance of the <see cref="Image{T, TP}"/> class.
         /// </summary>
         public Image()
         {
@@ -45,7 +44,7 @@ namespace ImageProcessorCore
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Image{T}"/> class
+        /// Initializes a new instance of the <see cref="Image{T, TP}"/> class
         /// with the height and the width of the image.
         /// </summary>
         /// <param name="width">The width of the image in pixels.</param>
@@ -58,7 +57,7 @@ namespace ImageProcessorCore
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Image{T}"/> class.
+        /// Initializes a new instance of the <see cref="Image{T, TP}"/> class.
         /// </summary>
         /// <param name="stream">
         /// The stream containing image information.
@@ -71,7 +70,7 @@ namespace ImageProcessorCore
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Image{T}"/> class
+        /// Initializes a new instance of the <see cref="Image{T, TP}"/> class
         /// by making a copy from another image.
         /// </summary>
         /// <param name="other">The other image, where the clone should be made from.</param>

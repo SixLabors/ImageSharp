@@ -11,9 +11,8 @@ namespace ImageProcessorCore
     /// An interface that converts packed vector types to and from <see cref="Vector4"/> values, 
     /// allowing multiple encodings to be manipulated in a generic way.
     /// </summary>
-    /// <typeparam name="T">
-    /// The type of object representing the packed value.
-    /// </typeparam>
+    /// <typeparam name="T">The pixel format.</typeparam>
+    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
     public interface IPackedVector<T, TP> : IPackedVector
         where TP : struct
     {
@@ -21,18 +20,45 @@ namespace ImageProcessorCore
         /// Gets the packed representation of the value.
         /// Typically packed in least to greatest significance order.
         /// </summary>
+        /// <returns>
+        /// The <see cref="TP"/>.
+        /// </returns>
         TP PackedValue();
 
+        /// <summary>
+        /// Adds the given <see cref="T"/> to the current instance.
+        /// </summary>
+        /// <param name="value">The packed vector to add.</param>
         void Add(T value);
 
+        /// <summary>
+        /// Subtracts the given <see cref="T"/> from the current instance.
+        /// </summary>
+        /// <param name="value">The packed vector to subtract.</param>
         void Subtract(T value);
 
+        /// <summary>
+        /// Multiplies the given current instance by given the <see cref="T"/>.
+        /// </summary>
+        /// <param name="value">The packed vector to multiply by.</param>
         void Multiply(T value);
 
+        /// <summary>
+        /// Multiplies the given current instance by given the value.
+        /// </summary>
+        /// <param name="value">The value to multiply by.</param>
         void Multiply(float value);
 
+        /// <summary>
+        /// Divides the given current instance by given the <see cref="T"/>.
+        /// </summary>
+        /// <param name="value">The packed vector to divide by.</param>
         void Divide(T value);
 
+        /// <summary>
+        /// Divides the given current instance by given the value.
+        /// </summary>
+        /// <param name="value">The value to divide by.</param>
         void Divide(float value);
     }
 

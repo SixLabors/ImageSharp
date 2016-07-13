@@ -11,7 +11,7 @@ namespace ImageProcessorCore
     /// Encapsulates properties to provides per-pixel access to an images pixels.
     /// </summary>
     public interface IPixelAccessor<T, TP> : IPixelAccessor
-        where T : IPackedVector<TP>, new()
+        where T : IPackedVector<T, TP>, new()
         where TP : struct
     {
         /// <summary>

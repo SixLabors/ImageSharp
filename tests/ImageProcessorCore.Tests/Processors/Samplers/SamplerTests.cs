@@ -114,7 +114,7 @@ namespace ImageProcessorCore.Tests
                 {
                     string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
 
-                    Image<Bgra32> image = new Image<Bgra32>(stream);
+                    Image image = new Image(stream);
                     using (FileStream output = File.OpenWrite($"TestOutput/Resize/{filename}"))
                     {
                         image.Resize(image.Width / 2, image.Height / 2, sampler, false, this.ProgressUpdate)

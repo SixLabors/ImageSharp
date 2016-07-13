@@ -130,7 +130,7 @@ namespace ImageProcessorCore.Processors
                             {
                                 // Ensure offsets are normalised for cropping and padding.
                                 int offsetX = x - startX;
-                                float sum = this.HorizontalWeights[offsetX].Sum;
+                                double sum = this.HorizontalWeights[offsetX].Sum;
                                 Weight[] horizontalValues = this.HorizontalWeights[offsetX].Values;
 
                                 // Destination color components
@@ -171,7 +171,7 @@ namespace ImageProcessorCore.Processors
                         {
                             // Ensure offsets are normalised for cropping and padding.
                             int offsetY = y - startY;
-                            float sum = this.VerticalWeights[offsetY].Sum;
+                            double sum = this.VerticalWeights[offsetY].Sum;
                             Weight[] verticalValues = this.VerticalWeights[offsetY].Values;
 
                             for (int x = 0; x < width; x++)
@@ -229,12 +229,12 @@ namespace ImageProcessorCore.Processors
         /// </returns>
         protected Weights[] PrecomputeWeights(int destinationSize, int sourceSize)
         {
-            float scale = (float)destinationSize / sourceSize;
+            double scale = (double)destinationSize / sourceSize;
             IResampler sampler = this.Sampler;
-            float radius = sampler.Radius;
+            double radius = sampler.Radius;
             double left;
             double right;
-            float weight;
+            double weight;
             int index;
             int sum;
 
@@ -244,13 +244,13 @@ namespace ImageProcessorCore.Processors
             // visit every source pixel.
             if (scale < 1)
             {
-                float width = radius / scale;
-                float filterScale = 1 / scale;
+                double width = radius / scale;
+                double filterScale = 1 / scale;
 
                 // Make the weights slices, one source for each column or row.
                 for (int i = 0; i < destinationSize; i++)
                 {
-                    float centre = i / scale;
+                    double centre = i / scale;
                     left = Math.Ceiling(centre - width);
                     right = Math.Floor(centre + width);
 
@@ -261,7 +261,7 @@ namespace ImageProcessorCore.Processors
 
                     for (double j = left; j <= right; j++)
                     {
-                        weight = sampler.GetValue((float)((centre - j) / filterScale)) / filterScale;
+                        weight = sampler.GetValue((centre - j) / filterScale) / filterScale;
                         if (j < 0)
                         {
                             index = (int)-j;
@@ -285,7 +285,7 @@ namespace ImageProcessorCore.Processors
                 // Make the weights slices, one source for each column or row.
                 for (int i = 0; i < destinationSize; i++)
                 {
-                    float centre = i / scale;
+                    double centre = i / scale;
                     left = Math.Ceiling(centre - radius);
                     right = Math.Floor(centre + radius);
                     result[i] = new Weights
@@ -295,7 +295,7 @@ namespace ImageProcessorCore.Processors
 
                     for (double j = left; j <= right; j++)
                     {
-                        weight = sampler.GetValue((float)(centre - j));
+                        weight = sampler.GetValue(centre - j);
                         if (j < 0)
                         {
                             index = (int)-j;
@@ -328,7 +328,7 @@ namespace ImageProcessorCore.Processors
             /// </summary>
             /// <param name="index">The index.</param>
             /// <param name="value">The value.</param>
-            public Weight(int index, float value)
+            public Weight(int index, double value)
             {
                 this.Index = index;
                 this.Value = value;
@@ -342,7 +342,7 @@ namespace ImageProcessorCore.Processors
             /// <summary>
             /// Gets the result of the interpolation algorithm.
             /// </summary>
-            public float Value { get; }
+            public double Value { get; }
         }
 
         /// <summary>
@@ -358,7 +358,7 @@ namespace ImageProcessorCore.Processors
             /// <summary>
             /// Gets or sets the sum.
             /// </summary>
-            public float Sum { get; set; }
+            public double Sum { get; set; }
         }
     }
 }

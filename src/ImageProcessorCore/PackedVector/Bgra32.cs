@@ -161,6 +161,15 @@ namespace ImageProcessorCore
         }
 
         /// <inheritdoc/>
+        public void Multiply(double value)
+        {
+            this.B = (byte)(this.B * value);
+            this.G = (byte)(this.G * value);
+            this.R = (byte)(this.R * value);
+            this.A = (byte)(this.A * value);
+        }
+
+        /// <inheritdoc/>
         public void Divide(Bgra32 value)
         {
             this.B = (byte)(this.B / value.B);
@@ -171,6 +180,15 @@ namespace ImageProcessorCore
 
         /// <inheritdoc/>
         public void Divide(float value)
+        {
+            this.B = (byte)(this.B / value);
+            this.G = (byte)(this.G / value);
+            this.R = (byte)(this.R / value);
+            this.A = (byte)(this.A / value);
+        }
+
+        /// <inheritdoc/>
+        public void Divide(double value)
         {
             this.B = (byte)(this.B / value);
             this.G = (byte)(this.G / value);

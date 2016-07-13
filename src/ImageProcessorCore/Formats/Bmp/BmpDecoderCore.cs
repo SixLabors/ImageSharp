@@ -239,7 +239,7 @@ namespace ImageProcessorCore.Formats
                                 int arrayOffset = (row * width) + (colOffset + shift);
 
                                 // Stored in b-> g-> r-> a order.
-                                T packed = new T();
+                                T packed = default(T);
                                 packed.PackBytes(colors[colorIndex], colors[colorIndex + 1], colors[colorIndex + 2], 255);
                                 imageData[arrayOffset] = packed;
                             }
@@ -289,7 +289,7 @@ namespace ImageProcessorCore.Formats
                             int arrayOffset = ((row * width) + x);
 
                             // Stored in b-> g-> r-> a order.
-                            T packed = new T();
+                            T packed = default(T);
                             packed.PackBytes(b, g, r, 255);
                             imageData[arrayOffset] = packed;
                         }
@@ -328,7 +328,7 @@ namespace ImageProcessorCore.Formats
 
                             // We divide by 255 as we will store the colors in our floating point format.
                             // Stored in b-> g-> r-> a order.
-                            T packed = new T();
+                            T packed = default(T);
                             packed.PackBytes(data[offset], data[offset + 1], data[offset + 2], 255);
                             imageData[arrayOffset] = packed;
                         }
@@ -366,7 +366,7 @@ namespace ImageProcessorCore.Formats
                             int arrayOffset = ((row * width) + x);
 
                             // Stored in b-> g-> r-> a order.
-                            T packed = new T();
+                            T packed = default(T);
                             packed.PackBytes(data[offset], data[offset + 1], data[offset + 2], data[offset + 3]);
                             imageData[arrayOffset] = packed;
                         }

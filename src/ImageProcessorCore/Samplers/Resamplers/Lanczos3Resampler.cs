@@ -13,10 +13,10 @@ namespace ImageProcessorCore
     public class Lanczos3Resampler : IResampler
     {
         /// <inheritdoc/>
-        public float Radius => 3;
+        public double Radius => 3;
 
         /// <inheritdoc/>
-        public float GetValue(float x)
+        public double GetValue(double x)
         {
             if (x < 0)
             {
@@ -25,7 +25,7 @@ namespace ImageProcessorCore
 
             if (x < 3)
             {
-                return ImageMaths.SinC(x) * ImageMaths.SinC(x / 3f);
+                return ImageMaths.SinC(x) * ImageMaths.SinC(x / 3d);
             }
 
             return 0;

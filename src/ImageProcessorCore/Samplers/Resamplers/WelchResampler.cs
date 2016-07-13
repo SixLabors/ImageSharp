@@ -12,10 +12,10 @@ namespace ImageProcessorCore
     public class WelchResampler : IResampler
     {
         /// <inheritdoc/>
-        public float Radius => 3;
+        public double Radius => 3;
 
         /// <inheritdoc/>
-        public float GetValue(float x)
+        public double GetValue(double x)
         {
             if (x < 0)
             {
@@ -24,7 +24,7 @@ namespace ImageProcessorCore
 
             if (x < 3)
             {
-                return ImageMaths.SinC(x) * (1.0f - (x * x / 9.0f));
+                return ImageMaths.SinC(x) * (1.0d - (x * x / 9.0d));
             }
 
             return 0;

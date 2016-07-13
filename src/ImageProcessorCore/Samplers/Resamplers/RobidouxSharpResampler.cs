@@ -12,13 +12,13 @@ namespace ImageProcessorCore
     public class RobidouxSharpResampler : IResampler
     {
         /// <inheritdoc/>
-        public float Radius => 2;
+        public double Radius => 2;
 
         /// <inheritdoc/>
-        public float GetValue(float x)
+        public double GetValue(double x)
         {
-            const float B = 0.26201451F;
-            const float C = 0.36899274F;
+            const double B = 0.2620145123990142D;
+            const double C = 0.3689927438004929D;
 
             return ImageMaths.GetBcValue(x, B, C);
         }

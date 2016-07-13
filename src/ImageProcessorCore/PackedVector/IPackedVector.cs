@@ -50,6 +50,12 @@ namespace ImageProcessorCore
         void Multiply(float value);
 
         /// <summary>
+        /// Multiplies the given current instance by given the value.
+        /// </summary>
+        /// <param name="value">The value to multiply by.</param>
+        void Multiply(double value);
+
+        /// <summary>
         /// Divides the given current instance by given the <see cref="T"/>.
         /// </summary>
         /// <param name="value">The packed vector to divide by.</param>
@@ -60,6 +66,12 @@ namespace ImageProcessorCore
         /// </summary>
         /// <param name="value">The value to divide by.</param>
         void Divide(float value);
+
+        /// <summary>
+        /// Divides the given current instance by given the value.
+        /// </summary>
+        /// <param name="value">The value to divide by.</param>
+        void Divide(double value);
     }
 
     /// <summary>

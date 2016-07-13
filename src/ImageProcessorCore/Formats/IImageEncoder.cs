@@ -49,7 +49,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="image">The <see cref="ImageBase{T}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
         void Encode<T, TP>(ImageBase<T, TP> image, Stream stream)
-            where T : IPackedVector<TP>,
+            where T : IPackedVector<T, TP>,
             new() where TP : struct;
     }
 }

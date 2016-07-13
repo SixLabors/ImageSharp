@@ -60,7 +60,7 @@ namespace ImageProcessorCore.Formats
         ///    <para><paramref name="stream"/> is null.</para>
         /// </exception>
         public void Decode<T, TP>(Image<T, TP> image, Stream stream)
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<T, TP>, new()
             where TP : struct
         {
             this.currentStream = stream;
@@ -195,7 +195,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="bits">The number of bits per pixel.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
         private void ReadRgbPalette<T, TP>(T[] imageData, byte[] colors, int width, int height, int bits, bool inverted)
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<T, TP>, new()
             where TP : struct
         {
             // Pixels per byte (bits per pixel)
@@ -256,7 +256,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
         private void ReadRgb16<T, TP>(T[] imageData, int width, int height, bool inverted)
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<T, TP>, new()
             where TP : struct
         {
             // We divide here as we will store the colors in our floating point format.
@@ -305,7 +305,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
         private void ReadRgb24<T, TP>(T[] imageData, int width, int height, bool inverted)
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<T, TP>, new()
             where TP : struct
         {
             int alignment;
@@ -344,7 +344,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
         private void ReadRgb32<T, TP>(T[] imageData, int width, int height, bool inverted)
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<T, TP>, new()
             where TP : struct
         {
             int alignment;

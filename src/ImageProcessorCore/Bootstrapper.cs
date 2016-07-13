@@ -74,7 +74,7 @@ namespace ImageProcessorCore
         /// <param name="image">The image</param>
         /// <returns>The <see cref="IPixelAccessor"/></returns>
         public IPixelAccessor<T, TP> GetPixelAccessor<T, TP>(IImageBase image)
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<T, TP>, new()
             where TP : struct
         {
             Type packed = typeof(T);

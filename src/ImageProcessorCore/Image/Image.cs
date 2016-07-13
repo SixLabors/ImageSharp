@@ -21,7 +21,7 @@ namespace ImageProcessorCore
     /// The packed vector containing pixel information.
     /// </typeparam>
     public class Image<T, TP> : ImageBase<T, TP>
-        where T : IPackedVector<TP>, new()
+        where T : IPackedVector<T, TP>, new()
         where TP : struct
     {
         /// <summary>

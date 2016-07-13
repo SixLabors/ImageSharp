@@ -5,6 +5,7 @@
 
     using BenchmarkDotNet.Attributes;
     using CoreSize = ImageProcessorCore.Size;
+    using CoreImage = ImageProcessorCore.Image;
 
     public class Resize
     {
@@ -31,7 +32,7 @@
         [Benchmark(Description = "ImageProcessorCore Resize")]
         public CoreSize ResizeCore()
         {
-            Image<Bgra32> image = new Image<Bgra32>(2000, 2000);
+            CoreImage image = new CoreImage(2000, 2000);
             image.Resize(400, 400);
             return new CoreSize(image.Width, image.Height);
         }

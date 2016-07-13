@@ -74,8 +74,9 @@ namespace ImageProcessorCore.Formats
         /// </summary>
         /// <param name="image">The <see cref="ImageBase{T}"/> to decode to.</param>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        public void Decode<T>(Image<T> image, Stream stream)
-            where T : IPackedVector, new()
+        public void Decode<T,TP>(Image<T,TP> image, Stream stream)
+            where T : IPackedVector<TP>, new()
+            where TP : struct
         {
             new BmpDecoderCore().Decode(image, stream);
         }

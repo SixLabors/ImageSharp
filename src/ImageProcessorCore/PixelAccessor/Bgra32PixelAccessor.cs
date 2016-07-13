@@ -15,8 +15,7 @@ namespace ImageProcessorCore
     /// The image data is always stored in <see cref="Bgra32"/> format, where the blue, green, red, and
     /// alpha values are 8 bit unsigned bytes.
     /// </remarks>
-    public sealed unsafe class Bgra32PixelAccessor : IPixelAccessor<Bgra32>
-
+    public sealed unsafe class Bgra32PixelAccessor : IPixelAccessor<Bgra32, uint>
     {
         /// <summary>
         /// The position of the first pixel in the bitmap.
@@ -56,7 +55,7 @@ namespace ImageProcessorCore
             this.Width = image.Width;
             this.Height = image.Height;
 
-            this.pixelsHandle = GCHandle.Alloc(((ImageBase<Bgra32>)image).Pixels, GCHandleType.Pinned);
+            this.pixelsHandle = GCHandle.Alloc(((ImageBase<Bgra32, uint>)image).Pixels, GCHandleType.Pinned);
             this.pixelsBase = (Bgra32*)this.pixelsHandle.AddrOfPinnedObject().ToPointer();
         }
 

@@ -14,26 +14,26 @@ namespace ImageProcessorCore
     /// <typeparam name="T">
     /// The type of object representing the packed value.
     /// </typeparam>
-    public interface IPackedVector<T> : IPackedVector
-        where T : struct
+    public interface IPackedVector<T, TP> : IPackedVector
+        where TP : struct
     {
         /// <summary>
         /// Gets the packed representation of the value.
         /// Typically packed in least to greatest significance order.
         /// </summary>
-        T PackedValue();
+        TP PackedValue();
 
-        void Add<TP>(TP value) where TP : IPackedVector<T>;
+        void Add(T value);
 
-        void Subtract<TP>(TP value) where TP : IPackedVector<T>;
+        void Subtract(T value);
 
-        void Multiply<TP>(TP value) where TP : IPackedVector<T>;
+        void Multiply(T value);
 
-        void Multiply<TP>(float value) where TP : IPackedVector<T>;
+        void Multiply(float value);
 
-        void Divide<TP>(TP value) where TP : IPackedVector<T>;
+        void Divide(T value);
 
-        void Divide<TP>(float value) where TP : IPackedVector<T>;
+        void Divide(float value);
     }
 
     /// <summary>

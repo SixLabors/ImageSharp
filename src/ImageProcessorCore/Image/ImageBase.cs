@@ -15,7 +15,7 @@ namespace ImageProcessorCore
     /// The packed vector pixels format.
     /// </typeparam>
     public abstract class ImageBase<T, TP> : IImageBase<T, TP>
-        where T : IPackedVector<TP>, new()
+        where T : IPackedVector<T, TP>, new()
         where TP : struct
     {
         /// <summary>

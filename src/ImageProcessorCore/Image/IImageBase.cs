@@ -3,7 +3,7 @@
 namespace ImageProcessorCore
 {
     public interface IImageBase<T, TP> : IImageBase
-        where T : IPackedVector<TP>, new()
+        where T : IPackedVector<T, TP>, new()
         where TP : struct
     {
         T[] Pixels { get; }

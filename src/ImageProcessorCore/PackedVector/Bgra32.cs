@@ -2,7 +2,6 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
-
 namespace ImageProcessorCore
 {
     using System;
@@ -128,73 +127,73 @@ namespace ImageProcessorCore
         /// <inheritdoc/>
         public void Add(Bgra32 value)
         {
-            this.B = (byte)Clamp(this.B + value.B);
-            this.G = (byte)Clamp(this.G + value.G);
-            this.R = (byte)Clamp(this.R + value.R);
-            this.A = (byte)Clamp(this.A + value.A);
+            this.B = Clamp(this.B + value.B);
+            this.G = Clamp(this.G + value.G);
+            this.R = Clamp(this.R + value.R);
+            this.A = Clamp(this.A + value.A);
         }
 
         /// <inheritdoc/>
         public void Subtract(Bgra32 value)
         {
-            this.B = (byte)Clamp(this.B - value.B);
-            this.G = (byte)Clamp(this.G - value.G);
-            this.R = (byte)Clamp(this.R - value.R);
-            this.A = (byte)Clamp(this.A - value.A);
+            this.B = Clamp(this.B - value.B);
+            this.G = Clamp(this.G - value.G);
+            this.R = Clamp(this.R - value.R);
+            this.A = Clamp(this.A - value.A);
         }
 
         /// <inheritdoc/>
         public void Multiply(Bgra32 value)
         {
-            this.B = (byte)Clamp(this.B * value.B);
-            this.G = (byte)Clamp(this.G * value.G);
-            this.R = (byte)Clamp(this.R * value.R);
-            this.A = (byte)Clamp(this.A * value.A);
+            this.B = Clamp(this.B * value.B);
+            this.G = Clamp(this.G * value.G);
+            this.R = Clamp(this.R * value.R);
+            this.A = Clamp(this.A * value.A);
         }
 
         /// <inheritdoc/>
         public void Multiply(float value)
         {
-            this.B = (byte)Clamp(this.B * value);
-            this.G = (byte)Clamp(this.G * value);
-            this.R = (byte)Clamp(this.R * value);
-            this.A = (byte)Clamp(this.A * value);
+            this.B = Clamp(this.B * value);
+            this.G = Clamp(this.G * value);
+            this.R = Clamp(this.R * value);
+            this.A = Clamp(this.A * value);
         }
 
         /// <inheritdoc/>
         public void Multiply(double value)
         {
-            this.B = (byte)Clamp(this.B * value);
-            this.G = (byte)Clamp(this.G * value);
-            this.R = (byte)Clamp(this.R * value);
-            this.A = (byte)Clamp(this.A * value);
+            this.B = Clamp(this.B * value);
+            this.G = Clamp(this.G * value);
+            this.R = Clamp(this.R * value);
+            this.A = Clamp(this.A * value);
         }
 
         /// <inheritdoc/>
         public void Divide(Bgra32 value)
         {
-            this.B = (byte)Clamp((float)this.B / value.B);
-            this.G = (byte)Clamp((float)this.G / value.G);
-            this.R = (byte)Clamp((float)this.R / value.R);
-            this.A = (byte)Clamp((float)this.A / value.A);
+            this.B = Clamp((float)this.B / value.B);
+            this.G = Clamp((float)this.G / value.G);
+            this.R = Clamp((float)this.R / value.R);
+            this.A = Clamp((float)this.A / value.A);
         }
 
         /// <inheritdoc/>
         public void Divide(float value)
         {
-            this.B = (byte)Clamp(this.B / value);
-            this.G = (byte)Clamp(this.G / value);
-            this.R = (byte)Clamp(this.R / value);
-            this.A = (byte)Clamp(this.A / value);
+            this.B = Clamp(this.B / value);
+            this.G = Clamp(this.G / value);
+            this.R = Clamp(this.R / value);
+            this.A = Clamp(this.A / value);
         }
 
         /// <inheritdoc/>
         public void Divide(double value)
         {
-            this.B = (byte)Clamp(this.B / value);
-            this.G = (byte)Clamp(this.G / value);
-            this.R = (byte)Clamp(this.R / value);
-            this.A = (byte)Clamp(this.A / value);
+            this.B = Clamp(this.B / value);
+            this.G = Clamp(this.G / value);
+            this.R = Clamp(this.R / value);
+            this.A = Clamp(this.A / value);
         }
 
         /// <inheritdoc/>
@@ -269,11 +268,11 @@ namespace ImageProcessorCore
         /// The <see cref="float"/>.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float Clamp(float value)
+        private static byte Clamp(float value)
         {
             value = (value > 255) ? 255 : value;
             value = (value < 0) ? 0 : value;
-            return value;
+            return (byte)value;
         }
 
         /// <summary>
@@ -284,11 +283,11 @@ namespace ImageProcessorCore
         /// The <see cref="double"/>.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static double Clamp(double value)
+        private static byte Clamp(double value)
         {
             value = (value > 255) ? 255 : value;
             value = (value < 0) ? 0 : value;
-            return value;
+            return (byte)value;
         }
 
         /// <summary>
@@ -300,6 +299,7 @@ namespace ImageProcessorCore
         /// <returns>
         /// A 32-bit signed integer that is the hash code for this instance.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int GetHashCode(Bgra32 packed)
         {
             return packed.packedValue.GetHashCode();

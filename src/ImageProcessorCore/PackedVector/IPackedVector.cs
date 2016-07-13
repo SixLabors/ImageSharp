@@ -18,12 +18,22 @@ namespace ImageProcessorCore
         where T : struct
     {
         /// <summary>
-        /// Gets or sets the packed representation of the value.
+        /// Gets the packed representation of the value.
         /// Typically packed in least to greatest significance order.
         /// </summary>
-        T PackedValue { get; set; }
+        T PackedValue();
 
+        void Add<TP>(TP value) where TP : IPackedVector<T>;
 
+        void Subtract<TP>(TP value) where TP : IPackedVector<T>;
+
+        void Multiply<TP>(TP value) where TP : IPackedVector<T>;
+
+        void Multiply<TP>(float value) where TP : IPackedVector<T>;
+
+        void Divide<TP>(TP value) where TP : IPackedVector<T>;
+
+        void Divide<TP>(float value) where TP : IPackedVector<T>;
     }
 
     /// <summary>
@@ -31,30 +41,6 @@ namespace ImageProcessorCore
     /// </summary>
     public interface IPackedVector
     {
-        //void Add<U>(U value);
-
-        //void Subtract<U>(U value);
-
-        //void Multiply<U>(U value);
-
-        //void Multiply(float value);
-
-        //void Divide<U>(U value);
-
-        //void Divide(float value);
-
-        void Add(IPackedVector value);
-
-        void Subtract(IPackedVector value);
-
-        void Multiply(IPackedVector value);
-
-        void Multiply(float value);
-
-        void Divide(IPackedVector value);
-
-        void Divide(float value);
-
         /// <summary>
         /// Sets the packed representation from a <see cref="Vector4"/>.
         /// </summary>

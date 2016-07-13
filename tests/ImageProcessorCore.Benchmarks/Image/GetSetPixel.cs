@@ -23,11 +23,11 @@
         [Benchmark(Description = "ImageProcessorCore GetSet Pixel")]
         public Bgra32 ResizeCore()
         {
-            Image<Bgra32> image = new Image<Bgra32>(400, 400);
-            using (IPixelAccessor<Bgra32> imagePixels = image.Lock())
+            Image<Bgra32, uint> image = new Image<Bgra32, uint>(400, 400);
+            using (IPixelAccessor<Bgra32, uint> imagePixels = image.Lock())
             {
                 imagePixels[200, 200] = new Bgra32(1, 1, 1, 1);
-                return (Bgra32)imagePixels[200, 200];
+                return imagePixels[200, 200];
             }
         }
     }

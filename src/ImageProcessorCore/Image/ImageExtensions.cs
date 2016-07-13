@@ -61,8 +61,9 @@ namespace ImageProcessorCore
         /// <param name="source">The image this method extends.</param>
         /// <param name="processor">The processor to apply to the image.</param>
         /// <returns>The <see cref="Image{T}"/>.</returns>
-        public static Image<T> Process<T>(this Image<T> source, IImageProcessor processor)
-            where T : IPackedVector, new()
+        public static Image<T, TP> Process<T, TP>(this Image<T, TP> source, IImageProcessor processor)
+            where T : IPackedVector<TP>, new()
+            where TP : struct
         {
             return Process(source, source.Bounds, processor);
         }
@@ -78,8 +79,9 @@ namespace ImageProcessorCore
         /// </param>
         /// <param name="processor">The processors to apply to the image.</param>
         /// <returns>The <see cref="Image{T}"/>.</returns>
-        public static Image<T> Process<T>(this Image<T> source, Rectangle sourceRectangle, IImageProcessor processor)
-            where T : IPackedVector, new()
+        public static Image<T, TP> Process<T, TP>(this Image<T, TP> source, Rectangle sourceRectangle, IImageProcessor processor)
+            where T : IPackedVector<TP>, new()
+            where TP : struct
         {
             return PerformAction(source, true, (sourceImage, targetImage) => processor.Apply(targetImage, sourceImage, sourceRectangle));
         }
@@ -96,8 +98,9 @@ namespace ImageProcessorCore
         /// <param name="height">The target image height.</param>
         /// <param name="sampler">The processor to apply to the image.</param>
         /// <returns>The <see cref="Image{T}"/>.</returns>
-        public static Image<T> Process<T>(this Image<T> source, int width, int height, IImageSampler sampler)
-            where T : IPackedVector, new()
+        public static Image<T, TP> Process<T, TP>(this Image<T, TP> source, int width, int height, IImageSampler sampler)
+            where T : IPackedVector<TP>, new()
+            where TP : struct
         {
             return Process(source, width, height, source.Bounds, default(Rectangle), sampler);
         }
@@ -121,8 +124,9 @@ namespace ImageProcessorCore
         /// </param>
         /// <param name="sampler">The processor to apply to the image.</param>
         /// <returns>The <see cref="Image{T}"/>.</returns>
-        public static Image<T> Process<T>(this Image<T> source, int width, int height, Rectangle sourceRectangle, Rectangle targetRectangle, IImageSampler sampler)
-            where T : IPackedVector, new()
+        public static Image<T, TP> Process<T, TP>(this Image<T, TP> source, int width, int height, Rectangle sourceRectangle, Rectangle targetRectangle, IImageSampler sampler)
+            where T : IPackedVector<TP>, new()
+            where TP : struct
         {
             return PerformAction(source, false, (sourceImage, targetImage) => sampler.Apply(targetImage, sourceImage, width, height, targetRectangle, sourceRectangle));
         }
@@ -135,12 +139,13 @@ namespace ImageProcessorCore
         /// <param name="clone">Whether to clone the image.</param>
         /// <param name="action">The <see cref="Action"/> to perform against the image.</param>
         /// <returns>The <see cref="Image{T}"/>.</returns>
-        private static Image<T> PerformAction<T>(Image<T> source, bool clone, Action<ImageBase<T>, ImageBase<T>> action)
-             where T : IPackedVector, new()
+        private static Image<T, TP> PerformAction<T, TP>(Image<T, TP> source, bool clone, Action<ImageBase<T, TP>, ImageBase<T, TP>> action)
+            where T : IPackedVector<TP>, new()
+            where TP : struct
         {
-            Image<T> transformedImage = clone
-                ? new Image<T>(source)
-                : new Image<T>
+            Image<T, TP> transformedImage = clone
+                ? new Image<T, TP>(source)
+                : new Image<T, TP>
                 {
                     // Several properties require copying
                     // TODO: Check why we need to set these?
@@ -154,10 +159,10 @@ namespace ImageProcessorCore
 
             for (int i = 0; i < source.Frames.Count; i++)
             {
-                ImageFrame<T> sourceFrame = source.Frames[i];
-                ImageFrame<T> tranformedFrame = clone
-                    ? new ImageFrame<T>(sourceFrame)
-                    : new ImageFrame<T> { FrameDelay = sourceFrame.FrameDelay };
+                ImageFrame<T, TP> sourceFrame = source.Frames[i];
+                ImageFrame<T, TP> tranformedFrame = clone
+                    ? new ImageFrame<T, TP>(sourceFrame)
+                    : new ImageFrame<T, TP> { FrameDelay = sourceFrame.FrameDelay };
 
                 action(sourceFrame, tranformedFrame);
 

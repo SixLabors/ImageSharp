@@ -9,6 +9,8 @@ namespace ImageProcessorCore.Processors
     using System.Numerics;
     using System.Threading.Tasks;
 
+    using ImageProcessorCore.Helpers;
+
     /// <summary>
     /// Provides methods that allow the resizing of images using various algorithms.
     /// </summary>
@@ -43,7 +45,7 @@ namespace ImageProcessorCore.Processors
         protected Weights[] VerticalWeights { get; set; }
 
         /// <inheritdoc/>
-        protected override void OnApply<T>(ImageBase<T> target, ImageBase<T> source, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected override void OnApply<T, TP>(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
             if (!(this.Sampler is NearestNeighborResampler))
             {
@@ -53,7 +55,7 @@ namespace ImageProcessorCore.Processors
         }
 
         /// <inheritdoc/>
-        protected override void Apply<T>(ImageBase<T> target, ImageBase<T> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply<T, TP>(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             // Jump out, we'll deal with that later.
             if (source.Bounds == target.Bounds && sourceRectangle == targetRectangle)
@@ -78,8 +80,8 @@ namespace ImageProcessorCore.Processors
                 float widthFactor = sourceRectangle.Width / (float)targetRectangle.Width;
                 float heightFactor = sourceRectangle.Height / (float)targetRectangle.Height;
 
-                using (IPixelAccessor<T> sourcePixels = source.Lock())
-                using (IPixelAccessor<T> targetPixels = target.Lock())
+                using (IPixelAccessor<T, TP> sourcePixels = source.Lock())
+                using (IPixelAccessor<T, TP> targetPixels = target.Lock())
                 {
                     Parallel.For(
                         startY,
@@ -114,10 +116,10 @@ namespace ImageProcessorCore.Processors
             // A 2-pass 1D algorithm appears to be faster than splitting a 1-pass 2D algorithm 
             // First process the columns. Since we are not using multiple threads startY and endY
             // are the upper and lower bounds of the source rectangle.
-            Image<T> firstPass = new Image<T>(target.Width, source.Height);
-            using (IPixelAccessor<T> sourcePixels = source.Lock())
-            using (IPixelAccessor<T> firstPassPixels = firstPass.Lock())
-            using (IPixelAccessor<T> targetPixels = target.Lock())
+            Image<T, TP> firstPass = new Image<T, TP>(target.Width, source.Height);
+            using (IPixelAccessor<T, TP> sourcePixels = source.Lock())
+            using (IPixelAccessor<T, TP> firstPassPixels = firstPass.Lock())
+            using (IPixelAccessor<T, TP> targetPixels = target.Lock())
             {
                 Parallel.For(
                     0,
@@ -153,14 +155,13 @@ namespace ImageProcessorCore.Processors
                                 //}
 
                                 //firstPassPixels[x, y] = destination;
-                                T sourceColor;
                                 T destination = default(T);
 
                                 for (int i = 0; i < sum; i++)
                                 {
                                     Weight xw = horizontalValues[i];
                                     int originX = xw.Index;
-                                    sourceColor = sourcePixels[originX, y];
+                                    T sourceColor = sourcePixels[originX, y];
                                     //Color sourceColor = compand
                                     //    ? Color.Expand(sourcePixels[originX, y])
                                     //    : sourcePixels[originX, y];
@@ -168,8 +169,8 @@ namespace ImageProcessorCore.Processors
                                     //destination.Add(sourceColor);
                                     //destination += sourceColor * xw.Value;
 
-                                    sourceColor.Multiply(xw.Value);
-                                    destination.Add(sourceColor);
+                                    //sourceColor.Multiply<T>(xw.Value);
+                                    destination.Add(Operator<T>.Add(destination, Operator<T>.MultiplyF(sourceColor, xw.Value)));
                                 }
 
                                 //if (compand)
@@ -200,22 +201,23 @@ namespace ImageProcessorCore.Processors
                             for (int x = 0; x < width; x++)
                             {
                                 // Destination color components
-                                T sourceColor;
                                 T destination = default(T);
 
                                 for (int i = 0; i < sum; i++)
                                 {
                                     Weight yw = verticalValues[i];
                                     int originY = yw.Index;
-                                    sourceColor = firstPassPixels[x, originY];
+                                    T sourceColor = firstPassPixels[x, originY];
                                     //Color sourceColor = compand
                                     //    ? Color.Expand(firstPassPixels[x, originY])
                                     //    : firstPassPixels[x, originY];
                                     //Vector4 sourceColor = firstPassPixels[x, originY].ToVector4();
                                     //destination += sourceColor * yw.Value;
 
-                                    sourceColor.Multiply(yw.Value);
-                                    destination.Add(sourceColor);
+                                    //sourceColor.Multiply<T>(yw.Value);
+                                    //destination.Add(sourceColor);
+                                    destination.Add(Operator<T>.Add(destination, Operator<T>.MultiplyF(sourceColor, yw.Value)));
+
                                 }
 
                                 //if (compand)
@@ -237,7 +239,7 @@ namespace ImageProcessorCore.Processors
         }
 
         /// <inheritdoc/>
-        protected override void AfterApply<T>(ImageBase<T> target, ImageBase<T> source, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected override void AfterApply<T, TP>(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
             // Copy the pixels over.
             if (source.Bounds == target.Bounds && sourceRectangle == targetRectangle)

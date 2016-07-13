@@ -27,8 +27,9 @@ namespace ImageProcessorCore.Processors
         private int totalRows;
 
         /// <inheritdoc/>
-        public void Apply<T>(ImageBase<T> target, ImageBase<T> source, Rectangle sourceRectangle)
-             where T : IPackedVector, new()
+        public void Apply<T, TP>(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle sourceRectangle)
+            where T : IPackedVector<TP>, new()
+            where TP : struct
         {
             try
             {
@@ -49,8 +50,9 @@ namespace ImageProcessorCore.Processors
         }
 
         /// <inheritdoc/>
-        public void Apply<T>(ImageBase<T> target, ImageBase<T> source, int width, int height, Rectangle targetRectangle = default(Rectangle), Rectangle sourceRectangle = default(Rectangle))
-            where T : IPackedVector, new()
+        public void Apply<T, TP>(ImageBase<T, TP> target, ImageBase<T, TP> source, int width, int height, Rectangle targetRectangle = default(Rectangle), Rectangle sourceRectangle = default(Rectangle))
+            where T : IPackedVector<TP>, new()
+            where TP : struct
         {
             try
             {
@@ -95,8 +97,9 @@ namespace ImageProcessorCore.Processors
         /// <param name="sourceRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
-        protected virtual void OnApply<T>(ImageBase<T> target, ImageBase<T> source, Rectangle targetRectangle, Rectangle sourceRectangle)
-            where T : IPackedVector, new()
+        protected virtual void OnApply<T, TP>(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle)
+            where T : IPackedVector<TP>, new()
+            where TP : struct
         {
         }
 
@@ -120,8 +123,9 @@ namespace ImageProcessorCore.Processors
         /// The method keeps the source image unchanged and returns the
         /// the result of image process as new image.
         /// </remarks>
-        protected abstract void Apply<T>(ImageBase<T> target, ImageBase<T> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
-            where T : IPackedVector, new();
+        protected abstract void Apply<T, TP>(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+            where T : IPackedVector<TP>, new()
+            where TP : struct;
 
         /// <summary>
         /// This method is called after the process is applied to prepare the processor.
@@ -136,8 +140,9 @@ namespace ImageProcessorCore.Processors
         /// <param name="sourceRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
-        protected virtual void AfterApply<T>(ImageBase<T> target, ImageBase<T> source, Rectangle targetRectangle, Rectangle sourceRectangle)
-            where T : IPackedVector, new()
+        protected virtual void AfterApply<T, TP>(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle)
+            where T : IPackedVector<TP>, new()
+            where TP : struct
         {
         }
 

@@ -11,8 +11,9 @@ namespace ImageProcessorCore
     /// <typeparam name="T">
     /// The packed vector containing pixel information.
     /// </typeparam>
-    public class ImageFrame<T> : ImageBase<T>
-        where T : IPackedVector, new()
+    public class ImageFrame<T, TP> : ImageBase<T, TP>
+        where T : IPackedVector<TP>, new()
+        where TP : struct
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrame{T}"/> class. 
@@ -27,15 +28,15 @@ namespace ImageProcessorCore
         /// <param name="frame">
         /// The frame to create the frame from.
         /// </param>
-        public ImageFrame(ImageFrame<T> frame)
+        public ImageFrame(ImageFrame<T, TP> frame)
             : base(frame)
         {
         }
 
         /// <inheritdoc />
-        public override IPixelAccessor<T> Lock()
+        public override IPixelAccessor<T, TP> Lock()
         {
-            return Bootstrapper.Instance.GetPixelAccessor<T>(this);
+            return Bootstrapper.Instance.GetPixelAccessor<T, TP>(this);
         }
     }
 }

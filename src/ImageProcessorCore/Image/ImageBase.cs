@@ -14,18 +14,19 @@ namespace ImageProcessorCore
     /// <typeparam name="T">
     /// The packed vector pixels format.
     /// </typeparam>
-    public abstract class ImageBase<T> : IImageBase<T>
-        where T : IPackedVector, new()
+    public abstract class ImageBase<T, TP> : IImageBase<T, TP>
+        where T : IPackedVector<TP>, new()
+        where TP : struct
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageBase{T}"/> class.
+        /// Initializes a new instance of the <see cref="ImageBase{T,TP}"/> class.
         /// </summary>
         protected ImageBase()
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageBase{T}"/> class.
+        /// Initializes a new instance of the <see cref="ImageBase{T,TP}"/> class.
         /// </summary>
         /// <param name="width">The width of the image in pixels.</param>
         /// <param name="height">The height of the image in pixels.</param>
@@ -43,15 +44,15 @@ namespace ImageProcessorCore
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageBase{T}"/> class.
+        /// Initializes a new instance of the <see cref="ImageBase{T,TP}"/> class.
         /// </summary>
         /// <param name="other">
-        /// The other <see cref="ImageBase{T}"/> to create this instance from.
+        /// The other <see cref="ImageBase{T,TP}"/> to create this instance from.
         /// </param>
         /// <exception cref="ArgumentNullException">
-        /// Thrown if the given <see cref="ImageBase{T}"/> is null.
+        /// Thrown if the given <see cref="ImageBase{T,TP}"/> is null.
         /// </exception>
-        protected ImageBase(ImageBase<T> other)
+        protected ImageBase(ImageBase<T, TP> other)
         {
             Guard.NotNull(other, nameof(other), "Other image cannot be null.");
 
@@ -196,6 +197,6 @@ namespace ImageProcessorCore
         /// </remarks>
         /// </summary>
         /// <returns>The <see cref="IPixelAccessor"/></returns>
-        public abstract IPixelAccessor<T> Lock();
+        public abstract IPixelAccessor<T, TP> Lock();
     }
 }

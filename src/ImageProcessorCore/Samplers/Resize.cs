@@ -21,8 +21,9 @@ namespace ImageProcessorCore
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image{T}"/></returns>
         /// <remarks>Passing zero for one of height or width within the resize options will automatically preserve the aspect ratio of the original image</remarks>
-        public static Image<T> Resize<T>(this Image<T> source, ResizeOptions options, ProgressEventHandler progressHandler = null)
-            where T : IPackedVector, new()
+        public static Image<T,TP> Resize<T,TP>(this Image<T,TP> source, ResizeOptions options, ProgressEventHandler progressHandler = null)
+            where T : IPackedVector<TP>, new()
+            where TP : struct
         {
             // Ensure size is populated across both dimensions.
             if (options.Size.Width == 0 && options.Size.Height > 0)
@@ -50,8 +51,9 @@ namespace ImageProcessorCore
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image{T}"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
-        public static Image<T> Resize<T>(this Image<T> source, int width, int height, ProgressEventHandler progressHandler = null)
-            where T : IPackedVector, new()
+        public static Image<T,TP> Resize<T,TP>(this Image<T,TP> source, int width, int height, ProgressEventHandler progressHandler = null)
+            where T : IPackedVector<TP>, new()
+            where TP : struct
         {
             return Resize(source, width, height, new BicubicResampler(), false, progressHandler);
         }
@@ -67,8 +69,9 @@ namespace ImageProcessorCore
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image{T}"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
-        public static Image<T> Resize<T>(this Image<T> source, int width, int height, bool compand, ProgressEventHandler progressHandler = null)
-            where T : IPackedVector, new()
+        public static Image<T,TP> Resize<T,TP>(this Image<T,TP> source, int width, int height, bool compand, ProgressEventHandler progressHandler = null)
+            where T : IPackedVector<TP>, new()
+            where TP : struct
         {
             return Resize(source, width, height, new BicubicResampler(), compand, progressHandler);
         }
@@ -85,8 +88,9 @@ namespace ImageProcessorCore
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image{T}"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
-        public static Image<T> Resize<T>(this Image<T> source, int width, int height, IResampler sampler, bool compand, ProgressEventHandler progressHandler = null)
-            where T : IPackedVector, new()
+        public static Image<T,TP> Resize<T,TP>(this Image<T,TP> source, int width, int height, IResampler sampler, bool compand, ProgressEventHandler progressHandler = null)
+            where T : IPackedVector<TP>, new()
+            where TP : struct
         {
             return Resize(source, width, height, sampler, source.Bounds, new Rectangle(0, 0, width, height), compand, progressHandler);
         }
@@ -110,8 +114,9 @@ namespace ImageProcessorCore
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image{T}"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
-        public static Image<T> Resize<T>(this Image<T> source, int width, int height, IResampler sampler, Rectangle sourceRectangle, Rectangle targetRectangle, bool compand = false, ProgressEventHandler progressHandler = null)
-            where T : IPackedVector, new()
+        public static Image<T,TP> Resize<T,TP>(this Image<T,TP> source, int width, int height, IResampler sampler, Rectangle sourceRectangle, Rectangle targetRectangle, bool compand = false, ProgressEventHandler progressHandler = null)
+            where T : IPackedVector<TP>, new()
+            where TP : struct
         {
             if (width == 0 && height > 0)
             {

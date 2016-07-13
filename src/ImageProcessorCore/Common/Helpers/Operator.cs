@@ -260,6 +260,9 @@
         }
 
         private static readonly Func<TResult, TValue, TResult> add, subtract, multiply, divide;
+
+        private static readonly Func<TResult, float, TResult> multiplyF, divideF;
+
         /// <summary>
         /// Returns a delegate to evaluate binary addition (+) for the given types; this delegate will throw
         /// an InvalidOperationException if the type T does not provide this operator, or for
@@ -287,6 +290,10 @@
         /// Nullable&lt;TInner&gt; if TInner does not provide this operator.
         /// </summary>
         public static Func<TResult, TValue, TResult> Divide => divide;
+
+        public static Func<TResult, float, TResult> MultiplyF => multiplyF;
+
+        public static Func<TResult, float, TResult> DivideF => divideF;
     }
 
     /// <summary>
@@ -344,6 +351,8 @@
 
         static readonly Func<T, T, T> add, subtract, multiply, divide;
 
+        static readonly Func<T, float, T> multiplyF, divideF;
+
         /// <summary>
         /// Returns a delegate to evaluate binary addition (+) for the given type; this delegate will throw
         /// an InvalidOperationException if the type T does not provide this operator, or for
@@ -372,8 +381,12 @@
         /// </summary>
         public static Func<T, T, T> Divide => divide;
 
+        public static Func<T, float, T> MultiplyF => multiplyF;
+
+        public static Func<T, float, T> DivideF => divideF;
+
         static readonly Func<T, T, bool> equal, notEqual, greaterThan, lessThan, greaterThanOrEqual, lessThanOrEqual;
-        
+
         /// <summary>
         /// Returns a delegate to evaluate binary equality (==) for the given type; this delegate will throw
         /// an InvalidOperationException if the type T does not provide this operator, or for
@@ -422,6 +435,8 @@
             subtract = ExpressionUtil.CreateExpression<T, T, T>(Expression.Subtract);
             divide = ExpressionUtil.CreateExpression<T, T, T>(Expression.Divide);
             multiply = ExpressionUtil.CreateExpression<T, T, T>(Expression.Multiply);
+            multiplyF = ExpressionUtil.CreateExpression<T, float, T>(Expression.Multiply);
+            divideF = ExpressionUtil.CreateExpression<T, float, T>(Expression.Multiply);
 
             greaterThan = ExpressionUtil.CreateExpression<T, T, bool>(Expression.GreaterThan);
             greaterThanOrEqual = ExpressionUtil.CreateExpression<T, T, bool>(Expression.GreaterThanOrEqual);

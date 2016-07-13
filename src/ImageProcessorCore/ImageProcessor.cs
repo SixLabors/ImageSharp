@@ -88,6 +88,8 @@ namespace ImageProcessorCore.Processors
         /// <summary>
         /// This method is called before the process is applied to prepare the processor.
         /// </summary>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="target">Target image to apply the process to.</param>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="targetRectangle">
@@ -104,10 +106,11 @@ namespace ImageProcessorCore.Processors
         }
 
         /// <summary>
-        /// Applies the process to the specified portion of the specified <see cref="ImageBase{T}"/> at the specified location
+        /// Applies the process to the specified portion of the specified <see cref="ImageBase{T, TP}"/> at the specified location
         /// and with the specified size.
         /// </summary>
-        /// <typeparam name="T">The type of pixels contained within the image.</typeparam>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="target">Target image to apply the process to.</param>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="targetRectangle">
@@ -130,7 +133,8 @@ namespace ImageProcessorCore.Processors
         /// <summary>
         /// This method is called after the process is applied to prepare the processor.
         /// </summary>
-        /// <typeparam name="T">The type of pixels contained within the image.</typeparam>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="target">Target image to apply the process to.</param>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="targetRectangle">

@@ -270,8 +270,16 @@ namespace ImageProcessorCore
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static byte Clamp(float value)
         {
-            value = (value > 255) ? 255 : value;
-            value = (value < 0) ? 0 : value;
+            if (value > 255)
+            {
+                return 255;
+            }
+
+            if (value < 0)
+            {
+                return 0;
+            }
+
             return (byte)value;
         }
 
@@ -285,8 +293,16 @@ namespace ImageProcessorCore
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static byte Clamp(double value)
         {
-            value = (value > 255) ? 255 : value;
-            value = (value < 0) ? 0 : value;
+            if (value > 255)
+            {
+                return 255;
+            }
+
+            if (value < 0)
+            {
+                return 0;
+            }
+
             return (byte)value;
         }
 

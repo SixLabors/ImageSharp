@@ -22,5 +22,22 @@ namespace ImageProcessorCore.Benchmarks.Color
             return (byte)value;
         }
 
+        [Benchmark(Description = "No Maths Clamp No Ternary")]
+        public byte ClampNoMathsNoTernary()
+        {
+            double value = 256;
+
+            if(value > 255)
+            {
+                return 255;
+            }
+
+            if (value < 0)
+            {
+                return 0;
+            }
+
+            return (byte)value;
+        }
     }
 }

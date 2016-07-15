@@ -13,28 +13,28 @@ namespace ImageProcessorCore
     public class BicubicResampler : IResampler
     {
         /// <inheritdoc/>
-        public double Radius => 2;
+        public float Radius => 2;
 
         /// <inheritdoc/>
-        public double GetValue(double x)
+        public float GetValue(float x)
         {
             // The coefficient.
-            double a = -0.5d;
+            float a = -0.5F;
 
-            if (x < 0)
+            if (x < 0F)
             {
                 x = -x;
             }
 
-            double result = 0;
+            float result = 0;
 
-            if (x <= 1)
+            if (x <= 1F)
             {
-                result = (((1.5d * x) - 2.5d) * x * x) + 1;
+                result = (((1.5F * x) - 2.5F) * x * x) + 1;
             }
-            else if (x < 2)
+            else if (x < 2F)
             {
-                result = (((((a * x) + 2.5d) * x) - 4) * x) + 2;
+                result = (((((a * x) + 2.5F) * x) - 4) * x) + 2;
             }
 
             return result;

@@ -13,8 +13,8 @@
     "emitEntryPoint": true
   },
   "dependencies": {
-    "BenchmarkDotNet": "0.9.7",
-    "BenchmarkDotNet.Diagnostics.Windows": "0.9.7",
+    "BenchmarkDotNet": "0.9.8-develop",
+    "BenchmarkDotNet.Diagnostics.Windows": "0.9.8-develop",
     "ImageProcessorCore": "1.0.0-*"
   },
   "commands": {
@@ -24,12 +24,8 @@
     "net451": {
       "dependencies": {
       },
-      "imports": [
-        "dnx451"
-      ],
       "frameworkAssemblies": {
-        "System.Drawing": "",
-        "System.Runtime": ""
+        "System.Drawing": ""
       }
     }
   }

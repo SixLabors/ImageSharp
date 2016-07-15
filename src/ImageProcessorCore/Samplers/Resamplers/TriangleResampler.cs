@@ -13,22 +13,22 @@ namespace ImageProcessorCore
     public class TriangleResampler : IResampler
     {
         /// <inheritdoc/>
-        public double Radius => 1;
+        public float Radius => 1;
 
         /// <inheritdoc/>
-        public double GetValue(double x)
+        public float GetValue(float x)
         {
-            if (x < 0)
+            if (x < 0F)
             {
                 x = -x;
             }
 
-            if (x < 1)
+            if (x < 1F)
             {
-                return 1 - x;
+                return 1F - x;
             }
 
-            return 0;
+            return 0F;
         }
     }
 }

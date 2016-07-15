@@ -12,13 +12,13 @@ namespace ImageProcessorCore
     public class SplineResampler : IResampler
     {
         /// <inheritdoc/>
-        public double Radius => 2;
+        public float Radius => 2;
 
         /// <inheritdoc/>
-        public double GetValue(double x)
+        public float GetValue(float x)
         {
-            const double B = 1;
-            const double C = 0;
+            const float B = 1F;
+            const float C = 0F;
 
             return ImageMaths.GetBcValue(x, B, C);
         }

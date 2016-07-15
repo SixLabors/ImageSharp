@@ -12,12 +12,12 @@ namespace ImageProcessorCore
     public class BoxResampler : IResampler
     {
         /// <inheritdoc/>
-        public double Radius => 0.5d;
+        public float Radius => 0.5F;
 
         /// <inheritdoc/>
-        public double GetValue(double x)
+        public float GetValue(float x)
         {
-            if (x > -0.5 && x <= 0.5)
+            if (x > -0.5F && x <= 0.5F)
             {
                 return 1;
             }

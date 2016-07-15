@@ -4,8 +4,8 @@
 
     using BenchmarkDotNet.Attributes;
 
-    //using CoreColor = ImageProcessorCore.Color;
-    //using CoreImage = ImageProcessorCore.Image<Bgra32>;
+    using CoreColor = ImageProcessorCore.Color;
+    using CoreImage = ImageProcessorCore.Image;
     using SystemColor = System.Drawing.Color;
 
     public class GetSetPixel
@@ -21,12 +21,12 @@
         }
 
         [Benchmark(Description = "ImageProcessorCore GetSet Pixel")]
-        public Bgra32 ResizeCore()
+        public CoreColor ResizeCore()
         {
-            Image<Bgra32, uint> image = new Image<Bgra32, uint>(400, 400);
-            using (IPixelAccessor<Bgra32, uint> imagePixels = image.Lock())
+            CoreImage image = new CoreImage(400, 400);
+            using (IPixelAccessor<CoreColor, uint> imagePixels = image.Lock())
             {
-                imagePixels[200, 200] = new Bgra32(1, 1, 1, 1);
+                imagePixels[200, 200] = new CoreColor(255, 255, 255, 255);
                 return imagePixels[200, 200];
             }
         }

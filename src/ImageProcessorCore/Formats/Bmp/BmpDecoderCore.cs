@@ -49,7 +49,8 @@ namespace ImageProcessorCore.Formats
         /// Decodes the image from the specified this._stream and sets
         /// the data to image.
         /// </summary>
-        /// <typeparam name="T">The type of pixels contained within the image.</typeparam>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="image">The image, where the data should be set to.
         /// Cannot be null (Nothing in Visual Basic).</param>
         /// <param name="stream">The this._stream, where the image should be
@@ -187,7 +188,8 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Reads the color palette from the stream.
         /// </summary>
-        /// <typeparam name="T">The type of pixels contained within the image.</typeparam>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="imageData">The <see cref="T:T[]"/> image data to assign the palette to.</param>
         /// <param name="colors">The <see cref="T:byte[]"/> containing the colors.</param>
         /// <param name="width">The width of the bitmap.</param>
@@ -238,9 +240,9 @@ namespace ImageProcessorCore.Formats
                                 int colorIndex = ((data[offset] >> (8 - bits - (shift * bits))) & mask) * 4;
                                 int arrayOffset = (row * width) + (colOffset + shift);
 
-                                // Stored in b-> g-> r-> a order.
+                                // Stored in b-> g-> r order.
                                 T packed = default(T);
-                                packed.PackBytes(colors[colorIndex], colors[colorIndex + 1], colors[colorIndex + 2], 255);
+                                packed.PackBytes(colors[colorIndex + 2], colors[colorIndex + 1], colors[colorIndex], 255);
                                 imageData[arrayOffset] = packed;
                             }
                         }
@@ -250,7 +252,8 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Reads the 16 bit color palette from the stream
         /// </summary>
-        /// <typeparam name="T">The type of pixels contained within the image.</typeparam>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="imageData">The <see cref="T:T[]"/> image data to assign the palette to.</param>
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
@@ -288,9 +291,9 @@ namespace ImageProcessorCore.Formats
 
                             int arrayOffset = ((row * width) + x);
 
-                            // Stored in b-> g-> r-> a order.
+                            // Stored in b-> g-> r order.
                             T packed = default(T);
-                            packed.PackBytes(b, g, r, 255);
+                            packed.PackBytes(r, g, b, 255);
                             imageData[arrayOffset] = packed;
                         }
                     });
@@ -299,7 +302,8 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Reads the 24 bit color palette from the stream
         /// </summary>
-        /// <typeparam name="T">The type of pixels contained within the image.</typeparam>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="imageData">The <see cref="T:T[]"/> image data to assign the palette to.</param>
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
@@ -329,7 +333,7 @@ namespace ImageProcessorCore.Formats
                             // We divide by 255 as we will store the colors in our floating point format.
                             // Stored in b-> g-> r-> a order.
                             T packed = default(T);
-                            packed.PackBytes(data[offset], data[offset + 1], data[offset + 2], 255);
+                            packed.PackBytes(data[offset + 2], data[offset + 1], data[offset], 255);
                             imageData[arrayOffset] = packed;
                         }
                     });
@@ -338,7 +342,8 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Reads the 32 bit color palette from the stream
         /// </summary>
-        /// <typeparam name="T">The type of pixels contained within the image.</typeparam>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="imageData">The <see cref="T:T[]"/> image data to assign the palette to.</param>
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
@@ -367,7 +372,7 @@ namespace ImageProcessorCore.Formats
 
                             // Stored in b-> g-> r-> a order.
                             T packed = default(T);
-                            packed.PackBytes(data[offset], data[offset + 1], data[offset + 2], data[offset + 3]);
+                            packed.PackBytes(data[offset + 2], data[offset + 1], data[offset], data[offset + 3]);
                             imageData[arrayOffset] = packed;
                         }
                     });

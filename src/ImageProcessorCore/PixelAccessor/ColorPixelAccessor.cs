@@ -12,15 +12,15 @@ namespace ImageProcessorCore
     /// Provides per-pixel access to an images pixels.
     /// </summary>
     /// <remarks>
-    /// The image data is always stored in <see cref="Bgra32"/> format, where the blue, green, red, and
+    /// The image data is always stored in <see cref="Color"/> format, where the red, green, blue, and
     /// alpha values are 8 bit unsigned bytes.
     /// </remarks>
-    public sealed unsafe class Bgra32PixelAccessor : IPixelAccessor<Bgra32, uint>
+    public sealed unsafe class ColorPixelAccessor : IPixelAccessor<Color, uint>
     {
         /// <summary>
         /// The position of the first pixel in the bitmap.
         /// </summary>
-        private Bgra32* pixelsBase;
+        private Color* pixelsBase;
 
         /// <summary>
         /// Provides a way to access the pixels from unmanaged memory.
@@ -41,12 +41,12 @@ namespace ImageProcessorCore
         private bool isDisposed;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Bgra32PixelAccessor"/> class.
+        /// Initializes a new instance of the <see cref="ColorPixelAccessor"/> class.
         /// </summary>
         /// <param name="image">
         /// The image to provide pixel access for.
         /// </param>
-        public Bgra32PixelAccessor(IImageBase image)
+        public ColorPixelAccessor(IImageBase image)
         {
             Guard.NotNull(image, nameof(image));
             Guard.MustBeGreaterThan(image.Width, 0, "image width");
@@ -55,14 +55,14 @@ namespace ImageProcessorCore
             this.Width = image.Width;
             this.Height = image.Height;
 
-            this.pixelsHandle = GCHandle.Alloc(((ImageBase<Bgra32, uint>)image).Pixels, GCHandleType.Pinned);
-            this.pixelsBase = (Bgra32*)this.pixelsHandle.AddrOfPinnedObject().ToPointer();
+            this.pixelsHandle = GCHandle.Alloc(((ImageBase<Color, uint>)image).Pixels, GCHandleType.Pinned);
+            this.pixelsBase = (Color*)this.pixelsHandle.AddrOfPinnedObject().ToPointer();
         }
 
         /// <summary>
-        /// Finalizes an instance of the <see cref="Bgra32PixelAccessor"/> class. 
+        /// Finalizes an instance of the <see cref="ColorPixelAccessor"/> class. 
         /// </summary>
-        ~Bgra32PixelAccessor()
+        ~ColorPixelAccessor()
         {
             this.Dispose();
         }
@@ -89,7 +89,7 @@ namespace ImageProcessorCore
         /// than zero and smaller than the width of the pixel.
         /// </param>
         /// <returns>The <see cref="IPackedVector"/> at the specified position.</returns>
-        public Bgra32 this[int x, int y]
+        public Color this[int x, int y]
         {
             get
             {

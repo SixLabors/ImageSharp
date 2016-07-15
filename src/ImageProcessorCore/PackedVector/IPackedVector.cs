@@ -55,6 +55,7 @@ namespace ImageProcessorCore
         /// <summary>
         /// Expands the packed representation into a <see cref="T:byte[]"/>.
         /// The bytes are typically expanded in least to greatest significance order.
+        /// Red -> Green -> Blue -> Alpha
         /// </summary>
         /// <returns>The <see cref="Vector4"/>.</returns>
         byte[] ToBytes();

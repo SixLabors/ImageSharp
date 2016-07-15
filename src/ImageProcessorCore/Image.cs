@@ -9,9 +9,9 @@ namespace ImageProcessorCore
     using System.IO;
 
     /// <summary>
-    /// Represents an image. Each pixel is a made up four 8-bit components blue, green, red, and alpha.
+    /// Represents an image. Each pixel is a made up four 8-bit components red, green, blue, and alpha.
     /// </summary>
-    public class Image : Image<Bgra32, uint>
+    public class Image : Image<Color, uint>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Image"/> class

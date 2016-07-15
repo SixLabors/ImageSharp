@@ -55,31 +55,31 @@ namespace ImageProcessorCore
         /// <param name="b">The B-Spline curve variable.</param>
         /// <param name="c">The Cardinal curve variable.</param>
         /// <returns>
-        /// The <see cref="double"/>.
+        /// The <see cref="float"/>.
         /// </returns>
-        public static double GetBcValue(double x, double b, double c)
+        public static float GetBcValue(float x, float b, float c)
         {
-            double temp;
+            float temp;
 
-            if (x < 0)
+            if (x < 0F)
             {
                 x = -x;
             }
 
             temp = x * x;
-            if (x < 1)
+            if (x < 1F)
             {
                 x = ((12 - (9 * b) - (6 * c)) * (x * temp)) + ((-18 + (12 * b) + (6 * c)) * temp) + (6 - (2 * b));
-                return x / 6;
+                return x / 6F;
             }
 
-            if (x < 2)
+            if (x < 2F)
             {
                 x = ((-b - (6 * c)) * (x * temp)) + (((6 * b) + (30 * c)) * temp) + (((-12 * b) - (48 * c)) * x) + ((8 * b) + (24 * c));
-                return x / 6;
+                return x / 6F;
             }
 
-            return 0;
+            return 0F;
         }
 
         /// <summary>
@@ -87,16 +87,16 @@ namespace ImageProcessorCore
         /// </summary>
         /// <param name="x">The value to calculate the result for.</param>
         /// <returns>
-        /// The <see cref="double"/>.
+        /// The <see cref="float"/>.
         /// </returns>
-        public static double SinC(double x)
+        public static float SinC(float x)
         {
-            const double Epsilon = .00001d;
+            const float Epsilon = .00001F;
 
             if (Math.Abs(x) > Epsilon)
             {
-                x *= (double)Math.PI;
-                return Clean((double)Math.Sin(x) / x);
+                x *= (float)Math.PI;
+                return Clean((float)Math.Sin(x) / x);
             }
 
             return 1.0f;
@@ -272,15 +272,15 @@ namespace ImageProcessorCore
         /// </summary>
         /// <param name="x">The value to clean.</param>
         /// <returns>
-        /// The <see cref="double"/>
+        /// The <see cref="float"/>
         /// </returns>.
-        private static double Clean(double x)
+        private static float Clean(float x)
         {
-            const double Epsilon = .00001d;
+            const float Epsilon = .00001F;
 
             if (Math.Abs(x) < Epsilon)
             {
-                return 0f;
+                return 0F;
             }
 
             return x;

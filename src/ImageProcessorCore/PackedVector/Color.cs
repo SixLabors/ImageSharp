@@ -1,7 +1,8 @@
-﻿// <copyright file="Bgra32.cs" company="James Jackson-South">
+﻿// <copyright file="Color.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
+
 namespace ImageProcessorCore
 {
     using System;
@@ -13,13 +14,13 @@ namespace ImageProcessorCore
     /// Packed vector type containing four 8-bit unsigned normalized values ranging from 0 to 255.
     /// </summary>
     [StructLayout(LayoutKind.Explicit)]
-    public struct Bgra32 : IPackedVector<uint>, IEquatable<Bgra32>
+    public struct Color : IPackedVector<uint>, IEquatable<Color>
     {
         /// <summary>
         /// Gets or sets the blue component.
         /// </summary>
         [FieldOffset(0)]
-        public byte B;
+        public byte R;
 
         /// <summary>
         /// Gets or sets the green component.
@@ -31,7 +32,7 @@ namespace ImageProcessorCore
         /// Gets or sets the red component.
         /// </summary>
         [FieldOffset(2)]
-        public byte R;
+        public byte B;
 
         /// <summary>
         /// Gets or sets the alpha component.
@@ -46,13 +47,13 @@ namespace ImageProcessorCore
         private readonly uint packedValue;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Bgra32"/> struct. 
+        /// Initializes a new instance of the <see cref="Color"/> struct. 
         /// </summary>
         /// <param name="b">The blue component.</param>
         /// <param name="g">The green component.</param>
         /// <param name="r">The red component.</param>
         /// <param name="a">The alpha component.</param>
-        public Bgra32(float b, float g, float r, float a)
+        public Color(float b, float g, float r, float a)
             : this()
         {
             Vector4 clamped = Vector4.Clamp(new Vector4(b, g, r, a), Vector4.Zero, Vector4.One) * 255f;
@@ -63,13 +64,13 @@ namespace ImageProcessorCore
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Bgra32"/> struct. 
+        /// Initializes a new instance of the <see cref="Color"/> struct. 
         /// </summary>
         /// <param name="b">The blue component.</param>
         /// <param name="g">The green component.</param>
         /// <param name="r">The red component.</param>
         /// <param name="a">The alpha component.</param>
-        public Bgra32(byte b, byte g, byte r, byte a)
+        public Color(byte b, byte g, byte r, byte a)
             : this()
         {
             this.B = b;
@@ -79,12 +80,12 @@ namespace ImageProcessorCore
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Bgra32"/> struct. 
+        /// Initializes a new instance of the <see cref="Color"/> struct. 
         /// </summary>
         /// <param name="vector">
         /// The vector containing the components for the packed vector.
         /// </param>
-        public Bgra32(Vector4 vector)
+        public Color(Vector4 vector)
             : this()
         {
             Vector4 clamped = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * 255f;
@@ -95,31 +96,31 @@ namespace ImageProcessorCore
         }
 
         /// <summary>
-        /// Compares two <see cref="Bgra32"/> objects for equality.
+        /// Compares two <see cref="Color"/> objects for equality.
         /// </summary>
         /// <param name="left">
-        /// The <see cref="Bgra32"/> on the left side of the operand.
+        /// The <see cref="Color"/> on the left side of the operand.
         /// </param>
         /// <param name="right">
-        /// The <see cref="Bgra32"/> on the right side of the operand.
+        /// The <see cref="Color"/> on the right side of the operand.
         /// </param>
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        public static bool operator ==(Bgra32 left, Bgra32 right)
+        public static bool operator ==(Color left, Color right)
         {
             return left.packedValue == right.packedValue;
         }
 
         /// <summary>
-        /// Compares two <see cref="Bgra32"/> objects for equality.
+        /// Compares two <see cref="Color"/> objects for equality.
         /// </summary>
-        /// <param name="left">The <see cref="Bgra32"/> on the left side of the operand.</param>
-        /// <param name="right">The <see cref="Bgra32"/> on the right side of the operand.</param>
+        /// <param name="left">The <see cref="Color"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="Color"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        public static bool operator !=(Bgra32 left, Bgra32 right)
+        public static bool operator !=(Color left, Color right)
         {
             return left.packedValue != right.packedValue;
         }
@@ -164,11 +165,11 @@ namespace ImageProcessorCore
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            return (obj is Bgra32) && this.Equals((Bgra32)obj);
+            return (obj is Color) && this.Equals((Color)obj);
         }
 
         /// <inheritdoc/>
-        public bool Equals(Bgra32 other)
+        public bool Equals(Color other)
         {
             return this.packedValue == other.packedValue;
         }
@@ -192,13 +193,13 @@ namespace ImageProcessorCore
         /// Returns the hash code for this instance.
         /// </summary>
         /// <param name="packed">
-        /// The instance of <see cref="Bgra32"/> to return the hash code for.
+        /// The instance of <see cref="Color"/> to return the hash code for.
         /// </param>
         /// <returns>
         /// A 32-bit signed integer that is the hash code for this instance.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private int GetHashCode(Bgra32 packed)
+        private int GetHashCode(Color packed)
         {
             return packed.packedValue.GetHashCode();
         }

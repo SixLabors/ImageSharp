@@ -44,7 +44,7 @@ namespace ImageProcessorCore
 
             this.pixelAccessors = new Dictionary<Type, Func<IImageBase, IPixelAccessor>>
             {
-                { typeof(Bgra32), i=> new Bgra32PixelAccessor(i) }
+                { typeof(Color), i=> new ColorPixelAccessor(i) }
             };
         }
 

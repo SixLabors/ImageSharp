@@ -13,7 +13,6 @@ namespace ImageProcessorCore.Formats
     /// <summary>
     /// Image encoder for writing an image to a stream as a Windows bitmap.
     /// </summary>
-    /// <remarks>The encoder can currently only write 24-bit rgb images to streams.</remarks>
     internal sealed class BmpEncoderCore
     {
         /// <summary>
@@ -22,13 +21,14 @@ namespace ImageProcessorCore.Formats
         private BmpBitsPerPixel bmpBitsPerPixel;
 
         /// <summary>
-        /// Encodes the image to the specified stream from the <see cref="ImageBase{T}"/>.
+        /// Encodes the image to the specified stream from the <see cref="ImageBase{T,TP}"/>.
         /// </summary>
-        /// <typeparam name="T">The type of pixels contained within the image.</typeparam>
-        /// <param name="image">The <see cref="ImageBase{T}"/> to encode from.</param>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+        /// <param name="image">The <see cref="ImageBase{T,TP}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
         /// <param name="bitsPerPixel">The <see cref="BmpBitsPerPixel"/></param>
-        public void Encode<T,TP>(ImageBase<T,TP> image, Stream stream, BmpBitsPerPixel bitsPerPixel)
+        public void Encode<T, TP>(ImageBase<T, TP> image, Stream stream, BmpBitsPerPixel bitsPerPixel)
             where T : IPackedVector<TP>, new()
             where TP : struct
         {
@@ -121,14 +121,14 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Writes the pixel data to the binary stream.
         /// </summary>
-        /// <typeparam name="T">The type of pixels contained within the image.</typeparam>
-        /// <param name="writer">
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>/// <param name="writer">
         /// The <see cref="EndianBinaryWriter"/> containing the stream to write to.
         /// </param>
         /// <param name="image">
-        /// The <see cref="ImageBase{T}"/> containing pixel data.
+        /// The <see cref="ImageBase{T,TP}"/> containing pixel data.
         /// </param>
-        private void WriteImage<T,TP>(EndianBinaryWriter writer, ImageBase<T,TP> image)
+        private void WriteImage<T, TP>(EndianBinaryWriter writer, ImageBase<T, TP> image)
             where T : IPackedVector<TP>, new()
             where TP : struct
         {
@@ -139,7 +139,7 @@ namespace ImageProcessorCore.Formats
                 amount = 4 - amount;
             }
 
-            using (IPixelAccessor<T,TP> pixels = image.Lock())
+            using (IPixelAccessor<T, TP> pixels = image.Lock())
             {
                 switch (this.bmpBitsPerPixel)
                 {
@@ -157,11 +157,12 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Writes the 32bit color palette to the stream.
         /// </summary>
-        /// <typeparam name="T">The type of pixels contained within the image.</typeparam>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="writer">The <see cref="EndianBinaryWriter"/> containing the stream to write to.</param>
         /// <param name="pixels">The <see cref="IPixelAccessor"/> containing pixel data.</param>
         /// <param name="amount">The amount to pad each row by.</param>
-        private void Write32bit<T,TP>(EndianBinaryWriter writer, IPixelAccessor<T,TP> pixels, int amount)
+        private void Write32bit<T, TP>(EndianBinaryWriter writer, IPixelAccessor<T, TP> pixels, int amount)
             where T : IPackedVector<TP>, new()
             where TP : struct
         {
@@ -171,7 +172,7 @@ namespace ImageProcessorCore.Formats
                 {
                     // Convert back to b-> g-> r-> a order.
                     byte[] bytes = pixels[x, y].ToBytes();
-                    writer.Write(bytes);
+                    writer.Write(new[] { bytes[2], bytes[1], bytes[0], bytes[3] });
                 }
 
                 // Pad
@@ -185,10 +186,11 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Writes the 24bit color palette to the stream.
         /// </summary>
-        /// <param name="writer">The <see cref="EndianBinaryWriter"/> containing the stream to write to.</param>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>/// <param name="writer">The <see cref="EndianBinaryWriter"/> containing the stream to write to.</param>
         /// <param name="pixels">The <see cref="IPixelAccessor"/> containing pixel data.</param>
         /// <param name="amount">The amount to pad each row by.</param>
-        private void Write24bit<T,TP>(EndianBinaryWriter writer, IPixelAccessor<T,TP> pixels, int amount)
+        private void Write24bit<T, TP>(EndianBinaryWriter writer, IPixelAccessor<T, TP> pixels, int amount)
             where T : IPackedVector<TP>, new()
             where TP : struct
         {
@@ -196,9 +198,9 @@ namespace ImageProcessorCore.Formats
             {
                 for (int x = 0; x < pixels.Width; x++)
                 {
-                    // Convert back to b-> g-> r-> a order.
+                    // Convert back to b-> g-> r order.
                     byte[] bytes = pixels[x, y].ToBytes();
-                    writer.Write(new[] { bytes[0], bytes[1], bytes[2] });
+                    writer.Write(new[] { bytes[2], bytes[1], bytes[0] });
                 }
 
                 // Pad

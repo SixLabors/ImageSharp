@@ -13,7 +13,7 @@ namespace ImageProcessorCore
     /// <typeparam name="T">The pixel format.</typeparam>
     /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
     public interface IImageBase<T, TP> : IImageBase
-        where T : IPackedVector<T, TP>, new()
+        where T : IPackedVector<TP>, new()
         where TP : struct
     {
         /// <summary>

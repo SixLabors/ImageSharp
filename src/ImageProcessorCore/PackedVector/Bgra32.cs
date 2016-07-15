@@ -10,7 +10,7 @@ namespace ImageProcessorCore
     using System.Runtime.InteropServices;
 
     /// <summary>
-    /// Packed vector type containing four 8-bit unsigned normalized values ranging from 0 to 1.
+    /// Packed vector type containing four 8-bit unsigned normalized values ranging from 0 to 255.
     /// </summary>
     [StructLayout(LayoutKind.Explicit)]
     public struct Bgra32 : IPackedVector<Bgra32, uint>, IEquatable<Bgra32>
@@ -125,78 +125,6 @@ namespace ImageProcessorCore
         }
 
         /// <inheritdoc/>
-        public void Add(Bgra32 value)
-        {
-            this.B = Clamp(this.B + value.B);
-            this.G = Clamp(this.G + value.G);
-            this.R = Clamp(this.R + value.R);
-            this.A = Clamp(this.A + value.A);
-        }
-
-        /// <inheritdoc/>
-        public void Subtract(Bgra32 value)
-        {
-            this.B = Clamp(this.B - value.B);
-            this.G = Clamp(this.G - value.G);
-            this.R = Clamp(this.R - value.R);
-            this.A = Clamp(this.A - value.A);
-        }
-
-        /// <inheritdoc/>
-        public void Multiply(Bgra32 value)
-        {
-            this.B = Clamp(this.B * value.B);
-            this.G = Clamp(this.G * value.G);
-            this.R = Clamp(this.R * value.R);
-            this.A = Clamp(this.A * value.A);
-        }
-
-        /// <inheritdoc/>
-        public void Multiply(float value)
-        {
-            this.B = Clamp(this.B * value);
-            this.G = Clamp(this.G * value);
-            this.R = Clamp(this.R * value);
-            this.A = Clamp(this.A * value);
-        }
-
-        /// <inheritdoc/>
-        public void Multiply(double value)
-        {
-            this.B = Clamp(this.B * value);
-            this.G = Clamp(this.G * value);
-            this.R = Clamp(this.R * value);
-            this.A = Clamp(this.A * value);
-        }
-
-        /// <inheritdoc/>
-        public void Divide(Bgra32 value)
-        {
-            this.B = Clamp((float)this.B / value.B);
-            this.G = Clamp((float)this.G / value.G);
-            this.R = Clamp((float)this.R / value.R);
-            this.A = Clamp((float)this.A / value.A);
-        }
-
-        /// <inheritdoc/>
-        public void Divide(float value)
-        {
-            this.B = Clamp(this.B / value);
-            this.G = Clamp(this.G / value);
-            this.R = Clamp(this.R / value);
-            this.A = Clamp(this.A / value);
-        }
-
-        /// <inheritdoc/>
-        public void Divide(double value)
-        {
-            this.B = Clamp(this.B / value);
-            this.G = Clamp(this.G / value);
-            this.R = Clamp(this.R / value);
-            this.A = Clamp(this.A / value);
-        }
-
-        /// <inheritdoc/>
         public uint PackedValue()
         {
             return this.packedValue;
@@ -258,52 +186,6 @@ namespace ImageProcessorCore
         public override int GetHashCode()
         {
             return this.GetHashCode(this);
-        }
-
-        /// <summary>
-        /// Clamps the value to the acceptable byte range.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <returns>
-        /// The <see cref="float"/>.
-        /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static byte Clamp(float value)
-        {
-            if (value > 255)
-            {
-                return 255;
-            }
-
-            if (value < 0)
-            {
-                return 0;
-            }
-
-            return (byte)value;
-        }
-
-        /// <summary>
-        /// Clamps the value to the acceptable byte range.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <returns>
-        /// The <see cref="double"/>.
-        /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static byte Clamp(double value)
-        {
-            if (value > 255)
-            {
-                return 255;
-            }
-
-            if (value < 0)
-            {
-                return 0;
-            }
-
-            return (byte)value;
         }
 
         /// <summary>

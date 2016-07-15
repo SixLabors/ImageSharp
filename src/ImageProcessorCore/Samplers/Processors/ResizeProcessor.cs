@@ -134,21 +134,14 @@ namespace ImageProcessorCore.Processors
                                 Weight[] horizontalValues = this.HorizontalWeights[offsetX].Values;
 
                                 // Destination color components
-                                T destination = default(T);
+                                Vector4 destination = Vector4.Zero;
 
                                 for (int i = 0; i < sum; i++)
                                 {
                                     Weight xw = horizontalValues[i];
                                     int originX = xw.Index;
-                                    T sourceColor = sourcePixels[originX, y];
-
-                                    //Color sourceColor = compand
-                                    //    ? Color.Expand(sourcePixels[originX, y])
-                                    //    : sourcePixels[originX, y];
-                                    //destination += sourceColor * xw.Value;
-
-                                    sourceColor.Multiply(xw.Value);
-                                    destination.Add(sourceColor);
+                                    Vector4 sourceColor = sourcePixels[originX, y].ToVector4();
+                                    destination += sourceColor * (float)xw.Value;
                                 }
 
                                 //if (compand)
@@ -156,7 +149,9 @@ namespace ImageProcessorCore.Processors
                                 //    destination = Color.Compress(destination);
                                 //}
 
-                                firstPassPixels[x, y] = destination;
+                                T d = default(T);
+                                d.PackVector(destination);
+                                firstPassPixels[x, y] = d;
                             }
                         }
                     });
@@ -177,21 +172,14 @@ namespace ImageProcessorCore.Processors
                             for (int x = 0; x < width; x++)
                             {
                                 // Destination color components
-                                T destination = default(T);
+                                Vector4 destination = Vector4.Zero;
 
                                 for (int i = 0; i < sum; i++)
                                 {
                                     Weight yw = verticalValues[i];
                                     int originY = yw.Index;
-                                    T sourceColor = firstPassPixels[x, originY];
-
-                                    //Color sourceColor = compand
-                                    //    ? Color.Expand(firstPassPixels[x, originY])
-                                    //    : firstPassPixels[x, originY];
-                                    //destination += sourceColor * yw.Value;
-
-                                    sourceColor.Multiply(yw.Value);
-                                    destination.Add(sourceColor);
+                                    Vector4 sourceColor = firstPassPixels[x, originY].ToVector4();
+                                    destination += sourceColor * (float)yw.Value;
                                 }
 
                                 //if (compand)
@@ -199,7 +187,9 @@ namespace ImageProcessorCore.Processors
                                 //    destination = Color.Compress(destination);
                                 //}
 
-                                targetPixels[x, y] = destination;
+                                T d = default(T);
+                                d.PackVector(destination);
+                                targetPixels[x, y] = d;
                             }
                         }
 

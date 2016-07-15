@@ -24,54 +24,6 @@ namespace ImageProcessorCore
         /// The <see cref="TP"/>.
         /// </returns>
         TP PackedValue();
-
-        /// <summary>
-        /// Adds the given <see cref="T"/> to the current instance.
-        /// </summary>
-        /// <param name="value">The packed vector to add.</param>
-        void Add(T value);
-
-        /// <summary>
-        /// Subtracts the given <see cref="T"/> from the current instance.
-        /// </summary>
-        /// <param name="value">The packed vector to subtract.</param>
-        void Subtract(T value);
-
-        /// <summary>
-        /// Multiplies the given current instance by given the <see cref="T"/>.
-        /// </summary>
-        /// <param name="value">The packed vector to multiply by.</param>
-        void Multiply(T value);
-
-        /// <summary>
-        /// Multiplies the given current instance by given the value.
-        /// </summary>
-        /// <param name="value">The value to multiply by.</param>
-        void Multiply(float value);
-
-        /// <summary>
-        /// Multiplies the given current instance by given the value.
-        /// </summary>
-        /// <param name="value">The value to multiply by.</param>
-        void Multiply(double value);
-
-        /// <summary>
-        /// Divides the given current instance by given the <see cref="T"/>.
-        /// </summary>
-        /// <param name="value">The packed vector to divide by.</param>
-        void Divide(T value);
-
-        /// <summary>
-        /// Divides the given current instance by given the value.
-        /// </summary>
-        /// <param name="value">The value to divide by.</param>
-        void Divide(float value);
-
-        /// <summary>
-        /// Divides the given current instance by given the value.
-        /// </summary>
-        /// <param name="value">The value to divide by.</param>
-        void Divide(double value);
     }
 
     /// <summary>

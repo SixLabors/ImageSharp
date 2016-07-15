@@ -11,9 +11,8 @@ namespace ImageProcessorCore
     /// An interface that converts packed vector types to and from <see cref="Vector4"/> values, 
     /// allowing multiple encodings to be manipulated in a generic way.
     /// </summary>
-    /// <typeparam name="T">The pixel format.</typeparam>
     /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
-    public interface IPackedVector<T, TP> : IPackedVector
+    public interface IPackedVector<TP> : IPackedVector
         where TP : struct
     {
         /// <summary>

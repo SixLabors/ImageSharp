@@ -6,12 +6,14 @@
 namespace ImageProcessorCore
 {
     using System;
-
+    
     /// <summary>
     /// Encapsulates properties to provides per-pixel access to an images pixels.
     /// </summary>
+    /// <typeparam name="T">The pixel format.</typeparam>
+    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
     public interface IPixelAccessor<T, TP> : IPixelAccessor
-        where T : IPackedVector<T, TP>, new()
+        where T : IPackedVector<TP>, new()
         where TP : struct
     {
         /// <summary>
@@ -33,6 +35,9 @@ namespace ImageProcessorCore
         }
     }
 
+    /// <summary>
+    /// Encapsulates properties to provides per-pixel access to an images pixels.
+    /// </summary>
     public interface IPixelAccessor : IDisposable
     {
         /// <summary>

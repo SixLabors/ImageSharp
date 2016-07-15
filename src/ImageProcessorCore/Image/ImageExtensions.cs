@@ -63,7 +63,7 @@ namespace ImageProcessorCore
         /// <param name="processor">The processor to apply to the image.</param>
         /// <returns>The <see cref="Image{T, TP}"/>.</returns>
         public static Image<T, TP> Process<T, TP>(this Image<T, TP> source, IImageProcessor processor)
-            where T : IPackedVector<T, TP>, new()
+            where T : IPackedVector<TP>, new()
             where TP : struct
         {
             return Process(source, source.Bounds, processor);
@@ -82,7 +82,7 @@ namespace ImageProcessorCore
         /// <param name="processor">The processors to apply to the image.</param>
         /// <returns>The <see cref="Image{T, TP}"/>.</returns>
         public static Image<T, TP> Process<T, TP>(this Image<T, TP> source, Rectangle sourceRectangle, IImageProcessor processor)
-            where T : IPackedVector<T, TP>, new()
+            where T : IPackedVector<TP>, new()
             where TP : struct
         {
             return PerformAction(source, true, (sourceImage, targetImage) => processor.Apply(targetImage, sourceImage, sourceRectangle));
@@ -102,7 +102,7 @@ namespace ImageProcessorCore
         /// <param name="sampler">The processor to apply to the image.</param>
         /// <returns>The <see cref="Image{T, TP}"/>.</returns>
         public static Image<T, TP> Process<T, TP>(this Image<T, TP> source, int width, int height, IImageSampler sampler)
-            where T : IPackedVector<T, TP>, new()
+            where T : IPackedVector<TP>, new()
             where TP : struct
         {
             return Process(source, width, height, source.Bounds, default(Rectangle), sampler);
@@ -129,7 +129,7 @@ namespace ImageProcessorCore
         /// <param name="sampler">The processor to apply to the image.</param>
         /// <returns>The <see cref="Image{T, TP}"/>.</returns>
         public static Image<T, TP> Process<T, TP>(this Image<T, TP> source, int width, int height, Rectangle sourceRectangle, Rectangle targetRectangle, IImageSampler sampler)
-            where T : IPackedVector<T, TP>, new()
+            where T : IPackedVector<TP>, new()
             where TP : struct
         {
             return PerformAction(source, false, (sourceImage, targetImage) => sampler.Apply(targetImage, sourceImage, width, height, targetRectangle, sourceRectangle));
@@ -145,7 +145,7 @@ namespace ImageProcessorCore
         /// <param name="action">The <see cref="Action"/> to perform against the image.</param>
         /// <returns>The <see cref="Image{T, TP}"/>.</returns>
         private static Image<T, TP> PerformAction<T, TP>(Image<T, TP> source, bool clone, Action<ImageBase<T, TP>, ImageBase<T, TP>> action)
-            where T : IPackedVector<T, TP>, new()
+            where T : IPackedVector<TP>, new()
             where TP : struct
         {
             Image<T, TP> transformedImage = clone

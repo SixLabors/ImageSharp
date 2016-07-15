@@ -13,7 +13,7 @@ namespace ImageProcessorCore
     /// Packed vector type containing four 8-bit unsigned normalized values ranging from 0 to 255.
     /// </summary>
     [StructLayout(LayoutKind.Explicit)]
-    public struct Bgra32 : IPackedVector<Bgra32, uint>, IEquatable<Bgra32>
+    public struct Bgra32 : IPackedVector<uint>, IEquatable<Bgra32>
     {
         /// <summary>
         /// Gets or sets the blue component.

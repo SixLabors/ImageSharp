@@ -29,7 +29,7 @@ namespace ImageProcessorCore.Processors
         event ProgressEventHandler OnProgress;
 
         /// <summary>
-        /// Gets or sets the global parallel options for processing tasks in parallel.
+        /// Gets or sets the parallel options for processing tasks in parallel.
         /// </summary>
         ParallelOptions ParallelOptions { get; set; }
 

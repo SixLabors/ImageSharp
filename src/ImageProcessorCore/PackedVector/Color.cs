@@ -12,9 +12,14 @@ namespace ImageProcessorCore
 
     /// <summary>
     /// Packed vector type containing four 8-bit unsigned normalized values ranging from 0 to 255.
+    /// The color components are stored in red, green, blue, and alpha order.
     /// </summary>
+    /// <remarks>
+    /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
+    /// as it avoids the need to create new values for modification operations.
+    /// </remarks>
     [StructLayout(LayoutKind.Explicit)]
-    public struct Color : IPackedVector<uint>, IEquatable<Color>
+    public partial struct Color : IPackedVector<uint>, IEquatable<Color>
     {
         /// <summary>
         /// Gets or sets the blue component.
@@ -56,7 +61,7 @@ namespace ImageProcessorCore
         public Color(float b, float g, float r, float a)
             : this()
         {
-            Vector4 clamped = Vector4.Clamp(new Vector4(b, g, r, a), Vector4.Zero, Vector4.One) * 255f;
+            Vector4 clamped = Vector4.Clamp(new Vector4(b, g, r, a), Vector4.Zero, Vector4.One) * 255F;
             this.B = (byte)Math.Round(clamped.X);
             this.G = (byte)Math.Round(clamped.Y);
             this.R = (byte)Math.Round(clamped.Z);
@@ -88,7 +93,7 @@ namespace ImageProcessorCore
         public Color(Vector4 vector)
             : this()
         {
-            Vector4 clamped = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * 255f;
+            Vector4 clamped = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * 255F;
             this.B = (byte)Math.Round(clamped.X);
             this.G = (byte)Math.Round(clamped.Y);
             this.R = (byte)Math.Round(clamped.Z);
@@ -134,7 +139,7 @@ namespace ImageProcessorCore
         /// <inheritdoc/>
         public void PackVector(Vector4 vector)
         {
-            Vector4 clamped = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * 255f;
+            Vector4 clamped = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * 255F;
             this.B = (byte)Math.Round(clamped.X);
             this.G = (byte)Math.Round(clamped.Y);
             this.R = (byte)Math.Round(clamped.Z);
@@ -153,7 +158,7 @@ namespace ImageProcessorCore
         /// <inheritdoc/>
         public Vector4 ToVector4()
         {
-            return new Vector4(this.B, this.G, this.R, this.A) / 255f;
+            return new Vector4(this.B, this.G, this.R, this.A) / 255F;
         }
 
         /// <inheritdoc/>

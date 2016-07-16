@@ -26,7 +26,7 @@
             CoreImage image = new CoreImage(400, 400);
             using (IPixelAccessor<CoreColor, uint> imagePixels = image.Lock())
             {
-                imagePixels[200, 200] = new CoreColor(255, 255, 255, 255);
+                imagePixels[200, 200] = CoreColor.White;
                 return imagePixels[200, 200];
             }
         }

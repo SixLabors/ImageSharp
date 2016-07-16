@@ -39,7 +39,7 @@ namespace ImageProcessorCore
             {
                 new BmpFormat(),
                 //new JpegFormat(),
-                //new PngFormat(),
+                new PngFormat(),
                 //new GifFormat()
             };
 

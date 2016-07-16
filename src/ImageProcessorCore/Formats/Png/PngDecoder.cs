@@ -1,4 +1,4 @@
-﻿// <copyright file="BmpDecoder.cs" company="James Jackson-South">
+﻿// <copyright file="PngDecoder.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -9,27 +9,32 @@ namespace ImageProcessorCore.Formats
     using System.IO;
 
     /// <summary>
-    /// Image decoder for generating an image out of a Windows bitmap stream.
+    /// Encoder for generating an image out of a png encoded stream.
     /// </summary>
     /// <remarks>
-    /// Does not support the following formats at the moment:
+    /// At the moment the following features are supported:
+    /// <para>
+    /// <b>Filters:</b> all filters are supported.
+    /// </para>
+    /// <para>
+    /// <b>Pixel formats:</b>
     /// <list type="bullet">
-    ///    <item>JPG</item>
-    ///    <item>PNG</item>
-    ///    <item>RLE4</item>
-    ///    <item>RLE8</item>
-    ///    <item>BitFields</item>
+    ///     <item>RGBA (True color) with alpha (8 bit).</item>
+    ///     <item>RGB (True color) without alpha (8 bit).</item>
+    ///     <item>Greyscale with alpha (8 bit).</item>
+    ///     <item>Greyscale without alpha (8 bit).</item>
+    ///     <item>Palette Index with alpha (8 bit).</item>
+    ///     <item>Palette Index without alpha (8 bit).</item>
     /// </list>
-    /// Formats will be supported in a later releases. We advise always
-    /// to use only 24 Bit Windows bitmaps.
+    /// </para>
     /// </remarks>
-    public class BmpDecoder : IImageDecoder
+    public class PngDecoder : IImageDecoder
     {
         /// <summary>
         /// Gets the size of the header for this image type.
         /// </summary>
         /// <value>The size of the header.</value>
-        public int HeaderSize => 2;
+        public int HeaderSize => 8;
 
         /// <summary>
         /// Returns a value indicating whether the <see cref="IImageDecoder"/> supports the specified
@@ -45,8 +50,7 @@ namespace ImageProcessorCore.Formats
 
             extension = extension.StartsWith(".") ? extension.Substring(1) : extension;
 
-            return extension.Equals("BMP", StringComparison.OrdinalIgnoreCase)
-                || extension.Equals("DIP", StringComparison.OrdinalIgnoreCase);
+            return extension.Equals("PNG", StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
@@ -59,14 +63,15 @@ namespace ImageProcessorCore.Formats
         /// </returns>
         public bool IsSupportedFileFormat(byte[] header)
         {
-            bool isBmp = false;
-            if (header.Length >= 2)
-            {
-                isBmp = header[0] == 0x42 && // B
-                        header[1] == 0x4D;   // M
-            }
-
-            return isBmp;
+            return header.Length >= 8 &&
+                   header[0] == 0x89 &&
+                   header[1] == 0x50 && // P
+                   header[2] == 0x4E && // N
+                   header[3] == 0x47 && // G
+                   header[4] == 0x0D && // CR
+                   header[5] == 0x0A && // LF
+                   header[6] == 0x1A && // EOF
+                   header[7] == 0x0A;   // LF
         }
 
         /// <summary>
@@ -78,7 +83,7 @@ namespace ImageProcessorCore.Formats
             where T : IPackedVector<TP>, new()
             where TP : struct
         {
-            new BmpDecoderCore().Decode(image, stream);
+            new PngDecoderCore().Decode(image, stream);
         }
     }
 }

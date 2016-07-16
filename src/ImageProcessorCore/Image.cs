@@ -17,6 +17,14 @@ namespace ImageProcessorCore
         /// Initializes a new instance of the <see cref="Image"/> class
         /// with the height and the width of the image.
         /// </summary>
+        public Image()
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image"/> class
+        /// with the height and the width of the image.
+        /// </summary>
         /// <param name="width">The width of the image in pixels.</param>
         /// <param name="height">The height of the image in pixels.</param>
         public Image(int width, int height)

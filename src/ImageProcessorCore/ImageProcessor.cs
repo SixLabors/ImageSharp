@@ -7,6 +7,7 @@ namespace ImageProcessorCore.Processors
 {
     using System;
     using System.Threading;
+    using System.Threading.Tasks;
 
     /// <summary>
     /// Allows the application of processors to images.
@@ -25,6 +26,9 @@ namespace ImageProcessorCore.Processors
         /// The total number of rows that will be processed by a derived class.
         /// </summary>
         private int totalRows;
+
+        /// <inheritdoc/>
+        public virtual ParallelOptions ParallelOptions { get; set; } = Bootstrapper.Instance.ParallelOptions;
 
         /// <inheritdoc/>
         public void Apply<T, TP>(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle sourceRectangle)

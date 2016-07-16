@@ -10,6 +10,7 @@ namespace ImageProcessorCore
     using System.Collections.ObjectModel;
 
     using ImageProcessorCore.Formats;
+    using System.Threading.Tasks;
 
     /// <summary>
     /// Provides initialization code which allows extending the library.
@@ -57,6 +58,11 @@ namespace ImageProcessorCore
         /// Gets the list of supported <see cref="IImageFormat"/>
         /// </summary>
         public IReadOnlyCollection<IImageFormat> ImageFormats => new ReadOnlyCollection<IImageFormat>(this.imageFormats);
+
+        /// <summary>
+        /// Gets or sets the global parallel options for processing tasks in parallel.
+        /// </summary>
+        public ParallelOptions ParallelOptions { get; set; } = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount };
 
         /// <summary>
         /// Adds a new <see cref="IImageFormat"/> to the collection of supported image formats.

@@ -84,6 +84,7 @@ namespace ImageProcessorCore.Processors
                     Parallel.For(
                         startY,
                         endY,
+                        this.ParallelOptions,
                         y =>
                             {
                                 if (targetY <= y && y < targetBottom)
@@ -122,6 +123,7 @@ namespace ImageProcessorCore.Processors
                 Parallel.For(
                     0,
                     sourceHeight,
+                    this.ParallelOptions,
                     y =>
                     {
                         for (int x = startX; x < endX; x++)
@@ -160,6 +162,7 @@ namespace ImageProcessorCore.Processors
                 Parallel.For(
                     startY,
                     endY,
+                    this.ParallelOptions,
                     y =>
                     {
                         if (y >= 0 && y < height)

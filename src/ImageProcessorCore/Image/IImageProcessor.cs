@@ -3,6 +3,8 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+using System.Threading.Tasks;
+
 namespace ImageProcessorCore.Processors
 {
     /// <summary>
@@ -25,6 +27,11 @@ namespace ImageProcessorCore.Processors
         /// Individual row notifications may arrived out of order.
         /// </remarks>
         event ProgressEventHandler OnProgress;
+
+        /// <summary>
+        /// Gets or sets the global parallel options for processing tasks in parallel.
+        /// </summary>
+        ParallelOptions ParallelOptions { get; set; }
 
         /// <summary>
         /// Applies the process to the specified portion of the specified <see cref="ImageBase{T, TP}"/>.

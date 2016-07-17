@@ -85,6 +85,7 @@ namespace ImageProcessorCore
                 }
             }
 
+            this.Quality = other.Quality;
             this.RepeatCount = other.RepeatCount;
             this.HorizontalResolution = other.HorizontalResolution;
             this.VerticalResolution = other.VerticalResolution;

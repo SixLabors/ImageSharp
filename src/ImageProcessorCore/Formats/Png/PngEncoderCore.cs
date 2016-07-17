@@ -28,11 +28,6 @@ namespace ImageProcessorCore.Formats
         private byte bitDepth;
 
         /// <summary>
-        /// The quantized image result.
-        /// </summary>
-        //private QuantizedImage<T,P> quantized;
-
-        /// <summary>
         /// Gets or sets the quality of output for images.
         /// </summary>
         public int Quality { get; set; }
@@ -237,7 +232,10 @@ namespace ImageProcessorCore.Formats
             int colorTableLength = (int)Math.Pow(2, header.BitDepth) * 3;
             byte[] colorTable = new byte[colorTableLength];
 
-            Parallel.For(0, pixelCount,
+            Parallel.For(
+                0, 
+                pixelCount,
+                Bootstrapper.Instance.ParallelOptions,
                 i =>
                 {
                     int offset = i * 3;
@@ -337,7 +335,7 @@ namespace ImageProcessorCore.Formats
                 Parallel.For(
                     0,
                     imageHeight,
-                    //Bootstrapper.Instance.ParallelOptions,
+                    Bootstrapper.Instance.ParallelOptions,
                     y =>
                 {
                     int dataOffset = (y * rowLength);

@@ -154,6 +154,7 @@ namespace ImageProcessorCore
                 {
                     // Several properties require copying
                     // TODO: Check why we need to set these?
+                    Quality = source.Quality,
                     HorizontalResolution = source.HorizontalResolution,
                     VerticalResolution = source.VerticalResolution,
                     CurrentImageFormat = source.CurrentImageFormat,

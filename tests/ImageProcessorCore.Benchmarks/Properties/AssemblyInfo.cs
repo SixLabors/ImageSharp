@@ -1,6 +1,8 @@
 ﻿using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using BenchmarkDotNet.Attributes;
+using ImageProcessorCore.Benchmarks;
 
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
@@ -21,3 +23,5 @@ using System.Runtime.InteropServices;
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
 [assembly: Guid("299d8e18-102c-42de-adbf-79098ee706a8")]
+
+[assembly: Config(typeof(Config))]

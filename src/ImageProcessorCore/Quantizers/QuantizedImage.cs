@@ -14,7 +14,7 @@ namespace ImageProcessorCore.Quantizers
     /// <typeparam name="T">The pixel format.</typeparam>
     /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
     public class QuantizedImage<T, TP>
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<TP>
             where TP : struct
     {
         /// <summary>

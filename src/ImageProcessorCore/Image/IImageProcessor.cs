@@ -54,8 +54,8 @@ namespace ImageProcessorCore.Processors
         /// <paramref name="sourceRectangle"/> doesnt fit the dimension of the image.
         /// </exception>
         void Apply<T, TP>(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle sourceRectangle)
-            where T : IPackedVector<TP>,
-            new() where TP : struct;
+            where T : IPackedVector<TP>
+            where TP : struct;
 
         /// <summary>
         /// Applies the process to the specified portion of the specified <see cref="ImageBase{T, TP}"/> at the specified
@@ -79,7 +79,7 @@ namespace ImageProcessorCore.Processors
         /// the result of image process as new image.
         /// </remarks>
         void Apply<T, TP>(ImageBase<T, TP> target, ImageBase<T, TP> source, int width, int height, Rectangle targetRectangle, Rectangle sourceRectangle)
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<TP>
             where TP : struct;
     }
 }

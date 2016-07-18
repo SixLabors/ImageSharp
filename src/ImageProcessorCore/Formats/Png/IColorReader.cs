@@ -23,7 +23,7 @@ namespace ImageProcessorCore.Formats
         /// the width of the image and the height.
         /// </param>
         void ReadScanline<T, TP>(byte[] scanline, T[] pixels, PngHeader header)
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<TP>
             where TP : struct;
     }
 }

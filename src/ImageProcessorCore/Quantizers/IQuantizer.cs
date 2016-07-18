@@ -26,7 +26,7 @@ namespace ImageProcessorCore.Quantizers
         /// A <see cref="T:QuantizedImage"/> representing a quantized version of the image pixels.
         /// </returns>
         QuantizedImage<T, TP> Quantize<T, TP>(ImageBase<T, TP> image, int maxColors)
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<TP>
             where TP : struct;
     }
 }

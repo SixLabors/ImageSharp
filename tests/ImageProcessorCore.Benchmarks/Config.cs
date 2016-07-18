@@ -6,9 +6,9 @@ namespace ImageProcessorCore.Benchmarks
     {
         public Config()
         {
-            // uncomment if you want to use any of the diagnoser
-            //Add(new BenchmarkDotNet.Diagnostics.Windows.MemoryDiagnoser());
-            //Add(new BenchmarkDotNet.Diagnostics.Windows.InliningDiagnoser());
+            // Uncomment if you want to use any of the diagnoser
+            this.Add(new BenchmarkDotNet.Diagnostics.Windows.MemoryDiagnoser());
+            this.Add(new BenchmarkDotNet.Diagnostics.Windows.InliningDiagnoser());
         }
     }
 }

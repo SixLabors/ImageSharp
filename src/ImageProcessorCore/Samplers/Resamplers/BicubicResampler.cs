@@ -30,10 +30,12 @@ namespace ImageProcessorCore
 
             if (x <= 1F)
             {
+                // Below simplified result = ((a + 2F) * (x * x * x)) - ((a + 3F) * (x * x)) + 1;
                 result = (((1.5F * x) - 2.5F) * x * x) + 1;
             }
             else if (x < 2F)
             {
+                // Below simplified result = (a * (x * x * x)) - ((5F * a) * (x * x)) + ((8F * a) * x) - (4F * a);
                 result = (((((a * x) + 2.5F) * x) - 4) * x) + 2;
             }
 

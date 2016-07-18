@@ -76,7 +76,7 @@ namespace ImageProcessorCore.Formats
         /// Thrown if the image is larger than the maximum allowable size.
         /// </exception>
         public void Decode<T, TP>(Image<T, TP> image, Stream stream)
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<TP>
             where TP : struct
         {
             Image<T, TP> currentImage = image;
@@ -194,7 +194,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="image">The image to read to.</param>
         /// <param name="data">The data containing physical data.</param>
         private void ReadPhysicalChunk<T, TP>(Image<T, TP> image, byte[] data)
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<TP>
             where TP : struct
         {
             Array.Reverse(data, 0, 4);
@@ -249,7 +249,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="colorReader">The color reader.</param>
         /// <param name="colorTypeInformation">The color type information.</param>
         private void ReadScanlines<T, TP>(MemoryStream dataStream, T[] pixels, IColorReader colorReader, PngColorTypeInformation colorTypeInformation)
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<TP>
             where TP : struct
         {
             dataStream.Position = 0;
@@ -332,7 +332,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="image">The image to decode to.</param>
         /// <param name="data">The <see cref="T:byte[]"/> containing  data.</param>
         private void ReadTextChunk<T, TP>(Image<T, TP> image, byte[] data)
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<TP>
             where TP : struct
         {
             int zeroIndex = 0;

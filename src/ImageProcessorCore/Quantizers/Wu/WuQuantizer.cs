@@ -116,7 +116,7 @@ namespace ImageProcessorCore.Quantizers
 
         /// <inheritdoc/>
         public QuantizedImage<T, TP> Quantize<T, TP>(ImageBase<T, TP> image, int maxColors)
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<TP>
             where TP : struct
         {
             Guard.NotNull(image, nameof(image));
@@ -326,7 +326,7 @@ namespace ImageProcessorCore.Quantizers
         /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="pixels">The pixel accessor.</param>
         private void Build3DHistogram<T, TP>(IPixelAccessor<T, TP> pixels)
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<TP>
             where TP : struct
         {
             for (int y = 0; y < pixels.Height; y++)
@@ -728,7 +728,7 @@ namespace ImageProcessorCore.Quantizers
         /// <param name="cube">The cube.</param>
         /// <returns>The result.</returns>
         private QuantizedImage<T, TP> GenerateResult<T, TP>(IPixelAccessor<T, TP> imagePixels, int colorCount, Box[] cube)
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<TP>
             where TP : struct
         {
             List<T> pallette = new List<T>();

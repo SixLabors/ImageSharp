@@ -29,7 +29,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
         /// <param name="bitsPerPixel">The <see cref="BmpBitsPerPixel"/></param>
         public void Encode<T, TP>(ImageBase<T, TP> image, Stream stream, BmpBitsPerPixel bitsPerPixel)
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<TP>
             where TP : struct
         {
             Guard.NotNull(image, nameof(image));
@@ -129,7 +129,7 @@ namespace ImageProcessorCore.Formats
         /// The <see cref="ImageBase{T,TP}"/> containing pixel data.
         /// </param>
         private void WriteImage<T, TP>(EndianBinaryWriter writer, ImageBase<T, TP> image)
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<TP>
             where TP : struct
         {
             // TODO: Add more compression formats.
@@ -163,7 +163,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="pixels">The <see cref="IPixelAccessor"/> containing pixel data.</param>
         /// <param name="amount">The amount to pad each row by.</param>
         private void Write32bit<T, TP>(EndianBinaryWriter writer, IPixelAccessor<T, TP> pixels, int amount)
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<TP>
             where TP : struct
         {
             for (int y = pixels.Height - 1; y >= 0; y--)
@@ -191,7 +191,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="pixels">The <see cref="IPixelAccessor"/> containing pixel data.</param>
         /// <param name="amount">The amount to pad each row by.</param>
         private void Write24bit<T, TP>(EndianBinaryWriter writer, IPixelAccessor<T, TP> pixels, int amount)
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<TP>
             where TP : struct
         {
             for (int y = pixels.Height - 1; y >= 0; y--)

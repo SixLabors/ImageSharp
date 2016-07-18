@@ -32,7 +32,7 @@ namespace ImageProcessorCore.Processors
 
         /// <inheritdoc/>
         public void Apply<T, TP>(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle sourceRectangle)
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<TP>
             where TP : struct
         {
             try
@@ -55,7 +55,7 @@ namespace ImageProcessorCore.Processors
 
         /// <inheritdoc/>
         public void Apply<T, TP>(ImageBase<T, TP> target, ImageBase<T, TP> source, int width, int height, Rectangle targetRectangle = default(Rectangle), Rectangle sourceRectangle = default(Rectangle))
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<TP>
             where TP : struct
         {
             try
@@ -104,7 +104,7 @@ namespace ImageProcessorCore.Processors
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
         protected virtual void OnApply<T, TP>(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle)
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<TP>
             where TP : struct
         {
         }
@@ -131,7 +131,7 @@ namespace ImageProcessorCore.Processors
         /// the result of image process as new image.
         /// </remarks>
         protected abstract void Apply<T, TP>(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<TP>
             where TP : struct;
 
         /// <summary>
@@ -149,7 +149,7 @@ namespace ImageProcessorCore.Processors
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
         protected virtual void AfterApply<T, TP>(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle)
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<TP>
             where TP : struct
         {
         }

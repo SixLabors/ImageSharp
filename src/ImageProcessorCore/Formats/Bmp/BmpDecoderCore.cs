@@ -222,6 +222,7 @@ namespace ImageProcessorCore.Formats
             Parallel.For(
                 0,
                 height,
+                Bootstrapper.Instance.ParallelOptions,
                 y =>
                     {
                         int rowOffset = y * (arrayWidth + alignment);
@@ -272,6 +273,7 @@ namespace ImageProcessorCore.Formats
             Parallel.For(
                 0,
                 height,
+                Bootstrapper.Instance.ParallelOptions,
                 y =>
                     {
                         int rowOffset = y * ((width * 2) + alignment);
@@ -318,6 +320,7 @@ namespace ImageProcessorCore.Formats
             Parallel.For(
                 0,
                 height,
+                Bootstrapper.Instance.ParallelOptions,
                 y =>
                     {
                         int rowOffset = y * ((width * 3) + alignment);
@@ -358,6 +361,7 @@ namespace ImageProcessorCore.Formats
             Parallel.For(
                 0,
                 height,
+                Bootstrapper.Instance.ParallelOptions,
                 y =>
                     {
                         int rowOffset = y * ((width * 4) + alignment);

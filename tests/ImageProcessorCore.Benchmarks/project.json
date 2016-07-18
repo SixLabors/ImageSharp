@@ -13,8 +13,7 @@
     "emitEntryPoint": true
   },
   "dependencies": {
-    "BenchmarkDotNet": "0.9.8-develop",
-    "BenchmarkDotNet.Diagnostics.Windows": "0.9.8-develop",
+    "BenchmarkDotNet.Diagnostics.Windows": "0.9.8.78",
     "ImageProcessorCore": "1.0.0-*"
   },
   "commands": {

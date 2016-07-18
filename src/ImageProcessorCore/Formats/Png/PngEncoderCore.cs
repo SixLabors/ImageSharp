@@ -70,7 +70,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="image">The <see cref="ImageBase{T,TP}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
         public void Encode<T, TP>(ImageBase<T, TP> image, Stream stream)
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<TP>
             where TP : struct
         {
             Guard.NotNull(image, nameof(image));
@@ -208,7 +208,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="header">The <see cref="PngHeader"/>.</param>
         /// <param name="image">The image to encode.</param>
         private QuantizedImage<T, TP> WritePaletteChunk<T, TP>(Stream stream, PngHeader header, ImageBase<T, TP> image)
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<TP>
             where TP : struct
         {
             if (this.Quality > 256)
@@ -266,7 +266,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="imageBase">The image base.</param>
         private void WritePhysicalChunk<T, TP>(Stream stream, ImageBase<T, TP> imageBase)
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<TP>
             where TP : struct
         {
             Image<T, TP> image = imageBase as Image<T, TP>;
@@ -319,7 +319,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="pixels">The image pixels.</param>
         /// <param name="quantized">The quantized image.</param>
         private void WriteDataChunks<T, TP>(Stream stream, IPixelAccessor<T, TP> pixels, QuantizedImage<T, TP> quantized)
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<TP>
             where TP : struct
         {
             byte[] data;

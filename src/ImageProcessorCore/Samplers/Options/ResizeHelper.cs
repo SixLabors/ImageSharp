@@ -24,7 +24,7 @@ namespace ImageProcessorCore
         /// The <see cref="Rectangle"/>.
         /// </returns>
         public static Rectangle CalculateTargetLocationAndBounds<T, TP>(ImageBase<T, TP> source, ResizeOptions options)
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<TP>
             where TP : struct
         {
             switch (options.Mode)
@@ -56,7 +56,7 @@ namespace ImageProcessorCore
         /// The <see cref="Rectangle"/>.
         /// </returns>
         private static Rectangle CalculateCropRectangle<T, TP>(ImageBase<T, TP> source, ResizeOptions options)
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<TP>
             where TP : struct
         {
             int width = options.Size.Width;
@@ -176,7 +176,7 @@ namespace ImageProcessorCore
         /// The <see cref="Rectangle"/>.
         /// </returns>
         private static Rectangle CalculatePadRectangle<T, TP>(ImageBase<T, TP> source, ResizeOptions options)
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<TP>
             where TP : struct
         {
             int width = options.Size.Width;
@@ -258,7 +258,7 @@ namespace ImageProcessorCore
         /// The <see cref="Rectangle"/>.
         /// </returns>
         private static Rectangle CalculateBoxPadRectangle<T, TP>(ImageBase<T, TP> source, ResizeOptions options)
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<TP>
             where TP : struct
         {
             int width = options.Size.Width;
@@ -346,7 +346,7 @@ namespace ImageProcessorCore
         /// The <see cref="Rectangle"/>.
         /// </returns>
         private static Rectangle CalculateMaxRectangle<T, TP>(ImageBase<T, TP> source, ResizeOptions options)
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<TP>
             where TP : struct
         {
             int width = options.Size.Width;
@@ -388,7 +388,7 @@ namespace ImageProcessorCore
         /// The <see cref="Rectangle"/>.
         /// </returns>
         private static Rectangle CalculateMinRectangle<T, TP>(ImageBase<T, TP> source, ResizeOptions options)
-            where T : IPackedVector<TP>, new()
+            where T : IPackedVector<TP>
             where TP : struct
         {
             int width = options.Size.Width;

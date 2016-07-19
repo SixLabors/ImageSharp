@@ -8,7 +8,7 @@ namespace ImageProcessorCore
     using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
-
+    using System.Reflection;
     using System.Threading.Tasks;
 
     using Formats;
@@ -56,9 +56,16 @@ namespace ImageProcessorCore
         public static Bootstrapper Instance = Lazy.Value;
 
         /// <summary>
-        /// Gets the list of supported <see cref="IImageFormat"/>
+        /// Gets the collection of supported <see cref="IImageFormat"/>
         /// </summary>
-        public IReadOnlyCollection<IImageFormat> ImageFormats => new ReadOnlyCollection<IImageFormat>(this.imageFormats);
+        public IReadOnlyCollection<IImageFormat> ImageFormats =>
+            new ReadOnlyCollection<IImageFormat>(this.imageFormats);
+
+        /// <summary>
+        /// Gets the collection of supported pixel accessors
+        /// </summary>
+        public IReadOnlyDictionary<Type, Func<IImageBase, IPixelAccessor>> PixelAccessors =>
+            new ReadOnlyDictionary<Type, Func<IImageBase, IPixelAccessor>>(this.pixelAccessors);
 
         /// <summary>
         /// Gets or sets the global parallel options for processing tasks in parallel.
@@ -72,6 +79,21 @@ namespace ImageProcessorCore
         public void AddImageFormat(IImageFormat format)
         {
             this.imageFormats.Add(format);
+        }
+
+        /// <summary>
+        /// Adds a pixel accessor for the given pixel format.
+        /// </summary>
+        /// <param name="packedType">The packed format type, must implement <see cref="IPackedVector"/></param>
+        /// <param name="initializer">The function to return a new instance of the pixel accessor.</param>
+        public void AddPixelAccessor(Type packedType, Func<IImageBase, IPixelAccessor> initializer)
+        {
+            if (!typeof(IPackedVector).GetTypeInfo().IsAssignableFrom(packedType.GetTypeInfo()))
+            {
+                throw new ArgumentException($"Type {packedType} must implement {nameof(IPackedVector)}");
+            }
+
+            this.pixelAccessors.Add(packedType, initializer);
         }
 
         /// <summary>

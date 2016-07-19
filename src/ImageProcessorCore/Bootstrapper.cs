@@ -9,8 +9,9 @@ namespace ImageProcessorCore
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
 
-    using ImageProcessorCore.Formats;
     using System.Threading.Tasks;
+
+    using Formats;
 
     /// <summary>
     /// Provides initialization code which allows extending the library.
@@ -77,6 +78,7 @@ namespace ImageProcessorCore
         /// Gets an instance of the correct <see cref="IPixelAccessor"/> for the packed vector.
         /// </summary>
         /// <typeparam name="T">The type of pixel data.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam> 
         /// <param name="image">The image</param>
         /// <returns>The <see cref="IPixelAccessor"/></returns>
         public IPixelAccessor<T, TP> GetPixelAccessor<T, TP>(IImageBase image)

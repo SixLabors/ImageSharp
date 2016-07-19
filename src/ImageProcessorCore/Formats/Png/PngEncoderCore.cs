@@ -9,7 +9,7 @@ namespace ImageProcessorCore.Formats
     using System.IO;
     using System.Threading.Tasks;
 
-    using ImageProcessorCore.Quantizers;
+    using Quantizers;
 
     /// <summary>
     /// Performs the png encoding operation.
@@ -218,11 +218,12 @@ namespace ImageProcessorCore.Formats
 
             if (this.Quantizer == null)
             {
-                this.Quantizer = new WuQuantizer { Threshold = this.Threshold };
+                //this.Quantizer = new WuQuantizer<T, TP> { Threshold = this.Threshold };
+                this.Quantizer = new OctreeQuantizer<T, TP> { Threshold = this.Threshold };
             }
 
-            // Quantize the image returning a palette.
-            QuantizedImage<T, TP> quantized = Quantizer.Quantize(image, this.Quality);
+            // Quantize the image returning a palette. This boxing is icky.
+            QuantizedImage<T, TP> quantized = ((IQuantizer<T, TP>)this.Quantizer).Quantize(image, this.Quality);
 
             // Grab the palette and write it to the stream.
             T[] palette = quantized.Palette;
@@ -233,7 +234,7 @@ namespace ImageProcessorCore.Formats
             byte[] colorTable = new byte[colorTableLength];
 
             Parallel.For(
-                0, 
+                0,
                 pixelCount,
                 Bootstrapper.Instance.ParallelOptions,
                 i =>

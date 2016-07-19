@@ -106,7 +106,10 @@ namespace ImageProcessorCore.Quantizers
             List<T> palette = this.octree.Palletize(Math.Max(this.colors, 1));
 
             int diff = this.colors - palette.Count;
-            palette.AddRange(Enumerable.Repeat(default(T), diff));
+            if (diff > 0)
+            {
+                palette.AddRange(Enumerable.Repeat(default(T), diff));
+            }
             this.TransparentIndex = this.colors;
 
             return palette;

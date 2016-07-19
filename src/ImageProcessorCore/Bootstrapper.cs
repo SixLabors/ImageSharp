@@ -40,7 +40,7 @@ namespace ImageProcessorCore
                 new BmpFormat(),
                 //new JpegFormat(),
                 new PngFormat(),
-                //new GifFormat()
+                new GifFormat()
             };
 
             this.pixelAccessors = new Dictionary<Type, Func<IImageBase, IPixelAccessor>>

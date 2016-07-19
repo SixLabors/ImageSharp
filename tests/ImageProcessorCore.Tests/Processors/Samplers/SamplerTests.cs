@@ -114,7 +114,7 @@ namespace ImageProcessorCore.Tests
                 {
                     string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
 
-                    Image image = new Image(stream);
+                    Image image = new Image(stream) {Quality=256};
                     using (FileStream output = File.OpenWrite($"TestOutput/Resize/{filename}"))
                     {
                         image.Resize(image.Width / 2, image.Height / 2, sampler, false, this.ProgressUpdate)

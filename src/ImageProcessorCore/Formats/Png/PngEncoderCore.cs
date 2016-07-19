@@ -218,8 +218,7 @@ namespace ImageProcessorCore.Formats
 
             if (this.Quantizer == null)
             {
-                //this.Quantizer = new WuQuantizer<T, TP> { Threshold = this.Threshold };
-                this.Quantizer = new OctreeQuantizer<T, TP> { Threshold = this.Threshold };
+                this.Quantizer = new WuQuantizer<T, TP> { Threshold = this.Threshold };
             }
 
             // Quantize the image returning a palette. This boxing is icky.

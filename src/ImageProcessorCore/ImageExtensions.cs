@@ -116,7 +116,7 @@ namespace ImageProcessorCore
         /// <returns>The <see cref="Image"/>.</returns>
         public static Image Process(this Image source, int width, int height, Rectangle sourceRectangle, Rectangle targetRectangle, IImageSampler sampler)
         {
-           return PerformAction(source, false, (sourceImage, targetImage) => sampler.Apply(targetImage, sourceImage, width, height, targetRectangle, sourceRectangle));
+            return PerformAction(source, false, (sourceImage, targetImage) => sampler.Apply(targetImage, sourceImage, width, height, targetRectangle, sourceRectangle));
         }
 
         /// <summary>
@@ -135,6 +135,7 @@ namespace ImageProcessorCore
                 {
                     // Several properties require copying
                     // TODO: Check why we need to set these?
+                    Quality = source.Quality,
                     HorizontalResolution = source.HorizontalResolution,
                     VerticalResolution = source.VerticalResolution,
                     CurrentImageFormat = source.CurrentImageFormat,

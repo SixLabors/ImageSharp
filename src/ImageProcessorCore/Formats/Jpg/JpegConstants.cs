@@ -18,32 +18,32 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Represents high detail chroma horizontal subsampling.
         /// </summary>
-        public static readonly byte[] ChromaFourFourFourHorizontal = { 1, 1, 1 };
+        public static readonly byte[] ChromaFourFourFourHorizontal = { 0x1, 0x1, 0x1 };
 
         /// <summary>
         /// Represents high detail chroma vertical subsampling.
         /// </summary>
-        public static readonly byte[] ChromaFourFourFourVertical = { 1, 1, 1 };
+        public static readonly byte[] ChromaFourFourFourVertical = { 0x1, 0x1, 0x1 };
 
         /// <summary>
         /// Represents medium detail chroma horizontal subsampling.
         /// </summary>
-        public static readonly byte[] ChromaFourTwoTwoHorizontal = { 2, 1, 1 };
+        public static readonly byte[] ChromaFourTwoTwoHorizontal = { 0x2, 0x1, 0x1 };
 
         /// <summary>
         /// Represents medium detail chroma vertical subsampling.
         /// </summary>
-        public static readonly byte[] ChromaFourTwoTwoVertical = { 1, 1, 1 };
+        public static readonly byte[] ChromaFourTwoTwoVertical = { 0x1, 0x1, 0x1 };
 
         /// <summary>
         /// Represents low detail chroma horizontal subsampling.
         /// </summary>
-        public static readonly byte[] ChromaFourTwoZeroHorizontal = { 2, 1, 1 };
+        public static readonly byte[] ChromaFourTwoZeroHorizontal = { 0x2, 0x1, 0x1 };
 
         /// <summary>
         /// Represents low detail chroma vertical subsampling.
         /// </summary>
-        public static readonly byte[] ChromaFourTwoZeroVertical = { 2, 1, 1 };
+        public static readonly byte[] ChromaFourTwoZeroVertical = { 0x2, 0x1, 0x1 };
 
         /// <summary>
         /// Describes component ids for start of frame components.

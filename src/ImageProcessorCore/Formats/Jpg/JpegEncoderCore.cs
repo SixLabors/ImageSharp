@@ -298,7 +298,7 @@ namespace ImageProcessorCore.Formats
         // writeDQT writes the Define Quantization Table marker.
         private void writeDQT()
         {
-            int markerlen = 2 + nQuantIndex * (1 + Block.blockSize);
+            int markerlen = 2 + nQuantIndex * (1 + Block.BlockSize);
             writeMarkerHeader(dqtMarker, markerlen);
             for (int i = 0; i < nQuantIndex; i++)
             {
@@ -396,7 +396,7 @@ namespace ImageProcessorCore.Formats
             var h = (huffIndex)(2 * (int)q + 1);
             int runLength = 0;
 
-            for (int zig = 1; zig < Block.blockSize; zig++)
+            for (int zig = 1; zig < Block.BlockSize; zig++)
             {
                 int ac = div(b[unzig[zig]], 8 * quant[(int)q][zig]);
 
@@ -567,7 +567,7 @@ namespace ImageProcessorCore.Formats
 
             for (int i = 0; i < nQuantIndex; i++)
             {
-                quant[i] = new byte[Block.blockSize];
+                quant[i] = new byte[Block.BlockSize];
             }
 
             if (image.Width >= (1 << 16) || image.Height >= (1 << 16))
@@ -592,7 +592,7 @@ namespace ImageProcessorCore.Formats
             // Initialize the quantization tables.
             for (int i = 0; i < nQuantIndex; i++)
             {
-                for (int j = 0; j < Block.blockSize; j++)
+                for (int j = 0; j < Block.BlockSize; j++)
                 {
                     int x = unscaledQuant[i, j];
                     x = (x * scale + 50) / 100;

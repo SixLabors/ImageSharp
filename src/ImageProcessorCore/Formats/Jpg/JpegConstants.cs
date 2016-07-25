@@ -18,32 +18,32 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Represents high detail chroma horizontal subsampling.
         /// </summary>
-        public static readonly byte[] ChromaFourFourFourHorizontal = { 0x1, 0x1, 0x1 };
+        public static readonly byte[] ChromaFourFourFourHorizontal = { 0x11, 0x11, 0x11 };
 
         /// <summary>
         /// Represents high detail chroma vertical subsampling.
         /// </summary>
-        public static readonly byte[] ChromaFourFourFourVertical = { 0x1, 0x1, 0x1 };
+        public static readonly byte[] ChromaFourFourFourVertical = { 0x11, 0x11, 0x11 };
 
         /// <summary>
         /// Represents medium detail chroma horizontal subsampling.
         /// </summary>
-        public static readonly byte[] ChromaFourTwoTwoHorizontal = { 0x2, 0x1, 0x1 };
+        public static readonly byte[] ChromaFourTwoTwoHorizontal = { 0x22, 0x11, 0x11 };
 
         /// <summary>
         /// Represents medium detail chroma vertical subsampling.
         /// </summary>
-        public static readonly byte[] ChromaFourTwoTwoVertical = { 0x1, 0x1, 0x1 };
+        public static readonly byte[] ChromaFourTwoTwoVertical = { 0x11, 0x11, 0x11 };
 
         /// <summary>
         /// Represents low detail chroma horizontal subsampling.
         /// </summary>
-        public static readonly byte[] ChromaFourTwoZeroHorizontal = { 0x2, 0x1, 0x1 };
+        public static readonly byte[] ChromaFourTwoZeroHorizontal = { 0x22, 0x11, 0x11 };
 
         /// <summary>
         /// Represents low detail chroma vertical subsampling.
         /// </summary>
-        public static readonly byte[] ChromaFourTwoZeroVertical = { 0x2, 0x1, 0x1 };
+        public static readonly byte[] ChromaFourTwoZeroVertical = { 0x22, 0x11, 0x11 };
 
         /// <summary>
         /// Describes component ids for start of frame components.
@@ -101,13 +101,22 @@ namespace ImageProcessorCore.Formats
             public const byte SOF0 = 0xc0;
 
             /// <summary>
+            /// Start Of Frame (Extended Sequential DCT)
+            /// <remarks>
+            /// Indicates that this is a progressive DCT-based JPEG, and specifies the width, height, number of components, 
+            /// and component subsampling (e.g., 4:2:0).
+            /// </remarks>
+            /// </summary>
+            public const byte SOF1 = 0xc1;
+
+            /// <summary>
             /// Start Of Frame (progressive DCT)
             /// <remarks>
             /// Indicates that this is a progressive DCT-based JPEG, and specifies the width, height, number of components, 
             /// and component subsampling (e.g., 4:2:0).
             /// </remarks>
             /// </summary>
-            public const byte SOF2 = 0xc0;
+            public const byte SOF2 = 0xc2;
 
             /// <summary>
             /// Define Huffman Table(s)

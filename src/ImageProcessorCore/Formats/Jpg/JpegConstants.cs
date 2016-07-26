@@ -144,6 +144,24 @@ namespace ImageProcessorCore.Formats
             public const byte DRI = 0xdd;
 
             /// <summary>
+            /// Define First Restart
+            /// <remarks>
+            /// Inserted every r macroblocks, where r is the restart interval set by a DRI marker. 
+            /// Not used if there was no DRI marker. The low three bits of the marker code cycle in value from 0 to 7.
+            /// </remarks>
+            /// </summary>
+            public const byte RST0 = 0xd0;
+
+            /// <summary>
+            /// Define Eigth Restart
+            /// <remarks>
+            /// Inserted every r macroblocks, where r is the restart interval set by a DRI marker. 
+            /// Not used if there was no DRI marker. The low three bits of the marker code cycle in value from 0 to 7.
+            /// </remarks>
+            /// </summary>
+            public const byte RST7 = 0xd7;
+
+            /// <summary>
             /// Start of Scan
             /// <remarks>
             /// Begins a top-to-bottom scan of the image. In baseline DCT JPEG images, there is generally a single scan. 
@@ -168,6 +186,7 @@ namespace ImageProcessorCore.Formats
 
             /// <summary>
             /// Application specific marker for marking the jpeg format.
+            /// <see href="http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html"/>
             /// </summary>
             public const byte APP0 = 0xe0;
 
@@ -175,6 +194,16 @@ namespace ImageProcessorCore.Formats
             /// Application specific marker for marking where to store metadata.
             /// </summary>
             public const byte APP1 = 0xe1;
+
+            /// <summary>
+            /// Application specific marker used by Adobe for storing encoding information for DCT filters.
+            /// </summary>
+            public const byte APP14 = 0xee;
+
+            /// <summary>
+            /// Application specific marker used by GraphicConverter to store JPEG quality.
+            /// </summary>
+            public const byte APP15 = 0xef;
         }
     }
 }

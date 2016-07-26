@@ -69,15 +69,14 @@ namespace ImageProcessorCore.Formats
             return isBmp;
         }
 
-        /// <summary>
-        /// Decodes the image from the specified stream to the <see cref="ImageBase{T,TP}"/>.
-        /// </summary>
-        /// <param name="image">The <see cref="ImageBase{T,TP}"/> to decode to.</param>
-        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+        /// <inheritdoc/>
         public void Decode<T, TP>(Image<T, TP> image, Stream stream)
             where T : IPackedVector<TP>
             where TP : struct
         {
+            Guard.NotNull(image, "image");
+            Guard.NotNull(stream, "stream");
+
             new BmpDecoderCore().Decode(image, stream);
         }
     }

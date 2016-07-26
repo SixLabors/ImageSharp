@@ -46,14 +46,19 @@ namespace ImageProcessorCore
             where TP : struct
             => new PngEncoder { Quality = quality }.Encode(source, stream);
 
-        ///// <summary>
-        ///// Saves the image to the given stream with the jpeg format.
-        ///// </summary>
-        ///// <param name="source">The image this method extends.</param>
-        ///// <param name="stream">The stream to save the image to.</param>
-        ///// <param name="quality">The quality to save the image to. Between 1 and 100.</param>
-        ///// <exception cref="ArgumentNullException">Thrown if the stream is null.</exception>
-        //public static void SaveAsJpeg(this ImageBase source, Stream stream, int quality = 75) => new JpegEncoder { Quality = quality }.Encode(source, stream);
+        /// <summary>
+        /// Saves the image to the given stream with the jpeg format.
+        /// </summary>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam> 
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="stream">The stream to save the image to.</param>
+        /// <param name="quality">The quality to save the image to. Between 1 and 100.</param>
+        /// <exception cref="ArgumentNullException">Thrown if the stream is null.</exception>
+        public static void SaveAsJpeg<T, TP>(this ImageBase<T, TP> source, Stream stream, int quality = 75)
+            where T : IPackedVector<TP>
+            where TP : struct
+            => new JpegEncoder { Quality = quality }.Encode(source, stream);
 
         /// <summary>
         /// Saves the image to the given stream with the gif format.

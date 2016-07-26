@@ -39,7 +39,7 @@ namespace ImageProcessorCore
             this.imageFormats = new List<IImageFormat>
             {
                 new BmpFormat(),
-                //new JpegFormat(),
+                new JpegFormat(),
                 new PngFormat(),
                 new GifFormat()
             };

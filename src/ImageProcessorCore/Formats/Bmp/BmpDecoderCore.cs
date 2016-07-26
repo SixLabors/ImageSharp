@@ -53,7 +53,7 @@ namespace ImageProcessorCore.Formats
         /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="image">The image, where the data should be set to.
         /// Cannot be null (Nothing in Visual Basic).</param>
-        /// <param name="stream">The this._stream, where the image should be
+        /// <param name="stream">The stream, where the image should be
         /// decoded from. Cannot be null (Nothing in Visual Basic).</param>
         /// <exception cref="ArgumentNullException">
         ///    <para><paramref name="image"/> is null.</para>

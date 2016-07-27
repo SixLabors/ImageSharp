@@ -29,6 +29,7 @@ namespace ImageProcessorCore.Processors
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
             Matrix4x4 matrix = this.Matrix;
+            bool compand = this.Compand;
 
             using (IPixelAccessor<T, TP> sourcePixels = source.Lock())
             using (IPixelAccessor<T, TP> targetPixels = target.Lock())
@@ -40,7 +41,7 @@ namespace ImageProcessorCore.Processors
                     {
                         for (int x = startX; x < endX; x++)
                         {
-                            targetPixels[x, y] = this.ApplyMatrix(sourcePixels[x, y], matrix);
+                            targetPixels[x, y] = this.ApplyMatrix(sourcePixels[x, y], matrix, compand);
                         }
 
                         this.OnRowProcessed();
@@ -53,23 +54,23 @@ namespace ImageProcessorCore.Processors
         /// </summary>
         /// <param name="color">The source color.</param>
         /// <param name="matrix">The matrix.</param>
+        /// <param name="compand">Whether to compand the color during processing.</param>
         /// <returns>
         /// The <see cref="Color"/>.
         /// </returns>
-        private T ApplyMatrix(T color, Matrix4x4 matrix)
+        private T ApplyMatrix(T color, Matrix4x4 matrix, bool compand)
         {
-            bool compand = this.Compand;
-
-            //if (compand)
-            //{
-            //    color = Color.Expand(color);
-            //}
-
             Vector4 vector = color.ToVector4();
+
+            if (compand)
+            {
+                vector = vector.Expand();
+            }
+
             Vector3 transformed = Vector3.Transform(new Vector3(vector.X, vector.Y, vector.Z), matrix);
-            //return compand ? Color.Compress(new Color(transformed, color.A)) : new Color(transformed, color.A);
+            vector = new Vector4(transformed.X, transformed.Y, transformed.Z, vector.W);
             T packed = default(T);
-            packed.PackVector(new Vector4(transformed.X, transformed.Y, transformed.Z, vector.W));
+            packed.PackVector(compand ? vector.Compress() : vector);
             return packed;
         }
     }

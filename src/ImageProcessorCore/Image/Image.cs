@@ -40,7 +40,7 @@ namespace ImageProcessorCore
         /// </summary>
         public Image()
         {
-            this.CurrentImageFormat = Bootstrapper.Instance.ImageFormats.First(f => f.GetType() == typeof(BmpFormat));
+            this.CurrentImageFormat = Bootstrapper.Instance.ImageFormats.First(f => f.GetType() == typeof(PngFormat));
         }
 
         /// <summary>
@@ -52,8 +52,7 @@ namespace ImageProcessorCore
         public Image(int width, int height)
             : base(width, height)
         {
-            // TODO: Change to PNG
-            this.CurrentImageFormat = Bootstrapper.Instance.ImageFormats.First(f => f.GetType() == typeof(BmpFormat));
+            this.CurrentImageFormat = Bootstrapper.Instance.ImageFormats.First(f => f.GetType() == typeof(PngFormat));
         }
 
         /// <summary>

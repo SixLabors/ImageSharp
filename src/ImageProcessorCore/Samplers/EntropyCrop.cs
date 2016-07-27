@@ -8,7 +8,7 @@ namespace ImageProcessorCore
     using Processors;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image"/> type.
+    /// Extension methods for the <see cref="Image{T,TP}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {

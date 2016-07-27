@@ -69,7 +69,7 @@ namespace ImageProcessorCore
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="quality">The quality to save the image to representing the number of colors. Between 1 and 256.</param>
         /// <exception cref="ArgumentNullException">Thrown if the stream is null.</exception>
-        public static void SaveAsGif<T, TP>(this ImageBase<T, TP> source, Stream stream, int quality = 256)
+        internal static void SaveAsGif<T, TP>(this ImageBase<T, TP> source, Stream stream, int quality = 256)
             where T : IPackedVector<TP>
             where TP : struct
             => new GifEncoder { Quality = quality }.Encode(source, stream);
@@ -83,7 +83,7 @@ namespace ImageProcessorCore
         /// <param name="source">The image this method extends.</param>
         /// <param name="processor">The processor to apply to the image.</param>
         /// <returns>The <see cref="Image{T, TP}"/>.</returns>
-        public static Image<T, TP> Process<T, TP>(this Image<T, TP> source, IImageProcessor processor)
+        internal static Image<T, TP> Process<T, TP>(this Image<T, TP> source, IImageProcessor<T, TP> processor)
             where T : IPackedVector<TP>
             where TP : struct
         {
@@ -102,7 +102,7 @@ namespace ImageProcessorCore
         /// </param>
         /// <param name="processor">The processors to apply to the image.</param>
         /// <returns>The <see cref="Image{T, TP}"/>.</returns>
-        public static Image<T, TP> Process<T, TP>(this Image<T, TP> source, Rectangle sourceRectangle, IImageProcessor processor)
+        internal static Image<T, TP> Process<T, TP>(this Image<T, TP> source, Rectangle sourceRectangle, IImageProcessor<T, TP> processor)
             where T : IPackedVector<TP>
             where TP : struct
         {
@@ -122,7 +122,7 @@ namespace ImageProcessorCore
         /// <param name="height">The target image height.</param>
         /// <param name="sampler">The processor to apply to the image.</param>
         /// <returns>The <see cref="Image{T, TP}"/>.</returns>
-        public static Image<T, TP> Process<T, TP>(this Image<T, TP> source, int width, int height, IImageSampler sampler)
+        internal static Image<T, TP> Process<T, TP>(this Image<T, TP> source, int width, int height, IImageSampler<T, TP> sampler)
             where T : IPackedVector<TP>
             where TP : struct
         {
@@ -149,7 +149,7 @@ namespace ImageProcessorCore
         /// </param>
         /// <param name="sampler">The processor to apply to the image.</param>
         /// <returns>The <see cref="Image{T, TP}"/>.</returns>
-        public static Image<T, TP> Process<T, TP>(this Image<T, TP> source, int width, int height, Rectangle sourceRectangle, Rectangle targetRectangle, IImageSampler sampler)
+        internal static Image<T, TP> Process<T, TP>(this Image<T, TP> source, int width, int height, Rectangle sourceRectangle, Rectangle targetRectangle, IImageSampler<T, TP> sampler)
             where T : IPackedVector<TP>
             where TP : struct
         {

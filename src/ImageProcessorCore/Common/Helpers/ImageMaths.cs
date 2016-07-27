@@ -156,116 +156,120 @@ namespace ImageProcessorCore
         /// Finds the bounding rectangle based on the first instance of any color component other
         /// than the given one.
         /// </summary>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="bitmap">The <see cref="Image"/> to search within.</param>
         /// <param name="componentValue">The color component value to remove.</param>
         /// <param name="channel">The <see cref="RgbaComponent"/> channel to test against.</param>
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        //public static Rectangle GetFilteredBoundingRectangle(ImageBase bitmap, float componentValue, RgbaComponent channel = RgbaComponent.B)
-        //{
-        //    const float Epsilon = .00001f;
-        //    int width = bitmap.Width;
-        //    int height = bitmap.Height;
-        //    Point topLeft = new Point();
-        //    Point bottomRight = new Point();
+        public static Rectangle GetFilteredBoundingRectangle<T, TP>(ImageBase<T, TP> bitmap, float componentValue, RgbaComponent channel = RgbaComponent.B)
+            where T : IPackedVector<TP>
+            where TP : struct
+        {
+            const float Epsilon = .00001f;
+            int width = bitmap.Width;
+            int height = bitmap.Height;
+            Point topLeft = new Point();
+            Point bottomRight = new Point();
 
-        //    Func<PixelAccessor, int, int, float, bool> delegateFunc;
+            Func<IPixelAccessor<T, TP>, int, int, float, bool> delegateFunc;
 
-        //    // Determine which channel to check against
-        //    switch (channel)
-        //    {
-        //        case RgbaComponent.R:
-        //            delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].R - b) > Epsilon;
-        //            break;
+            // Determine which channel to check against
+            switch (channel)
+            {
+                case RgbaComponent.R:
+                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToBytes()[0] - b) > Epsilon;
+                    break;
 
-        //        case RgbaComponent.G:
-        //            delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].G - b) > Epsilon;
-        //            break;
+                case RgbaComponent.G:
+                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToBytes()[1] - b) > Epsilon;
+                    break;
 
-        //        case RgbaComponent.A:
-        //            delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].A - b) > Epsilon;
-        //            break;
+                case RgbaComponent.B:
+                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToBytes()[2] - b) > Epsilon;
+                    break;
 
-        //        default:
-        //            delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].B - b) > Epsilon;
-        //            break;
-        //    }
+                default:
+                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToBytes()[3] - b) > Epsilon;
+                    break;
+            }
 
-        //    Func<PixelAccessor, int> getMinY = pixels =>
-        //    {
-        //        for (int y = 0; y < height; y++)
-        //        {
-        //            for (int x = 0; x < width; x++)
-        //            {
-        //                if (delegateFunc(pixels, x, y, componentValue))
-        //                {
-        //                    return y;
-        //                }
-        //            }
-        //        }
+            Func<IPixelAccessor<T, TP>, int> getMinY = pixels =>
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    for (int x = 0; x < width; x++)
+                    {
+                        if (delegateFunc(pixels, x, y, componentValue))
+                        {
+                            return y;
+                        }
+                    }
+                }
 
-        //        return 0;
-        //    };
+                return 0;
+            };
 
-        //    Func<PixelAccessor, int> getMaxY = pixels =>
-        //    {
-        //        for (int y = height - 1; y > -1; y--)
-        //        {
-        //            for (int x = 0; x < width; x++)
-        //            {
-        //                if (delegateFunc(pixels, x, y, componentValue))
-        //                {
-        //                    return y;
-        //                }
-        //            }
-        //        }
+            Func<IPixelAccessor<T, TP>, int> getMaxY = pixels =>
+            {
+                for (int y = height - 1; y > -1; y--)
+                {
+                    for (int x = 0; x < width; x++)
+                    {
+                        if (delegateFunc(pixels, x, y, componentValue))
+                        {
+                            return y;
+                        }
+                    }
+                }
 
-        //        return height;
-        //    };
+                return height;
+            };
 
-        //    Func<PixelAccessor, int> getMinX = pixels =>
-        //    {
-        //        for (int x = 0; x < width; x++)
-        //        {
-        //            for (int y = 0; y < height; y++)
-        //            {
-        //                if (delegateFunc(pixels, x, y, componentValue))
-        //                {
-        //                    return x;
-        //                }
-        //            }
-        //        }
+            Func<IPixelAccessor<T, TP>, int> getMinX = pixels =>
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    for (int y = 0; y < height; y++)
+                    {
+                        if (delegateFunc(pixels, x, y, componentValue))
+                        {
+                            return x;
+                        }
+                    }
+                }
 
-        //        return 0;
-        //    };
+                return 0;
+            };
 
-        //    Func<PixelAccessor, int> getMaxX = pixels =>
-        //    {
-        //        for (int x = width - 1; x > -1; x--)
-        //        {
-        //            for (int y = 0; y < height; y++)
-        //            {
-        //                if (delegateFunc(pixels, x, y, componentValue))
-        //                {
-        //                    return x;
-        //                }
-        //            }
-        //        }
+            Func<IPixelAccessor<T, TP>, int> getMaxX = pixels =>
+            {
+                for (int x = width - 1; x > -1; x--)
+                {
+                    for (int y = 0; y < height; y++)
+                    {
+                        if (delegateFunc(pixels, x, y, componentValue))
+                        {
+                            return x;
+                        }
+                    }
+                }
 
-        //        return height;
-        //    };
+                return height;
+            };
 
-        //    using (PixelAccessor bitmapPixels = bitmap.Lock())
-        //    {
-        //        topLeft.Y = getMinY(bitmapPixels);
-        //        topLeft.X = getMinX(bitmapPixels);
-        //        bottomRight.Y = (getMaxY(bitmapPixels) + 1).Clamp(0, height);
-        //        bottomRight.X = (getMaxX(bitmapPixels) + 1).Clamp(0, width);
-        //    }
+            using (IPixelAccessor<T, TP> bitmapPixels = bitmap.Lock())
+            {
+                topLeft.Y = getMinY(bitmapPixels);
+                topLeft.X = getMinX(bitmapPixels);
+                bottomRight.Y = (getMaxY(bitmapPixels) + 1).Clamp(0, height);
+                bottomRight.X = (getMaxX(bitmapPixels) + 1).Clamp(0, width);
+            }
 
-        //    return GetBoundingRectangle(topLeft, bottomRight);
-        //}
+            return GetBoundingRectangle(topLeft, bottomRight);
+        }
 
         /// <summary>
         /// Ensures that any passed double is correctly rounded to zero

@@ -7,8 +7,6 @@ namespace ImageProcessorCore.Tests
 {
     using System.IO;
 
-    using Processors;
-
     using Xunit;
 
     public class SamplerTests : FileTestBase
@@ -24,7 +22,7 @@ namespace ImageProcessorCore.Tests
                 //{ "Lanczos3", new Lanczos3Resampler() },
                 //{ "Lanczos5", new Lanczos5Resampler() },
                 //{ "Lanczos8", new Lanczos8Resampler() },
-                { "MitchellNetravali", new MitchellNetravaliResampler() },
+                //{ "MitchellNetravali", new MitchellNetravaliResampler() },
                 //{ "Hermite", new HermiteResampler() },
                 //{ "Spline", new SplineResampler() },
                 //{ "Robidoux", new RobidouxResampler() },
@@ -32,12 +30,6 @@ namespace ImageProcessorCore.Tests
                 //{ "RobidouxSoft", new RobidouxSoftResampler() },
                 //{ "Welch", new WelchResampler() }
             };
-
-        public static readonly TheoryData<string, IImageSampler> Samplers = new TheoryData<string, IImageSampler>
-        {
-             { "Resize", new ResizeProcessor(new BicubicResampler()) },
-             //{ "Crop", new CropProcessor() }
-        };
 
         public static readonly TheoryData<RotateType, FlipType> RotateFlips = new TheoryData<RotateType, FlipType>
         {
@@ -48,56 +40,29 @@ namespace ImageProcessorCore.Tests
             { RotateType.Rotate270, FlipType.None },
         };
 
-        //[Theory]
-        //[MemberData("Samplers")]
-        //public void SampleImage(string name, IImageSampler processor)
-        //{
-        //    if (!Directory.Exists("TestOutput/Sample"))
-        //    {
-        //        Directory.CreateDirectory("TestOutput/Sample");
-        //    }
+        [Fact]
+        public void ImageShouldPad()
+        {
+            if (!Directory.Exists("TestOutput/Pad"))
+            {
+                Directory.CreateDirectory("TestOutput/Pad");
+            }
 
-        //    foreach (string file in Files)
-        //    {
-        //        using (FileStream stream = File.OpenRead(file))
-        //        {
-        //            Image image = new Image(stream);
-        //            string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    string filename = Path.GetFileName(file);
 
-        //            using (FileStream output = File.OpenWrite($"TestOutput/Sample/{ Path.GetFileName(filename) }"))
-        //            {
-        //                processor.OnProgress += this.ProgressUpdate;
-        //                image = image.Process(image.Width / 2, image.Height / 2, processor);
-        //                image.Save(output);
-        //                processor.OnProgress -= this.ProgressUpdate;
-        //            }
-        //        }
-        //    }
-        //}
-
-        //[Fact]
-        //public void ImageShouldPad()
-        //{
-        //    if (!Directory.Exists("TestOutput/Pad"))
-        //    {
-        //        Directory.CreateDirectory("TestOutput/Pad");
-        //    }
-
-        //    foreach (string file in Files)
-        //    {
-        //        using (FileStream stream = File.OpenRead(file))
-        //        {
-        //            string filename = Path.GetFileName(file);
-
-        //            Image image = new Image(stream);
-        //            using (FileStream output = File.OpenWrite($"TestOutput/Pad/{filename}"))
-        //            {
-        //                image.Pad(image.Width + 50, image.Height + 50, this.ProgressUpdate)
-        //                     .Save(output);
-        //            }
-        //        }
-        //    }
-        //}
+                    Image image = new Image(stream);
+                    using (FileStream output = File.OpenWrite($"TestOutput/Pad/{filename}"))
+                    {
+                        image.Pad(image.Width + 50, image.Height + 50, this.ProgressUpdate)
+                             .Save(output);
+                    }
+                }
+            }
+        }
 
         [Theory]
         [MemberData("ReSamplers")]
@@ -114,7 +79,7 @@ namespace ImageProcessorCore.Tests
                 {
                     string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
 
-                    Image image = new Image(stream) {Quality=256};
+                    Image image = new Image(stream);
                     using (FileStream output = File.OpenWrite($"TestOutput/Resize/{filename}"))
                     {
                         image.Resize(image.Width / 2, image.Height / 2, sampler, false, this.ProgressUpdate)
@@ -124,237 +89,237 @@ namespace ImageProcessorCore.Tests
             }
         }
 
-        //[Fact]
-        //public void ImageShouldResizeWidthAndKeepAspect()
-        //{
-        //    if (!Directory.Exists("TestOutput/Resize"))
-        //    {
-        //        Directory.CreateDirectory("TestOutput/Resize");
-        //    }
+        [Fact]
+        public void ImageShouldResizeWidthAndKeepAspect()
+        {
+            if (!Directory.Exists("TestOutput/Resize"))
+            {
+                Directory.CreateDirectory("TestOutput/Resize");
+            }
 
-        //    var name = "FixedWidth";
+            var name = "FixedWidth";
 
-        //    foreach (string file in Files)
-        //    {
-        //        using (FileStream stream = File.OpenRead(file))
-        //        {
-        //            string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
 
-        //            Image image = new Image(stream);
-        //            using (FileStream output = File.OpenWrite($"TestOutput/Resize/{filename}"))
-        //            {
-        //                image.Resize(image.Width / 3, 0, new TriangleResampler(), false, this.ProgressUpdate)
-        //                     .Save(output);
-        //            }
-        //        }
-        //    }
-        //}
+                    Image image = new Image(stream);
+                    using (FileStream output = File.OpenWrite($"TestOutput/Resize/{filename}"))
+                    {
+                        image.Resize(image.Width / 3, 0, new TriangleResampler(), false, this.ProgressUpdate)
+                             .Save(output);
+                    }
+                }
+            }
+        }
 
-        //[Fact]
-        //public void ImageShouldResizeHeightAndKeepAspect()
-        //{
-        //    if (!Directory.Exists("TestOutput/Resize"))
-        //    {
-        //        Directory.CreateDirectory("TestOutput/Resize");
-        //    }
+        [Fact]
+        public void ImageShouldResizeHeightAndKeepAspect()
+        {
+            if (!Directory.Exists("TestOutput/Resize"))
+            {
+                Directory.CreateDirectory("TestOutput/Resize");
+            }
 
-        //    string name = "FixedHeight";
+            string name = "FixedHeight";
 
-        //    foreach (string file in Files)
-        //    {
-        //        using (FileStream stream = File.OpenRead(file))
-        //        {
-        //            string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
 
-        //            Image image = new Image(stream);
-        //            using (FileStream output = File.OpenWrite($"TestOutput/Resize/{filename}"))
-        //            {
-        //                image.Resize(0, image.Height / 3, new TriangleResampler(), false, this.ProgressUpdate)
-        //                     .Save(output);
-        //            }
-        //        }
-        //    }
-        //}
+                    Image image = new Image(stream);
+                    using (FileStream output = File.OpenWrite($"TestOutput/Resize/{filename}"))
+                    {
+                        image.Resize(0, image.Height / 3, new TriangleResampler(), false, this.ProgressUpdate)
+                             .Save(output);
+                    }
+                }
+            }
+        }
 
-        //[Fact]
-        //public void ImageShouldResizeWithCropMode()
-        //{
-        //    if (!Directory.Exists("TestOutput/ResizeCrop"))
-        //    {
-        //        Directory.CreateDirectory("TestOutput/ResizeCrop");
-        //    }
+        [Fact]
+        public void ImageShouldResizeWithCropMode()
+        {
+            if (!Directory.Exists("TestOutput/ResizeCrop"))
+            {
+                Directory.CreateDirectory("TestOutput/ResizeCrop");
+            }
 
-        //    foreach (string file in Files)
-        //    {
-        //        using (FileStream stream = File.OpenRead(file))
-        //        {
-        //            string filename = Path.GetFileName(file);
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    string filename = Path.GetFileName(file);
 
-        //            Image image = new Image(stream);
-        //            using (FileStream output = File.OpenWrite($"TestOutput/ResizeCrop/{filename}"))
-        //            {
-        //                ResizeOptions options = new ResizeOptions()
-        //                {
-        //                    Size = new Size(image.Width / 2, image.Height)
-        //                };
+                    Image image = new Image(stream);
+                    using (FileStream output = File.OpenWrite($"TestOutput/ResizeCrop/{filename}"))
+                    {
+                        ResizeOptions options = new ResizeOptions()
+                        {
+                            Size = new Size(image.Width / 2, image.Height)
+                        };
 
-        //                image.Resize(options, this.ProgressUpdate)
-        //                     .Save(output);
-        //            }
-        //        }
-        //    }
-        //}
+                        image.Resize(options, this.ProgressUpdate)
+                             .Save(output);
+                    }
+                }
+            }
+        }
 
-        //[Fact]
-        //public void ImageShouldResizeWithPadMode()
-        //{
-        //    if (!Directory.Exists("TestOutput/ResizePad"))
-        //    {
-        //        Directory.CreateDirectory("TestOutput/ResizePad");
-        //    }
+        [Fact]
+        public void ImageShouldResizeWithPadMode()
+        {
+            if (!Directory.Exists("TestOutput/ResizePad"))
+            {
+                Directory.CreateDirectory("TestOutput/ResizePad");
+            }
 
-        //    foreach (string file in Files)
-        //    {
-        //        using (FileStream stream = File.OpenRead(file))
-        //        {
-        //            string filename = Path.GetFileName(file);
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    string filename = Path.GetFileName(file);
 
-        //            Image image = new Image(stream);
-        //            using (FileStream output = File.OpenWrite($"TestOutput/ResizePad/{filename}"))
-        //            {
-        //                ResizeOptions options = new ResizeOptions()
-        //                {
-        //                    Size = new Size(image.Width + 200, image.Height),
-        //                    Mode = ResizeMode.Pad
-        //                };
+                    Image image = new Image(stream);
+                    using (FileStream output = File.OpenWrite($"TestOutput/ResizePad/{filename}"))
+                    {
+                        ResizeOptions options = new ResizeOptions()
+                        {
+                            Size = new Size(image.Width + 200, image.Height),
+                            Mode = ResizeMode.Pad
+                        };
 
-        //                image.Resize(options, this.ProgressUpdate)
-        //                     .Save(output);
-        //            }
-        //        }
-        //    }
-        //}
+                        image.Resize(options, this.ProgressUpdate)
+                             .Save(output);
+                    }
+                }
+            }
+        }
 
-        //[Fact]
-        //public void ImageShouldResizeWithBoxPadMode()
-        //{
-        //    if (!Directory.Exists("TestOutput/ResizeBoxPad"))
-        //    {
-        //        Directory.CreateDirectory("TestOutput/ResizeBoxPad");
-        //    }
+        [Fact]
+        public void ImageShouldResizeWithBoxPadMode()
+        {
+            if (!Directory.Exists("TestOutput/ResizeBoxPad"))
+            {
+                Directory.CreateDirectory("TestOutput/ResizeBoxPad");
+            }
 
-        //    foreach (string file in Files)
-        //    {
-        //        using (FileStream stream = File.OpenRead(file))
-        //        {
-        //            string filename = Path.GetFileName(file);
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    string filename = Path.GetFileName(file);
 
-        //            Image image = new Image(stream);
-        //            using (FileStream output = File.OpenWrite($"TestOutput/ResizeBoxPad/{filename}"))
-        //            {
-        //                ResizeOptions options = new ResizeOptions()
-        //                {
-        //                    Size = new Size(image.Width + 200, image.Height + 200),
-        //                    Mode = ResizeMode.BoxPad
-        //                };
+                    Image image = new Image(stream);
+                    using (FileStream output = File.OpenWrite($"TestOutput/ResizeBoxPad/{filename}"))
+                    {
+                        ResizeOptions options = new ResizeOptions()
+                        {
+                            Size = new Size(image.Width + 200, image.Height + 200),
+                            Mode = ResizeMode.BoxPad
+                        };
 
-        //                image.Resize(options, this.ProgressUpdate)
-        //                     .Save(output);
-        //            }
-        //        }
-        //    }
-        //}
+                        image.Resize(options, this.ProgressUpdate)
+                             .Save(output);
+                    }
+                }
+            }
+        }
 
-        //[Fact]
-        //public void ImageShouldResizeWithMaxMode()
-        //{
-        //    if (!Directory.Exists("TestOutput/ResizeMax"))
-        //    {
-        //        Directory.CreateDirectory("TestOutput/ResizeMax");
-        //    }
+        [Fact]
+        public void ImageShouldResizeWithMaxMode()
+        {
+            if (!Directory.Exists("TestOutput/ResizeMax"))
+            {
+                Directory.CreateDirectory("TestOutput/ResizeMax");
+            }
 
-        //    foreach (string file in Files)
-        //    {
-        //        using (FileStream stream = File.OpenRead(file))
-        //        {
-        //            string filename = Path.GetFileName(file);
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    string filename = Path.GetFileName(file);
 
-        //            Image image = new Image(stream);
-        //            using (FileStream output = File.OpenWrite($"TestOutput/ResizeMax/{filename}"))
-        //            {
-        //                ResizeOptions options = new ResizeOptions()
-        //                {
-        //                    Size = new Size(300, 300),
-        //                    Mode = ResizeMode.Max,
-        //                    //Sampler = new NearestNeighborResampler()
-        //                };
+                    Image image = new Image(stream);
+                    using (FileStream output = File.OpenWrite($"TestOutput/ResizeMax/{filename}"))
+                    {
+                        ResizeOptions options = new ResizeOptions()
+                        {
+                            Size = new Size(300, 300),
+                            Mode = ResizeMode.Max,
+                            //Sampler = new NearestNeighborResampler()
+                        };
 
-        //                image.Resize(options, this.ProgressUpdate)
-        //                     .Save(output);
-        //            }
-        //        }
-        //    }
-        //}
+                        image.Resize(options, this.ProgressUpdate)
+                             .Save(output);
+                    }
+                }
+            }
+        }
 
-        //[Fact]
-        //public void ImageShouldResizeWithMinMode()
-        //{
-        //    if (!Directory.Exists("TestOutput/ResizeMin"))
-        //    {
-        //        Directory.CreateDirectory("TestOutput/ResizeMin");
-        //    }
+        [Fact]
+        public void ImageShouldResizeWithMinMode()
+        {
+            if (!Directory.Exists("TestOutput/ResizeMin"))
+            {
+                Directory.CreateDirectory("TestOutput/ResizeMin");
+            }
 
-        //    foreach (string file in Files)
-        //    {
-        //        using (FileStream stream = File.OpenRead(file))
-        //        {
-        //            string filename = Path.GetFileName(file);
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    string filename = Path.GetFileName(file);
 
-        //            Image image = new Image(stream);
-        //            using (FileStream output = File.OpenWrite($"TestOutput/ResizeMin/{filename}"))
-        //            {
-        //                ResizeOptions options = new ResizeOptions()
-        //                {
-        //                    Size = new Size(image.Width - 50, image.Height - 25),
-        //                    Mode = ResizeMode.Min
-        //                };
+                    Image image = new Image(stream);
+                    using (FileStream output = File.OpenWrite($"TestOutput/ResizeMin/{filename}"))
+                    {
+                        ResizeOptions options = new ResizeOptions()
+                        {
+                            Size = new Size(image.Width - 50, image.Height - 25),
+                            Mode = ResizeMode.Min
+                        };
 
-        //                image.Resize(options, this.ProgressUpdate)
-        //                     .Save(output);
-        //            }
-        //        }
-        //    }
-        //}
+                        image.Resize(options, this.ProgressUpdate)
+                             .Save(output);
+                    }
+                }
+            }
+        }
 
-        //[Fact]
-        //public void ImageShouldResizeWithStretchMode()
-        //{
-        //    if (!Directory.Exists("TestOutput/ResizeStretch"))
-        //    {
-        //        Directory.CreateDirectory("TestOutput/ResizeStretch");
-        //    }
+        [Fact]
+        public void ImageShouldResizeWithStretchMode()
+        {
+            if (!Directory.Exists("TestOutput/ResizeStretch"))
+            {
+                Directory.CreateDirectory("TestOutput/ResizeStretch");
+            }
 
-        //    foreach (string file in Files)
-        //    {
-        //        using (FileStream stream = File.OpenRead(file))
-        //        {
-        //            string filename = Path.GetFileName(file);
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    string filename = Path.GetFileName(file);
 
-        //            Image image = new Image(stream);
-        //            using (FileStream output = File.OpenWrite($"TestOutput/ResizeStretch/{filename}"))
-        //            {
-        //                ResizeOptions options = new ResizeOptions()
-        //                {
-        //                    Size = new Size(image.Width - 200, image.Height),
-        //                    Mode = ResizeMode.Stretch
-        //                };
+                    Image image = new Image(stream);
+                    using (FileStream output = File.OpenWrite($"TestOutput/ResizeStretch/{filename}"))
+                    {
+                        ResizeOptions options = new ResizeOptions()
+                        {
+                            Size = new Size(image.Width - 200, image.Height),
+                            Mode = ResizeMode.Stretch
+                        };
 
-        //                image.Resize(options, this.ProgressUpdate)
-        //                     .Save(output);
-        //            }
-        //        }
-        //    }
-        //}
+                        image.Resize(options, this.ProgressUpdate)
+                             .Save(output);
+                    }
+                }
+            }
+        }
 
         //[Fact]
         //public void ImageShouldNotDispose()
@@ -387,140 +352,140 @@ namespace ImageProcessorCore.Tests
         //    }
         //}
 
-        //[Theory]
-        //[MemberData("RotateFlips")]
-        //public void ImageShouldRotateFlip(RotateType rotateType, FlipType flipType)
-        //{
-        //    if (!Directory.Exists("TestOutput/RotateFlip"))
-        //    {
-        //        Directory.CreateDirectory("TestOutput/RotateFlip");
-        //    }
+        [Theory]
+        [MemberData("RotateFlips")]
+        public void ImageShouldRotateFlip(RotateType rotateType, FlipType flipType)
+        {
+            if (!Directory.Exists("TestOutput/RotateFlip"))
+            {
+                Directory.CreateDirectory("TestOutput/RotateFlip");
+            }
 
-        //    foreach (string file in Files)
-        //    {
-        //        using (FileStream stream = File.OpenRead(file))
-        //        {
-        //            string filename = Path.GetFileNameWithoutExtension(file) + "-" + rotateType + flipType + Path.GetExtension(file);
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + rotateType + flipType + Path.GetExtension(file);
 
-        //            Image image = new Image(stream);
-        //            using (FileStream output = File.OpenWrite($"TestOutput/RotateFlip/{filename}"))
-        //            {
-        //                image.RotateFlip(rotateType, flipType, this.ProgressUpdate)
-        //                     .Save(output);
-        //            }
-        //        }
-        //    }
-        //}
+                    Image image = new Image(stream);
+                    using (FileStream output = File.OpenWrite($"TestOutput/RotateFlip/{filename}"))
+                    {
+                        image.RotateFlip(rotateType, flipType, this.ProgressUpdate)
+                             .Save(output);
+                    }
+                }
+            }
+        }
 
-        //[Fact]
-        //public void ImageShouldRotate()
-        //{
-        //    if (!Directory.Exists("TestOutput/Rotate"))
-        //    {
-        //        Directory.CreateDirectory("TestOutput/Rotate");
-        //    }
+        [Fact]
+        public void ImageShouldRotate()
+        {
+            if (!Directory.Exists("TestOutput/Rotate"))
+            {
+                Directory.CreateDirectory("TestOutput/Rotate");
+            }
 
-        //    foreach (string file in Files)
-        //    {
-        //        using (FileStream stream = File.OpenRead(file))
-        //        {
-        //            string filename = Path.GetFileName(file);
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    string filename = Path.GetFileName(file);
 
-        //            Image image = new Image(stream);
-        //            using (FileStream output = File.OpenWrite($"TestOutput/Rotate/{filename}"))
-        //            {
-        //                image.Rotate(-170, this.ProgressUpdate)
-        //                     .Save(output);
-        //            }
-        //        }
-        //    }
-        //}
+                    Image image = new Image(stream);
+                    using (FileStream output = File.OpenWrite($"TestOutput/Rotate/{filename}"))
+                    {
+                        image.Rotate(-170, this.ProgressUpdate)
+                             .Save(output);
+                    }
+                }
+            }
+        }
 
-        //[Fact]
-        //public void ImageShouldSkew()
-        //{
-        //    if (!Directory.Exists("TestOutput/Skew"))
-        //    {
-        //        Directory.CreateDirectory("TestOutput/Skew");
-        //    }
+        [Fact]
+        public void ImageShouldSkew()
+        {
+            if (!Directory.Exists("TestOutput/Skew"))
+            {
+                Directory.CreateDirectory("TestOutput/Skew");
+            }
 
-        //    // Matches live example http://www.w3schools.com/css/tryit.asp?filename=trycss3_transform_skew
-        //    foreach (string file in Files)
-        //    {
-        //        using (FileStream stream = File.OpenRead(file))
-        //        {
-        //            string filename = Path.GetFileName(file);
+            // Matches live example http://www.w3schools.com/css/tryit.asp?filename=trycss3_transform_skew
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    string filename = Path.GetFileName(file);
 
-        //            Image image = new Image(stream);
-        //            using (FileStream output = File.OpenWrite($"TestOutput/Skew/{filename}"))
-        //            {
-        //                image.Skew(-20, -10, this.ProgressUpdate)
-        //                     .Save(output);
-        //            }
-        //        }
-        //    }
-        //}
+                    Image image = new Image(stream);
+                    using (FileStream output = File.OpenWrite($"TestOutput/Skew/{filename}"))
+                    {
+                        image.Skew(-20, -10, this.ProgressUpdate)
+                             .Save(output);
+                    }
+                }
+            }
+        }
 
-        //[Fact]
-        //public void ImageShouldEntropyCrop()
-        //{
-        //    if (!Directory.Exists("TestOutput/EntropyCrop"))
-        //    {
-        //        Directory.CreateDirectory("TestOutput/EntropyCrop");
-        //    }
+        [Fact]
+        public void ImageShouldEntropyCrop()
+        {
+            if (!Directory.Exists("TestOutput/EntropyCrop"))
+            {
+                Directory.CreateDirectory("TestOutput/EntropyCrop");
+            }
 
-        //    foreach (string file in Files)
-        //    {
-        //        using (FileStream stream = File.OpenRead(file))
-        //        {
-        //            string filename = Path.GetFileNameWithoutExtension(file) + "-EntropyCrop" + Path.GetExtension(file);
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    string filename = Path.GetFileNameWithoutExtension(file) + "-EntropyCrop" + Path.GetExtension(file);
 
-        //            Image image = new Image(stream);
-        //            using (FileStream output = File.OpenWrite($"TestOutput/EntropyCrop/{filename}"))
-        //            {
-        //                image.EntropyCrop(.5f, this.ProgressUpdate).Save(output);
-        //            }
-        //        }
-        //    }
-        //}
+                    Image image = new Image(stream);
+                    using (FileStream output = File.OpenWrite($"TestOutput/EntropyCrop/{filename}"))
+                    {
+                        image.EntropyCrop(.5f, this.ProgressUpdate).Save(output);
+                    }
+                }
+            }
+        }
 
-        //[Fact]
-        //public void ImageShouldCrop()
-        //{
-        //    if (!Directory.Exists("TestOutput/Crop"))
-        //    {
-        //        Directory.CreateDirectory("TestOutput/Crop");
-        //    }
+        [Fact]
+        public void ImageShouldCrop()
+        {
+            if (!Directory.Exists("TestOutput/Crop"))
+            {
+                Directory.CreateDirectory("TestOutput/Crop");
+            }
 
-        //    foreach (string file in Files)
-        //    {
-        //        using (FileStream stream = File.OpenRead(file))
-        //        {
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
 
-        //            string filename = Path.GetFileNameWithoutExtension(file) + "-Crop" + Path.GetExtension(file);
+                    string filename = Path.GetFileNameWithoutExtension(file) + "-Crop" + Path.GetExtension(file);
 
-        //            Image image = new Image(stream);
-        //            using (FileStream output = File.OpenWrite($"TestOutput/Crop/{filename}"))
-        //            {
-        //                image.Crop(image.Width / 2, image.Height / 2, this.ProgressUpdate).Save(output);
-        //            }
-        //        }
-        //    }
-        //}
+                    Image image = new Image(stream);
+                    using (FileStream output = File.OpenWrite($"TestOutput/Crop/{filename}"))
+                    {
+                        image.Crop(image.Width / 2, image.Height / 2, this.ProgressUpdate).Save(output);
+                    }
+                }
+            }
+        }
 
-        //[Theory]
-        //[InlineData(-2, 0)]
-        //[InlineData(-1, 0)]
-        //[InlineData(0, 1)]
-        //[InlineData(1, 0)]
-        //[InlineData(2, 0)]
-        //[InlineData(2, 0)]
-        //public static void Lanczos3WindowOscillatesCorrectly(float x, float expected)
-        //{
-        //    Lanczos3Resampler sampler = new Lanczos3Resampler();
-        //    float result = sampler.GetValue(x);
+        [Theory]
+        [InlineData(-2, 0)]
+        [InlineData(-1, 0)]
+        [InlineData(0, 1)]
+        [InlineData(1, 0)]
+        [InlineData(2, 0)]
+        [InlineData(2, 0)]
+        public static void Lanczos3WindowOscillatesCorrectly(float x, float expected)
+        {
+            Lanczos3Resampler sampler = new Lanczos3Resampler();
+            float result = sampler.GetValue(x);
 
-        //    Assert.Equal(result, expected);
-        //}
+            Assert.Equal(result, expected);
+        }
     }
 }

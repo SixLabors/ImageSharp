@@ -8,7 +8,8 @@ namespace ImageProcessorCore.Benchmarks
         {
             // Uncomment if you want to use any of the diagnoser
             this.Add(new BenchmarkDotNet.Diagnostics.Windows.MemoryDiagnoser());
-            this.Add(new BenchmarkDotNet.Diagnostics.Windows.InliningDiagnoser());
+            // System.Drawing doesn't like this.
+            // this.Add(new BenchmarkDotNet.Diagnostics.Windows.InliningDiagnoser());
         }
     }
 }

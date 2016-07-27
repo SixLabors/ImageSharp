@@ -5,12 +5,14 @@
 
 namespace ImageProcessorCore
 {
-    using System;
+    using System.Diagnostics;
     using System.IO;
 
     /// <summary>
-    /// Represents an image. Each pixel is a made up four 8-bit components red, green, blue, and alpha.
+    /// Represents an image. Each pixel is a made up four 8-bit components red, green, blue, and alpha
+    /// packed into a single unsigned integer value.
     /// </summary>
+    [DebuggerDisplay("Image: {Width}x{Height}")]
     public class Image : Image<Color, uint>
     {
         /// <summary>

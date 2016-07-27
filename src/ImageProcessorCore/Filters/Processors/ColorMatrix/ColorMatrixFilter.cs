@@ -9,8 +9,10 @@ namespace ImageProcessorCore.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// The color matrix filter.
+    /// The color matrix filter. Inherit from this class to perform operation involving color matrices.
     /// </summary>
+    /// <typeparam name="T">The pixel format.</typeparam>
+    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
     public abstract class ColorMatrixFilter<T, TP> : ImageProcessor<T, TP>, IColorMatrixFilter<T, TP>
         where T : IPackedVector<TP>
         where TP : struct
@@ -63,11 +65,11 @@ namespace ImageProcessorCore.Processors
             //    color = Color.Expand(color);
             //}
 
-            Vector4 transformed = Vector4.Transform(color.ToVector4(), matrix);
-            //Vector3 transformed = Vector3.Transform(color.ToVector3(), matrix);
+            Vector4 vector = color.ToVector4();
+            Vector3 transformed = Vector3.Transform(new Vector3(vector.X, vector.Y, vector.Z), matrix);
             //return compand ? Color.Compress(new Color(transformed, color.A)) : new Color(transformed, color.A);
             T packed = default(T);
-            packed.PackVector(transformed);
+            packed.PackVector(new Vector4(transformed.X, transformed.Y, transformed.Z, vector.W));
             return packed;
         }
     }

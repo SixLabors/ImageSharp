@@ -13,12 +13,14 @@ namespace ImageProcessorCore
     using System.Linq;
 
     using Formats;
+    using System.Diagnostics;
 
     /// <summary>
     /// Encapsulates an image, which consists of the pixel data for a graphics image and its attributes.
     /// </summary>
     /// <typeparam name="T">The pixel format.</typeparam>
     /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+    [DebuggerDisplay("Image: {Width}x{Height}")]
     public class Image<T, TP> : ImageBase<T, TP>
         where T : IPackedVector<TP>
         where TP : struct
@@ -75,6 +77,7 @@ namespace ImageProcessorCore
         /// <param name="other">The other image, where the clone should be made from.</param>
         /// <exception cref="ArgumentNullException"><paramref name="other"/> is null.</exception>
         public Image(Image<T, TP> other)
+            : base(other)
         {
             foreach (ImageFrame<T, TP> frame in other.Frames)
             {
@@ -84,7 +87,6 @@ namespace ImageProcessorCore
                 }
             }
 
-            this.Quality = other.Quality;
             this.RepeatCount = other.RepeatCount;
             this.HorizontalResolution = other.HorizontalResolution;
             this.VerticalResolution = other.VerticalResolution;

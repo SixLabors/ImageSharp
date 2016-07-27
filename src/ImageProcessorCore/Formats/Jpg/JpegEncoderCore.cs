@@ -488,15 +488,10 @@ namespace ImageProcessorCore.Formats
             int componentCount = 3;
 
             // Write the Start Of Image marker.
-            double densityX = ((Image<T,TP>)image).HorizontalResolution;
+            double densityX = ((Image<T, TP>)image).HorizontalResolution;
             double densityY = ((Image<T, TP>)image).VerticalResolution;
 
-            //WriteApplicationHeader(densityX, densityY);
-
-            // TODO: JFIF header etc.
-            this.buffer[0] = 0xff;
-            this.buffer[1] = 0xd8;
-            stream.Write(this.buffer, 0, 2);
+            WriteApplicationHeader((short)densityX, (short)densityY);
 
             // Write the quantization tables.
             this.WriteDQT();
@@ -539,50 +534,41 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Writes the application header containing the Jfif identifier plus extra data.
         /// </summary>
-        /// <param name="image">The image to encode from.</param>
-        /// <param name="writer">The writer to write to the stream.</param>
-        private void WriteApplicationHeader(double horizontalResolution, double verticalResolution)
+        /// <param name="horizontalResolution">The resolution of the image in the x- direction.</param>
+        /// <param name="verticalResolution">The resolution of the image in the y- direction.</param>
+        private void WriteApplicationHeader(short horizontalResolution, short verticalResolution)
         {
             // Write the start of image marker. Markers are always prefixed with with 0xff.
             this.buffer[0] = JpegConstants.Markers.XFF;
             this.buffer[1] = JpegConstants.Markers.SOI;
-            this.outputStream.Write(this.buffer, 0, 2);
 
-            // Write the jfif headers
-            this.buffer[0] = JpegConstants.Markers.XFF;
-            this.buffer[0] = JpegConstants.Markers.APP0; // Application Marker
-            this.buffer[0] = JpegConstants.Markers.XFF;
-            this.buffer[0] = JpegConstants.Markers.XFF;
-            this.buffer[0] = JpegConstants.Markers.XFF;
-            this.buffer[0] = JpegConstants.Markers.XFF;
-            this.buffer[0] = JpegConstants.Markers.XFF;
-
-            byte[] jfif = {
-                    JpegConstants.Markers.XFF,
-                    JpegConstants.Markers.APP0, // Application Marker
-                    0x00,
-                    0x10,
-                    0x4a, // J
-                    0x46, // F
-                    0x49, // I
-                    0x46, // F
-                    0x00, // = "JFIF",'\0'
-                    0x01, // versionhi
-                    0x01, // versionlo
-                    0x01, // xyunits as dpi
-            };
+            // Write the JFIF headers
+            this.buffer[2] = JpegConstants.Markers.XFF;
+            this.buffer[3] = JpegConstants.Markers.APP0; // Application Marker
+            this.buffer[4] = 0x00;
+            this.buffer[5] = 0x10;
+            this.buffer[6] = 0x4a; // J
+            this.buffer[7] = 0x46; // F
+            this.buffer[8] = 0x49; // I
+            this.buffer[9] = 0x46; // F
+            this.buffer[10] = 0x00; // = "JFIF",'\0'
+            this.buffer[11] = 0x01; // versionhi
+            this.buffer[12] = 0x01; // versionlo
+            this.buffer[13] = 0x01; // xyunits as dpi
 
             // No thumbnail
-            byte[] thumbnail = {
-                    0x00, // Thumbnail width
-                    0x00  // Thumbnail height
-            };
+            this.buffer[14] = 0x00; // Thumbnail width
+            this.buffer[15] = 0x00; // Thumbnail height
 
-            // http://stackoverflow.com/questions/2188660/convert-short-to-byte-in-java
-            //writer.Write(jfif);
-            //writer.Write((short)densityX);
-            //writer.Write((short)densityY);
-            //writer.Write(thumbnail);
+            this.outputStream.Write(this.buffer, 0, 16);
+
+            // Resolution. Big Endian
+            this.buffer[0] = (byte)(horizontalResolution >> 8);
+            this.buffer[1] = (byte)horizontalResolution;
+            this.buffer[2] = (byte)(verticalResolution >> 8);
+            this.buffer[3] = (byte)verticalResolution;
+
+            this.outputStream.Write(this.buffer, 0, 4);
         }
 
         /// <summary>

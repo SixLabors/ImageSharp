@@ -60,7 +60,7 @@ namespace ImageProcessorCore
                 source = source.Resize(sourceRectangle.Width, sourceRectangle.Height);
             }
 
-            CropProcessor processor = new CropProcessor();
+            CropProcessor<T, TP> processor = new CropProcessor<T, TP>();
             processor.OnProgress += progressHandler;
 
             try

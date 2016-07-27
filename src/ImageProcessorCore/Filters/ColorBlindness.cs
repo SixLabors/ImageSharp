@@ -1,14 +1,14 @@
 ﻿// <copyright file="ColorBlindness.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>-------------------------------------------------------------------------------------------------------------------
+// </copyright>
 
 namespace ImageProcessorCore
 {
     using Processors;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image"/> type.
+    /// Extension methods for the <see cref="Image{T,TP}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {

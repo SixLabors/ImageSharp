@@ -6,6 +6,7 @@
 namespace ImageProcessorCore
 {
     using System;
+    using System.Diagnostics;
 
     /// <summary>
     /// The base class of all images. Encapsulates the basic properties and methods required to manipulate 
@@ -13,6 +14,7 @@ namespace ImageProcessorCore
     /// </summary>
     /// <typeparam name="T">The pixel format.</typeparam>
     /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+    [DebuggerDisplay("Image: {Width}x{Height}")]
     public abstract class ImageBase<T, TP> : IImageBase<T, TP>
         where T : IPackedVector<TP>
         where TP : struct

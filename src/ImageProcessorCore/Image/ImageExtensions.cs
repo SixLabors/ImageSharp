@@ -174,7 +174,7 @@ namespace ImageProcessorCore
                 : new Image<T, TP>
                 {
                     // Several properties require copying
-                    // TODO: Check why we need to set these?
+                    FrameDelay = source.FrameDelay,
                     Quality = source.Quality,
                     HorizontalResolution = source.HorizontalResolution,
                     VerticalResolution = source.VerticalResolution,

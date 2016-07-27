@@ -21,7 +21,7 @@ namespace ImageProcessorCore
         /// <param name="width">The new width.</param>
         /// <param name="height">The new height.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
-        /// <returns>The <see cref="Image"/>.</returns>
+        /// <returns>The <see cref="Image{T,TP}"/>.</returns>
         public static Image<T, TP> Pad<T, TP>(this Image<T, TP> source, int width, int height, ProgressEventHandler progressHandler = null)
             where T : IPackedVector<TP>
             where TP : struct

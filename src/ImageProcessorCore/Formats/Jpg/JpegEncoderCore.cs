@@ -488,6 +488,11 @@ namespace ImageProcessorCore.Formats
             int componentCount = 3;
 
             // Write the Start Of Image marker.
+            double densityX = ((Image<T,TP>)image).HorizontalResolution;
+            double densityY = ((Image<T, TP>)image).VerticalResolution;
+
+            //WriteApplicationHeader(densityX, densityY);
+
             // TODO: JFIF header etc.
             this.buffer[0] = 0xff;
             this.buffer[1] = 0xd8;
@@ -529,6 +534,55 @@ namespace ImageProcessorCore.Formats
             }
 
             return -((-dividend + (divisor >> 1)) / divisor);
+        }
+
+        /// <summary>
+        /// Writes the application header containing the Jfif identifier plus extra data.
+        /// </summary>
+        /// <param name="image">The image to encode from.</param>
+        /// <param name="writer">The writer to write to the stream.</param>
+        private void WriteApplicationHeader(double horizontalResolution, double verticalResolution)
+        {
+            // Write the start of image marker. Markers are always prefixed with with 0xff.
+            this.buffer[0] = JpegConstants.Markers.XFF;
+            this.buffer[1] = JpegConstants.Markers.SOI;
+            this.outputStream.Write(this.buffer, 0, 2);
+
+            // Write the jfif headers
+            this.buffer[0] = JpegConstants.Markers.XFF;
+            this.buffer[0] = JpegConstants.Markers.APP0; // Application Marker
+            this.buffer[0] = JpegConstants.Markers.XFF;
+            this.buffer[0] = JpegConstants.Markers.XFF;
+            this.buffer[0] = JpegConstants.Markers.XFF;
+            this.buffer[0] = JpegConstants.Markers.XFF;
+            this.buffer[0] = JpegConstants.Markers.XFF;
+
+            byte[] jfif = {
+                    JpegConstants.Markers.XFF,
+                    JpegConstants.Markers.APP0, // Application Marker
+                    0x00,
+                    0x10,
+                    0x4a, // J
+                    0x46, // F
+                    0x49, // I
+                    0x46, // F
+                    0x00, // = "JFIF",'\0'
+                    0x01, // versionhi
+                    0x01, // versionlo
+                    0x01, // xyunits as dpi
+            };
+
+            // No thumbnail
+            byte[] thumbnail = {
+                    0x00, // Thumbnail width
+                    0x00  // Thumbnail height
+            };
+
+            // http://stackoverflow.com/questions/2188660/convert-short-to-byte-in-java
+            //writer.Write(jfif);
+            //writer.Write((short)densityX);
+            //writer.Write((short)densityY);
+            //writer.Write(thumbnail);
         }
 
         /// <summary>

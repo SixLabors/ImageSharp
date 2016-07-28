@@ -1,4 +1,4 @@
-﻿// <copyright file="Kodachrome.cs" company="James Jackson-South">
+﻿// <copyright file="Sepia.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -13,22 +13,22 @@ namespace ImageProcessorCore
     public static partial class ImageExtensions
     {
         /// <summary>
-        /// Alters the colors of the image recreating an old Kodachrome camera effect.
+        /// Applies sepia toning to the image.
         /// </summary>
         /// <typeparam name="T">The pixel format.</typeparam>
         /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
-        /// <returns>The <see cref="Image{T,TP}"/>.</returns>
-        public static Image<T, TP> Kodachrome<T, TP>(this Image<T, TP> source, ProgressEventHandler progressHandler = null)
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image<T, TP> Sepia<T, TP>(this Image<T, TP> source, ProgressEventHandler progressHandler = null)
             where T : IPackedVector<TP>
             where TP : struct
         {
-            return Kodachrome(source, source.Bounds, progressHandler);
+            return Sepia(source, source.Bounds, progressHandler);
         }
 
         /// <summary>
-        /// Alters the colors of the image recreating an old Kodachrome camera effect.
+        /// Applies sepia toning to the image.
         /// </summary>
         /// <typeparam name="T">The pixel format.</typeparam>
         /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
@@ -37,12 +37,12 @@ namespace ImageProcessorCore
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
-        /// <returns>The <see cref="Image{T,TP}"/>.</returns>
-        public static Image<T, TP> Kodachrome<T, TP>(this Image<T, TP> source, Rectangle rectangle, ProgressEventHandler progressHandler = null)
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static Image<T, TP> Sepia<T, TP>(this Image<T, TP> source, Rectangle rectangle, ProgressEventHandler progressHandler = null)
             where T : IPackedVector<TP>
             where TP : struct
         {
-            KodachromeProcessor<T, TP> processor = new KodachromeProcessor<T, TP>();
+            SepiaProcessor<T, TP> processor = new SepiaProcessor<T, TP>();
             processor.OnProgress += progressHandler;
 
             try

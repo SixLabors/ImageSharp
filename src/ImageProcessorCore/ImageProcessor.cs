@@ -33,6 +33,9 @@ namespace ImageProcessorCore.Processors
         public virtual ParallelOptions ParallelOptions { get; set; } = Bootstrapper.Instance.ParallelOptions;
 
         /// <inheritdoc/>
+        public virtual bool Compand { get; set; } = false;
+
+        /// <inheritdoc/>
         public void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle sourceRectangle)
         {
             try

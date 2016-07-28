@@ -38,23 +38,8 @@ namespace ImageProcessorCore.Processors
             }
 
             this.Angle = angle;
-        }
 
-        /// <summary>
-        /// Gets the rotation value.
-        /// </summary>
-        public float Angle { get; }
-
-        /// <inheritdoc/>
-        public override Matrix4x4 Matrix => this.matrix;
-
-        /// <inheritdoc/>
-        public override bool Compand => false;
-
-        /// <inheritdoc/>
-        protected override void OnApply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle)
-        {
-            float radians = (float)ImageMaths.DegreesToRadians(this.Angle);
+            float radians = ImageMaths.DegreesToRadians(angle);
             double cosradians = Math.Cos(radians);
             double sinradians = Math.Sin(radians);
 
@@ -84,5 +69,16 @@ namespace ImageProcessorCore.Processors
 
             this.matrix = matrix4X4;
         }
+
+        /// <summary>
+        /// Gets the rotation value.
+        /// </summary>
+        public float Angle { get; }
+
+        /// <inheritdoc/>
+        public override Matrix4x4 Matrix => this.matrix;
+
+        /// <inheritdoc/>
+        public override bool Compand => false;
     }
 }

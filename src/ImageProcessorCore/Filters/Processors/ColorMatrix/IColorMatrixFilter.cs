@@ -19,11 +19,5 @@ namespace ImageProcessorCore.Processors
         /// Gets the <see cref="Matrix4x4"/> used to alter the image.
         /// </summary>
         Matrix4x4 Matrix { get; }
-
-        /// <summary>
-        /// Gets a value indicating whether to compress
-        /// or expand individual pixel colors the value on processing.
-        /// </summary>
-        bool Compand { get; }
     }
 }

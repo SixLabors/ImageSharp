@@ -12,10 +12,5 @@ namespace ImageProcessorCore.Processors
         where T : IPackedVector<TP>
         where TP : struct
     {
-        /// <summary>
-        /// Gets or sets a value indicating whether to compress
-        /// or expand individual pixel colors the value on processing.
-        /// </summary>
-        bool Compand { get; set; }
     }
 }

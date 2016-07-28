@@ -21,7 +21,7 @@ namespace ImageProcessorCore.Processors
         public abstract Matrix4x4 Matrix { get; }
 
         /// <inheritdoc/>
-        public virtual bool Compand => true;
+        public override bool Compand { get; set; } = true;
 
         /// <inheritdoc/>
         protected override void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)

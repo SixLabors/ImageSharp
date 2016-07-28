@@ -37,14 +37,7 @@ namespace ImageProcessorCore.Processors
         {
             Guard.MustBeBetweenOrEqualTo(saturation, -100, 100, nameof(saturation));
             this.saturation = saturation;
-        }
 
-        /// <inheritdoc/>
-        public override Matrix4x4 Matrix => this.matrix;
-
-        /// <inheritdoc/>
-        protected override void OnApply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle)
-        {
             float saturationFactor = this.saturation / 100f;
 
             // Stop at -1 to prevent inversion.
@@ -74,5 +67,8 @@ namespace ImageProcessorCore.Processors
 
             this.matrix = matrix4X4;
         }
+
+        /// <inheritdoc/>
+        public override Matrix4x4 Matrix => this.matrix;
     }
 }

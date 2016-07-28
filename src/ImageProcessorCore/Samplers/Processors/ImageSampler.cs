@@ -13,7 +13,5 @@ namespace ImageProcessorCore.Processors
         where T : IPackedVector<TP>
         where TP : struct
     {
-        /// <inheritdoc/>
-        public virtual bool Compand { get; set; } = false;
     }
 }

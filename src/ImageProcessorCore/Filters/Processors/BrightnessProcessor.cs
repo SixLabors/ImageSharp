@@ -60,7 +60,7 @@ namespace ImageProcessorCore.Processors
                                     Vector4 vector = sourcePixels[x, y].ToVector4().Expand();
                                     Vector3 transformed = new Vector3(vector.X, vector.Y, vector.Z);
                                     transformed += new Vector3(brightness);
-                                    vector = new Vector4(transformed.X, transformed.Y, transformed.Z, vector.W);
+                                    vector = new Vector4(transformed, vector.W);
 
                                     T packed = default(T);
                                     packed.PackVector(vector.Compress());

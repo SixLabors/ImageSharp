@@ -12,6 +12,8 @@ namespace ImageProcessorCore.Processors
     /// <summary>
     /// Defines a filter that uses two one-dimensional matrices to perform convolution against an image.
     /// </summary>
+    /// <typeparam name="T">The pixel format.</typeparam>
+    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
     public abstract class Convolution2DFilter<T, TP> : ImageProcessor<T, TP>
         where T : IPackedVector<TP>
         where TP : struct

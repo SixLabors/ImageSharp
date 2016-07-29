@@ -1,4 +1,4 @@
-﻿// <copyright file="BrightnessProcessor.cs" company="James Jackson-South">
+﻿// <copyright file="AlphaProcessor.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -9,40 +9,41 @@ namespace ImageProcessorCore.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageProcessor"/> to change the brightness of an <see cref="Image{T,TP}"/>.
+    /// An <see cref="IImageProcessor"/> to change the Alpha of an <see cref="Image{T,TP}"/>.
     /// </summary>
     /// <typeparam name="T">The pixel format.</typeparam>
     /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
-    public class BrightnessProcessor<T, TP> : ImageProcessor<T, TP>
+    public class AlphaProcessor<T, TP> : ImageProcessor<T, TP>
         where T : IPackedVector<TP>
         where TP : struct
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="BrightnessProcessor"/> class.
+        /// Initializes a new instance of the <see cref="AlphaProcessor"/> class.
         /// </summary>
-        /// <param name="brightness">The new brightness of the image. Must be between -100 and 100.</param>
+        /// <param name="percent">The percentage to adjust the opacity of the image. Must be between 0 and 100.</param>
         /// <exception cref="ArgumentException">
-        /// <paramref name="brightness"/> is less than -100 or is greater than 100.
+        /// <paramref name="percent"/> is less than 0 or is greater than 100.
         /// </exception>
-        public BrightnessProcessor(int brightness)
+        public AlphaProcessor(int percent)
         {
-            Guard.MustBeBetweenOrEqualTo(brightness, -100, 100, nameof(brightness));
-            this.Value = brightness;
+            Guard.MustBeBetweenOrEqualTo(percent, 0, 100, nameof(percent));
+            this.Value = percent;
         }
 
         /// <summary>
-        /// Gets the brightness value.
+        /// Gets the alpha value.
         /// </summary>
         public int Value { get; }
 
         /// <inheritdoc/>
         protected override void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-            float brightness = this.Value / 100f;
+            float alpha = this.Value / 100f;
             int sourceY = sourceRectangle.Y;
             int sourceBottom = sourceRectangle.Bottom;
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
+            Vector4 alphaVector = new Vector4(1, 1, 1, alpha);
 
             using (IPixelAccessor<T, TP> sourcePixels = source.Lock())
             using (IPixelAccessor<T, TP> targetPixels = target.Lock())
@@ -56,21 +57,18 @@ namespace ImageProcessorCore.Processors
                             {
                                 for (int x = startX; x < endX; x++)
                                 {
-                                    // TODO: Check this with other formats.
-                                    Vector4 vector = sourcePixels[x, y].ToVector4().Expand();
-                                    Vector3 transformed = new Vector3(vector.X, vector.Y, vector.Z);
-                                    transformed += new Vector3(brightness);
-                                    vector = new Vector4(transformed, vector.W);
+                                    Vector4 color = sourcePixels[x, y].ToVector4();
+                                    color *= alphaVector;
 
                                     T packed = default(T);
-                                    packed.PackVector(vector.Compress());
-
+                                    packed.PackVector(color);
                                     targetPixels[x, y] = packed;
                                 }
 
                                 this.OnRowProcessed();
                             }
                         });
+
             }
         }
     }

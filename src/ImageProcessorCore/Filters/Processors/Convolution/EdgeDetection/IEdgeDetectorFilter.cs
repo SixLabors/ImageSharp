@@ -8,9 +8,16 @@ namespace ImageProcessorCore.Processors
     /// <summary>
     /// Provides properties and methods allowing the detection of edges within an image.
     /// </summary>
-    public interface IEdgeDetectorFilter<T, TP> : IImageProcessor<T, TP>
+    public interface IEdgeDetectorFilter<T, TP> : IImageProcessor<T, TP>, IEdgeDetectorFilter
         where T : IPackedVector<TP>
         where TP : struct
+    {
+    }
+
+    /// <summary>
+    /// Provides properties and methods allowing the detection of edges within an image.
+    /// </summary>
+    public interface IEdgeDetectorFilter
     {
         /// <summary>
         /// Gets or sets a value indicating whether to convert the

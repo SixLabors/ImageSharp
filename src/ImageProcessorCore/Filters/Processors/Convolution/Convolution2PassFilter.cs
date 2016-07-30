@@ -69,6 +69,7 @@ namespace ImageProcessorCore.Processors
                 Parallel.For(
                 startY,
                 endY,
+                Bootstrapper.Instance.ParallelOptions,
                 y =>
                 {
                     for (int x = startX; x < endX; x++)

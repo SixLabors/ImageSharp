@@ -8,18 +8,22 @@ namespace ImageProcessorCore
     using Processors;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image"/> type.
+    /// Extension methods for the <see cref="Image{T,TP}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
         /// <summary>
         /// Rotates an image by the given angle in degrees, expanding the image to fit the rotated result.
         /// </summary>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="source">The image to rotate.</param>
         /// <param name="degrees">The angle in degrees to perform the rotation.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/></returns>
-        public static Image Rotate(this Image source, float degrees, ProgressEventHandler progressHandler = null)
+        public static Image<T, TP> Rotate<T, TP>(this Image<T, TP> source, float degrees, ProgressEventHandler progressHandler = null)
+            where T : IPackedVector<TP>
+            where TP : struct
         {
             return Rotate(source, degrees, true, progressHandler);
         }
@@ -27,14 +31,18 @@ namespace ImageProcessorCore
         /// <summary>
         /// Rotates an image by the given angle in degrees.
         /// </summary>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="source">The image to rotate.</param>
         /// <param name="degrees">The angle in degrees to perform the rotation.</param>
         /// <param name="expand">Whether to expand the image to fit the rotated result.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/></returns>
-        public static Image Rotate(this Image source, float degrees, bool expand, ProgressEventHandler progressHandler = null)
+        public static Image<T, TP> Rotate<T, TP>(this Image<T, TP> source, float degrees, bool expand, ProgressEventHandler progressHandler = null)
+            where T : IPackedVector<TP>
+            where TP : struct
         {
-            RotateProcessor processor = new RotateProcessor { Angle = degrees, Expand = expand };
+            RotateProcessor<T, TP> processor = new RotateProcessor<T, TP> { Angle = degrees, Expand = expand };
             processor.OnProgress += progressHandler;
 
             try

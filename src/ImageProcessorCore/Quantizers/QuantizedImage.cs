@@ -11,17 +11,21 @@ namespace ImageProcessorCore.Quantizers
     /// <summary>
     /// Represents a quantized image where the pixels indexed by a color palette.
     /// </summary>
-    public class QuantizedImage
+    /// <typeparam name="T">The pixel format.</typeparam>
+    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+    public class QuantizedImage<T, TP>
+            where T : IPackedVector<TP>
+            where TP : struct
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="QuantizedImage"/> class.
+        /// Initializes a new instance of the <see cref="QuantizedImage{T,TP}"/> class.
         /// </summary>
         /// <param name="width">The image width.</param>
         /// <param name="height">The image height.</param>
         /// <param name="palette">The color palette.</param>
         /// <param name="pixels">The quantized pixels.</param>
         /// <param name="transparentIndex">The transparency index.</param>
-        public QuantizedImage(int width, int height, Bgra32[] palette, byte[] pixels, int transparentIndex = -1)
+        public QuantizedImage(int width, int height, T[] palette, byte[] pixels, int transparentIndex = -1)
         {
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
@@ -54,7 +58,7 @@ namespace ImageProcessorCore.Quantizers
         /// <summary>
         /// Gets the color palette of this <see cref="T:QuantizedImage"/>.
         /// </summary>
-        public Bgra32[] Palette { get; }
+        public T[] Palette { get; }
 
         /// <summary>
         /// Gets the pixels of this <see cref="T:QuantizedImage"/>.
@@ -72,26 +76,25 @@ namespace ImageProcessorCore.Quantizers
         /// <returns>
         /// The <see cref="Image"/>
         /// </returns>
-        public Image ToImage()
+        public Image<T, TP> ToImage()
         {
-            Image image = new Image();
+            Image<T, TP> image = new Image<T, TP>();
 
             int pixelCount = this.Pixels.Length;
             int palletCount = this.Palette.Length - 1;
-            float[] bgraPixels = new float[pixelCount * 4];
+            T[] pixels = new T[pixelCount];
 
-            Parallel.For(0, pixelCount,
+            Parallel.For(
+                0,
+                pixelCount,
+                Bootstrapper.Instance.ParallelOptions,
                 i =>
                     {
-                        int offset = i * 4;
-                        Color color = this.Palette[Math.Min(palletCount, this.Pixels[i])];
-                        bgraPixels[offset] = color.R;
-                        bgraPixels[offset + 1] = color.G;
-                        bgraPixels[offset + 2] = color.B;
-                        bgraPixels[offset + 3] = color.A;
+                        T color = this.Palette[Math.Min(palletCount, this.Pixels[i])];
+                        pixels[i] = color;
                     });
 
-            image.SetPixels(this.Width, this.Height, bgraPixels);
+            image.SetPixels(this.Width, this.Height, pixels);
             return image;
         }
     }

@@ -10,7 +10,11 @@ namespace ImageProcessorCore.Processors
     /// <summary>
     /// Converts the colors of the image recreating an old Polaroid effect.
     /// </summary>
-    public class PolaroidProcessor : ColorMatrixFilter
+    /// <typeparam name="T">The pixel format.</typeparam>
+    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+    public class PolaroidProcessor<T, TP> : ColorMatrixFilter<T, TP>
+        where T : IPackedVector<TP>
+        where TP : struct
     {
         /// <inheritdoc/>
         public override Matrix4x4 Matrix => new Matrix4x4()
@@ -30,12 +34,17 @@ namespace ImageProcessorCore.Processors
         };
 
         /// <inheritdoc/>
-        protected override void AfterApply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected override void AfterApply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
-            new VignetteProcessor { Color = new Color(102 / 255f, 34 / 255f, 0) }.Apply(target, target, targetRectangle);
-            new GlowProcessor
+            T packedV = default(T);
+            packedV.PackBytes(102, 34, 0, 255);
+            new VignetteProcessor<T, TP> { VignetteColor = packedV }.Apply(target, target, targetRectangle);
+
+            T packedG = default(T);
+            packedG.PackBytes(255, 153, 102, 178);
+            new GlowProcessor<T, TP>
             {
-                Color = new Color(1, 153 / 255f, 102 / 255f, .7f),
+                GlowColor = packedG,
                 RadiusX = target.Width / 4f,
                 RadiusY = target.Width / 4f
             }

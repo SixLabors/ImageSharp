@@ -28,7 +28,7 @@ namespace ImageProcessorCore.Tests
         public void ColorToYCbCr()
         {
             // White
-            Color color = new Color(1, 1, 1);
+            Color color = Color.White;
             YCbCr yCbCr = color;
 
             Assert.Equal(255, yCbCr.Y, 0);
@@ -36,14 +36,14 @@ namespace ImageProcessorCore.Tests
             Assert.Equal(128, yCbCr.Cr, 0);
 
             // Black
-            Color color2 = new Color(0, 0, 0);
+            Color color2 = Color.Black;
             YCbCr yCbCr2 = color2;
             Assert.Equal(0, yCbCr2.Y, 0);
             Assert.Equal(128, yCbCr2.Cb, 0);
             Assert.Equal(128, yCbCr2.Cr, 0);
 
-            // Grey
-            Color color3 = new Color(.5f, .5f, .5f);
+            // Gray
+            Color color3 = Color.Gray;
             YCbCr yCbCr3 = color3;
             Assert.Equal(128, yCbCr3.Y, 0);
             Assert.Equal(128, yCbCr3.Cb, 0);
@@ -62,10 +62,10 @@ namespace ImageProcessorCore.Tests
             YCbCr yCbCr = new YCbCr(255, 128, 128);
             Color color = yCbCr;
 
-            Assert.Equal(1f, color.R, 1);
-            Assert.Equal(1f, color.G, 1);
-            Assert.Equal(1f, color.B, 1);
-            Assert.Equal(1f, color.A, 1);
+            Assert.Equal(255, color.R);
+            Assert.Equal(255, color.G);
+            Assert.Equal(255, color.B);
+            Assert.Equal(255, color.A);
 
             // Black
             YCbCr yCbCr2 = new YCbCr(0, 128, 128);
@@ -74,16 +74,16 @@ namespace ImageProcessorCore.Tests
             Assert.Equal(0, color2.R);
             Assert.Equal(0, color2.G);
             Assert.Equal(0, color2.B);
-            Assert.Equal(1, color2.A);
+            Assert.Equal(255, color2.A);
 
-            // Grey
+            // Gray
             YCbCr yCbCr3 = new YCbCr(128, 128, 128);
             Color color3 = yCbCr3;
 
-            Assert.Equal(.5f, color3.R, 1);
-            Assert.Equal(.5f, color3.G, 1);
-            Assert.Equal(.5f, color3.B, 1);
-            Assert.Equal(1f, color3.A, 1);
+            Assert.Equal(128, color3.R);
+            Assert.Equal(128, color3.G);
+            Assert.Equal(128, color3.B);
+            Assert.Equal(255, color3.A);
         }
 
         /// <summary>
@@ -95,7 +95,7 @@ namespace ImageProcessorCore.Tests
         public void ColorToCieXyz()
         {
             // White
-            Color color = new Color(1, 1, 1);
+            Color color = Color.White;
             CieXyz ciexyz = color;
 
             Assert.Equal(95.05f, ciexyz.X, 3);
@@ -103,21 +103,21 @@ namespace ImageProcessorCore.Tests
             Assert.Equal(108.900f, ciexyz.Z, 3);
 
             // Black
-            Color color2 = new Color(0, 0, 0);
+            Color color2 = Color.Black;
             CieXyz ciexyz2 = color2;
             Assert.Equal(0, ciexyz2.X, 3);
             Assert.Equal(0, ciexyz2.Y, 3);
             Assert.Equal(0, ciexyz2.Z, 3);
 
-            //// Grey
-            Color color3 = new Color(128 / 255f, 128 / 255f, 128 / 255f);
+            // Gray
+            Color color3 = Color.Gray;
             CieXyz ciexyz3 = color3;
             Assert.Equal(20.518, ciexyz3.X, 3);
             Assert.Equal(21.586, ciexyz3.Y, 3);
             Assert.Equal(23.507, ciexyz3.Z, 3);
 
-            //// Cyan
-            Color color4 = new Color(0, 1, 1);
+            // Cyan
+            Color color4 = Color.Cyan;
             CieXyz ciexyz4 = color4;
             Assert.Equal(53.810f, ciexyz4.X, 3);
             Assert.Equal(78.740f, ciexyz4.Y, 3);
@@ -136,25 +136,25 @@ namespace ImageProcessorCore.Tests
             CieXyz ciexyz = new CieXyz(13.337f, 9.297f, 14.727f);
             Color color = ciexyz;
 
-            Assert.Equal(128 / 255f, color.R, 3);
-            Assert.Equal(64 / 255f, color.G, 3);
-            Assert.Equal(106 / 255f, color.B, 3);
+            Assert.Equal(128, color.R);
+            Assert.Equal(64, color.G);
+            Assert.Equal(106, color.B);
 
             // Ochre
             CieXyz ciexyz2 = new CieXyz(31.787f, 26.147f, 4.885f);
             Color color2 = ciexyz2;
 
-            Assert.Equal(204 / 255f, color2.R, 3);
-            Assert.Equal(119 / 255f, color2.G, 3);
-            Assert.Equal(34 / 255f, color2.B, 3);
+            Assert.Equal(204, color2.R);
+            Assert.Equal(119, color2.G);
+            Assert.Equal(34, color2.B);
 
-            //// White
+            // Black
             CieXyz ciexyz3 = new CieXyz(0, 0, 0);
             Color color3 = ciexyz3;
 
-            Assert.Equal(0f, color3.R, 3);
-            Assert.Equal(0f, color3.G, 3);
-            Assert.Equal(0f, color3.B, 3);
+            Assert.Equal(0, color3.R);
+            Assert.Equal(0, color3.G);
+            Assert.Equal(0, color3.B);
 
             //// Check others.
             //Random random = new Random(0);
@@ -175,7 +175,7 @@ namespace ImageProcessorCore.Tests
         public void ColorToHsv()
         {
             // Black
-            Color b = new Color(0, 0, 0);
+            Color b = Color.Black;
             Hsv h = b;
 
             Assert.Equal(0, h.H, 1);
@@ -183,7 +183,7 @@ namespace ImageProcessorCore.Tests
             Assert.Equal(0, h.V, 1);
 
             // White
-            Color color = new Color(1, 1, 1);
+            Color color = Color.White;
             Hsv hsv = color;
 
             Assert.Equal(0f, hsv.H, 1);
@@ -191,7 +191,7 @@ namespace ImageProcessorCore.Tests
             Assert.Equal(1f, hsv.V, 1);
 
             // Dark moderate pink.
-            Color color2 = new Color(128 / 255f, 64 / 255f, 106 / 255f);
+            Color color2 = new Color(128, 64, 106);
             Hsv hsv2 = color2;
 
             Assert.Equal(320.6f, hsv2.H, 1);
@@ -199,7 +199,7 @@ namespace ImageProcessorCore.Tests
             Assert.Equal(0.502f, hsv2.V, 2);
 
             // Ochre.
-            Color color3 = new Color(204 / 255f, 119 / 255f, 34 / 255f);
+            Color color3 = new Color(204, 119, 34);
             Hsv hsv3 = color3;
 
             Assert.Equal(30f, hsv3.H, 1);
@@ -217,25 +217,25 @@ namespace ImageProcessorCore.Tests
             Hsv hsv = new Hsv(320.6f, 0.5f, 0.502f);
             Color color = hsv;
 
-            Assert.Equal(color.B, 106 / 255f, 1);
-            Assert.Equal(color.G, 64 / 255f, 1);
-            Assert.Equal(color.R, 128 / 255f, 1);
+            Assert.Equal(color.R, 128);
+            Assert.Equal(color.G, 64);
+            Assert.Equal(color.B, 106);
 
             // Ochre
             Hsv hsv2 = new Hsv(30, 0.833f, 0.8f);
             Color color2 = hsv2;
 
-            Assert.Equal(color2.B, 34 / 255f, 1);
-            Assert.Equal(color2.G, 119 / 255f, 1);
-            Assert.Equal(color2.R, 204 / 255f, 1);
+            Assert.Equal(color2.R, 204);
+            Assert.Equal(color2.G, 119);
+            Assert.Equal(color2.B, 34);
 
             // White
             Hsv hsv3 = new Hsv(0, 0, 1);
             Color color3 = hsv3;
 
-            Assert.Equal(color3.B, 1, 1);
-            Assert.Equal(color3.G, 1, 1);
-            Assert.Equal(color3.R, 1, 1);
+            Assert.Equal(color3.B, 255);
+            Assert.Equal(color3.G, 255);
+            Assert.Equal(color3.R, 255);
 
             // Check others.
             //Random random = new Random(0);
@@ -256,7 +256,7 @@ namespace ImageProcessorCore.Tests
         public void ColorToHsl()
         {
             // Black
-            Color b = new Color(0, 0, 0);
+            Color b = Color.Black;
             Hsl h = b;
 
             Assert.Equal(0, h.H, 1);
@@ -264,7 +264,7 @@ namespace ImageProcessorCore.Tests
             Assert.Equal(0, h.L, 1);
 
             // White
-            Color color = new Color(1, 1, 1);
+            Color color = Color.White;
             Hsl hsl = color;
 
             Assert.Equal(0f, hsl.H, 1);
@@ -272,7 +272,7 @@ namespace ImageProcessorCore.Tests
             Assert.Equal(1f, hsl.L, 1);
 
             // Dark moderate pink.
-            Color color2 = new Color(128 / 255f, 64 / 255f, 106 / 255f);
+            Color color2 = new Color(128, 64, 106);
             Hsl hsl2 = color2;
 
             Assert.Equal(320.6f, hsl2.H, 1);
@@ -280,7 +280,7 @@ namespace ImageProcessorCore.Tests
             Assert.Equal(0.376f, hsl2.L, 2);
 
             // Ochre.
-            Color color3 = new Color(204 / 255f, 119 / 255f, 34 / 255f);
+            Color color3 = new Color(204, 119, 34);
             Hsl hsl3 = color3;
 
             Assert.Equal(30f, hsl3.H, 1);
@@ -298,25 +298,25 @@ namespace ImageProcessorCore.Tests
             Hsl hsl = new Hsl(320.6f, 0.33f, 0.376f);
             Color color = hsl;
 
-            Assert.Equal(color.B, 106 / 255f, 1);
-            Assert.Equal(color.G, 64 / 255f, 1);
-            Assert.Equal(color.R, 128 / 255f, 1);
+            Assert.Equal(color.R, 128);
+            Assert.Equal(color.G, 64);
+            Assert.Equal(color.B, 106);
 
             // Ochre
             Hsl hsl2 = new Hsl(30, 0.714f, 0.467f);
             Color color2 = hsl2;
 
-            Assert.Equal(color2.B, 34 / 255f, 1);
-            Assert.Equal(color2.G, 119 / 255f, 1);
-            Assert.Equal(color2.R, 204 / 255f, 1);
+            Assert.Equal(color2.R, 204);
+            Assert.Equal(color2.G, 119);
+            Assert.Equal(color2.B, 34);
 
             // White
             Hsl hsl3 = new Hsl(0, 0, 1);
             Color color3 = hsl3;
 
-            Assert.Equal(color3.B, 1, 1);
-            Assert.Equal(color3.G, 1, 1);
-            Assert.Equal(color3.R, 1, 1);
+            Assert.Equal(color3.R, 255);
+            Assert.Equal(color3.G, 255);
+            Assert.Equal(color3.B, 255);
 
             // Check others.
             //Random random = new Random(0);
@@ -337,7 +337,7 @@ namespace ImageProcessorCore.Tests
         public void ColorToCmyk()
         {
             // White
-            Color color = new Color(1, 1, 1);
+            Color color = Color.White;
             Cmyk cmyk = color;
 
             Assert.Equal(0, cmyk.C, 1);
@@ -346,15 +346,15 @@ namespace ImageProcessorCore.Tests
             Assert.Equal(0, cmyk.K, 1);
 
             // Black
-            Color color2 = new Color(0, 0, 0);
+            Color color2 = Color.Black;
             Cmyk cmyk2 = color2;
             Assert.Equal(0, cmyk2.C, 1);
             Assert.Equal(0, cmyk2.M, 1);
             Assert.Equal(0, cmyk2.Y, 1);
             Assert.Equal(1, cmyk2.K, 1);
 
-            // Grey
-            Color color3 = new Color(128 / 255f, 128 / 255f, 128 / 255f);
+            // Gray
+            Color color3 = Color.Gray;
             Cmyk cmyk3 = color3;
             Assert.Equal(0f, cmyk3.C, 1);
             Assert.Equal(0f, cmyk3.M, 1);
@@ -362,7 +362,7 @@ namespace ImageProcessorCore.Tests
             Assert.Equal(0.498, cmyk3.K, 2); // Checked with other online converters.
 
             // Cyan
-            Color color4 = new Color(0, 1, 1);
+            Color color4 = Color.Cyan;
             Cmyk cmyk4 = color4;
             Assert.Equal(1, cmyk4.C, 1);
             Assert.Equal(0f, cmyk4.M, 1);
@@ -380,25 +380,25 @@ namespace ImageProcessorCore.Tests
             Cmyk cmyk = new Cmyk(0f, .5f, .171f, .498f);
             Color color = cmyk;
 
-            Assert.Equal(color.R, 128 / 255f, 1);
-            Assert.Equal(color.G, 64 / 255f, 1);
-            Assert.Equal(color.B, 106 / 255f, 1);
+            Assert.Equal(color.R, 128);
+            Assert.Equal(color.G, 64);
+            Assert.Equal(color.B, 106);
 
             // Ochre
             Cmyk cmyk2 = new Cmyk(0, .416f, .833f, .199f);
             Color color2 = cmyk2;
 
-            Assert.Equal(color2.R, 204 / 255f, 1);
-            Assert.Equal(color2.G, 119 / 255f, 1);
-            Assert.Equal(color2.B, 34 / 255f, 1);
+            Assert.Equal(color2.R, 204);
+            Assert.Equal(color2.G, 119);
+            Assert.Equal(color2.B, 34);
 
             // White
             Cmyk cmyk3 = new Cmyk(0, 0, 0, 0);
             Color color3 = cmyk3;
 
-            Assert.Equal(color3.R, 1f, 1);
-            Assert.Equal(color3.G, 1f, 1);
-            Assert.Equal(color3.B, 1f, 1);
+            Assert.Equal(color3.R, 255);
+            Assert.Equal(color3.G, 255);
+            Assert.Equal(color3.B, 255);
 
             // Check others.
             //Random random = new Random(0);
@@ -419,7 +419,7 @@ namespace ImageProcessorCore.Tests
         public void ColorToCieLab()
         {
             // White
-            Color color = new Color(1, 1, 1);
+            Color color = Color.White;
             CieLab cielab = color;
 
             Assert.Equal(100, cielab.L, 3);
@@ -427,21 +427,21 @@ namespace ImageProcessorCore.Tests
             Assert.Equal(-0.010, cielab.B, 3);
 
             // Black
-            Color color2 = new Color(0, 0, 0);
+            Color color2 = Color.Black;
             CieLab cielab2 = color2;
             Assert.Equal(0, cielab2.L, 3);
             Assert.Equal(0, cielab2.A, 3);
             Assert.Equal(0, cielab2.B, 3);
 
-            //// Grey
-            Color color3 = new Color(128 / 255f, 128 / 255f, 128 / 255f);
+            // Gray
+            Color color3 = Color.Gray;
             CieLab cielab3 = color3;
             Assert.Equal(53.585, cielab3.L, 3);
             Assert.Equal(0.003, cielab3.A, 3);
             Assert.Equal(-0.006, cielab3.B, 3);
 
-            //// Cyan
-            Color color4 = new Color(0, 1, 1);
+            // Cyan
+            Color color4 = Color.Cyan;
             CieLab cielab4 = color4;
             Assert.Equal(91.117, cielab4.L, 3);
             Assert.Equal(-48.080, cielab4.A, 3);
@@ -460,25 +460,25 @@ namespace ImageProcessorCore.Tests
             CieLab cielab = new CieLab(36.5492f, 33.3173f, -12.0615f);
             Color color = cielab;
 
-            Assert.Equal(color.R, 128 / 255f, 3);
-            Assert.Equal(color.G, 64 / 255f, 3);
-            Assert.Equal(color.B, 106 / 255f, 3);
+            Assert.Equal(color.R, 128);
+            Assert.Equal(color.G, 64);
+            Assert.Equal(color.B, 106);
 
             // Ochre
             CieLab cielab2 = new CieLab(58.1758f, 27.3399f, 56.8240f);
             Color color2 = cielab2;
 
-            Assert.Equal(color2.R, 204 / 255f, 3);
-            Assert.Equal(color2.G, 119 / 255f, 3);
-            Assert.Equal(color2.B, 34 / 255f, 3);
+            Assert.Equal(color2.R, 204);
+            Assert.Equal(color2.G, 119);
+            Assert.Equal(color2.B, 34);
 
-            // White
+            // Black
             CieLab cielab3 = new CieLab(0, 0, 0);
             Color color3 = cielab3;
 
-            Assert.Equal(color3.R, 0f, 3);
-            Assert.Equal(color3.G, 0f, 3);
-            Assert.Equal(color3.B, 0f, 3);
+            Assert.Equal(color3.R, 0);
+            Assert.Equal(color3.G, 0);
+            Assert.Equal(color3.B, 0);
 
             // Check others.
             //Random random = new Random(0);

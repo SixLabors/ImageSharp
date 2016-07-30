@@ -6,10 +6,11 @@
 namespace ImageProcessorCore
 {
     using System;
+    using System.Numerics;
 
     /// <summary>
-    /// Represents a four-component color using red, green, blue, and alpha data. 
-    /// Each component is stored in premultiplied format multiplied by the alpha component.
+    /// Packed vector type containing four 8-bit unsigned normalized values ranging from 0 to 255.
+    /// The color components are stored in red, green, blue, and alpha order.
     /// </summary>
     /// <remarks>
     /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
@@ -17,6 +18,11 @@ namespace ImageProcessorCore
     /// </remarks>
     public partial struct Color
     {
+        /// <summary>
+        /// The epsilon for comparing floating point numbers.
+        /// </summary>
+        private const float Epsilon = 0.001F;
+
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="Color"/> to a
         /// <see cref="Bgra32"/>.
@@ -27,7 +33,7 @@ namespace ImageProcessorCore
         /// </returns>
         public static implicit operator Color(Bgra32 color)
         {
-            return new Color(color.R / 255f, color.G / 255f, color.B / 255f, color.A / 255f);
+            return new Color(color.R, color.G, color.B, color.A);
         }
 
         /// <summary>
@@ -43,7 +49,7 @@ namespace ImageProcessorCore
             float r = (1 - cmykColor.C) * (1 - cmykColor.K);
             float g = (1 - cmykColor.M) * (1 - cmykColor.K);
             float b = (1 - cmykColor.Y) * (1 - cmykColor.K);
-            return new Color(r, g, b);
+            return new Color(r, g, b, 1);
         }
 
         /// <summary>
@@ -60,11 +66,11 @@ namespace ImageProcessorCore
             float cb = color.Cb - 128;
             float cr = color.Cr - 128;
 
-            float r = (float)(y + (1.402 * cr)).Clamp(0, 255) / 255f;
-            float g = (float)(y - (0.34414 * cb) - (0.71414 * cr)).Clamp(0, 255) / 255f;
-            float b = (float)(y + (1.772 * cb)).Clamp(0, 255) / 255f;
+            byte r = (byte)(y + (1.402 * cr)).Clamp(0, 255);
+            byte g = (byte)(y - (0.34414 * cb) - (0.71414 * cr)).Clamp(0, 255);
+            byte b = (byte)(y + (1.772 * cb)).Clamp(0, 255);
 
-            return new Color(r, g, b);
+            return new Color(r, g, b, 255);
         }
 
         /// <summary>
@@ -86,7 +92,8 @@ namespace ImageProcessorCore
             float g = (x * -0.9689F) + (y * 1.8758F) + (z * 0.0415F);
             float b = (x * 0.0557F) + (y * -0.2040F) + (z * 1.0570F);
 
-            return Color.Compress(new Color(r, g, b));
+            Vector4 vector = new Vector4(r, g, b, 1).Compress();
+            return new Color(vector);
         }
 
         /// <summary>
@@ -111,9 +118,9 @@ namespace ImageProcessorCore
             int i = (int)Math.Truncate(h);
             float f = h - i;
 
-            float p = v * (1.0f - s);
-            float q = v * (1.0f - (s * f));
-            float t = v * (1.0f - (s * (1.0f - f)));
+            float p = v * (1.0F - s);
+            float q = v * (1.0F - (s * f));
+            float t = v * (1.0F - (s * (1.0F - f)));
 
             float r, g, b;
             switch (i)
@@ -155,7 +162,7 @@ namespace ImageProcessorCore
                     break;
             }
 
-            return new Color(r, g, b);
+            return new Color(r, g, b, 1);
         }
 
         /// <summary>
@@ -168,7 +175,7 @@ namespace ImageProcessorCore
         /// </returns>
         public static implicit operator Color(Hsl color)
         {
-            float rangedH = color.H / 360f;
+            float rangedH = color.H / 360F;
             float r = 0;
             float g = 0;
             float b = 0;
@@ -192,7 +199,7 @@ namespace ImageProcessorCore
                 }
             }
 
-            return new Color(r, g, b);
+            return new Color(r, g, b, 1);
         }
 
         /// <summary>
@@ -226,7 +233,7 @@ namespace ImageProcessorCore
             float g = (x * -0.9689F) + (y * 1.8758F) + (z * 0.0415F);
             float b = (x * 0.0557F) + (y * -0.2040F) + (z * 1.0570F);
 
-            return Color.Compress(new Color(r, g, b));
+            return new Color(new Vector4(r, g, b, 1F).Compress());
         }
 
         /// <summary>

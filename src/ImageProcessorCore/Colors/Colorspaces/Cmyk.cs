@@ -84,11 +84,9 @@ namespace ImageProcessorCore
         /// </returns>
         public static implicit operator Cmyk(Color color)
         {
-            color = color.Limited;
-
-            float c = 1f - color.R;
-            float m = 1f - color.G;
-            float y = 1f - color.B;
+            float c = 1f - color.R / 255F;
+            float m = 1f - color.G / 255F;
+            float y = 1f - color.B / 255F;
 
             float k = Math.Min(c, Math.Min(m, y));
 

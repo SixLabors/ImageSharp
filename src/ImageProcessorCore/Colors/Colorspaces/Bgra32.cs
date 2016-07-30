@@ -80,8 +80,7 @@ namespace ImageProcessorCore
         /// </returns>
         public static implicit operator Bgra32(Color color)
         {
-            color = color.Limited * 255f;
-            return new Bgra32((byte)color.B, (byte)color.G, (byte)color.R, (byte)color.A);
+            return new Bgra32(color.B, color.G, color.R, color.A);
         }
 
         /// <summary>
@@ -158,7 +157,7 @@ namespace ImageProcessorCore
         /// Returns the hash code for this instance.
         /// </summary>
         /// <param name="color">
-        /// The instance of <see cref="Cmyk"/> to return the hash code for.
+        /// The instance of <see cref="Bgra32"/> to return the hash code for.
         /// </param>
         /// <returns>
         /// A 32-bit signed integer that is the hash code for this instance.

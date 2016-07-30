@@ -11,9 +11,9 @@ namespace ImageProcessorCore
     public enum RgbaComponent
     {
         /// <summary>
-        /// The blue component.
+        /// The red component.
         /// </summary>
-        B = 0,
+        R = 0,
 
         /// <summary>
         /// The green component.
@@ -21,9 +21,9 @@ namespace ImageProcessorCore
         G = 1,
 
         /// <summary>
-        /// The red component.
+        /// The blue component.
         /// </summary>
-        R = 2,
+        B = 2,
 
         /// <summary>
         /// The alpha component.

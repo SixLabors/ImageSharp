@@ -25,7 +25,7 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// The image to decode.
         /// </summary>
-        private Image currentImage;
+        //private IImage currentImage;
 
         /// <summary>
         /// The stream to decode from.
@@ -65,6 +65,8 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Decodes the stream to the image.
         /// </summary>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam> 
         /// <param name="image">The image to decode to.</param>
         /// <param name="stream">The stream containing image data. </param>
         /// <exception cref="ImageFormatException">
@@ -73,9 +75,11 @@ namespace ImageProcessorCore.Formats
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown if the image is larger than the maximum allowable size.
         /// </exception>
-        public void Decode(Image image, Stream stream)
+        public void Decode<T, TP>(Image<T, TP> image, Stream stream)
+            where T : IPackedVector<TP>
+            where TP : struct
         {
-            this.currentImage = image;
+            Image<T, TP> currentImage = image;
             this.currentStream = stream;
             this.currentStream.Seek(8, SeekOrigin.Current);
 
@@ -101,7 +105,7 @@ namespace ImageProcessorCore.Formats
                     }
                     else if (currentChunk.Type == PngChunkTypes.Physical)
                     {
-                        this.ReadPhysicalChunk(currentChunk.Data);
+                        this.ReadPhysicalChunk(currentImage, currentChunk.Data);
                     }
                     else if (currentChunk.Type == PngChunkTypes.Data)
                     {
@@ -117,7 +121,7 @@ namespace ImageProcessorCore.Formats
                     }
                     else if (currentChunk.Type == PngChunkTypes.Text)
                     {
-                        this.ReadTextChunk(currentChunk.Data);
+                        this.ReadTextChunk(currentImage, currentChunk.Data);
                     }
                     else if (currentChunk.Type == PngChunkTypes.End)
                     {
@@ -125,14 +129,14 @@ namespace ImageProcessorCore.Formats
                     }
                 }
 
-                if (this.header.Width > ImageBase.MaxWidth || this.header.Height > ImageBase.MaxHeight)
+                if (this.header.Width > image.MaxWidth || this.header.Height > image.MaxHeight)
                 {
                     throw new ArgumentOutOfRangeException(
                         $"The input png '{this.header.Width}x{this.header.Height}' is bigger than the "
-                        + $"max allowed size '{ImageBase.MaxWidth}x{ImageBase.MaxHeight}'");
+                        + $"max allowed size '{image.MaxWidth}x{image.MaxHeight}'");
                 }
 
-                float[] pixels = new float[this.header.Width * this.header.Height * 4];
+                T[] pixels = new T[this.header.Width * this.header.Height];
 
                 PngColorTypeInformation colorTypeInformation = ColorTypes[this.header.ColorType];
 
@@ -140,7 +144,7 @@ namespace ImageProcessorCore.Formats
                 {
                     IColorReader colorReader = colorTypeInformation.CreateColorReader(palette, paletteAlpha);
 
-                    this.ReadScanlines(dataStream, pixels, colorReader, colorTypeInformation);
+                    this.ReadScanlines<T, TP>(dataStream, pixels, colorReader, colorTypeInformation);
                 }
 
                 image.SetPixels(this.header.Width, this.header.Height, pixels);
@@ -185,15 +189,20 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Reads the data chunk containing physical dimension data.
         /// </summary>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+        /// <param name="image">The image to read to.</param>
         /// <param name="data">The data containing physical data.</param>
-        private void ReadPhysicalChunk(byte[] data)
+        private void ReadPhysicalChunk<T, TP>(Image<T, TP> image, byte[] data)
+            where T : IPackedVector<TP>
+            where TP : struct
         {
             Array.Reverse(data, 0, 4);
             Array.Reverse(data, 4, 4);
 
             // 39.3700787 = inches in a meter.
-            this.currentImage.HorizontalResolution = BitConverter.ToInt32(data, 0) / 39.3700787d;
-            this.currentImage.VerticalResolution = BitConverter.ToInt32(data, 4) / 39.3700787d;
+            image.HorizontalResolution = BitConverter.ToInt32(data, 0) / 39.3700787d;
+            image.VerticalResolution = BitConverter.ToInt32(data, 4) / 39.3700787d;
         }
 
         /// <summary>
@@ -239,7 +248,9 @@ namespace ImageProcessorCore.Formats
         /// The <see cref="T:float[]"/> containing pixel data.</param>
         /// <param name="colorReader">The color reader.</param>
         /// <param name="colorTypeInformation">The color type information.</param>
-        private void ReadScanlines(MemoryStream dataStream, float[] pixels, IColorReader colorReader, PngColorTypeInformation colorTypeInformation)
+        private void ReadScanlines<T, TP>(MemoryStream dataStream, T[] pixels, IColorReader colorReader, PngColorTypeInformation colorTypeInformation)
+            where T : IPackedVector<TP>
+            where TP : struct
         {
             dataStream.Position = 0;
 
@@ -303,7 +314,7 @@ namespace ImageProcessorCore.Formats
 
                         if (column == scanlineLength)
                         {
-                            colorReader.ReadScanline(currentScanline, pixels, this.header);
+                            colorReader.ReadScanline<T, TP>(currentScanline, pixels, this.header);
                             column = -1;
 
                             this.Swap(ref currentScanline, ref lastScanline);
@@ -316,8 +327,13 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Reads a text chunk containing image properties from the data.
         /// </summary>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+        /// <param name="image">The image to decode to.</param>
         /// <param name="data">The <see cref="T:byte[]"/> containing  data.</param>
-        private void ReadTextChunk(byte[] data)
+        private void ReadTextChunk<T, TP>(Image<T, TP> image, byte[] data)
+            where T : IPackedVector<TP>
+            where TP : struct
         {
             int zeroIndex = 0;
 
@@ -333,7 +349,7 @@ namespace ImageProcessorCore.Formats
             string name = Encoding.Unicode.GetString(data, 0, zeroIndex);
             string value = Encoding.Unicode.GetString(data, zeroIndex + 1, data.Length - zeroIndex - 1);
 
-            this.currentImage.Properties.Add(new ImageProperty(name, value));
+            image.Properties.Add(new ImageProperty(name, value));
         }
 
         /// <summary>

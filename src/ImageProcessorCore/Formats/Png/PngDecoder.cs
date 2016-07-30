@@ -21,8 +21,8 @@ namespace ImageProcessorCore.Formats
     /// <list type="bullet">
     ///     <item>RGBA (True color) with alpha (8 bit).</item>
     ///     <item>RGB (True color) without alpha (8 bit).</item>
-    ///     <item>Greyscale with alpha (8 bit).</item>
-    ///     <item>Greyscale without alpha (8 bit).</item>
+    ///     <item>Grayscale with alpha (8 bit).</item>
+    ///     <item>Grayscale without alpha (8 bit).</item>
     ///     <item>Palette Index with alpha (8 bit).</item>
     ///     <item>Palette Index without alpha (8 bit).</item>
     /// </list>
@@ -75,11 +75,13 @@ namespace ImageProcessorCore.Formats
         }
 
         /// <summary>
-        /// Decodes the image from the specified stream to the <see cref="ImageBase"/>.
+        /// Decodes the image from the specified stream to the <see cref="ImageBase{T,TP}"/>.
         /// </summary>
-        /// <param name="image">The <see cref="ImageBase"/> to decode to.</param>
+        /// <param name="image">The <see cref="ImageBase{T,TP}"/> to decode to.</param>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        public void Decode(Image image, Stream stream)
+        public void Decode<T, TP>(Image<T, TP> image, Stream stream)
+            where T : IPackedVector<TP>
+            where TP : struct
         {
             new PngDecoderCore().Decode(image, stream);
         }

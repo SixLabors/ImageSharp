@@ -4,8 +4,8 @@
     using System.Drawing.Drawing2D;
 
     using BenchmarkDotNet.Attributes;
-    using CoreImage = ImageProcessorCore.Image;
     using CoreSize = ImageProcessorCore.Size;
+    using CoreImage = ImageProcessorCore.Image;
 
     public class Resize
     {
@@ -21,7 +21,7 @@
                         graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
                         graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
                         graphics.CompositingQuality = CompositingQuality.HighQuality;
-                        graphics.DrawImage(source, 0, 0, 100, 100);
+                        graphics.DrawImage(source, 0, 0, 400, 400);
                     }
 
                     return destination.Size;

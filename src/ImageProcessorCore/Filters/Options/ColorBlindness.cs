@@ -6,7 +6,7 @@
 namespace ImageProcessorCore
 {
     /// <summary>
-    /// Enumerates the various types of color blindness.
+    /// Enumerates the various types of defined color blindness filters.
     /// </summary>
     public enum ColorBlindness
     {

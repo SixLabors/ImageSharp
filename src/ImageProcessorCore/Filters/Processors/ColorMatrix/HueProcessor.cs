@@ -8,7 +8,14 @@ namespace ImageProcessorCore.Processors
     using System;
     using System.Numerics;
 
-    public class HueProcessor : ColorMatrixFilter
+    /// <summary>
+    /// An <see cref="IImageProcessor{T,TP}"/> to change the hue of an <see cref="Image"/>.
+    /// </summary>
+    /// <typeparam name="T">The pixel format.</typeparam>
+    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+    public class HueProcessor<T, TP> : ColorMatrixFilter<T, TP>
+        where T : IPackedVector<TP>
+        where TP : struct
     {
         /// <summary>
         /// The <see cref="Matrix4x4"/> used to alter the image.
@@ -31,23 +38,8 @@ namespace ImageProcessorCore.Processors
             }
 
             this.Angle = angle;
-        }
 
-        /// <summary>
-        /// Gets the rotation value.
-        /// </summary>
-        public float Angle { get; }
-
-        /// <inheritdoc/>
-        public override Matrix4x4 Matrix => this.matrix;
-
-        /// <inheritdoc/>
-        public override bool Compand => false;
-
-        /// <inheritdoc/>
-        protected override void OnApply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle)
-        {
-            float radians = (float)ImageMaths.DegreesToRadians(this.Angle);
+            float radians = ImageMaths.DegreesToRadians(angle);
             double cosradians = Math.Cos(radians);
             double sinradians = Math.Sin(radians);
 
@@ -77,5 +69,16 @@ namespace ImageProcessorCore.Processors
 
             this.matrix = matrix4X4;
         }
+
+        /// <summary>
+        /// Gets the rotation value.
+        /// </summary>
+        public float Angle { get; }
+
+        /// <inheritdoc/>
+        public override Matrix4x4 Matrix => this.matrix;
+
+        /// <inheritdoc/>
+        public override bool Compand => false;
     }
 }

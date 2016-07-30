@@ -7,11 +7,14 @@ namespace ImageProcessorCore.Processors
 {
     using System;
     using System.Threading;
+    using System.Threading.Tasks;
 
     /// <summary>
     /// Allows the application of processors to images.
     /// </summary>
-    public abstract class ImageProcessor : IImageProcessor
+    public abstract class ImageProcessor<T, TP> : IImageProcessor<T, TP>
+        where T : IPackedVector<TP>
+        where TP : struct
     {
         /// <inheritdoc/>
         public event ProgressEventHandler OnProgress;
@@ -27,7 +30,13 @@ namespace ImageProcessorCore.Processors
         private int totalRows;
 
         /// <inheritdoc/>
-        public void Apply(ImageBase target, ImageBase source, Rectangle sourceRectangle)
+        public virtual ParallelOptions ParallelOptions { get; set; } = Bootstrapper.Instance.ParallelOptions;
+
+        /// <inheritdoc/>
+        public virtual bool Compand { get; set; } = false;
+
+        /// <inheritdoc/>
+        public void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle sourceRectangle)
         {
             try
             {
@@ -48,11 +57,11 @@ namespace ImageProcessorCore.Processors
         }
 
         /// <inheritdoc/>
-        public void Apply(ImageBase target, ImageBase source, int width, int height, Rectangle targetRectangle = default(Rectangle), Rectangle sourceRectangle = default(Rectangle))
+        public void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, int width, int height, Rectangle targetRectangle = default(Rectangle), Rectangle sourceRectangle = default(Rectangle))
         {
             try
             {
-                float[] pixels = new float[width * height * 4];
+                T[] pixels = new T[width * height];
                 target.SetPixels(width, height, pixels);
 
                 // Ensure we always have bounds.
@@ -84,6 +93,8 @@ namespace ImageProcessorCore.Processors
         /// <summary>
         /// This method is called before the process is applied to prepare the processor.
         /// </summary>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="target">Target image to apply the process to.</param>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="targetRectangle">
@@ -93,12 +104,12 @@ namespace ImageProcessorCore.Processors
         /// <param name="sourceRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
-        protected virtual void OnApply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected virtual void OnApply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
         }
 
         /// <summary>
-        /// Applies the process to the specified portion of the specified <see cref="ImageBase"/> at the specified location
+        /// Applies the process to the specified portion of the specified <see cref="ImageBase{T, TP}"/> at the specified location
         /// and with the specified size.
         /// </summary>
         /// <param name="target">Target image to apply the process to.</param>
@@ -116,7 +127,7 @@ namespace ImageProcessorCore.Processors
         /// The method keeps the source image unchanged and returns the
         /// the result of image process as new image.
         /// </remarks>
-        protected abstract void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY);
+        protected abstract void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY);
 
         /// <summary>
         /// This method is called after the process is applied to prepare the processor.
@@ -130,7 +141,7 @@ namespace ImageProcessorCore.Processors
         /// <param name="sourceRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
-        protected virtual void AfterApply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected virtual void AfterApply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
         }
 

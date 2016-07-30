@@ -17,7 +17,7 @@ namespace ImageProcessorCore
         /// <inheritdoc/>
         public float GetValue(float x)
         {
-            if (x > -0.5 && x <= 0.5)
+            if (x > -0.5F && x <= 0.5F)
             {
                 return 1;
             }

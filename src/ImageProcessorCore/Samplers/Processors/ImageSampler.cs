@@ -9,9 +9,9 @@ namespace ImageProcessorCore.Processors
     /// Applies sampling methods to an image. 
     /// All processors requiring resampling or resizing should inherit from this.
     /// </summary>
-    public abstract class ImageSampler : ImageProcessor, IImageSampler
+    public abstract class ImageSampler<T, TP> : ImageProcessor<T, TP>, IImageSampler<T, TP>
+        where T : IPackedVector<TP>
+        where TP : struct
     {
-        /// <inheritdoc/>
-        public virtual bool Compand { get; set; } = false;
     }
 }

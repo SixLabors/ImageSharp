@@ -5,20 +5,23 @@
 
 namespace ImageProcessorCore.Processors
 {
-    using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageProcessor"/> to invert the colors of an <see cref="Image"/>.
+    /// An <see cref="IImageProcessor{T,TP}"/> to invert the colors of an <see cref="Image{T,TP}"/>.
     /// </summary>
-    public class PixelateProcessor : ImageProcessor
+    /// <typeparam name="T">The pixel format.</typeparam>
+    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+    public class PixelateProcessor<T, TP> : ImageProcessor<T, TP>
+        where T : IPackedVector<TP>
+        where TP : struct
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="PixelateProcessor"/> class.
+        /// Initializes a new instance of the <see cref="PixelateProcessor{T,TP}"/> class.
         /// </summary>
         /// <param name="size">The size of the pixels. Must be greater than 0.</param>
-        /// <exception cref="ArgumentException">
+        /// <exception cref="System.ArgumentException">
         /// <paramref name="size"/> is less than 0 or equal to 0.
         /// </exception>
         public PixelateProcessor(int size)
@@ -33,7 +36,7 @@ namespace ImageProcessorCore.Processors
         public int Value { get; }
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             int sourceY = sourceRectangle.Y;
             int sourceBottom = sourceRectangle.Bottom;
@@ -45,8 +48,8 @@ namespace ImageProcessorCore.Processors
             // Get the range on the y-plane to choose from.
             IEnumerable<int> range = EnumerableExtensions.SteppedRange(startY, i => i < endY, size);
 
-            using (PixelAccessor sourcePixels = source.Lock())
-            using (PixelAccessor targetPixels = target.Lock())
+            using (IPixelAccessor<T, TP> sourcePixels = source.Lock())
+            using (IPixelAccessor<T, TP> targetPixels = target.Lock())
             {
                 Parallel.ForEach(
                     range,
@@ -73,7 +76,7 @@ namespace ImageProcessorCore.Processors
 
                                     // Get the pixel color in the centre of the soon to be pixelated area.
                                     // ReSharper disable AccessToDisposedClosure
-                                    Color pixel = sourcePixels[x + offsetX, y + offsetY];
+                                    T pixel = sourcePixels[x + offsetX, y + offsetY];
 
                                     // For each pixel in the pixelate size, set it to the centre color.
                                     for (int l = y; l < y + size && l < sourceBottom; l++)

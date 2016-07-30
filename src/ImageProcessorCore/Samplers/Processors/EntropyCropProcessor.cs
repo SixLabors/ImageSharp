@@ -12,7 +12,9 @@ namespace ImageProcessorCore.Processors
     /// Provides methods to allow the cropping of an image to preserve areas of highest
     /// entropy.
     /// </summary>
-    public class EntropyCropProcessor : ImageSampler
+    public class EntropyCropProcessor<T, TP> : ImageSampler<T, TP>
+        where T : IPackedVector<TP>
+        where TP : struct
     {
         /// <summary>
         /// The rectangle for cropping
@@ -38,26 +40,26 @@ namespace ImageProcessorCore.Processors
         public float Value { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
-            ImageBase temp = new Image(source.Width, source.Height);
+            ImageBase<T, TP> temp = new Image<T, TP>(source.Width, source.Height);
 
             // Detect the edges.
-            new SobelProcessor().Apply(temp, source, sourceRectangle);
+            new SobelProcessor<T, TP>().Apply(temp, source, sourceRectangle);
 
             // Apply threshold binarization filter.
-            new ThresholdProcessor(.5f).Apply(temp, temp, sourceRectangle);
+            new BinaryThresholdProcessor<T, TP>(.5f).Apply(temp, temp, sourceRectangle);
 
             // Search for the first white pixels
             Rectangle rectangle = ImageMaths.GetFilteredBoundingRectangle(temp, 0);
 
             // Reset the target pixel to the correct size.
-            target.SetPixels(rectangle.Width, rectangle.Height, new float[rectangle.Width * rectangle.Height * 4]);
+            target.SetPixels(rectangle.Width, rectangle.Height, new T[rectangle.Width * rectangle.Height]);
             this.cropRectangle = rectangle;
         }
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             // Jump out, we'll deal with that later.
             if (source.Bounds == target.Bounds)
@@ -70,8 +72,8 @@ namespace ImageProcessorCore.Processors
             int startX = this.cropRectangle.X;
             int endX = this.cropRectangle.Right;
 
-            using (PixelAccessor sourcePixels = source.Lock())
-            using (PixelAccessor targetPixels = target.Lock())
+            using (IPixelAccessor<T, TP> sourcePixels = source.Lock())
+            using (IPixelAccessor<T, TP> targetPixels = target.Lock())
             {
                 Parallel.For(
                     startY,
@@ -92,7 +94,7 @@ namespace ImageProcessorCore.Processors
         }
 
         /// <inheritdoc/>
-        protected override void AfterApply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected override void AfterApply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
             // Copy the pixels over.
             if (source.Bounds == target.Bounds)

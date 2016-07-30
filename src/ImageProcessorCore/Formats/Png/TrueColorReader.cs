@@ -32,7 +32,9 @@ namespace ImageProcessorCore.Formats
         }
 
         /// <inheritdoc/>
-        public void ReadScanline(byte[] scanline, float[] pixels, PngHeader header)
+        public void ReadScanline<T, TP>(byte[] scanline, T[] pixels, PngHeader header)
+            where T : IPackedVector<TP>
+            where TP : struct
         {
             int offset;
 
@@ -42,33 +44,34 @@ namespace ImageProcessorCore.Formats
             {
                 for (int x = 0; x < newScanline.Length; x += 4)
                 {
-                    offset = ((this.row * header.Width) + (x >> 2)) * 4;
+                    offset = (this.row * header.Width) + (x >> 2);
 
                     // We want to convert to premultiplied alpha here.
-                    float r = newScanline[x] / 255f;
-                    float g = newScanline[x + 1] / 255f;
-                    float b = newScanline[x + 2] / 255f;
-                    float a = newScanline[x + 3] / 255f;
+                    byte r = newScanline[x];
+                    byte g = newScanline[x + 1];
+                    byte b = newScanline[x + 2];
+                    byte a = newScanline[x + 3];
 
-                    Color premultiplied = Color.FromNonPremultiplied(new Color(r, g, b, a));
+                    T color = default(T);
+                    color.PackBytes(r, g, b, a);
 
-                    pixels[offset] = premultiplied.R;
-                    pixels[offset + 1] = premultiplied.G;
-                    pixels[offset + 2] = premultiplied.B;
-                    pixels[offset + 3] = premultiplied.A;
+                    pixels[offset] = color;
                 }
             }
             else
             {
                 for (int x = 0; x < newScanline.Length / 3; x++)
                 {
-                    offset = ((this.row * header.Width) + x) * 4;
+                    offset = (this.row * header.Width) + x;
                     int pixelOffset = x * 3;
 
-                    pixels[offset] = newScanline[pixelOffset] / 255f;
-                    pixels[offset + 1] = newScanline[pixelOffset + 1] / 255f;
-                    pixels[offset + 2] = newScanline[pixelOffset + 2] / 255f;
-                    pixels[offset + 3] = 1;
+                    byte r = newScanline[pixelOffset];
+                    byte g = newScanline[pixelOffset + 1];
+                    byte b = newScanline[pixelOffset + 2];
+
+                    T color = default(T);
+                    color.PackBytes(r, g, b, 255);
+                    pixels[offset] = color;
                 }
             }
 

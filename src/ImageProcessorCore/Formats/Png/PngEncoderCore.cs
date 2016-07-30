@@ -9,7 +9,7 @@ namespace ImageProcessorCore.Formats
     using System.IO;
     using System.Threading.Tasks;
 
-    using ImageProcessorCore.Quantizers;
+    using Quantizers;
 
     /// <summary>
     /// Performs the png encoding operation.
@@ -26,11 +26,6 @@ namespace ImageProcessorCore.Formats
         /// The number of bits required to encode the colors in the png.
         /// </summary>
         private byte bitDepth;
-
-        /// <summary>
-        /// The quantized image result.
-        /// </summary>
-        private QuantizedImage quantized;
 
         /// <summary>
         /// Gets or sets the quality of output for images.
@@ -67,8 +62,16 @@ namespace ImageProcessorCore.Formats
         /// </summary>
         public byte Threshold { get; set; } = 128;
 
-        /// <inheritdoc/>
-        public void Encode(ImageBase image, Stream stream)
+        /// <summary>
+        /// Encodes the image to the specified stream from the <see cref="ImageBase{T,TP}"/>.
+        /// </summary>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+        /// <param name="image">The <see cref="ImageBase{T,TP}"/> to encode from.</param>
+        /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
+        public void Encode<T, TP>(ImageBase<T, TP> image, Stream stream)
+            where T : IPackedVector<TP>
+            where TP : struct
         {
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
@@ -120,13 +123,13 @@ namespace ImageProcessorCore.Formats
             };
 
             this.WriteHeaderChunk(stream, header);
-            this.WritePaletteChunk(stream, header, image);
+            QuantizedImage<T, TP> quantized = this.WritePaletteChunk(stream, header, image);
             this.WritePhysicalChunk(stream, image);
             this.WriteGammaChunk(stream);
 
-            using (PixelAccessor pixels = image.Lock())
+            using (IPixelAccessor<T, TP> pixels = image.Lock())
             {
-                this.WriteDataChunks(stream, pixels);
+                this.WriteDataChunks(stream, pixels, quantized);
             }
 
             this.WriteEndChunk(stream);
@@ -199,65 +202,79 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Writes the palette chunk to the stream.
         /// </summary>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="header">The <see cref="PngHeader"/>.</param>
         /// <param name="image">The image to encode.</param>
-        private void WritePaletteChunk(Stream stream, PngHeader header, ImageBase image)
+        private QuantizedImage<T, TP> WritePaletteChunk<T, TP>(Stream stream, PngHeader header, ImageBase<T, TP> image)
+            where T : IPackedVector<TP>
+            where TP : struct
         {
             if (this.Quality > 256)
             {
-                return;
+                return null;
             }
 
             if (this.Quantizer == null)
             {
-                this.Quantizer = new WuQuantizer { Threshold = this.Threshold };
+                this.Quantizer = new WuQuantizer<T, TP> { Threshold = this.Threshold };
             }
 
-            // Quantize the image returning a palette.
-            this.quantized = this.Quantizer.Quantize(image, this.Quality);
+            // Quantize the image returning a palette. This boxing is icky.
+            QuantizedImage<T, TP> quantized = ((IQuantizer<T, TP>)this.Quantizer).Quantize(image, this.Quality);
 
             // Grab the palette and write it to the stream.
-            Bgra32[] palette = this.quantized.Palette;
+            T[] palette = quantized.Palette;
             int pixelCount = palette.Length;
 
             // Get max colors for bit depth.
             int colorTableLength = (int)Math.Pow(2, header.BitDepth) * 3;
             byte[] colorTable = new byte[colorTableLength];
 
-            Parallel.For(0, pixelCount,
+            Parallel.For(
+                0,
+                pixelCount,
+                Bootstrapper.Instance.ParallelOptions,
                 i =>
                 {
                     int offset = i * 3;
-                    Bgra32 color = palette[i];
+                    byte[] color = palette[i].ToBytes();
 
-                    colorTable[offset] = color.R;
-                    colorTable[offset + 1] = color.G;
-                    colorTable[offset + 2] = color.B;
+                    // Expected format r->g->b
+                    colorTable[offset] = color[0];
+                    colorTable[offset + 1] = color[1];
+                    colorTable[offset + 2] = color[2];
                 });
 
             this.WriteChunk(stream, PngChunkTypes.Palette, colorTable);
 
             // Write the transparency data
-            if (this.quantized.TransparentIndex > -1)
+            if (quantized.TransparentIndex > -1)
             {
-                this.WriteChunk(stream, PngChunkTypes.PaletteAlpha, new[] { (byte)this.quantized.TransparentIndex });
+                this.WriteChunk(stream, PngChunkTypes.PaletteAlpha, new[] { (byte)quantized.TransparentIndex });
             }
+
+            return quantized;
         }
 
         /// <summary>
         /// Writes the physical dimension information to the stream.
         /// </summary>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="imageBase">The image base.</param>
-        private void WritePhysicalChunk(Stream stream, ImageBase imageBase)
+        private void WritePhysicalChunk<T, TP>(Stream stream, ImageBase<T, TP> imageBase)
+            where T : IPackedVector<TP>
+            where TP : struct
         {
-            Image image = imageBase as Image;
+            Image<T, TP> image = imageBase as Image<T, TP>;
             if (image != null && image.HorizontalResolution > 0 && image.VerticalResolution > 0)
             {
                 // 39.3700787 = inches in a meter.
-                int dpmX = (int)Math.Round(image.HorizontalResolution * 39.3700787d);
-                int dpmY = (int)Math.Round(image.VerticalResolution * 39.3700787d);
+                int dpmX = (int)Math.Round(image.HorizontalResolution * 39.3700787D);
+                int dpmY = (int)Math.Round(image.VerticalResolution * 39.3700787D);
 
                 byte[] chunkData = new byte[9];
 
@@ -296,9 +313,14 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Writes the pixel information to the stream.
         /// </summary>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="pixels">The image pixels.</param>
-        private void WriteDataChunks(Stream stream, PixelAccessor pixels)
+        /// <param name="quantized">The quantized image.</param>
+        private void WriteDataChunks<T, TP>(Stream stream, IPixelAccessor<T, TP> pixels, QuantizedImage<T, TP> quantized)
+            where T : IPackedVector<TP>
+            where TP : struct
         {
             byte[] data;
             int imageWidth = pixels.Width;
@@ -310,7 +332,11 @@ namespace ImageProcessorCore.Formats
                 int rowLength = imageWidth + 1;
                 data = new byte[rowLength * imageHeight];
 
-                Parallel.For(0, imageHeight, y =>
+                Parallel.For(
+                    0,
+                    imageHeight,
+                    Bootstrapper.Instance.ParallelOptions,
+                    y =>
                 {
                     int dataOffset = (y * rowLength);
                     byte compression = 0;
@@ -321,10 +347,10 @@ namespace ImageProcessorCore.Formats
                     data[dataOffset++] = compression;
                     for (int x = 0; x < imageWidth; x++)
                     {
-                        data[dataOffset++] = this.quantized.Pixels[(y * imageWidth) + x];
+                        data[dataOffset++] = quantized.Pixels[(y * imageWidth) + x];
                         if (y > 0)
                         {
-                            data[dataOffset - 1] -= this.quantized.Pixels[((y - 1) * imageWidth) + x];
+                            data[dataOffset - 1] -= quantized.Pixels[((y - 1) * imageWidth) + x];
                         }
                     }
                 });
@@ -336,7 +362,11 @@ namespace ImageProcessorCore.Formats
 
                 int rowLength = (imageWidth * 4) + 1;
 
-                Parallel.For(0, imageHeight, y =>
+                Parallel.For(
+                    0,
+                    imageHeight,
+                    Bootstrapper.Instance.ParallelOptions,
+                    y =>
                 {
                     byte compression = 0;
                     if (y > 0)
@@ -348,23 +378,25 @@ namespace ImageProcessorCore.Formats
 
                     for (int x = 0; x < imageWidth; x++)
                     {
-                        Bgra32 color = Color.ToNonPremultiplied(pixels[x, y]);
+                        byte[] color = pixels[x, y].ToBytes();
 
                         // Calculate the offset for the new array.
                         int dataOffset = (y * rowLength) + (x * 4) + 1;
-                        data[dataOffset] = color.R;
-                        data[dataOffset + 1] = color.G;
-                        data[dataOffset + 2] = color.B;
-                        data[dataOffset + 3] = color.A;
+
+                        // Expected format 
+                        data[dataOffset] = color[0];
+                        data[dataOffset + 1] = color[1];
+                        data[dataOffset + 2] = color[2];
+                        data[dataOffset + 3] = color[3];
 
                         if (y > 0)
                         {
-                            color = Color.ToNonPremultiplied(pixels[x, y - 1]);
+                            color = pixels[x, y - 1].ToBytes();
 
-                            data[dataOffset] -= color.R;
-                            data[dataOffset + 1] -= color.G;
-                            data[dataOffset + 2] -= color.B;
-                            data[dataOffset + 3] -= color.A;
+                            data[dataOffset] -= color[0];
+                            data[dataOffset + 1] -= color[1];
+                            data[dataOffset + 2] -= color[2];
+                            data[dataOffset + 3] -= color[3];
                         }
                     }
                 });

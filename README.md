@@ -1,3 +1,4 @@
+
 # ImageProcessorCore
 
 <img src="build/icons/imageprocessor-logo-512.png" width="128" height="128"/>
@@ -74,6 +75,7 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
 - Resampling algorithms. (Optional gamma correction, resize modes, Performance improvements?)
  - [x] Box
  - [x] Bicubic
+ - [x] Lanczos2
  - [x] Lanczos3
  - [x] Lanczos5
  - [x] Lanczos8
@@ -81,7 +83,6 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
  - [x] Nearest Neighbour 
  - [x] Robidoux
  - [x] Robidoux Sharp
- - [x] Robidoux Soft
  - [x] Spline
  - [x] Triangle
  - [x] Welch
@@ -100,8 +101,8 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
  - [x] Skew by x/y angles and center point.
 - ColorMatrix operations (Uses Matrix4x4)
  - [x] BlackWhite
- - [x] Greyscale BT709
- - [x] Greyscale BT601
+ - [x] Grayscale BT709
+ - [x] Grayscale BT601
  - [x] Hue
  - [x] Saturation
  - [x] Lomograph
@@ -160,7 +161,7 @@ With this version the API will change dramatically. Without the constraints of `
 
 Image methods are also fluent which allow chaining much like the `ImageFactory` class in the Framework version.
 
-Here's an example of the code required to resize an image using the default Bicubic resampler then turn the colors into their greyscale equivalent using the BT709 standard matrix.
+Here's an example of the code required to resize an image using the default Bicubic resampler then turn the colors into their grayscale equivalent using the BT709 standard matrix.
 
 ```csharp
 using (FileStream stream = File.OpenRead("foo.jpg"))
@@ -168,32 +169,12 @@ using (FileStream output = File.OpenWrite("bar.jpg"))
 {
     Image image = new Image(stream);
     image.Resize(image.Width / 2, image.Height / 2)
-         .Greyscale()
+         .Grayscale()
          .Save(output);
 }
 ```
 
-It will also be possible to pass collections of processors as params to manipulate images. For example here I am applying a Gaussian blur with a sigma of 5 to an image, then detecting the edges using a Sobel operator working in greyscale mode.
-
-```csharp
-using (FileStream stream = File.OpenRead("foo.jpg"))
-using (FileStream output = File.OpenWrite("bar.jpg"))
-{
-    Image image = new Image(stream);
-    List<IImageProcessor> processors = new List<IImageProcessor>()
-    {
-        new GuassianBlur(5),
-        new Sobel { Greyscale = true }
-    };
-
-    foreach (IImageProcessor processor in processors){
-
-        image.Process(processor)
-             .Save(output);
-    }
-}
-```
-Individual processors can be initialised and apply processing against images. This allows nesting which will allow the powerful combination of processing methods:
+Individual processors can be initialised and apply processing against images. This allows nesting which brings the potential for powerful combinations of processing methods:
 
 ```csharp
 new Brightness(50).Apply(sourceImage, targetImage, sourceImage.Bounds);

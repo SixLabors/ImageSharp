@@ -1,4 +1,4 @@
-﻿// <copyright file="ThresholdProcessor.cs" company="James Jackson-South">
+﻿// <copyright file="BinaryThresholdProcessor.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -14,7 +14,7 @@ namespace ImageProcessorCore.Processors
     /// </summary>
     /// <typeparam name="T">The pixel format.</typeparam>
     /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
-    public class ThresholdProcessor<T, TP> : ImageProcessor<T, TP>
+    public class BinaryThresholdProcessor<T, TP> : ImageProcessor<T, TP>
         where T : IPackedVector<TP>
         where TP : struct
     {
@@ -25,13 +25,19 @@ namespace ImageProcessorCore.Processors
         /// <exception cref="ArgumentException">
         /// <paramref name="threshold"/> is less than 0 or is greater than 1.
         /// </exception>
-        public ThresholdProcessor(float threshold)
+        public BinaryThresholdProcessor(float threshold)
         {
             // TODO: Check limit.
             Guard.MustBeBetweenOrEqualTo(threshold, 0, 1, nameof(threshold));
             this.Value = threshold;
-            this.UpperColor.PackVector(Color.White.ToVector4());
-            this.LowerColor.PackVector(Color.Black.ToVector4());
+
+            T upper = default(T);
+            upper.PackVector(Color.White.ToVector4());
+            this.UpperColor = upper;
+
+            T lower = default(T);
+            lower.PackVector(Color.Black.ToVector4());
+            this.LowerColor = lower;
         }
 
         /// <summary>
@@ -58,6 +64,9 @@ namespace ImageProcessorCore.Processors
         /// <inheritdoc/>
         protected override void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
+            // target.SetPixels(source.Width, source.Height, source.Pixels);
+
+
             float threshold = this.Value;
             T upper = this.UpperColor;
             T lower = this.LowerColor;

@@ -8,7 +8,7 @@ namespace ImageProcessorCore.Processors
     using System.Numerics;
 
     /// <summary>
-    /// An <see cref="IImageProcessor"/> to change the saturation of an <see cref="Image"/>.
+    /// An <see cref="IImageProcessor{T,TP}"/> to change the saturation of an <see cref="Image"/>.
     /// </summary>
     /// <typeparam name="T">The pixel format.</typeparam>
     /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>

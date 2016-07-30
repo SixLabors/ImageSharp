@@ -53,6 +53,7 @@ namespace ImageProcessorCore.Processors
                 Parallel.For(
                 startY,
                 endY,
+                Bootstrapper.Instance.ParallelOptions,
                 y =>
                 {
                     if (y >= sourceY && y < sourceBottom)

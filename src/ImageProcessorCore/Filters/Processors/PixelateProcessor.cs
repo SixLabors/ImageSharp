@@ -53,6 +53,7 @@ namespace ImageProcessorCore.Processors
             {
                 Parallel.ForEach(
                     range,
+                    this.ParallelOptions,
                     y =>
                         {
                             if (y >= sourceY && y < sourceBottom)

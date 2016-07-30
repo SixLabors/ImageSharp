@@ -28,6 +28,7 @@ namespace ImageProcessorCore.Processors
                 Parallel.For(
                     startY,
                     endY,
+                    this.ParallelOptions,
                     y =>
                         {
                             for (int x = startX; x < endX; x++)

@@ -9,7 +9,7 @@ namespace ImageProcessorCore.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageProcessor"/> to invert the colors of an <see cref="Image"/>.
+    /// An <see cref="IImageProcessor{T,TP}"/> to invert the colors of an <see cref="Image"/>.
     /// </summary>
     public class InvertProcessor<T, TP> : ImageProcessor<T, TP>
         where T : IPackedVector<TP>

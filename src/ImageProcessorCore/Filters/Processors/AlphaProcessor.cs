@@ -9,7 +9,7 @@ namespace ImageProcessorCore.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageProcessor"/> to change the Alpha of an <see cref="Image{T,TP}"/>.
+    /// An <see cref="IImageProcessor{T,TP}"/> to change the Alpha of an <see cref="Image{T,TP}"/>.
     /// </summary>
     /// <typeparam name="T">The pixel format.</typeparam>
     /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
@@ -18,7 +18,7 @@ namespace ImageProcessorCore.Processors
         where TP : struct
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="AlphaProcessor"/> class.
+        /// Initializes a new instance of the <see cref="AlphaProcessor{T,TP}"/> class.
         /// </summary>
         /// <param name="percent">The percentage to adjust the opacity of the image. Must be between 0 and 100.</param>
         /// <exception cref="ArgumentException">

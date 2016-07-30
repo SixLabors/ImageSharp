@@ -90,9 +90,8 @@ namespace ImageProcessorCore.Quantizers
                 Bootstrapper.Instance.ParallelOptions,
                 i =>
                     {
-                        int offset = i * 4;
                         T color = this.Palette[Math.Min(palletCount, this.Pixels[i])];
-                        pixels[offset] = color;
+                        pixels[i] = color;
                     });
 
             image.SetPixels(this.Width, this.Height, pixels);

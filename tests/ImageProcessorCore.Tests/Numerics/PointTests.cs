@@ -1,12 +1,7 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="PointTests.cs" company="James Jackson-South">
-//   Copyright © James Jackson-South and contributors.
-//   Licensed under the Apache License, Version 2.0.
+﻿// <copyright file="PointTests.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
 // </copyright>
-// <summary>
-//   Tests the <see cref="Point" /> struct.
-// </summary>
-// --------------------------------------------------------------------------------------------------------------------
 
 namespace ImageProcessorCore.Tests
 {

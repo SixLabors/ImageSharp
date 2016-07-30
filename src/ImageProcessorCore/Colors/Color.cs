@@ -6,46 +6,65 @@
 namespace ImageProcessorCore
 {
     using System;
-    using System.ComponentModel;
     using System.Numerics;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
 
     /// <summary>
-    /// Represents a four-component color using red, green, blue, and alpha data. 
-    /// Each component is stored in premultiplied format multiplied by the alpha component.
+    /// Packed vector type containing four 8-bit unsigned normalized values ranging from 0 to 255.
+    /// The color components are stored in red, green, blue, and alpha order.
     /// </summary>
     /// <remarks>
     /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
     /// as it avoids the need to create new values for modification operations.
     /// </remarks>
-    public partial struct Color : IEquatable<Color>, IAlmostEquatable<Color, float>
+    [StructLayout(LayoutKind.Explicit)]
+    public partial struct Color : IPackedVector<uint>, IEquatable<Color>
     {
         /// <summary>
-        /// Represents an empty <see cref="Color"/> that has R, G, B, and A values set to zero.
+        /// Gets or sets the blue component.
         /// </summary>
-        public static readonly Color Empty = default(Color);
+        [FieldOffset(0)]
+        public byte R;
 
         /// <summary>
-        /// The epsilon for comparing floating point numbers.
+        /// Gets or sets the green component.
         /// </summary>
-        private const float Epsilon = 0.001f;
+        [FieldOffset(1)]
+        public byte G;
 
         /// <summary>
-        /// The backing vector for SIMD support.
+        /// Gets or sets the red component.
         /// </summary>
-        private Vector4 backingVector;
+        [FieldOffset(2)]
+        public byte B;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Color"/> struct.
+        /// Gets or sets the alpha component.
         /// </summary>
-        /// <param name="r">The red component of this <see cref="Color"/>.</param>
-        /// <param name="g">The green component of this <see cref="Color"/>.</param>
-        /// <param name="b">The blue component of this <see cref="Color"/>.</param>
-        /// <param name="a">The alpha component of this <see cref="Color"/>.</param>
-        public Color(float r, float g, float b, float a = 1)
+        [FieldOffset(3)]
+        public byte A;
+
+        /// <summary>
+        /// The packed value.
+        /// </summary>
+        [FieldOffset(0)]
+        private readonly uint packedValue;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Color"/> struct. 
+        /// </summary>
+        /// <param name="r">The red component.</param>
+        /// <param name="g">The green component.</param>
+        /// <param name="b">The blue component.</param>
+        /// <param name="a">The alpha component.</param>
+        public Color(byte r, byte g, byte b, byte a = 255)
             : this()
         {
-            this.backingVector = new Vector4(r, g, b, a);
+            this.R = r;
+            this.G = g;
+            this.B = b;
+            this.A = a;
         }
 
         /// <summary>
@@ -68,25 +87,17 @@ namespace ImageProcessorCore
 
             if (hex.Length == 8)
             {
-                float r = Convert.ToByte(hex.Substring(2, 2), 16);
-                float g = Convert.ToByte(hex.Substring(4, 2), 16);
-                float b = Convert.ToByte(hex.Substring(6, 2), 16);
-                float a = Convert.ToByte(hex.Substring(0, 2), 16);
-
-                // Do division of Vector4 instead of each component to utilize SIMD optimizations
-                this.backingVector = new Vector4(r, g, b, a) / 255f;
-                this.backingVector = FromNonPremultiplied(this.backingVector, this.A);
-
+                this.R = Convert.ToByte(hex.Substring(2, 2), 16);
+                this.G = Convert.ToByte(hex.Substring(4, 2), 16);
+                this.B = Convert.ToByte(hex.Substring(6, 2), 16);
+                this.A = Convert.ToByte(hex.Substring(0, 2), 16);
             }
             else if (hex.Length == 6)
             {
-                float r = Convert.ToByte(hex.Substring(0, 2), 16);
-                float g = Convert.ToByte(hex.Substring(2, 2), 16);
-                float b = Convert.ToByte(hex.Substring(4, 2), 16);
-                float a = 255f;
-
-                // Do division of Vector4 instead of each component to utilize SIMD optimizations
-                this.backingVector = new Vector4(r, g, b, a) / 255f;
+                this.R = Convert.ToByte(hex.Substring(0, 2), 16);
+                this.G = Convert.ToByte(hex.Substring(2, 2), 16);
+                this.B = Convert.ToByte(hex.Substring(4, 2), 16);
+                this.A = 255;
             }
             else
             {
@@ -94,185 +105,60 @@ namespace ImageProcessorCore
                 string gh = char.ToString(hex[1]);
                 string bh = char.ToString(hex[2]);
 
-                float r = Convert.ToByte(rh + rh, 16);
-                float g = Convert.ToByte(gh + gh, 16);
-                float b = Convert.ToByte(bh + bh, 16);
-                float a = 255f;
-
-                this.backingVector = new Vector4(r, g, b, a) / 255f;
+                this.R = Convert.ToByte(rh + rh, 16);
+                this.G = Convert.ToByte(gh + gh, 16);
+                this.B = Convert.ToByte(bh + bh, 16);
+                this.A = 255;
             }
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Color"/> struct.
+        /// Initializes a new instance of the <see cref="Color"/> struct. 
         /// </summary>
-        /// <param name="vector">The vector.</param>
-        public Color(Vector4 vector)
+        /// <param name="r">The red component.</param>
+        /// <param name="g">The green component.</param>
+        /// <param name="b">The blue component.</param>
+        /// <param name="a">The alpha component.</param>
+        public Color(float r, float g, float b, float a = 1)
+            : this()
         {
-            this.backingVector = vector;
+            Vector4 clamped = Vector4.Clamp(new Vector4(r, g, b, a), Vector4.Zero, Vector4.One) * 255F;
+            this.R = (byte)Math.Round(clamped.X);
+            this.G = (byte)Math.Round(clamped.Y);
+            this.B = (byte)Math.Round(clamped.Z);
+            this.A = (byte)Math.Round(clamped.W);
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Color"/> struct.
+        /// Initializes a new instance of the <see cref="Color"/> struct. 
         /// </summary>
         /// <param name="vector">
-        /// The vector representing the red, green, and blue componenets.
+        /// The vector containing the components for the packed vector.
         /// </param>
         public Color(Vector3 vector)
+            : this()
         {
-            this.backingVector = new Vector4(vector, 1);
+            Vector3 clamped = Vector3.Clamp(vector, Vector3.Zero, Vector3.One) * 255F;
+            this.R = (byte)Math.Round(clamped.X);
+            this.G = (byte)Math.Round(clamped.Y);
+            this.B = (byte)Math.Round(clamped.Z);
+            this.A = 255;
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Color"/> struct.
+        /// Initializes a new instance of the <see cref="Color"/> struct. 
         /// </summary>
         /// <param name="vector">
-        /// The vector representing the red, green, and blue componenets.
+        /// The vector containing the components for the packed vector.
         /// </param>
-        /// <param name="alpha">The alpha component.</param>
-        public Color(Vector3 vector, float alpha)
+        public Color(Vector4 vector)
+            : this()
         {
-            this.backingVector = new Vector4(vector, alpha);
-        }
-
-        /// <summary>
-        /// Gets or sets the red component of the color.
-        /// </summary>
-        public float R
-        {
-            get
-            {
-                return this.backingVector.X;
-            }
-
-            set
-            {
-                this.backingVector.X = value;
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the green component of the color.
-        /// </summary>
-        public float G
-        {
-            get
-            {
-                return this.backingVector.Y;
-            }
-
-            set
-            {
-                this.backingVector.Y = value;
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the blue component of the color.
-        /// </summary>
-        public float B
-        {
-            get
-            {
-                return this.backingVector.Z;
-            }
-
-            set
-            {
-                this.backingVector.Z = value;
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the alpha component of the color.
-        /// </summary>
-        public float A
-        {
-            get
-            {
-                return this.backingVector.W;
-            }
-
-            set
-            {
-                this.backingVector.W = value;
-            }
-        }
-
-        /// <summary>
-        /// Gets a value indicating whether this <see cref="Color"/> is empty.
-        /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty => this.Equals(Empty);
-
-        /// <summary>
-        /// Gets this color with the component values clamped from 0 to 1.
-        /// </summary>
-        public Color Limited => new Color(Vector4.Clamp(this.backingVector, Vector4.Zero, Vector4.One));
-
-        /// <summary>
-        /// Computes the product of multiplying a color by a given factor.
-        /// </summary>
-        /// <param name="color">The color.</param>
-        /// <param name="factor">The multiplication factor.</param>
-        /// <returns>
-        /// The <see cref="Color"/>
-        /// </returns>
-        public static Color operator *(Color color, float factor)
-        {
-            return new Color(color.backingVector * factor);
-        }
-
-        /// <summary>
-        /// Computes the product of multiplying a color by a given factor.
-        /// </summary>
-        /// <param name="factor">The multiplication factor.</param>
-        /// <param name="color">The color.</param>
-        /// <returns>
-        /// The <see cref="Color"/>
-        /// </returns>
-        public static Color operator *(float factor, Color color)
-        {
-            return new Color(color.backingVector * factor);
-        }
-
-        /// <summary>
-        /// Computes the product of multiplying two colors.
-        /// </summary>
-        /// <param name="left">The color on the left hand of the operand.</param>
-        /// <param name="right">The color on the right hand of the operand.</param>
-        /// <returns>
-        /// The <see cref="Color"/>
-        /// </returns>
-        public static Color operator *(Color left, Color right)
-        {
-            return new Color(left.backingVector * right.backingVector);
-        }
-
-        /// <summary>
-        /// Computes the sum of adding two colors.
-        /// </summary>
-        /// <param name="left">The color on the left hand of the operand.</param>
-        /// <param name="right">The color on the right hand of the operand.</param>
-        /// <returns>
-        /// The <see cref="Color"/>
-        /// </returns>
-        public static Color operator +(Color left, Color right)
-        {
-            return new Color(left.backingVector + right.backingVector);
-        }
-
-        /// <summary>
-        /// Computes the difference left by subtracting one color from another.
-        /// </summary>
-        /// <param name="left">The color on the left hand of the operand.</param>
-        /// <param name="right">The color on the right hand of the operand.</param>
-        /// <returns>
-        /// The <see cref="Color"/>
-        /// </returns>
-        public static Color operator -(Color left, Color right)
-        {
-            return new Color(left.backingVector - right.backingVector);
+            Vector4 clamped = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * 255F;
+            this.R = (byte)Math.Round(clamped.X);
+            this.G = (byte)Math.Round(clamped.Y);
+            this.B = (byte)Math.Round(clamped.Z);
+            this.A = (byte)Math.Round(clamped.W);
         }
 
         /// <summary>
@@ -289,230 +175,99 @@ namespace ImageProcessorCore
         /// </returns>
         public static bool operator ==(Color left, Color right)
         {
-            return left.Equals(right);
+            return left.packedValue == right.packedValue;
         }
 
         /// <summary>
-        /// Compares two <see cref="Color"/> objects for inequality.
+        /// Compares two <see cref="Color"/> objects for equality.
         /// </summary>
-        /// <param name="left">
-        /// The <see cref="Color"/> on the left side of the operand.
-        /// </param>
-        /// <param name="right">
-        /// The <see cref="Color"/> on the right side of the operand.
-        /// </param>
+        /// <param name="left">The <see cref="Color"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="Color"/> on the right side of the operand.</param>
         /// <returns>
-        /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
+        /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         public static bool operator !=(Color left, Color right)
         {
-            return !left.Equals(right);
+            return left.packedValue != right.packedValue;
         }
 
-        /// <summary>
-        /// Returns a new color whose components are the average of the components of first and second.
-        /// </summary>
-        /// <param name="first">The first color.</param>
-        /// <param name="second">The second color.</param>
-        /// <returns>
-        /// The <see cref="Color"/>
-        /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Color Average(Color first, Color second)
+        /// <inheritdoc/>
+        public uint PackedValue()
         {
-            return new Color((first.backingVector + second.backingVector) * .5f);
+            return this.packedValue;
         }
 
-        /// <summary>
-        /// Compresses a linear color signal to its sRGB equivalent.
-        /// <see href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>
-        /// <see href="http://entropymine.com/imageworsener/srgbformula/"/>
-        /// </summary>
-        /// <param name="linear">The <see cref="Color"/> whose signal to compress.</param>
-        /// <returns>The <see cref="Color"/>.</returns>
-        public static Color Compress(Color linear)
+        /// <inheritdoc/>
+        public void PackVector(Vector4 vector)
         {
-            // TODO: Is there a faster way to do this?
-            float r = Compress(linear.R);
-            float g = Compress(linear.G);
-            float b = Compress(linear.B);
-
-            return new Color(r, g, b, linear.A);
+            Vector4 clamped = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * 255F;
+            this.R = (byte)Math.Round(clamped.X);
+            this.G = (byte)Math.Round(clamped.Y);
+            this.B = (byte)Math.Round(clamped.Z);
+            this.A = (byte)Math.Round(clamped.W);
         }
 
-        /// <summary>
-        /// Expands an sRGB color signal to its linear equivalent.
-        /// <see href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>
-        /// <see href="http://entropymine.com/imageworsener/srgbformula/"/>
-        /// </summary>
-        /// <param name="gamma">The <see cref="Color"/> whose signal to expand.</param>
-        /// <returns>The <see cref="Color"/>.</returns>
-        public static Color Expand(Color gamma)
+        /// <inheritdoc/>
+        public void PackBytes(byte x, byte y, byte z, byte w)
         {
-            // TODO: Is there a faster way to do this?
-            float r = Expand(gamma.R);
-            float g = Expand(gamma.G);
-            float b = Expand(gamma.B);
-
-            return new Color(r, g, b, gamma.A);
+            this.R = x;
+            this.G = y;
+            this.B = z;
+            this.A = w;
         }
 
-        /// <summary>
-        /// Converts a non-premultipled alpha <see cref="Color"/> to a <see cref="Color"/>
-        /// that contains premultiplied alpha.
-        /// </summary>
-        /// <param name="color">The <see cref="Color"/> to convert.</param>
-        /// <returns>The <see cref="Color"/>.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Color FromNonPremultiplied(Color color)
-        {
-            return new Color(FromNonPremultiplied(color.backingVector, color.A));
-        }
-
-        /// <summary>
-        /// Converts a non-premultiplied alpha Vector4 to a Vector4 that contains premultiplied alpha.
-        /// </summary>
-        /// <param name="vector">The vector to convert.</param>
-        /// <param name="alpha">The alpha to use in conversion.</param>
-        /// <returns>The Vector4 with premultiplied alpha.</returns>
-        private static Vector4 FromNonPremultiplied(Vector4 vector, float alpha)
-        {
-            return vector * new Vector4(alpha, alpha, alpha, 1);
-        }
-
-        /// <summary>
-        /// Converts a premultipled alpha <see cref="Color"/> to a <see cref="Color"/>
-        /// that contains non-premultiplied alpha.
-        /// </summary>
-        /// <param name="color">The <see cref="Color"/> to convert.</param>
-        /// <returns>The <see cref="Color"/>.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Color ToNonPremultiplied(Color color)
-        {
-            float a = color.A;
-            if (Math.Abs(a) < Epsilon)
-            {
-                return new Color(color.backingVector);
-            }
-
-            return new Color(color.backingVector / new Vector4(a, a, a, 1));
-        }
-
-        /// <summary>
-        /// Gets a <see cref="Vector4"/> representation for this <see cref="Color"/>.
-        /// </summary>
-        /// <returns>A <see cref="Vector4"/> representation for this object.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <inheritdoc/>
         public Vector4 ToVector4()
         {
-            return new Vector4(this.R, this.G, this.B, this.A);
-        }
-
-        /// <summary>
-        /// Gets a <see cref="Vector3"/> representation for this <see cref="Color"/>.
-        /// </summary>
-        /// <returns>A <see cref="Vector3"/> representation for this object.</returns>
-        public Vector3 ToVector3()
-        {
-            return new Vector3(this.R, this.G, this.B);
+            return new Vector4(this.R, this.G, this.B, this.A) / 255F;
         }
 
         /// <inheritdoc/>
-        public override int GetHashCode()
+        public byte[] ToBytes()
         {
-            return GetHashCode(this);
+            return new[] { this.R, this.G, this.B, this.A };
         }
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            if (this.IsEmpty)
-            {
-                return "Color [ Empty ]";
-            }
-
-            return $"Color [ R={this.R:#0.##}, G={this.G:#0.##}, B={this.B:#0.##}, A={this.A:#0.##} ]";
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override bool Equals(object obj)
         {
-            if (obj is Color)
-            {
-                return this.Equals((Color)obj);
-            }
-
-            return false;
+            return (obj is Color) && this.Equals((Color)obj);
         }
 
         /// <inheritdoc/>
         public bool Equals(Color other)
         {
-            return this.AlmostEquals(other, Epsilon);
+            return this.packedValue == other.packedValue;
+        }
+
+        /// <summary>
+        /// Gets a string representation of the packed vector.
+        /// </summary>
+        /// <returns>A string representation of the packed vector.</returns>
+        public override string ToString()
+        {
+            return this.ToVector4().ToString();
         }
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool AlmostEquals(Color other, float precision)
+        public override int GetHashCode()
         {
-            Vector4 result = Vector4.Abs(this.backingVector - other.backingVector);
-
-            return result.X < precision
-                && result.Y < precision
-                && result.Z < precision
-                && result.W < precision;
-        }
-
-        /// <summary>
-        /// Gets the compressed sRGB value from an linear signal.
-        /// <see href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>
-        /// <see href="http://entropymine.com/imageworsener/srgbformula/"/>
-        /// </summary>
-        /// <param name="signal">The signal value to compress.</param>
-        /// <returns>
-        /// The <see cref="float"/>.
-        /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float Compress(float signal)
-        {
-            if (signal <= 0.0031308f)
-            {
-                return signal * 12.92f;
-            }
-
-            return (1.055f * (float)Math.Pow(signal, 0.41666666f)) - 0.055f;
-        }
-
-        /// <summary>
-        /// Gets the expanded linear value from an sRGB signal.
-        /// <see href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>
-        /// <see href="http://entropymine.com/imageworsener/srgbformula/"/>
-        /// </summary>
-        /// <param name="signal">The signal value to expand.</param>
-        /// <returns>
-        /// The <see cref="float"/>.
-        /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float Expand(float signal)
-        {
-            if (signal <= 0.04045f)
-            {
-                return signal / 12.92f;
-            }
-
-            return (float)Math.Pow((signal + 0.055f) / 1.055f, 2.4f);
+            return this.GetHashCode(this);
         }
 
         /// <summary>
         /// Returns the hash code for this instance.
         /// </summary>
-        /// <param name="color">
+        /// <param name="packed">
         /// The instance of <see cref="Color"/> to return the hash code for.
         /// </param>
         /// <returns>
         /// A 32-bit signed integer that is the hash code for this instance.
         /// </returns>
-        private static int GetHashCode(Color color) => color.backingVector.GetHashCode();
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private int GetHashCode(Color packed)
+        {
+            return packed.packedValue.GetHashCode();
+        }
     }
 }

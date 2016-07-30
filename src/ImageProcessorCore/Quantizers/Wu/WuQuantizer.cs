@@ -1,5 +1,5 @@
 ﻿// <copyright file="WuQuantizer.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+// Copyright © James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
@@ -30,7 +30,11 @@ namespace ImageProcessorCore.Quantizers
     /// but more expensive versions.
     /// </para>
     /// </remarks>
-    public sealed class WuQuantizer : IQuantizer
+    /// <typeparam name="T">The pixel format.</typeparam>
+    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+    public sealed class WuQuantizer<T, TP> : IQuantizer<T, TP>
+        where T : IPackedVector<TP>
+        where TP : struct
     {
         /// <summary>
         /// The epsilon for comparing floating point numbers.
@@ -98,7 +102,7 @@ namespace ImageProcessorCore.Quantizers
         private readonly byte[] tag;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="WuQuantizer"/> class.
+        /// Initializes a new instance of the <see cref="WuQuantizer{T,TP}"/> class.
         /// </summary>
         public WuQuantizer()
         {
@@ -115,7 +119,7 @@ namespace ImageProcessorCore.Quantizers
         public byte Threshold { get; set; }
 
         /// <inheritdoc/>
-        public QuantizedImage Quantize(ImageBase image, int maxColors)
+        public QuantizedImage<T, TP> Quantize(ImageBase<T, TP> image, int maxColors)
         {
             Guard.NotNull(image, nameof(image));
 
@@ -123,7 +127,7 @@ namespace ImageProcessorCore.Quantizers
 
             this.Clear();
 
-            using (PixelAccessor imagePixels = image.Lock())
+            using (IPixelAccessor<T, TP> imagePixels = image.Lock())
             {
                 this.Build3DHistogram(imagePixels);
                 this.Get3DMoments();
@@ -320,19 +324,20 @@ namespace ImageProcessorCore.Quantizers
         /// <summary>
         /// Builds a 3-D color histogram of <c>counts, r/g/b, c^2</c>.
         /// </summary>
-        /// <param name="image">The image.</param>
-        private void Build3DHistogram(PixelAccessor image)
+        /// <param name="pixels">The pixel accessor.</param>
+        private void Build3DHistogram(IPixelAccessor<T, TP> pixels)
         {
-            for (int y = 0; y < image.Height; y++)
+            for (int y = 0; y < pixels.Height; y++)
             {
-                for (int x = 0; x < image.Width; x++)
+                for (int x = 0; x < pixels.Width; x++)
                 {
-                    Bgra32 color = image[x, y];
+                    // Colors are expected in r->g->b->a format
+                    byte[] color = pixels[x, y].ToBytes();
 
-                    byte r = color.R;
-                    byte g = color.G;
-                    byte b = color.B;
-                    byte a = color.A;
+                    byte r = color[0];
+                    byte g = color[1];
+                    byte b = color[2];
+                    byte a = color[3];
 
                     int inr = r >> (8 - IndexBits);
                     int ing = g >> (8 - IndexBits);
@@ -718,9 +723,9 @@ namespace ImageProcessorCore.Quantizers
         /// <param name="colorCount">The color count.</param>
         /// <param name="cube">The cube.</param>
         /// <returns>The result.</returns>
-        private QuantizedImage GenerateResult(PixelAccessor imagePixels, int colorCount, Box[] cube)
+        private QuantizedImage<T, TP> GenerateResult(IPixelAccessor<T, TP> imagePixels, int colorCount, Box[] cube)
         {
-            List<Bgra32> pallette = new List<Bgra32>();
+            List<T> pallette = new List<T>();
             byte[] pixels = new byte[imagePixels.Width * imagePixels.Height];
             int transparentIndex = -1;
             int width = imagePixels.Width;
@@ -739,9 +744,10 @@ namespace ImageProcessorCore.Quantizers
                     byte b = (byte)(Volume(cube[k], this.vmb) / weight);
                     byte a = (byte)(Volume(cube[k], this.vma) / weight);
 
-                    Bgra32 color = new Bgra32(b, g, r, a);
+                    T color = default(T);
+                    color.PackBytes(r, g, b, a);
 
-                    if (color == Bgra32.Empty)
+                    if (color.Equals(default(T)))
                     {
                         transparentIndex = k;
                     }
@@ -750,7 +756,7 @@ namespace ImageProcessorCore.Quantizers
                 }
                 else
                 {
-                    pallette.Add(Bgra32.Empty);
+                    pallette.Add(default(T));
                     transparentIndex = k;
                 }
             }
@@ -758,17 +764,19 @@ namespace ImageProcessorCore.Quantizers
             Parallel.For(
                 0,
                 height,
+                Bootstrapper.Instance.ParallelOptions,
                 y =>
                     {
                         for (int x = 0; x < width; x++)
                         {
-                            Bgra32 color = imagePixels[x, y];
-                            int a = color.A >> (8 - IndexAlphaBits);
-                            int r = color.R >> (8 - IndexBits);
-                            int g = color.G >> (8 - IndexBits);
-                            int b = color.B >> (8 - IndexBits);
+                            // Expected order r->g->b->a
+                            byte[] color = imagePixels[x, y].ToBytes();
+                            int r = color[0] >> (8 - IndexBits);
+                            int g = color[1] >> (8 - IndexBits);
+                            int b = color[2] >> (8 - IndexBits);
+                            int a = color[3] >> (8 - IndexAlphaBits);
 
-                            if (transparentIndex > -1 && color.A <= this.Threshold)
+                            if (transparentIndex > -1 && color[3] <= this.Threshold)
                             {
                                 pixels[(y * width) + x] = (byte)transparentIndex;
                                 continue;
@@ -779,8 +787,7 @@ namespace ImageProcessorCore.Quantizers
                         }
                     });
 
-
-            return new QuantizedImage(width, height, pallette.ToArray(), pixels, transparentIndex);
+            return new QuantizedImage<T, TP>(width, height, pallette.ToArray(), pixels, transparentIndex);
         }
     }
 }

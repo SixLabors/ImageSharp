@@ -61,25 +61,25 @@ namespace ImageProcessorCore
         {
             float temp;
 
-            if (x < 0)
+            if (x < 0F)
             {
                 x = -x;
             }
 
             temp = x * x;
-            if (x < 1)
+            if (x < 1F)
             {
                 x = ((12 - (9 * b) - (6 * c)) * (x * temp)) + ((-18 + (12 * b) + (6 * c)) * temp) + (6 - (2 * b));
-                return x / 6;
+                return x / 6F;
             }
 
-            if (x < 2)
+            if (x < 2F)
             {
                 x = ((-b - (6 * c)) * (x * temp)) + (((6 * b) + (30 * c)) * temp) + (((-12 * b) - (48 * c)) * x) + ((8 * b) + (24 * c));
-                return x / 6;
+                return x / 6F;
             }
 
-            return 0;
+            return 0F;
         }
 
         /// <summary>
@@ -91,7 +91,7 @@ namespace ImageProcessorCore
         /// </returns>
         public static float SinC(float x)
         {
-            const float Epsilon = .00001f;
+            const float Epsilon = .00001F;
 
             if (Math.Abs(x) > Epsilon)
             {
@@ -156,13 +156,17 @@ namespace ImageProcessorCore
         /// Finds the bounding rectangle based on the first instance of any color component other
         /// than the given one.
         /// </summary>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="bitmap">The <see cref="Image"/> to search within.</param>
         /// <param name="componentValue">The color component value to remove.</param>
         /// <param name="channel">The <see cref="RgbaComponent"/> channel to test against.</param>
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        public static Rectangle GetFilteredBoundingRectangle(ImageBase bitmap, float componentValue, RgbaComponent channel = RgbaComponent.B)
+        public static Rectangle GetFilteredBoundingRectangle<T, TP>(ImageBase<T, TP> bitmap, float componentValue, RgbaComponent channel = RgbaComponent.B)
+            where T : IPackedVector<TP>
+            where TP : struct
         {
             const float Epsilon = .00001f;
             int width = bitmap.Width;
@@ -170,29 +174,29 @@ namespace ImageProcessorCore
             Point topLeft = new Point();
             Point bottomRight = new Point();
 
-            Func<PixelAccessor, int, int, float, bool> delegateFunc;
+            Func<IPixelAccessor<T, TP>, int, int, float, bool> delegateFunc;
 
             // Determine which channel to check against
             switch (channel)
             {
                 case RgbaComponent.R:
-                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].R - b) > Epsilon;
+                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToBytes()[0] - b) > Epsilon;
                     break;
 
                 case RgbaComponent.G:
-                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].G - b) > Epsilon;
+                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToBytes()[1] - b) > Epsilon;
                     break;
 
-                case RgbaComponent.A:
-                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].A - b) > Epsilon;
+                case RgbaComponent.B:
+                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToBytes()[2] - b) > Epsilon;
                     break;
 
                 default:
-                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].B - b) > Epsilon;
+                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToBytes()[3] - b) > Epsilon;
                     break;
             }
 
-            Func<PixelAccessor, int> getMinY = pixels =>
+            Func<IPixelAccessor<T, TP>, int> getMinY = pixels =>
             {
                 for (int y = 0; y < height; y++)
                 {
@@ -208,7 +212,7 @@ namespace ImageProcessorCore
                 return 0;
             };
 
-            Func<PixelAccessor, int> getMaxY = pixels =>
+            Func<IPixelAccessor<T, TP>, int> getMaxY = pixels =>
             {
                 for (int y = height - 1; y > -1; y--)
                 {
@@ -224,7 +228,7 @@ namespace ImageProcessorCore
                 return height;
             };
 
-            Func<PixelAccessor, int> getMinX = pixels =>
+            Func<IPixelAccessor<T, TP>, int> getMinX = pixels =>
             {
                 for (int x = 0; x < width; x++)
                 {
@@ -240,7 +244,7 @@ namespace ImageProcessorCore
                 return 0;
             };
 
-            Func<PixelAccessor, int> getMaxX = pixels =>
+            Func<IPixelAccessor<T, TP>, int> getMaxX = pixels =>
             {
                 for (int x = width - 1; x > -1; x--)
                 {
@@ -256,7 +260,7 @@ namespace ImageProcessorCore
                 return height;
             };
 
-            using (PixelAccessor bitmapPixels = bitmap.Lock())
+            using (IPixelAccessor<T, TP> bitmapPixels = bitmap.Lock())
             {
                 topLeft.Y = getMinY(bitmapPixels);
                 topLeft.X = getMinX(bitmapPixels);
@@ -276,11 +280,11 @@ namespace ImageProcessorCore
         /// </returns>.
         private static float Clean(float x)
         {
-            const float Epsilon = .00001f;
+            const float Epsilon = .00001F;
 
             if (Math.Abs(x) < Epsilon)
             {
-                return 0f;
+                return 0F;
             }
 
             return x;

@@ -11,7 +11,9 @@ namespace ImageProcessorCore.Processors
     /// <summary>
     /// Provides methods that allow the skewing of images.
     /// </summary>
-    public class SkewProcessor : Matrix3x2Processor
+    public class SkewProcessor<T, TP> : Matrix3x2Processor<T, TP>
+        where T : IPackedVector<TP>
+        where TP : struct
     {
         /// <summary>
         /// The tranform matrix to apply.
@@ -34,7 +36,7 @@ namespace ImageProcessorCore.Processors
         public bool Expand { get; set; } = true;
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
             this.processMatrix = Point.CreateSkew(new Point(0, 0), -this.AngleX, -this.AngleY);
             if (this.Expand)
@@ -44,12 +46,12 @@ namespace ImageProcessorCore.Processors
         }
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             Matrix3x2 matrix = GetCenteredMatrix(target, source, this.processMatrix);
 
-            using (PixelAccessor sourcePixels = source.Lock())
-            using (PixelAccessor targetPixels = target.Lock())
+            using (IPixelAccessor<T, TP> sourcePixels = source.Lock())
+            using (IPixelAccessor<T, TP> targetPixels = target.Lock())
             {
                 Parallel.For(
                     0,

@@ -78,19 +78,18 @@ namespace ImageProcessorCore.Formats
         }
 
         /// <inheritdoc/>
-        public void Encode(ImageBase image, Stream stream)
+        public void Encode<T, TP>(ImageBase<T, TP> image, Stream stream)
+            where T : IPackedVector<TP>
+            where TP : struct
         {
-            Guard.NotNull(image, nameof(image));
-            Guard.NotNull(stream, nameof(stream));
-
             JpegEncoderCore encode = new JpegEncoderCore();
             if (this.subsampleSet)
             {
-                encode.Encode(stream, image, this.Quality, this.Subsample);
+                encode.Encode(image, stream, this.Quality, this.Subsample);
             }
             else
             {
-                encode.Encode(stream, image, this.Quality, this.Quality >= 80 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420);
+                encode.Encode(image, stream, this.Quality, this.Quality >= 80 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420);
             }
         }
     }

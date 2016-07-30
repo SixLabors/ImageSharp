@@ -21,6 +21,7 @@ namespace ImageProcessorCore.Tests
         {
             //"TestImages/Formats/Jpg/Floorplan.jpeg", // Perf: Enable for local testing only
             "TestImages/Formats/Jpg/Calliphora.jpg",
+            "TestImages/Formats/Jpg/turtle.jpg",
             //"TestImages/Formats/Jpg/fb.jpg", // Perf: Enable for local testing only
             //"TestImages/Formats/Jpg/progress.jpg", // Perf: Enable for local testing only
             //"TestImages/Formats/Jpg/gamma_dalai_lama_gray.jpg", // Perf: Enable for local testing only
@@ -32,7 +33,7 @@ namespace ImageProcessorCore.Tests
             "TestImages/Formats/Gif/rings.gif",
             //"TestImages/Formats/Gif/giphy.gif" // Perf: Enable for local testing only
         };
-        
+
         protected void ProgressUpdate(object sender, ProgressEventArgs e)
         {
             Assert.InRange(e.RowsProcessed, 1, e.TotalRows);

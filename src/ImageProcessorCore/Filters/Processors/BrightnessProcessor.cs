@@ -5,14 +5,17 @@
 
 namespace ImageProcessorCore.Processors
 {
-    using System;
     using System.Numerics;
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageProcessor"/> to change the brightness of an <see cref="Image"/>.
+    /// An <see cref="IImageProcessor{T,TP}"/> to change the brightness of an <see cref="Image{T,TP}"/>.
     /// </summary>
-    public class BrightnessProcessor : ImageProcessor
+    /// <typeparam name="T">The pixel format.</typeparam>
+    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+    public class BrightnessProcessor<T, TP> : ImageProcessor<T, TP>
+        where T : IPackedVector<TP>
+        where TP : struct
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="BrightnessProcessor"/> class.
@@ -33,7 +36,7 @@ namespace ImageProcessorCore.Processors
         public int Value { get; }
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             float brightness = this.Value / 100f;
             int sourceY = sourceRectangle.Y;
@@ -41,25 +44,31 @@ namespace ImageProcessorCore.Processors
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
 
-            using (PixelAccessor sourcePixels = source.Lock())
-            using (PixelAccessor targetPixels = target.Lock())
+            using (IPixelAccessor<T, TP> sourcePixels = source.Lock())
+            using (IPixelAccessor<T, TP> targetPixels = target.Lock())
             {
                 Parallel.For(
                     startY,
                     endY,
+                    Bootstrapper.Instance.ParallelOptions,
                     y =>
                         {
                             if (y >= sourceY && y < sourceBottom)
                             {
                                 for (int x = startX; x < endX; x++)
                                 {
-                                    Color color = Color.Expand(sourcePixels[x, y]);
+                                    // TODO: Check this with other formats.
+                                    Vector4 vector = sourcePixels[x, y].ToVector4().Expand();
+                                    Vector3 transformed = new Vector3(vector.X, vector.Y, vector.Z);
+                                    transformed += new Vector3(brightness);
+                                    vector = new Vector4(transformed, vector.W);
 
-                                    Vector3 vector3 = color.ToVector3();
-                                    vector3 += new Vector3(brightness);
+                                    T packed = default(T);
+                                    packed.PackVector(vector.Compress());
 
-                                    targetPixels[x, y] = Color.Compress(new Color(vector3, color.A));
+                                    targetPixels[x, y] = packed;
                                 }
+
                                 this.OnRowProcessed();
                             }
                         });

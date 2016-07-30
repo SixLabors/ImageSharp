@@ -1,26 +1,30 @@
 ﻿// <copyright file="Crop.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>-------------------------------------------------------------------------------------------------------------------
+// </copyright>
 
 namespace ImageProcessorCore
 {
     using Processors;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image"/> type.
+    /// Extension methods for the <see cref="Image{T,TP}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
         /// <summary>
         /// Crops an image to the given width and height.
         /// </summary>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="source">The image to resize.</param>
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
-        /// <returns>The <see cref="ImageProcessorCore.Image"/></returns>
-        public static Image Crop(this Image source, int width, int height, ProgressEventHandler progressHandler = null)
+        /// <returns>The <see cref="Image{T,TP}"/></returns>
+        public static Image<T, TP> Crop<T, TP>(this Image<T, TP> source, int width, int height, ProgressEventHandler progressHandler = null)
+            where T : IPackedVector<TP>
+            where TP : struct
         {
             return Crop(source, width, height, source.Bounds, progressHandler);
         }
@@ -32,6 +36,8 @@ namespace ImageProcessorCore
         /// area within the source is resized performing a zoomed crop.
         /// </remarks>
         /// </summary>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="source">The image to crop.</param>
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
@@ -40,7 +46,9 @@ namespace ImageProcessorCore
         /// </param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/></returns>
-        public static Image Crop(this Image source, int width, int height, Rectangle sourceRectangle, ProgressEventHandler progressHandler = null)
+        public static Image<T, TP> Crop<T, TP>(this Image<T, TP> source, int width, int height, Rectangle sourceRectangle, ProgressEventHandler progressHandler = null)
+            where T : IPackedVector<TP>
+            where TP : struct
         {
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
@@ -52,7 +60,7 @@ namespace ImageProcessorCore
                 source = source.Resize(sourceRectangle.Width, sourceRectangle.Height);
             }
 
-            CropProcessor processor = new CropProcessor();
+            CropProcessor<T, TP> processor = new CropProcessor<T, TP>();
             processor.OnProgress += progressHandler;
 
             try

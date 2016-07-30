@@ -1,7 +1,7 @@
 ﻿// <copyright file="Alpha.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>-------------------------------------------------------------------------------------------------------------------
+// </copyright>
 
 namespace ImageProcessorCore
 {
@@ -15,11 +15,15 @@ namespace ImageProcessorCore
         /// <summary>
         /// Alters the alpha component of the image.
         /// </summary>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="percent">The new opacity of the image. Must be between 0 and 100.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
-        /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Alpha(this Image source, int percent, ProgressEventHandler progressHandler = null)
+        /// <returns>The <see cref="Image{T,TP}"/>.</returns>
+        public static Image<T, TP> Alpha<T, TP>(this Image<T, TP> source, int percent, ProgressEventHandler progressHandler = null)
+            where T : IPackedVector<TP>
+            where TP : struct
         {
             return Alpha(source, percent, source.Bounds, progressHandler);
         }
@@ -27,6 +31,8 @@ namespace ImageProcessorCore
         /// <summary>
         /// Alters the alpha component of the image.
         /// </summary>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="percent">The new opacity of the image. Must be between 0 and 100.</param>
         /// <param name="rectangle">
@@ -34,9 +40,11 @@ namespace ImageProcessorCore
         /// </param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Alpha(this Image source, int percent, Rectangle rectangle, ProgressEventHandler progressHandler = null)
+        public static Image<T, TP> Alpha<T, TP>(this Image<T, TP> source, int percent, Rectangle rectangle, ProgressEventHandler progressHandler = null)
+            where T : IPackedVector<TP>
+            where TP : struct
         {
-            AlphaProcessor processor = new AlphaProcessor(percent);
+            AlphaProcessor<T, TP> processor = new AlphaProcessor<T, TP>(percent);
             processor.OnProgress += progressHandler;
 
             try

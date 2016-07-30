@@ -71,7 +71,7 @@ namespace ImageProcessorCore
         /// <see cref="CieLab"/>.
         /// </summary>
         /// <param name="color">
-        /// The instance of <see cref="Bgra32"/> to convert.
+        /// The instance of <see cref="Color"/> to convert.
         /// </param>
         /// <returns>
         /// An instance of <see cref="CieLab"/>.
@@ -79,11 +79,10 @@ namespace ImageProcessorCore
         public static implicit operator CieLab(Color color)
         {
             // First convert to CIE XYZ
-            color = Color.Expand(color);
-
-            float x = (color.R * 0.4124F) + (color.G * 0.3576F) + (color.B * 0.1805F);
-            float y = (color.R * 0.2126F) + (color.G * 0.7152F) + (color.B * 0.0722F);
-            float z = (color.R * 0.0193F) + (color.G * 0.1192F) + (color.B * 0.9505F);
+            Vector4 vector = color.ToVector4().Expand();
+            float x = (vector.X * 0.4124F) + (vector.Y * 0.3576F) + (vector.Z * 0.1805F);
+            float y = (vector.X * 0.2126F) + (vector.Y * 0.7152F) + (vector.Z * 0.0722F);
+            float z = (vector.X * 0.0193F) + (vector.Y * 0.1192F) + (vector.Z * 0.9505F);
 
             // Now to LAB
             x /= 0.95047F;

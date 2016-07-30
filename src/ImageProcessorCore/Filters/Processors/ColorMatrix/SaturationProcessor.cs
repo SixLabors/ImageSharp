@@ -5,13 +5,16 @@
 
 namespace ImageProcessorCore.Processors
 {
-    using System;
     using System.Numerics;
 
     /// <summary>
-    /// An <see cref="IImageProcessor"/> to change the saturation of an <see cref="Image"/>.
+    /// An <see cref="IImageProcessor{T,TP}"/> to change the saturation of an <see cref="Image"/>.
     /// </summary>
-    public class SaturationProcessor : ColorMatrixFilter
+    /// <typeparam name="T">The pixel format.</typeparam>
+    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+    public class SaturationProcessor<T, TP> : ColorMatrixFilter<T, TP>
+        where T : IPackedVector<TP>
+        where TP : struct
     {
         /// <summary>
         /// The saturation to be applied to the image.
@@ -34,14 +37,7 @@ namespace ImageProcessorCore.Processors
         {
             Guard.MustBeBetweenOrEqualTo(saturation, -100, 100, nameof(saturation));
             this.saturation = saturation;
-        }
 
-        /// <inheritdoc/>
-        public override Matrix4x4 Matrix => this.matrix;
-
-        /// <inheritdoc/>
-        protected override void OnApply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle)
-        {
             float saturationFactor = this.saturation / 100f;
 
             // Stop at -1 to prevent inversion.
@@ -71,5 +67,8 @@ namespace ImageProcessorCore.Processors
 
             this.matrix = matrix4X4;
         }
+
+        /// <inheritdoc/>
+        public override Matrix4x4 Matrix => this.matrix;
     }
 }

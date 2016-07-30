@@ -24,7 +24,7 @@ namespace ImageProcessorCore
         /// <summary>
         /// The epsilon for comparing floating point numbers.
         /// </summary>
-        private const float Epsilon = 0.001f;
+        private const float Epsilon = 0.001F;
 
         /// <summary>
         /// The backing vector for SIMD support.
@@ -79,7 +79,6 @@ namespace ImageProcessorCore
         /// </returns>
         public static implicit operator YCbCr(Color color)
         {
-            color = Color.ToNonPremultiplied(color.Limited) * 255f;
             float r = color.R;
             float g = color.G;
             float b = color.B;
@@ -173,7 +172,7 @@ namespace ImageProcessorCore
         /// Returns the hash code for this instance.
         /// </summary>
         /// <param name="color">
-        /// The instance of <see cref="Hsv"/> to return the hash code for.
+        /// The instance of <see cref="YCbCr"/> to return the hash code for.
         /// </param>
         /// <returns>
         /// A 32-bit signed integer that is the hash code for this instance.

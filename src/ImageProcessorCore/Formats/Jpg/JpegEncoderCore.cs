@@ -615,7 +615,7 @@ namespace ImageProcessorCore.Formats
             this.buffer[2] = (byte)(height & 0xff); // (2 bytes, Hi-Lo), must be > 0 if DNL not supported
             this.buffer[3] = (byte)(width >> 8);
             this.buffer[4] = (byte)(width & 0xff); // (2 bytes, Hi-Lo), must be > 0 if DNL not supported
-            this.buffer[5] = (byte)componentCount; // Number of components (1 byte), usually 1 = grey scaled, 3 = color YCbCr or YIQ, 4 = color CMYK)
+            this.buffer[5] = (byte)componentCount; // Number of components (1 byte), usually 1 = Gray scaled, 3 = color YCbCr or YIQ, 4 = color CMYK)
             if (componentCount == 1)
             {
                 this.buffer[6] = 1;

@@ -1,4 +1,4 @@
-﻿// <copyright file="Greyscale.cs" company="James Jackson-South">
+﻿// <copyright file="Grayscale.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -13,7 +13,7 @@ namespace ImageProcessorCore
     public static partial class ImageExtensions
     {
         /// <summary>
-        /// Applies greyscale toning to the image.
+        /// Applies Grayscale toning to the image.
         /// </summary>
         /// <typeparam name="T">The pixel format.</typeparam>
         /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
@@ -21,15 +21,15 @@ namespace ImageProcessorCore
         /// <param name="mode">The formula to apply to perform the operation.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image{T,TP}"/>.</returns>
-        public static Image<T, TP> Greyscale<T, TP>(this Image<T, TP> source, GreyscaleMode mode = GreyscaleMode.Bt709, ProgressEventHandler progressHandler = null)
+        public static Image<T, TP> Grayscale<T, TP>(this Image<T, TP> source, GrayscaleMode mode = GrayscaleMode.Bt709, ProgressEventHandler progressHandler = null)
             where T : IPackedVector<TP>
             where TP : struct
         {
-            return Greyscale(source, source.Bounds, mode, progressHandler);
+            return Grayscale(source, source.Bounds, mode, progressHandler);
         }
 
         /// <summary>
-        /// Applies greyscale toning to the image.
+        /// Applies Grayscale toning to the image.
         /// </summary>
         /// <typeparam name="T">The pixel format.</typeparam>
         /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
@@ -40,13 +40,13 @@ namespace ImageProcessorCore
         /// <param name="mode">The formula to apply to perform the operation.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image{T,TP}"/>.</returns>
-        public static Image<T, TP> Greyscale<T, TP>(this Image<T, TP> source, Rectangle rectangle, GreyscaleMode mode = GreyscaleMode.Bt709, ProgressEventHandler progressHandler = null)
+        public static Image<T, TP> Grayscale<T, TP>(this Image<T, TP> source, Rectangle rectangle, GrayscaleMode mode = GrayscaleMode.Bt709, ProgressEventHandler progressHandler = null)
             where T : IPackedVector<TP>
             where TP : struct
         {
-            IImageProcessor<T, TP> processor = mode == GreyscaleMode.Bt709
-                ? (IImageProcessor<T, TP>)new GreyscaleBt709Processor<T, TP>()
-                : new GreyscaleBt601Processor<T, TP>();
+            IImageProcessor<T, TP> processor = mode == GrayscaleMode.Bt709
+                ? (IImageProcessor<T, TP>)new GrayscaleBt709Processor<T, TP>()
+                : new GrayscaleBt601Processor<T, TP>();
 
             processor.OnProgress += progressHandler;
 

@@ -9,7 +9,7 @@ namespace ImageProcessorCore.Processors
 
     /// <summary>
     /// An <see cref="IImageProcessor{T,TP}"/> to perform binary threshold filtering against an 
-    /// <see cref="Image"/>. The image will be converted to greyscale before thresholding 
+    /// <see cref="Image"/>. The image will be converted to Grayscale before thresholding 
     /// occurs.
     /// </summary>
     /// <typeparam name="T">The pixel format.</typeparam>
@@ -58,7 +58,7 @@ namespace ImageProcessorCore.Processors
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
-            new GreyscaleBt709Processor<T, TP>().Apply(source, source, sourceRectangle);
+            new GrayscaleBt709Processor<T, TP>().Apply(source, source, sourceRectangle);
         }
 
         /// <inheritdoc/>
@@ -90,7 +90,7 @@ namespace ImageProcessorCore.Processors
                             {
                                 T color = sourcePixels[x, y];
 
-                                // Any channel will do since it's greyscale.
+                                // Any channel will do since it's Grayscale.
                                 targetPixels[x, y] = color.ToVector4().X >= threshold ? upper : lower;
                             }
                             this.OnRowProcessed();

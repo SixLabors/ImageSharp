@@ -1,4 +1,4 @@
-﻿// <copyright file="GreyscaleTest.cs" company="James Jackson-South">
+﻿// <copyright file="GrayscaleTest.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -10,20 +10,20 @@ namespace ImageProcessorCore.Tests
 
     using Xunit;
 
-    public class GreyscaleTest : FileTestBase
+    public class GrayscaleTest : FileTestBase
     {
-        public static readonly TheoryData<GreyscaleMode> GreyscaleValues
-        = new TheoryData<GreyscaleMode>
+        public static readonly TheoryData<GrayscaleMode> GrayscaleValues
+        = new TheoryData<GrayscaleMode>
         {
-            GreyscaleMode.Bt709 ,
-            GreyscaleMode.Bt601 ,
+            GrayscaleMode.Bt709 ,
+            GrayscaleMode.Bt601 ,
         };
 
         [Theory]
-        [MemberData("GreyscaleValues")]
-        public void ImageShouldApplyGreyscaleFilter(GreyscaleMode value)
+        [MemberData("GrayscaleValues")]
+        public void ImageShouldApplyGrayscaleFilter(GrayscaleMode value)
         {
-            const string path = "TestOutput/Greyscale";
+            const string path = "TestOutput/Grayscale";
             if (!Directory.Exists(path))
             {
                 Directory.CreateDirectory(path);
@@ -38,7 +38,7 @@ namespace ImageProcessorCore.Tests
                     Image image = new Image(stream);
                     using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                     {
-                        image.Greyscale(value)
+                        image.Grayscale(value)
                              .Save(output);
                     }
                 }

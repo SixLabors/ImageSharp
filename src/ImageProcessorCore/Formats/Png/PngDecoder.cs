@@ -21,8 +21,8 @@ namespace ImageProcessorCore.Formats
     /// <list type="bullet">
     ///     <item>RGBA (True color) with alpha (8 bit).</item>
     ///     <item>RGB (True color) without alpha (8 bit).</item>
-    ///     <item>Greyscale with alpha (8 bit).</item>
-    ///     <item>Greyscale without alpha (8 bit).</item>
+    ///     <item>Grayscale with alpha (8 bit).</item>
+    ///     <item>Grayscale without alpha (8 bit).</item>
     ///     <item>Palette Index with alpha (8 bit).</item>
     ///     <item>Palette Index without alpha (8 bit).</item>
     /// </list>

@@ -1,4 +1,4 @@
-﻿// <copyright file="GreyscaleBt709Processor.cs" company="James Jackson-South">
+﻿// <copyright file="GrayscaleBt709Processor.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -8,10 +8,10 @@ namespace ImageProcessorCore.Processors
     using System.Numerics;
 
     /// <summary>
-    /// Converts the colors of the image to greyscale applying the formula as specified by
+    /// Converts the colors of the image to Grayscale applying the formula as specified by
     /// ITU-R Recommendation BT.709 <see href="https://en.wikipedia.org/wiki/Rec._709#Luma_coefficients"/>.
     /// </summary>
-    public class GreyscaleBt709Processor<T, TP> : ColorMatrixFilter<T, TP>
+    public class GrayscaleBt709Processor<T, TP> : ColorMatrixFilter<T, TP>
         where T : IPackedVector<TP>
         where TP : struct
     {

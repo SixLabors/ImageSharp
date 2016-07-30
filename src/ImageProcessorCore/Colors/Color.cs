@@ -58,7 +58,68 @@ namespace ImageProcessorCore
         /// <param name="g">The green component.</param>
         /// <param name="b">The blue component.</param>
         /// <param name="a">The alpha component.</param>
-        public Color(float r, float g, float b, float a)
+        public Color(byte r, byte g, byte b, byte a = 255)
+            : this()
+        {
+            this.R = r;
+            this.G = g;
+            this.B = b;
+            this.A = a;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Color"/> struct.
+        /// </summary>
+        /// <param name="hex">
+        /// The hexadecimal representation of the combined color components arranged
+        /// in rgb, rrggbb, or aarrggbb format to match web syntax.
+        /// </param>
+        public Color(string hex)
+            : this()
+        {
+            // Hexadecimal representations are layed out AARRGGBB to we need to do some reordering.
+            hex = hex.StartsWith("#") ? hex.Substring(1) : hex;
+
+            if (hex.Length != 8 && hex.Length != 6 && hex.Length != 3)
+            {
+                throw new ArgumentException("Hexadecimal string is not in the correct format.", nameof(hex));
+            }
+
+            if (hex.Length == 8)
+            {
+                this.R = Convert.ToByte(hex.Substring(2, 2), 16);
+                this.G = Convert.ToByte(hex.Substring(4, 2), 16);
+                this.B = Convert.ToByte(hex.Substring(6, 2), 16);
+                this.A = Convert.ToByte(hex.Substring(0, 2), 16);
+            }
+            else if (hex.Length == 6)
+            {
+                this.R = Convert.ToByte(hex.Substring(0, 2), 16);
+                this.G = Convert.ToByte(hex.Substring(2, 2), 16);
+                this.B = Convert.ToByte(hex.Substring(4, 2), 16);
+                this.A = 255;
+            }
+            else
+            {
+                string rh = char.ToString(hex[0]);
+                string gh = char.ToString(hex[1]);
+                string bh = char.ToString(hex[2]);
+
+                this.R = Convert.ToByte(rh + rh, 16);
+                this.G = Convert.ToByte(gh + gh, 16);
+                this.B = Convert.ToByte(bh + bh, 16);
+                this.A = 255;
+            }
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Color"/> struct. 
+        /// </summary>
+        /// <param name="r">The red component.</param>
+        /// <param name="g">The green component.</param>
+        /// <param name="b">The blue component.</param>
+        /// <param name="a">The alpha component.</param>
+        public Color(float r, float g, float b, float a = 1)
             : this()
         {
             Vector4 clamped = Vector4.Clamp(new Vector4(r, g, b, a), Vector4.Zero, Vector4.One) * 255F;
@@ -71,17 +132,17 @@ namespace ImageProcessorCore
         /// <summary>
         /// Initializes a new instance of the <see cref="Color"/> struct. 
         /// </summary>
-        /// <param name="r">The red component.</param>
-        /// <param name="g">The green component.</param>
-        /// <param name="b">The blue component.</param>
-        /// <param name="a">The alpha component.</param>
-        public Color(byte r, byte g, byte b, byte a)
+        /// <param name="vector">
+        /// The vector containing the components for the packed vector.
+        /// </param>
+        public Color(Vector3 vector)
             : this()
         {
-            this.R = r;
-            this.G = g;
-            this.B = b;
-            this.A = a;
+            Vector3 clamped = Vector3.Clamp(vector, Vector3.Zero, Vector3.One) * 255F;
+            this.R = (byte)Math.Round(clamped.X);
+            this.G = (byte)Math.Round(clamped.Y);
+            this.B = (byte)Math.Round(clamped.Z);
+            this.A = 255;
         }
 
         /// <summary>
@@ -94,9 +155,9 @@ namespace ImageProcessorCore
             : this()
         {
             Vector4 clamped = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * 255F;
-            this.B = (byte)Math.Round(clamped.X);
+            this.R = (byte)Math.Round(clamped.X);
             this.G = (byte)Math.Round(clamped.Y);
-            this.R = (byte)Math.Round(clamped.Z);
+            this.B = (byte)Math.Round(clamped.Z);
             this.A = (byte)Math.Round(clamped.W);
         }
 

@@ -8,12 +8,9 @@ namespace ImageProcessorCore.Processors
     /// <summary>
     /// Acts as a marker for generic parameters that require an image sampler.
     /// </summary>
-    public interface IImageSampler : IImageProcessor
+    public interface IImageSampler<T, TP> : IImageProcessor<T, TP>
+        where T : IPackedVector<TP>
+        where TP : struct
     {
-        /// <summary>
-        /// Gets or sets a value indicating whether to compress
-        /// or expand individual pixel colors the value on processing.
-        /// </summary>
-        bool Compand { get; set; }
     }
 }

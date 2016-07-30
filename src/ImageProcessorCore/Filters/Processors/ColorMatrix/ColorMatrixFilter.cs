@@ -9,34 +9,40 @@ namespace ImageProcessorCore.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// The color matrix filter.
+    /// The color matrix filter. Inherit from this class to perform operation involving color matrices.
     /// </summary>
-    public abstract class ColorMatrixFilter : ImageProcessor, IColorMatrixFilter
+    /// <typeparam name="T">The pixel format.</typeparam>
+    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+    public abstract class ColorMatrixFilter<T, TP> : ImageProcessor<T, TP>, IColorMatrixFilter<T, TP>
+        where T : IPackedVector<TP>
+        where TP : struct
     {
         /// <inheritdoc/>
         public abstract Matrix4x4 Matrix { get; }
 
         /// <inheritdoc/>
-        public virtual bool Compand => true;
+        public override bool Compand { get; set; } = true;
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
             Matrix4x4 matrix = this.Matrix;
+            bool compand = this.Compand;
 
-            using (PixelAccessor sourcePixels = source.Lock())
-            using (PixelAccessor targetPixels = target.Lock())
+            using (IPixelAccessor<T, TP> sourcePixels = source.Lock())
+            using (IPixelAccessor<T, TP> targetPixels = target.Lock())
             {
                 Parallel.For(
                 startY,
                 endY,
+                Bootstrapper.Instance.ParallelOptions,
                 y =>
                     {
                         for (int x = startX; x < endX; x++)
                         {
-                            targetPixels[x, y] = this.ApplyMatrix(sourcePixels[x, y], matrix);
+                            targetPixels[x, y] = this.ApplyMatrix(sourcePixels[x, y], matrix, compand);
                         }
 
                         this.OnRowProcessed();
@@ -49,20 +55,24 @@ namespace ImageProcessorCore.Processors
         /// </summary>
         /// <param name="color">The source color.</param>
         /// <param name="matrix">The matrix.</param>
+        /// <param name="compand">Whether to compand the color during processing.</param>
         /// <returns>
         /// The <see cref="Color"/>.
         /// </returns>
-        private Color ApplyMatrix(Color color, Matrix4x4 matrix)
+        private T ApplyMatrix(T color, Matrix4x4 matrix, bool compand)
         {
-            bool compand = this.Compand;
+            Vector4 vector = color.ToVector4();
 
             if (compand)
             {
-                color = Color.Expand(color);
+                vector = vector.Expand();
             }
 
-            Vector3 transformed = Vector3.Transform(color.ToVector3(), matrix);
-            return compand ? Color.Compress(new Color(transformed, color.A)) : new Color(transformed, color.A);
+            Vector3 transformed = Vector3.Transform(new Vector3(vector.X, vector.Y, vector.Z), matrix);
+            vector = new Vector4(transformed, vector.W);
+            T packed = default(T);
+            packed.PackVector(compand ? vector.Compress() : vector);
+            return packed;
         }
     }
 }

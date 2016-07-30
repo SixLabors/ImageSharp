@@ -8,13 +8,12 @@ namespace ImageProcessorCore.Quantizers
     /// <summary>
     /// Provides methods for allowing quantization of images pixels.
     /// </summary>
-    public interface IQuantizer
+    /// <typeparam name="T">The pixel format.</typeparam>
+    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+    public interface IQuantizer<T, TP> : IQuantizer
+        where T : IPackedVector<TP>
+        where TP : struct
     {
-        /// <summary>
-        /// Gets or sets the transparency threshold.
-        /// </summary>
-        byte Threshold { get; set; }
-
         /// <summary>
         /// Quantize an image and return the resulting output pixels.
         /// </summary>
@@ -23,6 +22,17 @@ namespace ImageProcessorCore.Quantizers
         /// <returns>
         /// A <see cref="T:QuantizedImage"/> representing a quantized version of the image pixels.
         /// </returns>
-        QuantizedImage Quantize(ImageBase image, int maxColors);
+        QuantizedImage<T, TP> Quantize(ImageBase<T, TP> image, int maxColors);
+    }
+
+    /// <summary>
+    /// Provides methods for allowing quantization of images pixels.
+    /// </summary>
+    public interface IQuantizer
+    {
+        /// <summary>
+        /// Gets or sets the transparency threshold.
+        /// </summary>
+        byte Threshold { get; set; }
     }
 }

@@ -9,7 +9,11 @@ namespace ImageProcessorCore.Processors
     /// The Kirsch operator filter.
     /// <see href="http://en.wikipedia.org/wiki/Kirsch_operator"/>
     /// </summary>
-    public class KirschProcessor : EdgeDetector2DFilter
+    /// <typeparam name="T">The pixel format.</typeparam>
+    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+    public class KirschProcessor<T, TP> : EdgeDetector2DFilter<T, TP>
+        where T : IPackedVector<TP>
+        where TP : struct
     {
         /// <inheritdoc/>
         public override float[,] KernelX => new float[,]

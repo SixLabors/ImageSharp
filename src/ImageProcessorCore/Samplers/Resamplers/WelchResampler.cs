@@ -17,17 +17,17 @@ namespace ImageProcessorCore
         /// <inheritdoc/>
         public float GetValue(float x)
         {
-            if (x < 0)
+            if (x < 0F)
             {
                 x = -x;
             }
 
-            if (x < 3)
+            if (x < 3F)
             {
-                return ImageMaths.SinC(x) * (1.0f - (x * x / 9.0f));
+                return ImageMaths.SinC(x) * (1F - (x * x / 9.0F));
             }
 
-            return 0;
+            return 0F;
         }
     }
 }

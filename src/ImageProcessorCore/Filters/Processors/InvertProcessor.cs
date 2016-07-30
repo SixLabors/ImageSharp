@@ -9,12 +9,14 @@ namespace ImageProcessorCore.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageProcessor"/> to invert the colors of an <see cref="Image"/>.
+    /// An <see cref="IImageProcessor{T,TP}"/> to invert the colors of an <see cref="Image"/>.
     /// </summary>
-    public class InvertProcessor : ImageProcessor
+    public class InvertProcessor<T, TP> : ImageProcessor<T, TP>
+        where T : IPackedVector<TP>
+        where TP : struct
     {
         /// <inheritdoc/>
-        protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             int sourceY = sourceRectangle.Y;
             int sourceBottom = sourceRectangle.Bottom;
@@ -22,21 +24,25 @@ namespace ImageProcessorCore.Processors
             int endX = sourceRectangle.Right;
             Vector3 inverseVector = Vector3.One;
 
-            using (PixelAccessor sourcePixels = source.Lock())
-            using (PixelAccessor targetPixels = target.Lock())
+            using (IPixelAccessor<T, TP> sourcePixels = source.Lock())
+            using (IPixelAccessor<T, TP> targetPixels = target.Lock())
             {
                 Parallel.For(
                     startY,
                     endY,
+                    Bootstrapper.Instance.ParallelOptions,
                     y =>
                         {
                             if (y >= sourceY && y < sourceBottom)
                             {
                                 for (int x = startX; x < endX; x++)
                                 {
-                                    Color color = sourcePixels[x, y];
-                                    Vector3 vector = inverseVector - color.ToVector3();
-                                    targetPixels[x, y] = new Color(vector, color.A);
+                                    Vector4 color = sourcePixels[x, y].ToVector4();
+                                    Vector3 vector = inverseVector - new Vector3(color.X, color.Y, color.Z);
+
+                                    T packed = default(T);
+                                    packed.PackVector(new Vector4(vector, color.W));
+                                    targetPixels[x, y] = packed;
                                 }
 
                                 this.OnRowProcessed();
@@ -46,3 +52,4 @@ namespace ImageProcessorCore.Processors
         }
     }
 }
+

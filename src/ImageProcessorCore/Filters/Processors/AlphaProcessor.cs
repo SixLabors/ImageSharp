@@ -5,17 +5,20 @@
 
 namespace ImageProcessorCore.Processors
 {
-    using System;
     using System.Numerics;
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageProcessor"/> to change the Alpha of an <see cref="Image"/>.
+    /// An <see cref="IImageProcessor{T,TP}"/> to change the Alpha of an <see cref="Image{T,TP}"/>.
     /// </summary>
-    public class AlphaProcessor : ImageProcessor
+    /// <typeparam name="T">The pixel format.</typeparam>
+    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+    public class AlphaProcessor<T, TP> : ImageProcessor<T, TP>
+        where T : IPackedVector<TP>
+        where TP : struct
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="AlphaProcessor"/> class.
+        /// Initializes a new instance of the <see cref="AlphaProcessor{T,TP}"/> class.
         /// </summary>
         /// <param name="percent">The percentage to adjust the opacity of the image. Must be between 0 and 100.</param>
         /// <exception cref="ArgumentException">
@@ -33,7 +36,7 @@ namespace ImageProcessorCore.Processors
         public int Value { get; }
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             float alpha = this.Value / 100f;
             int sourceY = sourceRectangle.Y;
@@ -42,21 +45,25 @@ namespace ImageProcessorCore.Processors
             int endX = sourceRectangle.Right;
             Vector4 alphaVector = new Vector4(1, 1, 1, alpha);
 
-            using (PixelAccessor sourcePixels = source.Lock())
-            using (PixelAccessor targetPixels = target.Lock())
+            using (IPixelAccessor<T, TP> sourcePixels = source.Lock())
+            using (IPixelAccessor<T, TP> targetPixels = target.Lock())
             {
                 Parallel.For(
                     startY,
                     endY,
+                    Bootstrapper.Instance.ParallelOptions,
                     y =>
                         {
                             if (y >= sourceY && y < sourceBottom)
                             {
                                 for (int x = startX; x < endX; x++)
                                 {
-                                    Vector4 color = Color.ToNonPremultiplied(sourcePixels[x, y]).ToVector4();
+                                    Vector4 color = sourcePixels[x, y].ToVector4();
                                     color *= alphaVector;
-                                    targetPixels[x, y] = Color.FromNonPremultiplied(new Color(color));
+
+                                    T packed = default(T);
+                                    packed.PackVector(color);
+                                    targetPixels[x, y] = packed;
                                 }
 
                                 this.OnRowProcessed();

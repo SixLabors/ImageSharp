@@ -18,7 +18,9 @@ namespace ImageProcessorCore
         /// <param name="source">The image this method extends.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Invert(this Image source, ProgressEventHandler progressHandler = null)
+        public static Image<T, TP> Invert<T, TP>(this Image<T, TP> source, ProgressEventHandler progressHandler = null)
+            where T : IPackedVector<TP>
+            where TP : struct
         {
             return Invert(source, source.Bounds, progressHandler);
         }
@@ -32,9 +34,11 @@ namespace ImageProcessorCore
         /// </param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Invert(this Image source, Rectangle rectangle, ProgressEventHandler progressHandler = null)
+        public static Image<T, TP> Invert<T, TP>(this Image<T, TP> source, Rectangle rectangle, ProgressEventHandler progressHandler = null)
+            where T : IPackedVector<TP>
+            where TP : struct
         {
-            InvertProcessor processor = new InvertProcessor();
+            InvertProcessor<T, TP> processor = new InvertProcessor<T, TP>();
             processor.OnProgress += progressHandler;
 
             try

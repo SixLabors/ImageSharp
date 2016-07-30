@@ -8,7 +8,11 @@ namespace ImageProcessorCore.Processors
     /// <summary>
     /// Applies a Box blur filter to the image.
     /// </summary>
-    public class BoxBlurProcessor : Convolution2PassFilter
+    /// <typeparam name="T">The pixel format.</typeparam>
+    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+    public class BoxBlurProcessor<T, TP> : Convolution2PassFilter<T, TP>
+        where T : IPackedVector<TP>
+        where TP : struct
     {
         /// <summary>
         /// The maximum size of the kernal in either direction.
@@ -43,7 +47,7 @@ namespace ImageProcessorCore.Processors
         public override float[,] KernelY => this.kernelY;
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
             if (this.kernelY == null)
             {

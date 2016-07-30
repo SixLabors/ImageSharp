@@ -4,8 +4,8 @@
     using System.Drawing.Drawing2D;
 
     using BenchmarkDotNet.Attributes;
-    using CoreImage = ImageProcessorCore.Image;
     using CoreSize = ImageProcessorCore.Size;
+    using CoreImage = ImageProcessorCore.Image;
 
     public class Crop
     {

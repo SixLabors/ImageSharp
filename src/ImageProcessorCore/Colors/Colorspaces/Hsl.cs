@@ -22,7 +22,7 @@ namespace ImageProcessorCore
         /// <summary>
         /// The epsilon for comparing floating point numbers.
         /// </summary>
-        private const float Epsilon = 0.001f;
+        private const float Epsilon = 0.001F;
 
         /// <summary>
         /// The backing vector for SIMD support.
@@ -74,10 +74,9 @@ namespace ImageProcessorCore
         /// </returns>
         public static implicit operator Hsl(Color color)
         {
-            color = Color.ToNonPremultiplied(color.Limited);
-            float r = color.R;
-            float g = color.G;
-            float b = color.B;
+            float r = color.R / 255F;
+            float g = color.G / 255F;
+            float b = color.B / 255F;
 
             float max = Math.Max(r, Math.Max(g, b));
             float min = Math.Min(r, Math.Min(g, b));
@@ -114,7 +113,8 @@ namespace ImageProcessorCore
             {
                 s = chroma / (max + min);
             }
-            else {
+            else
+            {
                 s = chroma / (2 - chroma);
             }
 

@@ -24,7 +24,7 @@
         public CoreColor ResizeCore()
         {
             CoreImage image = new CoreImage(400, 400);
-            using (PixelAccessor imagePixels = image.Lock())
+            using (IPixelAccessor<CoreColor, uint> imagePixels = image.Lock())
             {
                 imagePixels[200, 200] = CoreColor.White;
                 return imagePixels[200, 200];

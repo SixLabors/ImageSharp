@@ -39,7 +39,9 @@ namespace ImageProcessorCore.Formats
         }
 
         /// <inheritdoc/>
-        public void ReadScanline(byte[] scanline, float[] pixels, PngHeader header)
+        public void ReadScanline<T, TP>(byte[] scanline, T[] pixels, PngHeader header)
+            where T : IPackedVector<TP>
+            where TP : struct
         {
             byte[] newScanline = scanline.ToArrayByBitsLength(header.BitDepth);
             int offset, index;
@@ -53,28 +55,19 @@ namespace ImageProcessorCore.Formats
                 {
                     index = newScanline[i];
 
-                    offset = ((this.row * header.Width) + i) * 4;
+                    offset = (this.row * header.Width) + i;
                     int pixelOffset = index * 3;
-                    
-                    // BUGFIX changed newScanline[] to this.palette[] , 99% sure it was a typo and not intent
-                    float r = this.palette[pixelOffset] / 255f;
-                    float g = this.palette[pixelOffset + 1] / 255f;
-                    float b = this.palette[pixelOffset + 2] / 255f;
-                    float a = this.paletteAlpha.Length > index
-                                            ? this.paletteAlpha[index] / 255f
-                                            : 1;
 
-                    Color color = new Color(r, g, b, a);
-                    if (color.A < 1)
-                    {
-                        // We want to convert to premultiplied alpha here.
-                        color = Color.FromNonPremultiplied(color);
-                    }
-                    
-                    pixels[offset] = color.R;
-                    pixels[offset + 1] = color.G;
-                    pixels[offset + 2] = color.B;
-                    pixels[offset + 3] = color.A;
+                    byte r = this.palette[pixelOffset];
+                    byte g = this.palette[pixelOffset + 1];
+                    byte b = this.palette[pixelOffset + 2];
+                    byte a = this.paletteAlpha.Length > index
+                                            ? this.paletteAlpha[index]
+                                            : (byte)255;
+
+                    T color = default(T);
+                    color.PackBytes(r, g, b, a);
+                    pixels[offset] = color;
                 }
             }
             else
@@ -83,13 +76,16 @@ namespace ImageProcessorCore.Formats
                 {
                     index = newScanline[i];
 
-                    offset = ((this.row * header.Width) + i) * 4;
+                    offset = (this.row * header.Width) + i;
                     int pixelOffset = index * 3;
 
-                    pixels[offset] = this.palette[pixelOffset] / 255f;
-                    pixels[offset + 1] = this.palette[pixelOffset + 1] / 255f;
-                    pixels[offset + 2] = this.palette[pixelOffset + 2] / 255f;
-                    pixels[offset + 3] = 1;
+                    byte r = this.palette[pixelOffset];
+                    byte g = this.palette[pixelOffset + 1];
+                    byte b = this.palette[pixelOffset + 2];
+
+                    T color = default(T);
+                    color.PackBytes(r, g, b, 255);
+                    pixels[offset] = color;
                 }
             }
 

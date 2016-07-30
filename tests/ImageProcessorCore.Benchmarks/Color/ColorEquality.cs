@@ -16,7 +16,7 @@
         [Benchmark(Description = "ImageProcessorCore Color Equals")]
         public bool ColorEqual()
         {
-            return new CoreColor(.5f, .5f, .5f, .5f).Equals(new CoreColor(.5f, .5f, .5f, .5f));
+            return new CoreColor(128, 128, 128, 128).Equals(new CoreColor(128, 128, 128, 128));
         }
     }
 }

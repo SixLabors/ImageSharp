@@ -10,7 +10,11 @@ namespace ImageProcessorCore.Processors
     /// <summary>
     /// Converts the colors of the image recreating an old Lomograph effect.
     /// </summary>
-    public class LomographProcessor : ColorMatrixFilter
+    /// <typeparam name="T">The pixel format.</typeparam>
+    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+    public class LomographProcessor<T, TP> : ColorMatrixFilter<T, TP>
+        where T : IPackedVector<TP>
+        where TP : struct
     {
         /// <inheritdoc/>
         public override Matrix4x4 Matrix => new Matrix4x4()
@@ -24,9 +28,11 @@ namespace ImageProcessorCore.Processors
         };
 
         /// <inheritdoc/>
-        protected override void AfterApply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected override void AfterApply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
-            new VignetteProcessor { Color = new Color(0, 10 / 255f, 0) }.Apply(target, target, targetRectangle);
+            T packed = default(T);
+            packed.PackBytes(0, 10, 0, 255);
+            new VignetteProcessor<T, TP> { VignetteColor = packed }.Apply(target, target, targetRectangle);
         }
     }
 }

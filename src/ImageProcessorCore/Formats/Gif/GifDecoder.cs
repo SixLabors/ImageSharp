@@ -54,14 +54,12 @@ namespace ImageProcessorCore.Formats
                    header[5] == 0x61;   // a
         }
 
-        /// <summary>
-        /// Decodes the image from the specified stream to the <see cref="ImageBase"/>.
-        /// </summary>
-        /// <param name="image">The <see cref="ImageBase"/> to decode to.</param>
-        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        public void Decode(Image image, Stream stream)
+        /// <inheritdoc/>
+        public void Decode<T, TP>(Image<T, TP> image, Stream stream)
+            where T : IPackedVector<TP>
+            where TP : struct
         {
-            new GifDecoderCore().Decode(image, stream);
+            new GifDecoderCore<T, TP>().Decode(image, stream);
         }
     }
 }

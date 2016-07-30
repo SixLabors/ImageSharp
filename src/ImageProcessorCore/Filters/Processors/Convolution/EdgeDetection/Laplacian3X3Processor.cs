@@ -9,7 +9,11 @@ namespace ImageProcessorCore.Processors
     /// The Laplacian 3 x 3 operator filter.
     /// <see href="http://en.wikipedia.org/wiki/Discrete_Laplace_operator"/>
     /// </summary>
-    public class Laplacian3X3Processor : EdgeDetectorFilter
+    /// <typeparam name="T">The pixel format.</typeparam>
+    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+    public class Laplacian3X3Processor<T, TP> : EdgeDetectorFilter<T, TP>
+        where T : IPackedVector<TP>
+        where TP : struct
     {
         /// <inheritdoc/>
         public override float[,] KernelXY => new float[,]

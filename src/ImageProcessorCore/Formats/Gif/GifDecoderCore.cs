@@ -11,12 +11,16 @@ namespace ImageProcessorCore.Formats
     /// <summary>
     /// Performs the gif decoding operation.
     /// </summary>
-    internal class GifDecoderCore
+    /// <typeparam name="T">The pixel format.</typeparam>
+    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam> 
+    internal class GifDecoderCore<T, TP>
+        where T : IPackedVector<TP>
+        where TP : struct
     {
         /// <summary>
         /// The image to decode the information to.
         /// </summary>
-        private Image decodedImage;
+        private Image<T, TP> decodedImage;
 
         /// <summary>
         /// The currently loaded stream.
@@ -31,7 +35,7 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// The current frame.
         /// </summary>
-        private float[] currentFrame;
+        private T[] currentFrame;
 
         /// <summary>
         /// The logical screen descriptor.
@@ -48,7 +52,7 @@ namespace ImageProcessorCore.Formats
         /// </summary>
         /// <param name="image">The image to decode to.</param>
         /// <param name="stream">The stream containing image data. </param>
-        public void Decode(Image image, Stream stream)
+        public void Decode(Image<T, TP> image, Stream stream)
         {
             this.decodedImage = image;
 
@@ -175,10 +179,10 @@ namespace ImageProcessorCore.Formats
                     $"Invalid gif colormap size '{this.logicalScreenDescriptor.GlobalColorTableSize}'");
             }
 
-            if (this.logicalScreenDescriptor.Width > ImageBase.MaxWidth || this.logicalScreenDescriptor.Height > ImageBase.MaxHeight)
+            if (this.logicalScreenDescriptor.Width > this.decodedImage.MaxWidth || this.logicalScreenDescriptor.Height > this.decodedImage.MaxHeight)
             {
                 throw new ArgumentOutOfRangeException(
-                    $"The input gif '{this.logicalScreenDescriptor.Width}x{this.logicalScreenDescriptor.Height}' is bigger then the max allowed size '{ImageBase.MaxWidth}x{ImageBase.MaxHeight}'");
+                    $"The input gif '{this.logicalScreenDescriptor.Width}x{this.logicalScreenDescriptor.Height}' is bigger then the max allowed size '{this.decodedImage.MaxWidth}x{this.decodedImage.MaxHeight}'");
             }
         }
 
@@ -288,15 +292,15 @@ namespace ImageProcessorCore.Formats
 
             if (this.currentFrame == null)
             {
-                this.currentFrame = new float[imageWidth * imageHeight * 4];
+                this.currentFrame = new T[imageWidth * imageHeight];
             }
 
-            float[] lastFrame = null;
+            T[] lastFrame = null;
 
             if (this.graphicsControlExtension != null &&
                 this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToPrevious)
             {
-                lastFrame = new float[imageWidth * imageHeight * 4];
+                lastFrame = new T[imageWidth * imageHeight];
 
                 Array.Copy(this.currentFrame, lastFrame, lastFrame.Length);
             }
@@ -345,33 +349,30 @@ namespace ImageProcessorCore.Formats
 
                 for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width; x++)
                 {
-                    offset = ((writeY * imageWidth) + x) * 4;
+                    offset = (writeY * imageWidth) + x;
                     int index = indices[i];
 
                     if (this.graphicsControlExtension == null ||
                         this.graphicsControlExtension.TransparencyFlag == false ||
                         this.graphicsControlExtension.TransparencyIndex != index)
                     {
-                        // We divide by 255 as we will store the colors in our floating point format.
                         // Stored in r-> g-> b-> a order.
-                        // Gifs don't store alpha transparency so we don't need to convert to
-                        // premultiplied.
                         int indexOffset = index * 3;
-                        this.currentFrame[offset + 0] = colorTable[indexOffset] / 255f; // r
-                        this.currentFrame[offset + 1] = colorTable[indexOffset + 1] / 255f; // g
-                        this.currentFrame[offset + 2] = colorTable[indexOffset + 2] / 255f; // b
-                        this.currentFrame[offset + 3] = 1; // a
+
+                        T pixel = default(T);
+                        pixel.PackBytes(colorTable[indexOffset], colorTable[indexOffset + 1], colorTable[indexOffset + 2], 255);
+                        this.currentFrame[offset] = pixel;
                     }
 
                     i++;
                 }
             }
 
-            float[] pixels = new float[imageWidth * imageHeight * 4];
+            T[] pixels = new T[imageWidth * imageHeight];
 
             Array.Copy(this.currentFrame, pixels, pixels.Length);
 
-            ImageBase currentImage;
+            ImageBase<T, TP> currentImage;
 
             if (this.decodedImage.Pixels == null)
             {
@@ -386,7 +387,7 @@ namespace ImageProcessorCore.Formats
             }
             else
             {
-                ImageFrame frame = new ImageFrame();
+                ImageFrame<T, TP> frame = new ImageFrame<T, TP>();
 
                 currentImage = frame;
                 currentImage.SetPixels(imageWidth, imageHeight, pixels);
@@ -408,13 +409,10 @@ namespace ImageProcessorCore.Formats
                     {
                         for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width; x++)
                         {
-                            offset = ((y * imageWidth) + x) * 4;
+                            offset = (y * imageWidth) + x;
 
                             // Stored in r-> g-> b-> a order.
-                            this.currentFrame[offset] = 0;
-                            this.currentFrame[offset + 1] = 0;
-                            this.currentFrame[offset + 2] = 0;
-                            this.currentFrame[offset + 3] = 0;
+                            this.currentFrame[offset] = default(T);
                         }
                     }
                 }

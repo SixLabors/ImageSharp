@@ -11,7 +11,11 @@ namespace ImageProcessorCore.Processors
     /// <summary>
     /// Provides methods that allow the rotation and flipping of an image around its center point.
     /// </summary>
-    public class RotateFlipProcessor : ImageSampler
+    /// <typeparam name="T">The pixel format.</typeparam>
+    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+    public class RotateFlipProcessor<T, TP> : ImageSampler<T, TP>
+        where T : IPackedVector<TP>
+        where TP : struct
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="RotateFlipProcessor"/> class.
@@ -35,7 +39,7 @@ namespace ImageProcessorCore.Processors
         public RotateType RotateType { get; }
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase target, ImageBase source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             switch (this.RotateType)
             {
@@ -68,20 +72,23 @@ namespace ImageProcessorCore.Processors
         /// <summary>
         /// Rotates the image 270 degrees clockwise at the centre point.
         /// </summary>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="target">The target image.</param>
         /// <param name="source">The source image.</param>
-        private void Rotate270(ImageBase target, ImageBase source)
+        private void Rotate270(ImageBase<T, TP> target, ImageBase<T, TP> source)
         {
             int width = source.Width;
             int height = source.Height;
-            Image temp = new Image(height, width);
+            Image<T, TP> temp = new Image<T, TP>(height, width);
 
-            using (PixelAccessor sourcePixels = source.Lock())
-            using (PixelAccessor tempPixels = temp.Lock())
+            using (IPixelAccessor<T, TP> sourcePixels = source.Lock())
+            using (IPixelAccessor<T, TP> tempPixels = temp.Lock())
             {
                 Parallel.For(
                     0,
                     height,
+                    Bootstrapper.Instance.ParallelOptions,
                     y =>
                         {
                             for (int x = 0; x < width; x++)
@@ -103,19 +110,22 @@ namespace ImageProcessorCore.Processors
         /// <summary>
         /// Rotates the image 180 degrees clockwise at the centre point.
         /// </summary>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="target">The target image.</param>
         /// <param name="source">The source image.</param>
-        private void Rotate180(ImageBase target, ImageBase source)
+        private void Rotate180(ImageBase<T, TP> target, ImageBase<T, TP> source)
         {
             int width = source.Width;
             int height = source.Height;
 
-            using (PixelAccessor sourcePixels = source.Lock())
-            using (PixelAccessor targetPixels = target.Lock())
+            using (IPixelAccessor<T, TP> sourcePixels = source.Lock())
+            using (IPixelAccessor<T, TP> targetPixels = target.Lock())
             {
                 Parallel.For(
                     0,
                     height,
+                    Bootstrapper.Instance.ParallelOptions,
                     y =>
                         {
                             for (int x = 0; x < width; x++)
@@ -133,20 +143,23 @@ namespace ImageProcessorCore.Processors
         /// <summary>
         /// Rotates the image 90 degrees clockwise at the centre point.
         /// </summary>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="target">The target image.</param>
         /// <param name="source">The source image.</param>
-        private void Rotate90(ImageBase target, ImageBase source)
+        private void Rotate90(ImageBase<T, TP> target, ImageBase<T, TP> source)
         {
             int width = source.Width;
             int height = source.Height;
-            Image temp = new Image(height, width);
+            Image<T, TP> temp = new Image<T, TP>(height, width);
 
-            using (PixelAccessor sourcePixels = source.Lock())
-            using (PixelAccessor tempPixels = temp.Lock())
+            using (IPixelAccessor<T, TP> sourcePixels = source.Lock())
+            using (IPixelAccessor<T, TP> tempPixels = temp.Lock())
             {
                 Parallel.For(
                     0,
                     height,
+                    Bootstrapper.Instance.ParallelOptions,
                     y =>
                         {
                             for (int x = 0; x < width; x++)
@@ -166,21 +179,24 @@ namespace ImageProcessorCore.Processors
         /// Swaps the image at the X-axis, which goes horizontally through the middle
         /// at half the height of the image.
         /// </summary>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="target">Target image to apply the process to.</param>
-        private void FlipX(ImageBase target)
+        private void FlipX(ImageBase<T, TP> target)
         {
             int width = target.Width;
             int height = target.Height;
             int halfHeight = (int)Math.Ceiling(target.Height * .5);
-            ImageBase temp = new Image(width, height);
+            Image<T, TP> temp = new Image<T, TP>(width, height);
             temp.ClonePixels(width, height, target.Pixels);
 
-            using (PixelAccessor targetPixels = target.Lock())
-            using (PixelAccessor tempPixels = temp.Lock())
+            using (IPixelAccessor<T, TP> targetPixels = target.Lock())
+            using (IPixelAccessor<T, TP> tempPixels = temp.Lock())
             {
                 Parallel.For(
                     0,
                     halfHeight,
+                    Bootstrapper.Instance.ParallelOptions,
                     y =>
                         {
                             for (int x = 0; x < width; x++)
@@ -199,21 +215,24 @@ namespace ImageProcessorCore.Processors
         /// Swaps the image at the Y-axis, which goes vertically through the middle
         /// at half of the width of the image.
         /// </summary>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="target">Target image to apply the process to.</param>
-        private void FlipY(ImageBase target)
+        private void FlipY(ImageBase<T, TP> target)
         {
             int width = target.Width;
             int height = target.Height;
             int halfWidth = (int)Math.Ceiling(width / 2d);
-            ImageBase temp = new Image(width, height);
+            Image<T, TP> temp = new Image<T, TP>(width, height);
             temp.ClonePixels(width, height, target.Pixels);
 
-            using (PixelAccessor targetPixels = target.Lock())
-            using (PixelAccessor tempPixels = temp.Lock())
+            using (IPixelAccessor<T, TP> targetPixels = target.Lock())
+            using (IPixelAccessor<T, TP> tempPixels = temp.Lock())
             {
                 Parallel.For(
                     0,
                     height,
+                    Bootstrapper.Instance.ParallelOptions,
                     y =>
                         {
                             for (int x = 0; x < halfWidth; x++)

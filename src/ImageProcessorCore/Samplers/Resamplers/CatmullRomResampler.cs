@@ -20,7 +20,7 @@ namespace ImageProcessorCore
         public float GetValue(float x)
         {
             const float B = 0;
-            const float C = 1 / 2f;
+            const float C = 0.5F;
 
             return ImageMaths.GetBcValue(x, B, C);
         }

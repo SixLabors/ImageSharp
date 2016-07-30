@@ -78,6 +78,7 @@ namespace ImageProcessorCore.Processors
                 Parallel.For(
                     startY,
                     endY,
+                    this.ParallelOptions,
                     y =>
                         {
                             if (y >= targetY && y < targetBottom)

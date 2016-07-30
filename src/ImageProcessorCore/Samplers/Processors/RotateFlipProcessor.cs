@@ -88,7 +88,7 @@ namespace ImageProcessorCore.Processors
                 Parallel.For(
                     0,
                     height,
-                    Bootstrapper.Instance.ParallelOptions,
+                    this.ParallelOptions,
                     y =>
                         {
                             for (int x = 0; x < width; x++)
@@ -125,7 +125,7 @@ namespace ImageProcessorCore.Processors
                 Parallel.For(
                     0,
                     height,
-                    Bootstrapper.Instance.ParallelOptions,
+                    this.ParallelOptions,
                     y =>
                         {
                             for (int x = 0; x < width; x++)
@@ -159,7 +159,7 @@ namespace ImageProcessorCore.Processors
                 Parallel.For(
                     0,
                     height,
-                    Bootstrapper.Instance.ParallelOptions,
+                    this.ParallelOptions,
                     y =>
                         {
                             for (int x = 0; x < width; x++)
@@ -196,7 +196,7 @@ namespace ImageProcessorCore.Processors
                 Parallel.For(
                     0,
                     halfHeight,
-                    Bootstrapper.Instance.ParallelOptions,
+                    this.ParallelOptions,
                     y =>
                         {
                             for (int x = 0; x < width; x++)
@@ -232,7 +232,7 @@ namespace ImageProcessorCore.Processors
                 Parallel.For(
                     0,
                     height,
-                    Bootstrapper.Instance.ParallelOptions,
+                    this.ParallelOptions,
                     y =>
                         {
                             for (int x = 0; x < halfWidth; x++)

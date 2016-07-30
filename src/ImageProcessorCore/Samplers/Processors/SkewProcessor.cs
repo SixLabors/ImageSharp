@@ -56,6 +56,7 @@ namespace ImageProcessorCore.Processors
                 Parallel.For(
                     0,
                     target.Height,
+                    this.ParallelOptions,
                     y =>
                         {
                             for (int x = 0; x < target.Width; x++)

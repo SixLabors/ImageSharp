@@ -101,7 +101,7 @@ namespace ImageProcessorCore.Quantizers
                     int leastDistance = int.MaxValue;
                     int red = bytes[0];
                     int green = bytes[1];
-                    int blue = bytes[3];
+                    int blue = bytes[2];
 
                     // Loop through the entire palette, looking for the closest color match
                     for (int index = 0; index < this.colors.Length; index++)

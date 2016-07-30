@@ -21,8 +21,8 @@ namespace ImageProcessorCore.Processors
     {
         /// <summary>
         /// Gets or sets a value indicating whether to convert the
-        /// image to greyscale before performing edge detection.
+        /// image to Grayscale before performing edge detection.
         /// </summary>
-        bool Greyscale { get; set; }
+        bool Grayscale { get; set; }
     }
 }

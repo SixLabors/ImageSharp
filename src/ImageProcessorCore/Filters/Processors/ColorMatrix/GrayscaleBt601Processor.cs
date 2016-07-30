@@ -1,4 +1,4 @@
-﻿// <copyright file="GreyscaleBt601Processor.cs" company="James Jackson-South">
+﻿// <copyright file="GrayscaleBt601Processor.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -8,12 +8,12 @@ namespace ImageProcessorCore.Processors
     using System.Numerics;
 
     /// <summary>
-    /// Converts the colors of the image to greyscale applying the formula as specified by
+    /// Converts the colors of the image to Grayscale applying the formula as specified by
     /// ITU-R Recommendation BT.601 <see href="https://en.wikipedia.org/wiki/Luma_%28video%29#Rec._601_luma_versus_Rec._709_luma_coefficients"/>.
     /// </summary>
     /// <typeparam name="T">The pixel format.</typeparam>
     /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
-    public class GreyscaleBt601Processor<T, TP> : ColorMatrixFilter<T, TP>
+    public class GrayscaleBt601Processor<T, TP> : ColorMatrixFilter<T, TP>
         where T : IPackedVector<TP>
         where TP : struct
     {

@@ -8,7 +8,7 @@ namespace ImageProcessorCore.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageProcessor"/> to perform binary threshold filtering against an 
+    /// An <see cref="IImageProcessor{T,TP}"/> to perform binary threshold filtering against an 
     /// <see cref="Image"/>. The image will be converted to greyscale before thresholding 
     /// occurs.
     /// </summary>

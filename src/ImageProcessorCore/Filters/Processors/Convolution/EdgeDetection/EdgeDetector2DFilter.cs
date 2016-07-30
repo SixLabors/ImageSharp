@@ -14,14 +14,14 @@ namespace ImageProcessorCore.Processors
         where TP : struct
     {
         /// <inheritdoc/>
-        public bool Greyscale { get; set; }
+        public bool Grayscale { get; set; }
 
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
-            if (this.Greyscale)
+            if (this.Grayscale)
             {
-                new GreyscaleBt709Processor<T, TP>().Apply(source, source, sourceRectangle);
+                new GrayscaleBt709Processor<T, TP>().Apply(source, source, sourceRectangle);
             }
         }
     }

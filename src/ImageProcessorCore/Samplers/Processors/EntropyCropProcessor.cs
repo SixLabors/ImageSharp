@@ -12,6 +12,8 @@ namespace ImageProcessorCore.Processors
     /// Provides methods to allow the cropping of an image to preserve areas of highest
     /// entropy.
     /// </summary>
+    /// <typeparam name="T">The pixel format.</typeparam>
+    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
     public class EntropyCropProcessor<T, TP> : ImageSampler<T, TP>
         where T : IPackedVector<TP>
         where TP : struct

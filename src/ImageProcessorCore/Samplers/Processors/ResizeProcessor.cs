@@ -12,6 +12,8 @@ namespace ImageProcessorCore.Processors
     /// <summary>
     /// Provides methods that allow the resizing of images using various algorithms.
     /// </summary>
+    /// <typeparam name="T">The pixel format.</typeparam>
+    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
     public class ResizeProcessor<T, TP> : ImageSampler<T, TP>
         where T : IPackedVector<TP>
         where TP : struct

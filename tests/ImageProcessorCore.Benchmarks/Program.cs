@@ -8,7 +8,7 @@
         /// The main.
         /// </summary>
         /// <param name="args">
-        /// The arguments to pas to the program.
+        /// The arguments to pass to the program.
         /// </param>
         public static void Main(string[] args)
         {

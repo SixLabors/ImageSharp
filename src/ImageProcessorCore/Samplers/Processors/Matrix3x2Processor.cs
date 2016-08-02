@@ -10,6 +10,8 @@ namespace ImageProcessorCore.Processors
     /// <summary>
     /// Provides methods to transform an image using a <see cref="Matrix3x2"/>.
     /// </summary>
+    /// <typeparam name="T">The pixel format.</typeparam>
+    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
     public abstract class Matrix3x2Processor<T, TP> : ImageSampler<T, TP>
         where T : IPackedVector<TP>
         where TP : struct

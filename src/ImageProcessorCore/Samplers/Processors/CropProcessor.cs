@@ -10,6 +10,8 @@ namespace ImageProcessorCore.Processors
     /// <summary>
     /// Provides methods to allow the cropping of an image.
     /// </summary>
+    /// <typeparam name="T">The pixel format.</typeparam>
+    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
     public class CropProcessor<T, TP> : ImageSampler<T, TP>
         where T : IPackedVector<TP>
         where TP : struct

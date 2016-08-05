@@ -1,4 +1,4 @@
-﻿// <copyright file="ResizeProcessor.cs" company="James Jackson-South">
+﻿// <copyright file="CompandingResizeProcessor.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -9,27 +9,28 @@ namespace ImageProcessorCore.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// Provides methods that allow the resizing of images using various algorithms.
+    /// Provides methods that allow the resizing of images using various algorithms. 
+    /// This version will expand and compress the image to and from a linear color space during processing.
     /// </summary>
-    /// <remarks>
-    /// This version and the <see cref="CompandingResizeProcessor{T,TP}"/> have been separated out to improve performance.
-    /// </remarks>
     /// <typeparam name="T">The pixel format.</typeparam>
     /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
-    public class ResizeProcessor<T, TP> : ResamplingWeightedProcessor<T, TP>
+    public class CompandingResizeProcessor<T, TP> : ResamplingWeightedProcessor<T, TP>
         where T : IPackedVector<TP>
         where TP : struct
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ResizeProcessor{T,TP}"/> class.
+        /// Initializes a new instance of the <see cref="CompandingResizeProcessor{T,TP}"/> class.
         /// </summary>
         /// <param name="sampler">
         /// The sampler to perform the resize operation.
         /// </param>
-        public ResizeProcessor(IResampler sampler)
+        public CompandingResizeProcessor(IResampler sampler)
             : base(sampler)
         {
         }
+
+        /// <inheritdoc/>
+        public override bool Compand { get; set; } = true;
 
         /// <inheritdoc/>
         protected override void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
@@ -49,6 +50,7 @@ namespace ImageProcessorCore.Processors
             int targetBottom = target.Bounds.Bottom;
             int startX = targetRectangle.X;
             int endX = targetRectangle.Right;
+            bool compand = this.Compand;
 
             if (this.Sampler is NearestNeighborResampler)
             {
@@ -120,13 +122,13 @@ namespace ImageProcessorCore.Processors
                                 {
                                     Weight xw = horizontalValues[i];
                                     int originX = xw.Index;
-                                    Vector4 sourceColor = sourcePixels[originX, y].ToVector4();
+                                    Vector4 sourceColor = sourcePixels[originX, y].ToVector4().Expand();
 
                                     destination += sourceColor * xw.Value;
                                 }
 
                                 T d = default(T);
-                                d.PackVector(destination);
+                                d.PackVector(destination.Compress());
                                 firstPassPixels[x, y] = d;
                             }
                         }
@@ -155,13 +157,13 @@ namespace ImageProcessorCore.Processors
                                 {
                                     Weight yw = verticalValues[i];
                                     int originY = yw.Index;
-                                    Vector4 sourceColor = firstPassPixels[x, originY].ToVector4();
+                                    Vector4 sourceColor = firstPassPixels[x, originY].ToVector4().Expand();
 
                                     destination += sourceColor * yw.Value;
                                 }
 
                                 T d = default(T);
-                                d.PackVector(destination);
+                                d.PackVector(destination.Compress());
                                 targetPixels[x, y] = d;
                             }
                         }

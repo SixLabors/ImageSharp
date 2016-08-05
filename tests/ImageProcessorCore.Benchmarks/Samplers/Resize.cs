@@ -36,5 +36,13 @@
             image.Resize(400, 400);
             return new CoreSize(image.Width, image.Height);
         }
+
+        [Benchmark(Description = "ImageProcessorCore Compand Resize")]
+        public CoreSize ResizeCore()
+        {
+            CoreImage image = new CoreImage(2000, 2000);
+            image.Resize(400, 400, true);
+            return new CoreSize(image.Width, image.Height);
+        }
     }
 }

@@ -138,7 +138,17 @@ namespace ImageProcessorCore
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
 
-            ResizeProcessor<T, TP> processor = new ResizeProcessor<T, TP>(sampler) { Compand = compand };
+            ResamplingWeightedProcessor<T, TP> processor;
+
+            if (compand)
+            {
+                processor = new CompandingResizeProcessor<T, TP>(sampler);
+            }
+            else
+            {
+                processor = new ResizeProcessor<T, TP>(sampler);
+            }
+
             processor.OnProgress += progressHandler;
 
             try

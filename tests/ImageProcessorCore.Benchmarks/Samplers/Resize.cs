@@ -38,7 +38,7 @@
         }
 
         [Benchmark(Description = "ImageProcessorCore Compand Resize")]
-        public CoreSize ResizeCore()
+        public CoreSize ResizeCoreCompand()
         {
             CoreImage image = new CoreImage(2000, 2000);
             image.Resize(400, 400, true);

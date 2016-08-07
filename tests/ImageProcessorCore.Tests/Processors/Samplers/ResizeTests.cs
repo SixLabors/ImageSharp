@@ -24,7 +24,7 @@ namespace ImageProcessorCore.Tests
                 //{ "Lanczos3", new Lanczos3Resampler() },
                 //{ "Lanczos5", new Lanczos5Resampler() },
                 //{ "Lanczos8", new Lanczos8Resampler() },
-                //{ "MitchellNetravali", new MitchellNetravaliResampler() },
+                { "MitchellNetravali", new MitchellNetravaliResampler() },
                 //{ "Hermite", new HermiteResampler() },
                 //{ "Spline", new SplineResampler() },
                 //{ "Robidoux", new RobidouxResampler() },
@@ -51,7 +51,8 @@ namespace ImageProcessorCore.Tests
                     Image image = new Image(stream);
                     using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                     {
-                        image.Resize(image.Width / 2, image.Height / 2, sampler, true, this.ProgressUpdate)
+                        //image.Resize(image.Width / 2, image.Height / 2, sampler, true, this.ProgressUpdate)
+                        image.Resize(555, 15, sampler, true, this.ProgressUpdate)
                              .Save(output);
                     }
                 }

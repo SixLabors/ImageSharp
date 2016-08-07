@@ -9,6 +9,7 @@ namespace ImageProcessorCore.Processors
 
     /// <summary>
     /// Provides methods that allow the resizing of images using various algorithms.
+    /// Adapted from <see href="http://www.realtimerendering.com/resources/GraphicsGems/gemsiii/filter_rcg.c"/>
     /// </summary>
     /// <typeparam name="T">The pixel format.</typeparam>
     /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
@@ -77,8 +78,8 @@ namespace ImageProcessorCore.Processors
             float scale = (float)destinationSize / sourceSize;
             IResampler sampler = this.Sampler;
             float radius = sampler.Radius;
-            double left;
-            double right;
+            int left;
+            int right;
             float weight;
             int index;
             int sum;
@@ -87,37 +88,37 @@ namespace ImageProcessorCore.Processors
 
             // When shrinking, broaden the effective kernel support so that we still
             // visit every source pixel.
-            if (scale < 1)
+            if (scale < 1F)
             {
                 float width = radius / scale;
-                float filterScale = 1 / scale;
+                float filterScale = 1F / scale;
 
                 // Make the weights slices, one source for each column or row.
                 for (int i = 0; i < destinationSize; i++)
                 {
                     float centre = i / scale;
-                    left = Math.Ceiling(centre - width);
-                    right = Math.Floor(centre + width);
+                    left = (int)Math.Ceiling(centre - width);
+                    right = (int)Math.Floor(centre + width);
 
                     result[i] = new Weights
                     {
-                        Values = new Weight[(int)(right - left + 1)]
+                        Values = new Weight[(right - left + 1)]
                     };
 
-                    for (double j = left; j <= right; j++)
+                    for (int j = left; j <= right; j++)
                     {
-                        weight = sampler.GetValue((float)((centre - j) / filterScale)) / filterScale;
+                        weight = sampler.GetValue((centre - j) / filterScale) / filterScale;
                         if (j < 0)
                         {
-                            index = (int)-j;
+                            index = -j;
                         }
                         else if (j >= sourceSize)
                         {
-                            index = (int)((sourceSize - j) + sourceSize - 1);
+                            index = (int)((sourceSize - (float)j) + sourceSize - 1);
                         }
                         else
                         {
-                            index = (int)j;
+                            index = j;
                         }
 
                         sum = (int)result[i].Sum++;
@@ -131,27 +132,27 @@ namespace ImageProcessorCore.Processors
                 for (int i = 0; i < destinationSize; i++)
                 {
                     float centre = i / scale;
-                    left = Math.Ceiling(centre - radius);
-                    right = Math.Floor(centre + radius);
+                    left = (int)Math.Ceiling(centre - radius);
+                    right = (int)Math.Floor(centre + radius);
                     result[i] = new Weights
                     {
-                        Values = new Weight[(int)(right - left + 1)]
+                        Values = new Weight[(right - left + 1)]
                     };
 
-                    for (double j = left; j <= right; j++)
+                    for (int j = left; j <= right; j++)
                     {
-                        weight = sampler.GetValue((float)(centre - j));
+                        weight = sampler.GetValue(centre - (float)j);
                         if (j < 0)
                         {
-                            index = (int)-j;
+                            index = -j;
                         }
                         else if (j >= sourceSize)
                         {
-                            index = (int)((sourceSize - j) + sourceSize - 1);
+                            index = (sourceSize - j) + sourceSize - 1;
                         }
                         else
                         {
-                            index = (int)j;
+                            index = j;
                         }
 
                         sum = (int)result[i].Sum++;

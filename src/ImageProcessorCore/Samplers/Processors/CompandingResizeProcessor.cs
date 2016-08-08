@@ -77,8 +77,7 @@ namespace ImageProcessorCore.Processors
                                     if (targetX <= x && x < targetRight)
                                     {
                                         // X coordinates of source points
-                                        int originX = (int)((x - startX) * widthFactor);
-                                        targetPixels[x, y] = sourcePixels[originX, originY];
+                                        targetPixels[x, y] = sourcePixels[(int)((x - startX) * widthFactor), originY];
                                     }
                                 }
 
@@ -111,8 +110,7 @@ namespace ImageProcessorCore.Processors
                             if (x >= 0 && x < width)
                             {
                                 // Ensure offsets are normalised for cropping and padding.
-                                int offsetX = x - startX;
-                                Weight[] horizontalValues = this.HorizontalWeights[offsetX].Values;
+                                Weight[] horizontalValues = this.HorizontalWeights[x - startX].Values;
 
                                 // Destination color components
                                 Vector4 destination = Vector4.Zero;
@@ -120,10 +118,7 @@ namespace ImageProcessorCore.Processors
                                 for (int i = 0; i < horizontalValues.Length; i++)
                                 {
                                     Weight xw = horizontalValues[i];
-                                    int originX = xw.Index;
-                                    Vector4 sourceColor = sourcePixels[originX, y].ToVector4().Expand();
-
-                                    destination += sourceColor * xw.Value;
+                                    destination += sourcePixels[xw.Index, y].ToVector4().Expand() * xw.Value;
                                 }
 
                                 T d = default(T);
@@ -143,8 +138,7 @@ namespace ImageProcessorCore.Processors
                         if (y >= 0 && y < height)
                         {
                             // Ensure offsets are normalised for cropping and padding.
-                            int offsetY = y - startY;
-                            Weight[] verticalValues = this.VerticalWeights[offsetY].Values;
+                            Weight[] verticalValues = this.VerticalWeights[y - startY].Values;
 
                             for (int x = 0; x < width; x++)
                             {
@@ -154,10 +148,7 @@ namespace ImageProcessorCore.Processors
                                 for (int i = 0; i < verticalValues.Length; i++)
                                 {
                                     Weight yw = verticalValues[i];
-                                    int originY = yw.Index;
-                                    Vector4 sourceColor = firstPassPixels[x, originY].ToVector4().Expand();
-
-                                    destination += sourceColor * yw.Value;
+                                    destination += firstPassPixels[x, yw.Index].ToVector4().Expand() * yw.Value;
                                 }
 
                                 T d = default(T);

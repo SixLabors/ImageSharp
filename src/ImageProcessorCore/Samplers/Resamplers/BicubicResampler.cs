@@ -18,9 +18,6 @@ namespace ImageProcessorCore
         /// <inheritdoc/>
         public float GetValue(float x)
         {
-            // The coefficient.
-            float a = -0.5F;
-
             if (x < 0F)
             {
                 x = -x;
@@ -28,6 +25,7 @@ namespace ImageProcessorCore
 
             float result = 0;
 
+            // Given the coefficient "a" as -0.5F.
             if (x <= 1F)
             {
                 // Below simplified result = ((a + 2F) * (x * x * x)) - ((a + 3F) * (x * x)) + 1;
@@ -36,7 +34,7 @@ namespace ImageProcessorCore
             else if (x < 2F)
             {
                 // Below simplified result = (a * (x * x * x)) - ((5F * a) * (x * x)) + ((8F * a) * x) - (4F * a);
-                result = (((((a * x) + 2.5F) * x) - 4) * x) + 2;
+                result = (((((-0.5F * x) + 2.5F) * x) - 4) * x) + 2;
             }
 
             return result;

@@ -110,13 +110,12 @@ namespace ImageProcessorCore.Processors
                             {
                                 // Ensure offsets are normalised for cropping and padding.
                                 int offsetX = x - startX;
-                                double sum = this.HorizontalWeights[offsetX].Sum;
                                 Weight[] horizontalValues = this.HorizontalWeights[offsetX].Values;
 
                                 // Destination color components
                                 Vector4 destination = Vector4.Zero;
 
-                                for (int i = 0; i < sum; i++)
+                                for (int i = 0; i < horizontalValues.Length; i++)
                                 {
                                     Weight xw = horizontalValues[i];
                                     int originX = xw.Index;
@@ -143,7 +142,6 @@ namespace ImageProcessorCore.Processors
                         {
                             // Ensure offsets are normalised for cropping and padding.
                             int offsetY = y - startY;
-                            double sum = this.VerticalWeights[offsetY].Sum;
                             Weight[] verticalValues = this.VerticalWeights[offsetY].Values;
 
                             for (int x = 0; x < width; x++)
@@ -151,7 +149,7 @@ namespace ImageProcessorCore.Processors
                                 // Destination color components
                                 Vector4 destination = Vector4.Zero;
 
-                                for (int i = 0; i < sum; i++)
+                                for (int i = 0; i < verticalValues.Length; i++)
                                 {
                                     Weight yw = verticalValues[i];
                                     int originY = yw.Index;

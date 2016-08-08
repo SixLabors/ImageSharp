@@ -6,6 +6,8 @@
 namespace ImageProcessorCore.Processors
 {
     using System;
+    using System.Collections.Generic;
+    using System.Linq;
 
     /// <summary>
     /// Provides methods that allow the resizing of images using various algorithms.
@@ -65,6 +67,7 @@ namespace ImageProcessorCore.Processors
             }
         }
 
+
         /// <summary>
         /// Computes the weights to apply at each pixel when resizing.
         /// </summary>
@@ -75,90 +78,56 @@ namespace ImageProcessorCore.Processors
         /// </returns>
         protected Weights[] PrecomputeWeights(int destinationSize, int sourceSize)
         {
-            float scale = (float)destinationSize / sourceSize;
-            IResampler sampler = this.Sampler;
-            float radius = sampler.Radius;
-            int left;
-            int right;
-            float weight;
-            int index;
-            int sum;
+            float ratio = (float)sourceSize / destinationSize;
+            float scale = ratio;
 
-            Weights[] result = new Weights[destinationSize];
-
-            // When shrinking, broaden the effective kernel support so that we still
-            // visit every source pixel.
             if (scale < 1F)
             {
-                float width = radius / scale;
-                float filterScale = 1F / scale;
-
-                // Make the weights slices, one source for each column or row.
-                for (int i = 0; i < destinationSize; i++)
-                {
-                    float centre = i / scale;
-                    left = (int)Math.Ceiling(centre - width);
-                    right = (int)Math.Floor(centre + width);
-
-                    result[i] = new Weights
-                    {
-                        Values = new Weight[(right - left + 1)]
-                    };
-
-                    for (int j = left; j <= right; j++)
-                    {
-                        weight = sampler.GetValue((centre - j) / filterScale) / filterScale;
-                        if (j < 0)
-                        {
-                            index = -j;
-                        }
-                        else if (j >= sourceSize)
-                        {
-                            index = (int)((sourceSize - (float)j) + sourceSize - 1);
-                        }
-                        else
-                        {
-                            index = j;
-                        }
-
-                        sum = (int)result[i].Sum++;
-                        result[i].Values[sum] = new Weight(index, weight);
-                    }
-                }
+                scale = 1F;
             }
-            else
+
+            IResampler sampler = this.Sampler;
+            float radius = (float)Math.Ceiling(scale * sampler.Radius);
+            Weights[] result = new Weights[destinationSize];
+
+            for (int i = 0; i < destinationSize; i++)
             {
-                // Make the weights slices, one source for each column or row.
-                for (int i = 0; i < destinationSize; i++)
+                float center = ((i + .5F) * ratio) - .5F;
+
+                // Keep inside bounds.
+                int left = (int)Math.Ceiling(center - radius);
+                if (left < 0)
                 {
-                    float centre = i / scale;
-                    left = (int)Math.Ceiling(centre - radius);
-                    right = (int)Math.Floor(centre + radius);
-                    result[i] = new Weights
-                    {
-                        Values = new Weight[(right - left + 1)]
-                    };
+                    left = 0;
+                }
 
-                    for (int j = left; j <= right; j++)
-                    {
-                        weight = sampler.GetValue(centre - (float)j);
-                        if (j < 0)
-                        {
-                            index = -j;
-                        }
-                        else if (j >= sourceSize)
-                        {
-                            index = (sourceSize - j) + sourceSize - 1;
-                        }
-                        else
-                        {
-                            index = j;
-                        }
+                int right = (int)Math.Floor(center + radius);
+                if (right > sourceSize - 1)
+                {
+                    right = sourceSize - 1;
+                }
 
-                        sum = (int)result[i].Sum++;
-                        result[i].Values[sum] = new Weight(index, weight);
+                float sum = 0;
+                result[i] = new Weights();
+                Weight[] weights = new Weight[right - left + 1];
+
+                for (int j = left; j <= right; j++)
+                {
+                    float weight = sampler.GetValue((j - center) / scale);
+                    sum += weight;
+                    weights[j - left] = new Weight(j, weight);
+                }
+
+                // Normalise, best to do it here rather than in the pixel loop later on.
+                if (sum > 0)
+                {
+                    for (int w = 0; w < weights.Length; w++)
+                    {
+                        weights[w].Value = weights[w].Value / sum;
                     }
                 }
+
+                result[i].Values = weights;
             }
 
             return result;
@@ -167,10 +136,10 @@ namespace ImageProcessorCore.Processors
         /// <summary>
         /// Represents the weight to be added to a scaled pixel.
         /// </summary>
-        protected struct Weight
+        protected class Weight
         {
             /// <summary>
-            /// Initializes a new instance of the <see cref="Weight"/> struct.
+            /// Initializes a new instance of the <see cref="Weight"/> class.
             /// </summary>
             /// <param name="index">The index.</param>
             /// <param name="value">The value.</param>
@@ -186,9 +155,9 @@ namespace ImageProcessorCore.Processors
             public int Index { get; }
 
             /// <summary>
-            /// Gets the result of the interpolation algorithm.
+            /// Gets or sets the result of the interpolation algorithm.
             /// </summary>
-            public float Value { get; }
+            public float Value { get; set; }
         }
 
         /// <summary>
@@ -200,11 +169,6 @@ namespace ImageProcessorCore.Processors
             /// Gets or sets the values.
             /// </summary>
             public Weight[] Values { get; set; }
-
-            /// <summary>
-            /// Gets or sets the sum.
-            /// </summary>
-            public float Sum { get; set; }
         }
     }
 }

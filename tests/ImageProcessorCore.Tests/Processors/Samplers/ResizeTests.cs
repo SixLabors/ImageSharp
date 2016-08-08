@@ -51,8 +51,8 @@ namespace ImageProcessorCore.Tests
                     Image image = new Image(stream);
                     using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                     {
-                        //image.Resize(image.Width / 2, image.Height / 2, sampler, true, this.ProgressUpdate)
-                        image.Resize(555, 15, sampler, true, this.ProgressUpdate)
+                        image.Resize(image.Width / 2, image.Height / 2, sampler, true, this.ProgressUpdate)
+                        //image.Resize(555, 275, sampler, false, this.ProgressUpdate)
                              .Save(output);
                     }
                 }

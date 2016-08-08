@@ -6,8 +6,6 @@
 namespace ImageProcessorCore.Processors
 {
     using System;
-    using System.Collections.Generic;
-    using System.Linq;
 
     /// <summary>
     /// Provides methods that allow the resizing of images using various algorithms.

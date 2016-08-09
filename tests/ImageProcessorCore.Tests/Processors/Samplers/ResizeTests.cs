@@ -115,9 +115,9 @@ namespace ImageProcessorCore.Tests
 
         [Theory]
         [MemberData("ReSamplers")]
-        public void ImageShouldResizeWithCropMode(string name, IResampler sampler)
+        public void ImageShouldResizeWithCropWidthMode(string name, IResampler sampler)
         {
-            name = name + "-Crop";
+            name = name + "-CropWidth";
 
             if (!Directory.Exists(path))
             {
@@ -137,6 +137,39 @@ namespace ImageProcessorCore.Tests
                         {
                             Sampler = sampler,
                             Size = new Size(image.Width / 2, image.Height)
+                        };
+
+                        image.Resize(options, this.ProgressUpdate)
+                             .Save(output);
+                    }
+                }
+            }
+        }
+
+        [Theory]
+        [MemberData("ReSamplers")]
+        public void ImageShouldResizeWithCropHeightMode(string name, IResampler sampler)
+        {
+            name = name + "-CropHeight";
+
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
+            }
+
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
+
+                    Image image = new Image(stream);
+                    using (FileStream output = File.OpenWrite($"{path}/{filename}"))
+                    {
+                        ResizeOptions options = new ResizeOptions()
+                        {
+                            Sampler = sampler,
+                            Size = new Size(image.Width, image.Height / 2)
                         };
 
                         image.Resize(options, this.ProgressUpdate)

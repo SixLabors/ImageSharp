@@ -21,6 +21,8 @@ namespace ImageProcessorCore
         /// <param name="value">The value of the property.</param>
         public ImageProperty(string name, string value)
         {
+            Guard.NotNullOrEmpty(name, nameof(name));
+
             this.Name = name;
             this.Value = value;
         }
@@ -92,12 +94,7 @@ namespace ImageProcessorCore
         {
             ImageProperty other = obj as ImageProperty;
 
-            if (other == null)
-            {
-                return false;
-            }
-
-            return other.Name == this.Name && other.Value == this.Value;
+            return Equals(other);
         }
 
         /// <summary>
@@ -111,7 +108,11 @@ namespace ImageProcessorCore
             unchecked
             {
                 int hashCode = this.Name.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.Value.GetHashCode();
+                if (this.Value != null)
+                {
+                    hashCode = (hashCode * 397) ^ this.Value.GetHashCode();
+                }
+
                 return hashCode;
             }
         }
@@ -146,7 +147,7 @@ namespace ImageProcessorCore
                 return true;
             }
 
-            return this.Name.Equals(other.Name) && this.Value.Equals(other.Value);
+            return this.Name.Equals(other.Name) && Equals(this.Value, other.Value);
         }
     }
 }

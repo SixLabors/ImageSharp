@@ -123,7 +123,7 @@ namespace ImageProcessorCore.Processors
                             }
 
                             T d = default(T);
-                            d.PackVector(destination);
+                            d.PackFromVector4(destination);
                             firstPassPixels[x, y] = d;
                         }
                     });
@@ -150,7 +150,7 @@ namespace ImageProcessorCore.Processors
                             }
 
                             T d = default(T);
-                            d.PackVector(destination);
+                            d.PackFromVector4(destination);
                             targetPixels[x, y] = d;
                         }
 

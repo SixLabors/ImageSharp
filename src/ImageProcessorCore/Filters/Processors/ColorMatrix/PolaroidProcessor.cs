@@ -37,11 +37,11 @@ namespace ImageProcessorCore.Processors
         protected override void AfterApply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
             T packedV = default(T);
-            packedV.PackBytes(102, 34, 0, 255);
+            packedV.PackFromBytes(102, 34, 0, 255);
             new VignetteProcessor<T, TP> { VignetteColor = packedV }.Apply(target, target, targetRectangle);
 
             T packedG = default(T);
-            packedG.PackBytes(255, 153, 102, 178);
+            packedG.PackFromBytes(255, 153, 102, 178);
             new GlowProcessor<T, TP>
             {
                 GlowColor = packedG,

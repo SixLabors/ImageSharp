@@ -71,7 +71,7 @@ namespace ImageProcessorCore.Processors
             Vector3 transformed = Vector3.Transform(new Vector3(vector.X, vector.Y, vector.Z), matrix);
             vector = new Vector4(transformed, vector.W);
             T packed = default(T);
-            packed.PackVector(compand ? vector.Compress() : vector);
+            packed.PackFromVector4(compand ? vector.Compress() : vector);
             return packed;
         }
     }

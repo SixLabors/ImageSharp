@@ -745,7 +745,7 @@ namespace ImageProcessorCore.Quantizers
                     byte a = (byte)(Volume(cube[k], this.vma) / weight);
 
                     T color = default(T);
-                    color.PackBytes(r, g, b, a);
+                    color.PackFromBytes(r, g, b, a);
 
                     if (color.Equals(default(T)))
                     {

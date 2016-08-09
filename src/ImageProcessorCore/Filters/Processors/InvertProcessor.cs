@@ -41,7 +41,7 @@ namespace ImageProcessorCore.Processors
                                     Vector3 vector = inverseVector - new Vector3(color.X, color.Y, color.Z);
 
                                     T packed = default(T);
-                                    packed.PackVector(new Vector4(vector, color.W));
+                                    packed.PackFromVector4(new Vector4(vector, color.W));
                                     targetPixels[x, y] = packed;
                                 }
 

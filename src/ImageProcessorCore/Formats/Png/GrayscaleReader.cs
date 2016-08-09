@@ -52,7 +52,7 @@ namespace ImageProcessorCore.Formats
                     byte a = newScanline[(x * 2) + 1];
 
                     T color = default(T);
-                    color.PackBytes(rgb, rgb, rgb, a);
+                    color.PackFromBytes(rgb, rgb, rgb, a);
                     pixels[offset] = color;
                 }
             }
@@ -64,7 +64,7 @@ namespace ImageProcessorCore.Formats
                     byte rgb = newScanline[x];
 
                     T color = default(T);
-                    color.PackBytes(rgb, rgb, rgb, 255);
+                    color.PackFromBytes(rgb, rgb, rgb, 255);
 
                     pixels[offset] = color;
                 }

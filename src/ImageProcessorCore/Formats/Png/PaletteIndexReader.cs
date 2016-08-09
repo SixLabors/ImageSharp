@@ -66,7 +66,7 @@ namespace ImageProcessorCore.Formats
                                             : (byte)255;
 
                     T color = default(T);
-                    color.PackBytes(r, g, b, a);
+                    color.PackFromBytes(r, g, b, a);
                     pixels[offset] = color;
                 }
             }
@@ -84,7 +84,7 @@ namespace ImageProcessorCore.Formats
                     byte b = this.palette[pixelOffset + 2];
 
                     T color = default(T);
-                    color.PackBytes(r, g, b, 255);
+                    color.PackFromBytes(r, g, b, 255);
                     pixels[offset] = color;
                 }
             }

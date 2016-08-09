@@ -64,7 +64,7 @@ namespace ImageProcessorCore.Processors
                                     vector *= contrastVector;
                                     vector += shiftVector;
                                     T packed = default(T);
-                                    packed.PackVector(vector.Compress());
+                                    packed.PackFromVector4(vector.Compress());
                                     targetPixels[x, y] = packed;
                                 }
                                 this.OnRowProcessed();

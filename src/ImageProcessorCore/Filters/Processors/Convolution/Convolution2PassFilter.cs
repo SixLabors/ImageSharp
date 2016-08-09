@@ -97,7 +97,7 @@ namespace ImageProcessorCore.Processors
                         }
 
                         T packed = default(T);
-                        packed.PackVector(destination);
+                        packed.PackFromVector4(destination);
                         targetPixels[x, y] = packed;
                     }
 

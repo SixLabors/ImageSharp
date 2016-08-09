@@ -75,23 +75,17 @@ namespace ImageProcessorCore.Tests
             Assert.Equal(0, color3.B);
             Assert.Equal(255, color3.A);
 
-            //Color color4 = new Color(new Vector3(1, .1f, .133f));
-            //Assert.Equal(1, color4.R, 1);
-            //Assert.Equal(.1f, color4.G, 1);
-            //Assert.Equal(.133f, color4.B, 3);
-            //Assert.Equal(1, color4.A, 1);
+            Color color4 = new Color(new Vector3(1, .1f, .133f));
+            Assert.Equal(255, color4.R);
+            Assert.Equal(Math.Round(.1f * 255), color4.G);
+            Assert.Equal(Math.Round(.133f * 255), color4.B);
+            Assert.Equal(255, color4.A);
 
-            //Color color5 = new Color(new Vector3(1, .1f, .133f), .5f);
-            //Assert.Equal(1, color5.R, 1);
-            //Assert.Equal(.1f, color5.G, 1);
-            //Assert.Equal(.133f, color5.B, 3);
-            //Assert.Equal(.5f, color5.A, 1);
-
-            Color color6 = new Color(new Vector4(1, .1f, .133f, .5f));
-            Assert.Equal(255, color6.R);
-            Assert.Equal(Math.Round(.1f * 255), color6.G);
-            Assert.Equal(Math.Round(.133f * 255), color6.B);
-            Assert.Equal(Math.Round(.5f * 255), color6.A);
+            Color color5 = new Color(new Vector4(1, .1f, .133f, .5f));
+            Assert.Equal(255, color5.R);
+            Assert.Equal(Math.Round(.1f * 255), color5.G);
+            Assert.Equal(Math.Round(.133f * 255), color5.B);
+            Assert.Equal(Math.Round(.5f * 255), color5.A);
         }
 
         /// <summary>
@@ -102,7 +96,7 @@ namespace ImageProcessorCore.Tests
         {
             const string First = "FF000000";
             Color color = Color.Black;
-            string second = color.PackedValue().ToString("X");
+            string second = color.GetPackedValue().ToString("X");
             Assert.Equal(First, second);
         }
     }

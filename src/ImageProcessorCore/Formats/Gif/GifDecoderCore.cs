@@ -360,7 +360,7 @@ namespace ImageProcessorCore.Formats
                         int indexOffset = index * 3;
 
                         T pixel = default(T);
-                        pixel.PackBytes(colorTable[indexOffset], colorTable[indexOffset + 1], colorTable[indexOffset + 2], 255);
+                        pixel.PackFromBytes(colorTable[indexOffset], colorTable[indexOffset + 1], colorTable[indexOffset + 2], 255);
                         this.currentFrame[offset] = pixel;
                     }
 

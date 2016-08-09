@@ -64,7 +64,7 @@ namespace ImageProcessorCore.Processors
                                     vector = new Vector4(transformed, vector.W);
 
                                     T packed = default(T);
-                                    packed.PackVector(vector.Compress());
+                                    packed.PackFromVector4(vector.Compress());
 
                                     targetPixels[x, y] = packed;
                                 }

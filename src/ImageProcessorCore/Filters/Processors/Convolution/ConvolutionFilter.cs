@@ -83,7 +83,7 @@ namespace ImageProcessorCore.Processors
 
                             Vector4 targetColor = targetPixels[x, y].ToVector4();
                             T packed = default(T);
-                            packed.PackVector(new Vector4(red, green, blue, targetColor.Z));
+                            packed.PackFromVector4(new Vector4(red, green, blue, targetColor.Z));
                             targetPixels[x, y] = packed;
 
                         }

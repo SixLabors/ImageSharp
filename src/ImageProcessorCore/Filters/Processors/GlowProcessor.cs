@@ -23,7 +23,7 @@ namespace ImageProcessorCore.Processors
         /// </summary>
         public GlowProcessor()
         {
-            this.GlowColor.PackVector(Color.White.ToVector4());
+            this.GlowColor.PackFromVector4(Color.White.ToVector4());
         }
 
         /// <summary>
@@ -68,7 +68,7 @@ namespace ImageProcessorCore.Processors
                                 Vector4 sourceColor = sourcePixels[x, y].ToVector4();
                                 Vector4 result = Vector4.Lerp(glowColor.ToVector4(), sourceColor, .5f * (distance / maxDistance));
                                 T packed = default(T);
-                                packed.PackVector(result);
+                                packed.PackFromVector4(result);
                                 targetPixels[x, y] = packed;
                             }
 

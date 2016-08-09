@@ -197,7 +197,7 @@ namespace ImageProcessorCore.Quantizers
             /// </param>
             public void AddColor(T pixel)
             {
-                TP packed = pixel.PackedValue();
+                TP packed = pixel.GetPackedValue();
                 // Check if this request is for the same color as the last
                 if (this.previousColor.Equals(packed))
                 {
@@ -468,7 +468,7 @@ namespace ImageProcessorCore.Quantizers
 
                         // And set the color of the palette entry
                         T pixel = default(T);
-                        pixel.PackBytes(r, g, b, 255);
+                        pixel.PackFromBytes(r, g, b, 255);
                         palette.Add(pixel);
                     }
                     else

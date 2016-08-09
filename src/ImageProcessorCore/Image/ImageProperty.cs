@@ -12,7 +12,7 @@ namespace ImageProcessorCore
     /// the copyright information, the date, where the image was created
     /// or some other information.
     /// </summary>
-    public struct ImageProperty : IEquatable<ImageProperty>
+    public class ImageProperty : IEquatable<ImageProperty>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageProperty"/> struct.
@@ -21,6 +21,8 @@ namespace ImageProcessorCore
         /// <param name="value">The value of the property.</param>
         public ImageProperty(string name, string value)
         {
+            Guard.NotNullOrEmpty(name, nameof(name));
+
             this.Name = name;
             this.Value = value;
         }
@@ -56,7 +58,7 @@ namespace ImageProcessorCore
         /// </returns>
         public static bool operator ==(ImageProperty left, ImageProperty right)
         {
-            return left.Equals(right);
+            return Equals(left, right);
         }
 
         /// <summary>
@@ -75,7 +77,7 @@ namespace ImageProcessorCore
         /// </returns>
         public static bool operator !=(ImageProperty left, ImageProperty right)
         {
-            return !left.Equals(right);
+            return !Equals(left, right);
         }
 
         /// <summary>
@@ -90,14 +92,9 @@ namespace ImageProcessorCore
         /// </returns>
         public override bool Equals(object obj)
         {
-            if (!(obj is ImageProperty))
-            {
-                return false;
-            }
+            ImageProperty other = obj as ImageProperty;
 
-            ImageProperty other = (ImageProperty)obj;
-
-            return other.Name == this.Name && other.Value == this.Value;
+            return Equals(other);
         }
 
         /// <summary>
@@ -111,7 +108,11 @@ namespace ImageProcessorCore
             unchecked
             {
                 int hashCode = this.Name.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.Value.GetHashCode();
+                if (this.Value != null)
+                {
+                    hashCode = (hashCode * 397) ^ this.Value.GetHashCode();
+                }
+
                 return hashCode;
             }
         }
@@ -136,7 +137,17 @@ namespace ImageProcessorCore
         /// <param name="other">An object to compare with this object.</param>
         public bool Equals(ImageProperty other)
         {
-            return this.Name.Equals(other.Name) && this.Value.Equals(other.Value);
+            if (ReferenceEquals(other, null))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
+            return this.Name.Equals(other.Name) && Equals(this.Value, other.Value);
         }
     }
 }

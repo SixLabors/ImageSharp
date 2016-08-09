@@ -5,6 +5,7 @@
 
 namespace ImageProcessorCore.Processors
 {
+    using System;
     using System.Numerics;
     using System.Threading.Tasks;
 
@@ -50,7 +51,11 @@ namespace ImageProcessorCore.Processors
             int targetBottom = target.Bounds.Bottom;
             int startX = targetRectangle.X;
             int endX = targetRectangle.Right;
-            bool compand = this.Compand;
+
+            int minX = Math.Max(targetX, startX);
+            int maxX = Math.Min(targetRight, endX);
+            int minY = Math.Max(targetY, startY);
+            int maxY = Math.Min(targetBottom, endY);
 
             if (this.Sampler is NearestNeighborResampler)
             {
@@ -62,27 +67,21 @@ namespace ImageProcessorCore.Processors
                 using (IPixelAccessor<T, TP> targetPixels = target.Lock())
                 {
                     Parallel.For(
-                        startY,
-                        endY,
+                        minY,
+                        maxY,
                         this.ParallelOptions,
                         y =>
                         {
-                            if (targetY <= y && y < targetBottom)
+                            // Y coordinates of source points
+                            int originY = (int)((y - startY) * heightFactor);
+
+                            for (int x = minX; x < maxX; x++)
                             {
-                                // Y coordinates of source points
-                                int originY = (int)((y - startY) * heightFactor);
-
-                                for (int x = startX; x < endX; x++)
-                                {
-                                    if (targetX <= x && x < targetRight)
-                                    {
-                                        // X coordinates of source points
-                                        targetPixels[x, y] = sourcePixels[(int)((x - startX) * widthFactor), originY];
-                                    }
-                                }
-
-                                this.OnRowProcessed();
+                                // X coordinates of source points
+                                targetPixels[x, y] = sourcePixels[(int)((x - startX) * widthFactor), originY];
                             }
+
+                            this.OnRowProcessed();
                         });
                 }
 
@@ -99,62 +98,61 @@ namespace ImageProcessorCore.Processors
             using (IPixelAccessor<T, TP> firstPassPixels = firstPass.Lock())
             using (IPixelAccessor<T, TP> targetPixels = target.Lock())
             {
+                minX = Math.Max(0, startX);
+                maxX = Math.Min(width, endX);
+                minY = Math.Max(0, startY);
+                maxY = Math.Min(height, endY);
+
                 Parallel.For(
                     0,
                     sourceHeight,
                     this.ParallelOptions,
                     y =>
                     {
-                        for (int x = startX; x < endX; x++)
+                        for (int x = minX; x < maxX; x++)
                         {
-                            if (x >= 0 && x < width)
+                            // Ensure offsets are normalised for cropping and padding.
+                            Weight[] horizontalValues = this.HorizontalWeights[x - startX].Values;
+
+                            // Destination color components
+                            Vector4 destination = Vector4.Zero;
+
+                            for (int i = 0; i < horizontalValues.Length; i++)
                             {
-                                // Ensure offsets are normalised for cropping and padding.
-                                Weight[] horizontalValues = this.HorizontalWeights[x - startX].Values;
-
-                                // Destination color components
-                                Vector4 destination = Vector4.Zero;
-
-                                for (int i = 0; i < horizontalValues.Length; i++)
-                                {
-                                    Weight xw = horizontalValues[i];
-                                    destination += sourcePixels[xw.Index, y].ToVector4().Expand() * xw.Value;
-                                }
-
-                                T d = default(T);
-                                d.PackVector(destination.Compress());
-                                firstPassPixels[x, y] = d;
+                                Weight xw = horizontalValues[i];
+                                destination += sourcePixels[xw.Index, y].ToVector4().Expand() * xw.Value;
                             }
+
+                            T d = default(T);
+                            d.PackVector(destination.Compress());
+                            firstPassPixels[x, y] = d;
                         }
                     });
 
                 // Now process the rows.
                 Parallel.For(
-                    startY,
-                    endY,
+                    minY,
+                    maxY,
                     this.ParallelOptions,
                     y =>
                     {
-                        if (y >= 0 && y < height)
+                        // Ensure offsets are normalised for cropping and padding.
+                        Weight[] verticalValues = this.VerticalWeights[y - startY].Values;
+
+                        for (int x = 0; x < width; x++)
                         {
-                            // Ensure offsets are normalised for cropping and padding.
-                            Weight[] verticalValues = this.VerticalWeights[y - startY].Values;
+                            // Destination color components
+                            Vector4 destination = Vector4.Zero;
 
-                            for (int x = 0; x < width; x++)
+                            for (int i = 0; i < verticalValues.Length; i++)
                             {
-                                // Destination color components
-                                Vector4 destination = Vector4.Zero;
-
-                                for (int i = 0; i < verticalValues.Length; i++)
-                                {
-                                    Weight yw = verticalValues[i];
-                                    destination += firstPassPixels[x, yw.Index].ToVector4().Expand() * yw.Value;
-                                }
-
-                                T d = default(T);
-                                d.PackVector(destination.Compress());
-                                targetPixels[x, y] = d;
+                                Weight yw = verticalValues[i];
+                                destination += firstPassPixels[x, yw.Index].ToVector4().Expand() * yw.Value;
                             }
+
+                            T d = default(T);
+                            d.PackVector(destination.Compress());
+                            targetPixels[x, y] = d;
                         }
 
                         this.OnRowProcessed();

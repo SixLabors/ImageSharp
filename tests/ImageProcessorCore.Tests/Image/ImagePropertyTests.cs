@@ -56,11 +56,9 @@ namespace ImageProcessorCore.Tests
         [Fact]
         public void ConstructorThrowsWhenNameIsNullOrEmpty()
         {
-            Exception ex = Record.Exception(() => new ImageProperty(null, "Foo"));
-            Assert.IsType<ArgumentNullException>(ex);
+            Assert.Throws<ArgumentNullException>(() => new ImageProperty(null, "Foo"));
 
-            ex = Record.Exception(() => new ImageProperty(string.Empty, "Foo"));
-            Assert.IsType<ArgumentException>(ex);
+            Assert.Throws<ArgumentException>(() => new ImageProperty(string.Empty, "Foo"));
         }
 
         /// <summary>

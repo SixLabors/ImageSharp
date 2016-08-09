@@ -12,7 +12,7 @@ namespace ImageProcessorCore
     /// the copyright information, the date, where the image was created
     /// or some other information.
     /// </summary>
-    public struct ImageProperty : IEquatable<ImageProperty>
+    public class ImageProperty : IEquatable<ImageProperty>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageProperty"/> struct.
@@ -56,7 +56,7 @@ namespace ImageProcessorCore
         /// </returns>
         public static bool operator ==(ImageProperty left, ImageProperty right)
         {
-            return left.Equals(right);
+            return Equals(left, right);
         }
 
         /// <summary>
@@ -75,7 +75,7 @@ namespace ImageProcessorCore
         /// </returns>
         public static bool operator !=(ImageProperty left, ImageProperty right)
         {
-            return !left.Equals(right);
+            return !Equals(left, right);
         }
 
         /// <summary>
@@ -90,12 +90,12 @@ namespace ImageProcessorCore
         /// </returns>
         public override bool Equals(object obj)
         {
-            if (!(obj is ImageProperty))
+            ImageProperty other = obj as ImageProperty;
+
+            if (other == null)
             {
                 return false;
             }
-
-            ImageProperty other = (ImageProperty)obj;
 
             return other.Name == this.Name && other.Value == this.Value;
         }
@@ -136,6 +136,16 @@ namespace ImageProcessorCore
         /// <param name="other">An object to compare with this object.</param>
         public bool Equals(ImageProperty other)
         {
+            if (ReferenceEquals(other, null))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
             return this.Name.Equals(other.Name) && this.Value.Equals(other.Value);
         }
     }

@@ -5,13 +5,10 @@
 
 **ImageProcessorCore** is a new cross-platform 2D graphics API designed to allow the processing of images without the use of `System.Drawing`. 
 
-<div style="margin: 1rem 0; padding: 1rem; background-color: #ffd54f; border-left: 5px solid #ff6f00; color: #4f3c00;">
+> **ImageProcessorCore is still in early stages (alpha) but progress has been pretty quick. As such, please do not use on production environments until the library reaches release candidate status.**
 
-<p>ImageProcessorCore is still in early stages (alpha) but progress has been pretty quick. As such, please do not use on production environments until the library reaches release candidate status.</p>
+> For the older `ImageFactory` based API that uses `System.Drawing` please check out the [Framework](https://github.com/JimBobSquarePants/ImageProcessor/tree/Framework) branch.
 
-For the older `ImageFactory` based API that uses `System.Drawing` please check out the [Framework](https://github.com/JimBobSquarePants/ImageProcessor/tree/Framework) branch.
-
-</div>
 
 
 

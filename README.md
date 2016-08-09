@@ -3,19 +3,26 @@
 
 <img src="build/icons/imageprocessor-logo-512.png" width="128" height="128"/>
 
-**ImageProcessorCore** is a new cross-platform 2D graphics API designed to allow the processing of images without the use of `System.Drawing`. It's still in early stages (alpha) but progress has been pretty quick. 
+**ImageProcessorCore** is a new cross-platform 2D graphics API designed to allow the processing of images without the use of `System.Drawing`. 
 
-**Please do not use on production environments until the library reaches release candidate status.**
+<div style="margin: 1rem 0; padding: 1rem; background-color: #ffd54f; border-left: 5px solid #ff6f00; color: #4f3c00;">
+
+<p>ImageProcessorCore is still in early stages (alpha) but progress has been pretty quick. As such, please do not use on production environments until the library reaches release candidate status.</p>
+
+For the older `ImageFactory` based API that uses `System.Drawing` please check out the [Framework](https://github.com/JimBobSquarePants/ImageProcessor/tree/Framework) branch.
+
+</div>
+
+
 
 [![Build status](https://ci.appveyor.com/api/projects/status/8ypr7527dnao04yr/branch/Core?svg=true)](https://ci.appveyor.com/project/JamesSouth/imageprocessor/branch/Core)
 [![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/JimBobSquarePants/ImageProcessor?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-For the older `ImageFactory` based API that uses `System.Drawing` please check out the [Framework](https://github.com/JimBobSquarePants/ImageProcessor/tree/Framework) branch.
 
 ---
 ## ImageProcessor Needs Your Help
 
-**ImageProcessor is the work of a very, very, small number of developers who struggle balancing time to contribute to the project with family time and work commitments. If the project is to survive we need more contribution from the community at large. There are several issues, most notably [#264](https://github.com/JimBobSquarePants/ImageProcessor/issues/264) and [#347](https://github.com/JimBobSquarePants/ImageProcessor/issues/347) that we cannot possibly solve on our own.**
+**ImageProcessor is the work of a very, very, small number of developers who struggle balancing time to contribute to the project with family time and work commitments. If the project is to be successful we need more contribution from the community at large. There are several issues, most notably [#264](https://github.com/JimBobSquarePants/ImageProcessor/issues/264) and [#347](https://github.com/JimBobSquarePants/ImageProcessor/issues/446) that we cannot possibly solve on our own.**
 
 **We, and we believe many others in the community at large want a first-class 2D imaging library with a simple API that is not simply a wrapper round an existing library. We want it to have a low contribution bar which we believe can only happen if the library is written in C#. We want it to be written to cover as many use cases as possible. We want to write the same code once and have it work on any platform supporting .NET Core.**
 
@@ -179,6 +186,8 @@ Individual processors can be initialised and apply processing against images. Th
 ```csharp
 new Brightness(50).Apply(sourceImage, targetImage, sourceImage.Bounds);
 ```
+
+For advanced usage the `Image<T,TP>` class is available allowing developers to implement their own color models in the same manner as Microsoft XNA Game Studio and MonoGame 
 
 All in all this should allow image processing to be much more accessible to developers which has always been my goal from the start.
 

@@ -49,7 +49,7 @@ namespace ImageProcessorCore
         /// The packed value.
         /// </summary>
         [FieldOffset(0)]
-        private readonly uint packedValue;
+        private uint packedValue;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Color"/> struct. 
@@ -192,13 +192,19 @@ namespace ImageProcessorCore
         }
 
         /// <inheritdoc/>
-        public uint PackedValue()
+        public uint GetPackedValue()
         {
             return this.packedValue;
         }
 
         /// <inheritdoc/>
-        public void PackVector(Vector4 vector)
+        public void SetPackedValue(uint value)
+        {
+            this.packedValue = value;
+        }
+
+        /// <inheritdoc/>
+        public void PackFromVector4(Vector4 vector)
         {
             Vector4 clamped = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * 255F;
             this.R = (byte)Math.Round(clamped.X);
@@ -208,7 +214,7 @@ namespace ImageProcessorCore
         }
 
         /// <inheritdoc/>
-        public void PackBytes(byte x, byte y, byte z, byte w)
+        public void PackFromBytes(byte x, byte y, byte z, byte w)
         {
             this.R = x;
             this.G = y;

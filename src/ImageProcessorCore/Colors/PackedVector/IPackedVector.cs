@@ -9,20 +9,27 @@ namespace ImageProcessorCore
 
     /// <summary>
     /// An interface that converts packed vector types to and from <see cref="Vector4"/> values, 
-    /// allowing multiple encodings to be manipulated in a generic way.
+    /// allowing multiple encodings to be manipulated in a generic manner.
     /// </summary>
     /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
     public interface IPackedVector<TP> : IPackedVector
         where TP : struct
     {
         /// <summary>
-        /// Gets the packed representation of the value.
+        /// Directly gets the packed representation of the packed vector.
         /// Typically packed in least to greatest significance order.
         /// </summary>
         /// <returns>
         /// The <see cref="TP"/>.
         /// </returns>
-        TP PackedValue();
+        TP GetPackedValue();
+
+        /// <summary>
+        /// Directly sets the packed representation of the packed vector.
+        /// Typically packed in least to greatest significance order.
+        /// </summary>
+        /// <param name="value">The packed value.</param>
+        void SetPackedValue(TP value);
     }
 
     /// <summary>
@@ -33,17 +40,17 @@ namespace ImageProcessorCore
         /// <summary>
         /// Sets the packed representation from a <see cref="Vector4"/>.
         /// </summary>
-        /// <param name="vector">The vector to pack.</param>
-        void PackVector(Vector4 vector);
+        /// <param name="vector">The vector to create the packed representation from.</param>
+        void PackFromVector4(Vector4 vector);
 
         /// <summary>
-        /// Sets the packed representation from a <see cref="Vector4"/>.
+        /// Sets the packed representation from a <see cref="T:byte[]"/>.
         /// </summary>
-        /// <param name="x">The x-component.</param>
-        /// <param name="y">The y-component.</param>
-        /// <param name="z">The z-component.</param>
-        /// <param name="w">The w-component.</param>
-        void PackBytes(byte x, byte y, byte z, byte w);
+        /// <param name="x">The x-component to create the packed representation from.</param>
+        /// <param name="y">The y-component to create the packed representation from.</param>
+        /// <param name="z">The z-component to create the packed representation from.</param>
+        /// <param name="w">The w-component to create the packed representation from.</param>
+        void PackFromBytes(byte x, byte y, byte z, byte w);
 
         /// <summary>
         /// Expands the packed representation into a <see cref="Vector4"/>.

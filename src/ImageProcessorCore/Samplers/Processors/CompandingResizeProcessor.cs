@@ -124,7 +124,7 @@ namespace ImageProcessorCore.Processors
                             }
 
                             T d = default(T);
-                            d.PackVector(destination.Compress());
+                            d.PackFromVector4(destination.Compress());
                             firstPassPixels[x, y] = d;
                         }
                     });
@@ -151,7 +151,7 @@ namespace ImageProcessorCore.Processors
                             }
 
                             T d = default(T);
-                            d.PackVector(destination.Compress());
+                            d.PackFromVector4(destination.Compress());
                             targetPixels[x, y] = d;
                         }
 

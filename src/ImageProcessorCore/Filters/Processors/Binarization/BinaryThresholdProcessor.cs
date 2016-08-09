@@ -32,11 +32,11 @@ namespace ImageProcessorCore.Processors
             this.Value = threshold;
 
             T upper = default(T);
-            upper.PackVector(Color.White.ToVector4());
+            upper.PackFromVector4(Color.White.ToVector4());
             this.UpperColor = upper;
 
             T lower = default(T);
-            lower.PackVector(Color.Black.ToVector4());
+            lower.PackFromVector4(Color.Black.ToVector4());
             this.LowerColor = lower;
         }
 

@@ -47,7 +47,7 @@ namespace ImageProcessorCore.Quantizers
                 foreach (Color c in constants)
                 {
                     T packed = default(T);
-                    packed.PackVector(c.ToVector4());
+                    packed.PackFromVector4(c.ToVector4());
                     safe.Add(packed);
                 }
 

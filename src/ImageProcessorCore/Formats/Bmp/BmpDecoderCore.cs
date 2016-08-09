@@ -243,7 +243,7 @@ namespace ImageProcessorCore.Formats
 
                                 // Stored in b-> g-> r order.
                                 T packed = default(T);
-                                packed.PackBytes(colors[colorIndex + 2], colors[colorIndex + 1], colors[colorIndex], 255);
+                                packed.PackFromBytes(colors[colorIndex + 2], colors[colorIndex + 1], colors[colorIndex], 255);
                                 imageData[arrayOffset] = packed;
                             }
                         }
@@ -295,7 +295,7 @@ namespace ImageProcessorCore.Formats
 
                             // Stored in b-> g-> r order.
                             T packed = default(T);
-                            packed.PackBytes(r, g, b, 255);
+                            packed.PackFromBytes(r, g, b, 255);
                             imageData[arrayOffset] = packed;
                         }
                     });
@@ -336,7 +336,7 @@ namespace ImageProcessorCore.Formats
                             // We divide by 255 as we will store the colors in our floating point format.
                             // Stored in b-> g-> r-> a order.
                             T packed = default(T);
-                            packed.PackBytes(data[offset + 2], data[offset + 1], data[offset], 255);
+                            packed.PackFromBytes(data[offset + 2], data[offset + 1], data[offset], 255);
                             imageData[arrayOffset] = packed;
                         }
                     });
@@ -376,7 +376,7 @@ namespace ImageProcessorCore.Formats
 
                             // Stored in b-> g-> r-> a order.
                             T packed = default(T);
-                            packed.PackBytes(data[offset + 2], data[offset + 1], data[offset], data[offset + 3]);
+                            packed.PackFromBytes(data[offset + 2], data[offset + 1], data[offset], data[offset + 3]);
                             imageData[arrayOffset] = packed;
                         }
                     });

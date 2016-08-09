@@ -62,7 +62,7 @@ namespace ImageProcessorCore.Processors
                                     color *= alphaVector;
 
                                     T packed = default(T);
-                                    packed.PackVector(color);
+                                    packed.PackFromVector4(color);
                                     targetPixels[x, y] = packed;
                                 }
 

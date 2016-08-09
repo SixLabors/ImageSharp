@@ -23,7 +23,7 @@ namespace ImageProcessorCore.Processors
         /// </summary>
         public VignetteProcessor()
         {
-            this.VignetteColor.PackVector(Color.Black.ToVector4());
+            this.VignetteColor.PackFromVector4(Color.Black.ToVector4());
         }
 
         /// <summary>
@@ -67,7 +67,7 @@ namespace ImageProcessorCore.Processors
                                 Vector4 sourceColor = sourcePixels[x, y].ToVector4();
                                 Vector4 result = Vector4.Lerp(vignetteColor.ToVector4(), sourceColor, 1 - .9f * (distance / maxDistance));
                                 T packed = default(T);
-                                packed.PackVector(result);
+                                packed.PackFromVector4(result);
                                 targetPixels[x, y] = packed;
 
                             }

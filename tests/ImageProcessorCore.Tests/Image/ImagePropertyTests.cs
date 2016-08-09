@@ -5,6 +5,7 @@
 
 namespace ImageProcessorCore.Tests
 {
+    using System;
     using Xunit;
 
     /// <summary>
@@ -36,6 +37,7 @@ namespace ImageProcessorCore.Tests
             ImageProperty property1 = new ImageProperty("Foo", "Bar");
             ImageProperty property2 = new ImageProperty("Foo", "Foo");
             ImageProperty property3 = new ImageProperty("Bar", "Bar");
+            ImageProperty property4 = new ImageProperty("Foo", null);
 
             Assert.False(property1.Equals("Foo"));
 
@@ -45,8 +47,34 @@ namespace ImageProcessorCore.Tests
             Assert.True(property1 != property2);
 
             Assert.NotEqual(property1, property3);
-            Assert.True(property1 != property3);
+            Assert.NotEqual(property1, property4);
         }
 
+        /// <summary>
+        /// Tests whether the constructor throws an exception when the property name is null or empty.
+        /// </summary>
+        [Fact]
+        public void ConstructorThrowsWhenNameIsNullOrEmpty()
+        {
+            Exception ex = Record.Exception(() => new ImageProperty(null, "Foo"));
+            Assert.IsType<ArgumentNullException>(ex);
+
+            ex = Record.Exception(() => new ImageProperty(string.Empty, "Foo"));
+            Assert.IsType<ArgumentException>(ex);
+        }
+
+        /// <summary>
+        /// Tests whether the constructor correctly assigns properties.
+        /// </summary>
+        [Fact]
+        public void ConstructorAssignsProperties()
+        {
+            ImageProperty property = new ImageProperty("Foo", null);
+            Assert.Equal("Foo", property.Name);
+            Assert.Equal(null, property.Value);
+
+            property = new ImageProperty("Foo", string.Empty);
+            Assert.Equal(string.Empty, property.Value);
+        }
     }
 }

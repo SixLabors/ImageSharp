@@ -9,8 +9,7 @@ namespace ImageProcessorCore.Processors
 
     /// <summary>
     /// An <see cref="IImageProcessor{T,TP}"/> to perform binary threshold filtering against an 
-    /// <see cref="Image"/>. The image will be converted to Grayscale before thresholding 
-    /// occurs.
+    /// <see cref="Image"/>. The image will be converted to Grayscale before thresholding occurs.
     /// </summary>
     /// <typeparam name="T">The pixel format.</typeparam>
     /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>

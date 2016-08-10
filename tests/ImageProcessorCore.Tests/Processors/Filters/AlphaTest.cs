@@ -15,7 +15,7 @@ namespace ImageProcessorCore.Tests
         = new TheoryData<int>
         {
             20 ,
-            80 ,
+            80
         };
 
         [Theory]
@@ -38,6 +38,32 @@ namespace ImageProcessorCore.Tests
                     using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                     {
                         image.Alpha(value)
+                             .Save(output);
+                    }
+                }
+            }
+        }
+
+        [Theory]
+        [MemberData("AlphaValues")]
+        public void ImageShouldApplyAlphaFilterInBox(int value)
+        {
+            const string path = "TestOutput/Alpha";
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
+            }
+
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + value + "-InBox" + Path.GetExtension(file);
+
+                    Image image = new Image(stream);
+                    using (FileStream output = File.OpenWrite($"{path}/{filename}"))
+                    {
+                        image.Alpha(value, new Rectangle(10, 10, image.Width / 2, image.Height / 2))
                              .Save(output);
                     }
                 }

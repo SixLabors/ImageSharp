@@ -5,11 +5,12 @@
 
 namespace ImageProcessorCore.Processors
 {
+    using System;
     using System.Numerics;
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageProcessor{T,TP}"/> to change the Alpha of an <see cref="Image{T,TP}"/>.
+    /// An <see cref="IImageProcessor{T,TP}"/> to change the alpha component of an <see cref="Image{T,TP}"/>.
     /// </summary>
     /// <typeparam name="T">The pixel format.</typeparam>
     /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
@@ -38,38 +39,49 @@ namespace ImageProcessorCore.Processors
         /// <inheritdoc/>
         protected override void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-            float alpha = this.Value / 100f;
-            int sourceY = sourceRectangle.Y;
-            int sourceBottom = sourceRectangle.Bottom;
+            float alpha = this.Value / 100F;
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
+
+            // Align start/end positions.
+            int minX = Math.Max(0, startX);
+            int maxX = Math.Min(source.Width, endX);
+            int minY = Math.Max(0, startY);
+            int maxY = Math.Min(source.Height, endY);
+
+            // Reset offset if necessary.
+            if (minX > 0)
+            {
+                startX = 0;
+            }
+
+            if (minY > 0)
+            {
+                startY = 0;
+            }
+
             Vector4 alphaVector = new Vector4(1, 1, 1, alpha);
 
             using (IPixelAccessor<T, TP> sourcePixels = source.Lock())
             using (IPixelAccessor<T, TP> targetPixels = target.Lock())
             {
                 Parallel.For(
-                    startY,
-                    endY,
+                    minY,
+                    maxY,
                     this.ParallelOptions,
                     y =>
                         {
-                            if (y >= sourceY && y < sourceBottom)
+                            int offsetY = y - startY;
+                            for (int x = minX; x < maxX; x++)
                             {
-                                for (int x = startX; x < endX; x++)
-                                {
-                                    Vector4 color = sourcePixels[x, y].ToVector4();
-                                    color *= alphaVector;
-
-                                    T packed = default(T);
-                                    packed.PackFromVector4(color);
-                                    targetPixels[x, y] = packed;
-                                }
-
-                                this.OnRowProcessed();
+                                int offsetX = x - startX;
+                                T packed = default(T);
+                                packed.PackFromVector4(sourcePixels[offsetX, offsetY].ToVector4() * alphaVector);
+                                targetPixels[offsetX, offsetY] = packed;
                             }
-                        });
 
+                            this.OnRowProcessed();
+                        });
             }
         }
     }

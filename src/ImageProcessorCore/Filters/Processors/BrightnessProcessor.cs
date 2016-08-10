@@ -5,6 +5,7 @@
 
 namespace ImageProcessorCore.Processors
 {
+    using System;
     using System.Numerics;
     using System.Threading.Tasks;
 
@@ -18,7 +19,7 @@ namespace ImageProcessorCore.Processors
         where TP : struct
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="BrightnessProcessor"/> class.
+        /// Initializes a new instance of the <see cref="BrightnessProcessor{T,TP}"/> class.
         /// </summary>
         /// <param name="brightness">The new brightness of the image. Must be between -100 and 100.</param>
         /// <exception cref="ArgumentException">
@@ -38,39 +39,53 @@ namespace ImageProcessorCore.Processors
         /// <inheritdoc/>
         protected override void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-            float brightness = this.Value / 100f;
-            int sourceY = sourceRectangle.Y;
-            int sourceBottom = sourceRectangle.Bottom;
+            float brightness = this.Value / 100F;
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
+
+            // Align start/end positions.
+            int minX = Math.Max(0, startX);
+            int maxX = Math.Min(source.Width, endX);
+            int minY = Math.Max(0, startY);
+            int maxY = Math.Min(source.Height, endY);
+
+            // Reset offset if necessary.
+            if (minX > 0)
+            {
+                startX = 0;
+            }
+
+            if (minY > 0)
+            {
+                startY = 0;
+            }
 
             using (IPixelAccessor<T, TP> sourcePixels = source.Lock())
             using (IPixelAccessor<T, TP> targetPixels = target.Lock())
             {
                 Parallel.For(
-                    startY,
-                    endY,
+                    minY,
+                    maxY,
                     this.ParallelOptions,
                     y =>
                         {
-                            if (y >= sourceY && y < sourceBottom)
+                            int offsetY = y - startY;
+                            for (int x = minX; x < maxX; x++)
                             {
-                                for (int x = startX; x < endX; x++)
-                                {
-                                    // TODO: Check this with other formats.
-                                    Vector4 vector = sourcePixels[x, y].ToVector4().Expand();
-                                    Vector3 transformed = new Vector3(vector.X, vector.Y, vector.Z);
-                                    transformed += new Vector3(brightness);
-                                    vector = new Vector4(transformed, vector.W);
+                                int offsetX = x - startX;
 
-                                    T packed = default(T);
-                                    packed.PackFromVector4(vector.Compress());
+                                // TODO: Check this with other formats.
+                                Vector4 vector = sourcePixels[offsetX, offsetY].ToVector4().Expand();
+                                Vector3 transformed = new Vector3(vector.X, vector.Y, vector.Z) + new Vector3(brightness);
+                                vector = new Vector4(transformed, vector.W);
 
-                                    targetPixels[x, y] = packed;
-                                }
+                                T packed = default(T);
+                                packed.PackFromVector4(vector.Compress());
 
-                                this.OnRowProcessed();
+                                targetPixels[offsetX, offsetY] = packed;
                             }
+
+                            this.OnRowProcessed();
                         });
             }
         }

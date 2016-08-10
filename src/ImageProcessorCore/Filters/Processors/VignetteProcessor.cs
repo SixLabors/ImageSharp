@@ -10,7 +10,7 @@ namespace ImageProcessorCore.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// Creates a vignette effect on the image
+    /// An <see cref="IImageProcessor{T,TP}"/> that applies a radial vignette effect to an <see cref="Image{T,TP}"/>.
     /// </summary>
     /// <typeparam name="T">The pixel format.</typeparam>
     /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
@@ -19,11 +19,13 @@ namespace ImageProcessorCore.Processors
         where TP : struct
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="VignetteProcessor"/> class.
+        /// Initializes a new instance of the <see cref="VignetteProcessor{T,TP}"/> class.
         /// </summary>
         public VignetteProcessor()
         {
-            this.VignetteColor.PackFromVector4(Color.Black.ToVector4());
+            T color = default(T);
+            color.PackFromVector4(Color.Black.ToVector4());
+            this.VignetteColor = color;
         }
 
         /// <summary>
@@ -47,30 +49,48 @@ namespace ImageProcessorCore.Processors
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
             T vignetteColor = this.VignetteColor;
-            Vector2 centre = Rectangle.Center(targetRectangle).ToVector2();
-            float rX = this.RadiusX > 0 ? this.RadiusX : targetRectangle.Width / 2f;
-            float rY = this.RadiusY > 0 ? this.RadiusY : targetRectangle.Height / 2f;
-            float maxDistance = (float)Math.Sqrt(rX * rX + rY * rY);
+            Vector2 centre = Rectangle.Center(sourceRectangle).ToVector2();
+            float rX = this.RadiusX > 0 ? Math.Min(this.RadiusX, sourceRectangle.Width * .5F) : sourceRectangle.Width * .5F;
+            float rY = this.RadiusY > 0 ? Math.Min(this.RadiusY, sourceRectangle.Height * .5F) : sourceRectangle.Height * .5F;
+            float maxDistance = (float)Math.Sqrt((rX * rX) + (rY * rY));
+
+            // Align start/end positions.
+            int minX = Math.Max(0, startX);
+            int maxX = Math.Min(source.Width, endX);
+            int minY = Math.Max(0, startY);
+            int maxY = Math.Min(source.Height, endY);
+
+            // Reset offset if necessary.
+            if (minX > 0)
+            {
+                startX = 0;
+            }
+
+            if (minY > 0)
+            {
+                startY = 0;
+            }
 
             using (IPixelAccessor<T, TP> sourcePixels = source.Lock())
             using (IPixelAccessor<T, TP> targetPixels = target.Lock())
             {
                 Parallel.For(
-                    startY,
-                    endY,
+                    minY,
+                    maxY,
                     this.ParallelOptions,
                     y =>
                         {
-                            for (int x = startX; x < endX; x++)
+                            int offsetY = y - startY;
+                            for (int x = minX; x < maxX; x++)
                             {
-                                float distance = Vector2.Distance(centre, new Vector2(x, y));
-                                Vector4 sourceColor = sourcePixels[x, y].ToVector4();
-                                Vector4 result = Vector4.Lerp(vignetteColor.ToVector4(), sourceColor, 1 - .9f * (distance / maxDistance));
+                                int offsetX = x - startX;
+                                float distance = Vector2.Distance(centre, new Vector2(offsetX, offsetY));
+                                Vector4 sourceColor = sourcePixels[offsetX, offsetY].ToVector4();
                                 T packed = default(T);
-                                packed.PackFromVector4(result);
-                                targetPixels[x, y] = packed;
-
+                                packed.PackFromVector4(Vector4.Lerp(vignetteColor.ToVector4(), sourceColor, 1 - (.9F * (distance / maxDistance))));
+                                targetPixels[offsetX, offsetY] = packed;
                             }
+
                             this.OnRowProcessed();
                         });
             }

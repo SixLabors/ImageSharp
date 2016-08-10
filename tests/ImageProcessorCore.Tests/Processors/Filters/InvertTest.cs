@@ -34,5 +34,29 @@ namespace ImageProcessorCore.Tests
                 }
             }
         }
+
+        [Fact]
+        public void ImageShouldApplyInvertFilterInBox()
+        {
+            const string path = "TestOutput/Invert";
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
+            }
+
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    string filename = Path.GetFileNameWithoutExtension(file);
+                    Image image = new Image(stream);
+                    using (FileStream output = File.OpenWrite($"{path}/{filename}-InBox{Path.GetExtension(file)}"))
+                    {
+                        image.Invert(new Rectangle(10, 10, image.Width / 2, image.Height / 2))
+                             .Save(output);
+                    }
+                }
+            }
+        }
     }
 }

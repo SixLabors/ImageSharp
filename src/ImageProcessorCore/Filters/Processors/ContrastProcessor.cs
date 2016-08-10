@@ -5,11 +5,12 @@
 
 namespace ImageProcessorCore.Processors
 {
+    using System;
     using System.Numerics;
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageProcessor{T,TP}"/> to change the contrast of an <see cref="Image"/>.
+    /// An <see cref="IImageProcessor{T,TP}"/> to change the contrast of an <see cref="Image{T,TP}"/>.
     /// </summary>
     /// <typeparam name="T">The pixel format.</typeparam>
     /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
@@ -38,37 +39,53 @@ namespace ImageProcessorCore.Processors
         /// <inheritdoc/>
         protected override void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-            float contrast = (100f + this.Value) / 100f;
-            int sourceY = sourceRectangle.Y;
-            int sourceBottom = sourceRectangle.Bottom;
+            float contrast = (100F + this.Value) / 100F;
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
             Vector4 contrastVector = new Vector4(contrast, contrast, contrast, 1);
-            Vector4 shiftVector = new Vector4(.5f, .5f, .5f, 1);
+            Vector4 shiftVector = new Vector4(.5F, .5F, .5F, 1);
+
+            // Align start/end positions.
+            int minX = Math.Max(0, startX);
+            int maxX = Math.Min(source.Width, endX);
+            int minY = Math.Max(0, startY);
+            int maxY = Math.Min(source.Height, endY);
+
+            // Reset offset if necessary.
+            if (minX > 0)
+            {
+                startX = 0;
+            }
+
+            if (minY > 0)
+            {
+                startY = 0;
+            }
 
             using (IPixelAccessor<T, TP> sourcePixels = source.Lock())
             using (IPixelAccessor<T, TP> targetPixels = target.Lock())
             {
                 Parallel.For(
-                    startY,
-                    endY,
+                    minY,
+                    maxY,
                     this.ParallelOptions,
                     y =>
                         {
-                            if (y >= sourceY && y < sourceBottom)
+                            int offsetY = y - startY;
+                            for (int x = minX; x < maxX; x++)
                             {
-                                for (int x = startX; x < endX; x++)
-                                {
-                                    Vector4 vector = (sourcePixels[x, y]).ToVector4().Expand();
-                                    vector -= shiftVector;
-                                    vector *= contrastVector;
-                                    vector += shiftVector;
-                                    T packed = default(T);
-                                    packed.PackFromVector4(vector.Compress());
-                                    targetPixels[x, y] = packed;
-                                }
-                                this.OnRowProcessed();
+                                int offsetX = x - startX;
+
+                                Vector4 vector = sourcePixels[offsetX, offsetY].ToVector4().Expand();
+                                vector -= shiftVector;
+                                vector *= contrastVector;
+                                vector += shiftVector;
+                                T packed = default(T);
+                                packed.PackFromVector4(vector.Compress());
+                                targetPixels[offsetX, offsetY] = packed;
                             }
+
+                            this.OnRowProcessed();
                         });
             }
         }

@@ -5,6 +5,7 @@
 
 namespace ImageProcessorCore.Processors
 {
+    using System;
     using System.Numerics;
     using System.Threading.Tasks;
 
@@ -23,7 +24,7 @@ namespace ImageProcessorCore.Processors
         private readonly ImageBase<T, TP> blend;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="BlendProcessor"/> class.
+        /// Initializes a new instance of the <see cref="BlendProcessor{T,TP}"/> class.
         /// </summary>
         /// <param name="image">
         /// The image to blend with the currently processing image. 
@@ -45,48 +46,62 @@ namespace ImageProcessorCore.Processors
         /// <inheritdoc/>
         protected override void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-            int sourceY = sourceRectangle.Y;
-            int sourceBottom = sourceRectangle.Bottom;
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
             Rectangle bounds = this.blend.Bounds;
-            float alpha = this.Value / 100f;
+
+            // Align start/end positions.
+            int minX = Math.Max(0, startX);
+            int maxX = Math.Min(source.Width, endX);
+            int minY = Math.Max(0, startY);
+            int maxY = Math.Min(source.Height, endY);
+
+            // Reset offset if necessary.
+            if (minX > 0)
+            {
+                startX = 0;
+            }
+
+            if (minY > 0)
+            {
+                startY = 0;
+            }
+
+            float alpha = this.Value / 100F;
 
             using (IPixelAccessor<T, TP> toBlendPixels = this.blend.Lock())
             using (IPixelAccessor<T, TP> sourcePixels = source.Lock())
             using (IPixelAccessor<T, TP> targetPixels = target.Lock())
             {
                 Parallel.For(
-                    startY,
-                    endY,
+                    minY,
+                    maxY,
                     this.ParallelOptions,
                     y =>
                         {
-                            if (y >= sourceY && y < sourceBottom)
+                            int offsetY = y - startY;
+                            for (int x = minX; x < maxX; x++)
                             {
-                                for (int x = startX; x < endX; x++)
+                                int offsetX = x - startX;
+                                Vector4 color = sourcePixels[offsetX, offsetY].ToVector4();
+
+                                if (bounds.Contains(offsetX, offsetY))
                                 {
-                                    Vector4 color = sourcePixels[x, y].ToVector4();
+                                    Vector4 blendedColor = toBlendPixels[offsetX, offsetY].ToVector4();
 
-                                    if (bounds.Contains(x, y))
+                                    if (blendedColor.W > 0)
                                     {
-                                        Vector4 blendedColor = toBlendPixels[x, y].ToVector4();
-
-                                        if (blendedColor.W > 0)
-                                        {
-                                            // Lerping colors is dependent on the alpha of the blended color
-                                            float alphaFactor = alpha > 0 ? alpha : blendedColor.W;
-                                            color = Vector4.Lerp(color, blendedColor, alphaFactor);
-                                        }
+                                        // Lerping colors is dependent on the alpha of the blended color
+                                        color = Vector4.Lerp(color, blendedColor, alpha > 0 ? alpha : blendedColor.W);
                                     }
-
-                                    T packed = default(T);
-                                    packed.PackFromVector4(color);
-                                    targetPixels[x, y] = packed;
                                 }
 
-                                this.OnRowProcessed();
+                                T packed = default(T);
+                                packed.PackFromVector4(color);
+                                targetPixels[offsetX, offsetY] = packed;
                             }
+
+                            this.OnRowProcessed();
                         });
             }
         }

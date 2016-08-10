@@ -38,45 +38,60 @@ namespace ImageProcessorCore.Processors
         /// <inheritdoc/>
         protected override void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-            int sourceY = sourceRectangle.Y;
-            int sourceBottom = sourceRectangle.Bottom;
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
+
+            // Align start/end positions.
+            int minX = Math.Max(0, startX);
+            int maxX = Math.Min(source.Width, endX);
+            int minY = Math.Max(0, startY);
+            int maxY = Math.Min(source.Height, endY);
+
+            // Reset offset if necessary.
+            if (minX > 0)
+            {
+                startX = 0;
+            }
+
+            if (minY > 0)
+            {
+                startY = 0;
+            }
+
             Vector4 backgroundColor = this.Value.ToVector4();
 
             using (IPixelAccessor<T, TP> sourcePixels = source.Lock())
             using (IPixelAccessor<T, TP> targetPixels = target.Lock())
             {
                 Parallel.For(
-                    startY,
-                    endY,
+                    minY,
+                    maxY,
                     this.ParallelOptions,
                     y =>
                         {
-                            if (y >= sourceY && y < sourceBottom)
+                            int offsetY = y - startY;
+                            for (int x = minX; x < maxX; x++)
                             {
-                                for (int x = startX; x < endX; x++)
+                                int offsetX = x - startX;
+                                Vector4 color = sourcePixels[offsetX, offsetY].ToVector4();
+                                float a = color.W;
+
+                                if (a < 1 && a > 0)
                                 {
-                                    Vector4 color = sourcePixels[x, y].ToVector4();
-                                    float a = color.W;
-
-                                    if (a < 1 && a > 0)
-                                    {
-                                        color = Vector4.Lerp(color, backgroundColor, .5f);
-                                    }
-
-                                    if (Math.Abs(a) < Epsilon)
-                                    {
-                                        color = backgroundColor;
-                                    }
-
-                                    T packed = default(T);
-                                    packed.PackFromVector4(color);
-                                    targetPixels[x, y] = packed;
+                                    color = Vector4.Lerp(color, backgroundColor, .5F);
                                 }
 
-                                this.OnRowProcessed();
+                                if (Math.Abs(a) < Epsilon)
+                                {
+                                    color = backgroundColor;
+                                }
+
+                                T packed = default(T);
+                                packed.PackFromVector4(color);
+                                targetPixels[offsetX, offsetY] = packed;
                             }
+
+                            this.OnRowProcessed();
                         });
             }
         }

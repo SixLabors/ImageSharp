@@ -2,7 +2,6 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
-
 namespace ImageProcessorCore.Processors
 {
     using System.Numerics;
@@ -35,16 +34,18 @@ namespace ImageProcessorCore.Processors
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
-            processMatrix = Point.CreateRotation(new Point(0, 0), -this.Angle);
+            this.processMatrix = Point.CreateRotation(new Point(0, 0), -this.Angle);
             if (this.Expand)
             {
-                CreateNewTarget(target, sourceRectangle, processMatrix);
+                CreateNewTarget(target, sourceRectangle, this.processMatrix);
             }
         }
 
         /// <inheritdoc/>
         protected override void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
+            int height = target.Height;
+            int width = target.Width;
             Matrix3x2 matrix = GetCenteredMatrix(target, source, this.processMatrix);
 
             using (IPixelAccessor<T, TP> sourcePixels = source.Lock())
@@ -52,11 +53,11 @@ namespace ImageProcessorCore.Processors
             {
                 Parallel.For(
                     0,
-                    target.Height,
+                    height,
                     this.ParallelOptions,
                     y =>
                     {
-                        for (int x = 0; x < target.Width; x++)
+                        for (int x = 0; x < width; x++)
                         {
                             Point transformedPoint = Point.Rotate(new Point(x, y), matrix);
                             if (source.Bounds.Contains(transformedPoint.X, transformedPoint.Y))
@@ -65,7 +66,7 @@ namespace ImageProcessorCore.Processors
                             }
                         }
 
-                        OnRowProcessed();
+                        this.OnRowProcessed();
                     });
             }
         }

@@ -50,6 +50,8 @@ namespace ImageProcessorCore.Processors
         /// <inheritdoc/>
         protected override void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
+            int height = target.Height;
+            int width = target.Width;
             Matrix3x2 matrix = GetCenteredMatrix(target, source, this.processMatrix);
 
             using (IPixelAccessor<T, TP> sourcePixels = source.Lock())
@@ -57,11 +59,11 @@ namespace ImageProcessorCore.Processors
             {
                 Parallel.For(
                     0,
-                    target.Height,
+                    height,
                     this.ParallelOptions,
                     y =>
                         {
-                            for (int x = 0; x < target.Width; x++)
+                            for (int x = 0; x < width; x++)
                             {
                                 Point transformedPoint = Point.Skew(new Point(x, y), matrix);
                                 if (source.Bounds.Contains(transformedPoint.X, transformedPoint.Y))

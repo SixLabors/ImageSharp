@@ -24,7 +24,7 @@ namespace ImageProcessorCore.Processors
         private Rectangle cropRectangle;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="EntropyCropProcessor"/> class.
+        /// Initializes a new instance of the <see cref="EntropyCropProcessor{T,TP}"/> class.
         /// </summary>
         /// <param name="threshold">The threshold to split the image. Must be between 0 and 1.</param>
         /// <exception cref="ArgumentException">
@@ -74,21 +74,21 @@ namespace ImageProcessorCore.Processors
             int startX = this.cropRectangle.X;
             int endX = this.cropRectangle.Right;
 
+            int minY = Math.Max(targetY, startY);
+            int maxY = Math.Min(targetBottom, endY);
+
             using (IPixelAccessor<T, TP> sourcePixels = source.Lock())
             using (IPixelAccessor<T, TP> targetPixels = target.Lock())
             {
                 Parallel.For(
-                    startY,
-                    endY,
+                    minY,
+                    maxY,
                     this.ParallelOptions,
                     y =>
                         {
-                            if (y >= targetY && y < targetBottom)
+                            for (int x = startX; x < endX; x++)
                             {
-                                for (int x = startX; x < endX; x++)
-                                {
-                                    targetPixels[x - startX, y - targetY] = sourcePixels[x, y];
-                                }
+                                targetPixels[x - startX, y - targetY] = sourcePixels[x, y];
                             }
 
                             this.OnRowProcessed();

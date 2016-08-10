@@ -19,8 +19,6 @@ namespace ImageProcessorCore.Processors
         /// <summary>
         /// Creates a new target to contain the results of the matrix transform.
         /// </summary>
-        /// <typeparam name="T">The pixel format.</typeparam>
-        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="target">Target image to apply the process to.</param>
         /// <param name="sourceRectangle">The source rectangle.</param>
         /// <param name="processMatrix">The processing matrix.</param>
@@ -37,8 +35,6 @@ namespace ImageProcessorCore.Processors
         /// <summary>
         /// Gets a transform matrix adjusted to center upon the target image bounds.
         /// </summary>
-        /// <typeparam name="T">The pixel format.</typeparam>
-        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="target">Target image to apply the process to.</param>
         /// <param name="source">The source image.</param>
         /// <param name="matrix">The transform matrix.</param>
@@ -47,8 +43,8 @@ namespace ImageProcessorCore.Processors
         /// </returns>
         protected static Matrix3x2 GetCenteredMatrix(ImageBase<T, TP> target, ImageBase<T, TP> source, Matrix3x2 matrix)
         {
-            Matrix3x2 translationToTargetCenter = Matrix3x2.CreateTranslation(-target.Width / 2f, -target.Height / 2f);
-            Matrix3x2 translateToSourceCenter = Matrix3x2.CreateTranslation(source.Width / 2f, source.Height / 2f);
+            Matrix3x2 translationToTargetCenter = Matrix3x2.CreateTranslation(-target.Width * .5F, -target.Height * .5F);
+            Matrix3x2 translateToSourceCenter = Matrix3x2.CreateTranslation(source.Width * .5F, source.Height * .5F);
             return (translationToTargetCenter * matrix) * translateToSourceCenter;
         }
     }

@@ -18,7 +18,7 @@ namespace ImageProcessorCore.Processors
         where TP : struct
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="RotateFlipProcessor"/> class.
+        /// Initializes a new instance of the <see cref="RotateFlipProcessor{T,TP}"/> class.
         /// </summary>
         /// <param name="rotateType">The <see cref="RotateType"/> used to perform rotation.</param>
         /// <param name="flipType">The <see cref="FlipType"/> used to perform flipping.</param>
@@ -72,8 +72,6 @@ namespace ImageProcessorCore.Processors
         /// <summary>
         /// Rotates the image 270 degrees clockwise at the centre point.
         /// </summary>
-        /// <typeparam name="T">The pixel format.</typeparam>
-        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="target">The target image.</param>
         /// <param name="source">The source image.</param>
         private void Rotate270(ImageBase<T, TP> target, ImageBase<T, TP> source)
@@ -110,8 +108,6 @@ namespace ImageProcessorCore.Processors
         /// <summary>
         /// Rotates the image 180 degrees clockwise at the centre point.
         /// </summary>
-        /// <typeparam name="T">The pixel format.</typeparam>
-        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="target">The target image.</param>
         /// <param name="source">The source image.</param>
         private void Rotate180(ImageBase<T, TP> target, ImageBase<T, TP> source)
@@ -143,8 +139,6 @@ namespace ImageProcessorCore.Processors
         /// <summary>
         /// Rotates the image 90 degrees clockwise at the centre point.
         /// </summary>
-        /// <typeparam name="T">The pixel format.</typeparam>
-        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="target">The target image.</param>
         /// <param name="source">The source image.</param>
         private void Rotate90(ImageBase<T, TP> target, ImageBase<T, TP> source)
@@ -179,14 +173,12 @@ namespace ImageProcessorCore.Processors
         /// Swaps the image at the X-axis, which goes horizontally through the middle
         /// at half the height of the image.
         /// </summary>
-        /// <typeparam name="T">The pixel format.</typeparam>
-        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="target">Target image to apply the process to.</param>
         private void FlipX(ImageBase<T, TP> target)
         {
             int width = target.Width;
             int height = target.Height;
-            int halfHeight = (int)Math.Ceiling(target.Height * .5);
+            int halfHeight = (int)Math.Ceiling(target.Height * .5F);
             Image<T, TP> temp = new Image<T, TP>(width, height);
             temp.ClonePixels(width, height, target.Pixels);
 
@@ -215,14 +207,12 @@ namespace ImageProcessorCore.Processors
         /// Swaps the image at the Y-axis, which goes vertically through the middle
         /// at half of the width of the image.
         /// </summary>
-        /// <typeparam name="T">The pixel format.</typeparam>
-        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="target">Target image to apply the process to.</param>
         private void FlipY(ImageBase<T, TP> target)
         {
             int width = target.Width;
             int height = target.Height;
-            int halfWidth = (int)Math.Ceiling(width / 2d);
+            int halfWidth = (int)Math.Ceiling(width * .5F);
             Image<T, TP> temp = new Image<T, TP>(width, height);
             temp.ClonePixels(width, height, target.Pixels);
 

@@ -24,11 +24,7 @@ namespace ImageProcessorCore
         public static Vector4 Compress(this Vector4 linear)
         {
             // TODO: Is there a faster way to do this?
-            float r = Compress(linear.X);
-            float g = Compress(linear.Y);
-            float b = Compress(linear.Z);
-
-            return new Vector4(r, g, b, linear.W);
+            return new Vector4(Compress(linear.X), Compress(linear.Y), Compress(linear.Z), linear.W);
         }
 
         /// <summary>
@@ -41,11 +37,7 @@ namespace ImageProcessorCore
         public static Vector4 Expand(this Vector4 gamma)
         {
             // TODO: Is there a faster way to do this?
-            float r = Expand(gamma.X);
-            float g = Expand(gamma.Y);
-            float b = Expand(gamma.Z);
-
-            return new Vector4(r, g, b, gamma.W);
+            return new Vector4(Expand(gamma.X), Expand(gamma.Y), Expand(gamma.Z), gamma.W);
         }
 
         /// <summary>
@@ -60,12 +52,12 @@ namespace ImageProcessorCore
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static float Compress(float signal)
         {
-            if (signal <= 0.0031308f)
+            if (signal <= 0.0031308F)
             {
-                return signal * 12.92f;
+                return signal * 12.92F;
             }
 
-            return (1.055f * (float)Math.Pow(signal, 0.41666666f)) - 0.055f;
+            return (1.055F * (float)Math.Pow(signal, 0.41666666F)) - 0.055F;
         }
 
         /// <summary>
@@ -80,12 +72,12 @@ namespace ImageProcessorCore
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static float Expand(float signal)
         {
-            if (signal <= 0.04045f)
+            if (signal <= 0.04045F)
             {
-                return signal / 12.92f;
+                return signal / 12.92F;
             }
 
-            return (float)Math.Pow((signal + 0.055f) / 1.055f, 2.4f);
+            return (float)Math.Pow((signal + 0.055F) / 1.055F, 2.4F);
         }
     }
 }

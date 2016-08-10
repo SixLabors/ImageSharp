@@ -13,14 +13,14 @@
     "emitEntryPoint": true
   },
   "dependencies": {
-    "BenchmarkDotNet.Diagnostics.Windows": "0.9.8.78",
+    "BenchmarkDotNet.Diagnostics.Windows": "1.0.0",
     "ImageProcessorCore": "1.0.0-*"
   },
   "commands": {
     "ImageProcessorCore.Benchmarks": "ImageProcessorCore.Benchmarks"
   },
   "frameworks": {
-    "net451": {
+    "net461": {
       "dependencies": {
       },
       "frameworkAssemblies": {

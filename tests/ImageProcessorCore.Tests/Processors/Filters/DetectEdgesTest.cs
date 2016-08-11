@@ -49,5 +49,30 @@ namespace ImageProcessorCore.Tests
                 }
             }
         }
+
+        [Theory]
+        [MemberData("DetectEdgesFilters")]
+        public void ImageShouldApplyDetectEdgesFilterInBox(EdgeDetection detector)
+        {
+            const string path = "TestOutput/DetectEdges";
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
+            }
+
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + detector + "-InBox" + Path.GetExtension(file);
+                    Image image = new Image(stream);
+                    using (FileStream output = File.OpenWrite($"{path}/{filename}"))
+                    {
+                        image.DetectEdges(detector, new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2))
+                             .Save(output);
+                    }
+                }
+            }
+        }
     }
 }

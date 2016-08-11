@@ -13,7 +13,7 @@ namespace ImageProcessorCore
     public static partial class ImageExtensions
     {
         /// <summary>
-        /// Detects any edges within the image. Uses the <see cref="SobelProcessor"/> filter
+        /// Detects any edges within the image. Uses the <see cref="SobelProcessor{T,TP}"/> filter
         /// operating in Grayscale mode.
         /// </summary>
         /// <typeparam name="T">The pixel format.</typeparam>
@@ -29,16 +29,55 @@ namespace ImageProcessorCore
         }
 
         /// <summary>
+        /// Detects any edges within the image. Uses the <see cref="SobelProcessor{T,TP}"/> filter
+        /// operating in Grayscale mode.
+        /// </summary>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="rectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
+        /// </param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
+        /// <returns>The <see cref="Image{T,TP}"/>.</returns>
+        public static Image<T, TP> DetectEdges<T, TP>(this Image<T, TP> source, Rectangle rectangle, ProgressEventHandler progressHandler = null)
+            where T : IPackedVector<TP>
+            where TP : struct
+        {
+            return DetectEdges(source, rectangle, new SobelProcessor<T, TP> { Grayscale = true }, progressHandler);
+        }
+
+        /// <summary>
         /// Detects any edges within the image.
         /// </summary>
         /// <typeparam name="T">The pixel format.</typeparam>
         /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="filter">The filter for detecting edges.</param>
-        /// <param name="Grayscale">Whether to convert the image to Grayscale first. Defaults to true.</param>
+        /// <param name="grayscale">Whether to convert the image to Grayscale first. Defaults to true.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image{T,TP}"/>.</returns>
-        public static Image<T, TP> DetectEdges<T, TP>(this Image<T, TP> source, EdgeDetection filter, bool Grayscale = true, ProgressEventHandler progressHandler = null)
+        public static Image<T, TP> DetectEdges<T, TP>(this Image<T, TP> source, EdgeDetection filter, bool grayscale = true, ProgressEventHandler progressHandler = null)
+            where T : IPackedVector<TP>
+            where TP : struct
+        {
+            return DetectEdges(source, filter, source.Bounds, grayscale, progressHandler);
+        }
+
+        /// <summary>
+        /// Detects any edges within the image.
+        /// </summary>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="filter">The filter for detecting edges.</param>
+        /// <param name="rectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
+        /// </param>
+        /// <param name="grayscale">Whether to convert the image to Grayscale first. Defaults to true.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
+        /// <returns>The <see cref="Image{T,TP}"/>.</returns>
+        public static Image<T, TP> DetectEdges<T, TP>(this Image<T, TP> source, EdgeDetection filter, Rectangle rectangle, bool grayscale = true, ProgressEventHandler progressHandler = null)
             where T : IPackedVector<TP>
             where TP : struct
         {
@@ -47,43 +86,43 @@ namespace ImageProcessorCore
             switch (filter)
             {
                 case EdgeDetection.Kayyali:
-                    processor = new KayyaliProcessor<T, TP> { Grayscale = Grayscale };
+                    processor = new KayyaliProcessor<T, TP> { Grayscale = grayscale };
                     break;
 
                 case EdgeDetection.Kirsch:
-                    processor = new KirschProcessor<T, TP> { Grayscale = Grayscale };
+                    processor = new KirschProcessor<T, TP> { Grayscale = grayscale };
                     break;
 
                 case EdgeDetection.Lapacian3X3:
-                    processor = new Laplacian3X3Processor<T, TP> { Grayscale = Grayscale };
+                    processor = new Laplacian3X3Processor<T, TP> { Grayscale = grayscale };
                     break;
 
                 case EdgeDetection.Lapacian5X5:
-                    processor = new Laplacian5X5Processor<T, TP> { Grayscale = Grayscale };
+                    processor = new Laplacian5X5Processor<T, TP> { Grayscale = grayscale };
                     break;
 
                 case EdgeDetection.LaplacianOfGaussian:
-                    processor = new LaplacianOfGaussianProcessor<T, TP> { Grayscale = Grayscale };
+                    processor = new LaplacianOfGaussianProcessor<T, TP> { Grayscale = grayscale };
                     break;
 
                 case EdgeDetection.Prewitt:
-                    processor = new PrewittProcessor<T, TP> { Grayscale = Grayscale };
+                    processor = new PrewittProcessor<T, TP> { Grayscale = grayscale };
                     break;
 
                 case EdgeDetection.RobertsCross:
-                    processor = new RobertsCrossProcessor<T, TP> { Grayscale = Grayscale };
+                    processor = new RobertsCrossProcessor<T, TP> { Grayscale = grayscale };
                     break;
 
                 case EdgeDetection.Scharr:
-                    processor = new ScharrProcessor<T, TP> { Grayscale = Grayscale };
+                    processor = new ScharrProcessor<T, TP> { Grayscale = grayscale };
                     break;
 
                 default:
-                    processor = new ScharrProcessor<T, TP> { Grayscale = Grayscale };
+                    processor = new ScharrProcessor<T, TP> { Grayscale = grayscale };
                     break;
             }
 
-            return DetectEdges(source, source.Bounds, processor, progressHandler);
+            return DetectEdges(source, rectangle, processor, progressHandler);
         }
 
         /// <summary>
@@ -105,6 +144,8 @@ namespace ImageProcessorCore
         /// <summary>
         /// Detects any edges within the image.
         /// </summary>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.

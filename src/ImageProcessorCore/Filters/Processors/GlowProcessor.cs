@@ -24,7 +24,7 @@ namespace ImageProcessorCore.Processors
         public GlowProcessor()
         {
             T color = default(T);
-            color.PackFromVector4(Color.White.ToVector4());
+            color.PackFromVector4(Color.Black.ToVector4());
             this.GlowColor = color;
         }
 
@@ -34,14 +34,9 @@ namespace ImageProcessorCore.Processors
         public T GlowColor { get; set; }
 
         /// <summary>
-        /// Gets or sets the the x-radius.
+        /// Gets or sets the the radius.
         /// </summary>
-        public float RadiusX { get; set; }
-
-        /// <summary>
-        /// Gets or sets the the y-radius.
-        /// </summary>
-        public float RadiusY { get; set; }
+        public float Radius { get; set; }
 
         /// <inheritdoc/>
         protected override void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
@@ -50,9 +45,8 @@ namespace ImageProcessorCore.Processors
             int endX = sourceRectangle.Right;
             T glowColor = this.GlowColor;
             Vector2 centre = Rectangle.Center(sourceRectangle).ToVector2();
-            float rX = this.RadiusX > 0 ? Math.Min(this.RadiusX, sourceRectangle.Width * .5F) : sourceRectangle.Width * .5F;
-            float rY = this.RadiusY > 0 ? Math.Min(this.RadiusY, sourceRectangle.Height * .5F) : sourceRectangle.Height * .5F;
-            float maxDistance = (float)Math.Sqrt((rX * rX) + (rY * rY));
+            float maxDistance = this.Radius > 0 ? Math.Min(this.Radius, sourceRectangle.Width * .5F) : sourceRectangle.Width * .5F;
+            Ellipse ellipse = new Ellipse(new Point(centre), maxDistance, maxDistance);
 
             // Align start/end positions.
             int minX = Math.Max(0, startX);
@@ -84,13 +78,15 @@ namespace ImageProcessorCore.Processors
                             for (int x = minX; x < maxX; x++)
                             {
                                 int offsetX = x - startX;
-
-                                // TODO: Premultiply?
-                                float distance = Vector2.Distance(centre, new Vector2(offsetX, offsetY));
-                                Vector4 sourceColor = sourcePixels[offsetX, offsetY].ToVector4();
-                                T packed = default(T);
-                                packed.PackFromVector4(Vector4.Lerp(glowColor.ToVector4(), sourceColor, .5F * (distance / maxDistance)));
-                                targetPixels[offsetX, offsetY] = packed;
+                                if (ellipse.Contains(offsetX, offsetY))
+                                {
+                                    // TODO: Premultiply?
+                                    float distance = Vector2.Distance(centre, new Vector2(offsetX, offsetY));
+                                    Vector4 sourceColor = sourcePixels[offsetX, offsetY].ToVector4();
+                                    T packed = default(T);
+                                    packed.PackFromVector4(Vector4.Lerp(glowColor.ToVector4(), sourceColor, distance / maxDistance));
+                                    targetPixels[offsetX, offsetY] = packed;
+                                }
                             }
 
                             this.OnRowProcessed();

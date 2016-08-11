@@ -37,18 +37,12 @@ namespace ImageProcessorCore.Processors
         protected override void AfterApply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
             T packedV = default(T);
-            packedV.PackFromBytes(102, 34, 0, 255);
+            packedV.PackFromBytes(102, 34, 0, 255); // Very dark orange [Brown tone]
             new VignetteProcessor<T, TP> { VignetteColor = packedV }.Apply(target, target, targetRectangle);
 
             T packedG = default(T);
-            packedG.PackFromBytes(255, 153, 102, 178);
-            new GlowProcessor<T, TP>
-            {
-                GlowColor = packedG,
-                RadiusX = target.Width / 4f,
-                RadiusY = target.Width / 4f
-            }
-            .Apply(target, target, targetRectangle);
+            packedG.PackFromBytes(255, 153, 102, 178); // Light orange
+            new GlowProcessor<T, TP> { GlowColor = packedG, Radius = target.Width / 4F }.Apply(target, target, targetRectangle);
         }
     }
 }

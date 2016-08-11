@@ -24,7 +24,7 @@ namespace ImageProcessorCore
             where T : IPackedVector<TP>
             where TP : struct
         {
-            return Glow(source, default(T), source.Bounds.Width * .5F, source.Bounds.Height * .5F, source.Bounds, progressHandler);
+            return Glow(source, default(T), source.Bounds.Width * .5F, source.Bounds, progressHandler);
         }
 
         /// <summary>
@@ -40,7 +40,7 @@ namespace ImageProcessorCore
             where T : IPackedVector<TP>
             where TP : struct
         {
-            return Glow(source, color, source.Bounds.Width * .5F, source.Bounds.Height * .5F, source.Bounds, progressHandler);
+            return Glow(source, color, source.Bounds.Width * .5F, source.Bounds, progressHandler);
         }
 
         /// <summary>
@@ -49,15 +49,14 @@ namespace ImageProcessorCore
         /// <typeparam name="T">The pixel format.</typeparam>
         /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
-        /// <param name="radiusX">The the x-radius.</param>
-        /// <param name="radiusY">The the y-radius.</param>
+        /// <param name="radius">The the radius.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image{T,TP}"/>.</returns>
-        public static Image<T, TP> Glow<T, TP>(this Image<T, TP> source, float radiusX, float radiusY, ProgressEventHandler progressHandler = null)
+        public static Image<T, TP> Glow<T, TP>(this Image<T, TP> source, float radius, ProgressEventHandler progressHandler = null)
             where T : IPackedVector<TP>
             where TP : struct
         {
-            return Glow(source, default(T), radiusX, radiusY, source.Bounds, progressHandler);
+            return Glow(source, default(T), radius, source.Bounds, progressHandler);
         }
 
         /// <summary>
@@ -75,7 +74,7 @@ namespace ImageProcessorCore
             where T : IPackedVector<TP>
             where TP : struct
         {
-            return Glow(source, default(T), 0, 0, rectangle, progressHandler);
+            return Glow(source, default(T), 0, rectangle, progressHandler);
         }
 
         /// <summary>
@@ -85,18 +84,17 @@ namespace ImageProcessorCore
         /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="color">The color to set as the glow.</param>
-        /// <param name="radiusX">The the x-radius.</param>
-        /// <param name="radiusY">The the y-radius.</param>
+        /// <param name="radius">The the radius.</param>
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image{T,TP}"/>.</returns>
-        public static Image<T, TP> Glow<T, TP>(this Image<T, TP> source, T color, float radiusX, float radiusY, Rectangle rectangle, ProgressEventHandler progressHandler = null)
+        public static Image<T, TP> Glow<T, TP>(this Image<T, TP> source, T color, float radius, Rectangle rectangle, ProgressEventHandler progressHandler = null)
             where T : IPackedVector<TP>
             where TP : struct
         {
-            GlowProcessor<T, TP> processor = new GlowProcessor<T, TP> { RadiusX = radiusX, RadiusY = radiusY };
+            GlowProcessor<T, TP> processor = new GlowProcessor<T, TP> { Radius = radius, };
 
             if (!color.Equals(default(T)))
             {

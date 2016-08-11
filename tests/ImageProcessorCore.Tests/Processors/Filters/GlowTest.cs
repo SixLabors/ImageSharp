@@ -76,7 +76,7 @@ namespace ImageProcessorCore.Tests
                     Image image = new Image(stream);
                     using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                     {
-                        image.Glow(image.Width / 4, image.Height / 4)
+                        image.Glow(image.Width / 4)
                              .Save(output);
                     }
                 }

@@ -34,5 +34,29 @@ namespace ImageProcessorCore.Tests
                 }
             }
         }
+
+        [Fact]
+        public void ImageShouldApplyLomographFilterInBox()
+        {
+            const string path = "TestOutput/Lomograph";
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
+            }
+
+            foreach (string file in Files)
+            {
+                using (FileStream stream = File.OpenRead(file))
+                {
+                    string filename = Path.GetFileNameWithoutExtension(file) + "-InBox" + Path.GetExtension(file);
+                    Image image = new Image(stream);
+                    using (FileStream output = File.OpenWrite($"{path}/{filename}"))
+                    {
+                        image.Lomograph(new Rectangle(image.Width / 4, image.Width / 4, image.Width / 2, image.Height / 2))
+                             .Save(output);
+                    }
+                }
+            }
+        }
     }
 }

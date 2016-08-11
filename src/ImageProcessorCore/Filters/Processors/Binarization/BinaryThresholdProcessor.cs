@@ -5,11 +5,12 @@
 
 namespace ImageProcessorCore.Processors
 {
+    using System;
     using System.Threading.Tasks;
 
     /// <summary>
     /// An <see cref="IImageProcessor{T,TP}"/> to perform binary threshold filtering against an 
-    /// <see cref="Image"/>. The image will be converted to Grayscale before thresholding occurs.
+    /// <see cref="Image"/>. The image will be converted to grayscale before thresholding occurs.
     /// </summary>
     /// <typeparam name="T">The pixel format.</typeparam>
     /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
@@ -18,7 +19,7 @@ namespace ImageProcessorCore.Processors
         where TP : struct
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ThresholdProcessor"/> class.
+        /// Initializes a new instance of the <see cref="BinaryThresholdProcessor{T,TP}"/> class.
         /// </summary>
         /// <param name="threshold">The threshold to split the image. Must be between 0 and 1.</param>
         /// <exception cref="ArgumentException">
@@ -45,12 +46,12 @@ namespace ImageProcessorCore.Processors
         public float Value { get; }
 
         /// <summary>
-        /// The color to use for pixels that are above the threshold.
+        /// Gets or sets the color to use for pixels that are above the threshold.
         /// </summary>
         public T UpperColor { get; set; }
 
         /// <summary>
-        /// The color to use for pixels that fall below the threshold.
+        /// Gets or sets the color to use for pixels that fall below the threshold.
         /// </summary>
         public T LowerColor { get; set; }
 
@@ -63,38 +64,50 @@ namespace ImageProcessorCore.Processors
         /// <inheritdoc/>
         protected override void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-            // target.SetPixels(source.Width, source.Height, source.Pixels);
-
-
             float threshold = this.Value;
             T upper = this.UpperColor;
             T lower = this.LowerColor;
-            int sourceY = sourceRectangle.Y;
-            int sourceBottom = sourceRectangle.Bottom;
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
+
+            // Align start/end positions.
+            int minX = Math.Max(0, startX);
+            int maxX = Math.Min(source.Width, endX);
+            int minY = Math.Max(0, startY);
+            int maxY = Math.Min(source.Height, endY);
+
+            // Reset offset if necessary.
+            if (minX > 0)
+            {
+                startX = 0;
+            }
+
+            if (minY > 0)
+            {
+                startY = 0;
+            }
 
             using (IPixelAccessor<T, TP> sourcePixels = source.Lock())
             using (IPixelAccessor<T, TP> targetPixels = target.Lock())
             {
                 Parallel.For(
-                startY,
-                endY,
-                this.ParallelOptions,
-                y =>
-                    {
-                        if (y >= sourceY && y < sourceBottom)
+                    minY,
+                    maxY,
+                    this.ParallelOptions,
+                    y =>
                         {
-                            for (int x = startX; x < endX; x++)
+                            int offsetY = y - startY;
+                            for (int x = minX; x < maxX; x++)
                             {
-                                T color = sourcePixels[x, y];
+                                int offsetX = x - startX;
+                                T color = sourcePixels[offsetX, offsetY];
 
                                 // Any channel will do since it's Grayscale.
-                                targetPixels[x, y] = color.ToVector4().X >= threshold ? upper : lower;
+                                targetPixels[offsetX, offsetY] = color.ToVector4().X >= threshold ? upper : lower;
                             }
+
                             this.OnRowProcessed();
-                        }
-                    });
+                        });
             }
         }
     }

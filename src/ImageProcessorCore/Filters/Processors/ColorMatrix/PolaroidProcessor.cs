@@ -38,11 +38,11 @@ namespace ImageProcessorCore.Processors
         {
             T packedV = default(T);
             packedV.PackFromBytes(102, 34, 0, 255); // Very dark orange [Brown tone]
-            new VignetteProcessor<T, TP> { VignetteColor = packedV }.Apply(target, target, targetRectangle);
+            new VignetteProcessor<T, TP> { VignetteColor = packedV }.Apply(target, target, sourceRectangle);
 
             T packedG = default(T);
             packedG.PackFromBytes(255, 153, 102, 178); // Light orange
-            new GlowProcessor<T, TP> { GlowColor = packedG, Radius = target.Width / 4F }.Apply(target, target, targetRectangle);
+            new GlowProcessor<T, TP> { GlowColor = packedG, Radius = target.Width / 4F }.Apply(target, target, sourceRectangle);
         }
     }
 }

@@ -32,7 +32,7 @@ namespace ImageProcessorCore.Processors
         {
             T packed = default(T);
             packed.PackFromBytes(0, 10, 0, 255); // Very dark (mostly black) lime green.
-            new VignetteProcessor<T, TP> { VignetteColor = packed }.Apply(target, target, targetRectangle);
+            new VignetteProcessor<T, TP> { VignetteColor = packed }.Apply(target, target, sourceRectangle);
         }
     }
 }

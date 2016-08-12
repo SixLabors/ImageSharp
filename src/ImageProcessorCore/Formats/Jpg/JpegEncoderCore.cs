@@ -430,7 +430,7 @@ namespace ImageProcessorCore.Formats
 
         // Encode writes the Image m to w in JPEG 4:2:0 baseline format with the given
         // options. Default parameters are used if a nil *Options is passed.
-        public void Encode<T, TP>(ImageBase<T, TP> image, Stream stream, int quality, JpegSubsample sample)
+        public void Encode<T, TP>(Image<T, TP> image, Stream stream, int quality, JpegSubsample sample)
             where T : IPackedVector<TP>
             where TP : struct
         {
@@ -488,8 +488,8 @@ namespace ImageProcessorCore.Formats
             int componentCount = 3;
 
             // Write the Start Of Image marker.
-            double densityX = ((Image<T, TP>)image).HorizontalResolution;
-            double densityY = ((Image<T, TP>)image).VerticalResolution;
+            double densityX = image.HorizontalResolution;
+            double densityY = image.VerticalResolution;
 
             WriteApplicationHeader((short)densityX, (short)densityY);
 

@@ -40,20 +40,18 @@ namespace ImageProcessorCore.Formats
         public IQuantizer Quantizer { get; set; }
 
         /// <summary>
-        /// Encodes the image to the specified stream from the <see cref="ImageBase{T,TP}"/>.
+        /// Encodes the image to the specified stream from the <see cref="Image{T,TP}"/>.
         /// </summary>
         /// <typeparam name="T">The pixel format.</typeparam>
         /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
-        /// <param name="imageBase">The <see cref="ImageBase{T,TP}"/> to encode from.</param>
+        /// <param name="image">The <see cref="Image{T,TP}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
-        public void Encode<T, TP>(ImageBase<T, TP> imageBase, Stream stream)
+        public void Encode<T, TP>(Image<T, TP> image, Stream stream)
             where T : IPackedVector<TP>
             where TP : struct
         {
-            Guard.NotNull(imageBase, nameof(imageBase));
+            Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
-
-            Image<T, TP> image = (Image<T, TP>)imageBase;
 
             if (this.Quantizer == null)
             {
@@ -64,7 +62,7 @@ namespace ImageProcessorCore.Formats
             EndianBinaryWriter writer = new EndianBinaryWriter(EndianBitConverter.Little, stream);
 
             // Ensure that quality can be set but has a fallback.
-            int quality = this.Quality > 0 ? this.Quality : imageBase.Quality;
+            int quality = this.Quality > 0 ? this.Quality : image.Quality;
             this.Quality = quality > 0 ? quality.Clamp(1, 256) : 256;
 
             // Get the number of bits.
@@ -80,7 +78,7 @@ namespace ImageProcessorCore.Formats
             this.WriteLogicalScreenDescriptor(image, writer, quantized.TransparentIndex);
 
             // Write the first frame.
-            this.WriteGraphicalControlExtension(imageBase, writer, quantized.TransparentIndex);
+            this.WriteGraphicalControlExtension(image, writer, quantized.TransparentIndex);
             this.WriteImageDescriptor(image, writer);
             this.WriteColorTable(quantized, writer);
             this.WriteImageData(quantized, writer);

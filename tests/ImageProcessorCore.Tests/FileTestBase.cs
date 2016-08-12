@@ -19,21 +19,21 @@ namespace ImageProcessorCore.Tests
         /// </summary>
         protected static readonly List<string> Files = new List<string>
         {
-            //"TestImages/Formats/Png/pl.png",
-            //"TestImages/Formats/Png/pd.png",
-            //"TestImages/Formats/Jpg/Floorplan.jpeg", // Perf: Enable for local testing only
-            "TestImages/Formats/Jpg/Calliphora.jpg",
-            //"TestImages/Formats/Jpg/turtle.jpg",
-            //"TestImages/Formats/Jpg/fb.jpg", // Perf: Enable for local testing only
-            //"TestImages/Formats/Jpg/progress.jpg", // Perf: Enable for local testing only
-            //"TestImages/Formats/Jpg/gamma_dalai_lama_gray.jpg", // Perf: Enable for local testing only
-            "TestImages/Formats/Bmp/Car.bmp",
-            // "TestImages/Formats/Bmp/neg_height.bmp", // Perf: Enable for local testing only
-            //"TestImages/Formats/Png/blur.png", // Perf: Enable for local testing only
-            //"TestImages/Formats/Png/indexed.png", // Perf: Enable for local testing only
-            "TestImages/Formats/Png/splash.png",
-            "TestImages/Formats/Gif/rings.gif",
-            //"TestImages/Formats/Gif/giphy.gif" // Perf: Enable for local testing only
+            //TestImages.Png.P1,
+            //TestImages.Png.Pd,
+            //TestImages.Jpg.Floorplan, // Perf: Enable for local testing only
+            TestImages.Jpg.Calliphora,
+            //TestImages.Jpg.Turtle,
+            //TestImages.Jpg.Fb, // Perf: Enable for local testing only
+            //TestImages.Jpg.Progress, // Perf: Enable for local testing only
+            //TestImages.Jpg.Gamma_dalai_lama_gray. // Perf: Enable for local testing only
+            TestImages.Bmp.Car,
+            //TestImages.Bmp.Neg_height, // Perf: Enable for local testing only
+            //TestImages.Png.Blur, // Perf: Enable for local testing only
+            //TestImages.Png.Indexed, // Perf: Enable for local testing only
+            TestImages.Png.Splash,
+            TestImages.Gif.Rings,
+            //TestImages.Gif.Giphy // Perf: Enable for local testing only
         };
 
         protected void ProgressUpdate(object sender, ProgressEventArgs e)

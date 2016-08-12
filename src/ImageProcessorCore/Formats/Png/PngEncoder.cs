@@ -67,7 +67,7 @@ namespace ImageProcessorCore.Formats
         }
 
         /// <inheritdoc/>
-        public void Encode<T, TP>(ImageBase<T, TP> image, Stream stream)
+        public void Encode<T, TP>(Image<T, TP> image, Stream stream)
         where T : IPackedVector<TP>
         where TP : struct
         {

@@ -24,7 +24,7 @@ namespace ImageProcessorCore
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
         /// <exception cref="ArgumentNullException">Thrown if the stream is null.</exception>
-        public static void SaveAsBmp<T, TP>(this ImageBase<T, TP> source, Stream stream)
+        public static void SaveAsBmp<T, TP>(this Image<T, TP> source, Stream stream)
             where T : IPackedVector<TP>
             where TP : struct
             => new BmpEncoder().Encode(source, stream);
@@ -41,7 +41,7 @@ namespace ImageProcessorCore
         /// Anything equal to 256 and below will cause the encoder to save the image in an indexed format.
         /// </param>
         /// <exception cref="ArgumentNullException">Thrown if the stream is null.</exception>
-        public static void SaveAsPng<T, TP>(this ImageBase<T, TP> source, Stream stream, int quality = int.MaxValue)
+        public static void SaveAsPng<T, TP>(this Image<T, TP> source, Stream stream, int quality = int.MaxValue)
             where T : IPackedVector<TP>
             where TP : struct
             => new PngEncoder { Quality = quality }.Encode(source, stream);
@@ -55,7 +55,7 @@ namespace ImageProcessorCore
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="quality">The quality to save the image to. Between 1 and 100.</param>
         /// <exception cref="ArgumentNullException">Thrown if the stream is null.</exception>
-        public static void SaveAsJpeg<T, TP>(this ImageBase<T, TP> source, Stream stream, int quality = 75)
+        public static void SaveAsJpeg<T, TP>(this Image<T, TP> source, Stream stream, int quality = 75)
             where T : IPackedVector<TP>
             where TP : struct
             => new JpegEncoder { Quality = quality }.Encode(source, stream);
@@ -69,7 +69,7 @@ namespace ImageProcessorCore
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="quality">The quality to save the image to representing the number of colors. Between 1 and 256.</param>
         /// <exception cref="ArgumentNullException">Thrown if the stream is null.</exception>
-        internal static void SaveAsGif<T, TP>(this ImageBase<T, TP> source, Stream stream, int quality = 256)
+        internal static void SaveAsGif<T, TP>(this Image<T, TP> source, Stream stream, int quality = 256)
             where T : IPackedVector<TP>
             where TP : struct
             => new GifEncoder { Quality = quality }.Encode(source, stream);

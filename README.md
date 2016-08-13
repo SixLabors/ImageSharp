@@ -10,8 +10,6 @@
 > For the older `ImageFactory` based API that uses `System.Drawing` please check out the [Framework](https://github.com/JimBobSquarePants/ImageProcessor/tree/Framework) branch.
 
 
-
-
 [![Build status](https://ci.appveyor.com/api/projects/status/8ypr7527dnao04yr/branch/Core?svg=true)](https://ci.appveyor.com/project/JamesSouth/imageprocessor/branch/Core)
 [![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/JimBobSquarePants/ImageProcessor?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
@@ -58,12 +56,14 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
  - [x] Png (Read: TrueColor, Grayscale, Indexed. Write: True color, Indexed just now)
  - [x] Gif (Includes animated)
  - [ ] Tiff
+- Metadata
+ - [x] EXIF Read/Write (Jpeg just now)
 - Quantizers (IQuantizer with alpha channel support + thresholding)
  - [x] Octree
  - [x] Xiaolin Wu
  - [x] Palette
-- Basic color structs with implicit operators. Vector backed. [#260](https://github.com/JimBobSquarePants/ImageProcessor/issues/260)
- - [x] Color - Float based, premultiplied alpha, No limit to r, g, b, a values allowing for a fuller color range.
+- Basic color structs with implicit operators. [#260](https://github.com/JimBobSquarePants/ImageProcessor/issues/260)
+ - [x] Color - 32bit color in RGBA order.
  - [x] BGRA32
  - [x] CIE Lab
  - [x] CIE XYZ
@@ -102,7 +102,7 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
 - Rotation/Skew
  - [x] Flip (90, 270, FlipType etc)
  - [x] Rotate by angle and center point (Expandable canvas).
- - [x] Skew by x/y angles and center point.
+ - [x] Skew by x/y angles and center point (Expandable canvas).
 - ColorMatrix operations (Uses Matrix4x4)
  - [x] BlackWhite
  - [x] Grayscale BT709
@@ -152,8 +152,6 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
  - [ ] Pattern brush (Need help) [#264](https://github.com/JimBobSquarePants/ImageProcessor/issues/264)
  - [ ] Elliptical brush (Need help) [#264](https://github.com/JimBobSquarePants/ImageProcessor/issues/264)
  - [ ] Gradient brush (vignette? Need help) [#264](https://github.com/JimBobSquarePants/ImageProcessor/issues/264)
-- Metadata
- - [ ] EXIF (In progress but there's a lot of quirks in parsing EXIF. [#78](https://github.com/JimBobSquarePants/ImageProcessor/issues/78))
 - Other stuff I haven't thought of.
  
 ###What might never happen
@@ -202,7 +200,9 @@ Grand High Eternal Dictator
 - [James Jackson-South](https://github.com/jimbobsquarepants)
 
 Core Team
+- [Jeavon Leopold](https://github.com/jeavon)
+- [Dirk Lemstra](https://github.com/dlemstra)
 - [Yufeih Huang](https://github.com/yufeih)
 - [Thomas Broust](https://github.com/cosmo0)
 - [Christopher Bauer](https://github.com/christopherbauer)
-- [Jeavon Leopold](https://github.com/jeavon)
+

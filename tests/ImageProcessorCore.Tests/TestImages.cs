@@ -38,6 +38,9 @@ namespace ImageProcessorCore.Tests
             private static readonly string folder = "TestImages/Formats/Bmp/";
 
             public static string Car { get { return folder + "Car.bmp"; } }
+
+            public static string F { get { return folder + "F.bmp"; } }
+
             public static string Neg_height { get { return folder + "neg_height.bmp"; } }
         }
 

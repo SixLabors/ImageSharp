@@ -18,16 +18,16 @@ namespace ImageProcessorCore
         /// <summary>
         /// Rotate the image by 90 degrees clockwise.
         /// </summary>
-        Rotate90,
+        Rotate90 = 90,
 
         /// <summary>
         /// Rotate the image by 180 degrees clockwise.
         /// </summary>
-        Rotate180,
+        Rotate180 = 180,
 
         /// <summary>
         /// Rotate the image by 270 degrees clockwise.
         /// </summary>
-        Rotate270
+        Rotate270 = 270
     }
 }

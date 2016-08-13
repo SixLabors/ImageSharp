@@ -29,6 +29,22 @@ namespace ImageProcessorCore
         }
 
         /// <summary>
+        /// Rotates and flips an image by the given instructions.
+        /// </summary>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+        /// <param name="source">The image to rotate.</param>
+        /// <param name="rotateType">The <see cref="RotateType"/> to perform the rotation.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
+        /// <returns>The <see cref="Image"/></returns>
+        public static Image<T, TP> Rotate<T, TP>(this Image<T, TP> source, RotateType rotateType, ProgressEventHandler progressHandler = null)
+            where T : IPackedVector<TP>
+            where TP : struct
+        {
+            return Rotate(source, (float)rotateType, false, progressHandler);
+        }
+
+        /// <summary>
         /// Rotates an image by the given angle in degrees.
         /// </summary>
         /// <typeparam name="T">The pixel format.</typeparam>

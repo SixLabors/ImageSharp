@@ -141,7 +141,6 @@ namespace ImageProcessorCore.Processors
                             int newX = height - y - 1;
                             newX = height - newX - 1;
                             int newY = width - x - 1;
-                            newY = width - newY - 1;
                             tempPixels[newX, newY] = sourcePixels[x, y];
                         }
 

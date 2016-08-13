@@ -198,10 +198,11 @@ namespace ImageProcessorCore
         /// </summary>
         /// <param name="stream">The stream to save the image to.</param>
         /// <exception cref="ArgumentNullException">Thrown if the stream is null.</exception>
-        public void Save(Stream stream)
+        public Image<T, TP> Save(Stream stream)
         {
             Guard.NotNull(stream, nameof(stream));
             this.CurrentImageFormat.Encoder.Encode(this, stream);
+            return this;
         }
 
         /// <summary>
@@ -210,10 +211,11 @@ namespace ImageProcessorCore
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="format">The format to save the image as.</param>
         /// <exception cref="ArgumentNullException">Thrown if the stream is null.</exception>
-        public void Save(Stream stream, IImageFormat format)
+        public Image<T, TP> Save(Stream stream, IImageFormat format)
         {
             Guard.NotNull(stream, nameof(stream));
             format.Encoder.Encode(this, stream);
+            return this;
         }
 
         /// <summary>
@@ -222,10 +224,11 @@ namespace ImageProcessorCore
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="encoder">The encoder to save the image with.</param>
         /// <exception cref="ArgumentNullException">Thrown if the stream is null.</exception>
-        public void Save(Stream stream, IImageEncoder encoder)
+        public Image<T, TP> Save(Stream stream, IImageEncoder encoder)
         {
             Guard.NotNull(stream, nameof(stream));
             encoder.Encode(this, stream);
+            return this;
         }
 
         /// <summary>

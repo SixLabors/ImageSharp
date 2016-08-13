@@ -87,15 +87,7 @@ namespace ImageProcessorCore
                 }
             }
 
-            this.RepeatCount = other.RepeatCount;
-            this.HorizontalResolution = other.HorizontalResolution;
-            this.VerticalResolution = other.VerticalResolution;
-            this.CurrentImageFormat = other.CurrentImageFormat;
-
-            if (other.ExifProfile != null)
-            {
-                this.ExifProfile = new ExifProfile(other.ExifProfile);
-            }
+            this.CopyProperties(other);
         }
 
         /// <summary>
@@ -248,6 +240,27 @@ namespace ImageProcessorCore
                 this.Save(stream);
                 stream.Flush();
                 return $"data:{this.CurrentImageFormat.Encoder.MimeType};base64,{Convert.ToBase64String(stream.ToArray())}";
+            }
+        }
+
+        /// <summary>
+        /// Copies the properties from the other <see cref="Image{T,TP}"/>.
+        /// </summary>
+        /// <param name="other">
+        /// The other <see cref="Image{T,TP}"/> to copy the properties from.
+        /// </param>
+        internal void CopyProperties(Image<T, TP> other)
+        {
+            base.CopyProperties(other);
+
+            this.HorizontalResolution = other.HorizontalResolution;
+            this.VerticalResolution = other.VerticalResolution;
+            this.CurrentImageFormat = other.CurrentImageFormat;
+            this.RepeatCount = other.RepeatCount;
+
+            if (other.ExifProfile != null)
+            {
+                this.ExifProfile = new ExifProfile(other.ExifProfile);
             }
         }
 

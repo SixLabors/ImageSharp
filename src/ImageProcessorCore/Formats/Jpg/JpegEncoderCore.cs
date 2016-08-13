@@ -488,10 +488,9 @@ namespace ImageProcessorCore.Formats
             int componentCount = 3;
 
             // Write the Start Of Image marker.
-            double densityX = image.HorizontalResolution;
-            double densityY = image.VerticalResolution;
+            WriteApplicationHeader((short)image.HorizontalResolution, (short)image.VerticalResolution);
 
-            WriteApplicationHeader((short)densityX, (short)densityY);
+            WriteProfiles(image);
 
             // Write the quantization tables.
             this.WriteDQT();
@@ -569,6 +568,40 @@ namespace ImageProcessorCore.Formats
             this.buffer[3] = (byte)verticalResolution;
 
             this.outputStream.Write(this.buffer, 0, 4);
+        }
+
+        private void WriteProfiles<T, TP>(Image<T, TP> image)
+            where T : IPackedVector<TP>
+            where TP : struct
+        {
+            WriteProfile(image.ExifProfile);
+        }
+
+        private void WriteProfile(ExifProfile exifProfile)
+        {
+            if (exifProfile == null)
+            {
+                return;
+            }
+
+            byte[] data = exifProfile.ToByteArray();
+            if (data == null || data.Length == 0)
+            {
+                return;
+            }
+
+            if (data.Length > 65533)
+            {
+                throw new ImageFormatException("Exif profile size exceeds limit.");
+            }
+
+            this.buffer[0] = JpegConstants.Markers.XFF;
+            this.buffer[1] = JpegConstants.Markers.APP1; // Application Marker
+            this.buffer[2] = (byte)((data.Length >> 8) & 0xFF);
+            this.buffer[3] = (byte)(data.Length & 0xFF);
+
+            this.outputStream.Write(this.buffer, 0, 4);
+            this.outputStream.Write(data, 0, data.Length);
         }
 
         /// <summary>

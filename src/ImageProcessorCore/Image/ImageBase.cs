@@ -59,8 +59,7 @@ namespace ImageProcessorCore
 
             this.Width = other.Width;
             this.Height = other.Height;
-            this.Quality = other.Quality;
-            this.FrameDelay = other.FrameDelay;
+            this.CopyProperties(other);
 
             // Copy the pixels.
             this.Pixels = new T[this.Width * this.Height];
@@ -145,5 +144,17 @@ namespace ImageProcessorCore
 
         /// <inheritdoc/>
         public abstract IPixelAccessor<T, TP> Lock();
+
+        /// <summary>
+        /// Copies the properties from the other <see cref="ImageBase{T,TP}"/>.
+        /// </summary>
+        /// <param name="other">
+        /// The other <see cref="ImageBase{T,TP}"/> to copy the properties from.
+        /// </param>
+        protected void CopyProperties(ImageBase<T, TP> other)
+        {
+            this.Quality = other.Quality;
+            this.FrameDelay = other.FrameDelay;
+        }
     }
 }

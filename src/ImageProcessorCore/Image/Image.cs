@@ -91,6 +91,11 @@ namespace ImageProcessorCore
             this.HorizontalResolution = other.HorizontalResolution;
             this.VerticalResolution = other.VerticalResolution;
             this.CurrentImageFormat = other.CurrentImageFormat;
+
+            if (other.ExifProfile != null)
+            {
+                this.ExifProfile = new ExifProfile(other.ExifProfile);
+            }
         }
 
         /// <summary>
@@ -184,6 +189,11 @@ namespace ImageProcessorCore
         /// Gets the currently loaded image format.
         /// </summary>
         public IImageFormat CurrentImageFormat { get; internal set; }
+
+        /// <summary>
+        /// Gets or sets the Exif profile.
+        /// </summary>
+        public ExifProfile ExifProfile { get; set; }
 
         /// <inheritdoc/>
         public override IPixelAccessor<T, TP> Lock()

@@ -171,16 +171,11 @@ namespace ImageProcessorCore
         {
             Image<T, TP> transformedImage = clone
                 ? new Image<T, TP>(source)
-                : new Image<T, TP>
-                {
-                    // Several properties require copying
-                    FrameDelay = source.FrameDelay,
-                    Quality = source.Quality,
-                    HorizontalResolution = source.HorizontalResolution,
-                    VerticalResolution = source.VerticalResolution,
-                    CurrentImageFormat = source.CurrentImageFormat,
-                    RepeatCount = source.RepeatCount
-                };
+                : new Image<T, TP>();
+
+            // Several properties still require copying
+            if (!clone)
+                transformedImage.CopyProperties(source);
 
             action(source, transformedImage);
 

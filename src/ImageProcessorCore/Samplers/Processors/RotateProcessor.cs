@@ -34,7 +34,7 @@ namespace ImageProcessorCore.Processors
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
-            if (Angle == 90 || Angle == 180 || Angle == 270)
+            if (Angle == 0 || Angle == 90 || Angle == 180 || Angle == 270)
             {
                 return;
             }
@@ -89,6 +89,12 @@ namespace ImageProcessorCore.Processors
         /// <returns></returns>
         private bool OptimizedApply(ImageBase<T, TP> target, ImageBase<T, TP> source)
         {
+            if (Angle == 0)
+            {
+                target.ClonePixels(target.Width, target.Height, source.Pixels);
+                return true;
+            }
+
             if (Angle == 90)
             {
                 this.Rotate90(target, source);

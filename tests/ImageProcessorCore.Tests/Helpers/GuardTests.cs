@@ -200,5 +200,43 @@ namespace ImageProcessorCore.Tests.Helpers
             Exception ex = Record.Exception(() => Guard.MustBeBetweenOrEqualTo(0, -1, 1, "foo"));
             Assert.Null(ex);
         }
+
+        /// <summary>
+        /// Tests that the <see cref="M:Guard.IsTrue"/> method throws when the argument is false.
+        /// </summary>
+        [Fact]
+        public void IsTrueThrowsWhenArgIsFalse()
+        {
+            Assert.Throws<ArgumentException>(() => Guard.IsTrue(false, "foo"));
+        }
+
+        /// <summary>
+        /// Tests that the <see cref="M:Guard.IsTrue"/> method does not throw when the argument is true.
+        /// </summary>
+        [Fact]
+        public void IsTrueDoesThrowsWhenArgIsTrue()
+        {
+            Exception ex = Record.Exception(() => Guard.IsTrue(true, "foo"));
+            Assert.Null(ex);
+        }
+
+        /// <summary>
+        /// Tests that the <see cref="M:Guard.IsFalse"/> method throws when the argument is true.
+        /// </summary>
+        [Fact]
+        public void IsFalseThrowsWhenArgIsFalse()
+        {
+            Assert.Throws<ArgumentException>(() => Guard.IsFalse(true, "foo"));
+        }
+
+        /// <summary>
+        /// Tests that the <see cref="M:Guard.IsFalse"/> method does not throw when the argument is false.
+        /// </summary>
+        [Fact]
+        public void IsFalseDoesThrowsWhenArgIsTrue()
+        {
+            Exception ex = Record.Exception(() => Guard.IsFalse(false, "foo"));
+            Assert.Null(ex);
+        }
     }
 }

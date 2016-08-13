@@ -9,7 +9,7 @@ namespace ImageProcessorCore.Tests
 
     using Xunit;
 
-    public class FlipTest : FileTestBase
+    public class FlipTests : FileTestBase
     {
         public static readonly TheoryData<FlipType> FlipValues
             = new TheoryData<FlipType>

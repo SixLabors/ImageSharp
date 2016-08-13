@@ -16,7 +16,6 @@ namespace ImageProcessorCore.Tests
         {
              170 ,
             -170 ,
-              90 ,
         };
 
         public static readonly TheoryData<RotateType> RotateEnumValues

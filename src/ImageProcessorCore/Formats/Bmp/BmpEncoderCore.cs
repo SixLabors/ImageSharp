@@ -5,7 +5,6 @@
 
 namespace ImageProcessorCore.Formats
 {
-    using System;
     using System.IO;
 
     using IO;
@@ -21,7 +20,7 @@ namespace ImageProcessorCore.Formats
         private BmpBitsPerPixel bmpBitsPerPixel;
 
         /// <summary>
-        /// The amount to pad each row by.</param>
+        /// The amount to pad each row by.
         /// </summary>
         private int padding;
 
@@ -44,7 +43,7 @@ namespace ImageProcessorCore.Formats
 
             // Cast to int will get the bytes per pixel
             short bpp = (short)(8 * (int)bitsPerPixel);
-            int bytesPerLine = 4 * ((image.Width * bpp + 31) / 32);
+            int bytesPerLine = 4 * (((image.Width * bpp) + 31) / 32);
             this.padding = bytesPerLine - (image.Width * (int)bitsPerPixel);
 
             // Do not use IDisposable pattern here as we want to preserve the stream.
@@ -121,9 +120,8 @@ namespace ImageProcessorCore.Formats
         /// Writes the pixel data to the binary stream.
         /// </summary>
         /// <typeparam name="T">The pixel format.</typeparam>
-        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>/// <param name="writer">
-        /// The <see cref="EndianBinaryWriter"/> containing the stream to write to.
-        /// </param>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+        /// <param name="writer">The <see cref="EndianBinaryWriter"/> containing the stream to write to.</param>
         /// <param name="image">
         /// The <see cref="ImageBase{T,TP}"/> containing pixel data.
         /// </param>
@@ -133,14 +131,14 @@ namespace ImageProcessorCore.Formats
         {
             using (IPixelAccessor<T, TP> pixels = image.Lock())
             {
-                switch (bmpBitsPerPixel)
+                switch (this.bmpBitsPerPixel)
                 {
                     case BmpBitsPerPixel.Pixel32:
-                        this.Write32bit(writer, pixels);
+                        this.Write32Bit(writer, pixels);
                         break;
 
                     case BmpBitsPerPixel.Pixel24:
-                        this.Write24bit(writer, pixels);
+                        this.Write24Bit(writer, pixels);
                         break;
                 }
             }
@@ -153,7 +151,7 @@ namespace ImageProcessorCore.Formats
         /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         /// <param name="writer">The <see cref="EndianBinaryWriter"/> containing the stream to write to.</param>
         /// <param name="pixels">The <see cref="IPixelAccessor"/> containing pixel data.</param>
-        private void Write32bit<T, TP>(EndianBinaryWriter writer, IPixelAccessor<T, TP> pixels)
+        private void Write32Bit<T, TP>(EndianBinaryWriter writer, IPixelAccessor<T, TP> pixels)
             where T : IPackedVector<TP>
             where TP : struct
         {
@@ -180,7 +178,7 @@ namespace ImageProcessorCore.Formats
         /// <typeparam name="T">The pixel format.</typeparam>
         /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>/// <param name="writer">The <see cref="EndianBinaryWriter"/> containing the stream to write to.</param>
         /// <param name="pixels">The <see cref="IPixelAccessor"/> containing pixel data.</param>
-        private void Write24bit<T, TP>(EndianBinaryWriter writer, IPixelAccessor<T, TP> pixels)
+        private void Write24Bit<T, TP>(EndianBinaryWriter writer, IPixelAccessor<T, TP> pixels)
             where T : IPackedVector<TP>
             where TP : struct
         {

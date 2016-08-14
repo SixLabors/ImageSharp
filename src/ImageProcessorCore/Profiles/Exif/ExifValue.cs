@@ -561,6 +561,10 @@ namespace ImageProcessorCore
 
         private string ToString(object value)
         {
+            string description = ExifTagDescriptionAttribute.GetDescription(Tag, value);
+            if (description != null)
+              return description;
+
             switch (DataType)
             {
                 case ExifDataType.Ascii:

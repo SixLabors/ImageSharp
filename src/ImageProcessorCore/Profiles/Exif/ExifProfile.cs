@@ -10,49 +10,67 @@ namespace ImageProcessorCore
     using System.IO;
 
     /// <summary>
-    /// Class that can be used to access an Exif profile.
+    /// Represents an EXIF profile providing access to the collection of values.
     /// </summary>
     public sealed class ExifProfile
     {
-        private byte[] data;
+        /// <summary>
+        /// The byte array to read the EXIF profile from.
+        /// </summary>
+        private readonly byte[] data;
+
+        /// <summary>
+        /// The collection of EXIF values
+        /// </summary>
         private Collection<ExifValue> values;
+
+        /// <summary>
+        /// The list of invalid EXIF tags
+        /// </summary>
         private List<ExifTag> invalidTags;
+
+        /// <summary>
+        /// The thumbnail offset position in the byte stream
+        /// </summary>
         private int thumbnailOffset;
+
+        /// <summary>
+        /// The thumbnail length in the byte stream
+        /// </summary>
         private int thumbnailLength;
 
-        ///<summary>
+        /// <summary>
         /// Initializes a new instance of the <see cref="ExifProfile"/> class.
-        ///</summary>
-        ///<param name="data">The byte array to read the exif profile from.</param>
+        /// </summary>
         public ExifProfile()
             : this((byte[])null)
         {
         }
 
-        ///<summary>
+        /// <summary>
         /// Initializes a new instance of the <see cref="ExifProfile"/> class.
-        ///</summary>
-        ///<param name="data">The byte array to read the exif profile from.</param>
+        /// </summary>
+        /// <param name="data">The byte array to read the EXIF profile from.</param>
         public ExifProfile(byte[] data)
         {
-            Parts = ExifParts.All;
-            BestPrecision = false;
+            this.Parts = ExifParts.All;
+            this.BestPrecision = false;
             this.data = data;
             this.invalidTags = new List<ExifTag>();
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ExifProfile"/> class
-        /// by making a copy from another exif profile.
+        /// by making a copy from another EXIF profile.
         /// </summary>
-        /// <param name="other">The other exif profile, where the clone should be made from.</param>
+        /// <param name="other">The other EXIF profile, where the clone should be made from.</param>
         /// <exception cref="ArgumentNullException"><paramref name="other"/> is null.</exception>
         public ExifProfile(ExifProfile other)
         {
             Guard.NotNull(other, nameof(other));
 
-            Parts = other.Parts;
-            BestPrecision = other.BestPrecision;
+            this.Parts = other.Parts;
+            this.BestPrecision = other.BestPrecision;
 
             this.thumbnailLength = other.thumbnailLength;
             this.thumbnailOffset = other.thumbnailOffset;
@@ -60,7 +78,7 @@ namespace ImageProcessorCore
             if (other.values != null)
             {
                 this.values = new Collection<ExifValue>();
-                foreach(ExifValue value in other.values)
+                foreach (ExifValue value in other.values)
                 {
                     this.values.Add(new ExifValue(value));
                 }
@@ -71,39 +89,34 @@ namespace ImageProcessorCore
             }
         }
 
-        ///<summary>
-        /// Specifies if rationals should be stored with the best precision possible. This is disabled
-        /// by default, setting this to true will have an impact on the performance.
-        ///</summary>
+        /// <summary>
+        /// Gets or sets a value indicating whether rational numbers should be stored with the best 
+        /// precision possible. This is disabled by default, setting this to true will have an 
+        /// impact on the performance.
+        /// </summary>
         public bool BestPrecision
         {
             get;
             set;
         }
 
-        ///<summary>
-        /// Specifies which parts will be written when the profile is added to an image.
-        ///</summary>
+        /// <summary>
+        /// Gets or sets which parts will be written when the profile is added to an image.
+        /// </summary>
         public ExifParts Parts
         {
             get;
             set;
         }
 
-        ///<summary>
-        /// Returns the tags that where found but contained an invalid value.
-        ///</summary>
-        public IEnumerable<ExifTag> InvalidTags
-        {
-            get
-            {
-                return this.invalidTags;
-            }
-        }
+        /// <summary>
+        /// Gets the tags that where found but contained an invalid value.
+        /// </summary>
+        public IEnumerable<ExifTag> InvalidTags => this.invalidTags;
 
-        ///<summary>
-        /// Returns the values of this exif profile.
-        ///</summary>
+        /// <summary>
+        /// Gets the values of this EXIF profile.
+        /// </summary>
         public IEnumerable<ExifValue> Values
         {
             get
@@ -113,9 +126,9 @@ namespace ImageProcessorCore
             }
         }
 
-        ///<summary>
-        /// Returns the thumbnail in the exif profile when available.
-        ///</summary>
+        /// <summary>
+        /// Returns the thumbnail in the EXIF profile when available.
+        /// </summary>
         /// <typeparam name="T">The pixel format.</typeparam>
         /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
         public Image<T, TP> CreateThumbnail<T, TP>()
@@ -125,10 +138,14 @@ namespace ImageProcessorCore
             InitializeValues();
 
             if (this.thumbnailOffset == 0 || this.thumbnailLength == 0)
+            {
                 return null;
+            }
 
             if (this.data.Length < (this.thumbnailOffset + this.thumbnailLength))
+            {
                 return null;
+            }
 
             using (MemoryStream memStream = new MemoryStream(this.data, this.thumbnailOffset, this.thumbnailLength))
             {
@@ -136,10 +153,10 @@ namespace ImageProcessorCore
             }
         }
 
-        ///<summary>
+        /// <summary>
         /// Returns the value with the specified tag.
-        ///</summary>
-        ///<param name="tag">The tag of the exif value.</param>
+        /// </summary>
+        /// <param name="tag">The tag of the EXIF value.</param>
         public ExifValue GetValue(ExifTag tag)
         {
             foreach (ExifValue exifValue in Values)
@@ -151,10 +168,10 @@ namespace ImageProcessorCore
             return null;
         }
 
-        ///<summary>
+        /// <summary>
         /// Removes the value with the specified tag.
-        ///</summary>
-        ///<param name="tag">The tag of the exif value.</param>
+        /// </summary>
+        /// <param name="tag">The tag of the EXIF value.</param>
         public bool RemoveValue(ExifTag tag)
         {
             InitializeValues();
@@ -171,14 +188,14 @@ namespace ImageProcessorCore
             return false;
         }
 
-        ///<summary>
+        /// <summary>
         /// Sets the value of the specified tag.
-        ///</summary>
-        ///<param name="tag">The tag of the exif value.</param>
-        ///<param name="value">The value.</param>
+        /// </summary>
+        /// <param name="tag">The tag of the EXIF value.</param>
+        /// <param name="value">The value.</param>
         public void SetValue(ExifTag tag, object value)
         {
-            foreach (ExifValue exifValue in Values)
+            foreach (ExifValue exifValue in this.Values)
             {
                 if (exifValue.Tag == tag)
                 {
@@ -191,25 +208,32 @@ namespace ImageProcessorCore
             this.values.Add(newExifValue);
         }
 
-        ///<summary>
+        /// <summary>
         /// Converts this instance to a byte array.
-        ///</summary>
+        /// </summary>
+        /// <returns>The <see cref="T:byte[]"/></returns>
         public byte[] ToByteArray()
         {
             if (this.values == null)
-                return data;
+            {
+                return this.data;
+            }
 
             if (this.values.Count == 0)
+            {
                 return null;
+            }
 
-            ExifWriter writer = new ExifWriter(this.values, Parts, BestPrecision);
+            ExifWriter writer = new ExifWriter(this.values, this.Parts, this.BestPrecision);
             return writer.GetData();
         }
 
         private void InitializeValues()
         {
             if (this.values != null)
+            {
                 return;
+            }
 
             if (this.data == null)
             {

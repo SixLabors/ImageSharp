@@ -439,19 +439,33 @@ namespace ImageProcessorCore
             return result;
         }
 
-        private double ToRational(byte[] data)
+        private Rational ToRational(byte[] data)
         {
             if (!ValidateArray(data, 8, 4))
             {
-                return default(double);
+                return Rational.Zero;
             }
 
             uint numerator = BitConverter.ToUInt32(data, 0);
             uint denominator = BitConverter.ToUInt32(data, 4);
 
             // TODO: investigate the possibility of a Rational struct
-            return numerator / (double)denominator;
+            return new Rational(numerator, denominator);
         }
+
+        //private double ToRational(byte[] data)
+        //{
+        //    if (!ValidateArray(data, 8, 4))
+        //    {
+        //        return default(double);
+        //    }
+
+        //    uint numerator = BitConverter.ToUInt32(data, 0);
+        //    uint denominator = BitConverter.ToUInt32(data, 4);
+
+        //    // TODO: investigate the possibility of a Rational struct
+        //    return numerator / (double)denominator;
+        //}
 
         private sbyte ToSignedByte(byte[] data)
         {
@@ -468,18 +482,31 @@ namespace ImageProcessorCore
             return BitConverter.ToInt32(data, 0);
         }
 
-        private double ToSignedRational(byte[] data)
+        private Rational ToSignedRational(byte[] data)
         {
             if (!ValidateArray(data, 8, 4))
             {
-                return default(double);
+                return Rational.Zero;
             }
 
             int numerator = BitConverter.ToInt32(data, 0);
             int denominator = BitConverter.ToInt32(data, 4);
 
-            return numerator / (double)denominator;
+            return new Rational(numerator, denominator);
         }
+
+        //private double ToSignedRational(byte[] data)
+        //{
+        //    if (!ValidateArray(data, 8, 4))
+        //    {
+        //        return default(double);
+        //    }
+
+        //    int numerator = BitConverter.ToInt32(data, 0);
+        //    int denominator = BitConverter.ToInt32(data, 4);
+
+        //    return numerator / (double)denominator;
+        //}
 
         private short ToSignedShort(byte[] data)
         {

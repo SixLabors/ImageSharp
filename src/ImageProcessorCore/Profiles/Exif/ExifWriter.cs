@@ -292,75 +292,92 @@ namespace ImageProcessorCore
             return newOffset;
         }
 
-        private int WriteRational(double value, byte[] destination, int offset)
+        private int WriteRational(Rational value, byte[] destination, int offset)
         {
-            uint numerator = 1;
-            uint denominator = 1;
-
-            if (double.IsPositiveInfinity(value))
-                denominator = 0;
-            else if (double.IsNegativeInfinity(value))
-                denominator = 0;
-            else
-            {
-                double val = Math.Abs(value);
-                double df = numerator / denominator;
-                double epsilon = this.bestPrecision ? double.Epsilon : .000001;
-
-                while (Math.Abs(df - val) > epsilon)
-                {
-                    if (df < val)
-                        numerator++;
-                    else
-                    {
-                        denominator++;
-                        numerator = (uint)(val * denominator);
-                    }
-
-                    df = numerator / (double)denominator;
-                }
-            }
-
-            Write(BitConverter.GetBytes(numerator), destination, offset);
-            Write(BitConverter.GetBytes(denominator), destination, offset + 4);
+            Write(BitConverter.GetBytes((uint)(value.Numerator * (value.ToDouble() < 0.0 ? -1 : 1))), destination, offset);
+            Write(BitConverter.GetBytes((uint)value.Denominator), destination, offset + 4);
 
             return offset + 8;
         }
 
-        private int WriteSignedRational(double value, byte[] destination, int offset)
+        //private int WriteRational(double value, byte[] destination, int offset)
+        //{
+        //    uint numerator = 1;
+        //    uint denominator = 1;
+
+        //    if (double.IsPositiveInfinity(value))
+        //        denominator = 0;
+        //    else if (double.IsNegativeInfinity(value))
+        //        denominator = 0;
+        //    else
+        //    {
+        //        double val = Math.Abs(value);
+        //        double df = numerator / denominator;
+        //        double epsilon = this.bestPrecision ? double.Epsilon : .000001;
+
+        //        while (Math.Abs(df - val) > epsilon)
+        //        {
+        //            if (df < val)
+        //                numerator++;
+        //            else
+        //            {
+        //                denominator++;
+        //                numerator = (uint)(val * denominator);
+        //            }
+
+        //            df = numerator / (double)denominator;
+        //        }
+        //    }
+
+        //    Write(BitConverter.GetBytes(numerator), destination, offset);
+        //    Write(BitConverter.GetBytes(denominator), destination, offset + 4);
+
+        //    return offset + 8;
+        //}
+
+        private int WriteSignedRational(Rational value, byte[] destination, int offset)
         {
-            int numerator = 1;
-            int denominator = 1;
-
-            if (double.IsPositiveInfinity(value))
-                denominator = 0;
-            else if (double.IsNegativeInfinity(value))
-                denominator = 0;
-            else
-            {
-                double val = Math.Abs(value);
-                double df = numerator / denominator;
-                double epsilon = this.bestPrecision ? double.Epsilon : .000001;
-
-                while (Math.Abs(df - val) > epsilon)
-                {
-                    if (df < val)
-                        numerator++;
-                    else
-                    {
-                        denominator++;
-                        numerator = (int)(val * denominator);
-                    }
-
-                    df = numerator / (double)denominator;
-                }
-            }
-
-            Write(BitConverter.GetBytes(numerator * (value < 0.0 ? -1 : 1)), destination, offset);
-            Write(BitConverter.GetBytes(denominator), destination, offset + 4);
+            // TODO: Check this.
+            Write(BitConverter.GetBytes((int)value.Numerator), destination, offset);
+            Write(BitConverter.GetBytes((int)value.Denominator), destination, offset + 4);
 
             return offset + 8;
         }
+
+        //private int WriteSignedRational(double value, byte[] destination, int offset)
+        //{
+        //    int numerator = 1;
+        //    int denominator = 1;
+
+        //    if (double.IsPositiveInfinity(value))
+        //        denominator = 0;
+        //    else if (double.IsNegativeInfinity(value))
+        //        denominator = 0;
+        //    else
+        //    {
+        //        double val = Math.Abs(value);
+        //        double df = numerator / denominator;
+        //        double epsilon = this.bestPrecision ? double.Epsilon : .000001;
+
+        //        while (Math.Abs(df - val) > epsilon)
+        //        {
+        //            if (df < val)
+        //                numerator++;
+        //            else
+        //            {
+        //                denominator++;
+        //                numerator = (int)(val * denominator);
+        //            }
+
+        //            df = numerator / (double)denominator;
+        //        }
+        //    }
+
+        //    Write(BitConverter.GetBytes(numerator * (value < 0.0 ? -1 : 1)), destination, offset);
+        //    Write(BitConverter.GetBytes(denominator), destination, offset + 4);
+
+        //    return offset + 8;
+        //}
 
         private int WriteValue(ExifDataType dataType, object value, byte[] destination, int offset)
         {
@@ -379,7 +396,7 @@ namespace ImageProcessorCore
                 case ExifDataType.Long:
                     return Write(BitConverter.GetBytes((uint)value), destination, offset);
                 case ExifDataType.Rational:
-                    return WriteRational((double)value, destination, offset);
+                    return WriteRational((Rational)value, destination, offset);
                 case ExifDataType.SignedByte:
                     destination[offset] = unchecked((byte)((sbyte)value));
                     return offset + 1;
@@ -388,7 +405,7 @@ namespace ImageProcessorCore
                 case ExifDataType.SignedShort:
                     return Write(BitConverter.GetBytes((short)value), destination, offset);
                 case ExifDataType.SignedRational:
-                    return WriteSignedRational((double)value, destination, offset);
+                    return WriteSignedRational((Rational)value, destination, offset);
                 case ExifDataType.SingleFloat:
                     return Write(BitConverter.GetBytes((float)value), destination, offset);
                 default:

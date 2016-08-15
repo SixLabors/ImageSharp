@@ -517,9 +517,13 @@ namespace ImageProcessorCore
                     Guard.IsTrue(type == typeof(byte), nameof(value), $"Value should be a byte{(IsArray ? " array." : ".")}");
                     break;
                 case ExifDataType.DoubleFloat:
+                    //case ExifDataType.Rational:
+                    //case ExifDataType.SignedRational:
+                    Guard.IsTrue(type == typeof(double), nameof(value), $"Value should be a double{(IsArray ? " array." : ".")}");
+                    break;
                 case ExifDataType.Rational:
                 case ExifDataType.SignedRational:
-                    Guard.IsTrue(type == typeof(double), nameof(value), $"Value should be a double{(IsArray ? " array." : ".")}");
+                    Guard.IsTrue(type == typeof(Rational), nameof(value), $"Value should be a Rational{(IsArray ? " array." : ".")}");
                     break;
                 case ExifDataType.Long:
                     Guard.IsTrue(type == typeof(uint), nameof(value), $"Value should be an unsigned int{(IsArray ? " array." : ".")}");
@@ -543,7 +547,7 @@ namespace ImageProcessorCore
                     Guard.IsTrue(type == typeof(byte), nameof(value), "Value should be a byte array.");
                     break;
                 default:
-                    throw new NotImplementedException();
+                    throw new NotSupportedException();
             }
         }
 
@@ -576,7 +580,8 @@ namespace ImageProcessorCore
                 case ExifDataType.Long:
                     return ((uint)value).ToString(CultureInfo.InvariantCulture);
                 case ExifDataType.Rational:
-                    return ((double)value).ToString(CultureInfo.InvariantCulture);
+                    //return ((double)value).ToString(CultureInfo.InvariantCulture);
+                    return ((Rational)value).ToString(CultureInfo.InvariantCulture);
                 case ExifDataType.Short:
                     return ((ushort)value).ToString(CultureInfo.InvariantCulture);
                 case ExifDataType.SignedByte:
@@ -584,7 +589,8 @@ namespace ImageProcessorCore
                 case ExifDataType.SignedLong:
                     return ((int)value).ToString(CultureInfo.InvariantCulture);
                 case ExifDataType.SignedRational:
-                    return ((double)value).ToString(CultureInfo.InvariantCulture);
+                    //return ((double)value).ToString(CultureInfo.InvariantCulture);
+                    return ((Rational)value).ToString(CultureInfo.InvariantCulture);
                 case ExifDataType.SignedShort:
                     return ((short)value).ToString(CultureInfo.InvariantCulture);
                 case ExifDataType.SingleFloat:

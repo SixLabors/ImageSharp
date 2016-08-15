@@ -64,7 +64,8 @@ namespace ImageProcessorCore.Tests
         {
             using (MemoryStream memStream = new MemoryStream())
             {
-                double exposureTime = 1.0 / 1600;
+                // double exposureTime = 1.0 / 1600;
+                Rational exposureTime = new Rational(1, 1600);
 
                 ExifProfile profile = GetExifProfile();
 
@@ -83,7 +84,7 @@ namespace ImageProcessorCore.Tests
 
                 ExifValue value = profile.GetValue(ExifTag.ExposureTime);
                 Assert.NotNull(value);
-                Assert.NotEqual(exposureTime, value.Value);
+                Assert.Equal(exposureTime, value.Value);
 
                 memStream.Position = 0;
                 profile = GetExifProfile();
@@ -111,33 +112,108 @@ namespace ImageProcessorCore.Tests
             using (FileStream stream = File.OpenRead(TestImages.Jpg.Floorplan))
             {
                 Image image = new Image(stream);
-                image.ExifProfile.SetValue(ExifTag.ExposureBiasValue, double.PositiveInfinity);
+                image.ExifProfile.SetValue(ExifTag.ExposureBiasValue, Rational.PositiveInfinity);
 
                 image = WriteAndRead(image);
                 ExifValue value = image.ExifProfile.GetValue(ExifTag.ExposureBiasValue);
                 Assert.NotNull(value);
-                Assert.Equal(double.PositiveInfinity, value.Value);
+                Assert.Equal(Rational.PositiveInfinity, value.Value);
 
-                image.ExifProfile.SetValue(ExifTag.ExposureBiasValue, double.NegativeInfinity);
+                image.ExifProfile.SetValue(ExifTag.ExposureBiasValue, Rational.NegativeInfinity);
 
                 image = WriteAndRead(image);
                 value = image.ExifProfile.GetValue(ExifTag.ExposureBiasValue);
                 Assert.NotNull(value);
-                Assert.Equal(double.NegativeInfinity, value.Value);
+                Assert.Equal(Rational.NegativeInfinity, value.Value);
 
-                image.ExifProfile.SetValue(ExifTag.FlashEnergy, double.NegativeInfinity);
+                image.ExifProfile.SetValue(ExifTag.FlashEnergy, Rational.NegativeInfinity);
 
                 image = WriteAndRead(image);
                 value = image.ExifProfile.GetValue(ExifTag.FlashEnergy);
                 Assert.NotNull(value);
-                Assert.Equal(double.PositiveInfinity, value.Value);
+                Assert.Equal(Rational.PositiveInfinity, value.Value);
             }
         }
+
+        //[Fact]
+        //public void WriteFraction()
+        //{
+        //    using (MemoryStream memStream = new MemoryStream())
+        //    {
+        //        double exposureTime = 1.0 / 1600;
+
+        //        ExifProfile profile = GetExifProfile();
+
+        //        profile.SetValue(ExifTag.ExposureTime, exposureTime);
+
+        //        Image image = new Image(1, 1);
+        //        image.ExifProfile = profile;
+
+        //        image.SaveAsJpeg(memStream);
+
+        //        memStream.Position = 0;
+        //        image = new Image(memStream);
+
+        //        profile = image.ExifProfile;
+        //        Assert.NotNull(profile);
+
+        //        ExifValue value = profile.GetValue(ExifTag.ExposureTime);
+        //        Assert.NotNull(value);
+        //        Assert.NotEqual(exposureTime, value.Value);
+
+        //        memStream.Position = 0;
+        //        profile = GetExifProfile();
+
+        //        profile.SetValue(ExifTag.ExposureTime, exposureTime);
+        //        profile.BestPrecision = true;
+        //        image.ExifProfile = profile;
+
+        //        image.SaveAsJpeg(memStream);
+
+        //        memStream.Position = 0;
+        //        image = new Image(memStream);
+
+        //        profile = image.ExifProfile;
+        //        Assert.NotNull(profile);
+
+        //        value = profile.GetValue(ExifTag.ExposureTime);
+        //        TestValue(value, exposureTime);
+        //    }
+        //}
+
+        //[Fact]
+        //public void ReadWriteInfinity()
+        //{
+        //    using (FileStream stream = File.OpenRead(TestImages.Jpg.Floorplan))
+        //    {
+        //        Image image = new Image(stream);
+        //        image.ExifProfile.SetValue(ExifTag.ExposureBiasValue, double.PositiveInfinity);
+
+        //        image = WriteAndRead(image);
+        //        ExifValue value = image.ExifProfile.GetValue(ExifTag.ExposureBiasValue);
+        //        Assert.NotNull(value);
+        //        Assert.Equal(double.PositiveInfinity, value.Value);
+
+        //        image.ExifProfile.SetValue(ExifTag.ExposureBiasValue, double.NegativeInfinity);
+
+        //        image = WriteAndRead(image);
+        //        value = image.ExifProfile.GetValue(ExifTag.ExposureBiasValue);
+        //        Assert.NotNull(value);
+        //        Assert.Equal(double.NegativeInfinity, value.Value);
+
+        //        image.ExifProfile.SetValue(ExifTag.FlashEnergy, double.NegativeInfinity);
+
+        //        image = WriteAndRead(image);
+        //        value = image.ExifProfile.GetValue(ExifTag.FlashEnergy);
+        //        Assert.NotNull(value);
+        //        Assert.Equal(double.PositiveInfinity, value.Value);
+        //    }
+        //}
 
         [Fact]
         public void SetValue()
         {
-            double[] latitude = new double[] { 12.3, 4.56, 789.0 };
+            Rational[] latitude = new Rational[] { new Rational(12.3), new Rational(4.56), new Rational(789.0) };
 
             using (FileStream stream = File.OpenRead(TestImages.Jpg.Floorplan))
             {
@@ -149,17 +225,18 @@ namespace ImageProcessorCore.Tests
 
                 Assert.Throws<ArgumentException>(() => { value.Value = 15; });
 
-                image.ExifProfile.SetValue(ExifTag.ShutterSpeedValue, 75.55);
+                image.ExifProfile.SetValue(ExifTag.ShutterSpeedValue, new Rational(75.55));
 
                 value = image.ExifProfile.GetValue(ExifTag.ShutterSpeedValue);
-                TestValue(value, 75.55);
+
+                TestValue(value, new Rational(7555, 100));
 
                 Assert.Throws<ArgumentException>(() => { value.Value = 75; });
 
-                image.ExifProfile.SetValue(ExifTag.XResolution, 150.0);
+                image.ExifProfile.SetValue(ExifTag.XResolution, new Rational(150.0));
 
                 value = image.ExifProfile.GetValue(ExifTag.XResolution);
-                TestValue(value, 150.0);
+                TestValue(value, new Rational(150, 1));
 
                 Assert.Throws<ArgumentException>(() => { value.Value = "ImageProcessorCore"; });
 
@@ -182,10 +259,10 @@ namespace ImageProcessorCore.Tests
                 TestValue(value, "ImageProcessorCore");
 
                 value = image.ExifProfile.GetValue(ExifTag.ShutterSpeedValue);
-                TestValue(value, 75.55);
+                TestValue(value, new Rational(75.55));
 
                 value = image.ExifProfile.GetValue(ExifTag.XResolution);
-                TestValue(value, 150.0);
+                TestValue(value, new Rational(150.0));
 
                 value = image.ExifProfile.GetValue(ExifTag.ReferenceBlackWhite);
                 Assert.Null(value);
@@ -277,7 +354,7 @@ namespace ImageProcessorCore.Tests
                     Assert.Equal("Windows Photo Editor 10.0.10011.16384", value.ToString());
 
                 if (value.Tag == ExifTag.XResolution)
-                    Assert.Equal(300.0, value.Value);
+                    Assert.Equal(new Rational(300.0), value.Value);
 
                 if (value.Tag == ExifTag.PixelXDimension)
                     Assert.Equal(2338U, value.Value);
@@ -288,6 +365,19 @@ namespace ImageProcessorCore.Tests
         {
             Assert.NotNull(value);
             Assert.Equal(expected, value.Value);
+        }
+
+        private static void TestValue(ExifValue value, Rational expected)
+        {
+            Assert.NotNull(value);
+            Assert.Equal(expected, value.Value);
+        }
+
+        private static void TestValue(ExifValue value, Rational[] expected)
+        {
+            Assert.NotNull(value);
+
+            Assert.Equal(expected, (ICollection)value.Value);
         }
 
         private static void TestValue(ExifValue value, double expected)

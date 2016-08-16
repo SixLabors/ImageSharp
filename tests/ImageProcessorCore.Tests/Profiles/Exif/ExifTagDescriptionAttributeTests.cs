@@ -24,7 +24,7 @@ namespace ImageProcessorCore.Tests
 
             exifProfile.SetValue(ExifTag.ResolutionUnit, (ushort)3);
             value = exifProfile.GetValue(ExifTag.ResolutionUnit);
-            Assert.Equal("Cm", value.ToString());
+            Assert.Equal("Centimeter", value.ToString());
 
             exifProfile.SetValue(ExifTag.ResolutionUnit, (ushort)4);
             value = exifProfile.GetValue(ExifTag.ResolutionUnit);

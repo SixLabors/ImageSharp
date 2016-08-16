@@ -14,7 +14,7 @@ namespace ImageProcessorCore
     /// </summary>
     public sealed class ExifValue : IEquatable<ExifValue>
     {
-        private object value;
+        private object exifValue;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ExifValue"/> class
@@ -26,18 +26,18 @@ namespace ImageProcessorCore
         {
             Guard.NotNull(other, nameof(other));
 
-            DataType = other.DataType;
-            IsArray = other.IsArray;
-            Tag = other.Tag;
+            this.DataType = other.DataType;
+            this.IsArray = other.IsArray;
+            this.Tag = other.Tag;
 
             if (!other.IsArray)
             {
-                value = other.value;
+                this.exifValue = other.exifValue;
             }
             else
             {
-                Array array = (Array)other.value;
-                value = array.Clone();
+                Array array = (Array)other.exifValue;
+                this.exifValue = array.Clone();
             }
         }
 
@@ -47,7 +47,6 @@ namespace ImageProcessorCore
         public ExifDataType DataType
         {
             get;
-            private set;
         }
 
         /// <summary>
@@ -56,7 +55,6 @@ namespace ImageProcessorCore
         public bool IsArray
         {
             get;
-            private set;
         }
 
         /// <summary>
@@ -65,7 +63,6 @@ namespace ImageProcessorCore
         public ExifTag Tag
         {
             get;
-            private set;
         }
 
         /// <summary>
@@ -75,12 +72,12 @@ namespace ImageProcessorCore
         {
             get
             {
-                return this.value;
+                return this.exifValue;
             }
             set
             {
-                CheckValue(value);
-                this.value = value;
+                this.CheckValue(value);
+                this.exifValue = value;
             }
         }
 
@@ -113,9 +110,11 @@ namespace ImageProcessorCore
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(this, obj))
+            {
                 return true;
+            }
 
-            return Equals(obj as ExifValue);
+            return this.Equals(obj as ExifValue);
         }
 
         ///<summary>
@@ -125,45 +124,50 @@ namespace ImageProcessorCore
         public bool Equals(ExifValue other)
         {
             if (ReferenceEquals(other, null))
+            {
                 return false;
+            }
 
             if (ReferenceEquals(this, other))
+            {
                 return true;
+            }
 
             return
-              Tag == other.Tag &&
-              DataType == other.DataType &&
-              object.Equals(this.value, other.value);
+              this.Tag == other.Tag &&
+              this.DataType == other.DataType &&
+              Equals(this.exifValue, other.exifValue);
         }
 
-        ///<summary>
-        /// Serves as a hash of this type.
-        ///</summary>
+        /// <inheritdoc/>
         public override int GetHashCode()
         {
-            int hashCode = Tag.GetHashCode() ^ DataType.GetHashCode();
-            return this.value != null ? hashCode ^ this.value.GetHashCode() : hashCode;
+            return this.GetHashCode(this);
         }
 
-        ///<summary>
-        /// Returns a string that represents the current value.
-        ///</summary>
+        /// <inheritdoc/>
         public override string ToString()
         {
 
-            if (this.value == null)
+            if (this.exifValue == null)
+            {
                 return null;
+            }
 
-            if (DataType == ExifDataType.Ascii)
-                return (string)this.value;
+            if (this.DataType == ExifDataType.Ascii)
+            {
+                return (string)this.exifValue;
+            }
 
-            if (!IsArray)
-                return ToString(this.value);
+            if (!this.IsArray)
+            {
+                return this.ToString(this.exifValue);
+            }
 
             StringBuilder sb = new StringBuilder();
-            foreach (object value in (Array)this.value)
+            foreach (object value in (Array)this.exifValue)
             {
-                sb.Append(ToString(value));
+                sb.Append(this.ToString(value));
                 sb.Append(" ");
             }
 
@@ -174,11 +178,15 @@ namespace ImageProcessorCore
         {
             get
             {
-                if (this.value == null)
+                if (this.exifValue == null)
+                {
                     return false;
+                }
 
-                if (DataType == ExifDataType.Ascii)
-                    return ((string)this.value).Length > 0;
+                if (this.DataType == ExifDataType.Ascii)
+                {
+                    return ((string)this.exifValue).Length > 0;
+                }
 
                 return true;
             }
@@ -188,10 +196,12 @@ namespace ImageProcessorCore
         {
             get
             {
-                if (this.value == null)
+                if (this.exifValue == null)
+                {
                     return 4;
+                }
 
-                int size = (int)(GetSize(DataType) * NumberOfComponents);
+                int size = (int)(GetSize(this.DataType) * this.NumberOfComponents);
 
                 return size < 4 ? 4 : size;
             }
@@ -201,11 +211,15 @@ namespace ImageProcessorCore
         {
             get
             {
-                if (DataType == ExifDataType.Ascii)
-                    return Encoding.UTF8.GetBytes((string)this.value).Length;
+                if (this.DataType == ExifDataType.Ascii)
+                {
+                    return Encoding.UTF8.GetBytes((string)this.exifValue).Length;
+                }
 
-                if (IsArray)
-                    return ((Array)this.value).Length;
+                if (this.IsArray)
+                {
+                    return ((Array)this.exifValue).Length;
+                }
 
                 return 1;
             }
@@ -213,28 +227,32 @@ namespace ImageProcessorCore
 
         internal ExifValue(ExifTag tag, ExifDataType dataType, bool isArray)
         {
-            Tag = tag;
-            DataType = dataType;
-            IsArray = isArray;
+            this.Tag = tag;
+            this.DataType = dataType;
+            this.IsArray = isArray;
 
             if (dataType == ExifDataType.Ascii)
-                IsArray = false;
+            {
+                this.IsArray = false;
+            }
         }
 
         internal ExifValue(ExifTag tag, ExifDataType dataType, object value, bool isArray)
           : this(tag, dataType, isArray)
         {
-            this.value = value;
+            this.exifValue = value;
         }
 
         internal static ExifValue Create(ExifTag tag, object value)
         {
             Guard.IsFalse(tag == ExifTag.Unknown, nameof(tag), "Invalid Tag");
 
-            ExifValue exifValue = null;
-            Type type = value != null ? value.GetType() : null;
+            ExifValue exifValue;
+            Type type = value?.GetType();
             if (type != null && type.IsArray)
+            {
                 type = type.GetElementType();
+            }
 
             switch (tag)
             {
@@ -456,7 +474,7 @@ namespace ImageProcessorCore
                     break;
 
                 default:
-                    throw new NotImplementedException();
+                    throw new NotSupportedException();
             }
 
             exifValue.Value = value;
@@ -484,18 +502,20 @@ namespace ImageProcessorCore
                 case ExifDataType.SignedRational:
                     return 8;
                 default:
-                    throw new NotImplementedException(dataType.ToString());
+                    throw new NotSupportedException(dataType.ToString());
             }
         }
 
         private void CheckValue(object value)
         {
             if (value == null)
+            {
                 return;
+            }
 
             Type type = value.GetType();
 
-            if (DataType == ExifDataType.Ascii)
+            if (this.DataType == ExifDataType.Ascii)
             {
                 Guard.IsTrue(type == typeof(string), nameof(value), "Value should be a string.");
                 return;
@@ -503,45 +523,43 @@ namespace ImageProcessorCore
 
             if (type.IsArray)
             {
-                Guard.IsTrue(IsArray, nameof(value), "Value should not be an array.");
+                Guard.IsTrue(this.IsArray, nameof(value), "Value should not be an array.");
                 type = type.GetElementType();
             }
             else
             {
-                Guard.IsFalse(IsArray, nameof(value), "Value should not be an array.");
+                Guard.IsFalse(this.IsArray, nameof(value), "Value should not be an array.");
             }
 
-            switch (DataType)
+            switch (this.DataType)
             {
                 case ExifDataType.Byte:
-                    Guard.IsTrue(type == typeof(byte), nameof(value), $"Value should be a byte{(IsArray ? " array." : ".")}");
+                    Guard.IsTrue(type == typeof(byte), nameof(value), $"Value should be a byte{(this.IsArray ? " array." : ".")}");
                     break;
                 case ExifDataType.DoubleFloat:
-                    //case ExifDataType.Rational:
-                    //case ExifDataType.SignedRational:
-                    Guard.IsTrue(type == typeof(double), nameof(value), $"Value should be a double{(IsArray ? " array." : ".")}");
+                    Guard.IsTrue(type == typeof(double), nameof(value), $"Value should be a double{(this.IsArray ? " array." : ".")}");
                     break;
                 case ExifDataType.Rational:
                 case ExifDataType.SignedRational:
-                    Guard.IsTrue(type == typeof(Rational), nameof(value), $"Value should be a Rational{(IsArray ? " array." : ".")}");
+                    Guard.IsTrue(type == typeof(Rational), nameof(value), $"Value should be a Rational{(this.IsArray ? " array." : ".")}");
                     break;
                 case ExifDataType.Long:
-                    Guard.IsTrue(type == typeof(uint), nameof(value), $"Value should be an unsigned int{(IsArray ? " array." : ".")}");
+                    Guard.IsTrue(type == typeof(uint), nameof(value), $"Value should be an unsigned int{(this.IsArray ? " array." : ".")}");
                     break;
                 case ExifDataType.Short:
-                    Guard.IsTrue(type == typeof(ushort), nameof(value), $"Value should be an unsigned short{(IsArray ? " array." : ".")}");
+                    Guard.IsTrue(type == typeof(ushort), nameof(value), $"Value should be an unsigned short{(this.IsArray ? " array." : ".")}");
                     break;
                 case ExifDataType.SignedByte:
-                    Guard.IsTrue(type == typeof(sbyte), nameof(value), $"Value should be a signed byte{(IsArray ? " array." : ".")}");
+                    Guard.IsTrue(type == typeof(sbyte), nameof(value), $"Value should be a signed byte{(this.IsArray ? " array." : ".")}");
                     break;
                 case ExifDataType.SignedLong:
-                    Guard.IsTrue(type == typeof(int), nameof(value), $"Value should be an int{(IsArray ? " array." : ".")}");
+                    Guard.IsTrue(type == typeof(int), nameof(value), $"Value should be an int{(this.IsArray ? " array." : ".")}");
                     break;
                 case ExifDataType.SignedShort:
-                    Guard.IsTrue(type == typeof(short), nameof(value), $"Value should be a short{(IsArray ? " array." : ".")}");
+                    Guard.IsTrue(type == typeof(short), nameof(value), $"Value should be a short{(this.IsArray ? " array." : ".")}");
                     break;
                 case ExifDataType.SingleFloat:
-                    Guard.IsTrue(type == typeof(float), nameof(value), $"Value should be a float{(IsArray ? " array." : ".")}");
+                    Guard.IsTrue(type == typeof(float), nameof(value), $"Value should be a float{(this.IsArray ? " array." : ".")}");
                     break;
                 case ExifDataType.Undefined:
                     Guard.IsTrue(type == typeof(byte), nameof(value), "Value should be a byte array.");
@@ -554,22 +572,32 @@ namespace ImageProcessorCore
         private static ExifValue CreateNumber(ExifTag tag, Type type, bool isArray)
         {
             if (type == null || type == typeof(ushort))
+            {
                 return new ExifValue(tag, ExifDataType.Short, isArray);
-            else if (type == typeof(short))
+            }
+
+            if (type == typeof(short))
+            {
                 return new ExifValue(tag, ExifDataType.SignedShort, isArray);
-            else if (type == typeof(uint))
+            }
+
+            if (type == typeof(uint))
+            {
                 return new ExifValue(tag, ExifDataType.Long, isArray);
-            else
-                return new ExifValue(tag, ExifDataType.SignedLong, isArray);
+            }
+
+            return new ExifValue(tag, ExifDataType.SignedLong, isArray);
         }
 
         private string ToString(object value)
         {
-            string description = ExifTagDescriptionAttribute.GetDescription(Tag, value);
+            string description = ExifTagDescriptionAttribute.GetDescription(this.Tag, value);
             if (description != null)
-              return description;
+            {
+                return description;
+            }
 
-            switch (DataType)
+            switch (this.DataType)
             {
                 case ExifDataType.Ascii:
                     return (string)value;
@@ -580,7 +608,6 @@ namespace ImageProcessorCore
                 case ExifDataType.Long:
                     return ((uint)value).ToString(CultureInfo.InvariantCulture);
                 case ExifDataType.Rational:
-                    //return ((double)value).ToString(CultureInfo.InvariantCulture);
                     return ((Rational)value).ToString(CultureInfo.InvariantCulture);
                 case ExifDataType.Short:
                     return ((ushort)value).ToString(CultureInfo.InvariantCulture);
@@ -589,7 +616,6 @@ namespace ImageProcessorCore
                 case ExifDataType.SignedLong:
                     return ((int)value).ToString(CultureInfo.InvariantCulture);
                 case ExifDataType.SignedRational:
-                    //return ((double)value).ToString(CultureInfo.InvariantCulture);
                     return ((Rational)value).ToString(CultureInfo.InvariantCulture);
                 case ExifDataType.SignedShort:
                     return ((short)value).ToString(CultureInfo.InvariantCulture);
@@ -598,8 +624,23 @@ namespace ImageProcessorCore
                 case ExifDataType.Undefined:
                     return ((byte)value).ToString("X2", CultureInfo.InvariantCulture);
                 default:
-                    throw new NotImplementedException();
+                    throw new NotSupportedException();
             }
+        }
+
+        /// <summary>
+        /// Returns the hash code for this instance.
+        /// </summary>
+        /// <param name="exif">
+        /// The instance of <see cref="ExifValue"/> to return the hash code for.
+        /// </param>
+        /// <returns>
+        /// A 32-bit signed integer that is the hash code for this instance.
+        /// </returns>
+        private int GetHashCode(ExifValue exif)
+        {
+            int hashCode = exif.Tag.GetHashCode() ^ exif.DataType.GetHashCode();
+            return hashCode ^ exif.exifValue?.GetHashCode() ?? hashCode;
         }
     }
 }

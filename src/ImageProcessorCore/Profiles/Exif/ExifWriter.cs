@@ -82,22 +82,19 @@ namespace ImageProcessorCore
         private const int StartIndex = 6;
 
         private ExifParts allowedParts;
-        private bool bestPrecision;
         private Collection<ExifValue> values;
         private Collection<int> dataOffsets;
         private Collection<int> ifdIndexes;
         private Collection<int> exifIndexes;
         private Collection<int> gpsIndexes;
 
-        public ExifWriter(Collection<ExifValue> values, ExifParts allowedParts, bool bestPrecision)
+        public ExifWriter(Collection<ExifValue> values, ExifParts allowedParts)
         {
             this.values = values;
             this.allowedParts = allowedParts;
-            this.bestPrecision = bestPrecision;
-
-            this.ifdIndexes = GetIndexes(ExifParts.IfdTags, IfdTags);
-            this.exifIndexes = GetIndexes(ExifParts.ExifTags, ExifTags);
-            this.gpsIndexes = GetIndexes(ExifParts.GPSTags, GPSTags);
+            this.ifdIndexes = this.GetIndexes(ExifParts.IfdTags, IfdTags);
+            this.exifIndexes = this.GetIndexes(ExifParts.ExifTags, ExifTags);
+            this.gpsIndexes = this.GetIndexes(ExifParts.GPSTags, GPSTags);
         }
 
         public byte[] GetData()
@@ -107,25 +104,35 @@ namespace ImageProcessorCore
             int gpsIndex = -1;
 
             if (this.exifIndexes.Count > 0)
-                exifIndex = (int)GetIndex(this.ifdIndexes, ExifTag.SubIFDOffset);
+            {
+                exifIndex = (int)this.GetIndex(this.ifdIndexes, ExifTag.SubIFDOffset);
+            }
 
             if (this.gpsIndexes.Count > 0)
-                gpsIndex = (int)GetIndex(this.ifdIndexes, ExifTag.GPSIFDOffset);
+            {
+                gpsIndex = (int)this.GetIndex(this.ifdIndexes, ExifTag.GPSIFDOffset);
+            }
 
-            uint ifdLength = 2 + GetLength(this.ifdIndexes) + 4;
-            uint exifLength = GetLength(this.exifIndexes);
-            uint gpsLength = GetLength(this.gpsIndexes);
+            uint ifdLength = 2 + this.GetLength(this.ifdIndexes) + 4;
+            uint exifLength = this.GetLength(this.exifIndexes);
+            uint gpsLength = this.GetLength(this.gpsIndexes);
 
             if (exifLength > 0)
+            {
                 exifLength += 2;
+            }
 
             if (gpsLength > 0)
+            {
                 gpsLength += 2;
+            }
 
             length = ifdLength + exifLength + gpsLength;
 
             if (length == 6)
+            {
                 return null;
+            }
 
             length += 10 + 4 + 2;
 
@@ -146,26 +153,30 @@ namespace ImageProcessorCore
             uint thumbnailOffset = ifdOffset + ifdLength + exifLength + gpsLength;
 
             if (exifLength > 0)
-                this.values[exifIndex].Value = (ifdOffset + ifdLength);
-
-            if (gpsLength > 0)
-                this.values[gpsIndex].Value = (ifdOffset + ifdLength + exifLength);
-
-            i = Write(BitConverter.GetBytes(ifdOffset), result, i);
-            i = WriteHeaders(this.ifdIndexes, result, i);
-            i = Write(BitConverter.GetBytes(thumbnailOffset), result, i);
-            i = WriteData(this.ifdIndexes, result, i);
-
-            if (exifLength > 0)
             {
-                i = WriteHeaders(this.exifIndexes, result, i);
-                i = WriteData(this.exifIndexes, result, i);
+                this.values[exifIndex].Value = ifdOffset + ifdLength;
             }
 
             if (gpsLength > 0)
             {
-                i = WriteHeaders(this.gpsIndexes, result, i);
-                i = WriteData(this.gpsIndexes, result, i);
+                this.values[gpsIndex].Value = ifdOffset + ifdLength + exifLength;
+            }
+
+            i = Write(BitConverter.GetBytes(ifdOffset), result, i);
+            i = this.WriteHeaders(this.ifdIndexes, result, i);
+            i = Write(BitConverter.GetBytes(thumbnailOffset), result, i);
+            i = this.WriteData(this.ifdIndexes, result, i);
+
+            if (exifLength > 0)
+            {
+                i = this.WriteHeaders(this.exifIndexes, result, i);
+                i = this.WriteData(this.exifIndexes, result, i);
+            }
+
+            if (gpsLength > 0)
+            {
+                i = this.WriteHeaders(this.gpsIndexes, result, i);
+                i = this.WriteData(this.gpsIndexes, result, i);
             }
 
             Write(BitConverter.GetBytes((ushort)0), result, i);
@@ -178,7 +189,9 @@ namespace ImageProcessorCore
             foreach (int index in indexes)
             {
                 if (this.values[index].Tag == tag)
+                {
                     return index;
+                }
             }
 
             int newIndex = this.values.Count;
@@ -190,7 +203,9 @@ namespace ImageProcessorCore
         private Collection<int> GetIndexes(ExifParts part, ExifTag[] tags)
         {
             if (((int)this.allowedParts & (int)part) == 0)
+            {
                 return new Collection<int>();
+            }
 
             Collection<int> result = new Collection<int>();
             for (int i = 0; i < this.values.Count; i++)
@@ -198,11 +213,15 @@ namespace ImageProcessorCore
                 ExifValue value = this.values[i];
 
                 if (!value.HasValue)
+                {
                     continue;
+                }
 
                 int index = Array.IndexOf(tags, value.Tag);
                 if (index > -1)
+                {
                     result.Add(i);
+                }
             }
 
             return result;
@@ -217,9 +236,13 @@ namespace ImageProcessorCore
                 uint valueLength = (uint)this.values[index].Length;
 
                 if (valueLength > 4)
+                {
                     length += 12 + valueLength;
+                }
                 else
+                {
                     length += 12;
+                }
             }
 
             return length;
@@ -235,11 +258,15 @@ namespace ImageProcessorCore
         private int WriteArray(ExifValue value, byte[] destination, int offset)
         {
             if (value.DataType == ExifDataType.Ascii)
-                return WriteValue(ExifDataType.Ascii, value.Value, destination, offset);
+            {
+                return this.WriteValue(ExifDataType.Ascii, value.Value, destination, offset);
+            }
 
             int newOffset = offset;
             foreach (object obj in (Array)value.Value)
-                newOffset = WriteValue(value.DataType, obj, destination, newOffset);
+            {
+                newOffset = this.WriteValue(value.DataType, obj, destination, newOffset);
+            }
 
             return newOffset;
         }
@@ -247,7 +274,9 @@ namespace ImageProcessorCore
         private int WriteData(Collection<int> indexes, byte[] destination, int offset)
         {
             if (this.dataOffsets.Count == 0)
+            {
                 return offset;
+            }
 
             int newOffset = offset;
 
@@ -258,7 +287,7 @@ namespace ImageProcessorCore
                 if (value.Length > 4)
                 {
                     Write(BitConverter.GetBytes(newOffset - StartIndex), destination, this.dataOffsets[i++]);
-                    newOffset = WriteValue(value, destination, newOffset);
+                    newOffset = this.WriteValue(value, destination, newOffset);
                 }
             }
 
@@ -272,7 +301,9 @@ namespace ImageProcessorCore
             int newOffset = Write(BitConverter.GetBytes((ushort)indexes.Count), destination, offset);
 
             if (indexes.Count == 0)
+            {
                 return newOffset;
+            }
 
             foreach (int index in indexes)
             {
@@ -282,9 +313,13 @@ namespace ImageProcessorCore
                 newOffset = Write(BitConverter.GetBytes((uint)value.NumberOfComponents), destination, newOffset);
 
                 if (value.Length > 4)
+                {
                     this.dataOffsets.Add(newOffset);
+                }
                 else
-                    WriteValue(value, destination, newOffset);
+                {
+                    this.WriteValue(value, destination, newOffset);
+                }
 
                 newOffset += 4;
             }
@@ -294,90 +329,20 @@ namespace ImageProcessorCore
 
         private int WriteRational(Rational value, byte[] destination, int offset)
         {
+            // Ensure no overflow
             Write(BitConverter.GetBytes((uint)(value.Numerator * (value.ToDouble() < 0.0 ? -1 : 1))), destination, offset);
             Write(BitConverter.GetBytes((uint)value.Denominator), destination, offset + 4);
 
             return offset + 8;
         }
 
-        //private int WriteRational(double value, byte[] destination, int offset)
-        //{
-        //    uint numerator = 1;
-        //    uint denominator = 1;
-
-        //    if (double.IsPositiveInfinity(value))
-        //        denominator = 0;
-        //    else if (double.IsNegativeInfinity(value))
-        //        denominator = 0;
-        //    else
-        //    {
-        //        double val = Math.Abs(value);
-        //        double df = numerator / denominator;
-        //        double epsilon = this.bestPrecision ? double.Epsilon : .000001;
-
-        //        while (Math.Abs(df - val) > epsilon)
-        //        {
-        //            if (df < val)
-        //                numerator++;
-        //            else
-        //            {
-        //                denominator++;
-        //                numerator = (uint)(val * denominator);
-        //            }
-
-        //            df = numerator / (double)denominator;
-        //        }
-        //    }
-
-        //    Write(BitConverter.GetBytes(numerator), destination, offset);
-        //    Write(BitConverter.GetBytes(denominator), destination, offset + 4);
-
-        //    return offset + 8;
-        //}
-
         private int WriteSignedRational(Rational value, byte[] destination, int offset)
         {
-            // TODO: Check this.
             Write(BitConverter.GetBytes((int)value.Numerator), destination, offset);
             Write(BitConverter.GetBytes((int)value.Denominator), destination, offset + 4);
 
             return offset + 8;
         }
-
-        //private int WriteSignedRational(double value, byte[] destination, int offset)
-        //{
-        //    int numerator = 1;
-        //    int denominator = 1;
-
-        //    if (double.IsPositiveInfinity(value))
-        //        denominator = 0;
-        //    else if (double.IsNegativeInfinity(value))
-        //        denominator = 0;
-        //    else
-        //    {
-        //        double val = Math.Abs(value);
-        //        double df = numerator / denominator;
-        //        double epsilon = this.bestPrecision ? double.Epsilon : .000001;
-
-        //        while (Math.Abs(df - val) > epsilon)
-        //        {
-        //            if (df < val)
-        //                numerator++;
-        //            else
-        //            {
-        //                denominator++;
-        //                numerator = (int)(val * denominator);
-        //            }
-
-        //            df = numerator / (double)denominator;
-        //        }
-        //    }
-
-        //    Write(BitConverter.GetBytes(numerator * (value < 0.0 ? -1 : 1)), destination, offset);
-        //    Write(BitConverter.GetBytes(denominator), destination, offset + 4);
-
-        //    return offset + 8;
-        //}
 
         private int WriteValue(ExifDataType dataType, object value, byte[] destination, int offset)
         {
@@ -396,7 +361,7 @@ namespace ImageProcessorCore
                 case ExifDataType.Long:
                     return Write(BitConverter.GetBytes((uint)value), destination, offset);
                 case ExifDataType.Rational:
-                    return WriteRational((Rational)value, destination, offset);
+                    return this.WriteRational((Rational)value, destination, offset);
                 case ExifDataType.SignedByte:
                     destination[offset] = unchecked((byte)((sbyte)value));
                     return offset + 1;
@@ -405,7 +370,7 @@ namespace ImageProcessorCore
                 case ExifDataType.SignedShort:
                     return Write(BitConverter.GetBytes((short)value), destination, offset);
                 case ExifDataType.SignedRational:
-                    return WriteSignedRational((Rational)value, destination, offset);
+                    return this.WriteSignedRational((Rational)value, destination, offset);
                 case ExifDataType.SingleFloat:
                     return Write(BitConverter.GetBytes((float)value), destination, offset);
                 default:
@@ -416,9 +381,11 @@ namespace ImageProcessorCore
         private int WriteValue(ExifValue value, byte[] destination, int offset)
         {
             if (value.IsArray && value.DataType != ExifDataType.Ascii)
-                return WriteArray(value, destination, offset);
-            else
-                return WriteValue(value.DataType, value.Value, destination, offset);
+            {
+                return this.WriteArray(value, destination, offset);
+            }
+
+            return this.WriteValue(value.DataType, value.Value, destination, offset);
         }
     }
 }

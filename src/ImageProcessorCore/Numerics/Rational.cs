@@ -8,27 +8,25 @@ namespace ImageProcessorCore
     using System;
     using System.Globalization;
     using System.Numerics;
-    using System.Runtime.InteropServices;
     using System.Text;
 
     /// <summary>
     /// Represents a number that can be expressed as a fraction
     /// </summary>
     /// <remarks>
-    /// This is a very simplified implimentation of a rational number designed for use with
-    /// metadata only.
+    /// This is a very simplified implimentation of a rational number designed for use with metadata only.
     /// </remarks>
     public struct Rational : IEquatable<Rational>
     {
         /// <summary>
-        /// Represents a rational object that is not a number. 
+        /// Represents a rational object that is not a number. NaN
         /// </summary>
-        public static Rational Indeterminate = new Rational(0, 0);
+        public static Rational Indeterminate = new Rational(3, 0);
 
         /// <summary>
         /// Represents a rational object that is equal to 0. 
         /// </summary>
-        public static Rational Zero = new Rational(0, 1);
+        public static Rational Zero = new Rational(0, 0);
 
         /// <summary>
         /// Represents a rational object that is equal to 1. 
@@ -127,17 +125,20 @@ namespace ImageProcessorCore
                 this = Indeterminate;
                 return;
             }
-            else if (double.IsPositiveInfinity(value))
+
+            if (double.IsPositiveInfinity(value))
             {
                 this = PositiveInfinity;
                 return;
             }
-            else if (double.IsNegativeInfinity(value))
+
+            if (double.IsNegativeInfinity(value))
             {
                 this = NegativeInfinity;
                 return;
             }
 
+            // TODO: Not happy with parsing a string like this. I should be able to use maths but maths is HARD!
             this = Parse(value.ToString("R", CultureInfo.InvariantCulture));
         }
 
@@ -154,32 +155,87 @@ namespace ImageProcessorCore
         /// <summary>
         /// Gets a value indicating whether this instance is indeterminate. 
         /// </summary>
-        public bool IsIndeterminate => (this.Equals(Indeterminate));
+        public bool IsIndeterminate
+        {
+            get
+            {
+                if (this.Denominator != 0)
+                {
+                    return false;
+                }
+
+                return this.Numerator == 3;
+            }
+        }
 
         /// <summary>
         /// Gets a value indicating whether this instance is an integer. 
         /// </summary>
-        public bool IsInteger => (this.Denominator == 1);
+        public bool IsInteger => this.Denominator == 1;
 
         /// <summary>
         /// Gets a value indicating whether this instance is equal to 0 
         /// </summary>
-        public bool IsZero => (this.Equals(Zero));
+        public bool IsZero
+        {
+            get
+            {
+                if (this.Denominator != 0)
+                {
+                    return false;
+                }
+
+                return this.Numerator == 0;
+            }
+        }
 
         /// <summary>
         /// Gets a value indicating whether this instance is equal to 1. 
         /// </summary>
-        public bool IsOne => (this.Equals(One));
+        public bool IsOne
+        {
+            get
+            {
+                if (this.Denominator != 1)
+                {
+                    return false;
+                }
+
+                return this.Numerator == 1;
+            }
+        }
 
         /// <summary>
         /// Gets a value indicating whether this instance is equal to negative infinity (-1, 0). 
         /// </summary>
-        public bool IsNegativeInfinity => (this.Equals(NegativeInfinity));
+        public bool IsNegativeInfinity
+        {
+            get
+            {
+                if (this.Denominator != 0)
+                {
+                    return false;
+                }
+
+                return this.Numerator == -1;
+            }
+        }
 
         /// <summary>
-        /// Gets a value indicating whether this instance is equal to positive infinity (1, 0). 
+        /// Gets a value indicating whether this instance is equal to positive infinity (+1, 0). 
         /// </summary>
-        public bool IsPositiveInfinity => (this.Equals(PositiveInfinity));
+        public bool IsPositiveInfinity
+        {
+            get
+            {
+                if (this.Denominator != 0)
+                {
+                    return false;
+                }
+
+                return this.Numerator == 1;
+            }
+        }
 
         /// <summary>
         /// Converts a rational number to the nearest double. 
@@ -226,31 +282,31 @@ namespace ImageProcessorCore
         /// <inheritdoc/>
         public bool Equals(Rational other)
         {
+            // Standard: a/b = c/d
             if (this.Denominator == other.Denominator)
             {
                 return this.Numerator == other.Numerator;
             }
-            else if (this.Numerator == BigInteger.Zero && this.Denominator == BigInteger.Zero)
+
+            // Indeterminate
+            if (this.Numerator == 3 && this.Denominator == 0)
             {
-                return other.Numerator == BigInteger.Zero && other.Denominator == BigInteger.Zero;
+                return other.Numerator == 3 && other.Denominator == 0;
             }
-            else if (other.Numerator == BigInteger.Zero && other.Denominator == BigInteger.Zero)
+
+            if (other.Numerator == 3 && other.Denominator == 0)
             {
-                return this.Numerator == BigInteger.Zero && this.Denominator == BigInteger.Zero;
+                return this.Numerator == 3 && this.Denominator == 0;
             }
-            else
-            {
-                return (this.Numerator * other.Denominator) == (this.Denominator * other.Numerator);
-            }
+
+            // ad = bc
+            return (this.Numerator * other.Denominator) == (this.Denominator * other.Numerator);
         }
 
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            unchecked
-            {
-                return ((int)this.Numerator * 397) ^ (int)this.Denominator;
-            }
+            return this.GetHashCode(this);
         }
 
         /// <inheritdoc/>
@@ -268,7 +324,6 @@ namespace ImageProcessorCore
         /// </param>
         /// <returns></returns>
         public string ToString(IFormatProvider provider)
-
         {
             if (this.IsIndeterminate)
             {
@@ -283,6 +338,11 @@ namespace ImageProcessorCore
             if (this.IsNegativeInfinity)
             {
                 return "[ NegativeInfinity ]";
+            }
+
+            if (this.IsZero)
+            {
+                return "[ Zero ]";
             }
 
             if (this.IsInteger)
@@ -322,16 +382,16 @@ namespace ImageProcessorCore
                 return;
             }
 
-            if (this.Numerator == BigInteger.Zero)
+            if (this.Numerator == 0)
             {
-                Denominator = BigInteger.One;
+                this.Denominator = 1;
                 return;
             }
 
             if (this.Numerator == this.Denominator)
             {
-                this.Numerator = BigInteger.One;
-                this.Denominator = BigInteger.One;
+                this.Numerator = 1;
+                this.Denominator = 1;
                 return;
             }
 
@@ -350,36 +410,36 @@ namespace ImageProcessorCore
         /// <returns>The <see cref="Rational"/></returns>
         internal static Rational Parse(string value)
         {
-            int periodIndex = value.IndexOf(".");
-            int eIndeix = value.IndexOf("E");
-            int slashIndex = value.IndexOf("/");
+            int periodIndex = value.IndexOf(".", StringComparison.Ordinal);
+            int eIndex = value.IndexOf("E", StringComparison.Ordinal);
+            int slashIndex = value.IndexOf("/", StringComparison.Ordinal);
 
             // An integer such as 7
-            if (periodIndex == -1 && eIndeix == -1 && slashIndex == -1)
+            if (periodIndex == -1 && eIndex == -1 && slashIndex == -1)
             {
                 return new Rational(BigInteger.Parse(value));
             }
 
             // A fraction such as 3/7
-            if (periodIndex == -1 && eIndeix == -1 && slashIndex != -1)
+            if (periodIndex == -1 && eIndex == -1 && slashIndex != -1)
             {
                 return new Rational(BigInteger.Parse(value.Substring(0, slashIndex)),
                                     BigInteger.Parse(value.Substring(slashIndex + 1)));
             }
 
             // No scientific Notation such as 5.997
-            if (eIndeix == -1)
+            if (eIndex == -1)
             {
-                BigInteger n = BigInteger.Parse(value.Replace(".", ""));
+                BigInteger n = BigInteger.Parse(value.Replace(".", string.Empty));
                 BigInteger d = (BigInteger)Math.Pow(10, value.Length - periodIndex - 1);
                 return new Rational(n, d);
             }
 
             // Scientific notation such as 2.4556E-2
-            int characteristic = int.Parse(value.Substring(eIndeix + 1));
+            int characteristic = int.Parse(value.Substring(eIndex + 1));
             BigInteger ten = 10;
-            BigInteger numerator = BigInteger.Parse(value.Substring(0, eIndeix).Replace(".", ""));
-            BigInteger denominator = new BigInteger(Math.Pow(10, eIndeix - periodIndex - 1));
+            BigInteger numerator = BigInteger.Parse(value.Substring(0, eIndex).Replace(".", string.Empty));
+            BigInteger denominator = new BigInteger(Math.Pow(10, eIndex - periodIndex - 1));
             BigInteger charPower = BigInteger.Pow(ten, Math.Abs(characteristic));
 
             if (characteristic > 0)
@@ -392,6 +452,20 @@ namespace ImageProcessorCore
             }
 
             return new Rational(numerator, denominator);
+        }
+
+        /// <summary>
+        /// Returns the hash code for this instance.
+        /// </summary>
+        /// <param name="rational">
+        /// The instance of <see cref="Rational"/> to return the hash code for.
+        /// </param>
+        /// <returns>
+        /// A 32-bit signed integer that is the hash code for this instance.
+        /// </returns>
+        private int GetHashCode(Rational rational)
+        {
+            return ((rational.Numerator * 397) ^ rational.Denominator).GetHashCode();
         }
     }
 }

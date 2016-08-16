@@ -90,7 +90,6 @@ namespace ImageProcessorCore.Tests
                 profile = GetExifProfile();
 
                 profile.SetValue(ExifTag.ExposureTime, exposureTime);
-                profile.BestPrecision = true;
                 image.ExifProfile = profile;
 
                 image.SaveAsJpeg(memStream);

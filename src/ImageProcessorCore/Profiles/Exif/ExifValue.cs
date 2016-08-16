@@ -390,7 +390,7 @@ namespace ImageProcessorCore
                     break;
                 case ExifTag.Compression:
                 case ExifTag.PhotometricInterpretation:
-                case ExifTag.Threshholding:
+                case ExifTag.Thresholding:
                 case ExifTag.CellWidth:
                 case ExifTag.CellLength:
                 case ExifTag.FillOrder:

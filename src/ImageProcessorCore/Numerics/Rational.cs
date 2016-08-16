@@ -19,29 +19,49 @@ namespace ImageProcessorCore
     public struct Rational : IEquatable<Rational>
     {
         /// <summary>
-        /// Represents a rational object that is not a number. NaN
+        /// Represents a rational object that is not a number; NaN (0, 0)
         /// </summary>
-        public static Rational Indeterminate = new Rational(3, 0);
+        public static Rational Indeterminate = new Rational(BigInteger.Zero);
 
         /// <summary>
-        /// Represents a rational object that is equal to 0. 
+        /// Represents a rational object that is equal to 0 (0, 1)
         /// </summary>
-        public static Rational Zero = new Rational(0, 0);
+        public static Rational Zero = new Rational(BigInteger.Zero);
 
         /// <summary>
-        /// Represents a rational object that is equal to 1. 
+        /// Represents a rational object that is equal to 1 (1, 1) 
         /// </summary>
-        public static Rational One = new Rational(1, 1);
+        public static Rational One = new Rational(BigInteger.One);
 
         /// <summary>
-        /// Represents a Rational object that is equal to negative infinity (-1, 0). 
+        /// Represents a Rational object that is equal to negative infinity (-1, 0)
         /// </summary>
-        public static readonly Rational NegativeInfinity = new Rational(-1, 0);
+        public static readonly Rational NegativeInfinity = new Rational(BigInteger.MinusOne, BigInteger.Zero);
 
         /// <summary>
-        /// Represents a Rational object that is equal to positive infinity (+1, 0). 
+        /// Represents a Rational object that is equal to positive infinity (1, 0)
         /// </summary>
-        public static readonly Rational PositiveInfinity = new Rational(1, 0);
+        public static readonly Rational PositiveInfinity = new Rational(BigInteger.One, BigInteger.Zero);
+
+        /// <summary>
+        /// The maximum number of decimal places
+        /// </summary>
+        private const int DoubleMaxScale = 308;
+
+        /// <summary>
+        /// The maximum precision (numbers after the decimal point)
+        /// </summary>
+        private static readonly BigInteger DoublePrecision = BigInteger.Pow(10, DoubleMaxScale);
+
+        /// <summary>
+        /// Represents double.MaxValue
+        /// </summary>
+        private static readonly BigInteger DoubleMaxValue = (BigInteger)double.MaxValue;
+
+        /// <summary>
+        /// Represents double.MinValue
+        /// </summary>
+        private static readonly BigInteger DoubleMinValue = (BigInteger)double.MinValue;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Rational"/> struct. 
@@ -159,81 +179,81 @@ namespace ImageProcessorCore
         {
             get
             {
-                if (this.Denominator != 0)
+                if (this.Denominator != BigInteger.Zero)
                 {
                     return false;
                 }
 
-                return this.Numerator == 3;
+                return this.Numerator == BigInteger.Zero;
             }
         }
 
         /// <summary>
-        /// Gets a value indicating whether this instance is an integer. 
+        /// Gets a value indicating whether this instance is an integer (n, 1)
         /// </summary>
-        public bool IsInteger => this.Denominator == 1;
+        public bool IsInteger => this.Denominator == BigInteger.One;
 
         /// <summary>
-        /// Gets a value indicating whether this instance is equal to 0 
+        /// Gets a value indicating whether this instance is equal to 0 (0, 1)
         /// </summary>
         public bool IsZero
         {
             get
             {
-                if (this.Denominator != 0)
+                if (this.Denominator != BigInteger.One)
                 {
                     return false;
                 }
 
-                return this.Numerator == 0;
+                return this.Numerator == BigInteger.Zero;
             }
         }
 
         /// <summary>
-        /// Gets a value indicating whether this instance is equal to 1. 
+        /// Gets a value indicating whether this instance is equal to 1 (1, 1)
         /// </summary>
         public bool IsOne
         {
             get
             {
-                if (this.Denominator != 1)
+                if (this.Denominator != BigInteger.One)
                 {
                     return false;
                 }
 
-                return this.Numerator == 1;
+                return this.Numerator == BigInteger.One;
             }
         }
 
         /// <summary>
-        /// Gets a value indicating whether this instance is equal to negative infinity (-1, 0). 
+        /// Gets a value indicating whether this instance is equal to negative infinity (-1, 0)
         /// </summary>
         public bool IsNegativeInfinity
         {
             get
             {
-                if (this.Denominator != 0)
+                if (this.Denominator != BigInteger.Zero)
                 {
                     return false;
                 }
 
-                return this.Numerator == -1;
+                return this.Numerator == BigInteger.MinusOne;
             }
         }
 
         /// <summary>
-        /// Gets a value indicating whether this instance is equal to positive infinity (+1, 0). 
+        /// Gets a value indicating whether this instance is equal to positive infinity (1, 0) 
         /// </summary>
         public bool IsPositiveInfinity
         {
             get
             {
-                if (this.Denominator != 0)
+                if (this.Denominator != BigInteger.Zero)
                 {
                     return false;
                 }
 
-                return this.Numerator == 1;
+                return this.Numerator == BigInteger.One;
             }
         }
 
@@ -245,6 +265,7 @@ namespace ImageProcessorCore
         /// </returns>
         public double ToDouble()
         {
+            // Shortcut return values
             if (this.IsIndeterminate)
             {
                 return double.NaN;
@@ -265,7 +286,54 @@ namespace ImageProcessorCore
                 return (double)this.Numerator;
             }
 
-            return (double)(this.Numerator / this.Denominator);
+            // The Double value type represents a double-precision 64-bit number with
+            // values ranging from -1.79769313486232e308 to +1.79769313486232e308
+            // values that do not fit into this range are returned as +/-Infinity
+            if (SafeCastToDouble(this.Numerator) && SafeCastToDouble(this.Denominator))
+            {
+                return (double)this.Numerator / (double)this.Denominator;
+            }
+
+            // Scale the numerator to preserve the fraction part through the integer division
+            // We could probably adjust this to make it less precise if need be.
+            BigInteger denormalized = (this.Numerator * DoublePrecision) / this.Denominator;
+            if (denormalized.IsZero)
+            {
+                // underflow to -+0
+                return (this.Numerator.Sign < 0) ? BitConverter.Int64BitsToDouble(unchecked((long)0x8000000000000000)) : 0d;
+            }
+
+            double result = 0;
+            bool isDouble = false;
+            int scale = DoubleMaxScale;
+
+            while (scale > 0)
+            {
+                if (!isDouble)
+                {
+                    if (SafeCastToDouble(denormalized))
+                    {
+                        result = (double)denormalized;
+                        isDouble = true;
+                    }
+                    else
+                    {
+                        denormalized = denormalized / 10;
+                    }
+                }
+
+                result = result / 10;
+                scale--;
+            }
+
+            if (!isDouble)
+            {
+                return (this.Numerator.Sign < 0) ? double.NegativeInfinity : double.PositiveInfinity;
+            }
+            else
+            {
+                return result;
+            }
         }
 
         /// <inheritdoc/>
@@ -289,14 +357,14 @@ namespace ImageProcessorCore
             }
 
             // Indeterminate
-            if (this.Numerator == 3 && this.Denominator == 0)
+            if (this.Numerator == BigInteger.Zero && this.Denominator == BigInteger.Zero)
             {
-                return other.Numerator == 3 && other.Denominator == 0;
+                return other.Numerator == BigInteger.Zero && other.Denominator == BigInteger.Zero;
             }
 
-            if (other.Numerator == 3 && other.Denominator == 0)
+            if (other.Numerator == BigInteger.Zero && other.Denominator == BigInteger.Zero)
             {
-                return this.Numerator == 3 && this.Denominator == 0;
+                return this.Numerator == BigInteger.Zero && this.Denominator == BigInteger.Zero;
             }
 
             // ad = bc
@@ -342,7 +410,7 @@ namespace ImageProcessorCore
 
             if (this.IsZero)
             {
-                return "[ Zero ]";
+                return "0";
             }
 
             if (this.IsInteger)
@@ -382,16 +450,16 @@ namespace ImageProcessorCore
                 return;
             }
 
-            if (this.Numerator == 0)
+            if (this.Numerator == BigInteger.Zero)
             {
-                this.Denominator = 1;
+                this.Denominator = BigInteger.One;
                 return;
             }
 
             if (this.Numerator == this.Denominator)
             {
-                this.Numerator = 1;
-                this.Denominator = 1;
+                this.Numerator = BigInteger.One;
+                this.Denominator = BigInteger.One;
                 return;
             }
 
@@ -414,20 +482,20 @@ namespace ImageProcessorCore
             int eIndex = value.IndexOf("E", StringComparison.Ordinal);
             int slashIndex = value.IndexOf("/", StringComparison.Ordinal);
 
-            // An integer such as 7
+            // An integer such as 3
             if (periodIndex == -1 && eIndex == -1 && slashIndex == -1)
             {
                 return new Rational(BigInteger.Parse(value));
             }
 
-            // A fraction such as 3/7
+            // A fraction such as 22/7
             if (periodIndex == -1 && eIndex == -1 && slashIndex != -1)
             {
                 return new Rational(BigInteger.Parse(value.Substring(0, slashIndex)),
                                     BigInteger.Parse(value.Substring(slashIndex + 1)));
             }
 
-            // No scientific Notation such as 5.997
+            // No scientific Notation such as 3.14159
             if (eIndex == -1)
             {
                 BigInteger n = BigInteger.Parse(value.Replace(".", string.Empty));
@@ -435,7 +503,7 @@ namespace ImageProcessorCore
                 return new Rational(n, d);
             }
 
-            // Scientific notation such as 2.4556E-2
+            // Scientific notation such as 3.14159E-2
             int characteristic = int.Parse(value.Substring(eIndex + 1));
             BigInteger ten = 10;
             BigInteger numerator = BigInteger.Parse(value.Substring(0, eIndex).Replace(".", string.Empty));
@@ -452,6 +520,17 @@ namespace ImageProcessorCore
             }
 
             return new Rational(numerator, denominator);
+        }
+
+        /// <summary>
+        /// Returns a value indicating whether the given big integer can be
+        /// safely cast to a double.
+        /// </summary>
+        /// <param name="value">The value to test.</param>
+        /// <returns><c>true</c> if the value can be safely cast</returns>
+        private static bool SafeCastToDouble(BigInteger value)
+        {
+            return DoubleMinValue <= value && value <= DoubleMaxValue;
         }
 
         /// <summary>

@@ -54,7 +54,7 @@ namespace ImageProcessorCore
         /// <summary>
         /// Threshholding
         /// </summary>
-        Threshholding = 0x0107,
+        Thresholding = 0x0107,
 
         /// <summary>
         /// CellWidth

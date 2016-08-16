@@ -2,7 +2,6 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
-
 namespace ImageProcessorCore
 {
     using System;
@@ -118,11 +117,11 @@ namespace ImageProcessorCore
         private void AddValues(Collection<ExifValue> values, uint index)
         {
             this.currentIndex = this.startIndex + index;
-            ushort count = GetShort();
+            ushort count = this.GetShort();
 
             for (ushort i = 0; i < count; i++)
             {
-                ExifValue value = CreateValue();
+                ExifValue value = this.CreateValue();
                 if (value == null)
                 {
                     continue;
@@ -197,7 +196,7 @@ namespace ImageProcessorCore
                         return this.ToLong(data);
                     }
 
-                    return ToArray(dataType, data, ToLong);
+                    return ToArray(dataType, data, this.ToLong);
                 case ExifDataType.Rational:
                     if (numberOfComponents == 1)
                     {
@@ -243,10 +242,10 @@ namespace ImageProcessorCore
                 case ExifDataType.SingleFloat:
                     if (numberOfComponents == 1)
                     {
-                        return ToSingle(data);
+                        return this.ToSingle(data);
                     }
 
-                    return ToArray(dataType, data, ToSingle);
+                    return ToArray(dataType, data, this.ToSingle);
                 case ExifDataType.Undefined:
                     if (numberOfComponents == 1)
                     {
@@ -261,13 +260,13 @@ namespace ImageProcessorCore
 
         private ExifValue CreateValue()
         {
-            if (RemainingLength < 12)
+            if (this.RemainingLength < 12)
             {
                 return null;
             }
 
-            ExifTag tag = ToEnum(this.GetShort(), ExifTag.Unknown);
-            ExifDataType dataType = ToEnum(this.GetShort(), ExifDataType.Unknown);
+            ExifTag tag = this.ToEnum(this.GetShort(), ExifTag.Unknown);
+            ExifDataType dataType = this.ToEnum(this.GetShort(), ExifDataType.Unknown);
             object value;
 
             if (dataType == ExifDataType.Unknown)
@@ -278,25 +277,25 @@ namespace ImageProcessorCore
             uint numberOfComponents = this.GetLong();
 
             uint size = numberOfComponents * ExifValue.GetSize(dataType);
-            byte[] data = GetBytes(4);
+            byte[] data = this.GetBytes(4);
 
             if (size > 4)
             {
                 uint oldIndex = this.currentIndex;
-                this.currentIndex = ToLong(data) + this.startIndex;
-                if (RemainingLength < size)
+                this.currentIndex = this.ToLong(data) + this.startIndex;
+                if (this.RemainingLength < size)
                 {
                     this.invalidTags.Add(tag);
                     this.currentIndex = oldIndex;
                     return null;
                 }
 
-                value = ConvertValue(dataType, this.GetBytes(size), numberOfComponents);
+                value = this.ConvertValue(dataType, this.GetBytes(size), numberOfComponents);
                 this.currentIndex = oldIndex;
             }
             else
             {
-                value = ConvertValue(dataType, data, numberOfComponents);
+                value = this.ConvertValue(dataType, data, numberOfComponents);
             }
 
             bool isArray = value != null && numberOfComponents > 1;
@@ -331,38 +330,38 @@ namespace ImageProcessorCore
 
         private uint GetLong()
         {
-            return ToLong(GetBytes(4));
+            return this.ToLong(this.GetBytes(4));
         }
 
         private ushort GetShort()
         {
-            return ToShort(GetBytes(2));
+            return this.ToShort(this.GetBytes(2));
         }
 
         private string GetString(uint length)
         {
-            return ToString(GetBytes(length));
+            return ToString(this.GetBytes(length));
         }
 
         private void GetThumbnail(uint offset)
         {
             Collection<ExifValue> values = new Collection<ExifValue>();
-            AddValues(values, offset);
+            this.AddValues(values, offset);
 
             foreach (ExifValue value in values)
             {
                 if (value.Tag == ExifTag.JPEGInterchangeFormat && (value.DataType == ExifDataType.Long))
                 {
-                    ThumbnailOffset = (uint)value.Value + this.startIndex;
+                    this.ThumbnailOffset = (uint)value.Value + this.startIndex;
                 }
                 else if (value.Tag == ExifTag.JPEGInterchangeFormatLength && value.DataType == ExifDataType.Long)
                 {
-                    ThumbnailLength = (uint)value.Value;
+                    this.ThumbnailLength = (uint)value.Value;
                 }
             }
         }
 
-        private static TDataType[] ToArray<TDataType>(ExifDataType dataType, Byte[] data,
+        private static TDataType[] ToArray<TDataType>(ExifDataType dataType, byte[] data,
           ConverterMethod<TDataType> converter)
         {
             int dataTypeSize = (int)ExifValue.GetSize(dataType);
@@ -388,7 +387,7 @@ namespace ImageProcessorCore
 
         private double ToDouble(byte[] data)
         {
-            if (!ValidateArray(data, 8))
+            if (!this.ValidateArray(data, 8))
             {
                 return default(double);
             }
@@ -398,7 +397,7 @@ namespace ImageProcessorCore
 
         private uint ToLong(byte[] data)
         {
-            if (!ValidateArray(data, 4))
+            if (!this.ValidateArray(data, 4))
             {
                 return default(uint);
             }
@@ -409,7 +408,7 @@ namespace ImageProcessorCore
         private ushort ToShort(byte[] data)
         {
 
-            if (!ValidateArray(data, 2))
+            if (!this.ValidateArray(data, 2))
             {
                 return default(ushort);
             }
@@ -419,7 +418,7 @@ namespace ImageProcessorCore
 
         private float ToSingle(byte[] data)
         {
-            if (!ValidateArray(data, 4))
+            if (!this.ValidateArray(data, 4))
             {
                 return default(float);
             }
@@ -441,7 +440,7 @@ namespace ImageProcessorCore
 
         private Rational ToRational(byte[] data)
         {
-            if (!ValidateArray(data, 8, 4))
+            if (!this.ValidateArray(data, 8, 4))
             {
                 return Rational.Zero;
             }
@@ -449,23 +448,8 @@ namespace ImageProcessorCore
             uint numerator = BitConverter.ToUInt32(data, 0);
             uint denominator = BitConverter.ToUInt32(data, 4);
 
-            // TODO: investigate the possibility of a Rational struct
             return new Rational(numerator, denominator);
         }
-
-        //private double ToRational(byte[] data)
-        //{
-        //    if (!ValidateArray(data, 8, 4))
-        //    {
-        //        return default(double);
-        //    }
-
-        //    uint numerator = BitConverter.ToUInt32(data, 0);
-        //    uint denominator = BitConverter.ToUInt32(data, 4);
-
-        //    // TODO: investigate the possibility of a Rational struct
-        //    return numerator / (double)denominator;
-        //}
 
         private sbyte ToSignedByte(byte[] data)
         {
@@ -474,7 +458,7 @@ namespace ImageProcessorCore
 
         private int ToSignedLong(byte[] data)
         {
-            if (!ValidateArray(data, 4))
+            if (!this.ValidateArray(data, 4))
             {
                 return default(int);
             }
@@ -484,7 +468,7 @@ namespace ImageProcessorCore
 
         private Rational ToSignedRational(byte[] data)
         {
-            if (!ValidateArray(data, 8, 4))
+            if (!this.ValidateArray(data, 8, 4))
             {
                 return Rational.Zero;
             }
@@ -495,22 +479,9 @@ namespace ImageProcessorCore
             return new Rational(numerator, denominator);
         }
 
-        //private double ToSignedRational(byte[] data)
-        //{
-        //    if (!ValidateArray(data, 8, 4))
-        //    {
-        //        return default(double);
-        //    }
-
-        //    int numerator = BitConverter.ToInt32(data, 0);
-        //    int denominator = BitConverter.ToInt32(data, 4);
-
-        //    return numerator / (double)denominator;
-        //}
-
         private short ToSignedShort(byte[] data)
         {
-            if (!ValidateArray(data, 2))
+            if (!this.ValidateArray(data, 2))
             {
                 return default(short);
             }
@@ -520,7 +491,7 @@ namespace ImageProcessorCore
 
         private bool ValidateArray(byte[] data, int size)
         {
-            return ValidateArray(data, size, size);
+            return this.ValidateArray(data, size, size);
         }
 
         private bool ValidateArray(byte[] data, int size, int stepSize)

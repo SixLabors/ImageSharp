@@ -7,13 +7,12 @@ namespace ImageProcessorCore
 {
     using System;
 
-    ///<summary>
+    /// <summary>
     /// Specifies which parts will be written when the profile is added to an image.
-    ///</summary>
+    /// </summary>
     [Flags]
     public enum ExifParts
     {
-
         /// <summary>
         /// None
         /// </summary>

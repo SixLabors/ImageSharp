@@ -2,9 +2,9 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
-
 namespace ImageProcessorCore
 {
+    using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.IO;
@@ -54,7 +54,6 @@ namespace ImageProcessorCore
         public ExifProfile(byte[] data)
         {
             this.Parts = ExifParts.All;
-            this.BestPrecision = false;
             this.data = data;
             this.invalidTags = new List<ExifTag>();
         }
@@ -70,8 +69,6 @@ namespace ImageProcessorCore
             Guard.NotNull(other, nameof(other));
 
             this.Parts = other.Parts;
-            this.BestPrecision = other.BestPrecision;
-
             this.thumbnailLength = other.thumbnailLength;
             this.thumbnailOffset = other.thumbnailOffset;
             this.invalidTags = new List<ExifTag>(other.invalidTags);
@@ -87,17 +84,6 @@ namespace ImageProcessorCore
             {
                 this.data = other.data;
             }
-        }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether rational numbers should be stored with the best 
-        /// precision possible. This is disabled by default, setting this to true will have an 
-        /// impact on the performance.
-        /// </summary>
-        public bool BestPrecision
-        {
-            get;
-            set;
         }
 
         /// <summary>
@@ -121,7 +107,7 @@ namespace ImageProcessorCore
         {
             get
             {
-                InitializeValues();
+                this.InitializeValues();
                 return this.values;
             }
         }
@@ -135,7 +121,7 @@ namespace ImageProcessorCore
             where T : IPackedVector<TP>
             where TP : struct
         {
-            InitializeValues();
+            this.InitializeValues();
 
             if (this.thumbnailOffset == 0 || this.thumbnailLength == 0)
             {
@@ -159,7 +145,7 @@ namespace ImageProcessorCore
         /// <param name="tag">The tag of the EXIF value.</param>
         public ExifValue GetValue(ExifTag tag)
         {
-            foreach (ExifValue exifValue in Values)
+            foreach (ExifValue exifValue in this.Values)
             {
                 if (exifValue.Tag == tag)
                     return exifValue;
@@ -174,7 +160,7 @@ namespace ImageProcessorCore
         /// <param name="tag">The tag of the EXIF value.</param>
         public bool RemoveValue(ExifTag tag)
         {
-            InitializeValues();
+            this.InitializeValues();
 
             for (int i = 0; i < this.values.Count; i++)
             {
@@ -224,7 +210,7 @@ namespace ImageProcessorCore
                 return null;
             }
 
-            ExifWriter writer = new ExifWriter(this.values, this.Parts, this.BestPrecision);
+            ExifWriter writer = new ExifWriter(this.values, this.Parts);
             return writer.GetData();
         }
 

@@ -23,11 +23,6 @@ namespace ImageProcessorCore.Formats
             = new Dictionary<int, PngColorTypeInformation>();
 
         /// <summary>
-        /// The image to decode.
-        /// </summary>
-        //private IImage currentImage;
-
-        /// <summary>
         /// The stream to decode from.
         /// </summary>
         private Stream currentStream;

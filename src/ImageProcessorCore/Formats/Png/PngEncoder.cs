@@ -20,6 +20,11 @@ namespace ImageProcessorCore.Formats
         /// </summary>
         public int Quality { get; set; }
 
+        /// <summary>
+        /// Gets or sets the png color type
+        /// </summary>
+        public PngColorType PngColorType { get; set; } = PngColorType.RgbWithAlpha;
+
         /// <inheritdoc/>
         public string MimeType => "image/png";
 
@@ -76,6 +81,7 @@ namespace ImageProcessorCore.Formats
                 CompressionLevel = this.CompressionLevel,
                 Gamma = this.Gamma,
                 Quality = this.Quality,
+                PngColorType = PngColorType,
                 Quantizer = this.Quantizer,
                 WriteGamma = this.WriteGamma,
                 Threshold = this.Threshold

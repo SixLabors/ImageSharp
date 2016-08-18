@@ -393,6 +393,7 @@ namespace ImageProcessorCore.Formats
 
             if (this.header.InterlaceMethod != 0)
             {
+                // TODO: Support interlacing
                 throw new ImageFormatException("Interlacing is not supported.");
             }
         }

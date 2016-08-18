@@ -595,10 +595,12 @@ namespace ImageProcessorCore.Formats
                 throw new ImageFormatException("Exif profile size exceeds limit.");
             }
 
+            int length = data.Length + 2;
+
             this.buffer[0] = JpegConstants.Markers.XFF;
             this.buffer[1] = JpegConstants.Markers.APP1; // Application Marker
-            this.buffer[2] = (byte)((data.Length >> 8) & 0xFF);
-            this.buffer[3] = (byte)(data.Length & 0xFF);
+            this.buffer[2] = (byte)((length >> 8) & 0xFF);
+            this.buffer[3] = (byte)(length & 0xFF);
 
             this.outputStream.Write(this.buffer, 0, 4);
             this.outputStream.Write(data, 0, data.Length);

@@ -371,30 +371,30 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Validates the png header.
         /// </summary>
-        /// <exception cref="ImageFormatException">
+        /// <exception cref="NotSupportedException">
         /// Thrown if the image does pass validation.
         /// </exception>
         private void ValidateHeader()
         {
             if (!ColorTypes.ContainsKey(this.header.ColorType))
             {
-                throw new ImageFormatException("Color type is not supported or not valid.");
+                throw new NotSupportedException("Color type is not supported or not valid.");
             }
 
             if (!ColorTypes[this.header.ColorType].SupportedBitDepths.Contains(this.header.BitDepth))
             {
-                throw new ImageFormatException("Bit depth is not supported or not valid.");
+                throw new NotSupportedException("Bit depth is not supported or not valid.");
             }
 
             if (this.header.FilterMethod != 0)
             {
-                throw new ImageFormatException("The png specification only defines 0 as filter method.");
+                throw new NotSupportedException("The png specification only defines 0 as filter method.");
             }
 
             if (this.header.InterlaceMethod != 0)
             {
                 // TODO: Support interlacing
-                throw new ImageFormatException("Interlacing is not supported.");
+                throw new NotSupportedException("Interlacing is not supported.");
             }
         }
 

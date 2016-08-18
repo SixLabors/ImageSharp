@@ -7,6 +7,7 @@ namespace ImageProcessorCore.Formats
 {
     /// <summary>
     /// Provides enumeration of the various png filter types.
+    /// <see href="https://www.w3.org/TR/PNG-Filters.html"/>
     /// </summary>
     internal enum FilterType
     {

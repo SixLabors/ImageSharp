@@ -44,6 +44,11 @@ namespace ImageProcessorCore.Formats
         private byte bitDepth;
 
         /// <summary>
+        /// The number of bytes per pixel.
+        /// </summary>
+        private int bytesPerPixel;
+
+        /// <summary>
         /// Gets or sets the quality of output for images.
         /// </summary>
         public int Quality { get; set; }
@@ -120,7 +125,7 @@ namespace ImageProcessorCore.Formats
             int quality = this.Quality > 0 ? this.Quality : image.Quality;
             this.Quality = quality > 0 ? quality.Clamp(1, int.MaxValue) : int.MaxValue;
 
-            // Set correct color type.
+            // Set correct color type if the color count is 256 or less.
             if (Quality <= 256)
             {
                 this.PngColorType = PngColorType.Palette;
@@ -141,12 +146,13 @@ namespace ImageProcessorCore.Formats
                 this.bitDepth = 8;
             }
 
-            // TODO: Add more color options here.
+            this.bytesPerPixel = CalculateBytesPerPixel();
+
             PngHeader header = new PngHeader
             {
                 Width = image.Width,
                 Height = image.Height,
-                ColorType = (byte)(this.Quality <= 256 ? 3 : 6), // 3 = indexed, 6= Each pixel is an R,G,B triple, followed by an alpha sample.
+                ColorType = (byte)this.PngColorType,
                 BitDepth = this.bitDepth,
                 FilterMethod = 0, // None
                 CompressionMethod = 0,
@@ -155,61 +161,139 @@ namespace ImageProcessorCore.Formats
 
             this.WriteHeaderChunk(stream, header);
 
-            if (this.Quality <= 256)
+            // Collect the pixel data
+            if (this.PngColorType == PngColorType.Palette)
             {
-                // Quatize the image and get the pixels
-                QuantizedImage<T, TP> quantized = this.WritePaletteChunk(stream, header, image);
-                pixelData = quantized.Pixels;
+                this.CollectIndexedBytes(image, stream, header);
+            }
+            else if (this.PngColorType == PngColorType.Grayscale || this.PngColorType == PngColorType.GrayscaleWithAlpha)
+            {
+                this.CollectGrayscaleBytes(image);
             }
             else
             {
-                // Copy the pixels across from the image.
-                // TODO: This should vary by bytes per pixel.
-                this.pixelData = new byte[this.width * this.height * 4];
-                int stride = this.width * 4;
-                using (IPixelAccessor<T, TP> pixels = image.Lock())
-                {
-                    for (int y = 0; y < this.height; y++)
-                    {
-                        for (int x = 0; x < this.width; x++)
-                        {
-                            int dataOffset = (y * stride) + (x * 4);
-                            byte[] source = pixels[x, y].ToBytes();
-
-                            // r -> g -> b -> a
-                            this.pixelData[dataOffset] = source[0];
-                            this.pixelData[dataOffset + 1] = source[1];
-                            this.pixelData[dataOffset + 2] = source[2];
-                            this.pixelData[dataOffset + 3] = source[3];
-                        }
-                    }
-                }
+                this.CollectColorBytes(image);
             }
 
             this.WritePhysicalChunk(stream, image);
             this.WriteGammaChunk(stream);
-
-            //using (IPixelAccessor<T, TP> pixels = image.Lock())
-            //{
-            //    this.WriteDataChunks(stream, pixels, quantized);
-            //}
             this.WriteDataChunks(stream);
-
             this.WriteEndChunk(stream);
             stream.Flush();
         }
 
+        /// <summary>
+        /// Collects the indexed pixel data.
+        /// </summary>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+        /// <param name="image">The image to encode.</param>
+        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+        /// <param name="header">The <see cref="PngHeader"/>.</param>
+        private void CollectIndexedBytes<T, TP>(ImageBase<T, TP> image, Stream stream, PngHeader header)
+            where T : IPackedVector<TP>
+            where TP : struct
+        {
+            // Quatize the image and get the pixels
+            QuantizedImage<T, TP> quantized = this.WritePaletteChunk(stream, header, image);
+            pixelData = quantized.Pixels;
+        }
+
+        /// <summary>
+        /// Collects the grayscale pixel data.
+        /// </summary>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+        /// <param name="image">The image to encode.</param>
+        private void CollectGrayscaleBytes<T, TP>(ImageBase<T, TP> image)
+            where T : IPackedVector<TP>
+            where TP : struct
+        {
+            // Copy the pixels across from the image.
+            this.pixelData = new byte[this.width * this.height * this.bytesPerPixel];
+            int stride = this.width * this.bytesPerPixel;
+            using (IPixelAccessor<T, TP> pixels = image.Lock())
+            {
+                Parallel.For(
+                   0,
+                   this.height,
+                   Bootstrapper.Instance.ParallelOptions,
+                   y =>
+                   {
+                       for (int x = 0; x < this.width; x++)
+                       {
+                           // Convert the color to YCbCr and store the luminance
+                           // Optionally store the original color alpha.
+                           int dataOffset = (y * stride) + (x * this.bytesPerPixel);
+                           Color source = new Color(pixels[x, y].ToVector4());
+                           YCbCr luminance = source;
+                           for (int i = 0; i < this.bytesPerPixel; i++)
+                           {
+                               if (i == 0)
+                               {
+                                   this.pixelData[dataOffset] = ((byte)luminance.Y).Clamp(0, 255);
+                               }
+                               else
+                               {
+                                   this.pixelData[dataOffset + i] = source.A;
+                               }
+                           }
+                       }
+                   });
+            }
+        }
+
+        /// <summary>
+        /// Collects the true color pixel data.
+        /// </summary>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+        /// <param name="image">The image to encode.</param>
+        private void CollectColorBytes<T, TP>(ImageBase<T, TP> image)
+            where T : IPackedVector<TP>
+            where TP : struct
+        {
+            // Copy the pixels across from the image.
+            this.pixelData = new byte[this.width * this.height * this.bytesPerPixel];
+            int stride = this.width * this.bytesPerPixel;
+            using (IPixelAccessor<T, TP> pixels = image.Lock())
+            {
+                Parallel.For(
+                   0,
+                   this.height,
+                   Bootstrapper.Instance.ParallelOptions,
+                   y =>
+                   {
+                       // Color data is stored in r -> g -> b -> a order
+                       for (int x = 0; x < this.width; x++)
+                       {
+                           int dataOffset = (y * stride) + (x * this.bytesPerPixel);
+                           byte[] source = pixels[x, y].ToBytes();
+
+                           for (int i = 0; i < this.bytesPerPixel; i++)
+                           {
+                               this.pixelData[dataOffset + i] = source[i];
+                           }
+                       }
+                   });
+            }
+        }
+
+        /// <summary>
+        /// Encodes the pixel data line by line.
+        /// Each scanline is encoded in the most optimal manner to improve compression.
+        /// </summary>
+        /// <returns>The <see cref="T:byte[]"/></returns>
         private byte[] EncodePixelData()
         {
             List<byte[]> filteredScanlines = new List<byte[]>();
 
-            int bytesPerPixel = CalculateBytesPerPixel();
-            byte[] previousScanline = new byte[width * bytesPerPixel];
+            byte[] previousScanline = new byte[width * this.bytesPerPixel];
 
             for (int y = 0; y < height; y++)
             {
                 byte[] rawScanline = GetRawScanline(y);
-                byte[] filteredScanline = GetOptimalFilteredScanline(rawScanline, previousScanline, bytesPerPixel);
+                byte[] filteredScanline = GetOptimalFilteredScanline(rawScanline, previousScanline, this.bytesPerPixel);
 
                 filteredScanlines.Add(filteredScanline);
 
@@ -230,24 +314,24 @@ namespace ImageProcessorCore.Formats
         /// Applies all PNG filters to the given scanline and returns the filtered scanline that is deemed
         /// to be most compressible, using lowest total variation as proxy for compressibility.
         /// </summary>
-        /// <param name="rawScanline"></param>
-        /// <param name="previousScanline"></param>
-        /// <param name="bytesPerPixel"></param>
+        /// <param name="rawScanline">The raw scanline</param>
+        /// <param name="previousScanline">The previous scanline</param>
+        /// <param name="byteCount">The number of bytes per pixel</param>
         /// <returns></returns>
-        private byte[] GetOptimalFilteredScanline(byte[] rawScanline, byte[] previousScanline, int bytesPerPixel)
+        private byte[] GetOptimalFilteredScanline(byte[] rawScanline, byte[] previousScanline, int byteCount)
         {
             List<Tuple<byte[], int>> candidates = new List<Tuple<byte[], int>>();
 
-            byte[] sub = SubFilter.Encode(rawScanline, bytesPerPixel);
+            byte[] sub = SubFilter.Encode(rawScanline, byteCount);
             candidates.Add(new Tuple<byte[], int>(sub, CalculateTotalVariation(sub)));
 
             byte[] up = UpFilter.Encode(rawScanline, previousScanline);
             candidates.Add(new Tuple<byte[], int>(up, CalculateTotalVariation(up)));
 
-            byte[] average = AverageFilter.Encode(rawScanline, previousScanline, bytesPerPixel);
+            byte[] average = AverageFilter.Encode(rawScanline, previousScanline, byteCount);
             candidates.Add(new Tuple<byte[], int>(average, CalculateTotalVariation(average)));
 
-            byte[] paeth = PaethFilter.Encode(rawScanline, previousScanline, bytesPerPixel);
+            byte[] paeth = PaethFilter.Encode(rawScanline, previousScanline, byteCount);
             candidates.Add(new Tuple<byte[], int>(paeth, CalculateTotalVariation(paeth)));
 
             int lowestTotalVariation = int.MaxValue;
@@ -266,11 +350,11 @@ namespace ImageProcessorCore.Formats
         }
 
         /// <summary>
-        /// Calculates the total variation of given byte array.  Total variation is the sum of the absolute values of
+        /// Calculates the total variation of given byte array. Total variation is the sum of the absolute values of
         /// neighbour differences.
         /// </summary>
-        /// <param name="input"></param>
-        /// <returns></returns>
+        /// <param name="input">The scanline bytes</param>
+        /// <returns>The <see cref="int"/></returns>
         private int CalculateTotalVariation(byte[] input)
         {
             int totalVariation = 0;
@@ -283,15 +367,23 @@ namespace ImageProcessorCore.Formats
             return totalVariation;
         }
 
+        /// <summary>
+        /// Get the raw scanline data from the pixel data
+        /// </summary>
+        /// <param name="y">The row number</param>
+        /// <returns>The <see cref="T:byte[]"/></returns>
         private byte[] GetRawScanline(int y)
         {
-            // TODO: This should vary by bytes per pixel.
-            int stride = (this.PngColorType == PngColorType.Palette ? 1 : 4) * this.width;
+            int stride = this.bytesPerPixel * this.width;
             byte[] rawScanline = new byte[stride];
             Array.Copy(this.pixelData, y * stride, rawScanline, 0, stride);
             return rawScanline;
         }
 
+        /// <summary>
+        /// Calculates the correct number of bytes per pixel for the given color type.
+        /// </summary>
+        /// <returns>The <see cref="int"/></returns>
         private int CalculateBytesPerPixel()
         {
             switch (this.PngColorType)
@@ -309,6 +401,8 @@ namespace ImageProcessorCore.Formats
                     return 3;
 
                 // PngColorType.RgbWithAlpha
+                // TODO: Maybe figure out a way to detect if there are any transparent
+                // pixels and encode RGB if none.
                 default:
                     return 4;
             }
@@ -535,139 +629,6 @@ namespace ImageProcessorCore.Formats
                 this.WriteChunk(stream, PngChunkTypes.Data, buffer, i * MaxBlockSize, length);
             }
         }
-
-        ///// <summary>
-        ///// Writes the pixel information to the stream.
-        ///// </summary>
-        ///// <typeparam name="T">The pixel format.</typeparam>
-        ///// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
-        ///// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        ///// <param name="pixels">The image pixels.</param>
-        ///// <param name="quantized">The quantized image.</param>
-        //private void WriteDataChunks<T, TP>(Stream stream, IPixelAccessor<T, TP> pixels, QuantizedImage<T, TP> quantized)
-        //    where T : IPackedVector<TP>
-        //    where TP : struct
-        //{
-        //    byte[] data;
-        //    int imageWidth = pixels.Width;
-        //    int imageHeight = pixels.Height;
-
-        //    // Indexed image.
-        //    if (this.Quality <= 256)
-        //    {
-        //        int rowLength = imageWidth + 1;
-        //        data = new byte[rowLength * imageHeight];
-
-        //        Parallel.For(
-        //            0,
-        //            imageHeight,
-        //            Bootstrapper.Instance.ParallelOptions,
-        //            y =>
-        //        {
-        //            int dataOffset = (y * rowLength);
-        //            byte compression = 0;
-        //            if (y > 0)
-        //            {
-        //                compression = 2;
-        //            }
-        //            data[dataOffset++] = compression;
-        //            for (int x = 0; x < imageWidth; x++)
-        //            {
-        //                data[dataOffset++] = quantized.Pixels[(y * imageWidth) + x];
-        //                if (y > 0)
-        //                {
-        //                    data[dataOffset - 1] -= quantized.Pixels[((y - 1) * imageWidth) + x];
-        //                }
-        //            }
-        //        });
-        //    }
-        //    else
-        //    {
-        //        // TrueColor image.
-        //        data = new byte[(imageWidth * imageHeight * 4) + pixels.Height];
-
-        //        int rowLength = (imageWidth * 4) + 1;
-
-        //        Parallel.For(
-        //            0,
-        //            imageHeight,
-        //            Bootstrapper.Instance.ParallelOptions,
-        //            y =>
-        //        {
-        //            byte compression = 0;
-        //            if (y > 0)
-        //            {
-        //                compression = 2;
-        //            }
-
-        //            data[y * rowLength] = compression;
-
-        //            for (int x = 0; x < imageWidth; x++)
-        //            {
-        //                byte[] color = pixels[x, y].ToBytes();
-
-        //                // Calculate the offset for the new array.
-        //                int dataOffset = (y * rowLength) + (x * 4) + 1;
-
-        //                // Expected format 
-        //                data[dataOffset] = color[0];
-        //                data[dataOffset + 1] = color[1];
-        //                data[dataOffset + 2] = color[2];
-        //                data[dataOffset + 3] = color[3];
-
-        //                if (y > 0)
-        //                {
-        //                    color = pixels[x, y - 1].ToBytes();
-
-        //                    data[dataOffset] -= color[0];
-        //                    data[dataOffset + 1] -= color[1];
-        //                    data[dataOffset + 2] -= color[2];
-        //                    data[dataOffset + 3] -= color[3];
-        //                }
-        //            }
-        //        });
-        //    }
-
-        //    byte[] buffer;
-        //    int bufferLength;
-
-        //    MemoryStream memoryStream = null;
-        //    try
-        //    {
-        //        memoryStream = new MemoryStream();
-
-        //        using (ZlibDeflateStream deflateStream = new ZlibDeflateStream(memoryStream, this.CompressionLevel))
-        //        {
-        //            deflateStream.Write(data, 0, data.Length);
-        //        }
-
-        //        bufferLength = (int)memoryStream.Length;
-        //        buffer = memoryStream.ToArray();
-        //    }
-        //    finally
-        //    {
-        //        memoryStream?.Dispose();
-        //    }
-
-        //    int numChunks = bufferLength / MaxBlockSize;
-
-        //    if (bufferLength % MaxBlockSize != 0)
-        //    {
-        //        numChunks++;
-        //    }
-
-        //    for (int i = 0; i < numChunks; i++)
-        //    {
-        //        int length = bufferLength - (i * MaxBlockSize);
-
-        //        if (length > MaxBlockSize)
-        //        {
-        //            length = MaxBlockSize;
-        //        }
-
-        //        this.WriteChunk(stream, PngChunkTypes.Data, buffer, i * MaxBlockSize, length);
-        //    }
-        //}
 
         /// <summary>
         /// Writes the chunk end to the stream.

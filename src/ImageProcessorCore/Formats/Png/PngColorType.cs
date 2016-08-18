@@ -6,9 +6,9 @@
 namespace ImageProcessorCore.Formats
 {
     /// <summary>
-    /// Provides enumeration of available png color types.
+    /// Provides enumeration of available PNG color types.
     /// </summary>
-    public enum PngColorType
+    public enum PngColorType : byte
     {
         /// <summary>
         /// Each pixel is a grayscale sample.

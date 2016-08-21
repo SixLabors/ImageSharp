@@ -16,11 +16,10 @@ namespace ImageProcessorCore.Formats
     /// </summary>
     internal class PngDecoderCore
     {
-        /// <summary>
-        /// The dictionary of available color types.
-        /// </summary>
-        private static readonly Dictionary<int, PngColorTypeInformation> ColorTypes
-            = new Dictionary<int, PngColorTypeInformation>();
+        ///// <summary>
+        ///// The dictionary of available color types.
+        ///// </summary>
+        private static readonly Dictionary<int, byte[]> ColorTypes = new Dictionary<int, byte[]>();
 
         /// <summary>
         /// The stream to decode from.
@@ -33,28 +32,49 @@ namespace ImageProcessorCore.Formats
         private PngHeader header;
 
         /// <summary>
+        /// The number of bytes per pixel.
+        /// </summary>
+        private int bytesPerPixel;
+
+        /// <summary>
+        /// The number of bytes per sample
+        /// </summary>
+        private int bytesPerSample;
+
+        /// <summary>
+        /// The number of bytes per scanline
+        /// </summary>
+        private int bytesPerScanline;
+
+        /// <summary>
+        /// The palette containing color information for indexed pngs
+        /// </summary>
+        private byte[] palette;
+
+        /// <summary>
+        /// The palette containing alpha channel color information for indexed pngs
+        /// </summary>
+        private byte[] paletteAlpha;
+
+        /// <summary>
+        /// Gets or sets the png color type
+        /// </summary>
+        public PngColorType PngColorType { get; set; }
+
+        /// <summary>
         /// Initializes static members of the <see cref="PngDecoderCore"/> class.
         /// </summary>
         static PngDecoderCore()
         {
-            ColorTypes.Add(
-                0,
-                new PngColorTypeInformation(1, new[] { 1, 2, 4, 8 }, (p, a) => new GrayscaleReader(false)));
+            ColorTypes.Add((int)PngColorType.Grayscale, new byte[] { 1, 2, 4, 8 });
 
-            ColorTypes.Add(
-                2,
-                new PngColorTypeInformation(3, new[] { 8 }, (p, a) => new TrueColorReader(false)));
+            ColorTypes.Add((int)PngColorType.Rgb, new byte[] { 8 });
 
-            ColorTypes.Add(
-                3,
-                new PngColorTypeInformation(1, new[] { 1, 2, 4, 8 }, (p, a) => new PaletteIndexReader(p, a)));
+            ColorTypes.Add((int)PngColorType.Palette, new byte[] { 1, 2, 4, 8 });
 
-            ColorTypes.Add(
-                4,
-                new PngColorTypeInformation(2, new[] { 8 }, (p, a) => new GrayscaleReader(true)));
+            ColorTypes.Add((int)PngColorType.GrayscaleWithAlpha, new byte[] { 8 });
 
-            ColorTypes.Add(6,
-                new PngColorTypeInformation(4, new[] { 8 }, (p, a) => new TrueColorReader(true)));
+            ColorTypes.Add((int)PngColorType.RgbWithAlpha, new byte[] { 8 });
         }
 
         /// <summary>
@@ -79,9 +99,6 @@ namespace ImageProcessorCore.Formats
             this.currentStream.Seek(8, SeekOrigin.Current);
 
             bool isEndChunkReached = false;
-
-            byte[] palette = null;
-            byte[] paletteAlpha = null;
 
             using (MemoryStream dataStream = new MemoryStream())
             {
@@ -108,11 +125,12 @@ namespace ImageProcessorCore.Formats
                     }
                     else if (currentChunk.Type == PngChunkTypes.Palette)
                     {
-                        palette = currentChunk.Data;
+                        this.palette = currentChunk.Data;
+                        image.Quality = this.palette.Length / 3;
                     }
                     else if (currentChunk.Type == PngChunkTypes.PaletteAlpha)
                     {
-                        paletteAlpha = currentChunk.Data;
+                        this.paletteAlpha = currentChunk.Data;
                     }
                     else if (currentChunk.Type == PngChunkTypes.Text)
                     {
@@ -133,52 +151,12 @@ namespace ImageProcessorCore.Formats
 
                 T[] pixels = new T[this.header.Width * this.header.Height];
 
-                PngColorTypeInformation colorTypeInformation = ColorTypes[this.header.ColorType];
 
-                if (colorTypeInformation != null)
-                {
-                    IColorReader colorReader = colorTypeInformation.CreateColorReader(palette, paletteAlpha);
+                this.ReadScanlines<T, TP>(dataStream, pixels);
 
-                    this.ReadScanlines<T, TP>(dataStream, pixels, colorReader, colorTypeInformation);
-                }
 
                 image.SetPixels(this.header.Width, this.header.Height, pixels);
             }
-        }
-
-        /// <summary>
-        /// Computes a simple linear function of the three neighboring pixels (left, above, upper left), then chooses
-        /// as predictor the neighboring pixel closest to the computed value.
-        /// </summary>
-        /// <param name="left">The left neighbour pixel.</param>
-        /// <param name="above">The above neighbour pixel.</param>
-        /// <param name="upperLeft">The upper left neighbour pixel.</param>
-        /// <returns>
-        /// The <see cref="byte"/>.
-        /// </returns>
-        private static byte PaethPredicator(byte left, byte above, byte upperLeft)
-        {
-            byte predicator;
-
-            int p = left + above - upperLeft;
-            int pa = Math.Abs(p - left);
-            int pb = Math.Abs(p - above);
-            int pc = Math.Abs(p - upperLeft);
-
-            if (pa <= pb && pa <= pc)
-            {
-                predicator = left;
-            }
-            else if (pb <= pc)
-            {
-                predicator = above;
-            }
-            else
-            {
-                predicator = upperLeft;
-            }
-
-            return predicator;
         }
 
         /// <summary>
@@ -201,13 +179,40 @@ namespace ImageProcessorCore.Formats
         }
 
         /// <summary>
+        /// Calculates the correct number of bytes per pixel for the given color type.
+        /// </summary>
+        /// <returns>The <see cref="int"/></returns>
+        private int CalculateBytesPerPixel()
+        {
+            switch (this.PngColorType)
+            {
+                case PngColorType.Grayscale:
+                    return 1;
+
+                case PngColorType.GrayscaleWithAlpha:
+                    return 2;
+
+                case PngColorType.Palette:
+                    return 1;
+
+                case PngColorType.Rgb:
+                    return 3;
+
+                // PngColorType.RgbWithAlpha
+                // TODO: Maybe figure out a way to detect if there are any transparent
+                // pixels and encode RGB if none.
+                default:
+                    return 4;
+            }
+        }
+
+        /// <summary>
         /// Calculates the scanline length.
         /// </summary>
-        /// <param name="colorTypeInformation">The color type information.</param>
         /// <returns>The <see cref="int"/> representing the length.</returns>
-        private int CalculateScanlineLength(PngColorTypeInformation colorTypeInformation)
+        private int CalculateScanlineLength()
         {
-            int scanlineLength = this.header.Width * this.header.BitDepth * colorTypeInformation.ChannelsPerColor;
+            int scanlineLength = this.header.Width * this.header.BitDepth * this.bytesPerPixel;
 
             int amount = scanlineLength % 8;
             if (amount != 0)
@@ -219,103 +224,227 @@ namespace ImageProcessorCore.Formats
         }
 
         /// <summary>
-        /// Calculates a scanline step.
-        /// </summary>
-        /// <param name="colorTypeInformation">The color type information.</param>
-        /// <returns>The <see cref="int"/> representing the length of each step.</returns>
-        private int CalculateScanlineStep(PngColorTypeInformation colorTypeInformation)
-        {
-            int scanlineStep = 1;
-
-            if (this.header.BitDepth >= 8)
-            {
-                scanlineStep = (colorTypeInformation.ChannelsPerColor * this.header.BitDepth) / 8;
-            }
-
-            return scanlineStep;
-        }
-
-        /// <summary>
         /// Reads the scanlines within the image.
         /// </summary>
         /// <param name="dataStream">The <see cref="MemoryStream"/> containing data.</param>
         /// <param name="pixels">
         /// The <see cref="T:float[]"/> containing pixel data.</param>
-        /// <param name="colorReader">The color reader.</param>
-        /// <param name="colorTypeInformation">The color type information.</param>
-        private void ReadScanlines<T, TP>(MemoryStream dataStream, T[] pixels, IColorReader colorReader, PngColorTypeInformation colorTypeInformation)
+        private void ReadScanlines<T, TP>(MemoryStream dataStream, T[] pixels)
             where T : IPackedVector<TP>
             where TP : struct
         {
+            this.bytesPerPixel = this.CalculateBytesPerPixel();
+            this.bytesPerScanline = this.CalculateScanlineLength() + 1;
+            this.bytesPerSample = 1;
+            if (this.header.BitDepth >= 8)
+            {
+                this.bytesPerSample = (this.header.BitDepth) / 8;
+            }
+
             dataStream.Position = 0;
-
-            int scanlineLength = this.CalculateScanlineLength(colorTypeInformation);
-            int scanlineStep = this.CalculateScanlineStep(colorTypeInformation);
-
-            byte[] lastScanline = new byte[scanlineLength];
-            byte[] currentScanline = new byte[scanlineLength];
-            int filter = 0, column = -1;
-
             using (ZlibInflateStream compressedStream = new ZlibInflateStream(dataStream))
             {
-                int readByte;
-                while ((readByte = compressedStream.ReadByte()) >= 0)
+                using (MemoryStream decompressedStream = new MemoryStream())
                 {
-                    if (column == -1)
-                    {
-                        filter = readByte;
+                    compressedStream.CopyTo(decompressedStream);
+                    decompressedStream.Flush();
 
-                        column++;
+                    byte[] decompressedBytes = decompressedStream.ToArray();
+                    DecodePixelData<T, TP>(decompressedBytes, pixels);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Decodes the raw pixel data row by row
+        /// </summary>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+        /// <param name="pixelData">The pixel data.</param>
+        /// <param name="pixels">The image pixels.</param>
+        private void DecodePixelData<T, TP>(byte[] pixelData, T[] pixels)
+            where T : IPackedVector<TP>
+            where TP : struct
+        {
+            byte[] previousScanline = new byte[this.bytesPerScanline];
+
+            for (int y = 0; y < this.header.Height; y++)
+            {
+                byte[] scanline = new byte[this.bytesPerScanline];
+                Array.Copy(pixelData, y * this.bytesPerScanline, scanline, 0, this.bytesPerScanline);
+                FilterType filterType = (FilterType)scanline[0];
+                byte[] defilteredScanline;
+
+                switch (filterType)
+                {
+                    case FilterType.None:
+
+                        defilteredScanline = NoneFilter.Decode(scanline);
+
+                        break;
+
+                    case FilterType.Sub:
+
+                        defilteredScanline = SubFilter.Decode(scanline, bytesPerPixel);
+
+                        break;
+
+                    case FilterType.Up:
+
+                        defilteredScanline = UpFilter.Decode(scanline, previousScanline);
+
+                        break;
+
+                    case FilterType.Average:
+
+                        defilteredScanline = AverageFilter.Decode(scanline, previousScanline, bytesPerPixel);
+
+                        break;
+
+                    case FilterType.Paeth:
+
+                        defilteredScanline = PaethFilter.Decode(scanline, previousScanline, bytesPerPixel);
+
+                        break;
+
+                    default:
+                        throw new ImageFormatException("Unknown filter type.");
+                }
+
+                previousScanline = defilteredScanline;
+                ProcessDefilteredScanline<T, TP>(defilteredScanline, y, pixels);
+            }
+        }
+
+        /// <summary>
+        /// Processes the defiltered scanline filling the image pixel data
+        /// </summary>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+        /// <param name="defilteredScanline"></param>
+        /// <param name="row">The current image row.</param>
+        /// <param name="pixels">The image pixels</param>
+        private void ProcessDefilteredScanline<T, TP>(byte[] defilteredScanline, int row, T[] pixels)
+            where T : IPackedVector<TP>
+            where TP : struct
+        {
+            switch (this.PngColorType)
+            {
+                case PngColorType.Grayscale:
+
+                    for (int x = 0; x < this.header.Width; x++)
+                    {
+                        int offset = 1 + (x * bytesPerPixel);
+
+                        byte intensity = defilteredScanline[offset];
+
+                        T color = default(T);
+                        color.PackFromBytes(intensity, intensity, intensity, 255);
+                        pixels[(row * this.header.Width) + x] = color;
+                    }
+
+                    break;
+
+                case PngColorType.GrayscaleWithAlpha:
+
+                    for (int x = 0; x < this.header.Width; x++)
+                    {
+                        int offset = 1 + (x * bytesPerPixel);
+
+                        byte intensity = defilteredScanline[offset];
+                        byte alpha = defilteredScanline[offset + bytesPerSample];
+
+                        T color = default(T);
+                        color.PackFromBytes(intensity, intensity, intensity, alpha);
+                        pixels[(row * this.header.Width) + x] = color;
+                    }
+
+                    break;
+
+                case PngColorType.Palette:
+
+                    byte[] newScanline = defilteredScanline.ToArrayByBitsLength(header.BitDepth);
+
+                    if (this.paletteAlpha != null && this.paletteAlpha.Length > 0)
+                    {
+                        // If the alpha palette is not null and has one or more entries, this means, that the image contains an alpha
+                        // channel and we should try to read it.
+                        for (int i = 0; i < header.Width; i++)
+                        {
+                            int index = newScanline[i];
+                            int offset = (row * header.Width) + i;
+                            int pixelOffset = index * 3;
+
+                            byte a = this.paletteAlpha.Length > index ? this.paletteAlpha[index] : (byte)255;
+                            T color = default(T);
+                            if (a > 0)
+                            {
+                                byte r = this.palette[pixelOffset];
+                                byte g = this.palette[pixelOffset + 1];
+                                byte b = this.palette[pixelOffset + 2];
+                                color.PackFromBytes(r, g, b, a);
+                            }
+
+                            pixels[offset] = color;
+                        }
                     }
                     else
                     {
-                        currentScanline[column] = (byte)readByte;
-
-                        byte a;
-                        byte b;
-                        byte c;
-
-                        if (column >= scanlineStep)
+                        for (int i = 0; i < header.Width; i++)
                         {
-                            a = currentScanline[column - scanlineStep];
-                            c = lastScanline[column - scanlineStep];
-                        }
-                        else
-                        {
-                            a = 0;
-                            c = 0;
-                        }
+                            int index = newScanline[i];
+                            int offset = (row * header.Width) + i;
+                            int pixelOffset = index * 3;
 
-                        b = lastScanline[column];
+                            byte r = this.palette[pixelOffset];
+                            byte g = this.palette[pixelOffset + 1];
+                            byte b = this.palette[pixelOffset + 2];
 
-                        if (filter == 1)
-                        {
-                            currentScanline[column] = (byte)(currentScanline[column] + a);
-                        }
-                        else if (filter == 2)
-                        {
-                            currentScanline[column] = (byte)(currentScanline[column] + b);
-                        }
-                        else if (filter == 3)
-                        {
-                            currentScanline[column] = (byte)(currentScanline[column] + (byte)((a + b) / 2));
-                        }
-                        else if (filter == 4)
-                        {
-                            currentScanline[column] = (byte)(currentScanline[column] + PaethPredicator(a, b, c));
-                        }
-
-                        column++;
-
-                        if (column == scanlineLength)
-                        {
-                            colorReader.ReadScanline<T, TP>(currentScanline, pixels, this.header);
-                            column = -1;
-
-                            this.Swap(ref currentScanline, ref lastScanline);
+                            T color = default(T);
+                            color.PackFromBytes(r, g, b, 255);
+                            pixels[offset] = color;
                         }
                     }
-                }
+
+                    break;
+
+                case PngColorType.Rgb:
+
+                    for (int x = 0; x < this.header.Width; x++)
+                    {
+                        int offset = 1 + (x * bytesPerPixel);
+
+                        byte r = defilteredScanline[offset];
+                        byte g = defilteredScanline[offset + bytesPerSample];
+                        byte b = defilteredScanline[offset + 2 * bytesPerSample];
+
+                        T color = default(T);
+                        color.PackFromBytes(r, g, b, 255);
+                        pixels[(row * this.header.Width) + x] = color;
+                    }
+
+                    break;
+
+                case PngColorType.RgbWithAlpha:
+
+                    for (int x = 0; x < this.header.Width; x++)
+                    {
+                        int offset = 1 + (x * bytesPerPixel);
+
+                        byte r = defilteredScanline[offset];
+                        byte g = defilteredScanline[offset + bytesPerSample];
+                        byte b = defilteredScanline[offset + 2 * bytesPerSample];
+                        byte a = defilteredScanline[offset + 3 * bytesPerSample];
+
+                        T color = default(T);
+                        color.PackFromBytes(r, g, b, a);
+                        pixels[(row * this.header.Width) + x] = color;
+                    }
+
+                    break;
+
+                default:
+                    break;
             }
         }
 
@@ -381,7 +510,7 @@ namespace ImageProcessorCore.Formats
                 throw new NotSupportedException("Color type is not supported or not valid.");
             }
 
-            if (!ColorTypes[this.header.ColorType].SupportedBitDepths.Contains(this.header.BitDepth))
+            if (!ColorTypes[this.header.ColorType].Contains(this.header.BitDepth))
             {
                 throw new NotSupportedException("Bit depth is not supported or not valid.");
             }
@@ -396,6 +525,8 @@ namespace ImageProcessorCore.Formats
                 // TODO: Support interlacing
                 throw new NotSupportedException("Interlacing is not supported.");
             }
+
+            this.PngColorType = (PngColorType)this.header.ColorType;
         }
 
         /// <summary>
@@ -524,21 +655,6 @@ namespace ImageProcessorCore.Formats
             chunk.Length = BitConverter.ToInt32(lengthBuffer, 0);
 
             return numBytes;
-        }
-
-        /// <summary>
-        /// Swaps two references.
-        /// </summary>
-        /// <typeparam name="TRef">The type of the references to swap.</typeparam>
-        /// <param name="lhs">The first reference.</param>
-        /// <param name="rhs">The second reference.</param>
-        private void Swap<TRef>(ref TRef lhs, ref TRef rhs)
-                    where TRef : class
-        {
-            TRef tmp = lhs;
-
-            lhs = rhs;
-            rhs = tmp;
         }
     }
 }

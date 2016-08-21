@@ -413,6 +413,11 @@ namespace ImageProcessorCore.Formats
                 return null;
             }
 
+            if (chunk.Length <= 0)
+            {
+                return null;
+            }
+
             byte[] typeBuffer = this.ReadChunkType(chunk);
 
             this.ReadChunkData(chunk);

@@ -53,7 +53,7 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
 - Encoding/decoding of image formats (plugable).
  - [x] Jpeg (Includes Subsampling. Progressive writing required)
  - [x] Bmp (Read: 32bit, 24bit, 16 bit. Write: 32bit, 24bit just now)
- - [x] Png (Read: TrueColor, Grayscale, Indexed. Write: True color, Indexed just now)
+ - [x] Png (Read: Rgb, Rgba, Grayscale, Grayscale + alpha, Palette. Write: Rgb, Rgba, Grayscale, Grayscale + alpha, Palette) Needs interlaced decoding [#379](https://github.com/JimBobSquarePants/ImageProcessor/issues/379)
  - [x] Gif (Includes animated)
  - [ ] Tiff
 - Metadata

@@ -126,7 +126,7 @@ namespace ImageProcessorCore.Formats
             this.Quality = quality > 0 ? quality.Clamp(1, int.MaxValue) : int.MaxValue;
 
             // Set correct color type if the color count is 256 or less.
-            if (Quality <= 256)
+            if (this.Quality <= 256)
             {
                 this.PngColorType = PngColorType.Palette;
             }

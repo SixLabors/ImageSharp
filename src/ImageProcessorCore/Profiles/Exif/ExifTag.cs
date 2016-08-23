@@ -413,8 +413,8 @@ namespace ImageProcessorCore
         [ExifTagDescription((ushort)2, "Signed")]
         [ExifTagDescription((ushort)3, "Float")]
         [ExifTagDescription((ushort)4, "Undefined")]
-        [ExifTagDescription((ushort)5, "Complex")]
-        [ExifTagDescription((ushort)6, "Complex")]
+        [ExifTagDescription((ushort)5, "Complex int")]
+        [ExifTagDescription((ushort)6, "Complex float")]
         SampleFormat = 0x0153,
 
         /// <summary>

@@ -19,7 +19,7 @@ namespace ImageProcessorCore
         /// <param name="bytes">The bytes to convert from. Cannot be null.</param>
         /// <param name="bits">The number of bits per value.</param>
         /// <returns>The resulting <see cref="T:byte[]"/> array. Is never null.</returns>
-        /// <exception cref="ArgumentNullException"><paramref name="bytes"/> is null.</exception>
+        /// <exception cref="System.ArgumentNullException"><paramref name="bytes"/> is null.</exception>
         /// <exception cref="ArgumentException"><paramref name="bits"/> is less than or equals than zero.</exception>
         public static byte[] ToArrayByBitsLength(this byte[] bytes, int bits)
         {

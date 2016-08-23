@@ -8,24 +8,24 @@ namespace ImageProcessorCore
     using Processors;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image{T,TP}"/> type.
+    /// Extension methods for the <see cref="Image{TColor, TPacked}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
         /// <summary>
         /// Replaces the background color of image with the given one.
         /// </summary>
-        /// <typeparam name="T">The pixel format.</typeparam>
-        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="color">The color to set as the background.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
-        /// <returns>The <see cref="Image{T,TP}"/>.</returns>
-        public static Image<T, TP> BackgroundColor<T, TP>(this Image<T, TP> source, T color, ProgressEventHandler progressHandler = null)
-            where T : IPackedVector<TP>
-            where TP : struct
+        /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
+        public static Image<TColor, TPacked> BackgroundColor<TColor, TPacked>(this Image<TColor, TPacked> source, TColor color, ProgressEventHandler progressHandler = null)
+            where TColor : IPackedVector<TPacked>
+            where TPacked : struct
         {
-            BackgroundColorProcessor<T, TP> processor = new BackgroundColorProcessor<T, TP>(color);
+            BackgroundColorProcessor<TColor, TPacked> processor = new BackgroundColorProcessor<TColor, TPacked>(color);
             processor.OnProgress += progressHandler;
 
             try

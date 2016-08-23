@@ -15,15 +15,15 @@ namespace ImageProcessorCore
         /// <summary>
         /// Alters the alpha component of the image.
         /// </summary>
-        /// <typeparam name="T">The pixel format.</typeparam>
-        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="percent">The new opacity of the image. Must be between 0 and 100.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
-        /// <returns>The <see cref="Image{T,TP}"/>.</returns>
-        public static Image<T, TP> Alpha<T, TP>(this Image<T, TP> source, int percent, ProgressEventHandler progressHandler = null)
-            where T : IPackedVector<TP>
-            where TP : struct
+        /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
+        public static Image<TColor, TPacked> Alpha<TColor, TPacked>(this Image<TColor, TPacked> source, int percent, ProgressEventHandler progressHandler = null)
+            where TColor : IPackedVector<TPacked>
+            where TPacked : struct
         {
             return Alpha(source, percent, source.Bounds, progressHandler);
         }
@@ -31,8 +31,8 @@ namespace ImageProcessorCore
         /// <summary>
         /// Alters the alpha component of the image.
         /// </summary>
-        /// <typeparam name="T">The pixel format.</typeparam>
-        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="percent">The new opacity of the image. Must be between 0 and 100.</param>
         /// <param name="rectangle">
@@ -40,11 +40,11 @@ namespace ImageProcessorCore
         /// </param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image<T, TP> Alpha<T, TP>(this Image<T, TP> source, int percent, Rectangle rectangle, ProgressEventHandler progressHandler = null)
-            where T : IPackedVector<TP>
-            where TP : struct
+        public static Image<TColor, TPacked> Alpha<TColor, TPacked>(this Image<TColor, TPacked> source, int percent, Rectangle rectangle, ProgressEventHandler progressHandler = null)
+            where TColor : IPackedVector<TPacked>
+            where TPacked : struct
         {
-            AlphaProcessor<T, TP> processor = new AlphaProcessor<T, TP>(percent);
+            AlphaProcessor<TColor, TPacked> processor = new AlphaProcessor<TColor, TPacked>(percent);
             processor.OnProgress += progressHandler;
 
             try

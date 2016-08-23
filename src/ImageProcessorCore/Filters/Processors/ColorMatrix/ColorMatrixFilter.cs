@@ -12,11 +12,11 @@ namespace ImageProcessorCore.Processors
     /// <summary>
     /// The color matrix filter. Inherit from this class to perform operation involving color matrices.
     /// </summary>
-    /// <typeparam name="T">The pixel format.</typeparam>
-    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
-    public abstract class ColorMatrixFilter<T, TP> : ImageProcessor<T, TP>, IColorMatrixFilter<T, TP>
-        where T : IPackedVector<TP>
-        where TP : struct
+    /// <typeparam name="TColor">The pixel format.</typeparam>
+    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+    public abstract class ColorMatrixFilter<TColor, TPacked> : ImageProcessor<TColor, TPacked>, IColorMatrixFilter<TColor, TPacked>
+        where TColor : IPackedVector<TPacked>
+        where TPacked : struct
     {
         /// <inheritdoc/>
         public abstract Matrix4x4 Matrix { get; }
@@ -25,7 +25,7 @@ namespace ImageProcessorCore.Processors
         public override bool Compand { get; set; } = true;
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
@@ -50,8 +50,8 @@ namespace ImageProcessorCore.Processors
             Matrix4x4 matrix = this.Matrix;
             bool compand = this.Compand;
 
-            using (IPixelAccessor<T, TP> sourcePixels = source.Lock())
-            using (IPixelAccessor<T, TP> targetPixels = target.Lock())
+            using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
+            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock())
             {
                 Parallel.For(
                     minY,
@@ -80,7 +80,7 @@ namespace ImageProcessorCore.Processors
         /// <returns>
         /// The <see cref="Color"/>.
         /// </returns>
-        private T ApplyMatrix(T color, Matrix4x4 matrix, bool compand)
+        private TColor ApplyMatrix(TColor color, Matrix4x4 matrix, bool compand)
         {
             Vector4 vector = color.ToVector4();
 
@@ -91,7 +91,7 @@ namespace ImageProcessorCore.Processors
 
             Vector3 transformed = Vector3.Transform(new Vector3(vector.X, vector.Y, vector.Z), matrix);
             vector = new Vector4(transformed, vector.W);
-            T packed = default(T);
+            TColor packed = default(TColor);
             packed.PackFromVector4(compand ? vector.Compress() : vector);
             return packed;
         }

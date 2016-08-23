@@ -8,11 +8,11 @@ namespace ImageProcessorCore
     /// <summary>
     /// Represents a single frame in a animation.
     /// </summary>
-    /// <typeparam name="T">The pixel format.</typeparam>
-    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
-    public interface IImageFrame<T, TP> : IImageBase<T, TP>
-        where T : IPackedVector<TP>
-        where TP : struct
+    /// <typeparam name="TColor">The pixel format.</typeparam>
+    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+    public interface IImageFrame<TColor, TPacked> : IImageBase<TColor, TPacked>
+        where TColor : IPackedVector<TPacked>
+        where TPacked : struct
     {
     }
 }

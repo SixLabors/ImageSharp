@@ -13,14 +13,14 @@ namespace ImageProcessorCore.Processors
     /// Provides methods that allow the resizing of images using various algorithms. 
     /// This version will expand and compress the image to and from a linear color space during processing.
     /// </summary>
-    /// <typeparam name="T">The pixel format.</typeparam>
-    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
-    public class CompandingResizeProcessor<T, TP> : ResamplingWeightedProcessor<T, TP>
-        where T : IPackedVector<TP>
-        where TP : struct
+    /// <typeparam name="TColor">The pixel format.</typeparam>
+    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+    public class CompandingResizeProcessor<TColor, TPacked> : ResamplingWeightedProcessor<TColor, TPacked>
+        where TColor : IPackedVector<TPacked>
+        where TPacked : struct
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="CompandingResizeProcessor{T,TP}"/> class.
+        /// Initializes a new instance of the <see cref="CompandingResizeProcessor{TColor, TPacked}"/> class.
         /// </summary>
         /// <param name="sampler">
         /// The sampler to perform the resize operation.
@@ -34,7 +34,7 @@ namespace ImageProcessorCore.Processors
         public override bool Compand { get; set; } = true;
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             // Jump out, we'll deal with that later.
             if (source.Bounds == target.Bounds && sourceRectangle == targetRectangle)
@@ -63,8 +63,8 @@ namespace ImageProcessorCore.Processors
                 float widthFactor = sourceRectangle.Width / (float)targetRectangle.Width;
                 float heightFactor = sourceRectangle.Height / (float)targetRectangle.Height;
 
-                using (IPixelAccessor<T, TP> sourcePixels = source.Lock())
-                using (IPixelAccessor<T, TP> targetPixels = target.Lock())
+                using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
+                using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock())
                 {
                     Parallel.For(
                         minY,
@@ -93,10 +93,10 @@ namespace ImageProcessorCore.Processors
             // A 2-pass 1D algorithm appears to be faster than splitting a 1-pass 2D algorithm 
             // First process the columns. Since we are not using multiple threads startY and endY
             // are the upper and lower bounds of the source rectangle.
-            Image<T, TP> firstPass = new Image<T, TP>(target.Width, source.Height);
-            using (IPixelAccessor<T, TP> sourcePixels = source.Lock())
-            using (IPixelAccessor<T, TP> firstPassPixels = firstPass.Lock())
-            using (IPixelAccessor<T, TP> targetPixels = target.Lock())
+            Image<TColor, TPacked> firstPass = new Image<TColor, TPacked>(target.Width, source.Height);
+            using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
+            using (PixelAccessor<TColor, TPacked> firstPassPixels = firstPass.Lock())
+            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock())
             {
                 minX = Math.Max(0, startX);
                 maxX = Math.Min(width, endX);
@@ -123,7 +123,7 @@ namespace ImageProcessorCore.Processors
                                 destination += sourcePixels[xw.Index, y].ToVector4().Expand() * xw.Value;
                             }
 
-                            T d = default(T);
+                            TColor d = default(TColor);
                             d.PackFromVector4(destination.Compress());
                             firstPassPixels[x, y] = d;
                         }
@@ -150,7 +150,7 @@ namespace ImageProcessorCore.Processors
                                 destination += firstPassPixels[x, yw.Index].ToVector4().Expand() * yw.Value;
                             }
 
-                            T d = default(T);
+                            TColor d = default(TColor);
                             d.PackFromVector4(destination.Compress());
                             targetPixels[x, y] = d;
                         }

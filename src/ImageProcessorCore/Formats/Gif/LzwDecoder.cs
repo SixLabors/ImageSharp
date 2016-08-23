@@ -33,7 +33,7 @@ namespace ImageProcessorCore.Formats
         /// and sets the stream, where the compressed data should be read from.
         /// </summary>
         /// <param name="stream">The stream to read from.</param>
-        /// <exception cref="ArgumentNullException"><paramref name="stream"/> is null.</exception>
+        /// <exception cref="System.ArgumentNullException"><paramref name="stream"/> is null.</exception>
         public LzwDecoder(Stream stream)
         {
             Guard.NotNull(stream, nameof(stream));

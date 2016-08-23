@@ -10,16 +10,16 @@ namespace ImageProcessorCore
     /// <summary>
     /// Encapsulates the basic properties and methods required to manipulate images in varying formats.
     /// </summary>
-    /// <typeparam name="T">The pixel format.</typeparam>
-    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
-    public interface IImageBase<T, TP> : IImageBase
-        where T : IPackedVector<TP>
-        where TP : struct
+    /// <typeparam name="TColor">The pixel format.</typeparam>
+    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+    public interface IImageBase<TColor, TPacked> : IImageBase
+        where TColor : IPackedVector<TPacked>
+        where TPacked : struct
     {
         /// <summary>
         /// Gets the pixels as an array of the given packed pixel format.
         /// </summary>
-        T[] Pixels { get; }
+        TColor[] Pixels { get; }
 
         /// <summary>
         /// Sets the pixel array of the image to the given value.
@@ -33,7 +33,7 @@ namespace ImageProcessorCore
         /// <exception cref="ArgumentException">
         /// Thrown if the <paramref name="pixels"/> length is not equal to Width * Height.
         /// </exception>
-        void SetPixels(int width, int height, T[] pixels);
+        void SetPixels(int width, int height, TColor[] pixels);
 
         /// <summary>
         /// Sets the pixel array of the image to the given value, creating a copy of 
@@ -48,7 +48,7 @@ namespace ImageProcessorCore
         /// <exception cref="ArgumentException">
         /// Thrown if the <paramref name="pixels"/> length is not equal to Width * Height.
         /// </exception>
-        void ClonePixels(int width, int height, T[] pixels);
+        void ClonePixels(int width, int height, TColor[] pixels);
 
         /// <summary>
         /// Locks the image providing access to the pixels.
@@ -57,7 +57,7 @@ namespace ImageProcessorCore
         /// </remarks>
         /// </summary>
         /// <returns>The <see cref="IPixelAccessor"/></returns>
-        IPixelAccessor<T, TP> Lock();
+        PixelAccessor<TColor, TPacked> Lock();
     }
 
     /// <summary>

@@ -306,7 +306,7 @@ namespace ImageProcessorCore.IO
         /// Writes a string to the stream, using the encoding for this writer.
         /// </summary>
         /// <param name="value">The value to write. Must not be null.</param>
-        /// <exception cref="ArgumentNullException">value is null</exception>
+        /// <exception cref="System.ArgumentNullException">value is null</exception>
         public void Write(string value)
         {
             if (value == null)

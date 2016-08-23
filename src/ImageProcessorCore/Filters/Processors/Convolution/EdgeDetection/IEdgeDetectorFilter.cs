@@ -8,9 +8,9 @@ namespace ImageProcessorCore.Processors
     /// <summary>
     /// Provides properties and methods allowing the detection of edges within an image.
     /// </summary>
-    public interface IEdgeDetectorFilter<T, TP> : IImageProcessor<T, TP>, IEdgeDetectorFilter
-        where T : IPackedVector<TP>
-        where TP : struct
+    public interface IEdgeDetectorFilter<TColor, TPacked> : IImageProcessor<TColor, TPacked>, IEdgeDetectorFilter
+        where TColor : IPackedVector<TPacked>
+        where TPacked : struct
     {
     }
 

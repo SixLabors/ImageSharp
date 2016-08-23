@@ -10,7 +10,8 @@
     ]
   },
   "buildOptions": {
-    "emitEntryPoint": true
+    "emitEntryPoint": true,
+    "allowUnsafe": true
   },
   "dependencies": {
     "BenchmarkDotNet.Diagnostics.Windows": "0.9.9.116",

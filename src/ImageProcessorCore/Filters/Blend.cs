@@ -17,14 +17,14 @@ namespace ImageProcessorCore
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="image">The image to blend with the currently processing image.</param>
-        /// <typeparam name="T">The pixel format.</typeparam>
-        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="percent">The opacity of the image image to blend. Must be between 0 and 100.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
-        /// <returns>The <see cref="Image{T,TP}"/>.</returns>
-        public static Image<T, TP> Blend<T, TP>(this Image<T, TP> source, ImageBase<T, TP> image, int percent = 50, ProgressEventHandler progressHandler = null)
-            where T : IPackedVector<TP>
-            where TP : struct
+        /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
+        public static Image<TColor, TPacked> Blend<TColor, TPacked>(this Image<TColor, TPacked> source, ImageBase<TColor, TPacked> image, int percent = 50, ProgressEventHandler progressHandler = null)
+            where TColor : IPackedVector<TPacked>
+            where TPacked : struct
         {
             return Blend(source, image, percent, source.Bounds, progressHandler);
         }
@@ -34,19 +34,19 @@ namespace ImageProcessorCore
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="image">The image to blend with the currently processing image.</param>
-        /// <typeparam name="T">The pixel format.</typeparam>
-        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="percent">The opacity of the image image to blend. Must be between 0 and 100.</param>
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
-        /// <returns>The <see cref="Image{T,TP}"/>.</returns>
-        public static Image<T, TP> Blend<T, TP>(this Image<T, TP> source, ImageBase<T, TP> image, int percent, Rectangle rectangle, ProgressEventHandler progressHandler = null)
-            where T : IPackedVector<TP>
-            where TP : struct
+        /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
+        public static Image<TColor, TPacked> Blend<TColor, TPacked>(this Image<TColor, TPacked> source, ImageBase<TColor, TPacked> image, int percent, Rectangle rectangle, ProgressEventHandler progressHandler = null)
+            where TColor : IPackedVector<TPacked>
+            where TPacked : struct
         {
-            BlendProcessor<T, TP> processor = new BlendProcessor<T, TP>(image, percent);
+            BlendProcessor<TColor, TPacked> processor = new BlendProcessor<TColor, TPacked>(image, percent);
             processor.OnProgress += progressHandler;
 
             try

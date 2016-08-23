@@ -9,11 +9,11 @@ namespace ImageProcessorCore.Processors
     /// The Scharr operator filter.
     /// <see href="http://en.wikipedia.org/wiki/Sobel_operator#Alternative_operators"/>
     /// </summary>
-    /// <typeparam name="T">The pixel format.</typeparam>
-    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
-    public class ScharrProcessor<T, TP> : EdgeDetector2DFilter<T, TP>
-        where T : IPackedVector<TP>
-        where TP : struct
+    /// <typeparam name="TColor">The pixel format.</typeparam>
+    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+    public class ScharrProcessor<TColor, TPacked> : EdgeDetector2DFilter<TColor, TPacked>
+        where TColor : IPackedVector<TPacked>
+        where TPacked : struct
     {
         /// <inheritdoc/>
         public override float[,] KernelX => new float[,]

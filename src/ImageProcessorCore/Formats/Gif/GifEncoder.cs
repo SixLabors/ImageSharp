@@ -47,9 +47,9 @@ namespace ImageProcessorCore.Formats
         }
 
         /// <inheritdoc/>
-        public void Encode<T,TP>(Image<T,TP> image, Stream stream)
-        where T : IPackedVector<TP>
-        where TP : struct
+        public void Encode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream)
+        where TColor : IPackedVector<TPacked>
+        where TPacked : struct
         {
             GifEncoderCore encoder = new GifEncoderCore
             {

@@ -17,15 +17,15 @@ namespace ImageProcessorCore
         /// <summary>
         /// Calculates the target location and bounds to perform the resize operation against.
         /// </summary>
-        /// <typeparam name="T">The type of pixels contained within the image.</typeparam>
+        /// <typeparam name="TColor">The type of pixels contained within the image.</typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="options">The resize options.</param>
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        public static Rectangle CalculateTargetLocationAndBounds<T, TP>(ImageBase<T, TP> source, ResizeOptions options)
-            where T : IPackedVector<TP>
-            where TP : struct
+        public static Rectangle CalculateTargetLocationAndBounds<TColor, TPacked>(ImageBase<TColor, TPacked> source, ResizeOptions options)
+            where TColor : IPackedVector<TPacked>
+            where TPacked : struct
         {
             switch (options.Mode)
             {
@@ -49,15 +49,15 @@ namespace ImageProcessorCore
         /// <summary>
         /// Calculates the target rectangle for crop mode.
         /// </summary>
-        /// <typeparam name="T">The type of pixels contained within the image.</typeparam>
+        /// <typeparam name="TColor">The type of pixels contained within the image.</typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="options">The resize options.</param>
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        private static Rectangle CalculateCropRectangle<T, TP>(ImageBase<T, TP> source, ResizeOptions options)
-            where T : IPackedVector<TP>
-            where TP : struct
+        private static Rectangle CalculateCropRectangle<TColor, TPacked>(ImageBase<TColor, TPacked> source, ResizeOptions options)
+            where TColor : IPackedVector<TPacked>
+            where TPacked : struct
         {
             int width = options.Size.Width;
             int height = options.Size.Height;
@@ -169,15 +169,15 @@ namespace ImageProcessorCore
         /// <summary>
         /// Calculates the target rectangle for pad mode.
         /// </summary>
-        /// <typeparam name="T">The type of pixels contained within the image.</typeparam>
+        /// <typeparam name="TColor">The type of pixels contained within the image.</typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="options">The resize options.</param>
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        private static Rectangle CalculatePadRectangle<T, TP>(ImageBase<T, TP> source, ResizeOptions options)
-            where T : IPackedVector<TP>
-            where TP : struct
+        private static Rectangle CalculatePadRectangle<TColor, TPacked>(ImageBase<TColor, TPacked> source, ResizeOptions options)
+            where TColor : IPackedVector<TPacked>
+            where TPacked : struct
         {
             int width = options.Size.Width;
             int height = options.Size.Height;
@@ -251,15 +251,15 @@ namespace ImageProcessorCore
         /// <summary>
         /// Calculates the target rectangle for box pad mode.
         /// </summary>
-        /// <typeparam name="T">The type of pixels contained within the image.</typeparam>
+        /// <typeparam name="TColor">The type of pixels contained within the image.</typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="options">The resize options.</param>
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        private static Rectangle CalculateBoxPadRectangle<T, TP>(ImageBase<T, TP> source, ResizeOptions options)
-            where T : IPackedVector<TP>
-            where TP : struct
+        private static Rectangle CalculateBoxPadRectangle<TColor, TPacked>(ImageBase<TColor, TPacked> source, ResizeOptions options)
+            where TColor : IPackedVector<TPacked>
+            where TPacked : struct
         {
             int width = options.Size.Width;
             int height = options.Size.Height;
@@ -339,15 +339,15 @@ namespace ImageProcessorCore
         /// <summary>
         /// Calculates the target rectangle for max mode.
         /// </summary>
-        /// <typeparam name="T">The type of pixels contained within the image.</typeparam>
+        /// <typeparam name="TColor">The type of pixels contained within the image.</typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="options">The resize options.</param>
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        private static Rectangle CalculateMaxRectangle<T, TP>(ImageBase<T, TP> source, ResizeOptions options)
-            where T : IPackedVector<TP>
-            where TP : struct
+        private static Rectangle CalculateMaxRectangle<TColor, TPacked>(ImageBase<TColor, TPacked> source, ResizeOptions options)
+            where TColor : IPackedVector<TPacked>
+            where TPacked : struct
         {
             int width = options.Size.Width;
             int height = options.Size.Height;
@@ -381,15 +381,15 @@ namespace ImageProcessorCore
         /// <summary>
         /// Calculates the target rectangle for min mode.
         /// </summary>
-        /// <typeparam name="T">The type of pixels contained within the image.</typeparam>
+        /// <typeparam name="TColor">The type of pixels contained within the image.</typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="options">The resize options.</param>
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        private static Rectangle CalculateMinRectangle<T, TP>(ImageBase<T, TP> source, ResizeOptions options)
-            where T : IPackedVector<TP>
-            where TP : struct
+        private static Rectangle CalculateMinRectangle<TColor, TPacked>(ImageBase<TColor, TPacked> source, ResizeOptions options)
+            where TColor : IPackedVector<TPacked>
+            where TPacked : struct
         {
             int width = options.Size.Width;
             int height = options.Size.Height;

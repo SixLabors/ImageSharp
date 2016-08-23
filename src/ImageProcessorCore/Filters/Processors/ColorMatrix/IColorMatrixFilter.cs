@@ -11,9 +11,9 @@ namespace ImageProcessorCore.Processors
     /// Encapsulates properties and methods for creating processors that utilize a matrix to
     /// alter the image pixels.
     /// </summary>
-    public interface IColorMatrixFilter<T, TP> : IImageProcessor<T, TP>
-        where T : IPackedVector<TP>
-        where TP : struct
+    public interface IColorMatrixFilter<TColor, TPacked> : IImageProcessor<TColor, TPacked>
+        where TColor : IPackedVector<TPacked>
+        where TPacked : struct
     {
         /// <summary>
         /// Gets the <see cref="Matrix4x4"/> used to alter the image.

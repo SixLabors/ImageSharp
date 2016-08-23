@@ -40,7 +40,7 @@ namespace ImageProcessorCore
         /// <param name="stream">
         /// The stream containing image information.
         /// </param>
-        /// <exception cref="ArgumentNullException">Thrown if the <paramref name="stream"/> is null.</exception>
+        /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="stream"/> is null.</exception>
         public Image(Stream stream)
             : base(stream)
         {
@@ -51,7 +51,7 @@ namespace ImageProcessorCore
         /// by making a copy from another image.
         /// </summary>
         /// <param name="other">The other image, where the clone should be made from.</param>
-        /// <exception cref="ArgumentNullException"><paramref name="other"/> is null.</exception>
+        /// <exception cref="System.ArgumentNullException"><paramref name="other"/> is null.</exception>
         public Image(Image other)
             : base(other)
         {

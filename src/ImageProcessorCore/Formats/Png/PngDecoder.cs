@@ -75,13 +75,13 @@ namespace ImageProcessorCore.Formats
         }
 
         /// <summary>
-        /// Decodes the image from the specified stream to the <see cref="ImageBase{T,TP}"/>.
+        /// Decodes the image from the specified stream to the <see cref="ImageBase{TColor, TPacked}"/>.
         /// </summary>
-        /// <param name="image">The <see cref="ImageBase{T,TP}"/> to decode to.</param>
+        /// <param name="image">The <see cref="ImageBase{TColor, TPacked}"/> to decode to.</param>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        public void Decode<T, TP>(Image<T, TP> image, Stream stream)
-            where T : IPackedVector<TP>
-            where TP : struct
+        public void Decode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream)
+            where TColor : IPackedVector<TPacked>
+            where TPacked : struct
         {
             new PngDecoderCore().Decode(image, stream);
         }

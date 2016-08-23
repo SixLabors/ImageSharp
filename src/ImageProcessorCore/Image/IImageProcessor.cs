@@ -17,11 +17,11 @@ namespace ImageProcessorCore.Processors
     /// <summary>
     /// Encapsulates methods to alter the pixels of an image.
     /// </summary>
-    /// <typeparam name="T">The pixel format.</typeparam>
-    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
-    public interface IImageProcessor<T, TP>
-        where T : IPackedVector<TP>
-        where TP : struct
+    /// <typeparam name="TColor">The pixel format.</typeparam>
+    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+    public interface IImageProcessor<TColor, TPacked>
+        where TColor : IPackedVector<TPacked>
+        where TPacked : struct
     {
         /// <summary>
         /// Event fires when each row of the source image has been processed.
@@ -44,7 +44,7 @@ namespace ImageProcessorCore.Processors
         bool Compand { get; set; }
 
         /// <summary>
-        /// Applies the process to the specified portion of the specified <see cref="ImageBase{T, TP}"/>.
+        /// Applies the process to the specified portion of the specified <see cref="ImageBase{TColor, TPacked}"/>.
         /// </summary>
         /// <param name="target">Target image to apply the process to.</param>
         /// <param name="source">The source image. Cannot be null.</param>
@@ -61,10 +61,10 @@ namespace ImageProcessorCore.Processors
         /// <exception cref="System.ArgumentException">
         /// <paramref name="sourceRectangle"/> doesnt fit the dimension of the image.
         /// </exception>
-        void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle sourceRectangle);
+        void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle sourceRectangle);
 
         /// <summary>
-        /// Applies the process to the specified portion of the specified <see cref="ImageBase{T, TP}"/> at the specified
+        /// Applies the process to the specified portion of the specified <see cref="ImageBase{TColor, TPacked}"/> at the specified
         /// location and with the specified size.
         /// </summary>
         /// <param name="target">Target image to apply the process to.</param>
@@ -82,6 +82,6 @@ namespace ImageProcessorCore.Processors
         /// The method keeps the source image unchanged and returns the
         /// the result of image process as new image.
         /// </remarks>
-        void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, int width, int height, Rectangle targetRectangle, Rectangle sourceRectangle);
+        void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, int width, int height, Rectangle targetRectangle, Rectangle sourceRectangle);
     }
 }

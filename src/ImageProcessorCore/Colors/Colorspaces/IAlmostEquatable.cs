@@ -11,9 +11,9 @@ namespace ImageProcessorCore
     /// Defines a generalized method that a value type or class implements to create 
     /// a type-specific method for determining approximate equality of instances.
     /// </summary>
-    /// <typeparam name="T">The type of objects to compare.</typeparam>
-    /// <typeparam name="TP">The object specifying the type to specify precision with.</typeparam>
-    public interface IAlmostEquatable<T, TP> where TP : struct, IComparable<TP>
+    /// <typeparam name="TColor">The type of objects to compare.</typeparam>
+    /// <typeparam name="TPacked">The object specifying the type to specify precision with.</typeparam>
+    public interface IAlmostEquatable<TColor, TPacked> where TPacked : struct, IComparable<TPacked>
     {
         /// <summary>
         /// Indicates whether the current object is equal to another object of the same type
@@ -24,6 +24,6 @@ namespace ImageProcessorCore
         /// <returns>
         /// true if the current object is equal to the other parameter; otherwise, false.
         /// </returns>
-        bool AlmostEquals(T other, TP precision);
+        bool AlmostEquals(TColor other, TPacked precision);
     }
 }

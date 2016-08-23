@@ -11,16 +11,16 @@ namespace ImageProcessorCore.Formats
     /// <summary>
     /// Performs the gif decoding operation.
     /// </summary>
-    /// <typeparam name="T">The pixel format.</typeparam>
-    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam> 
-    internal class GifDecoderCore<T, TP>
-        where T : IPackedVector<TP>
-        where TP : struct
+    /// <typeparam name="TColor">The pixel format.</typeparam>
+    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam> 
+    internal class GifDecoderCore<TColor, TPacked>
+        where TColor : IPackedVector<TPacked>
+        where TPacked : struct
     {
         /// <summary>
         /// The image to decode the information to.
         /// </summary>
-        private Image<T, TP> decodedImage;
+        private Image<TColor, TPacked> decodedImage;
 
         /// <summary>
         /// The currently loaded stream.
@@ -35,7 +35,7 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// The current frame.
         /// </summary>
-        private T[] currentFrame;
+        private TColor[] currentFrame;
 
         /// <summary>
         /// The logical screen descriptor.
@@ -52,7 +52,7 @@ namespace ImageProcessorCore.Formats
         /// </summary>
         /// <param name="image">The image to decode to.</param>
         /// <param name="stream">The stream containing image data. </param>
-        public void Decode(Image<T, TP> image, Stream stream)
+        public void Decode(Image<TColor, TPacked> image, Stream stream)
         {
             this.decodedImage = image;
 
@@ -292,15 +292,15 @@ namespace ImageProcessorCore.Formats
 
             if (this.currentFrame == null)
             {
-                this.currentFrame = new T[imageWidth * imageHeight];
+                this.currentFrame = new TColor[imageWidth * imageHeight];
             }
 
-            T[] lastFrame = null;
+            TColor[] lastFrame = null;
 
             if (this.graphicsControlExtension != null &&
                 this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToPrevious)
             {
-                lastFrame = new T[imageWidth * imageHeight];
+                lastFrame = new TColor[imageWidth * imageHeight];
 
                 Array.Copy(this.currentFrame, lastFrame, lastFrame.Length);
             }
@@ -359,7 +359,7 @@ namespace ImageProcessorCore.Formats
                         // Stored in r-> g-> b-> a order.
                         int indexOffset = index * 3;
 
-                        T pixel = default(T);
+                        TColor pixel = default(TColor);
                         pixel.PackFromBytes(colorTable[indexOffset], colorTable[indexOffset + 1], colorTable[indexOffset + 2], 255);
                         this.currentFrame[offset] = pixel;
                     }
@@ -368,11 +368,11 @@ namespace ImageProcessorCore.Formats
                 }
             }
 
-            T[] pixels = new T[imageWidth * imageHeight];
+            TColor[] pixels = new TColor[imageWidth * imageHeight];
 
             Array.Copy(this.currentFrame, pixels, pixels.Length);
 
-            ImageBase<T, TP> currentImage;
+            ImageBase<TColor, TPacked> currentImage;
 
             if (this.decodedImage.Pixels == null)
             {
@@ -387,7 +387,7 @@ namespace ImageProcessorCore.Formats
             }
             else
             {
-                ImageFrame<T, TP> frame = new ImageFrame<T, TP>();
+                ImageFrame<TColor, TPacked> frame = new ImageFrame<TColor, TPacked>();
 
                 currentImage = frame;
                 currentImage.SetPixels(imageWidth, imageHeight, pixels);
@@ -412,7 +412,7 @@ namespace ImageProcessorCore.Formats
                             offset = (y * imageWidth) + x;
 
                             // Stored in r-> g-> b-> a order.
-                            this.currentFrame[offset] = default(T);
+                            this.currentFrame[offset] = default(TColor);
                         }
                     }
                 }

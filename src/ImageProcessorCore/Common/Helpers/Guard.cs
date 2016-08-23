@@ -35,7 +35,7 @@ namespace ImageProcessorCore
         /// <param name="message">
         /// The error message, if any to add to the exception.
         /// </param>
-        /// <exception cref="ArgumentNullException">
+        /// <exception cref="System.ArgumentNullException">
         /// <paramref name="target"/> is null
         /// </exception>
         public static void NotNull(object target, string parameterName, string message = "")
@@ -58,7 +58,7 @@ namespace ImageProcessorCore
         /// </summary>
         /// <param name="target">The target string, which should be checked against being null or empty.</param>
         /// <param name="parameterName">Name of the parameter.</param>
-        /// <exception cref="ArgumentNullException">
+        /// <exception cref="System.ArgumentNullException">
         /// <paramref name="target"/> is null.
         /// </exception>
         /// <exception cref="ArgumentException">

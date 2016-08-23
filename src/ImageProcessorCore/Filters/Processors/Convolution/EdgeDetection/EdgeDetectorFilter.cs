@@ -9,19 +9,19 @@ namespace ImageProcessorCore.Processors
     /// Defines a filter that detects edges within an image using a single
     /// two dimensional matrix.
     /// </summary>
-    public abstract class EdgeDetectorFilter<T, TP> : ConvolutionFilter<T, TP>, IEdgeDetectorFilter<T, TP>
-        where T : IPackedVector<TP>
-        where TP : struct
+    public abstract class EdgeDetectorFilter<TColor, TPacked> : ConvolutionFilter<TColor, TPacked>, IEdgeDetectorFilter<TColor, TPacked>
+        where TColor : IPackedVector<TPacked>
+        where TPacked : struct
     {
         /// <inheritdoc/>
         public bool Grayscale { get; set; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
             if (this.Grayscale)
             {
-                new GrayscaleBt709Processor<T, TP>().Apply(source, source, sourceRectangle);
+                new GrayscaleBt709Processor<TColor, TPacked>().Apply(source, source, sourceRectangle);
             }
         }
     }

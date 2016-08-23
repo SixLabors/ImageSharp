@@ -11,11 +11,11 @@ namespace ImageProcessorCore.Processors
     /// <summary>
     /// Provides methods that allow the skewing of images.
     /// </summary>
-    /// <typeparam name="T">The pixel format.</typeparam>
-    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
-    public class SkewProcessor<T, TP> : Matrix3x2Processor<T, TP>
-        where T : IPackedVector<TP>
-        where TP : struct
+    /// <typeparam name="TColor">The pixel format.</typeparam>
+    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+    public class SkewProcessor<TColor, TPacked> : Matrix3x2Processor<TColor, TPacked>
+        where TColor : IPackedVector<TPacked>
+        where TPacked : struct
     {
         /// <summary>
         /// The tranform matrix to apply.
@@ -38,7 +38,7 @@ namespace ImageProcessorCore.Processors
         public bool Expand { get; set; } = true;
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
             this.processMatrix = Point.CreateSkew(new Point(0, 0), -this.AngleX, -this.AngleY);
             if (this.Expand)
@@ -48,14 +48,14 @@ namespace ImageProcessorCore.Processors
         }
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             int height = target.Height;
             int width = target.Width;
             Matrix3x2 matrix = GetCenteredMatrix(target, source, this.processMatrix);
 
-            using (IPixelAccessor<T, TP> sourcePixels = source.Lock())
-            using (IPixelAccessor<T, TP> targetPixels = target.Lock())
+            using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
+            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock())
             {
                 Parallel.For(
                     0,

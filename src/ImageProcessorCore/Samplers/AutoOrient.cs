@@ -8,20 +8,20 @@ namespace ImageProcessorCore
     using Processors;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image{T,TP}"/> type.
+    /// Extension methods for the <see cref="Image{TColor, TPacked}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
         /// <summary>
         /// Adjusts an image so that its orientation is suitable for viewing.
         /// </summary>
-        /// <typeparam name="T">The pixel format.</typeparam>
-        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image to crop.</param>
         /// <returns>The <see cref="Image"/></returns>
-        public static Image<T, TP> AutoOrient<T, TP>(this Image<T, TP> source, ProgressEventHandler progressHandler = null)
-            where T : IPackedVector<TP>
-            where TP : struct
+        public static Image<TColor, TPacked> AutoOrient<TColor, TPacked>(this Image<TColor, TPacked> source, ProgressEventHandler progressHandler = null)
+            where TColor : IPackedVector<TPacked>
+            where TPacked : struct
         {
             Orientation orientation = GetExifOrientation(source);
 
@@ -59,9 +59,9 @@ namespace ImageProcessorCore
             }
         }
 
-        private static Orientation GetExifOrientation<T, TP>(Image<T, TP> source)
-            where T : IPackedVector<TP>
-            where TP : struct
+        private static Orientation GetExifOrientation<TColor, TPacked>(Image<TColor, TPacked> source)
+            where TColor : IPackedVector<TPacked>
+            where TPacked : struct
         {
             if (source.ExifProfile == null)
             {

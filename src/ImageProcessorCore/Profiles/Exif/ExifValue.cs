@@ -21,7 +21,7 @@ namespace ImageProcessorCore
         /// by making a copy from another exif value.
         /// </summary>
         /// <param name="other">The other exif value, where the clone should be made from.</param>
-        /// <exception cref="ArgumentNullException"><paramref name="other"/> is null.</exception>
+        /// <exception cref="System.ArgumentNullException"><paramref name="other"/> is null.</exception>
         public ExifValue(ExifValue other)
         {
             Guard.NotNull(other, nameof(other));

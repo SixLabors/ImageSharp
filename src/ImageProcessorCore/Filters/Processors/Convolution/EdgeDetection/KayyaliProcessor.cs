@@ -9,11 +9,11 @@ namespace ImageProcessorCore.Processors
     /// The Kayyali operator filter.
     /// <see href="http://edgedetection.webs.com/"/>
     /// </summary>
-    /// <typeparam name="T">The pixel format.</typeparam>
-    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
-    public class KayyaliProcessor<T, TP> : EdgeDetector2DFilter<T, TP>
-        where T : IPackedVector<TP>
-        where TP : struct
+    /// <typeparam name="TColor">The pixel format.</typeparam>
+    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+    public class KayyaliProcessor<TColor, TPacked> : EdgeDetector2DFilter<TColor, TPacked>
+        where TColor : IPackedVector<TPacked>
+        where TPacked : struct
     {
         /// <inheritdoc/>
         public override float[,] KernelX => new float[,]

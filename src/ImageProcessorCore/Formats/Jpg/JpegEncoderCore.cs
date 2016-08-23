@@ -339,9 +339,9 @@ namespace ImageProcessorCore.Formats
 
         // toYCbCr converts the 8x8 region of m whose top-left corner is p to its
         // YCbCr values.
-        private void ToYCbCr<T, TP>(IPixelAccessor<T, TP> pixels, int x, int y, Block yBlock, Block cbBlock, Block crBlock)
-            where T : IPackedVector<TP>
-            where TP : struct
+        private void ToYCbCr<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, int x, int y, Block yBlock, Block cbBlock, Block crBlock)
+            where TColor : IPackedVector<TPacked>
+            where TPacked : struct
         {
             int xmax = pixels.Width - 1;
             int ymax = pixels.Height - 1;
@@ -430,9 +430,9 @@ namespace ImageProcessorCore.Formats
 
         // Encode writes the Image m to w in JPEG 4:2:0 baseline format with the given
         // options. Default parameters are used if a nil *Options is passed.
-        public void Encode<T, TP>(Image<T, TP> image, Stream stream, int quality, JpegSubsample sample)
-            where T : IPackedVector<TP>
-            where TP : struct
+        public void Encode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream, int quality, JpegSubsample sample)
+            where TColor : IPackedVector<TPacked>
+            where TPacked : struct
         {
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
@@ -502,7 +502,7 @@ namespace ImageProcessorCore.Formats
             this.WriteDHT(componentCount);
 
             // Write the image data.
-            using (IPixelAccessor<T, TP> pixels = image.Lock())
+            using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
             {
                 this.WriteSOS(pixels);
             }
@@ -570,9 +570,9 @@ namespace ImageProcessorCore.Formats
             this.outputStream.Write(this.buffer, 0, 4);
         }
 
-        private void WriteProfiles<T, TP>(Image<T, TP> image)
-            where T : IPackedVector<TP>
-            where TP : struct
+        private void WriteProfiles<TColor, TPacked>(Image<TColor, TPacked> image)
+            where TColor : IPackedVector<TPacked>
+            where TPacked : struct
         {
             WriteProfile(image.ExifProfile);
         }
@@ -710,9 +710,9 @@ namespace ImageProcessorCore.Formats
         /// Writes the StartOfScan marker.
         /// </summary>
         /// <param name="pixels">The pixel accessor providing acces to the image pixels.</param>
-        private void WriteSOS<T, TP>(IPixelAccessor<T, TP> pixels)
-            where T : IPackedVector<TP>
-            where TP : struct
+        private void WriteSOS<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels)
+            where TColor : IPackedVector<TPacked>
+            where TPacked : struct
         {
             // TODO: We should allow grayscale writing.
             this.outputStream.Write(this.SOSHeaderYCbCr, 0, this.SOSHeaderYCbCr.Length);
@@ -737,9 +737,9 @@ namespace ImageProcessorCore.Formats
         /// Encodes the image with no subsampling.
         /// </summary>
         /// <param name="pixels">The pixel accessor providing acces to the image pixels.</param>
-        private void Encode444<T, TP>(IPixelAccessor<T, TP> pixels)
-            where T : IPackedVector<TP>
-            where TP : struct
+        private void Encode444<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels)
+            where TColor : IPackedVector<TPacked>
+            where TPacked : struct
         {
             Block b = new Block();
             Block cb = new Block();
@@ -763,9 +763,9 @@ namespace ImageProcessorCore.Formats
         /// at a factor of 2 both horizontally and vertically.
         /// </summary>
         /// <param name="pixels">The pixel accessor providing acces to the image pixels.</param>
-        private void Encode420<T, TP>(IPixelAccessor<T, TP> pixels)
-            where T : IPackedVector<TP>
-            where TP : struct
+        private void Encode420<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels)
+            where TColor : IPackedVector<TPacked>
+            where TPacked : struct
         {
             Block b = new Block();
             Block[] cb = new Block[4];

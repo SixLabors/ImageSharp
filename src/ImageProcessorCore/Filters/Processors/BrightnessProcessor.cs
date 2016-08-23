@@ -10,16 +10,16 @@ namespace ImageProcessorCore.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageProcessor{T,TP}"/> to change the brightness of an <see cref="Image{T,TP}"/>.
+    /// An <see cref="IImageProcessor{TColor, TPacked}"/> to change the brightness of an <see cref="Image{TColor, TPacked}"/>.
     /// </summary>
-    /// <typeparam name="T">The pixel format.</typeparam>
-    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
-    public class BrightnessProcessor<T, TP> : ImageProcessor<T, TP>
-        where T : IPackedVector<TP>
-        where TP : struct
+    /// <typeparam name="TColor">The pixel format.</typeparam>
+    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+    public class BrightnessProcessor<TColor, TPacked> : ImageProcessor<TColor, TPacked>
+        where TColor : IPackedVector<TPacked>
+        where TPacked : struct
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="BrightnessProcessor{T,TP}"/> class.
+        /// Initializes a new instance of the <see cref="BrightnessProcessor{TColor, TPacked}"/> class.
         /// </summary>
         /// <param name="brightness">The new brightness of the image. Must be between -100 and 100.</param>
         /// <exception cref="ArgumentException">
@@ -37,7 +37,7 @@ namespace ImageProcessorCore.Processors
         public int Value { get; }
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             float brightness = this.Value / 100F;
             int startX = sourceRectangle.X;
@@ -60,8 +60,8 @@ namespace ImageProcessorCore.Processors
                 startY = 0;
             }
 
-            using (IPixelAccessor<T, TP> sourcePixels = source.Lock())
-            using (IPixelAccessor<T, TP> targetPixels = target.Lock())
+            using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
+            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock())
             {
                 Parallel.For(
                     minY,
@@ -79,7 +79,7 @@ namespace ImageProcessorCore.Processors
                                 Vector3 transformed = new Vector3(vector.X, vector.Y, vector.Z) + new Vector3(brightness);
                                 vector = new Vector4(transformed, vector.W);
 
-                                T packed = default(T);
+                                TColor packed = default(TColor);
                                 packed.PackFromVector4(vector.Compress());
 
                                 targetPixels[offsetX, offsetY] = packed;

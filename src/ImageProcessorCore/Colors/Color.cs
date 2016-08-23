@@ -8,7 +8,6 @@ namespace ImageProcessorCore
     using System;
     using System.Numerics;
     using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
 
     /// <summary>
     /// Packed vector type containing four 8-bit unsigned normalized values ranging from 0 to 255.
@@ -18,38 +17,77 @@ namespace ImageProcessorCore
     /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
     /// as it avoids the need to create new values for modification operations.
     /// </remarks>
-    [StructLayout(LayoutKind.Explicit)]
     public partial struct Color : IPackedVector<uint>, IEquatable<Color>
     {
-        /// <summary>
-        /// Gets or sets the blue component.
-        /// </summary>
-        [FieldOffset(0)]
-        public byte R;
-
-        /// <summary>
-        /// Gets or sets the green component.
-        /// </summary>
-        [FieldOffset(1)]
-        public byte G;
+        private const float Max = 255F;
+        private const float Min = 0F;
+        private uint packedValue;
 
         /// <summary>
         /// Gets or sets the red component.
         /// </summary>
-        [FieldOffset(2)]
-        public byte B;
+        public byte R
+        {
+            get
+            {
+                return (byte)this.packedValue;
+            }
+            set
+            {
+                this.packedValue = (uint)(this.packedValue & -0x100 | value);
+            }
+        }
+
+
+        /// <summary>
+        /// Gets or sets the green component.
+        /// </summary>
+        public byte G
+        {
+            get
+            {
+                return (byte)(this.packedValue >> 8);
+            }
+            set
+            {
+                this.packedValue = (uint)(this.packedValue & -0xff01 | (uint)value << 8);
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the blue component.
+        /// </summary>
+        public byte B
+        {
+            get
+            {
+                return (byte)(this.packedValue >> 16);
+            }
+            set
+            {
+                this.packedValue = (uint)(this.packedValue & -0xff0001 | (uint)(value << 16));
+            }
+        }
 
         /// <summary>
         /// Gets or sets the alpha component.
         /// </summary>
-        [FieldOffset(3)]
-        public byte A;
+        public byte A
+        {
+            get
+            {
+                return (byte)(this.packedValue >> 24);
+            }
+            set
+            {
+                this.packedValue = this.packedValue & 0xffffff | (uint)value << 24;
+            }
+        }
 
         /// <summary>
         /// The packed value.
         /// </summary>
-        [FieldOffset(0)]
-        private uint packedValue;
+        public uint PackedValue { get { return this.packedValue; } set { this.packedValue = value; } }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Color"/> struct. 
@@ -61,10 +99,7 @@ namespace ImageProcessorCore
         public Color(byte r, byte g, byte b, byte a = 255)
             : this()
         {
-            this.R = r;
-            this.G = g;
-            this.B = b;
-            this.A = a;
+            this.packedValue = (uint)(r | g << 8 | b << 16 | a << 24);
         }
 
         /// <summary>
@@ -87,17 +122,19 @@ namespace ImageProcessorCore
 
             if (hex.Length == 8)
             {
-                this.R = Convert.ToByte(hex.Substring(2, 2), 16);
-                this.G = Convert.ToByte(hex.Substring(4, 2), 16);
-                this.B = Convert.ToByte(hex.Substring(6, 2), 16);
-                this.A = Convert.ToByte(hex.Substring(0, 2), 16);
+                this.packedValue =
+                    (uint)(Convert.ToByte(hex.Substring(2, 2), 16)
+                    | Convert.ToByte(hex.Substring(4, 2), 16) << 8
+                    | Convert.ToByte(hex.Substring(6, 2), 16) << 16
+                    | Convert.ToByte(hex.Substring(0, 2), 16) << 24);
             }
             else if (hex.Length == 6)
             {
-                this.R = Convert.ToByte(hex.Substring(0, 2), 16);
-                this.G = Convert.ToByte(hex.Substring(2, 2), 16);
-                this.B = Convert.ToByte(hex.Substring(4, 2), 16);
-                this.A = 255;
+                this.packedValue =
+                    (uint)(Convert.ToByte(hex.Substring(0, 2), 16)
+                    | Convert.ToByte(hex.Substring(2, 2), 16) << 8
+                    | Convert.ToByte(hex.Substring(4, 2), 16) << 16
+                    | 255 << 24);
             }
             else
             {
@@ -105,10 +142,11 @@ namespace ImageProcessorCore
                 string gh = char.ToString(hex[1]);
                 string bh = char.ToString(hex[2]);
 
-                this.R = Convert.ToByte(rh + rh, 16);
-                this.G = Convert.ToByte(gh + gh, 16);
-                this.B = Convert.ToByte(bh + bh, 16);
-                this.A = 255;
+                this.packedValue =
+                    (uint)(Convert.ToByte(rh + rh, 16)
+                    | Convert.ToByte(gh + gh, 16) << 8
+                    | Convert.ToByte(bh + bh, 16) << 16
+                    | 255 << 24);
             }
         }
 
@@ -122,11 +160,7 @@ namespace ImageProcessorCore
         public Color(float r, float g, float b, float a = 1)
             : this()
         {
-            Vector4 clamped = Vector4.Clamp(new Vector4(r, g, b, a), Vector4.Zero, Vector4.One) * 255F;
-            this.R = (byte)Math.Round(clamped.X);
-            this.G = (byte)Math.Round(clamped.Y);
-            this.B = (byte)Math.Round(clamped.Z);
-            this.A = (byte)Math.Round(clamped.W);
+            Pack(ref r, ref g, ref b, ref a);
         }
 
         /// <summary>
@@ -138,11 +172,8 @@ namespace ImageProcessorCore
         public Color(Vector3 vector)
             : this()
         {
-            Vector3 clamped = Vector3.Clamp(vector, Vector3.Zero, Vector3.One) * 255F;
-            this.R = (byte)Math.Round(clamped.X);
-            this.G = (byte)Math.Round(clamped.Y);
-            this.B = (byte)Math.Round(clamped.Z);
-            this.A = 255;
+            float a = 1;
+            Pack(ref vector.X, ref vector.Y, ref vector.Z, ref a);
         }
 
         /// <summary>
@@ -154,11 +185,7 @@ namespace ImageProcessorCore
         public Color(Vector4 vector)
             : this()
         {
-            Vector4 clamped = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * 255F;
-            this.R = (byte)Math.Round(clamped.X);
-            this.G = (byte)Math.Round(clamped.Y);
-            this.B = (byte)Math.Round(clamped.Z);
-            this.A = (byte)Math.Round(clamped.W);
+            this.packedValue = Pack(ref vector);
         }
 
         /// <summary>
@@ -206,20 +233,13 @@ namespace ImageProcessorCore
         /// <inheritdoc/>
         public void PackFromVector4(Vector4 vector)
         {
-            Vector4 clamped = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * 255F;
-            this.R = (byte)Math.Round(clamped.X);
-            this.G = (byte)Math.Round(clamped.Y);
-            this.B = (byte)Math.Round(clamped.Z);
-            this.A = (byte)Math.Round(clamped.W);
+            this.packedValue = Pack(ref vector);
         }
 
         /// <inheritdoc/>
         public void PackFromBytes(byte x, byte y, byte z, byte w)
         {
-            this.R = x;
-            this.G = y;
-            this.B = z;
-            this.A = w;
+            this.packedValue = (uint)(x | y << 8 | z << 16 | w << 24);
         }
 
         /// <inheritdoc/>
@@ -259,6 +279,28 @@ namespace ImageProcessorCore
         public override int GetHashCode()
         {
             return this.GetHashCode(this);
+        }
+
+        /// <summary>
+        /// Packs a vector into a uint.
+        /// </summary>
+        /// <param name="vector">The vector containing the values to pack.</param>
+        /// <returns>The ulong containing the packed values.</returns>
+        private static uint Pack(ref Vector4 vector)
+        {
+            // TODO: Maybe use Vector4.Clamp() instead.
+            return (uint)((byte)Math.Round(vector.X * Max).Clamp(Min, Max)
+                   | ((byte)Math.Round(vector.Y * Max).Clamp(Min, Max) << 8)
+                   | (byte)Math.Round(vector.Z * Max).Clamp(Min, Max) << 16
+                   | (byte)Math.Round(vector.W * Max).Clamp(Min, Max) << 24);
+        }
+
+        private static uint Pack(ref float x, ref float y, ref float z, ref float w)
+        {
+            return (uint)((byte)Math.Round(x * Max).Clamp(Min, Max)
+                   | ((byte)Math.Round(y * Max).Clamp(Min, Max) << 8)
+                   | (byte)Math.Round(z * Max).Clamp(Min, Max) << 16
+                   | (byte)Math.Round(w * Max).Clamp(Min, Max) << 24);
         }
 
         /// <summary>

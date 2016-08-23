@@ -7,7 +7,7 @@ namespace ImageProcessorCore
 {
     /// <summary>
     /// The function implements the nearest neighbour algorithm. This uses an unscaled filter
-    /// which will select the closest pixel to the new pixels position.
+    /// which will select the closesTColor pixel to the new pixels position.
     /// </summary>
     public class NearestNeighborResampler : IResampler
     {

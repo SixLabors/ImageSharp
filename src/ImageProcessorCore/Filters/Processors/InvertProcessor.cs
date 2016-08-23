@@ -10,16 +10,16 @@ namespace ImageProcessorCore.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageProcessor{T,TP}"/> to invert the colors of an <see cref="Image{T,TP}"/>.
+    /// An <see cref="IImageProcessor{TColor, TPacked}"/> to invert the colors of an <see cref="Image{TColor, TPacked}"/>.
     /// </summary>
-    /// <typeparam name="T">The pixel format.</typeparam>
-    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
-    public class InvertProcessor<T, TP> : ImageProcessor<T, TP>
-        where T : IPackedVector<TP>
-        where TP : struct
+    /// <typeparam name="TColor">The pixel format.</typeparam>
+    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+    public class InvertProcessor<TColor, TPacked> : ImageProcessor<TColor, TPacked>
+        where TColor : IPackedVector<TPacked>
+        where TPacked : struct
     {
         /// <inheritdoc/>
-        protected override void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
@@ -42,8 +42,8 @@ namespace ImageProcessorCore.Processors
                 startY = 0;
             }
 
-            using (IPixelAccessor<T, TP> sourcePixels = source.Lock())
-            using (IPixelAccessor<T, TP> targetPixels = target.Lock())
+            using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
+            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock())
             {
                 Parallel.For(
                     minY,
@@ -58,7 +58,7 @@ namespace ImageProcessorCore.Processors
                                 Vector4 color = sourcePixels[offsetX, offsetY].ToVector4();
                                 Vector3 vector = inverseVector - new Vector3(color.X, color.Y, color.Z);
 
-                                T packed = default(T);
+                                TColor packed = default(TColor);
                                 packed.PackFromVector4(new Vector4(vector, color.W));
                                 targetPixels[offsetX, offsetY] = packed;
                             }

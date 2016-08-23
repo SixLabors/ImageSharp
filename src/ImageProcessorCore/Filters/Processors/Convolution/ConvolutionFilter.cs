@@ -11,9 +11,9 @@ namespace ImageProcessorCore.Processors
     /// <summary>
     /// Defines a filter that uses a 2 dimensional matrix to perform convolution against an image.
     /// </summary>
-    public abstract class ConvolutionFilter<T, TP> : ImageProcessor<T, TP>
-        where T : IPackedVector<TP>
-        where TP : struct
+    public abstract class ConvolutionFilter<TColor, TPacked> : ImageProcessor<TColor, TPacked>
+        where TColor : IPackedVector<TPacked>
+        where TPacked : struct
     {
         /// <summary>
         /// Gets the 2d gradient operator.
@@ -21,7 +21,7 @@ namespace ImageProcessorCore.Processors
         public abstract float[,] KernelXY { get; }
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             float[,] kernelX = this.KernelXY;
             int kernelLength = kernelX.GetLength(0);
@@ -34,8 +34,8 @@ namespace ImageProcessorCore.Processors
             int maxY = sourceBottom - 1;
             int maxX = endX - 1;
 
-            using (IPixelAccessor<T, TP> sourcePixels = source.Lock())
-            using (IPixelAccessor<T, TP> targetPixels = target.Lock())
+            using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
+            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock())
             {
                 Parallel.For(
                 startY,
@@ -82,7 +82,7 @@ namespace ImageProcessorCore.Processors
                             float blue = bX;
 
                             Vector4 targetColor = targetPixels[x, y].ToVector4();
-                            T packed = default(T);
+                            TColor packed = default(TColor);
                             packed.PackFromVector4(new Vector4(red, green, blue, targetColor.Z));
                             targetPixels[x, y] = packed;
 

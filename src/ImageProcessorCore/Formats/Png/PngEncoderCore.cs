@@ -89,15 +89,15 @@ namespace ImageProcessorCore.Formats
         public byte Threshold { get; set; } = 128;
 
         /// <summary>
-        /// Encodes the image to the specified stream from the <see cref="ImageBase{T,TP}"/>.
+        /// Encodes the image to the specified stream from the <see cref="ImageBase{TColor, TPacked}"/>.
         /// </summary>
-        /// <typeparam name="T">The pixel format.</typeparam>
-        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
-        /// <param name="image">The <see cref="ImageBase{T,TP}"/> to encode from.</param>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+        /// <param name="image">The <see cref="ImageBase{TColor, TPacked}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
-        public void Encode<T, TP>(ImageBase<T, TP> image, Stream stream)
-            where T : IPackedVector<TP>
-            where TP : struct
+        public void Encode<TColor, TPacked>(ImageBase<TColor, TPacked> image, Stream stream)
+            where TColor : IPackedVector<TPacked>
+            where TPacked : struct
         {
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
@@ -185,34 +185,34 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Collects the indexed pixel data.
         /// </summary>
-        /// <typeparam name="T">The pixel format.</typeparam>
-        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="image">The image to encode.</param>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="header">The <see cref="PngHeader"/>.</param>
-        private void CollectIndexedBytes<T, TP>(ImageBase<T, TP> image, Stream stream, PngHeader header)
-            where T : IPackedVector<TP>
-            where TP : struct
+        private void CollectIndexedBytes<TColor, TPacked>(ImageBase<TColor, TPacked> image, Stream stream, PngHeader header)
+            where TColor : IPackedVector<TPacked>
+            where TPacked : struct
         {
             // Quatize the image and get the pixels
-            QuantizedImage<T, TP> quantized = this.WritePaletteChunk(stream, header, image);
+            QuantizedImage<TColor, TPacked> quantized = this.WritePaletteChunk(stream, header, image);
             pixelData = quantized.Pixels;
         }
 
         /// <summary>
         /// Collects the grayscale pixel data.
         /// </summary>
-        /// <typeparam name="T">The pixel format.</typeparam>
-        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="image">The image to encode.</param>
-        private void CollectGrayscaleBytes<T, TP>(ImageBase<T, TP> image)
-            where T : IPackedVector<TP>
-            where TP : struct
+        private void CollectGrayscaleBytes<TColor, TPacked>(ImageBase<TColor, TPacked> image)
+            where TColor : IPackedVector<TPacked>
+            where TPacked : struct
         {
             // Copy the pixels across from the image.
             this.pixelData = new byte[this.width * this.height * this.bytesPerPixel];
             int stride = this.width * this.bytesPerPixel;
-            using (IPixelAccessor<T, TP> pixels = image.Lock())
+            using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
             {
                 Parallel.For(
                    0,
@@ -246,17 +246,17 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Collects the true color pixel data.
         /// </summary>
-        /// <typeparam name="T">The pixel format.</typeparam>
-        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="image">The image to encode.</param>
-        private void CollectColorBytes<T, TP>(ImageBase<T, TP> image)
-            where T : IPackedVector<TP>
-            where TP : struct
+        private void CollectColorBytes<TColor, TPacked>(ImageBase<TColor, TPacked> image)
+            where TColor : IPackedVector<TPacked>
+            where TPacked : struct
         {
             // Copy the pixels across from the image.
             this.pixelData = new byte[this.width * this.height * this.bytesPerPixel];
             int stride = this.width * this.bytesPerPixel;
-            using (IPixelAccessor<T, TP> pixels = image.Lock())
+            using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
             {
                 Parallel.For(
                    0,
@@ -474,14 +474,14 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Writes the palette chunk to the stream.
         /// </summary>
-        /// <typeparam name="T">The pixel format.</typeparam>
-        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="header">The <see cref="PngHeader"/>.</param>
         /// <param name="image">The image to encode.</param>
-        private QuantizedImage<T, TP> WritePaletteChunk<T, TP>(Stream stream, PngHeader header, ImageBase<T, TP> image)
-            where T : IPackedVector<TP>
-            where TP : struct
+        private QuantizedImage<TColor, TPacked> WritePaletteChunk<TColor, TPacked>(Stream stream, PngHeader header, ImageBase<TColor, TPacked> image)
+            where TColor : IPackedVector<TPacked>
+            where TPacked : struct
         {
             if (this.Quality > 256)
             {
@@ -490,14 +490,14 @@ namespace ImageProcessorCore.Formats
 
             if (this.Quantizer == null)
             {
-                this.Quantizer = new WuQuantizer<T, TP> { Threshold = this.Threshold };
+                this.Quantizer = new WuQuantizer<TColor, TPacked> { Threshold = this.Threshold };
             }
 
             // Quantize the image returning a palette. This boxing is icky.
-            QuantizedImage<T, TP> quantized = ((IQuantizer<T, TP>)this.Quantizer).Quantize(image, this.Quality);
+            QuantizedImage<TColor, TPacked> quantized = ((IQuantizer<TColor, TPacked>)this.Quantizer).Quantize(image, this.Quality);
 
             // Grab the palette and write it to the stream.
-            T[] palette = quantized.Palette;
+            TColor[] palette = quantized.Palette;
             int pixelCount = palette.Length;
 
             // Get max colors for bit depth.
@@ -533,15 +533,15 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Writes the physical dimension information to the stream.
         /// </summary>
-        /// <typeparam name="T">The pixel format.</typeparam>
-        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="imageBase">The image base.</param>
-        private void WritePhysicalChunk<T, TP>(Stream stream, ImageBase<T, TP> imageBase)
-            where T : IPackedVector<TP>
-            where TP : struct
+        private void WritePhysicalChunk<TColor, TPacked>(Stream stream, ImageBase<TColor, TPacked> imageBase)
+            where TColor : IPackedVector<TPacked>
+            where TPacked : struct
         {
-            Image<T, TP> image = imageBase as Image<T, TP>;
+            Image<TColor, TPacked> image = imageBase as Image<TColor, TPacked>;
             if (image != null && image.HorizontalResolution > 0 && image.VerticalResolution > 0)
             {
                 // 39.3700787 = inches in a meter.

@@ -63,7 +63,7 @@ namespace ImageProcessorCore
         /// by making a copy from another EXIF profile.
         /// </summary>
         /// <param name="other">The other EXIF profile, where the clone should be made from.</param>
-        /// <exception cref="ArgumentNullException"><paramref name="other"/> is null.</exception>
+        /// <exception cref="System.ArgumentNullException"><paramref name="other"/> is null.</exception>
         public ExifProfile(ExifProfile other)
         {
             Guard.NotNull(other, nameof(other));
@@ -115,11 +115,11 @@ namespace ImageProcessorCore
         /// <summary>
         /// Returns the thumbnail in the EXIF profile when available.
         /// </summary>
-        /// <typeparam name="T">The pixel format.</typeparam>
-        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
-        public Image<T, TP> CreateThumbnail<T, TP>()
-            where T : IPackedVector<TP>
-            where TP : struct
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+        public Image<TColor, TPacked> CreateThumbnail<TColor, TPacked>()
+            where TColor : IPackedVector<TPacked>
+            where TPacked : struct
         {
             this.InitializeValues();
 
@@ -135,7 +135,7 @@ namespace ImageProcessorCore
 
             using (MemoryStream memStream = new MemoryStream(this.data, this.thumbnailOffset, this.thumbnailLength))
             {
-                return new Image<T, TP>(memStream);
+                return new Image<TColor, TPacked>(memStream);
             }
         }
 

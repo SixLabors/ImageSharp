@@ -156,17 +156,17 @@ namespace ImageProcessorCore
         /// Finds the bounding rectangle based on the first instance of any color component other
         /// than the given one.
         /// </summary>
-        /// <typeparam name="T">The pixel format.</typeparam>
-        /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="bitmap">The <see cref="Image"/> to search within.</param>
         /// <param name="componentValue">The color component value to remove.</param>
         /// <param name="channel">The <see cref="RgbaComponent"/> channel to test against.</param>
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        public static Rectangle GetFilteredBoundingRectangle<T, TP>(ImageBase<T, TP> bitmap, float componentValue, RgbaComponent channel = RgbaComponent.B)
-            where T : IPackedVector<TP>
-            where TP : struct
+        public static Rectangle GetFilteredBoundingRectangle<TColor, TPacked>(ImageBase<TColor, TPacked> bitmap, float componentValue, RgbaComponent channel = RgbaComponent.B)
+            where TColor : IPackedVector<TPacked>
+            where TPacked : struct
         {
             const float Epsilon = .00001f;
             int width = bitmap.Width;
@@ -174,7 +174,7 @@ namespace ImageProcessorCore
             Point topLeft = new Point();
             Point bottomRight = new Point();
 
-            Func<IPixelAccessor<T, TP>, int, int, float, bool> delegateFunc;
+            Func<PixelAccessor<TColor, TPacked>, int, int, float, bool> delegateFunc;
 
             // Determine which channel to check against
             switch (channel)
@@ -196,7 +196,7 @@ namespace ImageProcessorCore
                     break;
             }
 
-            Func<IPixelAccessor<T, TP>, int> getMinY = pixels =>
+            Func<PixelAccessor<TColor, TPacked>, int> getMinY = pixels =>
             {
                 for (int y = 0; y < height; y++)
                 {
@@ -212,7 +212,7 @@ namespace ImageProcessorCore
                 return 0;
             };
 
-            Func<IPixelAccessor<T, TP>, int> getMaxY = pixels =>
+            Func<PixelAccessor<TColor, TPacked>, int> getMaxY = pixels =>
             {
                 for (int y = height - 1; y > -1; y--)
                 {
@@ -228,7 +228,7 @@ namespace ImageProcessorCore
                 return height;
             };
 
-            Func<IPixelAccessor<T, TP>, int> getMinX = pixels =>
+            Func<PixelAccessor<TColor, TPacked>, int> getMinX = pixels =>
             {
                 for (int x = 0; x < width; x++)
                 {
@@ -244,7 +244,7 @@ namespace ImageProcessorCore
                 return 0;
             };
 
-            Func<IPixelAccessor<T, TP>, int> getMaxX = pixels =>
+            Func<PixelAccessor<TColor, TPacked>, int> getMaxX = pixels =>
             {
                 for (int x = width - 1; x > -1; x--)
                 {
@@ -260,7 +260,7 @@ namespace ImageProcessorCore
                 return height;
             };
 
-            using (IPixelAccessor<T, TP> bitmapPixels = bitmap.Lock())
+            using (PixelAccessor<TColor, TPacked> bitmapPixels = bitmap.Lock())
             {
                 topLeft.Y = getMinY(bitmapPixels);
                 topLeft.X = getMinX(bitmapPixels);

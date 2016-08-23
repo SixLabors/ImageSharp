@@ -8,34 +8,28 @@ namespace ImageProcessorCore
     /// <summary>
     /// Represents a single frame in a animation.
     /// </summary>
-    /// <typeparam name="T">The pixel format.</typeparam>
-    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
-    public class ImageFrame<T, TP> : ImageBase<T, TP>
-        where T : IPackedVector<TP>
-        where TP : struct
+    /// <typeparam name="TColor">The pixel format.</typeparam>
+    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+    public class ImageFrame<TColor, TPacked> : ImageBase<TColor, TPacked>
+        where TColor : IPackedVector<TPacked>
+        where TPacked : struct
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageFrame{T, TP}"/> class. 
+        /// Initializes a new instance of the <see cref="ImageFrame{TColor, TPacked}"/> class. 
         /// </summary>
         public ImageFrame()
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageFrame{T, TP}"/> class. 
+        /// Initializes a new instance of the <see cref="ImageFrame{TColor, TPacked}"/> class. 
         /// </summary>
         /// <param name="frame">
         /// The frame to create the frame from.
         /// </param>
-        public ImageFrame(ImageFrame<T, TP> frame)
+        public ImageFrame(ImageFrame<TColor, TPacked> frame)
             : base(frame)
         {
-        }
-
-        /// <inheritdoc />
-        public override IPixelAccessor<T, TP> Lock()
-        {
-            return Bootstrapper.Instance.GetPixelAccessor<T, TP>(this);
         }
     }
 }

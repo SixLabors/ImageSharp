@@ -8,13 +8,13 @@ namespace ImageProcessorCore.Processors
     using System.Numerics;
 
     /// <summary>
-    /// An <see cref="IImageProcessor{T,TP}"/> to change the saturation of an <see cref="Image"/>.
+    /// An <see cref="IImageProcessor{TColor, TPacked}"/> to change the saturation of an <see cref="Image"/>.
     /// </summary>
-    /// <typeparam name="T">The pixel format.</typeparam>
-    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
-    public class SaturationProcessor<T, TP> : ColorMatrixFilter<T, TP>
-        where T : IPackedVector<TP>
-        where TP : struct
+    /// <typeparam name="TColor">The pixel format.</typeparam>
+    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+    public class SaturationProcessor<TColor, TPacked> : ColorMatrixFilter<TColor, TPacked>
+        where TColor : IPackedVector<TPacked>
+        where TPacked : struct
     {
         /// <summary>
         /// The saturation to be applied to the image.

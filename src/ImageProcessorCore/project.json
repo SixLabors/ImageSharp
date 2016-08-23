@@ -35,6 +35,7 @@
     "System.Numerics.Vectors": "4.1.1",
     "System.ObjectModel": "4.0.12",
     "System.Resources.ResourceManager": "4.0.1",
+    "System.Runtime.CompilerServices.Unsafe": "4.0.0",
     "System.Runtime.Extensions": "4.1.0",
     "System.Runtime.InteropServices": "4.1.0",
     "System.Runtime.Numerics": "4.0.1",

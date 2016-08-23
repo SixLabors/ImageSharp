@@ -12,11 +12,11 @@ namespace ImageProcessorCore.Processors
     /// Provides methods to allow the cropping of an image to preserve areas of highest
     /// entropy.
     /// </summary>
-    /// <typeparam name="T">The pixel format.</typeparam>
-    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
-    public class EntropyCropProcessor<T, TP> : ImageSampler<T, TP>
-        where T : IPackedVector<TP>
-        where TP : struct
+    /// <typeparam name="TColor">The pixel format.</typeparam>
+    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+    public class EntropyCropProcessor<TColor, TPacked> : ImageSampler<TColor, TPacked>
+        where TColor : IPackedVector<TPacked>
+        where TPacked : struct
     {
         /// <summary>
         /// The rectangle for cropping
@@ -24,7 +24,7 @@ namespace ImageProcessorCore.Processors
         private Rectangle cropRectangle;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="EntropyCropProcessor{T,TP}"/> class.
+        /// Initializes a new instance of the <see cref="EntropyCropProcessor{TColor, TPacked}"/> class.
         /// </summary>
         /// <param name="threshold">The threshold to split the image. Must be between 0 and 1.</param>
         /// <exception cref="ArgumentException">
@@ -42,26 +42,26 @@ namespace ImageProcessorCore.Processors
         public float Value { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
-            ImageBase<T, TP> temp = new Image<T, TP>(source.Width, source.Height);
+            ImageBase<TColor, TPacked> temp = new Image<TColor, TPacked>(source.Width, source.Height);
 
             // Detect the edges.
-            new SobelProcessor<T, TP>().Apply(temp, source, sourceRectangle);
+            new SobelProcessor<TColor, TPacked>().Apply(temp, source, sourceRectangle);
 
             // Apply threshold binarization filter.
-            new BinaryThresholdProcessor<T, TP>(.5f).Apply(temp, temp, sourceRectangle);
+            new BinaryThresholdProcessor<TColor, TPacked>(.5f).Apply(temp, temp, sourceRectangle);
 
             // Search for the first white pixels
             Rectangle rectangle = ImageMaths.GetFilteredBoundingRectangle(temp, 0);
 
-            // Reset the target pixel to the correct size.
-            target.SetPixels(rectangle.Width, rectangle.Height, new T[rectangle.Width * rectangle.Height]);
+            // Reset the targeTColor pixel to the correct size.
+            target.SetPixels(rectangle.Width, rectangle.Height, new TColor[rectangle.Width * rectangle.Height]);
             this.cropRectangle = rectangle;
         }
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             // Jump out, we'll deal with that later.
             if (source.Bounds == target.Bounds)
@@ -77,8 +77,8 @@ namespace ImageProcessorCore.Processors
             int minY = Math.Max(targetY, startY);
             int maxY = Math.Min(targetBottom, endY);
 
-            using (IPixelAccessor<T, TP> sourcePixels = source.Lock())
-            using (IPixelAccessor<T, TP> targetPixels = target.Lock())
+            using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
+            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock())
             {
                 Parallel.For(
                     minY,
@@ -97,7 +97,7 @@ namespace ImageProcessorCore.Processors
         }
 
         /// <inheritdoc/>
-        protected override void AfterApply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected override void AfterApply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
             // Copy the pixels over.
             if (source.Bounds == target.Bounds)

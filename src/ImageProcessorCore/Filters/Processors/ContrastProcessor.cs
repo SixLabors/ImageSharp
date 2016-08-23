@@ -10,13 +10,13 @@ namespace ImageProcessorCore.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageProcessor{T,TP}"/> to change the contrast of an <see cref="Image{T,TP}"/>.
+    /// An <see cref="IImageProcessor{TColor, TPacked}"/> to change the contrast of an <see cref="Image{TColor, TPacked}"/>.
     /// </summary>
-    /// <typeparam name="T">The pixel format.</typeparam>
-    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
-    public class ContrastProcessor<T, TP> : ImageProcessor<T, TP>
-        where T : IPackedVector<TP>
-        where TP : struct
+    /// <typeparam name="TColor">The pixel format.</typeparam>
+    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+    public class ContrastProcessor<TColor, TPacked> : ImageProcessor<TColor, TPacked>
+        where TColor : IPackedVector<TPacked>
+        where TPacked : struct
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ContrastProcessor"/> class.
@@ -37,7 +37,7 @@ namespace ImageProcessorCore.Processors
         public int Value { get; }
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             float contrast = (100F + this.Value) / 100F;
             int startX = sourceRectangle.X;
@@ -62,8 +62,8 @@ namespace ImageProcessorCore.Processors
                 startY = 0;
             }
 
-            using (IPixelAccessor<T, TP> sourcePixels = source.Lock())
-            using (IPixelAccessor<T, TP> targetPixels = target.Lock())
+            using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
+            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock())
             {
                 Parallel.For(
                     minY,
@@ -80,7 +80,7 @@ namespace ImageProcessorCore.Processors
                                 vector -= shiftVector;
                                 vector *= contrastVector;
                                 vector += shiftVector;
-                                T packed = default(T);
+                                TColor packed = default(TColor);
                                 packed.PackFromVector4(vector.Compress());
                                 targetPixels[offsetX, offsetY] = packed;
                             }

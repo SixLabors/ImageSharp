@@ -10,11 +10,11 @@ namespace ImageProcessorCore.Processors
     /// <summary>
     /// Applies a Gaussian blur filter to the image.
     /// </summary>
-    /// <typeparam name="T">The pixel format.</typeparam>
-    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
-    public class GuassianBlurProcessor<T, TP> : Convolution2PassFilter<T, TP>
-        where T : IPackedVector<TP>
-        where TP : struct
+    /// <typeparam name="TColor">The pixel format.</typeparam>
+    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+    public class GuassianBlurProcessor<TColor, TPacked> : Convolution2PassFilter<TColor, TPacked>
+        where TColor : IPackedVector<TPacked>
+        where TPacked : struct
     {
         /// <summary>
         /// The maximum size of the kernal in either direction.
@@ -81,7 +81,7 @@ namespace ImageProcessorCore.Processors
         public override float[,] KernelY => this.kernelY;
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<T, TP> target, ImageBase<T, TP> source, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
             if (this.kernelY == null)
             {

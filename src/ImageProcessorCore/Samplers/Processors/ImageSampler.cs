@@ -9,11 +9,11 @@ namespace ImageProcessorCore.Processors
     /// Applies sampling methods to an image. 
     /// All processors requiring resampling or resizing should inherit from this.
     /// </summary>
-    /// <typeparam name="T">The pixel format.</typeparam>
-    /// <typeparam name="TP">The packed format. <example>long, float.</example></typeparam>
-    public abstract class ImageSampler<T, TP> : ImageProcessor<T, TP>, IImageSampler<T, TP>
-        where T : IPackedVector<TP>
-        where TP : struct
+    /// <typeparam name="TColor">The pixel format.</typeparam>
+    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+    public abstract class ImageSampler<TColor, TPacked> : ImageProcessor<TColor, TPacked>, IImageSampler<TColor, TPacked>
+        where TColor : IPackedVector<TPacked>
+        where TPacked : struct
     {
     }
 }

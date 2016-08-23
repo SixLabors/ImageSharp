@@ -10,7 +10,7 @@
 
     public class GetSetPixel
     {
-        [Benchmark(Baseline = true, Description = "System.Drawing GetSet Pixel")]
+        [Benchmark(Baseline = true, Description = "System.Drawing GetSeTColor pixel")]
         public SystemColor ResizeSystemDrawing()
         {
             using (Bitmap source = new Bitmap(400, 400))
@@ -20,11 +20,11 @@
             }
         }
 
-        [Benchmark(Description = "ImageProcessorCore GetSet Pixel")]
+        [Benchmark(Description = "ImageProcessorCore GetSeTColor pixel")]
         public CoreColor ResizeCore()
         {
             CoreImage image = new CoreImage(400, 400);
-            using (IPixelAccessor<CoreColor, uint> imagePixels = image.Lock())
+            using (PixelAccessor<CoreColor, uint> imagePixels = image.Lock())
             {
                 imagePixels[200, 200] = CoreColor.White;
                 return imagePixels[200, 200];

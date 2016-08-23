@@ -10,7 +10,7 @@ namespace ImageProcessorCore
     using System.Runtime.InteropServices;
 
     /// <summary>
-    /// Encapsulates properties to provides per-pixel access to an images pixels.
+    /// Provides per-pixel access to generic <see cref="Image{TColor,TPacked}"/> pixels.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>

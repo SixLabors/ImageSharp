@@ -193,11 +193,11 @@ namespace ImageProcessorCore.Quantizers
             /// Add a given color value to the Octree
             /// </summary>
             /// <param name="pixel">
-            /// The <see cref="T"/>containing color information to add.
+            /// The <see cref="TColor"/>containing color information to add.
             /// </param>
             public void AddColor(TColor pixel)
             {
-                TPacked packed = pixel.GetPackedValue();
+                TPacked packed = pixel.PackedValue; //.GetPackedValue();
                 // Check if this request is for the same color as the last
                 if (this.previousColor.Equals(packed))
                 {

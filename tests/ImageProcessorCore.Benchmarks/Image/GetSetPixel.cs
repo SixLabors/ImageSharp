@@ -10,7 +10,7 @@
 
     public class GetSetPixel
     {
-        [Benchmark(Baseline = true, Description = "System.Drawing GetSeTColor pixel")]
+        [Benchmark(Baseline = true, Description = "System.Drawing GetSet pixel")]
         public SystemColor ResizeSystemDrawing()
         {
             using (Bitmap source = new Bitmap(400, 400))
@@ -20,7 +20,7 @@
             }
         }
 
-        [Benchmark(Description = "ImageProcessorCore GetSeTColor pixel")]
+        [Benchmark(Description = "ImageProcessorCore GetSet pixel")]
         public CoreColor ResizeCore()
         {
             CoreImage image = new CoreImage(400, 400);

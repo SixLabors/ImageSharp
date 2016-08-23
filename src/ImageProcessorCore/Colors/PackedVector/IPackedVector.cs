@@ -15,21 +15,23 @@ namespace ImageProcessorCore
     public interface IPackedVector<TPacked> : IPackedVector
         where TPacked : struct
     {
-        /// <summary>
-        /// Directly gets the packed representation of the packed vector.
-        /// Typically packed in least to greatest significance order.
-        /// </summary>
-        /// <returns>
-        /// The <see cref="TPacked"/>.
-        /// </returns>
-        TPacked GetPackedValue();
+        TPacked PackedValue { get; set; }
 
-        /// <summary>
-        /// Directly sets the packed representation of the packed vector.
-        /// Typically packed in least to greatest significance order.
-        /// </summary>
-        /// <param name="value">The packed value.</param>
-        void SetPackedValue(TPacked value);
+        ///// <summary>
+        ///// Directly gets the packed representation of the packed vector.
+        ///// Typically packed in least to greatest significance order.
+        ///// </summary>
+        ///// <returns>
+        ///// The <see cref="TPacked"/>.
+        ///// </returns>
+        //TPacked GetPackedValue();
+
+        ///// <summary>
+        ///// Directly sets the packed representation of the packed vector.
+        ///// Typically packed in least to greatest significance order.
+        ///// </summary>
+        ///// <param name="value">The packed value.</param>
+        //void SetPackedValue(TPacked value);
     }
 
     /// <summary>

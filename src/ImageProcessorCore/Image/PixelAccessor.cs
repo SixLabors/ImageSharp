@@ -104,8 +104,8 @@ namespace ImageProcessorCore
         /// <returns>The <see cref="TColor"/> at the specified position.</returns>
         public TColor this[int x, int y]
         {
-            get { return Unsafe.Read<TColor>(pixelsBase + ((y * this.RowStride) + (x * this.PixelSize))); }
-            set { Unsafe.Write(pixelsBase + ((y * this.RowStride) + (x * this.PixelSize)), value); }
+            get { return Unsafe.Read<TColor>(this.pixelsBase + (y * this.Width + x) * Unsafe.SizeOf<TColor>()); }
+            set { Unsafe.Write(this.pixelsBase + (y * this.Width + x) * Unsafe.SizeOf<TColor>(), value); }
         }
 
         /// <summary>

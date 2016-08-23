@@ -16,6 +16,7 @@ namespace ImageProcessorCore
         /// Alters the brightness component of the image.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="amount">The new brightness of the image. Must be between -100 and 100.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
@@ -31,6 +32,7 @@ namespace ImageProcessorCore
         /// Alters the brightness component of the image.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="amount">The new brightness of the image. Must be between -100 and 100.</param>
         /// <param name="rectangle">

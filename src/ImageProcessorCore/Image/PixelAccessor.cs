@@ -109,6 +109,25 @@ namespace ImageProcessorCore
         }
 
         /// <summary>
+        /// Copies an entire row of pixels.
+        /// </summary>
+        /// <param name="sourceX">The x-coordinate of the source row.</param>
+        /// <param name="sourceY">The y-coordinate of the source row.</param>
+        /// <param name="target">The target pixel buffer accessor.</param>
+        /// <param name="targetX">The x-coordinate of the target row.</param>
+        /// <param name="targetY">The y-coordinate of the target row.</param>
+        /// <param name="pixelCount">The number of pixels to copy</param>
+        public void CopyRow(int sourceX, int sourceY, PixelAccessor<TColor, TPacked> target, int targetX, int targetY, int pixelCount)
+        {
+            int size = Unsafe.SizeOf<TColor>();
+            byte* sourcePtr = this.pixelsBase + (sourceY * this.Width + sourceX) * size;
+            byte* targetPtr = target.pixelsBase + (targetY * target.Width + targetX) * size;
+            uint byteCount = (uint)(pixelCount * size);
+
+            Unsafe.CopyBlock(targetPtr, sourcePtr, byteCount);
+        }
+
+        /// <summary>
         /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
         public void Dispose()

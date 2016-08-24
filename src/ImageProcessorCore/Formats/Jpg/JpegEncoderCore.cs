@@ -2,6 +2,9 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
+
+using System.Numerics;
+
 namespace ImageProcessorCore.Formats
 {
     using System;
@@ -349,10 +352,7 @@ namespace ImageProcessorCore.Formats
             {
                 for (int i = 0; i < 8; i++)
                 {
-                    // Bytes are expected in r->g->b->a oder.
-                    byte[] pixel = pixels[Math.Min(x + i, xmax), Math.Min(y + j, ymax)].ToBytes();
-
-                    YCbCr color = new Color(pixel[0], pixel[1], pixel[2], pixel[3]);
+                    YCbCr color = new Color(pixels[Math.Min(x + i, xmax), Math.Min(y + j, ymax)].ToVector4());
                     int index = (8 * j) + i;
                     yBlock[index] = (int)color.Y;
                     cbBlock[index] = (int)color.Cb;

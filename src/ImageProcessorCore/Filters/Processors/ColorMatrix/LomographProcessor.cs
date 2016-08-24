@@ -31,7 +31,7 @@ namespace ImageProcessorCore.Processors
         protected override void AfterApply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
             TColor packed = default(TColor);
-            packed.PackFromBytes(0, 10, 0, 255); // Very dark (mostly black) lime green.
+            packed.PackFromVector4(new Color(0, 10, 0).ToVector4()); // Very dark (mostly black) lime green.
             new VignetteProcessor<TColor, TPacked> { VignetteColor = packed }.Apply(target, target, sourceRectangle);
         }
     }

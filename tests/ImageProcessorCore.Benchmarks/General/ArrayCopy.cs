@@ -5,7 +5,7 @@ namespace ImageProcessorCore.Benchmarks.General
 {
     using BenchmarkDotNet.Attributes;
 
-    public class Copy
+    public class ArrayCopy
     {
         private double[] source = new double[10000];
 

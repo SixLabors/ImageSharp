@@ -160,7 +160,7 @@ namespace ImageProcessorCore
         public Color(float r, float g, float b, float a = 1)
             : this()
         {
-            Pack(ref r, ref g, ref b, ref a);
+            this.packedValue = Pack(r, g, b, a);
         }
 
         /// <summary>
@@ -172,8 +172,7 @@ namespace ImageProcessorCore
         public Color(Vector3 vector)
             : this()
         {
-            float a = 1;
-            Pack(ref vector.X, ref vector.Y, ref vector.Z, ref a);
+            this.packedValue = Pack(ref vector);
         }
 
         /// <summary>
@@ -282,25 +281,39 @@ namespace ImageProcessorCore
         }
 
         /// <summary>
-        /// Packs a vector into a uint.
+        /// Packs a <see cref="Vector4"/> into a uint.
         /// </summary>
         /// <param name="vector">The vector containing the values to pack.</param>
         /// <returns>The ulong containing the packed values.</returns>
         private static uint Pack(ref Vector4 vector)
         {
-            // TODO: Maybe use Vector4.Clamp() instead.
-            return (uint)((byte)Math.Round(vector.X * Max).Clamp(Min, Max)
-                   | ((byte)Math.Round(vector.Y * Max).Clamp(Min, Max) << 8)
-                   | (byte)Math.Round(vector.Z * Max).Clamp(Min, Max) << 16
-                   | (byte)Math.Round(vector.W * Max).Clamp(Min, Max) << 24);
+            return Pack(vector.X, vector.Y, vector.Z, vector.W);
         }
 
-        private static uint Pack(ref float x, ref float y, ref float z, ref float w)
+        /// <summary>
+        /// Packs a <see cref="Vector3"/> into a uint.
+        /// </summary>
+        /// <param name="vector">The vector containing the values to pack.</param>
+        /// <returns>The ulong containing the packed values.</returns>
+        private static uint Pack(ref Vector3 vector)
         {
-            return (uint)((byte)Math.Round(x * Max).Clamp(Min, Max)
-                   | ((byte)Math.Round(y * Max).Clamp(Min, Max) << 8)
-                   | (byte)Math.Round(z * Max).Clamp(Min, Max) << 16
-                   | (byte)Math.Round(w * Max).Clamp(Min, Max) << 24);
+            return Pack(vector.X, vector.Y, vector.Z, 1);
+        }
+
+        /// <summary>
+        /// Packs the four floats into a uint.
+        /// </summary>
+        /// <param name="x">The x-component</param>
+        /// <param name="y">The y-component</param>
+        /// <param name="z">The z-component</param>
+        /// <param name="w">The w-component</param>
+        /// <returns>The <see cref="uint"/></returns>
+        private static uint Pack(float x, float y, float z, float w)
+        {
+            return (uint)((byte)Math.Round(x.Clamp(0, 1) * Max)
+                   | ((byte)Math.Round(y.Clamp(0, 1) * Max) << 8)
+                   | (byte)Math.Round(z.Clamp(0, 1) * Max) << 16
+                   | (byte)Math.Round(w.Clamp(0, 1) * Max) << 24);
         }
 
         /// <summary>

@@ -180,19 +180,19 @@ namespace ImageProcessorCore
             switch (channel)
             {
                 case RgbaComponent.R:
-                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToBytes()[0] - b) > Epsilon;
+                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToVector4().X - b) > Epsilon;
                     break;
 
                 case RgbaComponent.G:
-                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToBytes()[1] - b) > Epsilon;
+                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToVector4().Y - b) > Epsilon;
                     break;
 
                 case RgbaComponent.B:
-                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToBytes()[2] - b) > Epsilon;
+                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToVector4().Z - b) > Epsilon;
                     break;
 
                 default:
-                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToBytes()[3] - b) > Epsilon;
+                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToVector4().W - b) > Epsilon;
                     break;
             }
 

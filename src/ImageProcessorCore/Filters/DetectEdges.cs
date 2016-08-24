@@ -118,7 +118,7 @@ namespace ImageProcessorCore
                     break;
 
                 default:
-                    processor = new ScharrProcessor<TColor, TPacked> { Grayscale = grayscale };
+                    processor = new SobelProcessor<TColor, TPacked> { Grayscale = grayscale };
                     break;
             }
 

@@ -81,13 +81,13 @@ namespace ImageProcessorCore.Quantizers
             {
                 // Not found - loop through the palette and find the nearest match.
                 // Firstly check the alpha value - if less than the threshold, lookup the transparent color
-                byte[] bytes = pixel.ToBytes();
-                if (!(bytes[3] > this.Threshold))
+                Color color =new Color(pixel.ToVector4());
+                if (!(color.A > this.Threshold))
                 {
                     // Transparent. Lookup the first color with an alpha value of 0
                     for (int index = 0; index < this.colors.Length; index++)
                     {
-                        if (this.colors[index].ToBytes()[3] == 0)
+                        if (new Color(this.colors[index].ToVector4()).A == 0)
                         {
                             colorIndex = (byte)index;
                             this.TransparentIndex = colorIndex;
@@ -99,17 +99,17 @@ namespace ImageProcessorCore.Quantizers
                 {
                     // Not transparent...
                     int leastDistance = int.MaxValue;
-                    int red = bytes[0];
-                    int green = bytes[1];
-                    int blue = bytes[2];
+                    int red = color.R;
+                    int green = color.G;
+                    int blue = color.B;
 
                     // Loop through the entire palette, looking for the closest color match
                     for (int index = 0; index < this.colors.Length; index++)
                     {
-                        byte[] paletteColor = this.colors[index].ToBytes();
-                        int redDistance = paletteColor[0] - red;
-                        int greenDistance = paletteColor[1] - green;
-                        int blueDistance = paletteColor[2] - blue;
+                        Color paletteColor = new Color(this.colors[index].ToVector4());
+                        int redDistance = paletteColor.R - red;
+                        int greenDistance = paletteColor.G - green;
+                        int blueDistance = paletteColor.B - blue;
 
                         int distance = (redDistance * redDistance) +
                                        (greenDistance * greenDistance) +

@@ -12,17 +12,17 @@ namespace ImageProcessorCore.Processors
     /// <summary>
     /// An <see cref="IImageProcessor{TColor, TPacked}"/> to change the contrast of an <see cref="Image{TColor, TPacked}"/>.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+    /// <typeparam name="T">The pixel format.</typeparam>
+    /// <typeparam name="TPacked">The packed format. <example>long, float.</example></typeparam>
     public class ContrastProcessor<TColor, TPacked> : ImageProcessor<TColor, TPacked>
         where TColor : IPackedVector<TPacked>
         where TPacked : struct
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ContrastProcessor"/> class.
+        /// Initializes a new instance of the <see cref="ContrastProcessor{TColor, TPacked}"/> class.
         /// </summary>
         /// <param name="contrast">The new contrast of the image. Must be between -100 and 100.</param>
-        /// <exception cref="ArgumentException">
+        /// <exception cref="System.ArgumentException">
         /// <paramref name="contrast"/> is less than -100 or is greater than 100.
         /// </exception>
         public ContrastProcessor(int contrast)

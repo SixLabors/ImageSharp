@@ -37,7 +37,7 @@ namespace ImageProcessorCore.Processors
         private float[,] kernelX;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="GuassianSharpenProcessor"/> class.
+        /// Initializes a new instance of the <see cref="GuassianSharpenProcessor{TColor, TPacked}"/> class.
         /// </summary>
         /// <param name="sigma">
         /// The 'sigma' value representing the weight of the sharpening.
@@ -49,7 +49,7 @@ namespace ImageProcessorCore.Processors
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="GuassianSharpenProcessor"/> class.
+        /// Initializes a new instance of the <see cref="GuassianSharpenProcessor{TColor, TPacked}"/> class.
         /// </summary>
         /// <param name="radius">
         /// The 'radius' value representing the size of the area to sample.
@@ -61,7 +61,7 @@ namespace ImageProcessorCore.Processors
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="GuassianSharpenProcessor"/> class.
+        /// Initializes a new instance of the <see cref="GuassianSharpenProcessor{TColor, TPacked}"/> class.
         /// </summary>
         /// <param name="sigma">
         /// The 'sigma' value representing the weight of the sharpen.

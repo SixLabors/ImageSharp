@@ -3,8 +3,6 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-using System.Runtime.CompilerServices;
-
 namespace ImageProcessorCore
 {
     using System;
@@ -12,20 +10,15 @@ namespace ImageProcessorCore
 
     /// <summary>
     /// The base class of all images. Encapsulates the basic properties and methods required to manipulate 
-    /// images in differenTColor pixel formats.
+    /// images in different pixel formats.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     [DebuggerDisplay("Image: {Width}x{Height}")]
-    public abstract unsafe class ImageBase<TColor, TPacked> : IImageBase<TColor, TPacked>
+    public abstract class ImageBase<TColor, TPacked> : IImageBase<TColor, TPacked>
         where TColor : IPackedVector<TPacked>
         where TPacked : struct
     {
-        /// <summary>
-        /// The image pixels
-        /// </summary>
-        private TColor[] pixelBuffer;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageBase{TColor, TPacked}"/> class.
         /// </summary>
@@ -38,7 +31,7 @@ namespace ImageProcessorCore
         /// </summary>
         /// <param name="width">The width of the image in pixels.</param>
         /// <param name="height">The height of the image in pixels.</param>
-        /// <exception cref="ArgumentOutOfRangeException">
+        /// <exception cref="System.ArgumentOutOfRangeException">
         /// Thrown if either <paramref name="width"/> or <paramref name="height"/> are less than or equal to 0.
         /// </exception>
         protected ImageBase(int width, int height)
@@ -48,7 +41,7 @@ namespace ImageProcessorCore
 
             this.Width = width;
             this.Height = height;
-            this.pixelBuffer = new TColor[width * height];
+            this.Pixels = new TColor[width * height];
         }
 
         /// <summary>
@@ -68,9 +61,9 @@ namespace ImageProcessorCore
             this.Height = other.Height;
             this.CopyProperties(other);
 
-            // Copy the pixels.
-            this.pixelBuffer = new TColor[this.Width * this.Height];
-            Unsafe.Copy(Unsafe.AsPointer(ref this.pixelBuffer), ref other.pixelBuffer);
+            // Copy the pixels. Don't use Unsafe.Copy as it is breaking edge detection.
+            this.Pixels = new TColor[this.Width * this.Height];
+            Array.Copy(other.Pixels, this.Pixels, other.Pixels.Length);
         }
 
         /// <inheritdoc/>
@@ -80,7 +73,7 @@ namespace ImageProcessorCore
         public int MaxHeight { get; set; } = int.MaxValue;
 
         /// <inheritdoc/>
-        public TColor[] Pixels => this.pixelBuffer;
+        public TColor[] Pixels { get; private set; }
 
         /// <inheritdoc/>
         public int Width { get; private set; }
@@ -103,15 +96,8 @@ namespace ImageProcessorCore
         /// <inheritdoc/>
         public void SetPixels(int width, int height, TColor[] pixels)
         {
-            if (width <= 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(width), "Width must be greater than or equals than zero.");
-            }
-
-            if (height <= 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(height), "Height must be greater than or equal than zero.");
-            }
+            Guard.MustBeGreaterThan(width, 0, nameof(width));
+            Guard.MustBeGreaterThan(height, 0, nameof(height));
 
             if (pixels.Length != width * height)
             {
@@ -120,21 +106,14 @@ namespace ImageProcessorCore
 
             this.Width = width;
             this.Height = height;
-            this.pixelBuffer = pixels;
+            this.Pixels = pixels;
         }
 
         /// <inheritdoc/>
         public void ClonePixels(int width, int height, TColor[] pixels)
         {
-            if (width <= 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(width), "Width must be greater than or equals than zero.");
-            }
-
-            if (height <= 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(height), "Height must be greater than or equal than zero.");
-            }
+            Guard.MustBeGreaterThan(width, 0, nameof(width));
+            Guard.MustBeGreaterThan(height, 0, nameof(height));
 
             if (pixels.Length != width * height)
             {
@@ -144,9 +123,9 @@ namespace ImageProcessorCore
             this.Width = width;
             this.Height = height;
 
-            // Copy the pixels.
-            this.pixelBuffer = new TColor[pixels.Length];
-            Unsafe.Copy(Unsafe.AsPointer(ref this.pixelBuffer), ref pixels);
+            // Copy the pixels. Don't use Unsafe.Copy as it is breaking edge detection.
+            this.Pixels = new TColor[pixels.Length];
+            Array.Copy(pixels, this.Pixels, pixels.Length);
         }
 
         /// <inheritdoc/>

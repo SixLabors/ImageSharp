@@ -246,7 +246,7 @@ namespace ImageProcessorCore.IO
         /// <param name="startIndex">The start index passed in</param>
         /// <param name="bytesRequired">The number of bytes required</param>
         /// <exception cref="System.ArgumentNullException">value is a null reference</exception>
-        /// <exception cref="ArgumentOutOfRangeException">
+        /// <exception cref="System.ArgumentOutOfRangeException">
         /// startIndex is less than zero or greater than the length of value minus bytesRequired.
         /// </exception>
         [SuppressMessage("ReSharper", "UnusedParameter.Local", Justification = "Keeps code DRY")]

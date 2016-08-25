@@ -12,6 +12,8 @@ namespace ImageProcessorCore.Processors
     /// <summary>
     /// Allows the application of processors to images.
     /// </summary>
+    /// <typeparam name="TColor">The pixel format.</typeparam>
+    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public abstract class ImageProcessor<TColor, TPacked> : IImageProcessor<TColor, TPacked>
         where TColor : IPackedVector<TPacked>
         where TPacked : struct
@@ -93,8 +95,6 @@ namespace ImageProcessorCore.Processors
         /// <summary>
         /// This method is called before the process is applied to prepare the processor.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="target">Target image to apply the process to.</param>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="targetRectangle">

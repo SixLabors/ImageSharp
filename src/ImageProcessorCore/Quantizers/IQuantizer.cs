@@ -15,7 +15,7 @@ namespace ImageProcessorCore.Quantizers
         where TPacked : struct
     {
         /// <summary>
-        /// Quantize an image and return the resulting outpuTColor pixels.
+        /// Quantize an image and return the resulting output pixels.
         /// </summary>
         /// <param name="image">The image to quantize.</param>
         /// <param name="maxColors">The maximum number of colors to return.</param>

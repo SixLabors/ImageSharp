@@ -8,6 +8,8 @@ namespace ImageProcessorCore.Processors
     /// <summary>
     /// Provides properties and methods allowing the detection of edges within an image.
     /// </summary>
+    /// <typeparam name="TColor">The pixel format.</typeparam>
+    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public interface IEdgeDetectorFilter<TColor, TPacked> : IImageProcessor<TColor, TPacked>, IEdgeDetectorFilter
         where TColor : IPackedVector<TPacked>
         where TPacked : struct

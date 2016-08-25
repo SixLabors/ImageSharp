@@ -27,7 +27,7 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Gets or sets the transparency index.
         /// The Transparency Index is such that when encountered, the corresponding pixel
-        /// of the display device is not modified and processing goes on to the nexTColor pixel.
+        /// of the display device is not modified and processing goes on to the next pixel.
         /// </summary>
         public int TransparencyIndex { get; set; }
 

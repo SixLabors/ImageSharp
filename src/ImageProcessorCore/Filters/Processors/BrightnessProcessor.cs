@@ -22,7 +22,7 @@ namespace ImageProcessorCore.Processors
         /// Initializes a new instance of the <see cref="BrightnessProcessor{TColor, TPacked}"/> class.
         /// </summary>
         /// <param name="brightness">The new brightness of the image. Must be between -100 and 100.</param>
-        /// <exception cref="ArgumentException">
+        /// <exception cref="System.ArgumentException">
         /// <paramref name="brightness"/> is less than -100 or is greater than 100.
         /// </exception>
         public BrightnessProcessor(int brightness)

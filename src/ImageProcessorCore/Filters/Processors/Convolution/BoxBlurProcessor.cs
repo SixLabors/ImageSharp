@@ -30,7 +30,7 @@ namespace ImageProcessorCore.Processors
         private float[,] kernelX;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="GuassianBlurProcessor"/> class.
+        /// Initializes a new instance of the <see cref="BoxBlurProcessor{TColor, TPacked}"/> class.
         /// </summary>
         /// <param name="radius">
         /// The 'radius' value representing the size of the area to sample.

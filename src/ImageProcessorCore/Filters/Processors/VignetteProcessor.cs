@@ -97,4 +97,3 @@ namespace ImageProcessorCore.Processors
         }
     }
 }
-

@@ -12,7 +12,7 @@ namespace ImageProcessorCore.Formats
     /// Performs the gif decoding operation.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam> 
+    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     internal class GifDecoderCore<TColor, TPacked>
         where TColor : IPackedVector<TPacked>
         where TPacked : struct

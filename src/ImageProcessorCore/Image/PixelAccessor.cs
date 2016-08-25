@@ -14,7 +14,7 @@ namespace ImageProcessorCore
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public sealed unsafe class PixelAccessor<TColor, TPacked> : IDisposable
+    public unsafe class PixelAccessor<TColor, TPacked> : IDisposable
         where TColor : IPackedVector<TPacked>
         where TPacked : struct
     {
@@ -106,6 +106,7 @@ namespace ImageProcessorCore
         {
             get { return Unsafe.Read<TColor>(this.pixelsBase + (y * this.Width + x) * Unsafe.SizeOf<TColor>()); }
             set { Unsafe.Write(this.pixelsBase + (y * this.Width + x) * Unsafe.SizeOf<TColor>(), value); }
+
         }
 
         /// <summary>

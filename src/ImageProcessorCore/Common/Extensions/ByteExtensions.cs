@@ -20,7 +20,7 @@ namespace ImageProcessorCore
         /// <param name="bits">The number of bits per value.</param>
         /// <returns>The resulting <see cref="T:byte[]"/> array. Is never null.</returns>
         /// <exception cref="System.ArgumentNullException"><paramref name="bytes"/> is null.</exception>
-        /// <exception cref="ArgumentException"><paramref name="bits"/> is less than or equals than zero.</exception>
+        /// <exception cref="System.ArgumentException"><paramref name="bits"/> is less than or equals than zero.</exception>
         public static byte[] ToArrayByBitsLength(this byte[] bytes, int bits)
         {
             Guard.NotNull(bytes, "bytes");

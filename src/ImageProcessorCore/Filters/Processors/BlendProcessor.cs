@@ -24,7 +24,7 @@ namespace ImageProcessorCore.Processors
         private readonly ImageBase<TColor, TPacked> blend;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="BlendProcessor{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="BlendProcessor{T,TP}"/> class.
         /// </summary>
         /// <param name="image">
         /// The image to blend with the currently processing image. 

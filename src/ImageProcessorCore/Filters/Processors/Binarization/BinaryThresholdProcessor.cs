@@ -22,7 +22,7 @@ namespace ImageProcessorCore.Processors
         /// Initializes a new instance of the <see cref="BinaryThresholdProcessor{TColor, TPacked}"/> class.
         /// </summary>
         /// <param name="threshold">The threshold to split the image. Must be between 0 and 1.</param>
-        /// <exception cref="ArgumentException">
+        /// <exception cref="System.ArgumentException">
         /// <paramref name="threshold"/> is less than 0 or is greater than 1.
         /// </exception>
         public BinaryThresholdProcessor(float threshold)

@@ -128,8 +128,7 @@ namespace ImageProcessorCore.Formats
                     case BmpCompression.RGB:
                         if (this.infoHeader.HeaderSize != 40)
                         {
-                            throw new ImageFormatException(
-                                $"Header Size value '{this.infoHeader.HeaderSize}' is not valid.");
+                            throw new ImageFormatException($"Header Size value '{this.infoHeader.HeaderSize}' is not valid.");
                         }
 
                         if (this.infoHeader.BitsPerPixel == 32)
@@ -190,7 +189,7 @@ namespace ImageProcessorCore.Formats
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-        /// <param name="imageData">The <see cref="T:TColor[]"/> image data to assign the palette to.</param>
+        /// <param name="imageData">The <see cref="T:T[]"/> image data to assign the palette to.</param>
         /// <param name="colors">The <see cref="T:byte[]"/> containing the colors.</param>
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
@@ -255,7 +254,7 @@ namespace ImageProcessorCore.Formats
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-        /// <param name="imageData">The <see cref="T:TColor[]"/> image data to assign the palette to.</param>
+        /// <param name="imageData">The <see cref="T:T[]"/> image data to assign the palette to.</param>
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
@@ -306,7 +305,7 @@ namespace ImageProcessorCore.Formats
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-        /// <param name="imageData">The <see cref="T:TColor[]"/> image data to assign the palette to.</param>
+        /// <param name="imageData">The <see cref="T:T[]"/> image data to assign the palette to.</param>
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
@@ -347,7 +346,7 @@ namespace ImageProcessorCore.Formats
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-        /// <param name="imageData">The <see cref="T:TColor[]"/> image data to assign the palette to.</param>
+        /// <param name="imageData">The <see cref="T:T[]"/> image data to assign the palette to.</param>
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>

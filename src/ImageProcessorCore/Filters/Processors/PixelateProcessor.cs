@@ -19,7 +19,7 @@ namespace ImageProcessorCore.Processors
         where TPacked : struct
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="PixelateProcessor{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="PixelateProcessor{T,TP}"/> class.
         /// </summary>
         /// <param name="size">The size of the pixels. Must be greater than 0.</param>
         /// <exception cref="System.ArgumentException">

@@ -8,7 +8,7 @@ namespace ImageProcessorCore.Processors
     using System.Numerics;
 
     /// <summary>
-    /// An <see cref="IImageProcessor{TColor, TPacked}"/> to change the saturation of an <see cref="Image"/>.
+    /// An <see cref="IImageProcessor{TColor, TPacked}"/> to change the saturation of an <see cref="Image{TColor, TPacked}"/>.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
@@ -17,28 +17,16 @@ namespace ImageProcessorCore.Processors
         where TPacked : struct
     {
         /// <summary>
-        /// The saturation to be applied to the image.
-        /// </summary>
-        private readonly int saturation;
-
-        /// <summary>
-        /// The <see cref="Matrix4x4"/> used to alter the image.
-        /// </summary>
-        private Matrix4x4 matrix;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="SaturationProcessor"/> class.
+        /// Initializes a new instance of the <see cref="SaturationProcessor{TColor, TPacked}"/> class.
         /// </summary>
         /// <param name="saturation">The new saturation of the image. Must be between -100 and 100.</param>
-        /// <exception cref="ArgumentException">
+        /// <exception cref="System.ArgumentException">
         /// <paramref name="saturation"/> is less than -100 or is greater than 100.
         /// </exception>
         public SaturationProcessor(int saturation)
         {
             Guard.MustBeBetweenOrEqualTo(saturation, -100, 100, nameof(saturation));
-            this.saturation = saturation;
-
-            float saturationFactor = this.saturation / 100f;
+            float saturationFactor = saturation / 100f;
 
             // Stop at -1 to prevent inversion.
             saturationFactor++;
@@ -65,10 +53,10 @@ namespace ImageProcessorCore.Processors
                 M33 = saturationComplementB + saturationFactor,
             };
 
-            this.matrix = matrix4X4;
+            this.Matrix = matrix4X4;
         }
 
         /// <inheritdoc/>
-        public override Matrix4x4 Matrix => this.matrix;
+        public override Matrix4x4 Matrix { get; }
     }
 }

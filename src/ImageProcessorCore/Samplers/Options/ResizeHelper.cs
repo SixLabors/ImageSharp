@@ -17,7 +17,8 @@ namespace ImageProcessorCore
         /// <summary>
         /// Calculates the target location and bounds to perform the resize operation against.
         /// </summary>
-        /// <typeparam name="TColor">The type of pixels contained within the image.</typeparam>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="options">The resize options.</param>
         /// <returns>
@@ -49,7 +50,8 @@ namespace ImageProcessorCore
         /// <summary>
         /// Calculates the target rectangle for crop mode.
         /// </summary>
-        /// <typeparam name="TColor">The type of pixels contained within the image.</typeparam>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="options">The resize options.</param>
         /// <returns>
@@ -169,7 +171,8 @@ namespace ImageProcessorCore
         /// <summary>
         /// Calculates the target rectangle for pad mode.
         /// </summary>
-        /// <typeparam name="TColor">The type of pixels contained within the image.</typeparam>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="options">The resize options.</param>
         /// <returns>
@@ -251,7 +254,8 @@ namespace ImageProcessorCore
         /// <summary>
         /// Calculates the target rectangle for box pad mode.
         /// </summary>
-        /// <typeparam name="TColor">The type of pixels contained within the image.</typeparam>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="options">The resize options.</param>
         /// <returns>
@@ -339,7 +343,8 @@ namespace ImageProcessorCore
         /// <summary>
         /// Calculates the target rectangle for max mode.
         /// </summary>
-        /// <typeparam name="TColor">The type of pixels contained within the image.</typeparam>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="options">The resize options.</param>
         /// <returns>
@@ -381,7 +386,8 @@ namespace ImageProcessorCore
         /// <summary>
         /// Calculates the target rectangle for min mode.
         /// </summary>
-        /// <typeparam name="TColor">The type of pixels contained within the image.</typeparam>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="options">The resize options.</param>
         /// <returns>

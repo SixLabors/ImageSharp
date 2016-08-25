@@ -74,9 +74,7 @@ namespace ImageProcessorCore.Quantizers
         /// <summary>
         /// Override this to process the pixel in the second pass of the algorithm
         /// </summary>
-        /// <param name="pixel">
-        /// The pixel to quantize
-        /// </param>
+        /// <param name="pixel">The pixel to quantize</param>
         /// <returns>
         /// The quantized value
         /// </returns>
@@ -193,7 +191,7 @@ namespace ImageProcessorCore.Quantizers
             /// Add a given color value to the Octree
             /// </summary>
             /// <param name="pixel">
-            /// The <see cref="T"/>containing color information to add.
+            /// The <see cref="TColor"/>containing color information to add.
             /// </param>
             public void AddColor(TColor pixel)
             {
@@ -224,11 +222,9 @@ namespace ImageProcessorCore.Quantizers
             /// <summary>
             /// Convert the nodes in the Octree to a palette with a maximum of colorCount colors
             /// </summary>
-            /// <param name="colorCount">
-            /// The maximum number of colors
-            /// </param>
+            /// <param name="colorCount">The maximum number of colors</param>
             /// <returns>
-            /// An <see cref="List{T}"/> with the palletized colors
+            /// An <see cref="List{TColor}"/> with the palletized colors
             /// </returns>
             public List<TColor> Palletize(int colorCount)
             {
@@ -249,9 +245,7 @@ namespace ImageProcessorCore.Quantizers
             /// <summary>
             /// Get the palette index for the passed color
             /// </summary>
-            /// <param name="pixel">
-            /// The <see cref="T"/> containing the pixel data.
-            /// </param>
+            /// <param name="pixel">The <see cref="TColor"/> containing the pixel data.</param>
             /// <returns>
             /// The index of the given structure.
             /// </returns>
@@ -449,12 +443,8 @@ namespace ImageProcessorCore.Quantizers
                 /// <summary>
                 /// Traverse the tree, building up the color palette
                 /// </summary>
-                /// <param name="palette">
-                /// The palette
-                /// </param>
-                /// <param name="index">
-                /// The current palette index
-                /// </param>
+                /// <param name="palette">The palette</param>
+                /// <param name="index">The current palette index</param>
                 public void ConstructPalette(List<TColor> palette, ref int index)
                 {
                     if (this.leaf)
@@ -487,12 +477,8 @@ namespace ImageProcessorCore.Quantizers
                 /// <summary>
                 /// Return the palette index for the passed color
                 /// </summary>
-                /// <param name="pixel">
-                /// The <see cref="T"/> representing the pixel.
-                /// </param>
-                /// <param name="level">
-                /// The level.
-                /// </param>
+                /// <param name="pixel">The <see cref="TColor"/> representing the pixel.</param>
+                /// <param name="level">The level.</param>
                 /// <returns>
                 /// The <see cref="int"/> representing the index of the pixel in the palette.
                 /// </returns>

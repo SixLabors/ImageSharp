@@ -1,7 +1,7 @@
 ﻿// <copyright file="Blend.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>-------------------------------------------------------------------------------------------------------------------
+// </copyright>
 
 namespace ImageProcessorCore
 {
@@ -15,10 +15,10 @@ namespace ImageProcessorCore
         /// <summary>
         /// Combines the given image together with the current one by blending their pixels.
         /// </summary>
-        /// <param name="source">The image this method extends.</param>
-        /// <param name="image">The image to blend with the currently processing image.</param>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="image">The image to blend with the currently processing image.</param>
         /// <param name="percent">The opacity of the image image to blend. Must be between 0 and 100.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>

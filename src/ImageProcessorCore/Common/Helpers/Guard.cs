@@ -26,7 +26,7 @@ namespace ImageProcessorCore
         {
             if (target == null)
             {
-                if (string.IsNullOrWhiteSpace(message))
+                if (!string.IsNullOrWhiteSpace(message))
                 {
                     throw new ArgumentNullException(parameterName, message);
                 }

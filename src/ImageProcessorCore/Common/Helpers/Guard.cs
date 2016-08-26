@@ -148,7 +148,7 @@ namespace ImageProcessorCore
         /// <param name="max">The maximum value.</param>
         /// <param name="parameterName">The name of the parameter that is to be checked.</param>
         /// <typeparam name="TValue">The type of the value.</typeparam>
-        /// <exception cref="System.ArgumentException">
+        /// <exception cref="ArgumentException">
         /// <paramref name="value"/> is less than the minimum value of greater than the maximum value.
         /// </exception>
         public static void MustBeBetweenOrEqualTo<TValue>(TValue value, TValue min, TValue max, string parameterName)
@@ -173,14 +173,14 @@ namespace ImageProcessorCore
         /// <param name="message">
         /// The error message, if any to add to the exception.
         /// </param>
-        /// <exception cref="System.ArgumentException">
+        /// <exception cref="ArgumentException">
         /// <paramref name="target"/> is null
         /// </exception>
         public static void IsTrue(bool target, string parameterName, string message = "")
         {
             if (!target)
             {
-                if (string.IsNullOrWhiteSpace(message))
+                if (!string.IsNullOrWhiteSpace(message))
                 {
                     throw new ArgumentException(parameterName, message);
                 }
@@ -203,7 +203,7 @@ namespace ImageProcessorCore
         {
             if (target)
             {
-                if (string.IsNullOrWhiteSpace(message))
+                if (!string.IsNullOrWhiteSpace(message))
                 {
                     throw new ArgumentException(parameterName, message);
                 }

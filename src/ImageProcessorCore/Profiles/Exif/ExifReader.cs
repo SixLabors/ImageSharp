@@ -442,13 +442,13 @@ namespace ImageProcessorCore
         {
             if (!this.ValidateArray(data, 8, 4))
             {
-                return Rational.Zero;
+                return new Rational();
             }
 
             uint numerator = BitConverter.ToUInt32(data, 0);
             uint denominator = BitConverter.ToUInt32(data, 4);
 
-            return new Rational(numerator, denominator);
+            return new Rational(numerator, denominator, false);
         }
 
         private sbyte ToSignedByte(byte[] data)
@@ -466,17 +466,17 @@ namespace ImageProcessorCore
             return BitConverter.ToInt32(data, 0);
         }
 
-        private Rational ToSignedRational(byte[] data)
+        private SignedRational ToSignedRational(byte[] data)
         {
             if (!this.ValidateArray(data, 8, 4))
             {
-                return Rational.Zero;
+                return new SignedRational();
             }
 
             int numerator = BitConverter.ToInt32(data, 0);
             int denominator = BitConverter.ToInt32(data, 4);
 
-            return new Rational(numerator, denominator);
+            return new SignedRational(numerator, denominator, false);
         }
 
         private short ToSignedShort(byte[] data)

@@ -329,17 +329,16 @@ namespace ImageProcessorCore
 
         private int WriteRational(Rational value, byte[] destination, int offset)
         {
-            // Ensure no overflow
-            Write(BitConverter.GetBytes((uint)(value.Numerator * (value.ToDouble() < 0.0 ? -1 : 1))), destination, offset);
-            Write(BitConverter.GetBytes((uint)value.Denominator), destination, offset + 4);
+            Write(BitConverter.GetBytes(value.Numerator), destination, offset);
+            Write(BitConverter.GetBytes(value.Denominator), destination, offset + 4);
 
             return offset + 8;
         }
 
-        private int WriteSignedRational(Rational value, byte[] destination, int offset)
+        private int WriteSignedRational(SignedRational value, byte[] destination, int offset)
         {
-            Write(BitConverter.GetBytes((int)value.Numerator), destination, offset);
-            Write(BitConverter.GetBytes((int)value.Denominator), destination, offset + 4);
+            Write(BitConverter.GetBytes(value.Numerator), destination, offset);
+            Write(BitConverter.GetBytes(value.Denominator), destination, offset + 4);
 
             return offset + 8;
         }
@@ -370,7 +369,7 @@ namespace ImageProcessorCore
                 case ExifDataType.SignedShort:
                     return Write(BitConverter.GetBytes((short)value), destination, offset);
                 case ExifDataType.SignedRational:
-                    return this.WriteSignedRational((Rational)value, destination, offset);
+                    return this.WriteSignedRational((SignedRational)value, destination, offset);
                 case ExifDataType.SingleFloat:
                     return Write(BitConverter.GetBytes((float)value), destination, offset);
                 default:

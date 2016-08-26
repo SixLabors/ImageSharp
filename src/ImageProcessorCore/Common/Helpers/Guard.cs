@@ -174,18 +174,13 @@ namespace ImageProcessorCore
         /// The error message, if any to add to the exception.
         /// </param>
         /// <exception cref="ArgumentException">
-        /// <paramref name="target"/> is null
+        /// <paramref name="target"/> is false
         /// </exception>
-        public static void IsTrue(bool target, string parameterName, string message = "")
+        public static void IsTrue(bool target, string parameterName, string message)
         {
             if (!target)
             {
-                if (!string.IsNullOrWhiteSpace(message))
-                {
-                    throw new ArgumentException(parameterName, message);
-                }
-
-                throw new ArgumentException(parameterName);
+                throw new ArgumentException(message, parameterName);
             }
         }
 
@@ -197,18 +192,13 @@ namespace ImageProcessorCore
         /// <param name="parameterName">The name of the parameter that is to be checked.</param>
         /// <param name="message">The error message, if any to add to the exception.</param>
         /// <exception cref="ArgumentException">
-        /// <paramref name="target"/> is null
+        /// <paramref name="target"/> is true
         /// </exception>
-        public static void IsFalse(bool target, string parameterName, string message = "")
+        public static void IsFalse(bool target, string parameterName, string message)
         {
             if (target)
             {
-                if (!string.IsNullOrWhiteSpace(message))
-                {
-                    throw new ArgumentException(parameterName, message);
-                }
-
-                throw new ArgumentException(parameterName);
+                throw new ArgumentException(message, parameterName);
             }
         }
     }

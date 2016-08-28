@@ -9,7 +9,7 @@ namespace ImageProcessorCore.Processors
     using System.Numerics;
 
     /// <summary>
-    /// An <see cref="IImageProcessor{TColor, TPacked}"/> to change the hue of an <see cref="Image"/>.
+    /// An <see cref="IImageProcessor{TColor, TPacked}"/> to change the hue of an <see cref="Image{TColor, TPacked}"/>.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
@@ -18,12 +18,7 @@ namespace ImageProcessorCore.Processors
         where TPacked : struct
     {
         /// <summary>
-        /// The <see cref="Matrix4x4"/> used to alter the image.
-        /// </summary>
-        private Matrix4x4 matrix;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="HueProcessor"/> class.
+        /// Initializes a new instance of the <see cref="HueProcessor{TColor, TPacked}"/> class.
         /// </summary>
         /// <param name="angle">The new brightness of the image. Must be between -100 and 100.</param>
         public HueProcessor(float angle)
@@ -67,7 +62,7 @@ namespace ImageProcessorCore.Processors
                 M33 = (float)(lumB + (cosradians * oneMinusLumB) + (sinradians * lumB))
             };
 
-            this.matrix = matrix4X4;
+            this.Matrix = matrix4X4;
         }
 
         /// <summary>
@@ -76,7 +71,7 @@ namespace ImageProcessorCore.Processors
         public float Angle { get; }
 
         /// <inheritdoc/>
-        public override Matrix4x4 Matrix => this.matrix;
+        public override Matrix4x4 Matrix { get; }
 
         /// <inheritdoc/>
         public override bool Compand => false;

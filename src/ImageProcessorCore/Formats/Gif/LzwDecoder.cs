@@ -5,7 +5,6 @@
 
 namespace ImageProcessorCore.Formats
 {
-    using System;
     using System.IO;
 
     /// <summary>

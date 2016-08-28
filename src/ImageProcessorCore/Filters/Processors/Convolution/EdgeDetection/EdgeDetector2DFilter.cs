@@ -9,6 +9,8 @@ namespace ImageProcessorCore.Processors
     /// Defines a filter that detects edges within an image using two
     /// one-dimensional matrices.
     /// </summary>
+    /// <typeparam name="TColor">The pixel format.</typeparam>
+    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public abstract class EdgeDetector2DFilter<TColor, TPacked> : Convolution2DFilter<TColor, TPacked>, IEdgeDetectorFilter<TColor, TPacked>
         where TColor : IPackedVector<TPacked>
         where TPacked : struct

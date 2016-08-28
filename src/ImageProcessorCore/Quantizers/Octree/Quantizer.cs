@@ -11,6 +11,8 @@ namespace ImageProcessorCore.Quantizers
     /// <summary>
     /// Encapsulates methods to calculate the color palette of an image.
     /// </summary>
+    /// <typeparam name="TColor">The pixel format.</typeparam>
+    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public abstract class Quantizer<TColor, TPacked> : IQuantizer<TColor, TPacked>
         where TColor : IPackedVector<TPacked>
         where TPacked : struct
@@ -98,10 +100,10 @@ namespace ImageProcessorCore.Quantizers
         /// Execute a second pass through the bitmap
         /// </summary>
         /// <param name="source">The source image.</param>
-        /// <param name="output">The outpuTColor pixel array</param>
+        /// <param name="output">The output pixel array</param>
         /// <param name="width">The width in pixels of the image</param>
         /// <param name="height">The height in pixels of the image</param>
-        protected virtual void SecondPass(PixelAccessor<TColor, TPacked> source, byte[] output, int width, int height)
+        protected virtual void SecondPass(PixelAccessor<TColor,TPacked> source, byte[] output, int width, int height)
         {
             Parallel.For(
                 0,

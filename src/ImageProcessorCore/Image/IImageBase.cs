@@ -5,8 +5,6 @@
 
 namespace ImageProcessorCore
 {
-    using System;
-
     /// <summary>
     /// Encapsulates the basic properties and methods required to manipulate images in varying formats.
     /// </summary>
@@ -27,10 +25,10 @@ namespace ImageProcessorCore
         /// <param name="width">The new width of the image. Must be greater than zero.</param>
         /// <param name="height">The new height of the image. Must be greater than zero.</param>
         /// <param name="pixels">The array with pixels. Must be a multiple of the width and height.</param>
-        /// <exception cref="ArgumentOutOfRangeException">
+        /// <exception cref="System.ArgumentOutOfRangeException">
         /// Thrown if either <paramref name="width"/> or <paramref name="height"/> are less than or equal to 0.
         /// </exception>
-        /// <exception cref="ArgumentException">
+        /// <exception cref="System.ArgumentException">
         /// Thrown if the <paramref name="pixels"/> length is not equal to Width * Height.
         /// </exception>
         void SetPixels(int width, int height, TColor[] pixels);
@@ -42,10 +40,10 @@ namespace ImageProcessorCore
         /// <param name="width">The new width of the image. Must be greater than zero.</param>
         /// <param name="height">The new height of the image. Must be greater than zero.</param>
         /// <param name="pixels">The array with pixels. Must be a multiple of four times the width and height.</param>
-        /// <exception cref="ArgumentOutOfRangeException">
+        /// <exception cref="System.ArgumentOutOfRangeException">
         /// Thrown if either <paramref name="width"/> or <paramref name="height"/> are less than or equal to 0.
         /// </exception>
-        /// <exception cref="ArgumentException">
+        /// <exception cref="System.ArgumentException">
         /// Thrown if the <paramref name="pixels"/> length is not equal to Width * Height.
         /// </exception>
         void ClonePixels(int width, int height, TColor[] pixels);
@@ -56,7 +54,7 @@ namespace ImageProcessorCore
         /// It is imperative that the accessor is correctly disposed off after use.
         /// </remarks>
         /// </summary>
-        /// <returns>The <see cref="IPixelAccessor"/></returns>
+        /// <returns>The <see cref="PixelAccessor{TColor,TPacked}"/></returns>
         PixelAccessor<TColor, TPacked> Lock();
     }
 

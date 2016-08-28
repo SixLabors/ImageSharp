@@ -11,13 +11,13 @@ namespace ImageProcessorCore
     /// <summary>
     /// Extension methods for the <see cref="Image{TColor, TPacked}"/> type.
     /// </summary>
-    /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public static partial class ImageExtensions
     {
         /// <summary>
         /// Pixelates and image with the given pixel size.
         /// </summary>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="size">The size of the pixels.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
@@ -32,6 +32,8 @@ namespace ImageProcessorCore
         /// <summary>
         /// Pixelates and image with the given pixel size.
         /// </summary>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="size">The size of the pixels.</param>
         /// <param name="rectangle">

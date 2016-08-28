@@ -44,7 +44,7 @@ namespace ImageProcessorCore.Processors
         bool Compand { get; set; }
 
         /// <summary>
-        /// Applies the process to the specified portion of the specified <see cref="ImageBase{TColor, TPacked}"/>.
+        /// Applies the process to the specified portion of the specified <see cref="ImageBase{T, TP}"/>.
         /// </summary>
         /// <param name="target">Target image to apply the process to.</param>
         /// <param name="source">The source image. Cannot be null.</param>
@@ -64,7 +64,7 @@ namespace ImageProcessorCore.Processors
         void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle sourceRectangle);
 
         /// <summary>
-        /// Applies the process to the specified portion of the specified <see cref="ImageBase{TColor, TPacked}"/> at the specified
+        /// Applies the process to the specified portion of the specified <see cref="ImageBase{T, TP}"/> at the specified
         /// location and with the specified size.
         /// </summary>
         /// <param name="target">Target image to apply the process to.</param>

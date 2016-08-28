@@ -17,7 +17,7 @@ namespace ImageProcessorCore
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-        /// <param name="source">The image to crop.</param>
+        /// <param name="source">The image to auto rotate.</param>
         /// <returns>The <see cref="Image"/></returns>
         public static Image<TColor, TPacked> AutoOrient<TColor, TPacked>(this Image<TColor, TPacked> source, ProgressEventHandler progressHandler = null)
             where TColor : IPackedVector<TPacked>
@@ -27,11 +27,6 @@ namespace ImageProcessorCore
 
             switch (orientation)
             {
-                case Orientation.Unknown:
-                case Orientation.TopLeft:
-                default:
-                    return source;
-
                 case Orientation.TopRight:
                     return source.Flip(FlipType.Horizontal, progressHandler);
 
@@ -42,23 +37,33 @@ namespace ImageProcessorCore
                     return source.Flip(FlipType.Vertical, progressHandler);
 
                 case Orientation.LeftTop:
-                    return source
-                                .Rotate(RotateType.Rotate90, progressHandler)
-                                .Flip(FlipType.Horizontal, progressHandler);
+                    return source.Rotate(RotateType.Rotate90, progressHandler)
+                                 .Flip(FlipType.Horizontal, progressHandler);
 
                 case Orientation.RightTop:
                     return source.Rotate(RotateType.Rotate90, progressHandler);
 
                 case Orientation.RightBottom:
-                    return source
-                                .Flip(FlipType.Vertical, progressHandler)
-                                .Rotate(RotateType.Rotate270, progressHandler);
+                    return source.Flip(FlipType.Vertical, progressHandler)
+                                 .Rotate(RotateType.Rotate270, progressHandler);
 
                 case Orientation.LeftBottom:
                     return source.Rotate(RotateType.Rotate270, progressHandler);
+
+                case Orientation.Unknown:
+                case Orientation.TopLeft:
+                default:
+                    return source;
             }
         }
 
+        /// <summary>
+        /// Returns the current EXIF orientation
+        /// </summary>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+        /// <param name="source">The image to auto rotate.</param>
+        /// <returns>The <see cref="Orientation"/></returns>
         private static Orientation GetExifOrientation<TColor, TPacked>(Image<TColor, TPacked> source)
             where TColor : IPackedVector<TPacked>
             where TPacked : struct

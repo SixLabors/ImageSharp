@@ -539,12 +539,11 @@ namespace ImageProcessorCore
                 case ExifDataType.DoubleFloat:
                     Guard.IsTrue(type == typeof(double), nameof(value), $"Value should be a double{(this.IsArray ? " array." : ".")}");
                     break;
-                case ExifDataType.Rational:
-                case ExifDataType.SignedRational:
-                    Guard.IsTrue(type == typeof(Rational), nameof(value), $"Value should be a Rational{(this.IsArray ? " array." : ".")}");
-                    break;
                 case ExifDataType.Long:
                     Guard.IsTrue(type == typeof(uint), nameof(value), $"Value should be an unsigned int{(this.IsArray ? " array." : ".")}");
+                    break;
+                case ExifDataType.Rational:
+                    Guard.IsTrue(type == typeof(Rational), nameof(value), $"Value should be a Rational{(this.IsArray ? " array." : ".")}");
                     break;
                 case ExifDataType.Short:
                     Guard.IsTrue(type == typeof(ushort), nameof(value), $"Value should be an unsigned short{(this.IsArray ? " array." : ".")}");
@@ -554,6 +553,9 @@ namespace ImageProcessorCore
                     break;
                 case ExifDataType.SignedLong:
                     Guard.IsTrue(type == typeof(int), nameof(value), $"Value should be an int{(this.IsArray ? " array." : ".")}");
+                    break;
+                case ExifDataType.SignedRational:
+                    Guard.IsTrue(type == typeof(SignedRational), nameof(value), $"Value should be a SignedRational{(this.IsArray ? " array." : ".")}");
                     break;
                 case ExifDataType.SignedShort:
                     Guard.IsTrue(type == typeof(short), nameof(value), $"Value should be a short{(this.IsArray ? " array." : ".")}");

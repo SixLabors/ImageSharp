@@ -15,11 +15,11 @@ namespace ImageProcessorCore.Processors
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public class GlowProcessor<TColor, TPacked> : ImageProcessor<TColor, TPacked>
-        where TColor : IPackedVector<TPacked>
-        where TPacked : struct
+            where TColor : IPackedVector<TPacked>
+            where TPacked : struct
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="GlowProcessor{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="GlowProcessor{T,TP}"/> class.
         /// </summary>
         public GlowProcessor()
         {

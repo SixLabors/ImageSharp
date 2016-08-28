@@ -14,7 +14,7 @@ namespace ImageProcessorCore
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public sealed unsafe class PixelAccessor<TColor, TPacked> : IDisposable
+    public unsafe class PixelAccessor<TColor, TPacked> : IDisposable
         where TColor : IPackedVector<TPacked>
         where TPacked : struct
     {
@@ -104,8 +104,28 @@ namespace ImageProcessorCore
         /// <returns>The <see cref="TColor"/> at the specified position.</returns>
         public TColor this[int x, int y]
         {
-            get { return Unsafe.Read<TColor>(pixelsBase + ((y * this.RowStride) + (x * this.PixelSize))); }
-            set { Unsafe.Write(pixelsBase + ((y * this.RowStride) + (x * this.PixelSize)), value); }
+            get { return Unsafe.Read<TColor>(this.pixelsBase + (y * this.Width + x) * Unsafe.SizeOf<TColor>()); }
+            set { Unsafe.Write(this.pixelsBase + (y * this.Width + x) * Unsafe.SizeOf<TColor>(), value); }
+
+        }
+
+        /// <summary>
+        /// Copies an entire row of pixels.
+        /// </summary>
+        /// <param name="sourceX">The x-coordinate of the source row.</param>
+        /// <param name="sourceY">The y-coordinate of the source row.</param>
+        /// <param name="target">The target pixel buffer accessor.</param>
+        /// <param name="targetX">The x-coordinate of the target row.</param>
+        /// <param name="targetY">The y-coordinate of the target row.</param>
+        /// <param name="pixelCount">The number of pixels to copy</param>
+        public void CopyRow(int sourceX, int sourceY, PixelAccessor<TColor, TPacked> target, int targetX, int targetY, int pixelCount)
+        {
+            int size = Unsafe.SizeOf<TColor>();
+            byte* sourcePtr = this.pixelsBase + (sourceY * this.Width + sourceX) * size;
+            byte* targetPtr = target.pixelsBase + (targetY * target.Width + targetX) * size;
+            uint byteCount = (uint)(pixelCount * size);
+
+            Unsafe.CopyBlock(targetPtr, sourcePtr, byteCount);
         }
 
         /// <summary>

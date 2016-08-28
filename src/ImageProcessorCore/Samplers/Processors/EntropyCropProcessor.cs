@@ -27,7 +27,7 @@ namespace ImageProcessorCore.Processors
         /// Initializes a new instance of the <see cref="EntropyCropProcessor{TColor, TPacked}"/> class.
         /// </summary>
         /// <param name="threshold">The threshold to split the image. Must be between 0 and 1.</param>
-        /// <exception cref="ArgumentException">
+        /// <exception cref="System.ArgumentException">
         /// <paramref name="threshold"/> is less than 0 or is greater than 1.
         /// </exception>
         public EntropyCropProcessor(float threshold)
@@ -55,7 +55,7 @@ namespace ImageProcessorCore.Processors
             // Search for the first white pixels
             Rectangle rectangle = ImageMaths.GetFilteredBoundingRectangle(temp, 0);
 
-            // Reset the targeTColor pixel to the correct size.
+            // Reset the target pixel to the correct size.
             target.SetPixels(rectangle.Width, rectangle.Height, new TColor[rectangle.Width * rectangle.Height]);
             this.cropRectangle = rectangle;
         }

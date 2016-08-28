@@ -10,6 +10,8 @@ namespace ImageProcessorCore
     /// <summary>
     /// Extension methods for the <see cref="Image{TColor, TPacked}"/> type.
     /// </summary>
+    /// <typeparam name="TColor">The pixel format.</typeparam>
+    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public static partial class ImageExtensions
     {
         /// <summary>

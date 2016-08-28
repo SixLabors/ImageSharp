@@ -310,7 +310,7 @@ namespace ImageProcessorCore.Formats
         }
 
         /// <summary>
-        /// Return the nexTColor pixel from the image
+        /// Return the next pixel from the image
         /// </summary>
         /// <returns>
         /// The <see cref="int"/>

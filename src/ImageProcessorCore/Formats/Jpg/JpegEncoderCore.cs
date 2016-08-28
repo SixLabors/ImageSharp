@@ -504,7 +504,7 @@ namespace ImageProcessorCore.Formats
             // Write the image data.
             using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
             {
-                this.WriteSOS(pixels);
+                this.WriteSOS<TColor, TPacked>(pixels);
             }
 
             // Write the End Of Image marker.
@@ -720,10 +720,10 @@ namespace ImageProcessorCore.Formats
             switch (this.subsample)
             {
                 case JpegSubsample.Ratio444:
-                    this.Encode444(pixels);
+                    this.Encode444<TColor, TPacked>(pixels);
                     break;
                 case JpegSubsample.Ratio420:
-                    this.Encode420(pixels);
+                    this.Encode420<TColor, TPacked>(pixels);
                     break;
             }
 
@@ -750,7 +750,7 @@ namespace ImageProcessorCore.Formats
             {
                 for (int x = 0; x < pixels.Width; x += 8)
                 {
-                    this.ToYCbCr(pixels, x, y, b, cb, cr);
+                    this.ToYCbCr<TColor, TPacked>(pixels, x, y, b, cb, cr);
                     prevDCY = this.WriteBlock(b, QuantIndex.Luminance, prevDCY);
                     prevDCCb = this.WriteBlock(cb, QuantIndex.Chrominance, prevDCCb);
                     prevDCCr = this.WriteBlock(cr, QuantIndex.Chrominance, prevDCCr);
@@ -784,7 +784,7 @@ namespace ImageProcessorCore.Formats
                         int xOff = (i & 1) * 8;
                         int yOff = (i & 2) * 4;
 
-                        this.ToYCbCr(pixels, x + xOff, y + yOff, b, cb[i], cr[i]);
+                        this.ToYCbCr<TColor, TPacked>(pixels, x + xOff, y + yOff, b, cb[i], cr[i]);
                         prevDCY = this.WriteBlock(b, QuantIndex.Luminance, prevDCY);
                     }
 

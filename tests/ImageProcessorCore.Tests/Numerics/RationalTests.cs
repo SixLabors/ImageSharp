@@ -22,6 +22,7 @@ namespace ImageProcessorCore.Tests
             Rational r2 = new Rational(3, 2);
 
             Assert.Equal(r1, r2);
+            Assert.True(r1 == r2);
 
             Rational r3 = new Rational(7.55);
             Rational r4 = new Rational(755, 100);
@@ -41,6 +42,7 @@ namespace ImageProcessorCore.Tests
             Rational second = new Rational(100, 100);
 
             Assert.NotEqual(first, second);
+            Assert.True(first != second);
         }
 
         /// <summary>
@@ -49,9 +51,65 @@ namespace ImageProcessorCore.Tests
         [Fact]
         public void ConstructorAssignsProperties()
         {
-            Rational first = new Rational(4, 5);
-            Assert.Equal(4, first.Numerator);
-            Assert.Equal(5, first.Denominator);
+            Rational rational = new Rational(7, 55);
+            Assert.Equal(7U, rational.Numerator);
+            Assert.Equal(55U, rational.Denominator);
+
+            rational = new Rational(755, 100);
+            Assert.Equal(151U, rational.Numerator);
+            Assert.Equal(20U, rational.Denominator);
+
+            rational = new Rational(755, 100, false);
+            Assert.Equal(755U, rational.Numerator);
+            Assert.Equal(100U, rational.Denominator);
+
+            rational = new Rational(-7.55);
+            Assert.Equal(151U, rational.Numerator);
+            Assert.Equal(20U, rational.Denominator);
+
+            rational = new Rational(7);
+            Assert.Equal(7U, rational.Numerator);
+            Assert.Equal(1U, rational.Denominator);
+        }
+
+        [Fact]
+        public void Fraction()
+        {
+            Rational first = new Rational(1.0 / 1600);
+            Rational second = new Rational(1.0 / 1600, true);
+            Assert.False(first.Equals(second));
+        }
+
+        [Fact]
+        public void ToDouble()
+        {
+            Rational rational = new Rational(0, 0);
+            Assert.Equal(double.NaN, rational.ToDouble());
+
+            rational = new Rational(2, 0);
+            Assert.Equal(double.PositiveInfinity, rational.ToDouble());
+        }
+
+        [Fact]
+        public void ToStringRepresention()
+        {
+            Rational rational = new Rational(0, 0);
+            Assert.Equal("[ Indeterminate ]", rational.ToString());
+
+            rational = new Rational(double.PositiveInfinity);
+            Assert.Equal("[ PositiveInfinity ]", rational.ToString());
+
+            rational = new Rational(double.NegativeInfinity);
+            Assert.Equal("[ PositiveInfinity ]", rational.ToString());
+
+            rational = new Rational(0, 1);
+            Assert.Equal("0", rational.ToString());
+
+            rational = new Rational(2, 1);
+            Assert.Equal("2", rational.ToString());
+
+            rational = new Rational(1, 2);
+            Assert.Equal("1/2", rational.ToString());
         }
     }
 }

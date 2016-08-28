@@ -19,8 +19,24 @@ namespace ImageProcessorCore
     /// </remarks>
     public partial struct Color : IPackedVector<uint>, IEquatable<Color>
     {
-        private const float Max = 255F;
-        private const float Min = 0F;
+        /// <summary>
+        /// The maximum byte value
+        /// </summary>
+        private const float MaxBytes = 255F;
+
+        /// <summary>
+        /// The minimum vector value
+        /// </summary>
+        private const float Zero = 0F;
+
+        /// <summary>
+        /// The maximum vector value
+        /// </summary>
+        private const float One = 1F;
+
+        /// <summary>
+        /// The packed value
+        /// </summary>
         private uint packedValue;
 
         /// <summary>
@@ -34,6 +50,7 @@ namespace ImageProcessorCore
             }
             set
             {
+                // AABBGGRR
                 this.packedValue = (uint)(this.packedValue & -0x100 | value);
             }
         }
@@ -50,7 +67,8 @@ namespace ImageProcessorCore
             }
             set
             {
-                this.packedValue = (uint)(this.packedValue & -0xff01 | (uint)value << 8);
+                // AABBGGRR
+                this.packedValue = (uint)(this.packedValue & -0xFF01 | (uint)value << 8);
             }
         }
 
@@ -65,7 +83,8 @@ namespace ImageProcessorCore
             }
             set
             {
-                this.packedValue = (uint)(this.packedValue & -0xff0001 | (uint)(value << 16));
+                // AABBGGRR
+                this.packedValue = (uint)(this.packedValue & -0xFF0001 | (uint)(value << 16));
             }
         }
 
@@ -80,7 +99,8 @@ namespace ImageProcessorCore
             }
             set
             {
-                this.packedValue = this.packedValue & 0xffffff | (uint)value << 24;
+                // AABBGGRR
+                this.packedValue = this.packedValue & 0xFFFFFF | (uint)value << 24;
             }
         }
 
@@ -218,39 +238,15 @@ namespace ImageProcessorCore
         }
 
         /// <inheritdoc/>
-        public uint GetPackedValue()
-        {
-            return this.packedValue;
-        }
-
-        /// <inheritdoc/>
-        public void SetPackedValue(uint value)
-        {
-            this.packedValue = value;
-        }
-
-        /// <inheritdoc/>
         public void PackFromVector4(Vector4 vector)
         {
             this.packedValue = Pack(ref vector);
         }
 
         /// <inheritdoc/>
-        public void PackFromBytes(byte x, byte y, byte z, byte w)
-        {
-            this.packedValue = (uint)(x | y << 8 | z << 16 | w << 24);
-        }
-
-        /// <inheritdoc/>
         public Vector4 ToVector4()
         {
-            return new Vector4(this.R, this.G, this.B, this.A) / 255F;
-        }
-
-        /// <inheritdoc/>
-        public byte[] ToBytes()
-        {
-            return new[] { this.R, this.G, this.B, this.A };
+            return new Vector4(this.R, this.G, this.B, this.A) / MaxBytes;
         }
 
         /// <inheritdoc/>
@@ -308,12 +304,13 @@ namespace ImageProcessorCore
         /// <param name="z">The z-component</param>
         /// <param name="w">The w-component</param>
         /// <returns>The <see cref="uint"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static uint Pack(float x, float y, float z, float w)
         {
-            return (uint)((byte)Math.Round(x.Clamp(0, 1) * Max)
-                   | ((byte)Math.Round(y.Clamp(0, 1) * Max) << 8)
-                   | (byte)Math.Round(z.Clamp(0, 1) * Max) << 16
-                   | (byte)Math.Round(w.Clamp(0, 1) * Max) << 24);
+            return (uint)((byte)Math.Round(x.Clamp(Zero, One) * MaxBytes)
+                   | ((byte)Math.Round(y.Clamp(Zero, One) * MaxBytes) << 8)
+                   | (byte)Math.Round(z.Clamp(Zero, One) * MaxBytes) << 16
+                   | (byte)Math.Round(w.Clamp(Zero, One) * MaxBytes) << 24);
         }
 
         /// <summary>

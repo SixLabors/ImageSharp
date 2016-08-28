@@ -2,6 +2,9 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
+
+using System;
+
 namespace ImageProcessorCore.Processors
 {
     using System.Numerics;
@@ -34,7 +37,9 @@ namespace ImageProcessorCore.Processors
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle)
         {
-            if (Angle == 0 || Angle == 90 || Angle == 180 || Angle == 270)
+            const float Epsilon = .0001F;
+
+            if (Math.Abs(Angle) < Epsilon || Math.Abs(Angle - 90) < Epsilon || Math.Abs(Angle - 180) < Epsilon || Math.Abs(Angle - 270) < Epsilon)
             {
                 return;
             }
@@ -89,25 +94,26 @@ namespace ImageProcessorCore.Processors
         /// <returns></returns>
         private bool OptimizedApply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source)
         {
-            if (Angle == 0)
+            const float Epsilon = .0001F;
+            if (Math.Abs(Angle) < Epsilon)
             {
                 target.ClonePixels(target.Width, target.Height, source.Pixels);
                 return true;
             }
 
-            if (Angle == 90)
+            if (Math.Abs(Angle - 90) < Epsilon)
             {
                 this.Rotate90(target, source);
                 return true;
             }
 
-            if (Angle == 180)
+            if (Math.Abs(Angle - 180) < Epsilon)
             {
                 this.Rotate180(target, source);
                 return true;
             }
 
-            if (Angle == 270)
+            if (Math.Abs(Angle - 270) < Epsilon)
             {
                 this.Rotate270(target, source);
                 return true;

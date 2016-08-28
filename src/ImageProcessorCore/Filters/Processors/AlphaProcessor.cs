@@ -22,7 +22,7 @@ namespace ImageProcessorCore.Processors
         /// Initializes a new instance of the <see cref="AlphaProcessor{TColor, TPacked}"/> class.
         /// </summary>
         /// <param name="percent">The percentage to adjust the opacity of the image. Must be between 0 and 100.</param>
-        /// <exception cref="ArgumentException">
+        /// <exception cref="System.ArgumentException">
         /// <paramref name="percent"/> is less than 0 or is greater than 100.
         /// </exception>
         public AlphaProcessor(int percent)

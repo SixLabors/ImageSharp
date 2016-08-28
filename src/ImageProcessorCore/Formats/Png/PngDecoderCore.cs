@@ -83,13 +83,13 @@ namespace ImageProcessorCore.Formats
         /// Decodes the stream to the image.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam> 
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="image">The image to decode to.</param>
         /// <param name="stream">The stream containing image data. </param>
         /// <exception cref="ImageFormatException">
         /// Thrown if the stream does not contain and end chunk.
         /// </exception>
-        /// <exception cref="ArgumentOutOfRangeException">
+        /// <exception cref="System.ArgumentOutOfRangeException">
         /// Thrown if the image is larger than the maximum allowable size.
         /// </exception>
         public void Decode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream)
@@ -152,11 +152,7 @@ namespace ImageProcessorCore.Formats
                 }
 
                 TColor[] pixels = new TColor[this.header.Width * this.header.Height];
-
-
                 this.ReadScanlines<TColor, TPacked>(dataStream, pixels);
-
-
                 image.SetPixels(this.header.Width, this.header.Height, pixels);
             }
         }
@@ -228,9 +224,10 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Reads the scanlines within the image.
         /// </summary>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="dataStream">The <see cref="MemoryStream"/> containing data.</param>
-        /// <param name="pixels">
-        /// The <see cref="T:floaTColor[]"/> containing pixel data.</param>
+        /// <param name="pixels"> The pixel data.</param>
         private void ReadScanlines<TColor, TPacked>(MemoryStream dataStream, TColor[] pixels)
             where TColor : IPackedVector<TPacked>
             where TPacked : struct

@@ -207,7 +207,7 @@ namespace ImageProcessorCore.Tests.Helpers
         [Fact]
         public void IsTrueThrowsWhenArgIsFalse()
         {
-            Assert.Throws<ArgumentException>(() => Guard.IsTrue(false, "foo"));
+            Assert.Throws<ArgumentException>(() => Guard.IsTrue(false, "foo", "message"));
         }
 
         /// <summary>
@@ -216,7 +216,7 @@ namespace ImageProcessorCore.Tests.Helpers
         [Fact]
         public void IsTrueDoesThrowsWhenArgIsTrue()
         {
-            Exception ex = Record.Exception(() => Guard.IsTrue(true, "foo"));
+            Exception ex = Record.Exception(() => Guard.IsTrue(true, "foo", "message"));
             Assert.Null(ex);
         }
 
@@ -226,7 +226,7 @@ namespace ImageProcessorCore.Tests.Helpers
         [Fact]
         public void IsFalseThrowsWhenArgIsFalse()
         {
-            Assert.Throws<ArgumentException>(() => Guard.IsFalse(true, "foo"));
+            Assert.Throws<ArgumentException>(() => Guard.IsFalse(true, "foo", "message"));
         }
 
         /// <summary>
@@ -235,7 +235,7 @@ namespace ImageProcessorCore.Tests.Helpers
         [Fact]
         public void IsFalseDoesThrowsWhenArgIsTrue()
         {
-            Exception ex = Record.Exception(() => Guard.IsFalse(false, "foo"));
+            Exception ex = Record.Exception(() => Guard.IsFalse(false, "foo", "message"));
             Assert.Null(ex);
         }
     }

@@ -29,7 +29,7 @@ namespace ImageProcessorCore
         }
 
         /// <summary>
-        /// Detects any edges within the image. Uses the <see cref="SobelProcessor{TColor, TPacked}"/> filter
+        /// Detects any edges within the image. Uses the <see cref="SobelProcessor{T,TP}"/> filter
         /// operating in Grayscale mode.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>

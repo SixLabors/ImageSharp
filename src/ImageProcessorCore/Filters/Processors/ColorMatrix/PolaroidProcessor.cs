@@ -34,15 +34,15 @@ namespace ImageProcessorCore.Processors
         };
 
         /// <inheritdoc/>
-        protected override void AfterApply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected override void AfterApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
         {
             TColor packedV = default(TColor);
             packedV.PackFromBytes(102, 34, 0, 255); // Very dark orange [Brown tone]
-            new VignetteProcessor<TColor, TPacked> { VignetteColor = packedV }.Apply(target, target, sourceRectangle);
+            new VignetteProcessor<TColor, TPacked> { VignetteColor = packedV }.Apply(source, sourceRectangle);
 
             TColor packedG = default(TColor);
             packedG.PackFromBytes(255, 153, 102, 178); // Light orange
-            new GlowProcessor<TColor, TPacked> { GlowColor = packedG, Radius = target.Width / 4F }.Apply(target, target, sourceRectangle);
+            new GlowProcessor<TColor, TPacked> { GlowColor = packedG, Radius = source.Width / 4F }.Apply(source, sourceRectangle);
         }
     }
 }

@@ -5,6 +5,7 @@
 
 namespace ImageProcessorCore.Processors
 {
+    using System;
     using System.Numerics;
     using System.Threading.Tasks;
 

@@ -10,11 +10,11 @@ namespace ImageProcessorCore.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageProcessor{TColor, TPacked}"/> that applies a radial glow effect an <see cref="Image{TColor, TPacked}"/>.
+    /// An <see cref="IImageFilter{TColor,TPacked}"/> that applies a radial glow effect an <see cref="Image{TColor, TPacked}"/>.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class GlowProcessor<TColor, TPacked> : ImageProcessor<TColor, TPacked>
+    public class GlowProcessor<TColor, TPacked> : ImageFilter<TColor, TPacked>
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
     {
@@ -39,7 +39,7 @@ namespace ImageProcessorCore.Processors
         public float Radius { get; set; }
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle, int startY, int endY)
         {
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
@@ -66,7 +66,6 @@ namespace ImageProcessorCore.Processors
             }
 
             using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
-            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock())
             {
                 Parallel.For(
                     minY,
@@ -85,7 +84,7 @@ namespace ImageProcessorCore.Processors
                                     Vector4 sourceColor = sourcePixels[offsetX, offsetY].ToVector4();
                                     TColor packed = default(TColor);
                                     packed.PackFromVector4(Vector4.Lerp(glowColor.ToVector4(), sourceColor, distance / maxDistance));
-                                    targetPixels[offsetX, offsetY] = packed;
+                                    sourcePixels[offsetX, offsetY] = packed;
                                 }
                             }
 
@@ -95,4 +94,3 @@ namespace ImageProcessorCore.Processors
         }
     }
 }
-

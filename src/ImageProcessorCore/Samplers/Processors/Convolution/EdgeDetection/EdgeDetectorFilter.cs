@@ -23,7 +23,7 @@ namespace ImageProcessorCore.Processors
         {
             if (this.Grayscale)
             {
-                new GrayscaleBt709Processor<TColor, TPacked>().Apply(source, source, sourceRectangle);
+                new GrayscaleBt709Processor<TColor, TPacked>().Apply(source, sourceRectangle);
             }
         }
     }

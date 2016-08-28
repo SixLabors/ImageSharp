@@ -10,11 +10,11 @@ namespace ImageProcessorCore.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageProcessor{TColor, TPacked}"/> to change the brightness of an <see cref="Image{TColor, TPacked}"/>.
+    /// An <see cref="IImageFilter{TColor,TPacked}"/> to change the brightness of an <see cref="Image{TColor, TPacked}"/>.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class BrightnessProcessor<TColor, TPacked> : ImageProcessor<TColor, TPacked>
+    public class BrightnessProcessor<TColor, TPacked> : ImageFilter<TColor, TPacked>
         where TColor : IPackedVector<TPacked>
         where TPacked : struct
     {
@@ -37,7 +37,7 @@ namespace ImageProcessorCore.Processors
         public int Value { get; }
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle, int startY, int endY)
         {
             float brightness = this.Value / 100F;
             int startX = sourceRectangle.X;
@@ -61,7 +61,6 @@ namespace ImageProcessorCore.Processors
             }
 
             using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
-            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock())
             {
                 Parallel.For(
                     minY,
@@ -82,7 +81,7 @@ namespace ImageProcessorCore.Processors
                                 TColor packed = default(TColor);
                                 packed.PackFromVector4(vector.Compress());
 
-                                targetPixels[offsetX, offsetY] = packed;
+                                sourcePixels[offsetX, offsetY] = packed;
                             }
 
                             this.OnRowProcessed();

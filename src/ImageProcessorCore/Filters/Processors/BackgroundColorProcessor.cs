@@ -12,7 +12,7 @@ namespace ImageProcessorCore.Processors
     /// <summary>
     /// Sets the background color of the image.
     /// </summary>
-    public class BackgroundColorProcessor<TColor, TPacked> : ImageProcessor<TColor, TPacked>
+    public class BackgroundColorProcessor<TColor, TPacked> : ImageFilter<TColor, TPacked>
         where TColor : IPackedVector<TPacked>
         where TPacked : struct
     {
@@ -36,7 +36,7 @@ namespace ImageProcessorCore.Processors
         public TColor Value { get; }
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle, int startY, int endY)
         {
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
@@ -61,38 +61,37 @@ namespace ImageProcessorCore.Processors
             Vector4 backgroundColor = this.Value.ToVector4();
 
             using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
-            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock())
             {
                 Parallel.For(
                     minY,
                     maxY,
                     this.ParallelOptions,
                     y =>
+                    {
+                        int offsetY = y - startY;
+                        for (int x = minX; x < maxX; x++)
                         {
-                            int offsetY = y - startY;
-                            for (int x = minX; x < maxX; x++)
+                            int offsetX = x - startX;
+                            Vector4 color = sourcePixels[offsetX, offsetY].ToVector4();
+                            float a = color.W;
+
+                            if (a < 1 && a > 0)
                             {
-                                int offsetX = x - startX;
-                                Vector4 color = sourcePixels[offsetX, offsetY].ToVector4();
-                                float a = color.W;
-
-                                if (a < 1 && a > 0)
-                                {
-                                    color = Vector4.Lerp(color, backgroundColor, .5F);
-                                }
-
-                                if (Math.Abs(a) < Epsilon)
-                                {
-                                    color = backgroundColor;
-                                }
-
-                                TColor packed = default(TColor);
-                                packed.PackFromVector4(color);
-                                targetPixels[offsetX, offsetY] = packed;
+                                color = Vector4.Lerp(color, backgroundColor, .5F);
                             }
 
-                            this.OnRowProcessed();
-                        });
+                            if (Math.Abs(a) < Epsilon)
+                            {
+                                color = backgroundColor;
+                            }
+
+                            TColor packed = default(TColor);
+                            packed.PackFromVector4(color);
+                            sourcePixels[offsetX, offsetY] = packed;
+                        }
+
+                        this.OnRowProcessed();
+                    });
             }
         }
     }

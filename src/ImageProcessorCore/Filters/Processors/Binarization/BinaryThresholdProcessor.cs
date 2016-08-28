@@ -9,12 +9,12 @@ namespace ImageProcessorCore.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageProcessor{TColor, TPacked}"/> to perform binary threshold filtering against an 
+    /// An <see cref="IImageFilter{TColor,TPacked}"/> to perform binary threshold filtering against an 
     /// <see cref="Image"/>. The image will be converted to grayscale before thresholding occurs.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class BinaryThresholdProcessor<TColor, TPacked> : ImageProcessor<TColor, TPacked>
+    public class BinaryThresholdProcessor<TColor, TPacked> : ImageFilter<TColor, TPacked>
         where TColor : IPackedVector<TPacked>
         where TPacked : struct
     {
@@ -56,13 +56,13 @@ namespace ImageProcessorCore.Processors
         public TColor LowerColor { get; set; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
         {
-            new GrayscaleBt709Processor<TColor, TPacked>().Apply(source, source, sourceRectangle);
+            new GrayscaleBt709Processor<TColor, TPacked>().Apply(source, sourceRectangle);
         }
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle, int startY, int endY)
         {
             float threshold = this.Value;
             TColor upper = this.UpperColor;
@@ -88,26 +88,25 @@ namespace ImageProcessorCore.Processors
             }
 
             using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
-            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock())
             {
                 Parallel.For(
                     minY,
                     maxY,
                     this.ParallelOptions,
                     y =>
+                    {
+                        int offsetY = y - startY;
+                        for (int x = minX; x < maxX; x++)
                         {
-                            int offsetY = y - startY;
-                            for (int x = minX; x < maxX; x++)
-                            {
-                                int offsetX = x - startX;
-                                TColor color = sourcePixels[offsetX, offsetY];
+                            int offsetX = x - startX;
+                            TColor color = sourcePixels[offsetX, offsetY];
 
-                                // Any channel will do since it's Grayscale.
-                                targetPixels[offsetX, offsetY] = color.ToVector4().X >= threshold ? upper : lower;
-                            }
+                            // Any channel will do since it's Grayscale.
+                            sourcePixels[offsetX, offsetY] = color.ToVector4().X >= threshold ? upper : lower;
+                        }
 
-                            this.OnRowProcessed();
-                        });
+                        this.OnRowProcessed();
+                    });
             }
         }
     }

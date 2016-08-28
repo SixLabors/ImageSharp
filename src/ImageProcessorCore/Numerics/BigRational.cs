@@ -138,7 +138,7 @@ namespace ImageProcessorCore
             Denominator = 1;
 
             double val = Math.Abs(value);
-            double df = Numerator / Denominator;
+            double df = Numerator / (double)Denominator;
             double epsilon = bestPrecision ? double.Epsilon : .000001;
 
             while (Math.Abs(df - val) > epsilon)

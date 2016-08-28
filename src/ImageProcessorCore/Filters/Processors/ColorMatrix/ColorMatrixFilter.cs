@@ -14,7 +14,7 @@ namespace ImageProcessorCore.Processors
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public abstract class ColorMatrixFilter<TColor, TPacked> : ImageProcessor<TColor, TPacked>, IColorMatrixFilter<TColor, TPacked>
+    public abstract class ColorMatrixFilter<TColor, TPacked> : ImageFilter<TColor, TPacked>, IColorMatrixFilter<TColor, TPacked>
         where TColor : IPackedVector<TPacked>
         where TPacked : struct
     {
@@ -25,7 +25,7 @@ namespace ImageProcessorCore.Processors
         public override bool Compand { get; set; } = true;
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle, int startY, int endY)
         {
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
@@ -51,7 +51,6 @@ namespace ImageProcessorCore.Processors
             bool compand = this.Compand;
 
             using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
-            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock())
             {
                 Parallel.For(
                     minY,
@@ -63,7 +62,7 @@ namespace ImageProcessorCore.Processors
                             for (int x = minX; x < maxX; x++)
                             {
                                 int offsetX = x - startX;
-                                targetPixels[offsetX, offsetY] = this.ApplyMatrix(sourcePixels[offsetX, offsetY], matrix, compand);
+                                sourcePixels[offsetX, offsetY] = this.ApplyMatrix(sourcePixels[offsetX, offsetY], matrix, compand);
                             }
 
                             this.OnRowProcessed();

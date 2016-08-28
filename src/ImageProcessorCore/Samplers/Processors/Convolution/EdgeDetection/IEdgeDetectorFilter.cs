@@ -10,7 +10,7 @@ namespace ImageProcessorCore.Processors
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public interface IEdgeDetectorFilter<TColor, TPacked> : IImageProcessor<TColor, TPacked>, IEdgeDetectorFilter
+    public interface IEdgeDetectorFilter<TColor, TPacked> : IImageSampler<TColor, TPacked>, IEdgeDetectorFilter
         where TColor : IPackedVector<TPacked>
         where TPacked : struct
     {

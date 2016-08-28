@@ -1,44 +1,33 @@
-﻿// <copyright file="Convolution2DFilter.cs" company="James Jackson-South">
+﻿// <copyright file="ConvolutionFilter.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
 namespace ImageProcessorCore.Processors
 {
-    using System;
     using System.Numerics;
     using System.Threading.Tasks;
 
     /// <summary>
-    /// Defines a filter that uses two one-dimensional matrices to perform convolution against an image.
+    /// Defines a filter that uses a 2 dimensional matrix to perform convolution against an image.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public abstract class Convolution2DFilter<TColor, TPacked> : ImageProcessor<TColor, TPacked>
+    public abstract class ConvolutionFilter<TColor, TPacked> : ImageSampler<TColor, TPacked>
         where TColor : IPackedVector<TPacked>
         where TPacked : struct
     {
         /// <summary>
-        /// Gets the horizontal gradient operator.
+        /// Gets the 2d gradient operator.
         /// </summary>
-        public abstract float[,] KernelX { get; }
-
-        /// <summary>
-        /// Gets the vertical gradient operator.
-        /// </summary>
-        public abstract float[,] KernelY { get; }
+        public abstract float[,] KernelXY { get; }
 
         /// <inheritdoc/>
         protected override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-            float[,] kernelX = this.KernelX;
-            float[,] kernelY = this.KernelY;
-            int kernelYHeight = kernelY.GetLength(0);
-            int kernelYWidth = kernelY.GetLength(1);
-            int kernelXHeight = kernelX.GetLength(0);
-            int kernelXWidth = kernelX.GetLength(1);
-            int radiusY = kernelYHeight >> 1;
-            int radiusX = kernelXWidth >> 1;
+            float[,] kernelX = this.KernelXY;
+            int kernelLength = kernelX.GetLength(0);
+            int radius = kernelLength >> 1;
 
             int sourceY = sourceRectangle.Y;
             int sourceBottom = sourceRectangle.Bottom;
@@ -63,21 +52,18 @@ namespace ImageProcessorCore.Processors
                             float rX = 0;
                             float gX = 0;
                             float bX = 0;
-                            float rY = 0;
-                            float gY = 0;
-                            float bY = 0;
 
                             // Apply each matrix multiplier to the color components for each pixel.
-                            for (int fy = 0; fy < kernelYHeight; fy++)
+                            for (int fy = 0; fy < kernelLength; fy++)
                             {
-                                int fyr = fy - radiusY;
+                                int fyr = fy - radius;
                                 int offsetY = y + fyr;
 
                                 offsetY = offsetY.Clamp(0, maxY);
 
-                                for (int fx = 0; fx < kernelXWidth; fx++)
+                                for (int fx = 0; fx < kernelLength; fx++)
                                 {
-                                    int fxr = fx - radiusX;
+                                    int fxr = fx - radius;
                                     int offsetX = x + fxr;
 
                                     offsetX = offsetX.Clamp(0, maxX);
@@ -87,32 +73,22 @@ namespace ImageProcessorCore.Processors
                                     float g = currentColor.Y;
                                     float b = currentColor.Z;
 
-                                    if (fy < kernelXHeight)
-                                    {
-                                        rX += kernelX[fy, fx] * r;
-                                        gX += kernelX[fy, fx] * g;
-                                        bX += kernelX[fy, fx] * b;
-                                    }
-
-                                    if (fx < kernelYWidth)
-                                    {
-                                        rY += kernelY[fy, fx] * r;
-                                        gY += kernelY[fy, fx] * g;
-                                        bY += kernelY[fy, fx] * b;
-                                    }
+                                    rX += kernelX[fy, fx] * r;
+                                    gX += kernelX[fy, fx] * g;
+                                    bX += kernelX[fy, fx] * b;
                                 }
                             }
 
-                            float red = (float)Math.Sqrt((rX * rX) + (rY * rY));
-                            float green = (float)Math.Sqrt((gX * gX) + (gY * gY));
-                            float blue = (float)Math.Sqrt((bX * bX) + (bY * bY));
+                            float red = rX;
+                            float green = gX;
+                            float blue = bX;
 
                             Vector4 targetColor = targetPixels[x, y].ToVector4();
                             TColor packed = default(TColor);
                             packed.PackFromVector4(new Vector4(red, green, blue, targetColor.Z));
                             targetPixels[x, y] = packed;
-                        }
 
+                        }
                         this.OnRowProcessed();
                     }
                 });

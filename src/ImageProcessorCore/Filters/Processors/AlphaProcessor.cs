@@ -10,11 +10,11 @@ namespace ImageProcessorCore.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageProcessor{TColor, TPacked}"/> to change the alpha component of an <see cref="Image{TColor, TPacked}"/>.
+    /// An <see cref="IImageFilter{TColor, TPacked}"/> to change the alpha component of an <see cref="Image{TColor, TPacked}"/>.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class AlphaProcessor<TColor, TPacked> : ImageProcessor<TColor, TPacked>
+    public class AlphaProcessor<TColor, TPacked> : ImageFilter<TColor, TPacked>
         where TColor : IPackedVector<TPacked>
         where TPacked : struct
     {
@@ -37,7 +37,7 @@ namespace ImageProcessorCore.Processors
         public int Value { get; }
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle, int startY, int endY)
         {
             float alpha = this.Value / 100F;
             int startX = sourceRectangle.X;
@@ -63,25 +63,24 @@ namespace ImageProcessorCore.Processors
             Vector4 alphaVector = new Vector4(1, 1, 1, alpha);
 
             using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
-            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock())
             {
                 Parallel.For(
                     minY,
                     maxY,
                     this.ParallelOptions,
                     y =>
+                    {
+                        int offsetY = y - startY;
+                        for (int x = minX; x < maxX; x++)
                         {
-                            int offsetY = y - startY;
-                            for (int x = minX; x < maxX; x++)
-                            {
-                                int offsetX = x - startX;
-                                TColor packed = default(TColor);
-                                packed.PackFromVector4(sourcePixels[offsetX, offsetY].ToVector4() * alphaVector);
-                                targetPixels[offsetX, offsetY] = packed;
-                            }
+                            int offsetX = x - startX;
+                            TColor packed = default(TColor);
+                            packed.PackFromVector4(sourcePixels[offsetX, offsetY].ToVector4() * alphaVector);
+                            sourcePixels[offsetX, offsetY] = packed;
+                        }
 
-                            this.OnRowProcessed();
-                        });
+                        this.OnRowProcessed();
+                    });
             }
         }
     }

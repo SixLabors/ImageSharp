@@ -10,11 +10,11 @@ namespace ImageProcessorCore.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageProcessor{TColor, TPacked}"/> to pixelate the colors of an <see cref="Image{TColor, TPacked}"/>.
+    /// An <see cref="IImageSampler{TColor,TPacked}"/> to pixelate the colors of an <see cref="Image{TColor, TPacked}"/>.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class PixelateProcessor<TColor, TPacked> : ImageProcessor<TColor, TPacked>
+    public class PixelateProcessor<TColor, TPacked> : ImageSampler<TColor, TPacked>
         where TColor : IPackedVector<TPacked>
         where TPacked : struct
     {

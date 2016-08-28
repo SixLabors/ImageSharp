@@ -44,7 +44,7 @@ namespace ImageProcessorCore
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
-            IImageProcessor<TColor, TPacked> processor;
+            IImageFilter<TColor, TPacked> processor;
 
             switch (colorBlindness)
             {

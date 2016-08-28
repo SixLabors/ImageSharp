@@ -28,11 +28,11 @@ namespace ImageProcessorCore.Processors
         };
 
         /// <inheritdoc/>
-        protected override void AfterApply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected override void AfterApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
         {
             TColor packed = default(TColor);
             packed.PackFromBytes(0, 10, 0, 255); // Very dark (mostly black) lime green.
-            new VignetteProcessor<TColor, TPacked> { VignetteColor = packed }.Apply(target, target, sourceRectangle);
+            new VignetteProcessor<TColor, TPacked> { VignetteColor = packed }.Apply(source, sourceRectangle);
         }
     }
 }

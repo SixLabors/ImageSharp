@@ -50,7 +50,7 @@ namespace ImageProcessorCore.Processors
             new SobelProcessor<TColor, TPacked>().Apply(temp, source, sourceRectangle);
 
             // Apply threshold binarization filter.
-            new BinaryThresholdProcessor<TColor, TPacked>(.5f).Apply(temp, temp, sourceRectangle);
+            new BinaryThresholdProcessor<TColor, TPacked>(.5f).Apply(temp, sourceRectangle);
 
             // Search for the first white pixels
             Rectangle rectangle = ImageMaths.GetFilteredBoundingRectangle(temp, 0);

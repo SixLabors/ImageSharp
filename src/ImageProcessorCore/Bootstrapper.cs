@@ -8,7 +8,6 @@ namespace ImageProcessorCore
     using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
-    using System.Reflection;
     using System.Threading.Tasks;
 
     using Formats;
@@ -51,8 +50,8 @@ namespace ImageProcessorCore
         /// <summary>
         /// Gets the collection of supported <see cref="IImageFormat"/>
         /// </summary>
-        public IReadOnlyCollection<IImageFormat> ImageFormats =>
-            new ReadOnlyCollection<IImageFormat>(this.imageFormats);
+        public IReadOnlyCollection<IImageFormat> ImageFormats => new ReadOnlyCollection<IImageFormat>(this.imageFormats);
+
 
         /// <summary>
         /// Gets or sets the global parallel options for processing tasks in parallel.

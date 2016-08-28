@@ -3,10 +3,10 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-using ImageProcessorCore.Quantizers;
-
 namespace ImageProcessorCore
 {
+    using ImageProcessorCore.Quantizers;
+
     /// <summary>
     /// Extension methods for the <see cref="Image{TColor, TPacked}"/> type.
     /// </summary>

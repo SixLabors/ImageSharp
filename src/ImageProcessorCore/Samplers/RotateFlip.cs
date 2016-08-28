@@ -25,9 +25,7 @@ namespace ImageProcessorCore
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
-            return source
-                .Rotate(rotateType, progressHandler)
-                .Flip(flipType, progressHandler);
+            return source.Rotate(rotateType, progressHandler).Flip(flipType, progressHandler);
         }
     }
 }

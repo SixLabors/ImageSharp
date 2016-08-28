@@ -20,7 +20,7 @@ namespace ImageProcessorCore
         /// Saves the image to the given stream with the bmp format.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam> 
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
@@ -34,7 +34,7 @@ namespace ImageProcessorCore
         /// Saves the image to the given stream with the png format.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam> 
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="quality">The quality to save the image to representing the number of colors. 
@@ -50,7 +50,7 @@ namespace ImageProcessorCore
         /// Saves the image to the given stream with the jpeg format.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam> 
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="quality">The quality to save the image to. Between 1 and 100.</param>
@@ -64,7 +64,7 @@ namespace ImageProcessorCore
         /// Saves the image to the given stream with the gif format.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam> 
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="quality">The quality to save the image to representing the number of colors. Between 1 and 256.</param>
@@ -115,8 +115,8 @@ namespace ImageProcessorCore
         /// This method is not chainable.
         /// </remarks>
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>long, float.</example></typeparam>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
@@ -135,8 +135,8 @@ namespace ImageProcessorCore
         /// This method does will resize the target image if the source and target rectangles are different.
         /// </remarks>
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>long, float.</example></typeparam>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
@@ -159,8 +159,8 @@ namespace ImageProcessorCore
         /// <summary>
         /// Performs the given action on the source image.
         /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>long, float.</example></typeparam>
         /// <param name="source">The image to perform the action against.</param>
         /// <param name="clone">Whether to clone the image.</param>
         /// <param name="action">The <see cref="Action"/> to perform against the image.</param>

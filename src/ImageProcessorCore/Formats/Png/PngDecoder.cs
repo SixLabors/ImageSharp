@@ -77,6 +77,8 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Decodes the image from the specified stream to the <see cref="ImageBase{TColor, TPacked}"/>.
         /// </summary>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="image">The <see cref="ImageBase{TColor, TPacked}"/> to decode to.</param>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         public void Decode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream)

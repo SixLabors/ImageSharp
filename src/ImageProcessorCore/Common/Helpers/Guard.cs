@@ -1,16 +1,8 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="Guard.cs" company="James Jackson-South">
-//   Copyright (c) James Jackson-South and contributors.
-//   Licensed under the Apache License, Version 2.0.
+﻿// <copyright file="Guard.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
 // </copyright>
-// <summary>
-//   Provides methods to protect against invalid parameters.
-// </summary>
-// --------------------------------------------------------------------------------------------------------------------
 
-using System.Runtime.CompilerServices;
-
-[assembly: InternalsVisibleTo("ImageProcessorCore.Tests")]
 namespace ImageProcessorCore
 {
     using System;
@@ -26,23 +18,15 @@ namespace ImageProcessorCore
         /// Verifies, that the method parameter with specified object value is not null
         /// and throws an exception if it is found to be so.
         /// </summary>
-        /// <param name="target">
-        /// The target object, which cannot be null.
-        /// </param>
-        /// <param name="parameterName">
-        /// The name of the parameter that is to be checked.
-        /// </param>
-        /// <param name="message">
-        /// The error message, if any to add to the exception.
-        /// </param>
-        /// <exception cref="System.ArgumentNullException">
-        /// <paramref name="target"/> is null
-        /// </exception>
+        /// <param name="target">The target object, which cannot be null.</param>
+        /// <param name="parameterName">The name of the parameter that is to be checked.</param>
+        /// <param name="message">The error message, if any to add to the exception.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="target"/> is null</exception>
         public static void NotNull(object target, string parameterName, string message = "")
         {
             if (target == null)
             {
-                if (string.IsNullOrWhiteSpace(message))
+                if (!string.IsNullOrWhiteSpace(message))
                 {
                     throw new ArgumentNullException(parameterName, message);
                 }
@@ -58,13 +42,8 @@ namespace ImageProcessorCore
         /// </summary>
         /// <param name="target">The target string, which should be checked against being null or empty.</param>
         /// <param name="parameterName">Name of the parameter.</param>
-        /// <exception cref="System.ArgumentNullException">
-        /// <paramref name="target"/> is null.
-        /// </exception>
-        /// <exception cref="ArgumentException">
-        /// <paramref name="target"/> is
-        /// empty or contains only blanks.
-        /// </exception>
+        /// <exception cref="ArgumentNullException"><paramref name="target"/> is null.</exception>
+        /// <exception cref="ArgumentException"><paramref name="target"/> is empty or contains only blanks.</exception>
         public static void NotNullOrEmpty(string target, string parameterName)
         {
             if (target == null)
@@ -94,9 +73,7 @@ namespace ImageProcessorCore
         {
             if (value.CompareTo(max) >= 0)
             {
-                throw new ArgumentOutOfRangeException(
-                    parameterName,
-                    $"Value must be less than {max}.");
+                throw new ArgumentOutOfRangeException(parameterName, $"Value must be less than {max}.");
             }
         }
 
@@ -116,9 +93,7 @@ namespace ImageProcessorCore
         {
             if (value.CompareTo(max) > 0)
             {
-                throw new ArgumentOutOfRangeException(
-                    parameterName,
-                    $"Value must be less than or equal to {max}.");
+                throw new ArgumentOutOfRangeException(parameterName, $"Value must be less than or equal to {max}.");
             }
         }
 
@@ -134,7 +109,7 @@ namespace ImageProcessorCore
         /// <paramref name="value"/> is less than the minimum value.
         /// </exception>
         public static void MustBeGreaterThan<TValue>(TValue value, TValue min, string parameterName)
-                    where TValue : IComparable<TValue>
+            where TValue : IComparable<TValue>
         {
             if (value.CompareTo(min) <= 0)
             {
@@ -156,13 +131,11 @@ namespace ImageProcessorCore
         /// <paramref name="value"/> is less than the minimum value.
         /// </exception>
         public static void MustBeGreaterThanOrEqualTo<TValue>(TValue value, TValue min, string parameterName)
-                    where TValue : IComparable<TValue>
+            where TValue : IComparable<TValue>
         {
             if (value.CompareTo(min) < 0)
             {
-                throw new ArgumentOutOfRangeException(
-                    parameterName,
-                    $"Value must be greater than or equal to {min}.");
+                throw new ArgumentOutOfRangeException(parameterName, $"Value must be greater than or equal to {min}.");
             }
         }
 
@@ -179,13 +152,11 @@ namespace ImageProcessorCore
         /// <paramref name="value"/> is less than the minimum value of greater than the maximum value.
         /// </exception>
         public static void MustBeBetweenOrEqualTo<TValue>(TValue value, TValue min, TValue max, string parameterName)
-                    where TValue : IComparable<TValue>
+            where TValue : IComparable<TValue>
         {
             if (value.CompareTo(min) < 0 || value.CompareTo(max) > 0)
             {
-                throw new ArgumentOutOfRangeException(
-                    parameterName,
-                    $"Value must be greater than or equal to {min} and less than or equal to {max}.");
+                throw new ArgumentOutOfRangeException(parameterName, $"Value must be greater than or equal to {min} and less than or equal to {max}.");
             }
         }
 
@@ -203,18 +174,13 @@ namespace ImageProcessorCore
         /// The error message, if any to add to the exception.
         /// </param>
         /// <exception cref="ArgumentException">
-        /// <paramref name="target"/> is null
+        /// <paramref name="target"/> is false
         /// </exception>
-        public static void IsTrue(bool target, string parameterName, string message = "")
+        public static void IsTrue(bool target, string parameterName, string message)
         {
             if (!target)
             {
-                if (string.IsNullOrWhiteSpace(message))
-                {
-                    throw new ArgumentException(parameterName, message);
-                }
-
-                throw new ArgumentException(parameterName);
+                throw new ArgumentException(message, parameterName);
             }
         }
 
@@ -222,28 +188,17 @@ namespace ImageProcessorCore
         /// Verifies, that the method parameter with specified target value is false
         /// and throws an exception if it is found to be so.
         /// </summary>
-        /// <param name="target">
-        /// The target value, which cannot be true.
-        /// </param>
-        /// <param name="parameterName">
-        /// The name of the parameter that is to be checked.
-        /// </param>
-        /// <param name="message">
-        /// The error message, if any to add to the exception.
-        /// </param>
+        /// <param name="target">The target value, which cannot be true.</param>
+        /// <param name="parameterName">The name of the parameter that is to be checked.</param>
+        /// <param name="message">The error message, if any to add to the exception.</param>
         /// <exception cref="ArgumentException">
-        /// <paramref name="target"/> is null
+        /// <paramref name="target"/> is true
         /// </exception>
-        public static void IsFalse(bool target, string parameterName, string message = "")
+        public static void IsFalse(bool target, string parameterName, string message)
         {
             if (target)
             {
-                if (string.IsNullOrWhiteSpace(message))
-                {
-                    throw new ArgumentException(parameterName, message);
-                }
-
-                throw new ArgumentException(parameterName);
+                throw new ArgumentException(message, parameterName);
             }
         }
     }

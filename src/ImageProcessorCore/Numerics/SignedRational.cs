@@ -14,81 +14,81 @@ namespace ImageProcessorCore
     /// <remarks>
     /// This is a very simplified implimentation of a rational number designed for use with metadata only.
     /// </remarks>
-    public struct Rational : IEquatable<Rational>
+    public struct SignedRational : IEquatable<SignedRational>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="Rational"/> struct.
+        /// Initializes a new instance of the <see cref="SignedRational"/> struct.
         /// </summary>
         ///<param name="value">The <see cref="double"/> to convert to an instance of this type.</param>
-        public Rational(double value)
+        public SignedRational(double value)
           : this(value, false)
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Rational"/> struct.
+        /// Initializes a new instance of the <see cref="SignedRational"/> struct.
         /// </summary>
         ///<param name="value">The <see cref="double"/> to convert to an instance of this type.</param>
         ///<param name="bestPrecision">Specifies if the instance should be created with the best precision possible.</param>
-        public Rational(double value, bool bestPrecision)
+        public SignedRational(double value, bool bestPrecision)
         {
-            BigRational rational = new BigRational(Math.Abs(value), bestPrecision);
+            BigRational rational = new BigRational(value, bestPrecision);
 
-            Numerator = (uint)rational.Numerator;
-            Denominator = (uint)rational.Denominator;
+            Numerator = (int)rational.Numerator;
+            Denominator = (int)rational.Denominator;
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Rational"/> struct.
+        /// Initializes a new instance of the <see cref="SignedRational"/> struct.
         /// </summary>
         /// <param name="value">The integer to create the rational from.</param>
-        public Rational(uint value)
+        public SignedRational(int value)
           : this(value, 1)
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Rational"/> struct.
+        /// Initializes a new instance of the <see cref="SignedRational"/> struct.
         /// </summary>
         /// <param name="numerator">The number above the line in a vulgar fraction showing how many of the parts indicated by the denominator are taken.</param>
         /// <param name="denominator">The number below the line in a vulgar fraction; a divisor.</param>
-        public Rational(uint numerator, uint denominator)
+        public SignedRational(int numerator, int denominator)
           : this(numerator, denominator, true)
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Rational"/> struct.
+        /// Initializes a new instance of the <see cref="SignedRational"/> struct.
         /// </summary>
         /// <param name="numerator">The number above the line in a vulgar fraction showing how many of the parts indicated by the denominator are taken.</param>
         /// <param name="denominator">The number below the line in a vulgar fraction; a divisor.</param>
         /// <param name="simplify">Specified if the rational should be simplified.</param>
-        public Rational(uint numerator, uint denominator, bool simplify)
+        public SignedRational(int numerator, int denominator, bool simplify)
         {
             BigRational rational = new BigRational(numerator, denominator, simplify);
 
-            Numerator = (uint)rational.Numerator;
-            Denominator = (uint)rational.Denominator;
+            Numerator = (int)rational.Numerator;
+            Denominator = (int)rational.Denominator;
         }
 
         /// <summary>
-        /// Determines whether the specified <see cref="Rational"/> instances are considered equal.
+        /// Determines whether the specified <see cref="SignedRational"/> instances are considered equal.
         /// </summary>
-        /// <param name="left">The first <see cref="Rational"/>  to compare.</param>
-        /// <param name="right"> The second <see cref="Rational"/>  to compare.</param>
+        /// <param name="left">The first <see cref="SignedRational"/>  to compare.</param>
+        /// <param name="right"> The second <see cref="SignedRational"/>  to compare.</param>
         /// <returns></returns>
-        public static bool operator ==(Rational left, Rational right)
+        public static bool operator ==(SignedRational left, SignedRational right)
         {
             return Equals(left, right);
         }
 
         /// <summary>
-        /// Determines whether the specified <see cref="Rational"/> instances are not considered equal.
+        /// Determines whether the specified <see cref="SignedRational"/> instances are not considered equal.
         /// </summary>
-        /// <param name="left">The first <see cref="Rational"/> to compare.</param>
-        /// <param name="right"> The second <see cref="Rational"/> to compare.</param>
+        /// <param name="left">The first <see cref="SignedRational"/> to compare.</param>
+        /// <param name="right"> The second <see cref="SignedRational"/> to compare.</param>
         /// <returns></returns>
-        public static bool operator !=(Rational left, Rational right)
+        public static bool operator !=(SignedRational left, SignedRational right)
         {
             return !Equals(left, right);
         }
@@ -96,7 +96,7 @@ namespace ImageProcessorCore
         /// <summary>
         /// Gets the numerator of a number.
         /// </summary>
-        public uint Numerator
+        public int Numerator
         {
             get;
             private set;
@@ -105,29 +105,29 @@ namespace ImageProcessorCore
         /// <summary>
         /// Gets the denominator of a number.
         /// </summary>
-        public uint Denominator
+        public int Denominator
         {
             get;
             private set;
         }
 
         ///<summary>
-        /// Determines whether the specified <see cref="object"/> is equal to this <see cref="Rational"/>.
+        /// Determines whether the specified <see cref="object"/> is equal to this <see cref="SignedRational"/>.
         ///</summary>
-        ///<param name="obj">The <see cref="object"/> to compare this <see cref="Rational"/> with.</param>
+        ///<param name="obj">The <see cref="object"/> to compare this <see cref="SignedRational"/> with.</param>
         public override bool Equals(object obj)
         {
-            if (obj is Rational)
-                return Equals((Rational)obj);
+            if (obj is SignedRational)
+                return Equals((SignedRational)obj);
 
             return false;
         }
 
         ///<summary>
-        /// Determines whether the specified <see cref="Rational"/> is equal to this <see cref="Rational"/>.
+        /// Determines whether the specified <see cref="SignedRational"/> is equal to this <see cref="SignedRational"/>.
         ///</summary>
-        ///<param name="other">The <see cref="Rational"/> to compare this <see cref="Rational"/> with.</param>
-        public bool Equals(Rational other)
+        ///<param name="other">The <see cref="SignedRational"/> to compare this <see cref="SignedRational"/> with.</param>
+        public bool Equals(SignedRational other)
         {
             BigRational left = new BigRational(Numerator, Denominator);
             BigRational right = new BigRational(other.Numerator, other.Denominator);
@@ -139,9 +139,9 @@ namespace ImageProcessorCore
         /// Converts the specified <see cref="double"/> to an instance of this type.
         ///</summary>
         ///<param name="value">The <see cref="double"/> to convert to an instance of this type.</param>
-        public static Rational FromDouble(double value)
+        public static SignedRational FromDouble(double value)
         {
-            return new Rational(value, false);
+            return new SignedRational(value, false);
         }
 
         ///<summary>
@@ -149,9 +149,9 @@ namespace ImageProcessorCore
         ///</summary>
         ///<param name="value">The <see cref="double"/> to convert to an instance of this type.</param>
         ///<param name="bestPrecision">Specifies if the instance should be created with the best precision possible.</param>
-        public static Rational FromDouble(double value, bool bestPrecision)
+        public static SignedRational FromDouble(double value, bool bestPrecision)
         {
-            return new Rational(value, bestPrecision);
+            return new SignedRational(value, bestPrecision);
         }
 
         ///<summary>

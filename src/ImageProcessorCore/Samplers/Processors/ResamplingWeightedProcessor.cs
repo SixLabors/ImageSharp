@@ -65,7 +65,6 @@ namespace ImageProcessorCore.Processors
             }
         }
 
-
         /// <summary>
         /// Computes the weights to apply at each pixel when resizing.
         /// </summary>

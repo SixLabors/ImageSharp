@@ -44,8 +44,8 @@ namespace ImageProcessorCore
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
-            IImageProcessor<TColor, TPacked> processor = mode == GrayscaleMode.Bt709
-                ? (IImageProcessor<TColor, TPacked>)new GrayscaleBt709Processor<TColor, TPacked>()
+            IImageFilter<TColor, TPacked> processor = mode == GrayscaleMode.Bt709
+                ? (IImageFilter<TColor, TPacked>)new GrayscaleBt709Processor<TColor, TPacked>()
                 : new GrayscaleBt601Processor<TColor, TPacked>();
 
             processor.OnProgress += progressHandler;

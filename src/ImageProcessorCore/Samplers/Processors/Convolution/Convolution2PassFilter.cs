@@ -13,7 +13,7 @@ namespace ImageProcessorCore.Processors
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public abstract class Convolution2PassFilter<TColor, TPacked> : ImageProcessor<TColor, TPacked>
+    public abstract class Convolution2PassFilter<TColor, TPacked> : ImageSampler<TColor, TPacked>
         where TColor : IPackedVector<TPacked>
         where TPacked : struct
     {

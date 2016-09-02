@@ -264,15 +264,17 @@ namespace ImageProcessorCore.Formats
                    Bootstrapper.Instance.ParallelOptions,
                    y =>
                    {
-                       // Color data is stored in r -> g -> b -> a order
                        for (int x = 0; x < this.width; x++)
                        {
                            int dataOffset = (y * stride) + (x * this.bytesPerPixel);
-                           byte[] source = pixels[x, y].ToBytes();
+                           Color source = new Color(pixels[x, y].ToVector4());
 
-                           for (int i = 0; i < this.bytesPerPixel; i++)
+                           this.pixelData[dataOffset] = source.R;
+                           this.pixelData[dataOffset + 1] = source.G;
+                           this.pixelData[dataOffset + 2] = source.B;
+                           if (this.bytesPerPixel == 4)
                            {
-                               this.pixelData[dataOffset + i] = source[i];
+                               this.pixelData[dataOffset + 3] = source.A;
                            }
                        }
                    });
@@ -511,12 +513,10 @@ namespace ImageProcessorCore.Formats
                 i =>
                 {
                     int offset = i * 3;
-                    byte[] color = palette[i].ToBytes();
-
-                    // Expected format r->g->b
-                    colorTable[offset] = color[0];
-                    colorTable[offset + 1] = color[1];
-                    colorTable[offset + 2] = color[2];
+                    Color color = new Color(palette[i].ToVector4());
+                    colorTable[offset] = color.R;
+                    colorTable[offset + 1] = color.G;
+                    colorTable[offset + 2] = color.B;
                 });
 
             this.WriteChunk(stream, PngChunkTypes.Palette, colorTable);

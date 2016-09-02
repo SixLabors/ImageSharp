@@ -84,7 +84,7 @@ namespace ImageProcessorCore.Quantizers
             byte paletteIndex = (byte)this.colors;
 
             // Get the palette index if it's transparency meets criterea.
-            if (pixel.ToBytes()[3] > this.Threshold)
+            if (new Color(pixel.ToVector4()).A > this.Threshold)
             {
                 paletteIndex = (byte)this.octree.GetPaletteIndex(pixel);
             }
@@ -195,7 +195,7 @@ namespace ImageProcessorCore.Quantizers
             /// </param>
             public void AddColor(TColor pixel)
             {
-                TPacked packed = pixel.GetPackedValue();
+                TPacked packed = pixel.PackedValue;
                 // Check if this request is for the same color as the last
                 if (this.previousColor.Equals(packed))
                 {
@@ -391,10 +391,10 @@ namespace ImageProcessorCore.Quantizers
                     {
                         // Go to the next level down in the tree
                         int shift = 7 - level;
-                        byte[] components = pixel.ToBytes();
-                        int index = ((components[2] & Mask[level]) >> (shift - 2)) |
-                                    ((components[1] & Mask[level]) >> (shift - 1)) |
-                                    ((components[0] & Mask[level]) >> shift);
+                        Color color = new Color(pixel.ToVector4());
+                        int index = ((color.B & Mask[level]) >> (shift - 2)) |
+                                    ((color.G & Mask[level]) >> (shift - 1)) |
+                                    ((color.R & Mask[level]) >> shift);
 
                         OctreeNode child = this.children[index];
 
@@ -458,7 +458,7 @@ namespace ImageProcessorCore.Quantizers
 
                         // And set the color of the palette entry
                         TColor pixel = default(TColor);
-                        pixel.PackFromBytes(r, g, b, 255);
+                        pixel.PackFromVector4(new Color(r, g, b).ToVector4());
                         palette.Add(pixel);
                     }
                     else
@@ -489,10 +489,10 @@ namespace ImageProcessorCore.Quantizers
                     if (!this.leaf)
                     {
                         int shift = 7 - level;
-                        byte[] components = pixel.ToBytes();
-                        int pixelIndex = ((components[2] & Mask[level]) >> (shift - 2)) |
-                                         ((components[1] & Mask[level]) >> (shift - 1)) |
-                                         ((components[0] & Mask[level]) >> shift);
+                        Color color = new Color(pixel.ToVector4());
+                        int pixelIndex = ((color.B & Mask[level]) >> (shift - 2)) |
+                                         ((color.G & Mask[level]) >> (shift - 1)) |
+                                         ((color.R & Mask[level]) >> shift);
 
                         if (this.children[pixelIndex] != null)
                         {
@@ -516,10 +516,10 @@ namespace ImageProcessorCore.Quantizers
                 public void Increment(TColor pixel)
                 {
                     this.pixelCount++;
-                    byte[] components = pixel.ToBytes();
-                    this.red += components[0];
-                    this.green += components[1];
-                    this.blue += components[2];
+                    Color color = new Color(pixel.ToVector4());
+                    this.red += color.R;
+                    this.green += color.G;
+                    this.blue += color.B;
                 }
             }
         }

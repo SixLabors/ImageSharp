@@ -38,6 +38,30 @@ namespace ImageProcessorCore
         }
 
         /// <summary>
+        /// Restricts a <see cref="uint"/> to be within a specified range.
+        /// </summary>
+        /// <param name="value">The The value to clamp.</param>
+        /// <param name="min">The minimum value. If value is less than min, min will be returned.</param>
+        /// <param name="max">The maximum value. If value is greater than max, max will be returned.</param>
+        /// <returns>
+        /// The <see cref="int"/> representing the clamped value.
+        /// </returns>
+        public static uint Clamp(this uint value, uint min, uint max)
+        {
+            if (value > max)
+            {
+                return max;
+            }
+
+            if (value < min)
+            {
+                return min;
+            }
+
+            return value;
+        }
+
+        /// <summary>
         /// Restricts a <see cref="int"/> to be within a specified range.
         /// </summary>
         /// <param name="value">The The value to clamp.</param>

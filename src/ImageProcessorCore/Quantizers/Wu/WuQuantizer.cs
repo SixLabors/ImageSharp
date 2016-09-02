@@ -3,6 +3,8 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+using System.Numerics;
+
 namespace ImageProcessorCore.Quantizers
 {
     using System;
@@ -332,12 +334,12 @@ namespace ImageProcessorCore.Quantizers
                 for (int x = 0; x < pixels.Width; x++)
                 {
                     // Colors are expected in r->g->b->a format
-                    byte[] color = pixels[x, y].ToBytes();
+                   Color color = new Color(pixels[x, y].ToVector4());
 
-                    byte r = color[0];
-                    byte g = color[1];
-                    byte b = color[2];
-                    byte a = color[3];
+                    byte r = color.R;
+                    byte g = color.G;
+                    byte b = color.B;
+                    byte a = color.A;
 
                     int inr = r >> (8 - IndexBits);
                     int ing = g >> (8 - IndexBits);
@@ -745,7 +747,7 @@ namespace ImageProcessorCore.Quantizers
                     byte a = (byte)(Volume(cube[k], this.vma) / weight);
 
                     TColor color = default(TColor);
-                    color.PackFromBytes(r, g, b, a);
+                    color.PackFromVector4(new Vector4(r, g, b, a) / 255F);
 
                     if (color.Equals(default(TColor)))
                     {
@@ -770,13 +772,13 @@ namespace ImageProcessorCore.Quantizers
                         for (int x = 0; x < width; x++)
                         {
                             // Expected order r->g->b->a
-                            byte[] color = imagePixels[x, y].ToBytes();
-                            int r = color[0] >> (8 - IndexBits);
-                            int g = color[1] >> (8 - IndexBits);
-                            int b = color[2] >> (8 - IndexBits);
-                            int a = color[3] >> (8 - IndexAlphaBits);
+                            Color color = new Color(imagePixels[x, y].ToVector4());
+                            int r = color.R >> (8 - IndexBits);
+                            int g = color.G >> (8 - IndexBits);
+                            int b = color.B >> (8 - IndexBits);
+                            int a = color.A >> (8 - IndexAlphaBits);
 
-                            if (transparentIndex > -1 && color[3] <= this.Threshold)
+                            if (transparentIndex > -1 && color.A <= this.Threshold)
                             {
                                 pixels[(y * width) + x] = (byte)transparentIndex;
                                 continue;

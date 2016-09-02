@@ -242,7 +242,7 @@ namespace ImageProcessorCore.Formats
 
                                 // Stored in b-> g-> r order.
                                 TColor packed = default(TColor);
-                                packed.PackFromBytes(colors[colorIndex + 2], colors[colorIndex + 1], colors[colorIndex], 255);
+                                packed.PackFromVector4(new Color(colors[colorIndex + 2], colors[colorIndex + 1], colors[colorIndex]).ToVector4());
                                 imageData[arrayOffset] = packed;
                             }
                         }
@@ -294,7 +294,7 @@ namespace ImageProcessorCore.Formats
 
                             // Stored in b-> g-> r order.
                             TColor packed = default(TColor);
-                            packed.PackFromBytes(r, g, b, 255);
+                            packed.PackFromVector4(new Color(r, g, b).ToVector4());
                             imageData[arrayOffset] = packed;
                         }
                     });
@@ -332,10 +332,9 @@ namespace ImageProcessorCore.Formats
                             int offset = rowOffset + (x * 3);
                             int arrayOffset = ((row * width) + x);
 
-                            // We divide by 255 as we will store the colors in our floating point format.
                             // Stored in b-> g-> r-> a order.
                             TColor packed = default(TColor);
-                            packed.PackFromBytes(data[offset + 2], data[offset + 1], data[offset], 255);
+                            packed.PackFromVector4(new Color(data[offset + 2], data[offset + 1], data[offset]).ToVector4());
                             imageData[arrayOffset] = packed;
                         }
                     });
@@ -375,7 +374,7 @@ namespace ImageProcessorCore.Formats
 
                             // Stored in b-> g-> r-> a order.
                             TColor packed = default(TColor);
-                            packed.PackFromBytes(data[offset + 2], data[offset + 1], data[offset], data[offset + 3]);
+                            packed.PackFromVector4(new Color(data[offset + 2], data[offset + 1], data[offset], data[offset + 3]).ToVector4());
                             imageData[arrayOffset] = packed;
                         }
                     });

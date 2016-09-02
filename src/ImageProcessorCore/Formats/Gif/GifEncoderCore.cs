@@ -281,11 +281,11 @@ namespace ImageProcessorCore.Formats
                 i =>
                 {
                     int offset = i * 3;
-                    byte[] color = palette[i].ToBytes();
+                    Color color = new Color(palette[i].ToVector4());
 
-                    colorTable[offset] = color[0];
-                    colorTable[offset + 1] = color[1];
-                    colorTable[offset + 2] = color[2];
+                    colorTable[offset] = color.R;
+                    colorTable[offset + 1] = color.G;
+                    colorTable[offset + 2] = color.B;
                 });
 
             writer.Write(colorTable, 0, colorTableLength);

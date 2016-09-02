@@ -37,11 +37,11 @@ namespace ImageProcessorCore.Processors
         protected override void AfterApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
         {
             TColor packedV = default(TColor);
-            packedV.PackFromBytes(102, 34, 0, 255); // Very dark orange [Brown tone]
+            packedV.PackFromVector4(new Color(102, 34, 0).ToVector4()); // Very dark orange [Brown tone]
             new VignetteProcessor<TColor, TPacked> { VignetteColor = packedV }.Apply(source, sourceRectangle);
 
             TColor packedG = default(TColor);
-            packedG.PackFromBytes(255, 153, 102, 178); // Light orange
+            packedG.PackFromVector4(new Color(255, 153, 102, 178).ToVector4()); // Light orange
             new GlowProcessor<TColor, TPacked> { GlowColor = packedG, Radius = source.Width / 4F }.Apply(source, sourceRectangle);
         }
     }

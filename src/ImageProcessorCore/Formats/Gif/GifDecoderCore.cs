@@ -358,9 +358,8 @@ namespace ImageProcessorCore.Formats
                     {
                         // Stored in r-> g-> b-> a order.
                         int indexOffset = index * 3;
-
                         TColor pixel = default(TColor);
-                        pixel.PackFromBytes(colorTable[indexOffset], colorTable[indexOffset + 1], colorTable[indexOffset + 2], 255);
+                        pixel.PackFromVector4(new Color(colorTable[indexOffset], colorTable[indexOffset + 1], colorTable[indexOffset + 2]).ToVector4());
                         this.currentFrame[offset] = pixel;
                     }
 

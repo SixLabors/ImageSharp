@@ -96,7 +96,7 @@ namespace ImageProcessorCore.Tests
         {
             const string First = "FF000000";
             Color color = Color.Black;
-            string second = color.GetPackedValue().ToString("X");
+            string second = color.PackedValue.ToString("X");
             Assert.Equal(First, second);
         }
     }

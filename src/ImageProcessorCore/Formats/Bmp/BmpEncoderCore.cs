@@ -160,8 +160,8 @@ namespace ImageProcessorCore.Formats
                 for (int x = 0; x < pixels.Width; x++)
                 {
                     // Convert back to b-> g-> r-> a order.
-                    byte[] bytes = pixels[x, y].ToBytes();
-                    writer.Write(new[] { bytes[2], bytes[1], bytes[0], bytes[3] });
+                    Color color = new Color(pixels[x, y].ToVector4());
+                    writer.Write(new[] { color.B, color.G, color.R, color.A });
                 }
 
                 // Pad
@@ -188,8 +188,8 @@ namespace ImageProcessorCore.Formats
                 for (int x = 0; x < pixels.Width; x++)
                 {
                     // Convert back to b-> g-> r order.
-                    byte[] bytes = pixels[x, y].ToBytes();
-                    writer.Write(new[] { bytes[2], bytes[1], bytes[0] });
+                    Color color = new Color(pixels[x, y].ToVector4());
+                    writer.Write(new[] { color.B, color.G, color.R });
                 }
 
                 // Pad

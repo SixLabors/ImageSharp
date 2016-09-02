@@ -47,7 +47,7 @@
                     Bootstrapper.Instance.ParallelOptions,
                     y =>
                     {
-                        sourcePixels.CopyRow(0, y, targetPixels, 0, y, source.Width);
+                        sourcePixels.CopyBlock(0, y, targetPixels, 0, y, source.Width);
                     });
 
                 return targetPixels[0, 0];

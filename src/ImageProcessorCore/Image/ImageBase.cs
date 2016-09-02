@@ -16,7 +16,7 @@ namespace ImageProcessorCore
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     [DebuggerDisplay("Image: {Width}x{Height}")]
-    public abstract unsafe class ImageBase<TColor, TPacked> : IImageBase<TColor, TPacked>
+    public abstract class ImageBase<TColor, TPacked> : IImageBase<TColor, TPacked>
         where TColor : IPackedVector<TPacked>
         where TPacked : struct
     {

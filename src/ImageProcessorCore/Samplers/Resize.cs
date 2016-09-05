@@ -88,6 +88,25 @@ namespace ImageProcessorCore
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
         /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
+        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
+        /// <returns>The <see cref="Image{TColor, TPacked}"/></returns>
+        /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
+        public static Image<TColor, TPacked> Resize<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height, IResampler sampler, ProgressEventHandler progressHandler = null)
+            where TColor : IPackedVector<TPacked>
+            where TPacked : struct
+        {
+            return Resize(source, width, height, sampler, false, progressHandler);
+        }
+
+        /// <summary>
+        /// Resizes an image to the given width and height with the given sampler.
+        /// </summary>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+        /// <param name="source">The image to resize.</param>
+        /// <param name="width">The target image width.</param>
+        /// <param name="height">The target image height.</param>
+        /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
         /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/></returns>

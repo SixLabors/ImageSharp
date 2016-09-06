@@ -7,25 +7,44 @@ namespace ImageProcessorCore.Benchmarks.General
 
     public class ArrayCopy
     {
-        private double[] source = new double[10000];
+        [Params(100, 1000, 10000)]
+        public int Count { get; set; }
+
+        byte[] source, destination;
+
+        long sizeInBytes;
+
+        [Setup]
+        public void SetUp()
+        {
+            source = new byte[Count];
+            destination = new byte[Count];
+        }
 
         [Benchmark(Baseline = true, Description = "Copy using Array.Copy()")]
-        public double CopyArray()
+        public void CopyArray()
         {
-
-            double[] destination = new double[10000];
-            Array.Copy(source, destination, 10000);
-
-            return destination[0];
+            Array.Copy(source, destination, Count);
         }
 
         [Benchmark(Description = "Copy using Unsafe<T>")]
-        public unsafe double CopyUnsafe()
+        public unsafe void CopyUnsafe()
         {
-            double[] destination = new double[10000];
-            Unsafe.Copy(Unsafe.AsPointer(ref destination), ref source);
+            fixed (byte* pinnedDestination = destination)
+            fixed (byte* pinnedSource = source)
+            {
+                Unsafe.CopyBlock(pinnedSource, pinnedDestination, (uint)Count);
+            }
+        }
 
-            return destination[0];
+        [Benchmark(Description = "Copy using Buffer.MemoryCopy<T>")]
+        public unsafe void CopyUsingBufferMemoryCopy()
+        {
+            fixed (byte* pinnedDestination = destination)
+            fixed (byte* pinnedSource = source)
+            {
+                Buffer.MemoryCopy(pinnedSource, pinnedDestination, Count, Count);
+            }
         }
     }
 }

@@ -24,7 +24,7 @@ namespace ImageProcessorCore.Tests
         public static class Jpg
         {
             private static readonly string folder = "TestImages/Formats/Jpg/";
-
+            public static string Cmyk { get { return folder + "cmyk.jpg"; } }
             public static string Exif { get { return folder + "exif.jpeg"; } }
             public static string Floorplan { get { return folder + "Floorplan.jpeg"; } }
             public static string Calliphora { get { return folder + "Calliphora.jpg"; } }

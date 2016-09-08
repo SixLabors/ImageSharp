@@ -19,7 +19,7 @@ namespace ImageProcessorCore.Tests
         };
 
         [Theory]
-        [MemberData("PixelateValues")]
+        [MemberData(nameof(PixelateValues))]
         public void ImageShouldApplyPixelateFilter(int value)
         {
             const string path = "TestOutput/Pixelate";
@@ -45,7 +45,7 @@ namespace ImageProcessorCore.Tests
         }
 
         [Theory]
-        [MemberData("PixelateValues")]
+        [MemberData(nameof(PixelateValues))]
         public void ImageShouldApplyPixelateFilterInBox(int value)
         {
             const string path = "TestOutput/Pixelate";

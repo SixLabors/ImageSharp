@@ -144,6 +144,7 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
  - [x] Pixelate
  - [x] Blend
  - [ ] Mask
+ - [x] Oil Painting
  - [x] Vignette
  - [x] Glow
  - [x] Threshold

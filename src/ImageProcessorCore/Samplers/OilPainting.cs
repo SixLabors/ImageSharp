@@ -14,43 +14,47 @@ namespace ImageProcessorCore
     public static partial class ImageExtensions
     {
         /// <summary>
-        /// Pixelates an image with the given pixel size.
+        /// Alters the colors of the image recreating an oil painting effect.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
-        /// <param name="size">The size of the pixels.</param>
+        /// <param name="levels">The number of intensity levels. Higher values result in a broader range of colour intensities forming part of the result image.</param>
+        /// <param name="brushSize">The number of neighbouring pixels used in calculating each individual pixel value.</param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> Pixelate<TColor, TPacked>(this Image<TColor, TPacked> source, int size = 4, ProgressEventHandler progressHandler = null)
+        public static Image<TColor, TPacked> OilPaint<TColor, TPacked>(this Image<TColor, TPacked> source, int levels = 10, int brushSize = 15, ProgressEventHandler progressHandler = null)
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
-            return Pixelate(source, size, source.Bounds, progressHandler);
+            return OilPaint(source, levels, brushSize, source.Bounds, progressHandler);
         }
 
         /// <summary>
-        /// Pixelates an image with the given pixel size.
+        /// Alters the colors of the image recreating an oil painting effect.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
-        /// <param name="size">The size of the pixels.</param>
+        /// <param name="levels">The number of intensity levels. Higher values result in a broader range of colour intensities forming part of the result image.</param>
+        /// <param name="brushSize">The number of neighbouring pixels used in calculating each individual pixel value.</param>
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> Pixelate<TColor, TPacked>(this Image<TColor, TPacked> source, int size, Rectangle rectangle, ProgressEventHandler progressHandler = null)
+        public static Image<TColor, TPacked> OilPaint<TColor, TPacked>(this Image<TColor, TPacked> source, int levels, int brushSize, Rectangle rectangle, ProgressEventHandler progressHandler = null)
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
-            if (size <= 0 || size > source.Height || size > source.Width)
+            Guard.MustBeGreaterThan(levels, 0, nameof(levels));
+
+            if (brushSize <= 0 || brushSize > source.Height || brushSize > source.Width)
             {
-                throw new ArgumentOutOfRangeException(nameof(size));
+                throw new ArgumentOutOfRangeException(nameof(brushSize));
             }
 
-            PixelateProcessor<TColor, TPacked> processor = new PixelateProcessor<TColor, TPacked>(size);
+            OilPaintingProcessor<TColor, TPacked> processor = new OilPaintingProcessor<TColor, TPacked>(levels, brushSize);
             processor.OnProgress += progressHandler;
 
             try

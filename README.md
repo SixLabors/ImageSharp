@@ -5,7 +5,7 @@
 
 **ImageProcessorCore** is a new cross-platform 2D graphics API designed to allow the processing of images without the use of `System.Drawing`. 
 
-> **ImageProcessorCore is still in early stages (alpha) but progress has been pretty quick. As such, please do not use on production environments until the library reaches release candidate status.**
+> **ImageProcessorCore is still in early stages (alpha) but progress has been pretty quick. As such, please do not use on production environments until the library reaches release candidate status. Pre-release downloads are available from the [MyGet package repository](https://www.myget.org/gallery/imageprocessor).**
 
 > For the older `ImageFactory` based API that uses `System.Drawing` please check out the [Framework](https://github.com/JimBobSquarePants/ImageProcessor/tree/Framework) branch.
 

@@ -180,7 +180,7 @@ using (FileStream output = File.OpenWrite("bar.jpg"))
 Individual processors can be initialised and apply processing against images. This allows nesting which brings the potential for powerful combinations of processing methods:
 
 ```csharp
-new Brightness(50).Apply(sourceImage, targetImage, sourceImage.Bounds);
+new BrightnessProcessor(50).Apply(sourceImage, sourceImage.Bounds);
 ```
 
 Setting individual pixel values is perfomed as follows:

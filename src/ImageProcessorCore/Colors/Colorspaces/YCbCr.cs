@@ -10,7 +10,7 @@ namespace ImageProcessorCore
     using System.Numerics;
 
     /// <summary>
-    /// Represents an YCbCr (luminance, chroma, chroma) color conforming to the
+    /// Represents an YCbCr (luminance, blue chroma, red chroma) color conforming to the
     /// Full range standard used in digital imaging systems.
     /// <see href="http://en.wikipedia.org/wiki/YCbCr"/>
     /// </summary>

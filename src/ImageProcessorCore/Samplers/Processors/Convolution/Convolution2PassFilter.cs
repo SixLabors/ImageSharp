@@ -28,7 +28,7 @@ namespace ImageProcessorCore.Processors
         public abstract float[,] KernelY { get; }
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        public override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             float[,] kernelX = this.KernelX;
             float[,] kernelY = this.KernelY;

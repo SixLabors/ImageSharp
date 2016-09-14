@@ -89,7 +89,7 @@ namespace ImageProcessorCore.Processors
         /// <remarks>
         /// The method keeps the source image unchanged and returns the the result of image process as new image.
         /// </remarks>
-        protected abstract void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY);
+        public abstract void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY);
 
         /// <summary>
         /// This method is called before the process is applied to prepare the processor.

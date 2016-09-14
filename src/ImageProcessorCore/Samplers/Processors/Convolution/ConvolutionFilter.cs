@@ -13,17 +13,26 @@ namespace ImageProcessorCore.Processors
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public abstract class ConvolutionFilter<TColor, TPacked> : ImageSampler<TColor, TPacked>
+    public class ConvolutionFilter<TColor, TPacked> : ImageSampler<TColor, TPacked>
         where TColor : IPackedVector<TPacked>
         where TPacked : struct
     {
         /// <summary>
+        /// Initializes a new instance of the <see cref="ConvolutionFilter{TColor,TPacked}"/> class.
+        /// </summary>
+        /// <param name="kernelXY">The 2d gradient operator.</param>
+        public ConvolutionFilter(float[,] kernelXY)
+        {
+            this.KernelXY = kernelXY;
+        }
+
+        /// <summary>
         /// Gets the 2d gradient operator.
         /// </summary>
-        public abstract float[,] KernelXY { get; }
+        public virtual float[,] KernelXY { get; }
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        public override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             float[,] kernelX = this.KernelXY;
             int kernelLength = kernelX.GetLength(0);
@@ -87,8 +96,8 @@ namespace ImageProcessorCore.Processors
                             TColor packed = default(TColor);
                             packed.PackFromVector4(new Vector4(red, green, blue, targetColor.Z));
                             targetPixels[x, y] = packed;
-
                         }
+
                         this.OnRowProcessed();
                     }
                 });

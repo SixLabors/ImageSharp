@@ -47,7 +47,7 @@ namespace ImageProcessorCore.Processors
             ImageBase<TColor, TPacked> temp = new Image<TColor, TPacked>(source.Width, source.Height);
 
             // Detect the edges.
-            new SobelProcessor<TColor, TPacked>().Apply(temp, source, sourceRectangle);
+            new SobelProcessor<TColor, TPacked>(false).Apply(temp, source, sourceRectangle);
 
             // Apply threshold binarization filter.
             new BinaryThresholdProcessor<TColor, TPacked>(.5f).Apply(temp, sourceRectangle);
@@ -61,7 +61,7 @@ namespace ImageProcessorCore.Processors
         }
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        public override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             // Jump out, we'll deal with that later.
             if (source.Bounds == target.Bounds)

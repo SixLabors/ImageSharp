@@ -15,16 +15,29 @@ namespace ImageProcessorCore.Processors
         where TColor : IPackedVector<TPacked>
         where TPacked : struct
     {
-        /// <inheritdoc/>
-        public override float[,] KernelX => new float[,]
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ScharrProcessor{TColor,TPacked}"/> class.
+        /// </summary>
+        /// <param name="grayscale">Whether to convert the image to grayscale before performing edge detection..</param>
+        public ScharrProcessor(bool grayscale)
+            : base(KernelA, KernelB, grayscale)
+        {
+        }
+
+        /// <summary>
+        /// Gets the horizontal gradient operator.
+        /// </summary>
+        public static float[,] KernelA => new float[,]
         {
             { -3, 0, 3 },
             { -10, 0, 10 },
             { -3, 0, 3 }
         };
 
-        /// <inheritdoc/>
-        public override float[,] KernelY => new float[,]
+        /// <summary>
+        /// Gets the vertical gradient operator.
+        /// </summary>
+        public static float[,] KernelB => new float[,]
         {
             { 3, 10, 3 },
             { 0, 0, 0 },

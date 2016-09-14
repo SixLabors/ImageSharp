@@ -23,6 +23,7 @@ namespace ImageProcessorCore.Tests
             //TestImages.Png.Pd,
             //TestImages.Jpg.Floorplan, // Perf: Enable for local testing only
             TestImages.Jpg.Calliphora,
+            //TestImages.Jpg.Cmyk, // Perf: Enable for local testing only
             //TestImages.Jpg.Turtle,
             //TestImages.Jpg.Fb, // Perf: Enable for local testing only
             //TestImages.Jpg.Progress, // Perf: Enable for local testing only

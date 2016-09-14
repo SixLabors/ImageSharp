@@ -44,7 +44,7 @@ namespace ImageProcessorCore.Processors
         public int BrushSize { get; }
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        public override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;

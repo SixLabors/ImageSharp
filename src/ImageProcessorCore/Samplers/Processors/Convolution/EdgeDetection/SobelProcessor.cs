@@ -15,16 +15,29 @@ namespace ImageProcessorCore.Processors
         where TColor : IPackedVector<TPacked>
         where TPacked : struct
     {
-        /// <inheritdoc/>
-        public override float[,] KernelX => new float[,]
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SobelProcessor{TColor,TPacked}"/> class.
+        /// </summary>
+        /// <param name="grayscale">Whether to convert the image to grayscale before performing edge detection..</param>
+        public SobelProcessor(bool grayscale)
+            : base(KernelA, KernelB, grayscale)
+        {
+        }
+
+        /// <summary>
+        /// Gets the horizontal gradient operator.
+        /// </summary>
+        public static float[,] KernelA => new float[,]
         {
             { -1, 0, 1 },
             { -2, 0, 2 },
             { -1, 0, 1 }
         };
 
-        /// <inheritdoc/>
-        public override float[,] KernelY => new float[,]
+        /// <summary>
+        /// Gets the horizontal gradient operator.
+        /// </summary>
+        public static float[,] KernelB => new float[,]
         {
             { 1, 2, 1 },
             { 0, 0, 0 },

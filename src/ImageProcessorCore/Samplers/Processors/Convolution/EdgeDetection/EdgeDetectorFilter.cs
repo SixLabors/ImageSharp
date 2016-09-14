@@ -11,12 +11,23 @@ namespace ImageProcessorCore.Processors
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public abstract class EdgeDetectorFilter<TColor, TPacked> : ConvolutionFilter<TColor, TPacked>, IEdgeDetectorFilter<TColor, TPacked>
+    public class EdgeDetectorFilter<TColor, TPacked> : ConvolutionFilter<TColor, TPacked>, IEdgeDetectorFilter<TColor, TPacked>
         where TColor : IPackedVector<TPacked>
         where TPacked : struct
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EdgeDetectorFilter{TColor,TPacked}"/> class.
+        /// </summary>
+        /// <param name="kernelXY">The 2d gradient operator.</param>
+        /// <param name="grayscale">Whether to convert the image to grayscale before performing edge detection..</param>
+        public EdgeDetectorFilter(float[,] kernelXY, bool grayscale)
+            : base(kernelXY)
+        {
+            this.Grayscale = grayscale;
+        }
+
         /// <inheritdoc/>
-        public bool Grayscale { get; set; }
+        public bool Grayscale { get; }
 
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle)

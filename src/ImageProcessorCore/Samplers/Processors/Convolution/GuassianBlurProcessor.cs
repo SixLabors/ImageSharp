@@ -17,7 +17,7 @@ namespace ImageProcessorCore.Processors
         where TPacked : struct
     {
         /// <summary>
-        /// The maximum size of the kernal in either direction.
+        /// The maximum size of the kernel in either direction.
         /// </summary>
         private readonly int kernelSize;
 

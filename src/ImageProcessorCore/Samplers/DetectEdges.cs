@@ -25,7 +25,7 @@ namespace ImageProcessorCore
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
-            return DetectEdges(source, source.Bounds, new SobelProcessor<TColor, TPacked> { Grayscale = true }, progressHandler);
+            return DetectEdges(source, source.Bounds, new SobelProcessor<TColor, TPacked>(true), progressHandler);
         }
 
         /// <summary>
@@ -44,7 +44,7 @@ namespace ImageProcessorCore
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
-            return DetectEdges(source, rectangle, new SobelProcessor<TColor, TPacked> { Grayscale = true }, progressHandler);
+            return DetectEdges(source, rectangle, new SobelProcessor<TColor, TPacked>(true), progressHandler);
         }
 
         /// <summary>
@@ -86,39 +86,39 @@ namespace ImageProcessorCore
             switch (filter)
             {
                 case EdgeDetection.Kayyali:
-                    processor = new KayyaliProcessor<TColor, TPacked> { Grayscale = grayscale };
+                    processor = new KayyaliProcessor<TColor, TPacked>(grayscale);
                     break;
 
                 case EdgeDetection.Kirsch:
-                    processor = new KirschProcessor<TColor, TPacked> { Grayscale = grayscale };
+                    processor = new KirschProcessor<TColor, TPacked>(grayscale);
                     break;
 
                 case EdgeDetection.Lapacian3X3:
-                    processor = new Laplacian3X3Processor<TColor, TPacked> { Grayscale = grayscale };
+                    processor = new Laplacian3X3Processor<TColor, TPacked>(grayscale);
                     break;
 
                 case EdgeDetection.Lapacian5X5:
-                    processor = new Laplacian5X5Processor<TColor, TPacked> { Grayscale = grayscale };
+                    processor = new Laplacian5X5Processor<TColor, TPacked>(grayscale);
                     break;
 
                 case EdgeDetection.LaplacianOfGaussian:
-                    processor = new LaplacianOfGaussianProcessor<TColor, TPacked> { Grayscale = grayscale };
+                    processor = new LaplacianOfGaussianProcessor<TColor, TPacked>(grayscale);
                     break;
 
                 case EdgeDetection.Prewitt:
-                    processor = new PrewittProcessor<TColor, TPacked> { Grayscale = grayscale };
+                    processor = new PrewittProcessor<TColor, TPacked>(grayscale);
                     break;
 
                 case EdgeDetection.RobertsCross:
-                    processor = new RobertsCrossProcessor<TColor, TPacked> { Grayscale = grayscale };
+                    processor = new RobertsCrossProcessor<TColor, TPacked>(grayscale);
                     break;
 
                 case EdgeDetection.Scharr:
-                    processor = new ScharrProcessor<TColor, TPacked> { Grayscale = grayscale };
+                    processor = new ScharrProcessor<TColor, TPacked>(grayscale);
                     break;
 
                 default:
-                    processor = new SobelProcessor<TColor, TPacked> { Grayscale = grayscale };
+                    processor = new SobelProcessor<TColor, TPacked>(grayscale);
                     break;
             }
 

@@ -205,5 +205,26 @@ namespace ImageProcessorCore.Formats
             /// </summary>
             public const byte APP15 = 0xef;
         }
+
+        /// <summary>
+        /// Describes Adobe specific markers <see href="http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html#Adobe"/>
+        /// </summary>
+        internal static class Adobe
+        {
+            /// <summary>
+            /// The color transform is unknown.(RGB or CMYK) 
+            /// </summary>
+            public const int ColorTransformUnknown = 0;
+
+            /// <summary>
+            /// The color transform is YCbCr (luminance, red chroma, blue chroma)
+            /// </summary>
+            public const int ColorTransformYCbCr = 1;
+
+            /// <summary>
+            /// The color transform is YCCK (luminance, red chroma, blue chroma, keyline)
+            /// </summary>
+            public const int ColorTransformYcck = 2;
+        }
     }
 }

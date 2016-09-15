@@ -42,25 +42,6 @@ namespace ImageProcessorCore.Processors
         public float Value { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle)
-        {
-            ImageBase<TColor, TPacked> temp = new Image<TColor, TPacked>(source.Width, source.Height);
-
-            // Detect the edges.
-            new SobelProcessor<TColor, TPacked>(false).Apply(temp, source, sourceRectangle);
-
-            // Apply threshold binarization filter.
-            new BinaryThresholdProcessor<TColor, TPacked>(.5f).Apply(temp, sourceRectangle);
-
-            // Search for the first white pixels
-            Rectangle rectangle = ImageMaths.GetFilteredBoundingRectangle(temp, 0);
-
-            // Reset the target pixel to the correct size.
-            target.SetPixels(rectangle.Width, rectangle.Height, new TColor[rectangle.Width * rectangle.Height]);
-            this.cropRectangle = rectangle;
-        }
-
-        /// <inheritdoc/>
         public override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             // Jump out, we'll deal with that later.
@@ -94,6 +75,25 @@ namespace ImageProcessorCore.Processors
                             this.OnRowProcessed();
                         });
             }
+        }
+
+        /// <inheritdoc/>
+        protected override void OnApply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle)
+        {
+            ImageBase<TColor, TPacked> temp = new Image<TColor, TPacked>(source.Width, source.Height);
+
+            // Detect the edges.
+            new SobelProcessor<TColor, TPacked>().Apply(temp, source, sourceRectangle);
+
+            // Apply threshold binarization filter.
+            new BinaryThresholdProcessor<TColor, TPacked>(.5f).Apply(temp, sourceRectangle);
+
+            // Search for the first white pixels
+            Rectangle rectangle = ImageMaths.GetFilteredBoundingRectangle(temp, 0);
+
+            // Reset the target pixel to the correct size.
+            target.SetPixels(rectangle.Width, rectangle.Height, new TColor[rectangle.Width * rectangle.Height]);
+            this.cropRectangle = rectangle;
         }
 
         /// <inheritdoc/>

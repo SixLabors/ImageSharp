@@ -15,96 +15,68 @@ namespace ImageProcessorCore.Processors
         where TColor : IPackedVector<TPacked>
         where TPacked : struct
     {
-        public KirschProcessor(bool grayscale)
-            : base(new[] { North, Northwest, West, Southwest, South, Southeast, East, Northeast }, grayscale)
+        /// <inheritdoc/>
+        public override float[,] North => new float[,]
         {
-        }
-
-        /// <summary>
-        ///   Gets the North direction Kirsch kernel mask.
-        /// </summary>
-        /// 
-        public static float[,] North => new float[,]
-        {
-            { -3, -3, 5 },
-            { -3,  0, 5 },
-            { -3, -3, 5 }
-        };
-
-        /// <summary>
-        ///   Gets the Northwest direction Kirsch kernel mask.
-        /// </summary>
-        /// 
-        public static float[,] Northwest => new float[,]
-        {
-            { -3,  5,  5 },
-            { -3,  0,  5 },
-            { -3, -3, -3 }
-        };
-
-        /// <summary>
-        ///   Gets the West direction Kirsch kernel mask.
-        /// </summary>
-        /// 
-        public static float[,] West => new float[,]
-        {
-            {  5,  5,  5 },
+            { 5,  5,  5 },
             { -3,  0, -3 },
             { -3, -3, -3 }
         };
 
-        /// <summary>
-        ///   Gets the Southwest direction Kirsch kernel mask.
-        /// </summary>
-        /// 
-        public static float[,] Southwest => new float[,]
+        /// <inheritdoc/>
+        public override float[,] NorthWest => new float[,]
         {
-            {  5,  5, -3 },
-            {  5,  0, -3 },
+            { 5,  5, -3 },
+            { 5,  0, -3 },
             { -3, -3, -3 }
         };
 
-        /// <summary>
-        ///   Gets the South direction Kirsch kernel mask.
-        /// </summary>
-        /// 
-        public static float[,] South => new float[,]
+        /// <inheritdoc/>
+        public override float[,] West => new float[,]
         {
-            {  5, -3, -3 },
-            {  5,  0, -3 },
-            {  5, -3, -3 }
+            { 5, -3, -3 },
+            { 5,  0, -3 },
+            { 5, -3, -3 }
         };
 
-        /// <summary>
-        ///   Gets the Southeast direction Kirsch kernel mask.
-        /// </summary>
-        public static float[,] Southeast => new float[,]
+        /// <inheritdoc/>
+        public override float[,] SouthWest => new float[,]
         {
             { -3, -3, -3 },
             { 5, 0, -3 },
             { 5,  5, -3 }
         };
 
-        /// <summary>
-        ///   Gets the East direction Kirsch kernel mask.
-        /// </summary>
-        /// 
-        public static float[,] East => new float[,]
+        /// <inheritdoc/>
+        public override float[,] South => new float[,]
         {
             { -3, -3, -3 },
             { -3,  0, -3 },
             { 5,  5,  5 }
         };
 
-        /// <summary>
-        ///   Gets the Northeast direction Kirsch kernel mask.
-        /// </summary>
-        /// 
-        public static float[,] Northeast => new float[,]
+        /// <inheritdoc/>
+        public override float[,] SouthEast => new float[,]
         {
             { -3, -3, -3 },
             { -3,  0,  5 },
             { -3,  5,  5 }
+        };
+
+        /// <inheritdoc/>
+        public override float[,] East => new float[,]
+        {
+            { -3, -3, 5 },
+            { -3,  0, 5 },
+            { -3, -3, 5 }
+        };
+
+        /// <inheritdoc/>
+        public override float[,] NorthEast => new float[,]
+        {
+            { -3,  5,  5 },
+            { -3,  0,  5 },
+            { -3, -3, -3 }
         };
     }
 }

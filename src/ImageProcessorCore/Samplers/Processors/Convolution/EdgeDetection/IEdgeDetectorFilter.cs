@@ -22,9 +22,8 @@ namespace ImageProcessorCore.Processors
     public interface IEdgeDetectorFilter
     {
         /// <summary>
-        /// Gets a value indicating whether to convert the
-        /// image to grayscale before performing edge detection.
+        /// Gets or sets a value indicating whether to convert the image to grayscale before performing edge detection.
         /// </summary>
-        bool Grayscale { get; }
+        bool Grayscale { get; set; }
     }
 }

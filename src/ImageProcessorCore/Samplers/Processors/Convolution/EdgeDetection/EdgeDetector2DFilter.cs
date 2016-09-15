@@ -11,39 +11,27 @@ namespace ImageProcessorCore.Processors
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class EdgeDetector2DFilter<TColor, TPacked> : ImageSampler<TColor, TPacked>, IEdgeDetectorFilter<TColor, TPacked>
+    public abstract class EdgeDetector2DFilter<TColor, TPacked> : ImageSampler<TColor, TPacked>, IEdgeDetectorFilter<TColor, TPacked>
         where TColor : IPackedVector<TPacked>
         where TPacked : struct
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="EdgeDetector2DFilter{TColor,TPacked}"/> class.
-        /// </summary>
-        /// <param name="kernelX">The horizontal gradient operator.</param>
-        /// <param name="kernelY">The vertical gradient operator.</param>
-        /// <param name="grayscale">Whether to convert the image to grayscale before performing edge detection..</param>
-        public EdgeDetector2DFilter(float[,] kernelX, float[,] kernelY, bool grayscale)
-        {
-            this.KernelX = kernelX;
-            this.KernelY = kernelY;
-            this.Grayscale = grayscale;
-        }
-
-        /// <summary>
         /// Gets the horizontal gradient operator.
         /// </summary>
-        public float[,] KernelX { get; }
+        public abstract float[,] KernelX { get; }
 
         /// <summary>
         /// Gets the vertical gradient operator.
         /// </summary>
-        public float[,] KernelY { get; }
+        public abstract float[,] KernelY { get; }
 
         /// <inheritdoc/>
-        public bool Grayscale { get; }
+        public bool Grayscale { get; set; }
 
         /// <inheritdoc />
         public override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
+            // TODO: Figure out a way to pass event handlers to child classes. 
             new Convolution2DFilter<TColor, TPacked>(this.KernelX, this.KernelY).Apply(target, source, targetRectangle, sourceRectangle, startY, endY);
         }
 

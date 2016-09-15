@@ -15,19 +15,8 @@ namespace ImageProcessorCore.Processors
         where TColor : IPackedVector<TPacked>
         where TPacked : struct
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Laplacian5X5Processor{TColor,TPacked}"/> class.
-        /// </summary>
-        /// <param name="grayscale">Whether to convert the image to grayscale before performing edge detection..</param>
-        public Laplacian5X5Processor(bool grayscale)
-            : base(Kernel, grayscale)
-        {
-        }
-
-        /// <summary>
-        /// Gets the 2d gradient operator.
-        /// </summary>
-        public static float[,] Kernel => new float[,]
+        /// <inheritdoc/>
+        public override float[,] KernelXY => new float[,]
         {
             { -1, -1, -1, -1, -1 },
             { -1, -1, -1, -1, -1 },

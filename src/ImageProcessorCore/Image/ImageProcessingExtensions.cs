@@ -171,7 +171,9 @@ namespace ImageProcessorCore
 
             // Several properties still require copying
             if (!clone)
+            {
                 transformedImage.CopyProperties(source);
+            }
 
             action(source, transformedImage);
 

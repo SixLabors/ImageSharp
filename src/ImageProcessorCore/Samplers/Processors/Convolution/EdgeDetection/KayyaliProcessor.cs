@@ -15,29 +15,16 @@ namespace ImageProcessorCore.Processors
         where TColor : IPackedVector<TPacked>
         where TPacked : struct
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="KayyaliProcessor{TColor,TPacked}"/> class.
-        /// </summary>
-        /// <param name="grayscale">Whether to convert the image to grayscale before performing edge detection..</param>
-        public KayyaliProcessor(bool grayscale)
-            : base(KernelA, KernelB, grayscale)
-        {
-        }
-
-        /// <summary>
-        /// Gets the horizontal gradient operator.
-        /// </summary>
-        public static float[,] KernelA => new float[,]
+        /// <inheritdoc/>
+        public override float[,] KernelX => new float[,]
         {
             { 6, 0, -6 },
             { 0, 0, 0 },
             { -6, 0, 6 }
         };
 
-        /// <summary>
-        /// Gets the vertical gradient operator.
-        /// </summary>
-        public static float[,] KernelB => new float[,]
+        /// <inheritdoc/>
+        public override float[,] KernelY => new float[,]
         {
             { -6, 0, 6 },
             { 0, 0, 0 },

@@ -2,11 +2,13 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
+
 namespace ImageProcessorCore
 {
     using System;
     using System.ComponentModel;
     using System.Numerics;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Represents an ordered pair of integer x- and y-coordinates that defines a point in
@@ -24,11 +26,6 @@ namespace ImageProcessorCore
         public static readonly Point Empty = default(Point);
 
         /// <summary>
-        /// The backing vector for SIMD support.
-        /// </summary>
-        private Vector2 backingVector;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="Point"/> struct.
         /// </summary>
         /// <param name="x">The horizontal position of the point.</param>
@@ -36,7 +33,8 @@ namespace ImageProcessorCore
         public Point(int x, int y)
             : this()
         {
-            this.backingVector = new Vector2(x, y);
+            this.X = x;
+            this.Y = y;
         }
 
         /// <summary>
@@ -47,40 +45,19 @@ namespace ImageProcessorCore
         /// </param>
         public Point(Vector2 vector)
         {
-            this.backingVector = new Vector2(vector.X, vector.Y);
+            this.X = (int)Math.Round(vector.X);
+            this.Y = (int)Math.Round(vector.Y);
         }
 
         /// <summary>
-        /// The x-coordinate of this <see cref="Point"/>.
+        /// Gets or sets the x-coordinate of this <see cref="Point"/>.
         /// </summary>
-        public int X
-        {
-            get
-            {
-                return (int)this.backingVector.X;
-            }
-
-            set
-            {
-                this.backingVector.X = value;
-            }
-        }
+        public int X { get; set; }
 
         /// <summary>
-        /// The y-coordinate of this <see cref="Point"/>.
+        /// Gets or sets the y-coordinate of this <see cref="Point"/>.
         /// </summary>
-        public int Y
-        {
-            get
-            {
-                return (int)this.backingVector.Y;
-            }
-
-            set
-            {
-                this.backingVector.Y = value;
-            }
-        }
+        public int Y { get; set; }
 
         /// <summary>
         /// Gets a value indicating whether this <see cref="Point"/> is empty.
@@ -96,9 +73,10 @@ namespace ImageProcessorCore
         /// <returns>
         /// The <see cref="Point"/>
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Point operator +(Point left, Point right)
         {
-            return new Point(left.backingVector + right.backingVector);
+            return new Point(left.X + right.X, left.Y + right.Y);
         }
 
         /// <summary>
@@ -109,9 +87,10 @@ namespace ImageProcessorCore
         /// <returns>
         /// The <see cref="Point"/>
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Point operator -(Point left, Point right)
         {
-            return new Point(left.backingVector - right.backingVector);
+            return new Point(left.X - right.X, left.Y - right.Y);
         }
 
         /// <summary>
@@ -126,6 +105,7 @@ namespace ImageProcessorCore
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator ==(Point left, Point right)
         {
             return left.Equals(right);
@@ -143,18 +123,10 @@ namespace ImageProcessorCore
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator !=(Point left, Point right)
         {
             return !left.Equals(right);
-        }
-
-        /// <summary>
-        /// Gets a <see cref="Vector2"/> representation for this <see cref="Point"/>.
-        /// </summary>
-        /// <returns>A <see cref="Vector2"/> representation for this object.</returns>
-        public Vector2 ToVector2()
-        {
-            return new Vector2(this.X, this.Y);
         }
 
         /// <summary>
@@ -166,7 +138,7 @@ namespace ImageProcessorCore
         public static Matrix3x2 CreateRotation(Point origin, float degrees)
         {
             float radians = ImageMaths.DegreesToRadians(degrees);
-            return Matrix3x2.CreateRotation(radians, origin.backingVector);
+            return Matrix3x2.CreateRotation(radians, new Vector2(origin.X, origin.Y));
         }
 
         /// <summary>
@@ -177,7 +149,7 @@ namespace ImageProcessorCore
         /// <returns>The rotated <see cref="Point"/></returns>
         public static Point Rotate(Point point, Matrix3x2 rotation)
         {
-            return new Point(Vector2.Transform(point.backingVector, rotation));
+            return new Point(Vector2.Transform(new Vector2(point.X, point.Y), rotation));
         }
 
         /// <summary>
@@ -189,7 +161,7 @@ namespace ImageProcessorCore
         /// <returns>The rotated <see cref="Point"/></returns>
         public static Point Rotate(Point point, Point origin, float degrees)
         {
-            return new Point(Vector2.Transform(point.backingVector, CreateRotation(origin, degrees)));
+            return new Point(Vector2.Transform(new Vector2(point.X, point.Y), CreateRotation(origin, degrees)));
         }
 
         /// <summary>
@@ -203,7 +175,7 @@ namespace ImageProcessorCore
         {
             float radiansX = ImageMaths.DegreesToRadians(degreesX);
             float radiansY = ImageMaths.DegreesToRadians(degreesY);
-            return Matrix3x2.CreateSkew(radiansX, radiansY, origin.backingVector);
+            return Matrix3x2.CreateSkew(radiansX, radiansY, new Vector2(origin.X, origin.Y));
         }
 
         /// <summary>
@@ -214,7 +186,7 @@ namespace ImageProcessorCore
         /// <returns>The rotated <see cref="Point"/></returns>
         public static Point Skew(Point point, Matrix3x2 skew)
         {
-            return new Point(Vector2.Transform(point.backingVector, skew));
+            return new Point(Vector2.Transform(new Vector2(point.X, point.Y), skew));
         }
 
         /// <summary>
@@ -227,7 +199,36 @@ namespace ImageProcessorCore
         /// <returns>The skewed <see cref="Point"/></returns>
         public static Point Skew(Point point, Point origin, float degreesX, float degreesY)
         {
-            return new Point(Vector2.Transform(point.backingVector, CreateSkew(origin, degreesX, degreesY)));
+            return new Point(Vector2.Transform(new Vector2(point.X, point.Y), CreateSkew(origin, degreesX, degreesY)));
+        }
+
+        /// <summary>
+        /// Gets a <see cref="Vector2"/> representation for this <see cref="Point"/>.
+        /// </summary>
+        /// <returns>A <see cref="Vector2"/> representation for this object.</returns>
+        public Vector2 ToVector2()
+        {
+            return new Vector2(this.X, this.Y);
+        }
+
+        /// <summary>
+        /// Translates this <see cref="Point"/> by the specified amount.
+        /// </summary>
+        /// <param name="dx">The amount to offset the x-coordinate.</param>
+        /// <param name="dy">The amount to offset the y-coordinate.</param>
+        public void Offset(int dx, int dy)
+        {
+            this.X += dx;
+            this.Y += dy;
+        }
+
+        /// <summary>
+        /// Translates this <see cref="Point"/> by the specified amount.
+        /// </summary>
+        /// <param name="p">The <see cref="Point"/> used offset this <see cref="Point"/>.</param>
+        public void Offset(Point p)
+        {
+            this.Offset(p.X, p.Y);
         }
 
         /// <inheritdoc/>
@@ -261,7 +262,7 @@ namespace ImageProcessorCore
         /// <inheritdoc/>
         public bool Equals(Point other)
         {
-            return this.backingVector.Equals(other.backingVector);
+            return this.X == other.X && this.Y == other.Y;
         }
 
         /// <summary>
@@ -275,7 +276,7 @@ namespace ImageProcessorCore
         /// </returns>
         private int GetHashCode(Point point)
         {
-            return point.backingVector.GetHashCode();
+            return point.X ^ point.Y;
         }
     }
 }

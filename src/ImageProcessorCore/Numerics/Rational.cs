@@ -12,36 +12,14 @@ namespace ImageProcessorCore
     /// Represents a number that can be expressed as a fraction.
     /// </summary>
     /// <remarks>
-    /// This is a very simplified implimentation of a rational number designed for use with metadata only.
+    /// This is a very simplified implementation of a rational number designed for use with metadata only.
     /// </remarks>
     public struct Rational : IEquatable<Rational>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Rational"/> struct.
         /// </summary>
-        ///<param name="value">The <see cref="double"/> to convert to an instance of this type.</param>
-        public Rational(double value)
-          : this(value, false)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Rational"/> struct.
-        /// </summary>
-        ///<param name="value">The <see cref="double"/> to convert to an instance of this type.</param>
-        ///<param name="bestPrecision">Specifies if the instance should be created with the best precision possible.</param>
-        public Rational(double value, bool bestPrecision)
-        {
-            BigRational rational = new BigRational(Math.Abs(value), bestPrecision);
-
-            Numerator = (uint)rational.Numerator;
-            Denominator = (uint)rational.Denominator;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Rational"/> struct.
-        /// </summary>
-        /// <param name="value">The integer to create the rational from.</param>
+        /// <param name="value">The <see cref="uint"/> to create the rational from.</param>
         public Rational(uint value)
           : this(value, 1)
         {
@@ -65,21 +43,53 @@ namespace ImageProcessorCore
         /// <param name="simplify">Specified if the rational should be simplified.</param>
         public Rational(uint numerator, uint denominator, bool simplify)
         {
-            BigRational rational = new BigRational(numerator, denominator, simplify);
+            LongRational rational = new LongRational(numerator, denominator, simplify);
 
-            Numerator = (uint)rational.Numerator;
-            Denominator = (uint)rational.Denominator;
+            this.Numerator = (uint)rational.Numerator;
+            this.Denominator = (uint)rational.Denominator;
         }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Rational"/> struct.
+        /// </summary>
+        /// <param name="value">The <see cref="double"/> to create the instance from.</param>
+        public Rational(double value)
+          : this(value, false)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Rational"/> struct.
+        /// </summary>
+        /// <param name="value">The <see cref="double"/> to create the instance from.</param>
+        /// <param name="bestPrecision">Whether to use the best possible precision when parsing the value.</param>
+        public Rational(double value, bool bestPrecision)
+        {
+            LongRational rational = new LongRational(Math.Abs(value), bestPrecision);
+
+            this.Numerator = (uint)rational.Numerator;
+            this.Denominator = (uint)rational.Denominator;
+        }
+
+        /// <summary>
+        /// Gets the numerator of a number.
+        /// </summary>
+        public uint Numerator { get; }
+
+        /// <summary>
+        /// Gets the denominator of a number.
+        /// </summary>
+        public uint Denominator { get; }
 
         /// <summary>
         /// Determines whether the specified <see cref="Rational"/> instances are considered equal.
         /// </summary>
         /// <param name="left">The first <see cref="Rational"/>  to compare.</param>
         /// <param name="right"> The second <see cref="Rational"/>  to compare.</param>
-        /// <returns></returns>
+        /// <returns>The <see cref="bool"/></returns>
         public static bool operator ==(Rational left, Rational right)
         {
-            return Equals(left, right);
+            return Rational.Equals(left, right);
         }
 
         /// <summary>
@@ -87,79 +97,61 @@ namespace ImageProcessorCore
         /// </summary>
         /// <param name="left">The first <see cref="Rational"/> to compare.</param>
         /// <param name="right"> The second <see cref="Rational"/> to compare.</param>
-        /// <returns></returns>
+        /// <returns>The <see cref="bool"/></returns>
         public static bool operator !=(Rational left, Rational right)
         {
-            return !Equals(left, right);
+            return !Rational.Equals(left, right);
         }
 
         /// <summary>
-        /// Gets the numerator of a number.
-        /// </summary>
-        public uint Numerator
-        {
-            get;
-            private set;
-        }
-
-        /// <summary>
-        /// Gets the denominator of a number.
-        /// </summary>
-        public uint Denominator
-        {
-            get;
-            private set;
-        }
-
-        ///<summary>
-        /// Determines whether the specified <see cref="object"/> is equal to this <see cref="Rational"/>.
-        ///</summary>
-        ///<param name="obj">The <see cref="object"/> to compare this <see cref="Rational"/> with.</param>
-        public override bool Equals(object obj)
-        {
-            if (obj is Rational)
-                return Equals((Rational)obj);
-
-            return false;
-        }
-
-        ///<summary>
-        /// Determines whether the specified <see cref="Rational"/> is equal to this <see cref="Rational"/>.
-        ///</summary>
-        ///<param name="other">The <see cref="Rational"/> to compare this <see cref="Rational"/> with.</param>
-        public bool Equals(Rational other)
-        {
-            BigRational left = new BigRational(Numerator, Denominator);
-            BigRational right = new BigRational(other.Numerator, other.Denominator);
-
-            return left.Equals(right);
-        }
-
-        ///<summary>
         /// Converts the specified <see cref="double"/> to an instance of this type.
-        ///</summary>
-        ///<param name="value">The <see cref="double"/> to convert to an instance of this type.</param>
+        /// </summary>
+        /// <param name="value">The <see cref="double"/> to convert to an instance of this type.</param>
+        /// <returns>
+        /// The <see cref="Rational"/>.
+        /// </returns>
         public static Rational FromDouble(double value)
         {
             return new Rational(value, false);
         }
 
-        ///<summary>
+        /// <summary>
         /// Converts the specified <see cref="double"/> to an instance of this type.
-        ///</summary>
-        ///<param name="value">The <see cref="double"/> to convert to an instance of this type.</param>
-        ///<param name="bestPrecision">Specifies if the instance should be created with the best precision possible.</param>
+        /// </summary>
+        /// <param name="value">The <see cref="double"/> to convert to an instance of this type.</param>
+        /// <param name="bestPrecision">Whether to use the best possible precision when parsing the value.</param>
+        /// <returns>
+        /// The <see cref="Rational"/>.
+        /// </returns>
         public static Rational FromDouble(double value, bool bestPrecision)
         {
             return new Rational(value, bestPrecision);
         }
 
-        ///<summary>
-        /// Serves as a hash of this type.
-        ///</summary>
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (obj is Rational)
+            {
+                return this.Equals((Rational)obj);
+            }
+
+            return false;
+        }
+
+        /// <inheritdoc/>
+        public bool Equals(Rational other)
+        {
+            LongRational left = new LongRational(this.Numerator, this.Denominator);
+            LongRational right = new LongRational(other.Numerator, other.Denominator);
+
+            return left.Equals(right);
+        }
+
+        /// <inheritdoc/>
         public override int GetHashCode()
         {
-            BigRational self = new BigRational(Numerator, Denominator);
+            LongRational self = new LongRational(this.Numerator, this.Denominator);
             return self.GetHashCode();
         }
 
@@ -171,28 +163,26 @@ namespace ImageProcessorCore
         /// </returns>
         public double ToDouble()
         {
-            return Numerator / (double)Denominator;
+            return this.Numerator / (double)this.Denominator;
         }
 
-        /// <summary>
-        /// Converts the numeric value of this instance to its equivalent string representation.
-        /// </summary>
+        /// <inheritdoc/>
         public override string ToString()
         {
-            return ToString(CultureInfo.InvariantCulture);
+            return this.ToString(CultureInfo.InvariantCulture);
         }
 
         /// <summary>
-        /// Converts the numeric value of this instance to its equivalent string representation using
+        /// Converts the numeric value of this instance to its equivalent string representation using 
         /// the specified culture-specific format information.
         /// </summary>
         /// <param name="provider">
         /// An object that supplies culture-specific formatting information. 
         /// </param>
-        /// <returns></returns>
+        /// <returns>The <see cref="string"/></returns>
         public string ToString(IFormatProvider provider)
         {
-            BigRational rational = new BigRational(Numerator, Denominator);
+            LongRational rational = new LongRational(this.Numerator, this.Denominator);
             return rational.ToString(provider);
         }
     }

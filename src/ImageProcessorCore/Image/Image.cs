@@ -304,7 +304,7 @@ namespace ImageProcessorCore
                     stream.CopyTo(ms);
                     ms.Position = 0;
 
-                    if (this.Decode(stream))
+                    if (this.Decode(ms))
                     {
                         return;
                     }

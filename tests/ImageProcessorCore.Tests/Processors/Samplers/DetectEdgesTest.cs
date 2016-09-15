@@ -21,12 +21,13 @@ namespace ImageProcessorCore.Tests
             EdgeDetection.LaplacianOfGaussian,
             EdgeDetection.Prewitt,
             EdgeDetection.RobertsCross,
+            EdgeDetection.Robinson,
             EdgeDetection.Scharr,
             EdgeDetection.Sobel,
         };
 
         [Theory]
-        [MemberData("DetectEdgesFilters")]
+        [MemberData(nameof(DetectEdgesFilters))]
         public void ImageShouldApplyDetectEdgesFilter(EdgeDetection detector)
         {
             const string path = "TestOutput/DetectEdges";

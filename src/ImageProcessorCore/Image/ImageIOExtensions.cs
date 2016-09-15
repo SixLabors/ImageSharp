@@ -22,10 +22,13 @@ namespace ImageProcessorCore
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-        public static void SaveAsBmp<TColor, TPacked>(this Image<TColor, TPacked> source, Stream stream)
+        /// <returns>
+        /// The <see cref="Image{TColor,TPacked}"/>.
+        /// </returns>
+        public static Image<TColor, TPacked> SaveAsBmp<TColor, TPacked>(this Image<TColor, TPacked> source, Stream stream)
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
-            => new BmpEncoder().Encode(source, stream);
+            => source.Save(stream, new BmpEncoder());
 
         /// <summary>
         /// Saves the image to the given stream with the png format.
@@ -38,10 +41,12 @@ namespace ImageProcessorCore
         /// Anything equal to 256 and below will cause the encoder to save the image in an indexed format.
         /// </param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-        public static void SaveAsPng<TColor, TPacked>(this Image<TColor, TPacked> source, Stream stream, int quality = int.MaxValue)
-            where TColor : IPackedVector<TPacked>
-            where TPacked : struct
-            => new PngEncoder { Quality = quality }.Encode(source, stream);
+        /// <returns>
+        /// The <see cref="Image{TColor,TPacked}"/>.
+        /// </returns>
+        public static Image<TColor, TPacked> SaveAsPng<TColor, TPacked>(this Image<TColor, TPacked> source, Stream stream, int quality = int.MaxValue)
+            where TColor : IPackedVector<TPacked> where TPacked : struct
+            => source.Save(stream, new PngEncoder { Quality = quality });
 
         /// <summary>
         /// Saves the image to the given stream with the jpeg format.
@@ -52,10 +57,13 @@ namespace ImageProcessorCore
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="quality">The quality to save the image to. Between 1 and 100.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-        public static void SaveAsJpeg<TColor, TPacked>(this Image<TColor, TPacked> source, Stream stream, int quality = 75)
+        /// <returns>
+        /// The <see cref="Image{TColor,TPacked}"/>.
+        /// </returns>
+        public static Image<TColor, TPacked> SaveAsJpeg<TColor, TPacked>(this Image<TColor, TPacked> source, Stream stream, int quality = 75)
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
-            => new JpegEncoder { Quality = quality }.Encode(source, stream);
+            => source.Save(stream, new JpegEncoder { Quality = quality });
 
         /// <summary>
         /// Saves the image to the given stream with the gif format.
@@ -66,9 +74,12 @@ namespace ImageProcessorCore
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="quality">The quality to save the image to representing the number of colors. Between 1 and 256.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-        internal static void SaveAsGif<TColor, TPacked>(this Image<TColor, TPacked> source, Stream stream, int quality = 256)
+        /// <returns>
+        /// The <see cref="Image{TColor,TPacked}"/>.
+        /// </returns>
+        public static Image<TColor, TPacked> SaveAsGif<TColor, TPacked>(this Image<TColor, TPacked> source, Stream stream, int quality = 256)
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
-            => new GifEncoder { Quality = quality }.Encode(source, stream);
+            => source.Save(stream, new GifEncoder { Quality = quality });
     }
 }

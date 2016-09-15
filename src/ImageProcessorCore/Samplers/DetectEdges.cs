@@ -113,6 +113,10 @@ namespace ImageProcessorCore
                     processor = new RobertsCrossProcessor<TColor, TPacked> { Grayscale = grayscale };
                     break;
 
+                case EdgeDetection.Robinson:
+                    processor = new RobinsonProcessor<TColor, TPacked> { Grayscale = grayscale };
+                    break;
+
                 case EdgeDetection.Scharr:
                     processor = new ScharrProcessor<TColor, TPacked> { Grayscale = grayscale };
                     break;

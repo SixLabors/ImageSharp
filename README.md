@@ -129,6 +129,7 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
  - [x] LaplacianOfGaussian
  - [x] Prewitt
  - [x] RobertsCross
+ - [x] Robinson
  - [x] Scharr
  - [x] Sobel
 - Blurring/Sharpening

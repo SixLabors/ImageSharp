@@ -15,29 +15,16 @@ namespace ImageProcessorCore.Processors
         where TColor : IPackedVector<TPacked>
         where TPacked : struct
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="PrewittProcessor{TColor,TPacked}"/> class.
-        /// </summary>
-        /// <param name="grayscale">Whether to convert the image to grayscale before performing edge detection..</param>
-        public PrewittProcessor(bool grayscale)
-            : base(KernelA, KernelB, grayscale)
-        {
-        }
-
-        /// <summary>
-        /// Gets the horizontal gradient operator.
-        /// </summary>
-        public static float[,] KernelA => new float[,]
+        /// <inheritdoc/>
+        public override float[,] KernelX => new float[,]
         {
             { -1, 0, 1 },
             { -1, 0, 1 },
             { -1, 0, 1 }
         };
 
-        /// <summary>
-        /// Gets the vertical gradient operator.
-        /// </summary>
-        public static float[,] KernelB => new float[,]
+        /// <inheritdoc/>
+        public override float[,] KernelY => new float[,]
         {
             { 1, 1, 1 },
             { 0, 0, 0 },

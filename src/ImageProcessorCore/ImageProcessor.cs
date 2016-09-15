@@ -5,6 +5,7 @@
 
 namespace ImageProcessorCore.Processors
 {
+    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -17,24 +18,24 @@ namespace ImageProcessorCore.Processors
         where TColor : IPackedVector<TPacked>
         where TPacked : struct
     {
-        /// <inheritdoc/>
-        public event ProgressEventHandler OnProgress;
-
         /// <summary>
-        /// The number of rows processed by a derived class.
+        /// Gets or sets the number of rows processed by a derived class.
         /// </summary>
         protected int NumRowsProcessed;
 
-        /// <summary>
-        /// The total number of rows that will be processed by a derived class.
-        /// </summary>
-        protected int TotalRows;
+        /// <inheritdoc/>
+        public event ProgressEventHandler OnProgress;
 
         /// <inheritdoc/>
         public virtual ParallelOptions ParallelOptions { get; set; } = Bootstrapper.Instance.ParallelOptions;
 
         /// <inheritdoc/>
         public virtual bool Compand { get; set; } = false;
+
+        /// <summary>
+        /// Gets or sets the total number of rows that will be processed by a derived class.
+        /// </summary>
+        protected int TotalRows { get; set; }
 
         /// <summary>
         /// Must be called by derived classes after processing a single row.

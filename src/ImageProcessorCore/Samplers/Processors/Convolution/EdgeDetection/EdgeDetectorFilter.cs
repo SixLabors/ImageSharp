@@ -6,28 +6,27 @@
 namespace ImageProcessorCore.Processors
 {
     /// <summary>
-    /// Defines a filter that detects edges within an image using a single
-    /// two dimensional matrix.
+    /// Defines a filter that detects edges within an image using a single two dimensional matrix.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class EdgeDetectorFilter<TColor, TPacked> : ConvolutionFilter<TColor, TPacked>, IEdgeDetectorFilter<TColor, TPacked>
+    public abstract class EdgeDetectorFilter<TColor, TPacked> : ImageSampler<TColor, TPacked>, IEdgeDetectorFilter<TColor, TPacked>
         where TColor : IPackedVector<TPacked>
         where TPacked : struct
     {
+        /// <inheritdoc/>
+        public bool Grayscale { get; set; }
+
         /// <summary>
-        /// Initializes a new instance of the <see cref="EdgeDetectorFilter{TColor,TPacked}"/> class.
+        /// Gets the 2d gradient operator.
         /// </summary>
-        /// <param name="kernelXY">The 2d gradient operator.</param>
-        /// <param name="grayscale">Whether to convert the image to grayscale before performing edge detection..</param>
-        public EdgeDetectorFilter(float[,] kernelXY, bool grayscale)
-            : base(kernelXY)
-        {
-            this.Grayscale = grayscale;
-        }
+        public abstract float[,] KernelXY { get; }
 
         /// <inheritdoc/>
-        public bool Grayscale { get; }
+        public override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        {
+            new ConvolutionFilter<TColor, TPacked>(this.KernelXY).Apply(target, source, targetRectangle, sourceRectangle, startY, endY);
+        }
 
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle)

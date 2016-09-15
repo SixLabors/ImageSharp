@@ -32,7 +32,6 @@ namespace ImageProcessorCore.Processors
             }
             catch (Exception ex)
             {
-
                 throw new ImageProcessingException($"An error occured when processing the image using {this.GetType().Name}. See the inner exception for more detail.", ex);
             }
         }

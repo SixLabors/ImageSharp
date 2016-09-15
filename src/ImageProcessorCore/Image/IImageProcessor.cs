@@ -3,10 +3,10 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-using System.Threading.Tasks;
-
 namespace ImageProcessorCore.Processors
 {
+    using System.Threading.Tasks;
+
     /// <summary>
     /// A delegate which is called as progress is made processing an image.
     /// </summary>

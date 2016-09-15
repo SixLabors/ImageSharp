@@ -5,15 +5,14 @@
 
 namespace ImageProcessorCore
 {
-    using System.IO;
-    using System.Text;
-
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
+    using System.IO;
     using System.Linq;
+    using System.Text;
 
     using Formats;
-    using System.Diagnostics;
 
     /// <summary>
     /// Encapsulates an image, which consists of the pixel data for a graphics image and its attributes.
@@ -218,10 +217,20 @@ namespace ImageProcessorCore
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="encoder">The encoder to save the image with.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
+        /// <returns>
+        /// The <see cref="Image{TColor,TPacked}"/>.
+        /// </returns>
         public Image<TColor, TPacked> Save(Stream stream, IImageEncoder encoder)
         {
             Guard.NotNull(stream, nameof(stream));
             encoder.Encode(this, stream);
+
+            // Reset to the start of the stream.
+            if (stream.CanSeek)
+            {
+                stream.Position = 0;
+            }
+
             return this;
         }
 
@@ -270,18 +279,58 @@ namespace ImageProcessorCore
         /// </exception>
         private void Load(Stream stream)
         {
-            if (!this.Formats.Any()) { return; }
+            if (!this.Formats.Any())
+            {
+                return;
+            }
 
             if (!stream.CanRead)
             {
                 throw new NotSupportedException("Cannot read from the stream.");
             }
 
-            if (!stream.CanSeek)
+            if (stream.CanSeek)
             {
-                throw new NotSupportedException("The stream does not support seeking.");
+                if (this.Decode(stream))
+                {
+                    return;
+                }
+            }
+            else
+            {
+                // We want to be able to load images from things like HttpContext.Request.Body
+                using (MemoryStream ms = new MemoryStream())
+                {
+                    stream.CopyTo(ms);
+                    ms.Position = 0;
+
+                    if (this.Decode(stream))
+                    {
+                        return;
+                    }
+                }
             }
 
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.AppendLine("Image cannot be loaded. Available formats:");
+
+            foreach (IImageFormat format in this.Formats)
+            {
+                stringBuilder.AppendLine("-" + format);
+            }
+
+            throw new NotSupportedException(stringBuilder.ToString());
+        }
+
+        /// <summary>
+        /// Decodes the image stream to the current image.
+        /// </summary>
+        /// <param name="stream">The stream.</param>
+        /// <returns>
+        /// The <see cref="bool"/>.
+        /// </returns>
+        private bool Decode(Stream stream)
+        {
             int maxHeaderSize = this.Formats.Max(x => x.Decoder.HeaderSize);
             if (maxHeaderSize > 0)
             {
@@ -296,19 +345,11 @@ namespace ImageProcessorCore
                 {
                     format.Decoder.Decode(this, stream);
                     this.CurrentImageFormat = format;
-                    return;
+                    return true;
                 }
             }
 
-            StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.AppendLine("Image cannot be loaded. Available formats:");
-
-            foreach (IImageFormat format in this.Formats)
-            {
-                stringBuilder.AppendLine("-" + format);
-            }
-
-            throw new NotSupportedException(stringBuilder.ToString());
+            return false;
         }
     }
 }

@@ -46,6 +46,11 @@ namespace ImageProcessorCore
         RobertsCross,
 
         /// <summary>
+        /// The Robinson operator filter.
+        /// </summary>
+        Robinson,
+
+        /// <summary>
         /// The Scharr operator filter.
         /// </summary>
         Scharr,

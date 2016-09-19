@@ -19,13 +19,12 @@ namespace ImageProcessorCore
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="mode">The formula to apply to perform the operation.</param>
-        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> Grayscale<TColor, TPacked>(this Image<TColor, TPacked> source, GrayscaleMode mode = GrayscaleMode.Bt709, ProgressEventHandler progressHandler = null)
+        public static Image<TColor, TPacked> Grayscale<TColor, TPacked>(this Image<TColor, TPacked> source, GrayscaleMode mode = GrayscaleMode.Bt709)
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
-            return Grayscale(source, source.Bounds, mode, progressHandler);
+            return Grayscale(source, source.Bounds, mode);
         }
 
         /// <summary>
@@ -38,9 +37,8 @@ namespace ImageProcessorCore
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <param name="mode">The formula to apply to perform the operation.</param>
-        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> Grayscale<TColor, TPacked>(this Image<TColor, TPacked> source, Rectangle rectangle, GrayscaleMode mode = GrayscaleMode.Bt709, ProgressEventHandler progressHandler = null)
+        public static Image<TColor, TPacked> Grayscale<TColor, TPacked>(this Image<TColor, TPacked> source, Rectangle rectangle, GrayscaleMode mode = GrayscaleMode.Bt709)
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
@@ -48,16 +46,7 @@ namespace ImageProcessorCore
                 ? (IImageFilter<TColor, TPacked>)new GrayscaleBt709Processor<TColor, TPacked>()
                 : new GrayscaleBt601Processor<TColor, TPacked>();
 
-            processor.OnProgress += progressHandler;
-
-            try
-            {
-                return source.Process(rectangle, processor);
-            }
-            finally
-            {
-                processor.OnProgress -= progressHandler;
-            }
+            return source.Process(rectangle, processor);
         }
     }
 }

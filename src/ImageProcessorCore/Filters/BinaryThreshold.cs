@@ -19,13 +19,12 @@ namespace ImageProcessorCore
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="threshold">The threshold to apply binerization of the image. Must be between 0 and 1.</param>
-        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> BinaryThreshold<TColor, TPacked>(this Image<TColor, TPacked> source, float threshold, ProgressEventHandler progressHandler = null)
+        public static Image<TColor, TPacked> BinaryThreshold<TColor, TPacked>(this Image<TColor, TPacked> source, float threshold)
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
-            return BinaryThreshold(source, threshold, source.Bounds, progressHandler);
+            return BinaryThreshold(source, threshold, source.Bounds);
         }
 
         /// <summary>
@@ -38,23 +37,12 @@ namespace ImageProcessorCore
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> BinaryThreshold<TColor, TPacked>(this Image<TColor, TPacked> source, float threshold, Rectangle rectangle, ProgressEventHandler progressHandler = null)
+        public static Image<TColor, TPacked> BinaryThreshold<TColor, TPacked>(this Image<TColor, TPacked> source, float threshold, Rectangle rectangle)
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
-            BinaryThresholdProcessor<TColor, TPacked> processor = new BinaryThresholdProcessor<TColor, TPacked>(threshold);
-            processor.OnProgress += progressHandler;
-
-            try
-            {
-                return source.Process(rectangle, processor);
-            }
-            finally
-            {
-                processor.OnProgress -= progressHandler;
-            }
+            return source.Process(rectangle, new BinaryThresholdProcessor<TColor, TPacked>(threshold));
         }
     }
 }

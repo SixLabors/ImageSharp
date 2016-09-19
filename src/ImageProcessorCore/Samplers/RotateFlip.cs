@@ -5,8 +5,6 @@
 
 namespace ImageProcessorCore
 {
-    using Processors;
-
     /// <summary>
     /// Extension methods for the <see cref="Image{TColor, TPacked}"/> type.
     /// </summary>
@@ -19,13 +17,12 @@ namespace ImageProcessorCore
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image to rotate, flip, or both.</param>
         /// <param name="flipType">The <see cref="FlipType"/> to perform the flip.</param>
-        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/></returns>
-        public static Image<TColor, TPacked> RotateFlip<TColor, TPacked>(this Image<TColor, TPacked> source, RotateType rotateType, FlipType flipType, ProgressEventHandler progressHandler = null)
+        public static Image<TColor, TPacked> RotateFlip<TColor, TPacked>(this Image<TColor, TPacked> source, RotateType rotateType, FlipType flipType)
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
-            return source.Rotate(rotateType, progressHandler).Flip(flipType, progressHandler);
+            return source.Rotate(rotateType).Flip(flipType);
         }
     }
 }

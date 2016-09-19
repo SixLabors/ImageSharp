@@ -80,8 +80,6 @@ namespace ImageProcessorCore.Processors
                                 // X coordinates of source points
                                 targetPixels[x, y] = sourcePixels[(int)((x - startX) * widthFactor), originY];
                             }
-
-                            this.OnRowProcessed();
                         });
                 }
 
@@ -154,8 +152,6 @@ namespace ImageProcessorCore.Processors
                             d.PackFromVector4(destination.Compress());
                             targetPixels[x, y] = d;
                         }
-
-                        this.OnRowProcessed();
                     });
             }
         }

@@ -18,13 +18,12 @@ namespace ImageProcessorCore
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
-        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image<TColor, TPacked> Invert<TColor, TPacked>(this Image<TColor, TPacked> source, ProgressEventHandler progressHandler = null)
+        public static Image<TColor, TPacked> Invert<TColor, TPacked>(this Image<TColor, TPacked> source)
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
-            return Invert(source, source.Bounds, progressHandler);
+            return Invert(source, source.Bounds);
         }
 
         /// <summary>
@@ -36,23 +35,12 @@ namespace ImageProcessorCore
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image<TColor, TPacked> Invert<TColor, TPacked>(this Image<TColor, TPacked> source, Rectangle rectangle, ProgressEventHandler progressHandler = null)
+        public static Image<TColor, TPacked> Invert<TColor, TPacked>(this Image<TColor, TPacked> source, Rectangle rectangle)
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
-            InvertProcessor<TColor, TPacked> processor = new InvertProcessor<TColor, TPacked>();
-            processor.OnProgress += progressHandler;
-
-            try
-            {
-                return source.Process(rectangle, processor);
-            }
-            finally
-            {
-                processor.OnProgress -= progressHandler;
-            }
+            return source.Process(rectangle, new InvertProcessor<TColor, TPacked>());
         }
     }
 }

@@ -8,26 +8,10 @@ namespace ImageProcessorCore.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// A delegate which is called as progress is made processing an image.
-    /// </summary>
-    /// <param name="sender">The source of the event.</param>
-    /// <param name="e">An object that contains the event data.</param>
-    public delegate void ProgressEventHandler(object sender, ProgressEventArgs e);
-
-    /// <summary>
     /// Encapsulates methods to alter the pixels of an image.
     /// </summary>
     public interface IImageProcessor
     {
-        /// <summary>
-        /// Event fires when each row of the source image has been processed.
-        /// </summary>
-        /// <remarks>
-        /// This event may be called from threads other than the client thread, and from multiple threads simultaneously.
-        /// Individual row notifications may arrived out of order.
-        /// </remarks>
-        event ProgressEventHandler OnProgress;
-
         /// <summary>
         /// Gets or sets the parallel options for processing tasks in parallel.
         /// </summary>

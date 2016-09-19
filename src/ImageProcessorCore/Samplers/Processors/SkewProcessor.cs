@@ -72,8 +72,6 @@ namespace ImageProcessorCore.Processors
                                     targetPixels[x, y] = sourcePixels[transformedPoint.X, transformedPoint.Y];
                                 }
                             }
-
-                            OnRowProcessed();
                         });
             }
         }

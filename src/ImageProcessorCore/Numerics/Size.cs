@@ -7,7 +7,7 @@ namespace ImageProcessorCore
 {
     using System;
     using System.ComponentModel;
-    using System.Numerics;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Stores an ordered pair of integers, which specify a height and width.
@@ -24,62 +24,25 @@ namespace ImageProcessorCore
         public static readonly Size Empty = default(Size);
 
         /// <summary>
-        /// The backing vector for SIMD support.
-        /// </summary>
-        private Vector2 backingVector;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="Size"/> struct.
         /// </summary>
         /// <param name="width">The width of the size.</param>
         /// <param name="height">The height of the size.</param>
         public Size(int width, int height)
         {
-            this.backingVector = new Vector2(width, height);
+            this.Width = width;
+            this.Height = height;
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Size"/> struct.
+        /// Gets or sets the width of this <see cref="Size"/>.
         /// </summary>
-        /// <param name="vector">
-        /// The vector representing the width and height.
-        /// </param>
-        public Size(Vector2 vector)
-        {
-            this.backingVector = new Vector2(vector.X, vector.Y);
-        }
+        public int Width { get; set; }
 
         /// <summary>
-        /// The width of this <see cref="Size"/>.
+        /// Gets or sets the height of this <see cref="Size"/>.
         /// </summary>
-        public int Width
-        {
-            get
-            {
-                return (int)this.backingVector.X;
-            }
-
-            set
-            {
-                this.backingVector.X = value;
-            }
-        }
-
-        /// <summary>
-        /// The height of this <see cref="Size"/>.
-        /// </summary>
-        public int Height
-        {
-            get
-            {
-                return (int)this.backingVector.Y;
-            }
-
-            set
-            {
-                this.backingVector.Y = value;
-            }
-        }
+        public int Height { get; set; }
 
         /// <summary>
         /// Gets a value indicating whether this <see cref="Size"/> is empty.
@@ -95,9 +58,10 @@ namespace ImageProcessorCore
         /// <returns>
         /// The <see cref="Size"/>
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Size operator +(Size left, Size right)
         {
-            return new Size(left.backingVector + right.backingVector);
+            return new Size(left.Width + right.Width, left.Height + right.Height);
         }
 
         /// <summary>
@@ -108,9 +72,10 @@ namespace ImageProcessorCore
         /// <returns>
         /// The <see cref="Size"/>
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Size operator -(Size left, Size right)
         {
-            return new Size(left.backingVector - right.backingVector);
+            return new Size(left.Width - right.Width, left.Height - right.Height);
         }
 
         /// <summary>
@@ -125,6 +90,7 @@ namespace ImageProcessorCore
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator ==(Size left, Size right)
         {
             return left.Equals(right);
@@ -142,18 +108,10 @@ namespace ImageProcessorCore
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator !=(Size left, Size right)
         {
             return !left.Equals(right);
-        }
-
-        /// <summary>
-        /// Gets a <see cref="Vector2"/> representation for this <see cref="Size"/>.
-        /// </summary>
-        /// <returns>A <see cref="Vector2"/> representation for this object.</returns>
-        public Vector2 ToVector2()
-        {
-            return new Vector2(this.Width, this.Height);
         }
 
         /// <inheritdoc/>
@@ -170,11 +128,11 @@ namespace ImageProcessorCore
                 return "Size [ Empty ]";
             }
 
-            return
-                $"Size [ Width={this.Width}, Height={this.Height} ]";
+            return $"Size [ Width={this.Width}, Height={this.Height} ]";
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override bool Equals(object obj)
         {
             if (obj is Size)
@@ -188,7 +146,7 @@ namespace ImageProcessorCore
         /// <inheritdoc/>
         public bool Equals(Size other)
         {
-            return this.backingVector.Equals(other.backingVector);
+            return this.Width == other.Width && this.Height == other.Height;
         }
 
         /// <summary>
@@ -202,7 +160,7 @@ namespace ImageProcessorCore
         /// </returns>
         private int GetHashCode(Size size)
         {
-            return size.backingVector.GetHashCode();
+            return size.Width ^ size.Height;
         }
     }
 }

@@ -13,19 +13,30 @@ namespace ImageProcessorCore.Processors
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public abstract class Convolution2PassFilter<TColor, TPacked> : ImageSampler<TColor, TPacked>
+    public class Convolution2PassFilter<TColor, TPacked> : ImageSampler<TColor, TPacked>
         where TColor : IPackedVector<TPacked>
         where TPacked : struct
     {
         /// <summary>
+        /// Initializes a new instance of the <see cref="Convolution2PassFilter{TColor,TPacked}"/> class.
+        /// </summary>
+        /// <param name="kernelX">The horizontal gradient operator.</param>
+        /// <param name="kernelY">The vertical gradient operator.</param>
+        public Convolution2PassFilter(float[,] kernelX, float[,] kernelY)
+        {
+            this.KernelX = kernelX;
+            this.KernelY = kernelY;
+        }
+
+        /// <summary>
         /// Gets the horizontal gradient operator.
         /// </summary>
-        public abstract float[,] KernelX { get; }
+        public float[,] KernelX { get; }
 
         /// <summary>
         /// Gets the vertical gradient operator.
         /// </summary>
-        public abstract float[,] KernelY { get; }
+        public float[,] KernelY { get; }
 
         /// <inheritdoc/>
         public override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)

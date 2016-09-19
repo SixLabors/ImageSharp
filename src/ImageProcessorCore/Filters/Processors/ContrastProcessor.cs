@@ -83,8 +83,6 @@ namespace ImageProcessorCore.Processors
                                 packed.PackFromVector4(vector.Compress());
                                 sourcePixels[offsetX, offsetY] = packed;
                             }
-
-                            this.OnRowProcessed();
                         });
             }
         }

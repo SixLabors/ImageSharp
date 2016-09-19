@@ -104,8 +104,6 @@ namespace ImageProcessorCore.Processors
                             // Any channel will do since it's Grayscale.
                             sourcePixels[offsetX, offsetY] = color.ToVector4().X >= threshold ? upper : lower;
                         }
-
-                        this.OnRowProcessed();
                     });
             }
         }

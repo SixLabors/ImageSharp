@@ -12,6 +12,8 @@ namespace ImageProcessorCore.Processors
     /// <summary>
     /// Sets the background color of the image.
     /// </summary>
+    /// <typeparam name="TColor">The pixel format.</typeparam>
+    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public class BackgroundColorProcessor<TColor, TPacked> : ImageFilter<TColor, TPacked>
         where TColor : IPackedVector<TPacked>
         where TPacked : struct
@@ -89,8 +91,6 @@ namespace ImageProcessorCore.Processors
                             packed.PackFromVector4(color);
                             sourcePixels[offsetX, offsetY] = packed;
                         }
-
-                        this.OnRowProcessed();
                     });
             }
         }

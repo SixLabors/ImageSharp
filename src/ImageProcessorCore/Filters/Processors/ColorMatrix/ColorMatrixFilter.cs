@@ -64,8 +64,6 @@ namespace ImageProcessorCore.Processors
                                 int offsetX = x - startX;
                                 sourcePixels[offsetX, offsetY] = this.ApplyMatrix(sourcePixels[offsetX, offsetY], matrix, compand);
                             }
-
-                            this.OnRowProcessed();
                         });
             }
         }

@@ -40,7 +40,7 @@ namespace ImageProcessorCore.Tests
                     Image image = new Image(stream);
                     using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                     {
-                        image.RotateFlip(rotateType, flipType, this.ProgressUpdate)
+                        image.RotateFlip(rotateType, flipType)
                              .Save(output);
                     }
                 }

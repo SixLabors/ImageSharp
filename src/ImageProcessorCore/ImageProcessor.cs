@@ -21,10 +21,5 @@ namespace ImageProcessorCore.Processors
 
         /// <inheritdoc/>
         public virtual bool Compand { get; set; } = false;
-
-        /// <summary>
-        /// Gets or sets the total number of rows that will be processed by a derived class.
-        /// </summary>
-        protected int TotalRows { get; set; }
     }
 }

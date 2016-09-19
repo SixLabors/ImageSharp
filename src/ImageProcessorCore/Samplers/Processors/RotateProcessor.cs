@@ -80,8 +80,6 @@ namespace ImageProcessorCore.Processors
                                 targetPixels[x, y] = sourcePixels[transformedPoint.X, transformedPoint.Y];
                             }
                         }
-
-                        this.OnRowProcessed();
                     });
             }
         }
@@ -149,8 +147,6 @@ namespace ImageProcessorCore.Processors
                             int newY = width - x - 1;
                             tempPixels[newX, newY] = sourcePixels[x, y];
                         }
-
-                        this.OnRowProcessed();
                     });
             }
 
@@ -182,8 +178,6 @@ namespace ImageProcessorCore.Processors
                             int newY = height - y - 1;
                             targetPixels[newX, newY] = sourcePixels[x, y];
                         }
-
-                        this.OnRowProcessed();
                     });
             }
         }
@@ -213,8 +207,6 @@ namespace ImageProcessorCore.Processors
                             int newX = height - y - 1;
                             tempPixels[newX, x] = sourcePixels[x, y];
                         }
-
-                        this.OnRowProcessed();
                     });
             }
 

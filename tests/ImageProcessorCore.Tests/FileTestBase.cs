@@ -36,10 +36,5 @@ namespace ImageProcessorCore.Tests
             TestImages.Gif.Rings,
             //TestImages.Gif.Giphy // Perf: Enable for local testing only
         };
-
-        protected void ProgressUpdate(object sender, ProgressEventArgs e)
-        {
-            Assert.InRange(e.RowsProcessed, 1, e.TotalRows);
-        }
     }
 }

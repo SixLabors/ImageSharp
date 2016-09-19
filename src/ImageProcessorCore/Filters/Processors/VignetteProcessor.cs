@@ -89,8 +89,6 @@ namespace ImageProcessorCore.Processors
                                 packed.PackFromVector4(Vector4.Lerp(vignetteColor.ToVector4(), sourceColor, 1 - (.9F * (distance / maxDistance))));
                                 sourcePixels[offsetX, offsetY] = packed;
                             }
-
-                            this.OnRowProcessed();
                         });
             }
         }

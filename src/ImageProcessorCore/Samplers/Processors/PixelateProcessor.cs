@@ -104,8 +104,6 @@ namespace ImageProcessorCore.Processors
                                     }
                                 }
                             }
-
-                            this.OnRowProcessed();
                         });
             }
         }

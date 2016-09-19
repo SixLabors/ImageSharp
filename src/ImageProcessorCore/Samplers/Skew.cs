@@ -20,13 +20,12 @@ namespace ImageProcessorCore
         /// <param name="source">The image to skew.</param>
         /// <param name="degreesX">The angle in degrees to perform the rotation along the x-axis.</param>
         /// <param name="degreesY">The angle in degrees to perform the rotation along the y-axis.</param>
-        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/></returns>
-        public static Image<TColor, TPacked> Skew<TColor, TPacked>(this Image<TColor, TPacked> source, float degreesX, float degreesY, ProgressEventHandler progressHandler = null)
+        public static Image<TColor, TPacked> Skew<TColor, TPacked>(this Image<TColor, TPacked> source, float degreesX, float degreesY)
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
-            return Skew(source, degreesX, degreesY, true, progressHandler);
+            return Skew(source, degreesX, degreesY, true);
         }
 
         /// <summary>
@@ -38,23 +37,13 @@ namespace ImageProcessorCore
         /// <param name="degreesX">The angle in degrees to perform the rotation along the x-axis.</param>
         /// <param name="degreesY">The angle in degrees to perform the rotation along the y-axis.</param>
         /// <param name="expand">Whether to expand the image to fit the skewed result.</param>
-        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/></returns>
-        public static Image<TColor, TPacked> Skew<TColor, TPacked>(this Image<TColor, TPacked> source, float degreesX, float degreesY, bool expand, ProgressEventHandler progressHandler = null)
+        public static Image<TColor, TPacked> Skew<TColor, TPacked>(this Image<TColor, TPacked> source, float degreesX, float degreesY, bool expand)
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
             SkewProcessor<TColor, TPacked> processor = new SkewProcessor<TColor, TPacked> { AngleX = degreesX, AngleY = degreesY, Expand = expand };
-            processor.OnProgress += progressHandler;
-
-            try
-            {
-                return source.Process(source.Width, source.Height, source.Bounds, source.Bounds, processor);
-            }
-            finally
-            {
-                processor.OnProgress -= progressHandler;
-            }
+            return source.Process(source.Width, source.Height, source.Bounds, source.Bounds, processor);
         }
     }
 }

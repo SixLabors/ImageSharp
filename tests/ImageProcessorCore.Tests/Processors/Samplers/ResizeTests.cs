@@ -51,8 +51,8 @@ namespace ImageProcessorCore.Tests
                     Image image = new Image(stream);
                     using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                     {
-                        image.Resize(image.Width / 2, image.Height / 2, sampler, true, this.ProgressUpdate)
-                        //image.Resize(555, 275, sampler, false, this.ProgressUpdate)
+                        image.Resize(image.Width / 2, image.Height / 2, sampler, true)
+                        //image.Resize(555, 275, sampler, false)
                              .Save(output);
                     }
                 }
@@ -79,7 +79,7 @@ namespace ImageProcessorCore.Tests
                     Image image = new Image(stream);
                     using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                     {
-                        image.Resize(image.Width / 3, 0, sampler, false, this.ProgressUpdate)
+                        image.Resize(image.Width / 3, 0, sampler, false)
                              .Save(output);
                     }
                 }
@@ -106,7 +106,7 @@ namespace ImageProcessorCore.Tests
                     Image image = new Image(stream);
                     using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                     {
-                        image.Resize(0, image.Height / 3, sampler, false, this.ProgressUpdate)
+                        image.Resize(0, image.Height / 3, sampler, false)
                              .Save(output);
                     }
                 }
@@ -139,7 +139,7 @@ namespace ImageProcessorCore.Tests
                             Size = new Size(image.Width / 2, image.Height)
                         };
 
-                        image.Resize(options, this.ProgressUpdate)
+                        image.Resize(options)
                              .Save(output);
                     }
                 }
@@ -172,7 +172,7 @@ namespace ImageProcessorCore.Tests
                             Size = new Size(image.Width, image.Height / 2)
                         };
 
-                        image.Resize(options, this.ProgressUpdate)
+                        image.Resize(options)
                              .Save(output);
                     }
                 }
@@ -205,7 +205,7 @@ namespace ImageProcessorCore.Tests
                             Mode = ResizeMode.Pad
                         };
 
-                        image.Resize(options, this.ProgressUpdate)
+                        image.Resize(options)
                              .Save(output);
                     }
                 }
@@ -239,7 +239,7 @@ namespace ImageProcessorCore.Tests
                             Mode = ResizeMode.BoxPad
                         };
 
-                        image.Resize(options, this.ProgressUpdate)
+                        image.Resize(options)
                              .Save(output);
                     }
                 }
@@ -273,7 +273,7 @@ namespace ImageProcessorCore.Tests
                             Mode = ResizeMode.Max
                         };
 
-                        image.Resize(options, this.ProgressUpdate)
+                        image.Resize(options)
                              .Save(output);
                     }
                 }
@@ -307,7 +307,7 @@ namespace ImageProcessorCore.Tests
                             Mode = ResizeMode.Min
                         };
 
-                        image.Resize(options, this.ProgressUpdate)
+                        image.Resize(options)
                              .Save(output);
                     }
                 }
@@ -341,7 +341,7 @@ namespace ImageProcessorCore.Tests
                             Mode = ResizeMode.Stretch
                         };
 
-                        image.Resize(options, this.ProgressUpdate)
+                        image.Resize(options)
                              .Save(output);
                     }
                 }

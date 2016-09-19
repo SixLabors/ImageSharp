@@ -100,8 +100,6 @@ namespace ImageProcessorCore.Processors
                         packed.PackFromVector4(destination);
                         targetPixels[x, y] = packed;
                     }
-
-                    this.OnRowProcessed();
                 });
             }
         }

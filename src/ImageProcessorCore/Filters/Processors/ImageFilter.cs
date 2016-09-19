@@ -1,4 +1,9 @@
-﻿namespace ImageProcessorCore.Processors
+﻿// <copyright file="ImageFilter.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
+namespace ImageProcessorCore.Processors
 {
     using System;
 
@@ -17,9 +22,6 @@
             try
             {
                 this.OnApply(source, sourceRectangle);
-
-                this.NumRowsProcessed = 0;
-                this.TotalRows = sourceRectangle.Height;
 
                 this.Apply(source, sourceRectangle, sourceRectangle.Y, sourceRectangle.Bottom);
 

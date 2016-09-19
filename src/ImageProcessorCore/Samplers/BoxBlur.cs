@@ -19,42 +19,30 @@ namespace ImageProcessorCore
         /// <typeparam name="TPacked">The packed format. <example>long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="radius">The 'radius' value representing the size of the area to sample.</param>
-        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> BoxBlur<TColor, TPacked>(this Image<TColor, TPacked> source, int radius = 7, ProgressEventHandler progressHandler = null)
+        public static Image<TColor, TPacked> BoxBlur<TColor, TPacked>(this Image<TColor, TPacked> source, int radius = 7)
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
-            return BoxBlur(source, radius, source.Bounds, progressHandler);
+            return BoxBlur(source, radius, source.Bounds);
         }
 
         /// <summary>
         /// Applies a box blur to the image.
         /// </summary>
-        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="radius">The 'radius' value representing the size of the area to sample.</param>
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> BoxBlur<TColor, TPacked>(this Image<TColor, TPacked> source, int radius, Rectangle rectangle, ProgressEventHandler progressHandler = null)
+        public static Image<TColor, TPacked> BoxBlur<TColor, TPacked>(this Image<TColor, TPacked> source, int radius, Rectangle rectangle)
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
-            BoxBlurProcessor<TColor, TPacked> processor = new BoxBlurProcessor<TColor, TPacked>(radius);
-            processor.OnProgress += progressHandler;
-
-            try
-            {
-                return source.Process(rectangle, processor);
-            }
-            finally
-            {
-                processor.OnProgress -= progressHandler;
-            }
+            return source.Process(rectangle, new BoxBlurProcessor<TColor, TPacked>(radius));
         }
     }
 }

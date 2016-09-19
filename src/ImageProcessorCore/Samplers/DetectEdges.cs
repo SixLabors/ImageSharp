@@ -19,13 +19,12 @@ namespace ImageProcessorCore
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
-        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> DetectEdges<TColor, TPacked>(this Image<TColor, TPacked> source, ProgressEventHandler progressHandler = null)
+        public static Image<TColor, TPacked> DetectEdges<TColor, TPacked>(this Image<TColor, TPacked> source)
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
-            return DetectEdges(source, source.Bounds, new SobelProcessor<TColor, TPacked> { Grayscale = true }, progressHandler);
+            return DetectEdges(source, source.Bounds, new SobelProcessor<TColor, TPacked> { Grayscale = true });
         }
 
         /// <summary>
@@ -38,13 +37,12 @@ namespace ImageProcessorCore
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> DetectEdges<TColor, TPacked>(this Image<TColor, TPacked> source, Rectangle rectangle, ProgressEventHandler progressHandler = null)
+        public static Image<TColor, TPacked> DetectEdges<TColor, TPacked>(this Image<TColor, TPacked> source, Rectangle rectangle)
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
-            return DetectEdges(source, rectangle, new SobelProcessor<TColor, TPacked> { Grayscale = true }, progressHandler);
+            return DetectEdges(source, rectangle, new SobelProcessor<TColor, TPacked> { Grayscale = true });
         }
 
         /// <summary>
@@ -55,13 +53,12 @@ namespace ImageProcessorCore
         /// <param name="source">The image this method extends.</param>
         /// <param name="filter">The filter for detecting edges.</param>
         /// <param name="grayscale">Whether to convert the image to Grayscale first. Defaults to true.</param>
-        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> DetectEdges<TColor, TPacked>(this Image<TColor, TPacked> source, EdgeDetection filter, bool grayscale = true, ProgressEventHandler progressHandler = null)
+        public static Image<TColor, TPacked> DetectEdges<TColor, TPacked>(this Image<TColor, TPacked> source, EdgeDetection filter, bool grayscale = true)
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
-            return DetectEdges(source, filter, source.Bounds, grayscale, progressHandler);
+            return DetectEdges(source, filter, source.Bounds, grayscale);
         }
 
         /// <summary>
@@ -75,9 +72,8 @@ namespace ImageProcessorCore
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <param name="grayscale">Whether to convert the image to Grayscale first. Defaults to true.</param>
-        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> DetectEdges<TColor, TPacked>(this Image<TColor, TPacked> source, EdgeDetection filter, Rectangle rectangle, bool grayscale = true, ProgressEventHandler progressHandler = null)
+        public static Image<TColor, TPacked> DetectEdges<TColor, TPacked>(this Image<TColor, TPacked> source, EdgeDetection filter, Rectangle rectangle, bool grayscale = true)
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
@@ -126,7 +122,7 @@ namespace ImageProcessorCore
                     break;
             }
 
-            return DetectEdges(source, rectangle, processor, progressHandler);
+            return DetectEdges(source, rectangle, processor);
         }
 
         /// <summary>
@@ -136,13 +132,12 @@ namespace ImageProcessorCore
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="filter">The filter for detecting edges.</param>
-        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> DetectEdges<TColor, TPacked>(this Image<TColor, TPacked> source, IEdgeDetectorFilter<TColor, TPacked> filter, ProgressEventHandler progressHandler = null)
+        public static Image<TColor, TPacked> DetectEdges<TColor, TPacked>(this Image<TColor, TPacked> source, IEdgeDetectorFilter<TColor, TPacked> filter)
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
-            return DetectEdges(source, source.Bounds, filter, progressHandler);
+            return DetectEdges(source, source.Bounds, filter);
         }
 
         /// <summary>
@@ -155,22 +150,12 @@ namespace ImageProcessorCore
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <param name="filter">The filter for detecting edges.</param>
-        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> DetectEdges<TColor, TPacked>(this Image<TColor, TPacked> source, Rectangle rectangle, IEdgeDetectorFilter<TColor, TPacked> filter, ProgressEventHandler progressHandler = null)
+        public static Image<TColor, TPacked> DetectEdges<TColor, TPacked>(this Image<TColor, TPacked> source, Rectangle rectangle, IEdgeDetectorFilter<TColor, TPacked> filter)
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
-            filter.OnProgress += progressHandler;
-
-            try
-            {
-                return source.Process(rectangle, filter);
-            }
-            finally
-            {
-                filter.OnProgress -= progressHandler;
-            }
+            return source.Process(rectangle, filter);
         }
     }
 }

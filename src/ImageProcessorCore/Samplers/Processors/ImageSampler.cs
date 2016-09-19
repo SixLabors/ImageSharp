@@ -23,9 +23,6 @@ namespace ImageProcessorCore.Processors
             {
                 this.OnApply(target, source, target.Bounds, sourceRectangle);
 
-                this.NumRowsProcessed = 0;
-                this.TotalRows = sourceRectangle.Height;
-
                 this.Apply(target, source, target.Bounds, sourceRectangle, sourceRectangle.Y, sourceRectangle.Bottom);
 
                 this.AfterApply(target, source, target.Bounds, sourceRectangle);
@@ -56,9 +53,6 @@ namespace ImageProcessorCore.Processors
                 }
 
                 this.OnApply(target, source, targetRectangle, sourceRectangle);
-
-                this.NumRowsProcessed = 0;
-                this.TotalRows = targetRectangle.Height;
 
                 this.Apply(target, source, targetRectangle, sourceRectangle, targetRectangle.Y, targetRectangle.Bottom);
 

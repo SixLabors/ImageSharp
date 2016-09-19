@@ -20,13 +20,12 @@ namespace ImageProcessorCore
         /// <param name="source">The image to resize.</param>
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
-        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/></returns>
-        public static Image<TColor, TPacked> Crop<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height, ProgressEventHandler progressHandler = null)
+        public static Image<TColor, TPacked> Crop<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height)
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
-            return Crop(source, width, height, source.Bounds, progressHandler);
+            return Crop(source, width, height, source.Bounds);
         }
 
         /// <summary>
@@ -44,9 +43,8 @@ namespace ImageProcessorCore
         /// <param name="sourceRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
-        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image"/></returns>
-        public static Image<TColor, TPacked> Crop<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height, Rectangle sourceRectangle, ProgressEventHandler progressHandler = null)
+        public static Image<TColor, TPacked> Crop<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height, Rectangle sourceRectangle)
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
@@ -61,16 +59,7 @@ namespace ImageProcessorCore
             }
 
             CropProcessor<TColor, TPacked> processor = new CropProcessor<TColor, TPacked>();
-            processor.OnProgress += progressHandler;
-
-            try
-            {
-                return source.Process(width, height, sourceRectangle, new Rectangle(0, 0, width, height), processor);
-            }
-            finally
-            {
-                processor.OnProgress -= progressHandler;
-            }
+            return source.Process(width, height, sourceRectangle, new Rectangle(0, 0, width, height), processor);
         }
     }
 }

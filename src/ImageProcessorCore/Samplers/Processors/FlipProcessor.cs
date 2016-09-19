@@ -1,4 +1,4 @@
-﻿// <copyright file="RotateFlipProcessor.cs" company="James Jackson-South">
+﻿// <copyright file="FlipProcessor.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -76,8 +76,6 @@ namespace ImageProcessorCore.Processors
                                 targetPixels[x, y] = tempPixels[x, newY];
                                 targetPixels[x, newY] = tempPixels[x, y];
                             }
-
-                            this.OnRowProcessed();
                         });
             }
         }
@@ -110,8 +108,6 @@ namespace ImageProcessorCore.Processors
                                 targetPixels[x, y] = tempPixels[newX, y];
                                 targetPixels[newX, y] = tempPixels[x, y];
                             }
-
-                            this.OnRowProcessed();
                         });
             }
         }

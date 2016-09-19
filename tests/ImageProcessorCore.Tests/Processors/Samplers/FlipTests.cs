@@ -38,7 +38,7 @@ namespace ImageProcessorCore.Tests
                     Image image = new Image(stream);
                     using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                     {
-                        image.Flip(flipType, this.ProgressUpdate)
+                        image.Flip(flipType)
                              .Save(output);
                     }
                 }

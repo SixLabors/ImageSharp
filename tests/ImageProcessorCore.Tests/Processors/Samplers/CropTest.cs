@@ -28,7 +28,7 @@ namespace ImageProcessorCore.Tests
                     Image image = new Image(stream);
                     using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                     {
-                        image.Crop(image.Width / 2, image.Height / 2, this.ProgressUpdate)
+                        image.Crop(image.Width / 2, image.Height / 2)
                              .Save(output);
                     }
                 }

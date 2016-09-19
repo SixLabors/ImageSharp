@@ -87,8 +87,6 @@ namespace ImageProcessorCore.Processors
                                     sourcePixels[offsetX, offsetY] = packed;
                                 }
                             }
-
-                            this.OnRowProcessed();
                         });
             }
         }

@@ -19,10 +19,9 @@ namespace ImageProcessorCore
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image to resize.</param>
         /// <param name="options">The resize options.</param>
-        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/></returns>
         /// <remarks>Passing zero for one of height or width within the resize options will automatically preserve the aspect ratio of the original image</remarks>
-        public static Image<TColor, TPacked> Resize<TColor, TPacked>(this Image<TColor, TPacked> source, ResizeOptions options, ProgressEventHandler progressHandler = null)
+        public static Image<TColor, TPacked> Resize<TColor, TPacked>(this Image<TColor, TPacked> source, ResizeOptions options)
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
@@ -39,7 +38,7 @@ namespace ImageProcessorCore
 
             Rectangle targetRectangle = ResizeHelper.CalculateTargetLocationAndBounds(source, options);
 
-            return Resize(source, options.Size.Width, options.Size.Height, options.Sampler, source.Bounds, targetRectangle, options.Compand, progressHandler);
+            return Resize(source, options.Size.Width, options.Size.Height, options.Sampler, source.Bounds, targetRectangle, options.Compand);
         }
 
         /// <summary>
@@ -50,14 +49,13 @@ namespace ImageProcessorCore
         /// <param name="source">The image to resize.</param>
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
-        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
-        public static Image<TColor, TPacked> Resize<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height, ProgressEventHandler progressHandler = null)
+        public static Image<TColor, TPacked> Resize<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height)
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
-            return Resize(source, width, height, new BicubicResampler(), false, progressHandler);
+            return Resize(source, width, height, new BicubicResampler(), false);
         }
 
         /// <summary>
@@ -69,14 +67,13 @@ namespace ImageProcessorCore
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
         /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
-        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
-        public static Image<TColor, TPacked> Resize<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height, bool compand, ProgressEventHandler progressHandler = null)
+        public static Image<TColor, TPacked> Resize<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height, bool compand)
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
-            return Resize(source, width, height, new BicubicResampler(), compand, progressHandler);
+            return Resize(source, width, height, new BicubicResampler(), compand);
         }
 
         /// <summary>
@@ -88,14 +85,13 @@ namespace ImageProcessorCore
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
         /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
-        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
-        public static Image<TColor, TPacked> Resize<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height, IResampler sampler, ProgressEventHandler progressHandler = null)
+        public static Image<TColor, TPacked> Resize<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height, IResampler sampler)
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
-            return Resize(source, width, height, sampler, false, progressHandler);
+            return Resize(source, width, height, sampler, false);
         }
 
         /// <summary>
@@ -108,14 +104,13 @@ namespace ImageProcessorCore
         /// <param name="height">The target image height.</param>
         /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
         /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
-        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
-        public static Image<TColor, TPacked> Resize<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height, IResampler sampler, bool compand, ProgressEventHandler progressHandler = null)
+        public static Image<TColor, TPacked> Resize<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height, IResampler sampler, bool compand)
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
-            return Resize(source, width, height, sampler, source.Bounds, new Rectangle(0, 0, width, height), compand, progressHandler);
+            return Resize(source, width, height, sampler, source.Bounds, new Rectangle(0, 0, width, height), compand);
         }
 
         /// <summary>
@@ -135,10 +130,9 @@ namespace ImageProcessorCore
         /// The <see cref="Rectangle"/> structure that specifies the portion of the target image object to draw to.
         /// </param>
         /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
-        /// <param name="progressHandler">A delegate which is called as progress is made processing the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
-        public static Image<TColor, TPacked> Resize<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height, IResampler sampler, Rectangle sourceRectangle, Rectangle targetRectangle, bool compand = false, ProgressEventHandler progressHandler = null)
+        public static Image<TColor, TPacked> Resize<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height, IResampler sampler, Rectangle sourceRectangle, Rectangle targetRectangle, bool compand = false)
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
@@ -168,16 +162,7 @@ namespace ImageProcessorCore
                 processor = new ResizeProcessor<TColor, TPacked>(sampler);
             }
 
-            processor.OnProgress += progressHandler;
-
-            try
-            {
-                return source.Process(width, height, sourceRectangle, targetRectangle, processor);
-            }
-            finally
-            {
-                processor.OnProgress -= progressHandler;
-            }
+            return source.Process(width, height, sourceRectangle, targetRectangle, processor);
         }
     }
 }

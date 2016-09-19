@@ -5,8 +5,6 @@
 
 namespace ImageProcessorCore.Processors
 {
-    using System.Collections.Generic;
-    using System.Threading;
     using System.Threading.Tasks;
 
     /// <summary>
@@ -18,14 +16,6 @@ namespace ImageProcessorCore.Processors
         where TColor : IPackedVector<TPacked>
         where TPacked : struct
     {
-        /// <summary>
-        /// Gets or sets the number of rows processed by a derived class.
-        /// </summary>
-        protected int NumRowsProcessed;
-
-        /// <inheritdoc/>
-        public event ProgressEventHandler OnProgress;
-
         /// <inheritdoc/>
         public virtual ParallelOptions ParallelOptions { get; set; } = Bootstrapper.Instance.ParallelOptions;
 
@@ -36,25 +26,5 @@ namespace ImageProcessorCore.Processors
         /// Gets or sets the total number of rows that will be processed by a derived class.
         /// </summary>
         protected int TotalRows { get; set; }
-
-        /// <summary>
-        /// Must be called by derived classes after processing a single row.
-        /// </summary>
-        protected void OnRowProcessed()
-        {
-            if (this.OnProgress != null)
-            {
-                int currThreadNumRows = Interlocked.Add(ref this.NumRowsProcessed, 1);
-
-                // Multi-pass filters process multiple times more rows than totalRows, so update totalRows on the fly
-                if (currThreadNumRows > this.TotalRows)
-                {
-                    this.TotalRows = currThreadNumRows;
-                }
-
-                // Report progress. This may be on the client's thread, or on a Task library thread.
-                this.OnProgress(this, new ProgressEventArgs { RowsProcessed = currThreadNumRows, TotalRows = this.TotalRows });
-            }
-        }
     }
 }

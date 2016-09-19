@@ -12,12 +12,12 @@ namespace ImageProcessorCore.Processors
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class GuassianSharpenProcessor<TColor, TPacked> : Convolution2PassFilter<TColor, TPacked>
+    public class GuassianSharpenProcessor<TColor, TPacked> : ImageSampler<TColor, TPacked>
         where TColor : IPackedVector<TPacked>
         where TPacked : struct
     {
         /// <summary>
-        /// The maximum size of the kernal in either direction.
+        /// The maximum size of the kernel in either direction.
         /// </summary>
         private readonly int kernelSize;
 
@@ -25,16 +25,6 @@ namespace ImageProcessorCore.Processors
         /// The spread of the blur.
         /// </summary>
         private readonly float sigma;
-
-        /// <summary>
-        /// The vertical kernel
-        /// </summary>
-        private float[,] kernelY;
-
-        /// <summary>
-        /// The horizontal kernel
-        /// </summary>
-        private float[,] kernelX;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GuassianSharpenProcessor{TColor, TPacked}"/> class.
@@ -46,6 +36,8 @@ namespace ImageProcessorCore.Processors
         {
             this.kernelSize = ((int)Math.Ceiling(sigma) * 2) + 1;
             this.sigma = sigma;
+            this.KernelX = this.CreateGaussianKernel(true);
+            this.KernelY = this.CreateGaussianKernel(false);
         }
 
         /// <summary>
@@ -58,6 +50,8 @@ namespace ImageProcessorCore.Processors
         {
             this.kernelSize = (radius * 2) + 1;
             this.sigma = radius;
+            this.KernelX = this.CreateGaussianKernel(true);
+            this.KernelY = this.CreateGaussianKernel(false);
         }
 
         /// <summary>
@@ -74,26 +68,24 @@ namespace ImageProcessorCore.Processors
         {
             this.kernelSize = (radius * 2) + 1;
             this.sigma = sigma;
+            this.KernelX = this.CreateGaussianKernel(true);
+            this.KernelY = this.CreateGaussianKernel(false);
         }
 
-        /// <inheritdoc/>
-        public override float[,] KernelX => this.kernelX;
+        /// <summary>
+        /// Gets the horizontal gradient operator.
+        /// </summary>
+        public float[,] KernelX { get; }
+
+        /// <summary>
+        /// Gets the vertical gradient operator.
+        /// </summary>
+        public float[,] KernelY { get; }
 
         /// <inheritdoc/>
-        public override float[,] KernelY => this.kernelY;
-
-        /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle)
+        public override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-            if (this.kernelY == null)
-            {
-                this.kernelY = this.CreateGaussianKernel(false);
-            }
-
-            if (this.kernelX == null)
-            {
-                this.kernelX = this.CreateGaussianKernel(true);
-            }
+            new Convolution2PassFilter<TColor, TPacked>(this.KernelX, this.KernelY).Apply(target, source, targetRectangle, sourceRectangle, startY, endY);
         }
 
         /// <summary>

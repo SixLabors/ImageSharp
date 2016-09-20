@@ -32,7 +32,7 @@ namespace ImageProcessorCore.Formats
         public string Extension => "png";
 
         /// <summary>
-        /// The compression level 1-9. 
+        /// Gets or sets the compression level 1-9. 
         /// <remarks>Defaults to 6.</remarks>
         /// </summary>
         public int CompressionLevel { get; set; } = 6;
@@ -46,14 +46,14 @@ namespace ImageProcessorCore.Formats
         public float Gamma { get; set; } = 2.2F;
 
         /// <summary>
-        /// The quantizer for reducing the color count.
+        /// Gets or sets quantizer for reducing the color count.
         /// </summary>
         public IQuantizer Quantizer { get; set; }
 
         /// <summary>
         /// Gets or sets the transparency threshold.
         /// </summary>
-        public byte Threshold { get; set; } = 128;
+        public byte Threshold { get; set; } = 0;
 
         /// <summary>
         /// Gets or sets a value indicating whether this instance should write
@@ -81,7 +81,7 @@ namespace ImageProcessorCore.Formats
                 CompressionLevel = this.CompressionLevel,
                 Gamma = this.Gamma,
                 Quality = this.Quality,
-                PngColorType = PngColorType,
+                PngColorType = this.PngColorType,
                 Quantizer = this.Quantizer,
                 WriteGamma = this.WriteGamma,
                 Threshold = this.Threshold

@@ -8,6 +8,7 @@ namespace ImageProcessorCore.Formats
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Threading.Tasks;
 
     using Quantizers;
@@ -86,7 +87,7 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Gets or sets the transparency threshold.
         /// </summary>
-        public byte Threshold { get; set; } = 128;
+        public byte Threshold { get; set; }
 
         /// <summary>
         /// Encodes the image to the specified stream from the <see cref="ImageBase{TColor, TPacked}"/>.
@@ -492,7 +493,7 @@ namespace ImageProcessorCore.Formats
 
             if (this.Quantizer == null)
             {
-                this.Quantizer = new WuQuantizer<TColor, TPacked> { Threshold = this.Threshold };
+                this.Quantizer = new WuQuantizer<TColor, TPacked>();
             }
 
             // Quantize the image returning a palette. This boxing is icky.
@@ -501,7 +502,7 @@ namespace ImageProcessorCore.Formats
             // Grab the palette and write it to the stream.
             TColor[] palette = quantized.Palette;
             int pixelCount = palette.Length;
-
+            List<byte> transparentPixels = new List<byte>();
             // Get max colors for bit depth.
             int colorTableLength = (int)Math.Pow(2, header.BitDepth) * 3;
             byte[] colorTable = new byte[colorTableLength];
@@ -517,14 +518,19 @@ namespace ImageProcessorCore.Formats
                     colorTable[offset] = color.R;
                     colorTable[offset + 1] = color.G;
                     colorTable[offset + 2] = color.B;
+
+                    if (color.A <= this.Threshold)
+                    {
+                        transparentPixels.Add((byte)offset);
+                    }
                 });
 
             this.WriteChunk(stream, PngChunkTypes.Palette, colorTable);
 
             // Write the transparency data
-            if (quantized.TransparentIndex > -1)
+            if (transparentPixels.Any())
             {
-                this.WriteChunk(stream, PngChunkTypes.PaletteAlpha, new[] { (byte)quantized.TransparentIndex });
+                this.WriteChunk(stream, PngChunkTypes.PaletteAlpha, transparentPixels.ToArray());
             }
 
             return quantized;

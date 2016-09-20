@@ -38,14 +38,6 @@ namespace ImageProcessorCore.Quantizers
             this.singlePass = singlePass;
         }
 
-        /// <summary>
-        /// Gets or sets the transparency index.
-        /// </summary>
-        public int TransparentIndex { get; protected set; } = -1;
-
-        /// <inheritdoc/>
-        public byte Threshold { get; set; }
-
         /// <inheritdoc/>
         public virtual QuantizedImage<TColor, TPacked> Quantize(ImageBase<TColor, TPacked> image, int maxColors)
         {
@@ -73,7 +65,7 @@ namespace ImageProcessorCore.Quantizers
                 this.SecondPass(pixels, quantizedPixels, width, height);
             }
 
-            return new QuantizedImage<TColor, TPacked>(width, height, palette.ToArray(), quantizedPixels, this.TransparentIndex);
+            return new QuantizedImage<TColor, TPacked>(width, height, palette.ToArray(), quantizedPixels);
         }
 
         /// <summary>

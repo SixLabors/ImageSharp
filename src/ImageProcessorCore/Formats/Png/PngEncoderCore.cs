@@ -503,6 +503,7 @@ namespace ImageProcessorCore.Formats
             TColor[] palette = quantized.Palette;
             int pixelCount = palette.Length;
             List<byte> transparentPixels = new List<byte>();
+
             // Get max colors for bit depth.
             int colorTableLength = (int)Math.Pow(2, header.BitDepth) * 3;
             byte[] colorTable = new byte[colorTableLength];

@@ -80,51 +80,36 @@ namespace ImageProcessorCore.Quantizers
             else
             {
                 // Not found - loop through the palette and find the nearest match.
-                // Firstly check the alpha value - if less than the threshold, lookup the transparent color
-                Color color =new Color(pixel.ToVector4());
-                if (!(color.A > this.Threshold))
+                Color color = new Color(pixel.ToVector4());
+
+                int leastDistance = int.MaxValue;
+                int red = color.R;
+                int green = color.G;
+                int blue = color.B;
+                int alpha = color.A;
+
+                for (int index = 0; index < this.colors.Length; index++)
                 {
-                    // Transparent. Lookup the first color with an alpha value of 0
-                    for (int index = 0; index < this.colors.Length; index++)
+                    Color paletteColor = new Color(this.colors[index].ToVector4());
+                    int redDistance = paletteColor.R - red;
+                    int greenDistance = paletteColor.G - green;
+                    int blueDistance = paletteColor.B - blue;
+                    int alphaDistance = paletteColor.A - alpha;
+
+                    int distance = (redDistance * redDistance) +
+                                   (greenDistance * greenDistance) +
+                                   (blueDistance * blueDistance) +
+                                   (alphaDistance * alphaDistance);
+
+                    if (distance < leastDistance)
                     {
-                        if (new Color(this.colors[index].ToVector4()).A == 0)
+                        colorIndex = (byte)index;
+                        leastDistance = distance;
+
+                        // And if it's an exact match, exit the loop
+                        if (distance == 0)
                         {
-                            colorIndex = (byte)index;
-                            this.TransparentIndex = colorIndex;
                             break;
-                        }
-                    }
-                }
-                else
-                {
-                    // Not transparent...
-                    int leastDistance = int.MaxValue;
-                    int red = color.R;
-                    int green = color.G;
-                    int blue = color.B;
-
-                    // Loop through the entire palette, looking for the closest color match
-                    for (int index = 0; index < this.colors.Length; index++)
-                    {
-                        Color paletteColor = new Color(this.colors[index].ToVector4());
-                        int redDistance = paletteColor.R - red;
-                        int greenDistance = paletteColor.G - green;
-                        int blueDistance = paletteColor.B - blue;
-
-                        int distance = (redDistance * redDistance) +
-                                       (greenDistance * greenDistance) +
-                                       (blueDistance * blueDistance);
-
-                        if (distance < leastDistance)
-                        {
-                            colorIndex = (byte)index;
-                            leastDistance = distance;
-
-                            // And if it's an exact match, exit the loop
-                            if (distance == 0)
-                            {
-                                break;
-                            }
                         }
                     }
                 }

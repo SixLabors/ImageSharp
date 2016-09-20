@@ -24,8 +24,7 @@ namespace ImageProcessorCore.Quantizers
         /// <param name="height">The image height.</param>
         /// <param name="palette">The color palette.</param>
         /// <param name="pixels">The quantized pixels.</param>
-        /// <param name="transparentIndex">The transparency index.</param>
-        public QuantizedImage(int width, int height, TColor[] palette, byte[] pixels, int transparentIndex = -1)
+        public QuantizedImage(int width, int height, TColor[] palette, byte[] pixels)
         {
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
@@ -42,7 +41,6 @@ namespace ImageProcessorCore.Quantizers
             this.Height = height;
             this.Palette = palette;
             this.Pixels = pixels;
-            this.TransparentIndex = transparentIndex;
         }
 
         /// <summary>
@@ -64,11 +62,6 @@ namespace ImageProcessorCore.Quantizers
         /// Gets the pixels of this <see cref="T:QuantizedImage"/>.
         /// </summary>
         public byte[] Pixels { get; }
-
-        /// <summary>
-        /// Gets the transparent index
-        /// </summary>
-        public int TransparentIndex { get; }
 
         /// <summary>
         /// Converts this quantized image to a normal image.

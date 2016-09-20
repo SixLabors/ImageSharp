@@ -55,7 +55,7 @@ namespace ImageProcessorCore.Formats
 
             if (this.Quantizer == null)
             {
-                this.Quantizer = new OctreeQuantizer<TColor, TPacked> { Threshold = this.Threshold };
+                this.Quantizer = new OctreeQuantizer<TColor, TPacked>();
             }
 
             // Do not use IDisposable pattern here as we want to preserve the stream. 
@@ -71,14 +71,16 @@ namespace ImageProcessorCore.Formats
             // Quantize the image returning a palette.
             QuantizedImage<TColor, TPacked> quantized = ((IQuantizer<TColor, TPacked>)this.Quantizer).Quantize(image, this.Quality);
 
+            int index = GetTransparentIndex(quantized);
+
             // Write the header.
             this.WriteHeader(writer);
 
             // Write the LSD. We'll use local color tables for now.
-            this.WriteLogicalScreenDescriptor(image, writer, quantized.TransparentIndex);
+            this.WriteLogicalScreenDescriptor(image, writer, index);
 
             // Write the first frame.
-            this.WriteGraphicalControlExtension(image, writer, quantized.TransparentIndex);
+            this.WriteGraphicalControlExtension(image, writer, index);
             this.WriteImageDescriptor(image, writer);
             this.WriteColorTable(quantized, writer);
             this.WriteImageData(quantized, writer);
@@ -90,7 +92,8 @@ namespace ImageProcessorCore.Formats
                 foreach (ImageFrame<TColor, TPacked> frame in image.Frames)
                 {
                     QuantizedImage<TColor, TPacked> quantizedFrame = ((IQuantizer<TColor, TPacked>)this.Quantizer).Quantize(frame, this.Quality);
-                    this.WriteGraphicalControlExtension(frame, writer, quantizedFrame.TransparentIndex);
+                    
+                    this.WriteGraphicalControlExtension(frame, writer, GetTransparentIndex(quantizedFrame));
                     this.WriteImageDescriptor(frame, writer);
                     this.WriteColorTable(quantizedFrame, writer);
                     this.WriteImageData(quantizedFrame, writer);
@@ -99,6 +102,37 @@ namespace ImageProcessorCore.Formats
 
             // TODO: Write Comments extension etc
             writer.Write(GifConstants.EndIntroducer);
+        }
+
+        /// <summary>
+        /// Returns the index of the most transparent color in the palette.
+        /// </summary>
+        /// <param name="quantized">
+        /// The quantized.
+        /// </param>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+        /// <returns>
+        /// The <see cref="int"/>.
+        /// </returns>
+        private static int GetTransparentIndex<TColor, TPacked>(QuantizedImage<TColor, TPacked> quantized)
+            where TColor : IPackedVector<TPacked>
+            where TPacked : struct
+        {
+            // Find the lowest alpha value and make it the transparent index.
+            int index = 255;
+            float alpha = 1;
+            for (int i = 0; i < quantized.Palette.Length; i++)
+            {
+                float a = quantized.Palette[i].ToVector4().W;
+                if (a < alpha)
+                {
+                    alpha = a;
+                    index = i;
+                }
+            }
+
+            return index;
         }
 
         /// <summary>

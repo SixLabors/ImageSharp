@@ -118,9 +118,6 @@ namespace ImageProcessorCore.Quantizers
         }
 
         /// <inheritdoc/>
-        public byte Threshold { get; set; }
-
-        /// <inheritdoc/>
         public QuantizedImage<TColor, TPacked> Quantize(ImageBase<TColor, TPacked> image, int maxColors)
         {
             Guard.NotNull(image, nameof(image));
@@ -334,7 +331,7 @@ namespace ImageProcessorCore.Quantizers
                 for (int x = 0; x < pixels.Width; x++)
                 {
                     // Colors are expected in r->g->b->a format
-                   Color color = new Color(pixels[x, y].ToVector4());
+                    Color color = new Color(pixels[x, y].ToVector4());
 
                     byte r = color.R;
                     byte g = color.G;
@@ -729,7 +726,6 @@ namespace ImageProcessorCore.Quantizers
         {
             List<TColor> pallette = new List<TColor>();
             byte[] pixels = new byte[imagePixels.Width * imagePixels.Height];
-            int transparentIndex = -1;
             int width = imagePixels.Width;
             int height = imagePixels.Height;
 
@@ -741,25 +737,18 @@ namespace ImageProcessorCore.Quantizers
 
                 if (Math.Abs(weight) > Epsilon)
                 {
-                    byte r = (byte)(Volume(cube[k], this.vmr) / weight);
-                    byte g = (byte)(Volume(cube[k], this.vmg) / weight);
-                    byte b = (byte)(Volume(cube[k], this.vmb) / weight);
-                    byte a = (byte)(Volume(cube[k], this.vma) / weight);
+                    float r = (float)(Volume(cube[k], this.vmr) / weight);
+                    float g = (float)(Volume(cube[k], this.vmg) / weight);
+                    float b = (float)(Volume(cube[k], this.vmb) / weight);
+                    float a = (float)(Volume(cube[k], this.vma) / weight);
 
                     TColor color = default(TColor);
                     color.PackFromVector4(new Vector4(r, g, b, a) / 255F);
-
-                    if (color.Equals(default(TColor)))
-                    {
-                        transparentIndex = k;
-                    }
-
                     pallette.Add(color);
                 }
                 else
                 {
                     pallette.Add(default(TColor));
-                    transparentIndex = k;
                 }
             }
 
@@ -778,18 +767,12 @@ namespace ImageProcessorCore.Quantizers
                             int b = color.B >> (8 - IndexBits);
                             int a = color.A >> (8 - IndexAlphaBits);
 
-                            if (transparentIndex > -1 && color.A <= this.Threshold)
-                            {
-                                pixels[(y * width) + x] = (byte)transparentIndex;
-                                continue;
-                            }
-
                             int ind = GetPaletteIndex(r + 1, g + 1, b + 1, a + 1);
                             pixels[(y * width) + x] = this.tag[ind];
                         }
                     });
 
-            return new QuantizedImage<TColor, TPacked>(width, height, pallette.ToArray(), pixels, transparentIndex);
+            return new QuantizedImage<TColor, TPacked>(width, height, pallette.ToArray(), pixels);
         }
     }
 }

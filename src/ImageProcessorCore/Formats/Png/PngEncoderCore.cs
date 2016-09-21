@@ -516,11 +516,19 @@ namespace ImageProcessorCore.Formats
                 {
                     int offset = i * 3;
                     Color color = new Color(palette[i].ToVector4());
+                    int alpha = color.A;
+
+                    // Premultiply the color. This helps prevent banding.
+                    if (alpha < 255 && alpha > this.Threshold)
+                    {
+                        color = Color.Multiply(color, new Color(alpha, alpha, alpha, 255));
+                    }
+
                     colorTable[offset] = color.R;
                     colorTable[offset + 1] = color.G;
                     colorTable[offset + 2] = color.B;
 
-                    if (color.A <= this.Threshold)
+                    if (alpha <= this.Threshold)
                     {
                         transparentPixels.Add((byte)offset);
                     }

@@ -91,17 +91,6 @@ namespace ImageProcessorCore.Quantizers
         protected override List<TColor> GetPalette()
         {
             return this.octree.Palletize(Math.Max(this.colors, 1));
-
-            // First off convert the Octree to maxColors colors
-            //List<TColor> palette = this.octree.Palletize(Math.Max(this.colors, 1));
-
-            //int diff = this.colors - palette.Count;
-            //if (diff > 0)
-            //{
-            //    palette.AddRange(Enumerable.Repeat(default(TColor), diff));
-            //}
-
-            //return palette;
         }
 
         /// <summary>

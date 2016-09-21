@@ -95,7 +95,7 @@ namespace ImageProcessorCore.Quantizers
         /// <param name="output">The output pixel array</param>
         /// <param name="width">The width in pixels of the image</param>
         /// <param name="height">The height in pixels of the image</param>
-        protected virtual void SecondPass(PixelAccessor<TColor,TPacked> source, byte[] output, int width, int height)
+        protected virtual void SecondPass(PixelAccessor<TColor, TPacked> source, byte[] output, int width, int height)
         {
             Parallel.For(
                 0,

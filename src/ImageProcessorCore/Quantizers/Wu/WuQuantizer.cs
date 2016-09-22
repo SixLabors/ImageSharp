@@ -104,7 +104,7 @@ namespace ImageProcessorCore.Quantizers
         private readonly byte[] tag;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="WuQuantizer{T,TP}"/> class.
+        /// Initializes a new instance of the <see cref="WuQuantizer{TColor,TPacked}"/> class.
         /// </summary>
         public WuQuantizer()
         {

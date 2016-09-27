@@ -103,8 +103,8 @@ namespace ImageProcessorCore.Formats
 
                 if (colorMapSize > 0)
                 {
-                    // 255 * 4
-                    if (colorMapSize > 1020)
+                    // 256 * 4
+                    if (colorMapSize > 1024)
                     {
                         throw new ImageFormatException($"Invalid bmp colormap size '{colorMapSize}'");
                     }

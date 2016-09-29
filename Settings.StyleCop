@@ -1,4 +1,18 @@
 <StyleCopSettings Version="105">
+<GlobalSettings>
+    <CollectionProperty Name="RecognizedWords">
+      <Value>enum</Value>
+      <Value>exif</Value>
+      <Value>uint</Value>
+      <Value>lossy</Value>
+      <Value>octree</Value>
+      <Value>png</Value>
+      <Value>quantizer</Value>
+      <Value>unzig</Value>
+      <Value>cb</Value>
+      <Value>cr</Value>
+    </CollectionProperty>
+  </GlobalSettings>
   <Analyzers>
     <Analyzer AnalyzerId="StyleCop.CSharp.DocumentationRules">
       <AnalyzerSettings>

@@ -15,15 +15,14 @@ namespace ImageProcessorCore.Formats
     /// Adapted from Jef Poskanzer's Java port by way of J. M. G. Elliott. K Weiner 12/00
     /// <para>
     /// GIFCOMPR.C       - GIF Image compression routines
-    ///
+    /// </para>
+    /// <para>
     /// Lempel-Ziv compression based on 'compress'.  GIF modifications by
     /// David Rowley (mgardi@watdcsu.waterloo.edu)
     /// </para>
-    /// <para>
     /// GIF Image compression - modified 'compress'
-    ///
+    /// <para>
     /// Based on: compress.c - File compression ala IEEE Computer, June 1984.
-    ///
     /// By Authors:  Spencer W. Thomas      (decvax!harpo!utah-cs!utah-gr!thomas)
     ///              Jim McKie              (decvax!mcvax!jim)
     ///              Steve Davies           (decvax!vax135!petsd!peora!srd)
@@ -44,7 +43,25 @@ namespace ImageProcessorCore.Formats
 
         private readonly int initialCodeSize;
 
-        private int curPixel;
+        private readonly int[] hashTable = new int[HashSize];
+
+        private readonly int[] codeTable = new int[HashSize];
+
+        private readonly int[] masks =
+        {
+            0x0000, 0x0001, 0x0003, 0x0007, 0x000F, 0x001F, 0x003F, 0x007F, 0x00FF,
+            0x01FF, 0x03FF, 0x07FF, 0x0FFF, 0x1FFF, 0x3FFF, 0x7FFF, 0xFFFF
+        };
+
+        /// <summary>
+        /// Define the storage for the packet accumulator.
+        /// </summary>
+        private readonly byte[] accumulators = new byte[256];
+
+        /// <summary>
+        /// The current pixel
+        /// </summary>
+        private int currentPixel;
 
         /// <summary>
         /// Number of bits/code
@@ -56,13 +73,15 @@ namespace ImageProcessorCore.Formats
         /// </summary>
         private int maxbits = Bits;
 
-        private int maxcode; // maximum code, given bitCount
+        /// <summary>
+        /// maximum code, given bitCount
+        /// </summary>
+        private int maxcode;
 
-        private int maxmaxcode = 1 << Bits; // should NEVER generate this code
-
-        private readonly int[] hashTable = new int[HashSize];
-
-        private readonly int[] codeTable = new int[HashSize];
+        /// <summary>
+        /// should NEVER generate this code
+        /// </summary>
+        private int maxmaxcode = 1 << Bits;
 
         /// <summary>
         /// For dynamic table sizing
@@ -91,7 +110,6 @@ namespace ImageProcessorCore.Formats
         // for the decompressor.  Late addition:  construct the table according to
         // file size for noticeable speed improvement on small files.  Please direct
         // questions about this implementation to ames!jaw.
-
         private int globalInitialBits;
 
         private int clearCode;
@@ -112,26 +130,14 @@ namespace ImageProcessorCore.Formats
         //      Maintain a BITS character long buffer (so that 8 codes will
         // fit in it exactly).  Use the VAX insv instruction to insert each
         // code in turn.  When the buffer fills up empty it and start over.
-
         private int currentAccumulator;
 
         private int currentBits;
-
-        private readonly int[] masks =
-            {
-                0x0000, 0x0001, 0x0003, 0x0007, 0x000F, 0x001F, 0x003F, 0x007F, 0x00FF,
-                0x01FF, 0x03FF, 0x07FF, 0x0FFF, 0x1FFF, 0x3FFF, 0x7FFF, 0xFFFF
-            };
 
         /// <summary>
         /// Number of characters so far in this 'packet'
         /// </summary>
         private int accumulatorCount;
-
-        /// <summary>
-        /// Define the storage for the packet accumulator.
-        /// </summary>
-        private readonly byte[] accumulators = new byte[256];
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LzwEncoder"/> class.
@@ -153,7 +159,7 @@ namespace ImageProcessorCore.Formats
             // Write "initial code size" byte
             stream.WriteByte((byte)this.initialCodeSize);
 
-            this.curPixel = 0;
+            this.currentPixel = 0;
 
             // Compress and write the pixel data
             this.Compress(this.initialCodeSize + 1, stream);
@@ -215,7 +221,7 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Compress the packets to the stream.
         /// </summary>
-        /// <param name="intialBits">The inital bits.</param>
+        /// <param name="intialBits">The initial bits.</param>
         /// <param name="stream">The stream to write to.</param>
         private void Compress(int intialBits, Stream stream)
         {
@@ -242,7 +248,11 @@ namespace ImageProcessorCore.Formats
             ent = this.NextPixel();
 
             hshift = 0;
-            for (fcode = this.hsize; fcode < 65536; fcode *= 2) { ++hshift; }
+            for (fcode = this.hsize; fcode < 65536; fcode *= 2)
+            {
+                ++hshift;
+            }
+
             hshift = 8 - hshift; // set hash code range bound
 
             hsizeReg = this.hsize;
@@ -263,13 +273,20 @@ namespace ImageProcessorCore.Formats
                 }
 
                 // Non-empty slot
-                if (this.hashTable[i] >= 0) 
+                if (this.hashTable[i] >= 0)
                 {
                     int disp = hsizeReg - i;
-                    if (i == 0) disp = 1;
+                    if (i == 0)
+                    {
+                        disp = 1;
+                    }
+
                     do
                     {
-                        if ((i -= disp) < 0) { i += hsizeReg; }
+                        if ((i -= disp) < 0)
+                        {
+                            i += hsizeReg;
+                        }
 
                         if (this.hashTable[i] == fcode)
                         {
@@ -279,7 +296,10 @@ namespace ImageProcessorCore.Formats
                     }
                     while (this.hashTable[i] >= 0);
 
-                    if (this.hashTable[i] == fcode) { continue; }
+                    if (this.hashTable[i] == fcode)
+                    {
+                        continue;
+                    }
                 }
 
                 this.Output(ent, stream);
@@ -289,7 +309,10 @@ namespace ImageProcessorCore.Formats
                     this.codeTable[i] = this.freeEntry++; // code -> hashtable
                     this.hashTable[i] = fcode;
                 }
-                else this.ClearBlock(stream);
+                else
+                {
+                    this.ClearBlock(stream);
+                }
             }
 
             // Put out the final code.
@@ -298,13 +321,16 @@ namespace ImageProcessorCore.Formats
             this.Output(this.eofCode, stream);
         }
 
-        // Flush the packet to disk, and reset the accumulator
-        private void FlushPacket(Stream outs)
+        /// <summary>
+        /// Flush the packet to disk, and reset the accumulator.
+        /// </summary>
+        /// <param name="outStream">The output stream.</param>
+        private void FlushPacket(Stream outStream)
         {
             if (this.accumulatorCount > 0)
             {
-                outs.WriteByte((byte)this.accumulatorCount);
-                outs.Write(this.accumulators, 0, this.accumulatorCount);
+                outStream.WriteByte((byte)this.accumulatorCount);
+                outStream.Write(this.accumulators, 0, this.accumulatorCount);
                 this.accumulatorCount = 0;
             }
         }
@@ -317,16 +343,18 @@ namespace ImageProcessorCore.Formats
         /// </returns>
         private int NextPixel()
         {
-            if (this.curPixel == this.pixelArray.Length)
+            if (this.currentPixel == this.pixelArray.Length)
             {
                 return Eof;
             }
 
-            if (this.curPixel == this.pixelArray.Length)
+            if (this.currentPixel == this.pixelArray.Length)
+            {
                 return Eof;
+            }
 
-            this.curPixel++;
-            return this.pixelArray[this.curPixel - 1] & 0xff;
+            this.currentPixel++;
+            return this.pixelArray[this.currentPixel - 1] & 0xff;
         }
 
         /// <summary>
@@ -338,8 +366,14 @@ namespace ImageProcessorCore.Formats
         {
             this.currentAccumulator &= this.masks[this.currentBits];
 
-            if (this.currentBits > 0) this.currentAccumulator |= (code << this.currentBits);
-            else this.currentAccumulator = code;
+            if (this.currentBits > 0)
+            {
+                this.currentAccumulator |= code << this.currentBits;
+            }
+            else
+            {
+                this.currentAccumulator = code;
+            }
 
             this.currentBits += this.bitCount;
 

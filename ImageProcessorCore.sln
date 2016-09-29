@@ -15,6 +15,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionIt
 		global.json = global.json
 		build\package.json = build\package.json
 		README.md = README.md
+		Settings.StyleCop = Settings.StyleCop
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Source", "Source", "{815C0625-CD3D-440F-9F80-2D83856AB7AE}"

@@ -38,9 +38,11 @@ namespace ImageProcessorCore.Formats
                     {
                         bitValue = 0;
                     }
+
                     returnValue |= bitValue;
                     bitShift--;
                 }
+
                 return Convert.ToByte(returnValue & 0xFF);
             }
         }
@@ -77,6 +79,7 @@ namespace ImageProcessorCore.Formats
                     + index;
                 throw new ArgumentOutOfRangeException(nameof(index), message);
             }
+
             Bits[index] = valueToSet;
         }
 
@@ -105,10 +108,10 @@ namespace ImageProcessorCore.Formats
             int bitShift = length - 1;
             for (int i = startIndex; i < startIndex + length; i++)
             {
-                int bitValueIfSet = (1 << bitShift);
-                int bitValue = (valueToSet & bitValueIfSet);
-                int bitIsSet = (bitValue >> bitShift);
-                Bits[i] = (bitIsSet == 1);
+                int bitValueIfSet = 1 << bitShift;
+                int bitValue = valueToSet & bitValueIfSet;
+                int bitIsSet = bitValue >> bitShift;
+                Bits[i] = bitIsSet == 1;
                 bitShift--;
             }
         }
@@ -127,6 +130,7 @@ namespace ImageProcessorCore.Formats
                 string message = $"Index must be between 0 and 7. Supplied index: {index}";
                 throw new ArgumentOutOfRangeException(nameof(index), message);
             }
+
             return Bits[index];
         }
 
@@ -162,6 +166,7 @@ namespace ImageProcessorCore.Formats
                 returnValue += bitValue;
                 bitShift--;
             }
+
             return returnValue;
         }
 

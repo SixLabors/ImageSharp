@@ -27,7 +27,7 @@ namespace ImageProcessorCore.Formats
         public byte Threshold { get; set; } = 128;
 
         /// <summary>
-        /// The quantizer for reducing the color count.
+        /// Gets or sets the quantizer for reducing the color count.
         /// </summary>
         public IQuantizer Quantizer { get; set; }
 

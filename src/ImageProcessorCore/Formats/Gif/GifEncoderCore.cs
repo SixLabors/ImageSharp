@@ -35,7 +35,7 @@ namespace ImageProcessorCore.Formats
         public byte Threshold { get; set; } = 128;
 
         /// <summary>
-        /// The quantizer for reducing the color count.
+        /// Gets or sets the quantizer for reducing the color count.
         /// </summary>
         public IQuantizer Quantizer { get; set; }
 
@@ -92,7 +92,7 @@ namespace ImageProcessorCore.Formats
                 foreach (ImageFrame<TColor, TPacked> frame in image.Frames)
                 {
                     QuantizedImage<TColor, TPacked> quantizedFrame = ((IQuantizer<TColor, TPacked>)this.Quantizer).Quantize(frame, this.Quality);
-                    
+
                     this.WriteGraphicalControlExtension(frame, writer, GetTransparentIndex(quantizedFrame));
                     this.WriteImageDescriptor(frame, writer);
                     this.WriteColorTable(quantizedFrame, writer);
@@ -151,7 +151,7 @@ namespace ImageProcessorCore.Formats
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="image">The image to encode.</param>
         /// <param name="writer">The writer to write to the stream with.</param>
-        /// <param name="tranparencyIndex">The transparency index to set the default backgound index to.</param>
+        /// <param name="tranparencyIndex">The transparency index to set the default background index to.</param>
         private void WriteLogicalScreenDescriptor<TColor, TPacked>(Image<TColor, TPacked> image, EndianBinaryWriter writer, int tranparencyIndex)
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
@@ -175,7 +175,8 @@ namespace ImageProcessorCore.Formats
             field.SetBits(5, 3, descriptor.GlobalColorTableSize); // 6-8 : GCT size. 2^(N+1)
 
             // Reduce the number of writes
-            byte[] arr = {
+            byte[] arr =
+            {
                 field.Byte,
                 descriptor.BackgroundColorIndex, // Background Color Index
                 descriptor.PixelAspectRatio // Pixel aspect ratio. Assume 1:1
@@ -185,11 +186,11 @@ namespace ImageProcessorCore.Formats
         }
 
         /// <summary>
-        /// Writes the application exstension to the stream.
+        /// Writes the application extension to the stream.
         /// </summary>
         /// <param name="writer">The writer to write to the stream with.</param>
         /// <param name="repeatCount">The animated image repeat count.</param>
-        /// <param name="frames">Th number of image frames.</param>
+        /// <param name="frames">The number of image frames.</param>
         private void WriteApplicationExtension(EndianBinaryWriter writer, ushort repeatCount, int frames)
         {
             // Application Extension Header
@@ -244,7 +245,8 @@ namespace ImageProcessorCore.Formats
             };
 
             // Reduce the number of writes.
-            byte[] intro = {
+            byte[] intro =
+                {
                 GifConstants.ExtensionIntroducer,
                 GifConstants.GraphicControlLabel,
                 4 // Size
@@ -311,9 +313,11 @@ namespace ImageProcessorCore.Formats
             int colorTableLength = (int)Math.Pow(2, this.bitDepth) * 3;
             byte[] colorTable = new byte[colorTableLength];
 
-            Parallel.For(0, pixelCount,
+            Parallel.For(
+                0,
+                pixelCount,
                 i =>
-                {
+                    {
                     int offset = i * 3;
                     Color color = new Color(palette[i].ToVector4());
 

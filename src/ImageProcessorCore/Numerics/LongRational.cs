@@ -271,7 +271,7 @@ namespace ImageProcessorCore
             }
 
             StringBuilder sb = new StringBuilder();
-            sb.Append(this.Numerator.ToString("R", provider));
+            sb.Append(this.Numerator.ToString(provider));
             sb.Append("/");
             sb.Append(this.Denominator.ToString("R", provider));
             return sb.ToString();

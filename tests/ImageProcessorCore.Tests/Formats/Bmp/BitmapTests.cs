@@ -13,8 +13,16 @@ namespace ImageProcessorCore.Tests
 
     public class BitmapTests : FileTestBase
     {
-        [Fact]
-        public void BitmapCanEncodeDifferentBitRates()
+        public static readonly TheoryData<BmpBitsPerPixel> BitsPerPixel
+        = new TheoryData<BmpBitsPerPixel>
+        {
+            BmpBitsPerPixel.Pixel24 ,
+            BmpBitsPerPixel.Pixel32
+        };
+
+        [Theory]
+        [MemberData("BitsPerPixel")]
+        public void BitmapCanEncodeDifferentBitRates(BmpBitsPerPixel bitsPerPixel)
         {
             const string path = "TestOutput/Bmp";
             if (!Directory.Exists(path))
@@ -22,24 +30,14 @@ namespace ImageProcessorCore.Tests
                 Directory.CreateDirectory(path);
             }
 
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
+                string filename = file.GetFileNameWithoutExtension(bitsPerPixel);
+                Image image = file.CreateImage();
+
+                using (FileStream output = File.OpenWrite($"{path}/{filename}.bmp"))
                 {
-                    Image image = new Image(stream);
-                    string encodeFilename = path + "/24-" + Path.GetFileNameWithoutExtension(file) + ".bmp";
-
-                    using (FileStream output = File.OpenWrite(encodeFilename))
-                    {
-                        image.Save(output, new BmpEncoder { BitsPerPixel = BmpBitsPerPixel.Pixel24 });
-                    }
-
-                    encodeFilename = path + "/32-" + Path.GetFileNameWithoutExtension(file) + ".bmp";
-
-                    using (FileStream output = File.OpenWrite(encodeFilename))
-                    {
-                        image.Save(output, new BmpEncoder { BitsPerPixel = BmpBitsPerPixel.Pixel32 });
-                    }
+                    image.Save(output, new BmpEncoder { BitsPerPixel = bitsPerPixel });
                 }
             }
         }

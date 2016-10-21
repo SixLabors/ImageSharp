@@ -20,17 +20,14 @@ namespace ImageProcessorCore.Tests
                 Directory.CreateDirectory(path);
             }
 
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
+                Image image = file.CreateImage();
+
+                using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                 {
-                    string filename = Path.GetFileName(file);
-                    Image image = new Image(stream);
-                    using (FileStream output = File.OpenWrite($"{path}/{filename}"))
-                    {
-                        image.Invert()
-                             .Save(output);
-                    }
+                    image.Invert()
+                          .Save(output);
                 }
             }
         }
@@ -44,17 +41,15 @@ namespace ImageProcessorCore.Tests
                 Directory.CreateDirectory(path);
             }
 
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
+                string filename = file.GetFileName("InBox");
+                Image image = file.CreateImage();
+
+                using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    string filename = Path.GetFileNameWithoutExtension(file);
-                    Image image = new Image(stream);
-                    using (FileStream output = File.OpenWrite($"{path}/{filename}-InBox{Path.GetExtension(file)}"))
-                    {
-                        image.Invert(new Rectangle(10, 10, image.Width / 2, image.Height / 2))
-                             .Save(output);
-                    }
+                    image.Invert(new Rectangle(10, 10, image.Width / 2, image.Height / 2))
+                          .Save(output);
                 }
             }
         }

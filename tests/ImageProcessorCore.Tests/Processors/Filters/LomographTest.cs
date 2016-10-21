@@ -20,17 +20,14 @@ namespace ImageProcessorCore.Tests
                 Directory.CreateDirectory(path);
             }
 
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
+                Image image = file.CreateImage();
+
+                using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                 {
-                    string filename = Path.GetFileName(file);
-                    Image image = new Image(stream);
-                    using (FileStream output = File.OpenWrite($"{path}/{filename}"))
-                    {
-                        image.Lomograph()
-                             .Save(output);
-                    }
+                    image.Lomograph()
+                          .Save(output);
                 }
             }
         }
@@ -43,18 +40,15 @@ namespace ImageProcessorCore.Tests
             {
                 Directory.CreateDirectory(path);
             }
-
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
+                string filename = file.GetFileName("InBox");
+                Image image = file.CreateImage();
+
+                using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    string filename = Path.GetFileNameWithoutExtension(file) + "-InBox" + Path.GetExtension(file);
-                    Image image = new Image(stream);
-                    using (FileStream output = File.OpenWrite($"{path}/{filename}"))
-                    {
-                        image.Lomograph(new Rectangle(image.Width / 4, image.Width / 4, image.Width / 2, image.Height / 2))
-                             .Save(output);
-                    }
+                    image.Lomograph(new Rectangle(image.Width / 4, image.Width / 4, image.Width / 2, image.Height / 2))
+                          .Save(output);
                 }
             }
         }

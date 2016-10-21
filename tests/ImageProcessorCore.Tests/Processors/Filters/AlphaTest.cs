@@ -28,18 +28,15 @@ namespace ImageProcessorCore.Tests
                 Directory.CreateDirectory(path);
             }
 
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
-                {
-                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + value + Path.GetExtension(file);
+                string filename = file.GetFileName(value);
+                Image image = file.CreateImage();
 
-                    Image image = new Image(stream);
-                    using (FileStream output = File.OpenWrite($"{path}/{filename}"))
-                    {
-                        image.Alpha(value)
-                             .Save(output);
-                    }
+                using (FileStream output = File.OpenWrite($"{path}/{filename}"))
+                {
+                    image.Alpha(value)
+                          .Save(output);
                 }
             }
         }
@@ -54,18 +51,15 @@ namespace ImageProcessorCore.Tests
                 Directory.CreateDirectory(path);
             }
 
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
-                {
-                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + value + "-InBox" + Path.GetExtension(file);
+                string filename = file.GetFileName(value);
+                Image image = file.CreateImage();
 
-                    Image image = new Image(stream);
-                    using (FileStream output = File.OpenWrite($"{path}/{filename}"))
-                    {
-                        image.Alpha(value, new Rectangle(10, 10, image.Width / 2, image.Height / 2))
-                             .Save(output);
-                    }
+                using (FileStream output = File.OpenWrite($"{path}/{filename}"))
+                {
+                    image.Alpha(value, new Rectangle(10, 10, image.Width / 2, image.Height / 2))
+                          .Save(output);
                 }
             }
         }

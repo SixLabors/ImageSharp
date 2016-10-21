@@ -28,18 +28,14 @@ namespace ImageProcessorCore.Tests
                 Directory.CreateDirectory(path);
             }
 
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
-                {
-                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + value + Path.GetExtension(file);
+                Image image = file.CreateImage();
 
-                    Image image = new Image(stream);
-                    using (FileStream output = File.OpenWrite($"{path}/{filename}"))
-                    {
-                        image.Contrast(value)
-                             .Save(output);
-                    }
+                using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
+                {
+                    image.Contrast(value)
+                          .Save(output);
                 }
             }
         }

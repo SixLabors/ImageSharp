@@ -7,8 +7,6 @@ namespace ImageProcessorCore.Tests
 {
     using System.Collections.Generic;
 
-    using Xunit;
-
     /// <summary>
     /// The test base class for reading and writing to files.
     /// </summary>
@@ -17,24 +15,24 @@ namespace ImageProcessorCore.Tests
         /// <summary>
         /// The collection of image files to test against.
         /// </summary>
-        protected static readonly List<string> Files = new List<string>
+        protected static readonly List<TestFile> Files = new List<TestFile>
         {
-            //TestImages.Png.P1,
-            //TestImages.Png.Pd,
-            TestImages.Jpg.Floorplan, // Perf: Enable for local testing only
-            TestImages.Jpg.Calliphora,
-            //TestImages.Jpg.Cmyk, // Perf: Enable for local testing only
-            //TestImages.Jpg.Turtle,
-            //TestImages.Jpg.Fb, // Perf: Enable for local testing only
-            //TestImages.Jpg.Progress, // Perf: Enable for local testing only
-            //TestImages.Jpg.Gamma_dalai_lama_gray. // Perf: Enable for local testing only
-            TestImages.Bmp.Car,
-            //TestImages.Bmp.Neg_height, // Perf: Enable for local testing only
-            //TestImages.Png.Blur, // Perf: Enable for local testing only
-            //TestImages.Png.Indexed, // Perf: Enable for local testing only
-            TestImages.Png.Splash,
-            TestImages.Gif.Rings,
-            //TestImages.Gif.Giphy // Perf: Enable for local testing only
+            //new TestFile(TestImages.Png.P1),
+            //new TestFile(TestImages.Png.Pd),
+            new TestFile(TestImages.Jpg.Floorplan), // Perf: Enable for local testing only
+            new TestFile(TestImages.Jpg.Calliphora),
+            //new TestFile(TestImages.Jpg.Cmyk), // Perf: Enable for local testing only
+            //new TestFile(TestImages.Jpg.Turtle),
+            //new TestFile(TestImages.Jpg.Fb), // Perf: Enable for local testing only
+            //new TestFile(TestImages.Jpg.Progress), // Perf: Enable for local testing only
+            //new TestFile(TestImages.Jpg.Gamma_dalai_lama_gray). // Perf: Enable for local testing only
+            new TestFile(TestImages.Bmp.Car),
+            //new TestFile(TestImages.Bmp.Neg_height), // Perf: Enable for local testing only
+            //new TestFile(TestImages.Png.Blur), // Perf: Enable for local testing only
+            //new TestFile(TestImages.Png.Indexed), // Perf: Enable for local testing only
+            new TestFile(TestImages.Png.Splash),
+            new TestFile(TestImages.Gif.Rings),
+            //new TestFile(TestImages.Gif.Giphy) // Perf: Enable for local testing only
         };
     }
 }

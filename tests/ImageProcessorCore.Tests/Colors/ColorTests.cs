@@ -91,15 +91,31 @@ namespace ImageProcessorCore.Tests
         }
 
         /// <summary>
-        /// Tests to see that in the input hex matches that of the output.
+        /// Tests whether FromHex and ToHex work correctly.
         /// </summary>
         [Fact]
-        public void ConvertHex()
+        public void FromAndToHex()
         {
-            const string First = "000000FF";
-            Color color = Color.Black;
-            string second = color.PackedValue.ToString("X8");
-            Assert.Equal(First, second);
+            Color color = Color.FromHex("#AABBCCDD");
+            Assert.Equal(170, color.R);
+            Assert.Equal(187, color.G);
+            Assert.Equal(204, color.B);
+            Assert.Equal(221, color.A);
+
+            color.A = 170;
+            color.B = 187;
+            color.G = 204;
+            color.R = 221;
+
+            Assert.Equal("DDCCBBAA", color.ToHex());
+
+            color.R = 0;
+
+            Assert.Equal("00CCBBAA", color.ToHex());
+
+            color.A = 255;
+
+            Assert.Equal("00CCBBFF", color.ToHex());
         }
     }
 }

@@ -21,19 +21,15 @@ namespace ImageProcessorCore.Tests
                 Directory.CreateDirectory(path);
             }
 
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
-                {
-                    string filename = Path.GetFileName(file);
+                Image image = file.CreateImage();
 
-                    Image image = new Image(stream);
-                    using (FileStream output = File.OpenWrite($"{path}/{filename}"))
-                    {
-                        image.VerticalResolution = 150;
-                        image.HorizontalResolution = 150;
-                        image.Save(output);
-                    }
+                using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
+                {
+                    image.VerticalResolution = 150;
+                    image.HorizontalResolution = 150;
+                    image.Save(output);
                 }
             }
         }
@@ -47,14 +43,12 @@ namespace ImageProcessorCore.Tests
                 Directory.CreateDirectory(path);
             }
 
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
-                {
-                    Image image = new Image(stream);
-                    string filename = path + "/" + Path.GetFileNameWithoutExtension(file) + ".txt";
-                    File.WriteAllText(filename, image.ToString());
-                }
+                Image image = file.CreateImage();
+
+                string filename = path + "/" + file.FileNameWithoutExtension + ".txt";
+                File.WriteAllText(filename, image.ToString());
             }
         }
 
@@ -67,17 +61,13 @@ namespace ImageProcessorCore.Tests
                 Directory.CreateDirectory(path);
             }
 
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
-                {
-                    Image image = new Image(stream);
-                    string encodeFilename = path + "/" + Path.GetFileName(file);
+                Image image = file.CreateImage();
 
-                    using (FileStream output = File.OpenWrite(encodeFilename))
-                    {
-                        image.Save(output);
-                    }
+                using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
+                {
+                    image.Save(output);
                 }
             }
         }
@@ -91,36 +81,33 @@ namespace ImageProcessorCore.Tests
                 Directory.CreateDirectory(path);
             }
 
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
+                Image image = file.CreateImage();
+
+                // Copy the original pixels to save decoding time.
+                Color[] pixels = new Color[image.Width * image.Height];
+                Array.Copy(image.Pixels, pixels, image.Pixels.Length);
+
+                using (FileStream output = File.OpenWrite($"{path}/Octree-{file.FileName}"))
                 {
-                    Image image = new Image(stream);
+                    image.Quantize(Quantization.Octree)
+                          .Save(output, image.CurrentImageFormat);
 
-                    // Copy the original pixels to save decoding time.
-                    Color[] pixels = new Color[image.Width * image.Height];
-                    Array.Copy(image.Pixels, pixels, image.Pixels.Length);
+                }
 
-                    using (FileStream output = File.OpenWrite($"{path}/Octree-{Path.GetFileName(file)}"))
-                    {
-                        image.Quantize(Quantization.Octree)
-                             .Save(output, image.CurrentImageFormat);
+                image.SetPixels(image.Width, image.Height, pixels);
+                using (FileStream output = File.OpenWrite($"{path}/Wu-{file.FileName}"))
+                {
+                    image.Quantize(Quantization.Wu)
+                          .Save(output, image.CurrentImageFormat);
+                }
 
-                    }
-
-                    image.SetPixels(image.Width, image.Height, pixels);
-                    using (FileStream output = File.OpenWrite($"{path}/Wu-{Path.GetFileName(file)}"))
-                    {
-                        image.Quantize(Quantization.Wu)
-                             .Save(output, image.CurrentImageFormat);
-                    }
-
-                    image.SetPixels(image.Width, image.Height, pixels);
-                    using (FileStream output = File.OpenWrite($"{path}/Palette-{Path.GetFileName(file)}"))
-                    {
-                        image.Quantize(Quantization.Palette)
-                             .Save(output, image.CurrentImageFormat);
-                    }
+                image.SetPixels(image.Width, image.Height, pixels);
+                using (FileStream output = File.OpenWrite($"{path}/Palette-{file.FileName}"))
+                {
+                    image.Quantize(Quantization.Palette)
+                          .Save(output, image.CurrentImageFormat);
                 }
             }
         }
@@ -134,30 +121,28 @@ namespace ImageProcessorCore.Tests
                 Directory.CreateDirectory(path);
             }
 
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
+                Image image = file.CreateImage();
+
+                using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.gif"))
                 {
-                    Image image = new Image(stream);
-                    using (FileStream output = File.OpenWrite($"{path}/{Path.GetFileNameWithoutExtension(file)}.gif"))
-                    {
-                        image.SaveAsGif(output);
-                    }
+                    image.SaveAsGif(output);
+                }
 
-                    using (FileStream output = File.OpenWrite($"{path}/{Path.GetFileNameWithoutExtension(file)}.bmp"))
-                    {
-                        image.SaveAsBmp(output);
-                    }
+                using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.bmp"))
+                {
+                    image.SaveAsBmp(output);
+                }
 
-                    using (FileStream output = File.OpenWrite($"{path}/{Path.GetFileNameWithoutExtension(file)}.jpg"))
-                    {
-                        image.SaveAsJpeg(output);
-                    }
+                using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.jpg"))
+                {
+                    image.SaveAsJpeg(output);
+                }
 
-                    using (FileStream output = File.OpenWrite($"{path}/{Path.GetFileNameWithoutExtension(file)}.png"))
-                    {
-                        image.SaveAsPng(output);
-                    }
+                using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.png"))
+                {
+                    image.SaveAsPng(output);
                 }
             }
         }
@@ -171,26 +156,24 @@ namespace ImageProcessorCore.Tests
                 Directory.CreateDirectory(path);
             }
 
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
-                {
-                    Image image = new Image(stream);
-                    byte[] serialized;
-                    using (MemoryStream memoryStream = new MemoryStream())
-                    {
-                        image.Save(memoryStream);
-                        memoryStream.Flush();
-                        serialized = memoryStream.ToArray();
-                    }
+                Image image = file.CreateImage();
 
-                    using (MemoryStream memoryStream = new MemoryStream(serialized))
+                byte[] serialized;
+                using (MemoryStream memoryStream = new MemoryStream())
+                {
+                    image.Save(memoryStream);
+                    memoryStream.Flush();
+                    serialized = memoryStream.ToArray();
+                }
+
+                using (MemoryStream memoryStream = new MemoryStream(serialized))
+                {
+                    Image image2 = new Image(memoryStream);
+                    using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                     {
-                        Image image2 = new Image(memoryStream);
-                        using (FileStream output = File.OpenWrite($"{path}/{Path.GetFileName(file)}"))
-                        {
-                            image2.Save(output);
-                        }
+                        image2.Save(output);
                     }
                 }
             }

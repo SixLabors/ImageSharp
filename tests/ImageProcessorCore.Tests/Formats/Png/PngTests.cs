@@ -22,16 +22,14 @@ namespace ImageProcessorCore.Tests
                 Directory.CreateDirectory(path);
             }
 
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
+                Image image = file.CreateImage();
+
+                using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.png"))
                 {
-                    Image image = new Image(stream);
-                    using (FileStream output = File.OpenWrite($"{path}/{Path.GetFileNameWithoutExtension(file)}.png"))
-                    {
-                        image.Quality = 256;
-                        image.Save(output, new PngFormat());
-                    }
+                    image.Quality = 256;
+                    image.Save(output, new PngFormat());
                 }
             }
         }

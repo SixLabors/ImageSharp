@@ -20,17 +20,14 @@ namespace ImageProcessorCore.Tests
                 Directory.CreateDirectory(path);
             }
 
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
+                Image image = file.CreateImage();
+
+                using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                 {
-                    string filename = Path.GetFileName(file);
-                    Image image = new Image(stream);
-                    using (FileStream output = File.OpenWrite($"{path}/{filename}"))
-                    {
-                        image.Vignette()
-                             .Save(output);
-                    }
+                    image.Vignette()
+                          .Save(output);
                 }
             }
         }
@@ -44,17 +41,15 @@ namespace ImageProcessorCore.Tests
                 Directory.CreateDirectory(path);
             }
 
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
+                string filename = file.GetFileName("Color");
+                Image image = file.CreateImage();
+
+                using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    string filename = Path.GetFileNameWithoutExtension(file) + "-Color" + Path.GetExtension(file);
-                    Image image = new Image(stream);
-                    using (FileStream output = File.OpenWrite($"{path}/{filename}"))
-                    {
-                        image.Vignette(Color.HotPink)
-                             .Save(output);
-                    }
+                    image.Vignette(Color.HotPink)
+                          .Save(output);
                 }
             }
         }
@@ -68,17 +63,15 @@ namespace ImageProcessorCore.Tests
                 Directory.CreateDirectory(path);
             }
 
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
+                string filename = file.GetFileName("Radius");
+                Image image = file.CreateImage();
+
+                using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    string filename = Path.GetFileNameWithoutExtension(file) + "-Radius" + Path.GetExtension(file);
-                    Image image = new Image(stream);
-                    using (FileStream output = File.OpenWrite($"{path}/{filename}"))
-                    {
-                        image.Vignette(image.Width / 4, image.Height / 4)
-                             .Save(output);
-                    }
+                    image.Vignette(image.Width / 4, image.Height / 4)
+                          .Save(output);
                 }
             }
         }
@@ -92,17 +85,15 @@ namespace ImageProcessorCore.Tests
                 Directory.CreateDirectory(path);
             }
 
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
+                string filename = file.GetFileName("InBox");
+                Image image = file.CreateImage();
+
+                using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    string filename = Path.GetFileNameWithoutExtension(file) + "-InBox" + Path.GetExtension(file);
-                    Image image = new Image(stream);
-                    using (FileStream output = File.OpenWrite($"{path}/{filename}"))
-                    {
-                        image.Vignette(new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2))
-                             .Save(output);
-                    }
+                    image.Vignette(new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2))
+                          .Save(output);
                 }
             }
         }

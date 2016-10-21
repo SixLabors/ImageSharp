@@ -36,17 +36,15 @@ namespace ImageProcessorCore.Tests
                 Directory.CreateDirectory(path);
             }
 
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
+                string filename = file.GetFileName(detector);
+                Image image = file.CreateImage();
+
+                using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + detector + Path.GetExtension(file);
-                    Image image = new Image(stream);
-                    using (FileStream output = File.OpenWrite($"{path}/{filename}"))
-                    {
-                        image.DetectEdges(detector)
-                             .Save(output);
-                    }
+                    image.DetectEdges(detector)
+                          .Save(output);
                 }
             }
         }
@@ -61,17 +59,15 @@ namespace ImageProcessorCore.Tests
                 Directory.CreateDirectory(path);
             }
 
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
+                string filename = file.GetFileName(detector + "-InBox");
+                Image image = file.CreateImage();
+
+                using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + detector + "-InBox" + Path.GetExtension(file);
-                    Image image = new Image(stream);
-                    using (FileStream output = File.OpenWrite($"{path}/{filename}"))
-                    {
-                        image.DetectEdges(detector, new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2))
-                             .Save(output);
-                    }
+                    image.DetectEdges(detector, new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2))
+                          .Save(output);
                 }
             }
         }

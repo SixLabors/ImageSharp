@@ -6,6 +6,7 @@
 namespace ImageProcessorCore
 {
     using System;
+    using System.Globalization;
     using System.Numerics;
     using System.Runtime.CompilerServices;
 
@@ -46,12 +47,11 @@ namespace ImageProcessorCore
         {
             get
             {
-                return (byte)this.packedValue;
+                return (byte)(this.packedValue >> 24);
             }
             set
             {
-                // AABBGGRR
-                this.packedValue = (uint)(this.packedValue & -0x100 | value);
+                this.packedValue = this.packedValue & 0x00FFFFFF | (uint)value << 24;
             }
         }
 
@@ -63,12 +63,11 @@ namespace ImageProcessorCore
         {
             get
             {
-                return (byte)(this.packedValue >> 8);
+                return (byte)(this.packedValue >> 16);
             }
             set
             {
-                // AABBGGRR
-                this.packedValue = (uint)(this.packedValue & -0xFF01 | (uint)value << 8);
+                this.packedValue = this.packedValue & 0xFF00FFFF | (uint)value << 16;
             }
         }
 
@@ -79,12 +78,11 @@ namespace ImageProcessorCore
         {
             get
             {
-                return (byte)(this.packedValue >> 16);
+                return (byte)(this.packedValue >> 8);
             }
             set
             {
-                // AABBGGRR
-                this.packedValue = (uint)(this.packedValue & -0xFF0001 | (uint)(value << 16));
+                this.packedValue = this.packedValue & 0xFFFF00FF | (uint)value << 8;
             }
         }
 
@@ -95,12 +93,11 @@ namespace ImageProcessorCore
         {
             get
             {
-                return (byte)(this.packedValue >> 24);
+                return (byte)this.packedValue;
             }
             set
             {
-                // AABBGGRR
-                this.packedValue = this.packedValue & 0xFFFFFF | (uint)value << 24;
+                this.packedValue = this.packedValue & 0xFFFFFF00 | value;
             }
         }
 
@@ -110,16 +107,15 @@ namespace ImageProcessorCore
         public uint PackedValue { get { return this.packedValue; } set { this.packedValue = value; } }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Color"/> struct. 
+        /// Initializes a new instance of the <see cref="Color"/> struct.
         /// </summary>
         /// <param name="r">The red component.</param>
         /// <param name="g">The green component.</param>
         /// <param name="b">The blue component.</param>
         /// <param name="a">The alpha component.</param>
         public Color(byte r, byte g, byte b, byte a = 255)
-            : this()
         {
-            this.packedValue = (uint)(r | g << 8 | b << 16 | a << 24);
+            this.packedValue = (uint)(r << 24 | g << 16 | b << 8 | a);
         }
 
         /// <summary>
@@ -127,46 +123,17 @@ namespace ImageProcessorCore
         /// </summary>
         /// <param name="hex">
         /// The hexadecimal representation of the combined color components arranged
-        /// in rgb, rrggbb, or aarrggbb format to match web syntax.
+        /// in rgb, rgba, rrggbb, or rrggbbaa format to match web syntax.
         /// </param>
         public Color(string hex)
-            : this()
         {
-            // Hexadecimal representations are layed out AARRGGBB to we need to do some reordering.
-            hex = hex.StartsWith("#") ? hex.Substring(1) : hex;
+            Guard.NotNullOrEmpty(hex, nameof(hex));
 
-            if (hex.Length != 8 && hex.Length != 6 && hex.Length != 3)
+            hex = ToRgbaHex(hex);
+
+            if (hex == null || !uint.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out this.packedValue))
             {
                 throw new ArgumentException("Hexadecimal string is not in the correct format.", nameof(hex));
-            }
-
-            if (hex.Length == 8)
-            {
-                this.packedValue =
-                    (uint)(Convert.ToByte(hex.Substring(2, 2), 16)
-                    | Convert.ToByte(hex.Substring(4, 2), 16) << 8
-                    | Convert.ToByte(hex.Substring(6, 2), 16) << 16
-                    | Convert.ToByte(hex.Substring(0, 2), 16) << 24);
-            }
-            else if (hex.Length == 6)
-            {
-                this.packedValue =
-                    (uint)(Convert.ToByte(hex.Substring(0, 2), 16)
-                    | Convert.ToByte(hex.Substring(2, 2), 16) << 8
-                    | Convert.ToByte(hex.Substring(4, 2), 16) << 16
-                    | 255 << 24);
-            }
-            else
-            {
-                string rh = char.ToString(hex[0]);
-                string gh = char.ToString(hex[1]);
-                string bh = char.ToString(hex[2]);
-
-                this.packedValue =
-                    (uint)(Convert.ToByte(rh + rh, 16)
-                    | Convert.ToByte(gh + gh, 16) << 8
-                    | Convert.ToByte(bh + bh, 16) << 16
-                    | 255 << 24);
             }
         }
 
@@ -178,7 +145,6 @@ namespace ImageProcessorCore
         /// <param name="b">The blue component.</param>
         /// <param name="a">The alpha component.</param>
         public Color(float r, float g, float b, float a = 1)
-            : this()
         {
             this.packedValue = Pack(r, g, b, a);
         }
@@ -190,7 +156,6 @@ namespace ImageProcessorCore
         /// The vector containing the components for the packed vector.
         /// </param>
         public Color(Vector3 vector)
-            : this()
         {
             this.packedValue = Pack(ref vector);
         }
@@ -202,7 +167,6 @@ namespace ImageProcessorCore
         /// The vector containing the components for the packed vector.
         /// </param>
         public Color(Vector4 vector)
-            : this()
         {
             this.packedValue = Pack(ref vector);
         }
@@ -217,7 +181,7 @@ namespace ImageProcessorCore
         /// The <see cref="Color"/> on the right side of the operand.
         /// </param>
         /// <returns>
-        /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
+        /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         public static bool operator ==(Color left, Color right)
         {
@@ -230,7 +194,7 @@ namespace ImageProcessorCore
         /// <param name="left">The <see cref="Color"/> on the left side of the operand.</param>
         /// <param name="right">The <see cref="Color"/> on the right side of the operand.</param>
         /// <returns>
-        /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
+        /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         public static bool operator !=(Color left, Color right)
         {
@@ -273,7 +237,7 @@ namespace ImageProcessorCore
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            return this.GetHashCode(this);
+            return this.packedValue.GetHashCode();
         }
 
         /// <summary>
@@ -307,25 +271,42 @@ namespace ImageProcessorCore
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static uint Pack(float x, float y, float z, float w)
         {
-            return (uint)((byte)Math.Round(x.Clamp(Zero, One) * MaxBytes)
-                   | ((byte)Math.Round(y.Clamp(Zero, One) * MaxBytes) << 8)
-                   | (byte)Math.Round(z.Clamp(Zero, One) * MaxBytes) << 16
-                   | (byte)Math.Round(w.Clamp(Zero, One) * MaxBytes) << 24);
+            return (uint)((byte)Math.Round(x.Clamp(Zero, One) * MaxBytes) << 24
+                   | (byte)Math.Round(y.Clamp(Zero, One) * MaxBytes) << 16
+                   | (byte)Math.Round(z.Clamp(Zero, One) * MaxBytes) << 8
+                   | (byte)Math.Round(w.Clamp(Zero, One) * MaxBytes));
         }
 
         /// <summary>
-        /// Returns the hash code for this instance.
+        /// Converts the specified hex value to an rrggbbaa hex value.
         /// </summary>
-        /// <param name="packed">
-        /// The instance of <see cref="Color"/> to return the hash code for.
-        /// </param>
+        /// <param name="hex">The hex value to convert.</param>
         /// <returns>
-        /// A 32-bit signed integer that is the hash code for this instance.
+        /// A rrggbbaa hex value.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private int GetHashCode(Color packed)
+        private static string ToRgbaHex(string hex)
         {
-            return packed.packedValue.GetHashCode();
+            hex = hex.StartsWith("#") ? hex.Substring(1) : hex;
+
+            if (hex.Length == 8)
+            {
+                return hex;
+            }
+            else if (hex.Length == 6)
+            {
+                return hex + "FF";
+            }
+            else if (hex.Length < 3 || hex.Length > 4)
+            {
+                return null;
+            }
+
+            string red = char.ToString(hex[0]);
+            string green = char.ToString(hex[1]);
+            string blue = char.ToString(hex[2]);
+            string alpha = hex.Length == 3 ? "F" : char.ToString(hex[3]);
+
+            return red + red + green + green + blue + blue + alpha + alpha;
         }
     }
 }

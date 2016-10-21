@@ -14,11 +14,7 @@ namespace ImageProcessorCore.Tests
         [Fact]
         public void ImageShouldApplyPadSampler()
         {
-            const string path = "TestOutput/Pad";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Pad");
 
             foreach (TestFile file in Files)
             {

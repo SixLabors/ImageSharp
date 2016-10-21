@@ -5,6 +5,7 @@
 
 namespace ImageProcessorCore.Tests
 {
+    using System.IO;
     using System.Collections.Generic;
 
     /// <summary>
@@ -34,5 +35,17 @@ namespace ImageProcessorCore.Tests
             new TestFile(TestImages.Gif.Rings),
             //new TestFile(TestImages.Gif.Giphy) // Perf: Enable for local testing only
         };
+
+        protected string CreateOutputDirectory(string path)
+        {
+            path = "TestOutput/" + path;
+
+            if (!Directory.Exists(path))
+            {
+                  Directory.CreateDirectory(path);
+            }
+
+            return path;
+        }
     }
 }

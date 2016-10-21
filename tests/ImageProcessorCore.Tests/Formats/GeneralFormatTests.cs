@@ -15,11 +15,7 @@ namespace ImageProcessorCore.Tests
         [Fact]
         public void ResolutionShouldChange()
         {
-            const string path = "TestOutput/Resolution";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Resolution");
 
             foreach (TestFile file in Files)
             {
@@ -37,11 +33,7 @@ namespace ImageProcessorCore.Tests
         [Fact]
         public void ImageCanEncodeToString()
         {
-            const string path = "TestOutput/ToString";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("ToString");
 
             foreach (TestFile file in Files)
             {
@@ -55,11 +47,7 @@ namespace ImageProcessorCore.Tests
         [Fact]
         public void DecodeThenEncodeImageFromStreamShouldSucceed()
         {
-            const string path = "TestOutput/Encode";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Encode");
 
             foreach (TestFile file in Files)
             {
@@ -75,11 +63,7 @@ namespace ImageProcessorCore.Tests
         [Fact]
         public void QuantizeImageShouldPreserveMaximumColorPrecision()
         {
-            const string path = "TestOutput/Quantize";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Quantize");
 
             foreach (TestFile file in Files)
             {
@@ -115,11 +99,7 @@ namespace ImageProcessorCore.Tests
         [Fact]
         public void ImageCanConvertFormat()
         {
-            const string path = "TestOutput/Format";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Format");
 
             foreach (TestFile file in Files)
             {
@@ -150,11 +130,7 @@ namespace ImageProcessorCore.Tests
         [Fact]
         public void ImageShouldPreservePixelByteOrderWhenSerialized()
         {
-            const string path = "TestOutput/Serialized";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Serialized");
 
             foreach (TestFile file in Files)
             {

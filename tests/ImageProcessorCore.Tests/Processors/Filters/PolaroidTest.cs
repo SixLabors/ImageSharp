@@ -14,11 +14,7 @@ namespace ImageProcessorCore.Tests
         [Fact]
         public void ImageShouldApplyPolaroidFilter()
         {
-            const string path = "TestOutput/Polaroid";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Polaroid");
 
             foreach (TestFile file in Files)
             {

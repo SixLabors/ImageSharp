@@ -28,11 +28,7 @@ namespace ImageProcessorCore.Tests
         [MemberData("OrientationValues")]
         public void ImageShouldFlip(RotateType rotateType, FlipType flipType, ushort orientation)
         {
-            const string path = "TestOutput/AutoOrient";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("AutoOrient");
 
             string file = TestImages.Bmp.F;
 

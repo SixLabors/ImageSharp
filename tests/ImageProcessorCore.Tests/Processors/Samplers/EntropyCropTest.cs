@@ -22,11 +22,7 @@ namespace ImageProcessorCore.Tests
         [MemberData("EntropyCropValues")]
         public void ImageShouldApplyEntropyCropSampler(float value)
         {
-            const string path = "TestOutput/EntropyCrop";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("EntropyCrop");
 
             foreach (TestFile file in Files)
             {

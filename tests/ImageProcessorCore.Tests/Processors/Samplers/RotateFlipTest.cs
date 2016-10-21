@@ -25,11 +25,7 @@ namespace ImageProcessorCore.Tests
         [MemberData("RotateFlipValues")]
         public void ImageShouldRotateFlip(RotateType rotateType, FlipType flipType)
         {
-            const string path = "TestOutput/RotateFlip";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("RotateFlip");
 
             foreach (TestFile file in Files)
             {

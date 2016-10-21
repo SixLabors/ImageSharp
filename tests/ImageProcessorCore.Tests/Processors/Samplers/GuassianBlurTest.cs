@@ -22,11 +22,7 @@ namespace ImageProcessorCore.Tests
         [MemberData("GuassianBlurValues")]
         public void ImageShouldApplyGuassianBlurFilter(int value)
         {
-            const string path = "TestOutput/GuassianBlur";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("GuassianBlur");
 
             foreach (TestFile file in Files)
             {

@@ -22,11 +22,7 @@ namespace ImageProcessorCore.Tests
         [MemberData(nameof(PixelateValues))]
         public void ImageShouldApplyPixelateFilter(int value)
         {
-            const string path = "TestOutput/Pixelate";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Pixelate");
 
             foreach (TestFile file in Files)
             {
@@ -45,11 +41,7 @@ namespace ImageProcessorCore.Tests
         [MemberData(nameof(PixelateValues))]
         public void ImageShouldApplyPixelateFilterInBox(int value)
         {
-            const string path = "TestOutput/Pixelate";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Pixelate");
 
             foreach (TestFile file in Files)
             {

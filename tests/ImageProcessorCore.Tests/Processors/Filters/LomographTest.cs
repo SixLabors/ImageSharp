@@ -14,11 +14,7 @@ namespace ImageProcessorCore.Tests
         [Fact]
         public void ImageShouldApplyLomographFilter()
         {
-            const string path = "TestOutput/Lomograph";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Lomograph");
 
             foreach (TestFile file in Files)
             {
@@ -35,11 +31,8 @@ namespace ImageProcessorCore.Tests
         [Fact]
         public void ImageShouldApplyLomographFilterInBox()
         {
-            const string path = "TestOutput/Lomograph";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Lomograph");
+
             foreach (TestFile file in Files)
             {
                 string filename = file.GetFileName("InBox");

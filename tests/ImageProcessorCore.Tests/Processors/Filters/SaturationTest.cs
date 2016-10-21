@@ -22,11 +22,7 @@ namespace ImageProcessorCore.Tests
         [MemberData("SaturationValues")]
         public void ImageShouldApplySaturationFilter(int value)
         {
-            const string path = "TestOutput/Saturation";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Saturation");
 
             foreach (TestFile file in Files)
             {

@@ -22,11 +22,7 @@ namespace ImageProcessorCore.Tests
         [MemberData("SkewValues")]
         public void ImageShouldApplySkewSampler(float x, float y)
         {
-            const string path = "TestOutput/Skew";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Skew");
 
             // Matches live example 
             // http://www.w3schools.com/css/tryit.asp?filename=trycss3_transform_skew

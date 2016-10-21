@@ -28,11 +28,7 @@ namespace ImageProcessorCore.Tests
         [MemberData("ColorBlindnessFilters")]
         public void ImageShouldApplyColorBlindnessFilter(ColorBlindness colorBlindness)
         {
-            const string path = "TestOutput/ColorBlindness";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("ColorBlindness");
 
             foreach (TestFile file in Files)
             {

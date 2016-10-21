@@ -14,11 +14,7 @@ namespace ImageProcessorCore.Tests
         [Fact]
         public void ImageShouldApplySepiaFilter()
         {
-            const string path = "TestOutput/Sepia";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Sepia");
 
             foreach (TestFile file in Files)
             {

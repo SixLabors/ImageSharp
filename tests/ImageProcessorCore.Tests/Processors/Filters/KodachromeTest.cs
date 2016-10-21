@@ -14,11 +14,7 @@ namespace ImageProcessorCore.Tests
         [Fact]
         public void ImageShouldApplyKodachromeFilter()
         {
-            const string path = "TestOutput/Kodachrome";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Kodachrome");
 
             foreach (TestFile file in Files)
             {

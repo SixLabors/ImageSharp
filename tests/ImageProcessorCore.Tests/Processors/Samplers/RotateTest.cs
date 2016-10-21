@@ -31,11 +31,7 @@ namespace ImageProcessorCore.Tests
         [MemberData("RotateFloatValues")]
         public void ImageShouldApplyRotateSampler(float value)
         {
-            const string path = "TestOutput/Rotate";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Rotate");
 
             foreach (TestFile file in Files)
             {
@@ -54,11 +50,7 @@ namespace ImageProcessorCore.Tests
         [MemberData("RotateEnumValues")]
         public void ImageShouldApplyRotateSampler(RotateType value)
         {
-            const string path = "TestOutput/Rotate";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Rotate");
 
             foreach (TestFile file in Files)
             {

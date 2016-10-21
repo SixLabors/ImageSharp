@@ -22,11 +22,7 @@ namespace ImageProcessorCore.Tests
         [MemberData("ContrastValues")]
         public void ImageShouldApplyContrastFilter(int value)
         {
-            const string path = "TestOutput/Contrast";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Contrast");
 
             foreach (TestFile file in Files)
             {

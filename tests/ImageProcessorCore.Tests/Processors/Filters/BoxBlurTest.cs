@@ -22,11 +22,7 @@ namespace ImageProcessorCore.Tests
         [MemberData("BoxBlurValues")]
         public void ImageShouldApplyBoxBlurFilter(int value)
         {
-            const string path = "TestOutput/BoxBlur";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("BoxBlur");
 
             foreach (TestFile file in Files)
             {

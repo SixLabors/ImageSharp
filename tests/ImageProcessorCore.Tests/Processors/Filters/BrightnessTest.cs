@@ -22,11 +22,7 @@ namespace ImageProcessorCore.Tests
         [MemberData("BrightnessValues")]
         public void ImageShouldApplyBrightnessFilter(int value)
         {
-            const string path = "TestOutput/Brightness";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Brightness");
 
             foreach (TestFile file in Files)
             {

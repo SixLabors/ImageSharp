@@ -22,11 +22,7 @@ namespace ImageProcessorCore.Tests
         [MemberData("AlphaValues")]
         public void ImageShouldApplyAlphaFilter(int value)
         {
-            const string path = "TestOutput/Alpha";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Alpha");
 
             foreach (TestFile file in Files)
             {
@@ -45,11 +41,7 @@ namespace ImageProcessorCore.Tests
         [MemberData("AlphaValues")]
         public void ImageShouldApplyAlphaFilterInBox(int value)
         {
-            const string path = "TestOutput/Alpha";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Alpha");
 
             foreach (TestFile file in Files)
             {

@@ -14,12 +14,7 @@ namespace ImageProcessorCore.Tests
         [Fact]
         public void ImageShouldApplyInvertFilter()
         {
-            const string path = "TestOutput/Invert";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
-
+            string path = CreateOutputDirectory("Invert");
             foreach (TestFile file in Files)
             {
                 Image image = file.CreateImage();
@@ -35,11 +30,7 @@ namespace ImageProcessorCore.Tests
         [Fact]
         public void ImageShouldApplyInvertFilterInBox()
         {
-            const string path = "TestOutput/Invert";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Invert");
 
             foreach (TestFile file in Files)
             {

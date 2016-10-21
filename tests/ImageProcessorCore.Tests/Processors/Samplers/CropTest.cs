@@ -14,11 +14,7 @@ namespace ImageProcessorCore.Tests
         [Fact]
         public void ImageShouldApplyCropSampler()
         {
-            const string path = "TestOutput/Crop";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Crop");
 
             foreach (TestFile file in Files)
             {

@@ -14,11 +14,7 @@ namespace ImageProcessorCore.Tests
         [Fact]
         public void ImageShouldApplyGlowFilter()
         {
-            const string path = "TestOutput/Glow";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Glow");
 
             foreach (TestFile file in Files)
             {
@@ -35,11 +31,7 @@ namespace ImageProcessorCore.Tests
         [Fact]
         public void ImageShouldApplyGlowFilterColor()
         {
-            const string path = "TestOutput/Glow";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Glow");
 
             foreach (TestFile file in Files)
             {
@@ -57,11 +49,7 @@ namespace ImageProcessorCore.Tests
         [Fact]
         public void ImageShouldApplyGlowFilterRadius()
         {
-            const string path = "TestOutput/Glow";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Glow");
 
             foreach (TestFile file in Files)
             {
@@ -79,11 +67,7 @@ namespace ImageProcessorCore.Tests
         [Fact]
         public void ImageShouldApplyGlowFilterInBox()
         {
-            const string path = "TestOutput/Glow";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Glow");
 
             foreach (TestFile file in Files)
             {

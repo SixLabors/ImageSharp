@@ -16,11 +16,7 @@ namespace ImageProcessorCore.Tests
         [Fact]
         public void ImageCanSaveIndexedPng()
         {
-            const string path = "TestOutput/Png";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Png");
 
             foreach (TestFile file in Files)
             {

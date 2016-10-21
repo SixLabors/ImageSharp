@@ -30,11 +30,7 @@ namespace ImageProcessorCore.Tests
         [MemberData(nameof(DetectEdgesFilters))]
         public void ImageShouldApplyDetectEdgesFilter(EdgeDetection detector)
         {
-            const string path = "TestOutput/DetectEdges";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("DetectEdges");
 
             foreach (TestFile file in Files)
             {
@@ -53,11 +49,7 @@ namespace ImageProcessorCore.Tests
         [MemberData("DetectEdgesFilters")]
         public void ImageShouldApplyDetectEdgesFilterInBox(EdgeDetection detector)
         {
-            const string path = "TestOutput/DetectEdges";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("DetectEdges");
 
             foreach (TestFile file in Files)
             {

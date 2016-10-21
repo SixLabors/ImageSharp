@@ -14,11 +14,7 @@ namespace ImageProcessorCore.Tests
         [Fact]
         public void ImageShouldApplyBackgroundColorFilter()
         {
-            const string path = "TestOutput/BackgroundColor";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("BackgroundColor");
 
             foreach (TestFile file in Files)
             {

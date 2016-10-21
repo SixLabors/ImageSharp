@@ -14,14 +14,10 @@ namespace ImageProcessorCore.Tests
         [Fact]
         public void ImageShouldApplyBlendFilter()
         {
-            const string path = "TestOutput/Blend";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Blend");
 
             Image blend;
-            using (FileStream stream = File.OpenRead("TestImages/Formats/Bmp/Car.bmp"))
+            using (FileStream stream = File.OpenRead(TestImages.Bmp.Car))
             {
                 blend = new Image(stream);
             }

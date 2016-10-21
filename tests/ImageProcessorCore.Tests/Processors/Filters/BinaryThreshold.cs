@@ -22,11 +22,7 @@ namespace ImageProcessorCore.Tests
         [MemberData("BinaryThresholdValues")]
         public void ImageShouldApplyBinaryThresholdFilter(float value)
         {
-            const string path = "TestOutput/BinaryThreshold";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("BinaryThreshold");
 
             foreach (TestFile file in Files)
             {

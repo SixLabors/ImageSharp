@@ -14,11 +14,7 @@ namespace ImageProcessorCore.Tests
         [Fact]
         public void ImageShouldApplyVignetteFilter()
         {
-            const string path = "TestOutput/Vignette";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Vignette");
 
             foreach (TestFile file in Files)
             {
@@ -35,11 +31,7 @@ namespace ImageProcessorCore.Tests
         [Fact]
         public void ImageShouldApplyVignetteFilterColor()
         {
-            const string path = "TestOutput/Vignette";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Vignette");
 
             foreach (TestFile file in Files)
             {
@@ -57,11 +49,7 @@ namespace ImageProcessorCore.Tests
         [Fact]
         public void ImageShouldApplyVignetteFilterRadius()
         {
-            const string path = "TestOutput/Vignette";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Vignette");
 
             foreach (TestFile file in Files)
             {
@@ -79,11 +67,7 @@ namespace ImageProcessorCore.Tests
         [Fact]
         public void ImageShouldApplyVignetteFilterInBox()
         {
-            const string path = "TestOutput/Vignette";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Vignette");
 
             foreach (TestFile file in Files)
             {

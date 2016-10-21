@@ -14,11 +14,7 @@ namespace ImageProcessorCore.Tests
         [Fact]
         public void ImageShouldApplyBlackWhiteFilter()
         {
-            const string path = "TestOutput/BlackWhite";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("BlackWhite");
 
             foreach (TestFile file in Files)
             {

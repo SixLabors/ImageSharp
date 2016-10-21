@@ -23,11 +23,7 @@ namespace ImageProcessorCore.Tests
         [MemberData("FlipValues")]
         public void ImageShouldFlip(FlipType flipType)
         {
-            const string path = "TestOutput/Flip";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Flip");
 
             foreach (TestFile file in Files)
             {

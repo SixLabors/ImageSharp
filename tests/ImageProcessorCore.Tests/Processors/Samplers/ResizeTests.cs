@@ -11,8 +11,6 @@ namespace ImageProcessorCore.Tests
 
     public class ResizeTests : FileTestBase
     {
-        private const string path = "TestOutput/Resize";
-
         public static readonly TheoryData<string, IResampler> ReSamplers =
             new TheoryData<string, IResampler>
             {
@@ -37,10 +35,7 @@ namespace ImageProcessorCore.Tests
         [MemberData("ReSamplers")]
         public void ImageShouldResize(string name, IResampler sampler)
         {
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Resize");
 
             foreach (TestFile file in Files)
             {
@@ -62,10 +57,7 @@ namespace ImageProcessorCore.Tests
         {
             name = name + "-FixedWidth";
 
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Resize");
 
             foreach (TestFile file in Files)
             {
@@ -86,10 +78,7 @@ namespace ImageProcessorCore.Tests
         {
             name = name + "-FixedHeight";
 
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Resize");
 
             foreach (TestFile file in Files)
             {
@@ -110,10 +99,7 @@ namespace ImageProcessorCore.Tests
         {
             name = name + "-CropWidth";
 
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Resize");
 
             foreach (TestFile file in Files)
             {
@@ -140,10 +126,7 @@ namespace ImageProcessorCore.Tests
         {
             name = name + "-CropHeight";
 
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Resize");
 
             foreach (TestFile file in Files)
             {
@@ -170,10 +153,7 @@ namespace ImageProcessorCore.Tests
         {
             name = name + "-Pad";
 
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Resize");
 
             foreach (TestFile file in Files)
             {
@@ -200,10 +180,7 @@ namespace ImageProcessorCore.Tests
         {
             name = name + "-BoxPad";
 
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Resize");
 
             foreach (TestFile file in Files)
             {
@@ -231,10 +208,7 @@ namespace ImageProcessorCore.Tests
         {
             name = name + "Max";
 
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Resize");
 
             foreach (TestFile file in Files)
             {
@@ -262,10 +236,7 @@ namespace ImageProcessorCore.Tests
         {
             name = name + "-Min";
 
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Resize");
 
             foreach (TestFile file in Files)
             {
@@ -293,10 +264,7 @@ namespace ImageProcessorCore.Tests
         {
             name = name + "Stretch";
 
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Resize");
 
             foreach (TestFile file in Files)
             {

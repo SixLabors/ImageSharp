@@ -24,11 +24,7 @@ namespace ImageProcessorCore.Tests
         [MemberData("BitsPerPixel")]
         public void BitmapCanEncodeDifferentBitRates(BmpBitsPerPixel bitsPerPixel)
         {
-            const string path = "TestOutput/Bmp";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Bmp");
 
             foreach (TestFile file in Files)
             {

@@ -22,11 +22,7 @@ namespace ImageProcessorCore.Tests
         [MemberData("HueValues")]
         public void ImageShouldApplyHueFilter(int value)
         {
-            const string path = "TestOutput/Hue";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Hue");
 
             foreach (TestFile file in Files)
             {

@@ -23,11 +23,7 @@ namespace ImageProcessorCore.Tests
         [MemberData(nameof(OilPaintValues))]
         public void ImageShouldApplyOilPaintFilter(Tuple<int, int> value)
         {
-            const string path = "TestOutput/OilPaint";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("OilPaint");
 
             foreach (TestFile file in Files)
             {
@@ -46,11 +42,7 @@ namespace ImageProcessorCore.Tests
         [MemberData(nameof(OilPaintValues))]
         public void ImageShouldApplyOilPaintFilterInBox(Tuple<int, int> value)
         {
-            const string path = "TestOutput/OilPaint";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("OilPaint");
 
             foreach (TestFile file in Files)
             {

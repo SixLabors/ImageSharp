@@ -23,11 +23,7 @@ namespace ImageProcessorCore.Tests
         [MemberData("GrayscaleValues")]
         public void ImageShouldApplyGrayscaleFilter(GrayscaleMode value)
         {
-            const string path = "TestOutput/Grayscale";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
+            string path = CreateOutputDirectory("Grayscale");
 
             foreach (TestFile file in Files)
             {

@@ -18,12 +18,12 @@ namespace ImageProcessorCore.Processors
         /// <summary>
         /// Gets the horizontal gradient operator.
         /// </summary>
-        public abstract float[,] KernelX { get; }
+        public abstract float[][] KernelX { get; }
 
         /// <summary>
         /// Gets the vertical gradient operator.
         /// </summary>
-        public abstract float[,] KernelY { get; }
+        public abstract float[][] KernelY { get; }
 
         /// <inheritdoc/>
         public bool Grayscale { get; set; }

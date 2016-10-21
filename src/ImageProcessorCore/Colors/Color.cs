@@ -201,6 +201,27 @@ namespace ImageProcessorCore
             return left.packedValue != right.packedValue;
         }
 
+        /// <summary>
+        /// Creates a new instance of the <see cref="Color"/> struct.
+        /// </summary>
+        /// <param name="hex">
+        /// The hexadecimal representation of the combined color components arranged
+        /// in rgb, rgba, rrggbb, or rrggbbaa format to match web syntax.
+        /// </param>
+        public static Color FromHex(string hex)
+        {
+            return new Color(hex);
+        }
+
+        /// <summary>
+        /// Converts the value of this instance to a hexadecimal string.
+        /// </summary>
+        /// <returns>A hexadecimal string representation of the value.</returns>
+        public string ToHex()
+        {
+            return this.PackedValue.ToString("X8");
+        }
+
         /// <inheritdoc/>
         public void PackFromVector4(Vector4 vector)
         {

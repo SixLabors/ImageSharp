@@ -15,20 +15,24 @@ namespace ImageProcessorCore.Processors
         where TColor : IPackedVector<TPacked>
         where TPacked : struct
     {
-        /// <inheritdoc/>
-        public override float[,] KernelX => new float[,]
+        private static readonly float[][] kernelX = new float[3][]
         {
-            { -3, 0, 3 },
-            { -10, 0, 10 },
-            { -3, 0, 3 }
+            new float[] { -3, 0, 3 },
+            new float[] { -10, 0, 10 },
+            new float[] { -3, 0, 3 }
+        };
+
+        private static readonly float[][] kernelY = new float[3][]
+        {
+            new float[] { 3, 10, 3 },
+            new float[] { 0, 0, 0 },
+            new float[] { -3, -10, -3 }
         };
 
         /// <inheritdoc/>
-        public override float[,] KernelY => new float[,]
-        {
-            { 3, 10, 3 },
-            { 0, 0, 0 },
-            { -3, -10, -3 }
-        };
+        public override float[][] KernelX => kernelX;
+
+        /// <inheritdoc/>
+        public override float[][] KernelY => kernelY;
     }
 }

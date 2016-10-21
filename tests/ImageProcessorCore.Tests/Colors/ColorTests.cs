@@ -24,13 +24,15 @@ namespace ImageProcessorCore.Tests
             Color color1 = new Color(0, 0, 0);
             Color color2 = new Color(0, 0, 0, 1F);
             Color color3 = new Color("#000");
-            Color color4 = new Color("#000000");
-            Color color5 = new Color("#FF000000");
+            Color color4 = new Color("#000F");
+            Color color5 = new Color("#000000");
+            Color color6 = new Color("#000000FF");
 
             Assert.Equal(color1, color2);
             Assert.Equal(color1, color3);
             Assert.Equal(color1, color4);
             Assert.Equal(color1, color5);
+            Assert.Equal(color1, color6);
         }
 
         /// <summary>
@@ -94,9 +96,9 @@ namespace ImageProcessorCore.Tests
         [Fact]
         public void ConvertHex()
         {
-            const string First = "FF000000";
+            const string First = "000000FF";
             Color color = Color.Black;
-            string second = color.PackedValue.ToString("X");
+            string second = color.PackedValue.ToString("X8");
             Assert.Equal(First, second);
         }
     }

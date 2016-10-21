@@ -12,8 +12,6 @@ namespace ImageProcessorCore.Benchmarks.General
 
         byte[] source, destination;
 
-        long sizeInBytes;
-
         [Setup]
         public void SetUp()
         {

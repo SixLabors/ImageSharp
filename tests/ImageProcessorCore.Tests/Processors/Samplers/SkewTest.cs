@@ -30,18 +30,15 @@ namespace ImageProcessorCore.Tests
 
             // Matches live example 
             // http://www.w3schools.com/css/tryit.asp?filename=trycss3_transform_skew
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
-                {
-                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + x + "-" + y + Path.GetExtension(file);
+                string filename = file.GetFileName(x + "-" + y);
+                Image image = file.CreateImage();
 
-                    Image image = new Image(stream);
-                    using (FileStream output = File.OpenWrite($"{path}/{filename}"))
-                    {
-                        image.Skew(x, y)
-                             .Save(output);
-                    }
+                using (FileStream output = File.OpenWrite($"{path}/{filename}"))
+                {
+                    image.Skew(x, y)
+                          .Save(output);
                 }
             }
         }

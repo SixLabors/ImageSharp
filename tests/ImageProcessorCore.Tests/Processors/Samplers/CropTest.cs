@@ -20,17 +20,14 @@ namespace ImageProcessorCore.Tests
                 Directory.CreateDirectory(path);
             }
 
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
+                Image image = file.CreateImage();
+
+                using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                 {
-                    string filename = Path.GetFileName(file);
-                    Image image = new Image(stream);
-                    using (FileStream output = File.OpenWrite($"{path}/{filename}"))
-                    {
-                        image.Crop(image.Width / 2, image.Height / 2)
-                             .Save(output);
-                    }
+                    image.Crop(image.Width / 2, image.Height / 2)
+                          .Save(output);
                 }
             }
         }

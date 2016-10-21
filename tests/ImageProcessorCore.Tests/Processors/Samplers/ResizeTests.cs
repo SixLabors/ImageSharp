@@ -42,19 +42,16 @@ namespace ImageProcessorCore.Tests
                 Directory.CreateDirectory(path);
             }
 
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
-                {
-                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
+                string filename = file.GetFileName(name);
+                Image image = file.CreateImage();
 
-                    Image image = new Image(stream);
-                    using (FileStream output = File.OpenWrite($"{path}/{filename}"))
-                    {
-                        image.Resize(image.Width / 2, image.Height / 2, sampler, true)
-                        //image.Resize(555, 275, sampler, false)
-                             .Save(output);
-                    }
+                using (FileStream output = File.OpenWrite($"{path}/{filename}"))
+                {
+                    image.Resize(image.Width / 2, image.Height / 2, sampler, true)
+                    //image.Resize(555, 275, sampler, false)
+                          .Save(output);
                 }
             }
         }
@@ -70,18 +67,15 @@ namespace ImageProcessorCore.Tests
                 Directory.CreateDirectory(path);
             }
 
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
-                {
-                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
+                string filename = file.GetFileName(name);
+                Image image = file.CreateImage();
 
-                    Image image = new Image(stream);
-                    using (FileStream output = File.OpenWrite($"{path}/{filename}"))
-                    {
-                        image.Resize(image.Width / 3, 0, sampler, false)
-                             .Save(output);
-                    }
+                using (FileStream output = File.OpenWrite($"{path}/{filename}"))
+                {
+                    image.Resize(image.Width / 3, 0, sampler, false)
+                          .Save(output);
                 }
             }
         }
@@ -97,18 +91,15 @@ namespace ImageProcessorCore.Tests
                 Directory.CreateDirectory(path);
             }
 
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
-                {
-                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
+                string filename = file.GetFileName(name);
+                Image image = file.CreateImage();
 
-                    Image image = new Image(stream);
-                    using (FileStream output = File.OpenWrite($"{path}/{filename}"))
-                    {
-                        image.Resize(0, image.Height / 3, sampler, false)
-                             .Save(output);
-                    }
+                using (FileStream output = File.OpenWrite($"{path}/{filename}"))
+                {
+                    image.Resize(0, image.Height / 3, sampler, false)
+                          .Save(output);
                 }
             }
         }
@@ -124,24 +115,21 @@ namespace ImageProcessorCore.Tests
                 Directory.CreateDirectory(path);
             }
 
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
+                string filename = file.GetFileName(name);
+                Image image = file.CreateImage();
+
+                using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
-
-                    Image image = new Image(stream);
-                    using (FileStream output = File.OpenWrite($"{path}/{filename}"))
+                    ResizeOptions options = new ResizeOptions()
                     {
-                        ResizeOptions options = new ResizeOptions()
-                        {
-                            Sampler = sampler,
-                            Size = new Size(image.Width / 2, image.Height)
-                        };
+                        Sampler = sampler,
+                        Size = new Size(image.Width / 2, image.Height)
+                    };
 
-                        image.Resize(options)
-                             .Save(output);
-                    }
+                    image.Resize(options)
+                          .Save(output);
                 }
             }
         }
@@ -157,24 +145,21 @@ namespace ImageProcessorCore.Tests
                 Directory.CreateDirectory(path);
             }
 
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
+                string filename = file.GetFileName(name);
+                Image image = file.CreateImage();
+
+                using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
-
-                    Image image = new Image(stream);
-                    using (FileStream output = File.OpenWrite($"{path}/{filename}"))
+                    ResizeOptions options = new ResizeOptions()
                     {
-                        ResizeOptions options = new ResizeOptions()
-                        {
-                            Sampler = sampler,
-                            Size = new Size(image.Width, image.Height / 2)
-                        };
+                        Sampler = sampler,
+                        Size = new Size(image.Width, image.Height / 2)
+                    };
 
-                        image.Resize(options)
-                             .Save(output);
-                    }
+                    image.Resize(options)
+                          .Save(output);
                 }
             }
         }
@@ -190,24 +175,21 @@ namespace ImageProcessorCore.Tests
                 Directory.CreateDirectory(path);
             }
 
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
+                string filename = file.GetFileName(name);
+                Image image = file.CreateImage();
+
+                using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
-
-                    Image image = new Image(stream);
-                    using (FileStream output = File.OpenWrite($"{path}/{filename}"))
+                    ResizeOptions options = new ResizeOptions()
                     {
-                        ResizeOptions options = new ResizeOptions()
-                        {
-                            Size = new Size(image.Width + 200, image.Height),
-                            Mode = ResizeMode.Pad
-                        };
+                        Size = new Size(image.Width + 200, image.Height),
+                        Mode = ResizeMode.Pad
+                    };
 
-                        image.Resize(options)
-                             .Save(output);
-                    }
+                    image.Resize(options)
+                          .Save(output);
                 }
             }
         }
@@ -223,25 +205,22 @@ namespace ImageProcessorCore.Tests
                 Directory.CreateDirectory(path);
             }
 
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
+                string filename = file.GetFileName(name);
+                Image image = file.CreateImage();
+
+                using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
-
-                    Image image = new Image(stream);
-                    using (FileStream output = File.OpenWrite($"{path}/{filename}"))
+                    ResizeOptions options = new ResizeOptions()
                     {
-                        ResizeOptions options = new ResizeOptions()
-                        {
-                            Sampler = sampler,
-                            Size = new Size(image.Width + 200, image.Height + 200),
-                            Mode = ResizeMode.BoxPad
-                        };
+                        Sampler = sampler,
+                        Size = new Size(image.Width + 200, image.Height + 200),
+                        Mode = ResizeMode.BoxPad
+                    };
 
-                        image.Resize(options)
-                             .Save(output);
-                    }
+                    image.Resize(options)
+                          .Save(output);
                 }
             }
         }
@@ -257,25 +236,22 @@ namespace ImageProcessorCore.Tests
                 Directory.CreateDirectory(path);
             }
 
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
+                string filename = file.GetFileName(name);
+                Image image = file.CreateImage();
+
+                using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
-
-                    Image image = new Image(stream);
-                    using (FileStream output = File.OpenWrite($"{path}/{filename}"))
+                    ResizeOptions options = new ResizeOptions()
                     {
-                        ResizeOptions options = new ResizeOptions()
-                        {
-                            Sampler = sampler,
-                            Size = new Size(300, 300),
-                            Mode = ResizeMode.Max
-                        };
+                        Sampler = sampler,
+                        Size = new Size(300, 300),
+                        Mode = ResizeMode.Max
+                    };
 
-                        image.Resize(options)
-                             .Save(output);
-                    }
+                    image.Resize(options)
+                          .Save(output);
                 }
             }
         }
@@ -291,25 +267,22 @@ namespace ImageProcessorCore.Tests
                 Directory.CreateDirectory(path);
             }
 
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
+                string filename = file.GetFileName(name);
+                Image image = file.CreateImage();
+
+                using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
-
-                    Image image = new Image(stream);
-                    using (FileStream output = File.OpenWrite($"{path}/{filename}"))
+                    ResizeOptions options = new ResizeOptions()
                     {
-                        ResizeOptions options = new ResizeOptions()
-                        {
-                            Sampler = sampler,
-                            Size = new Size(image.Width - 50, image.Height - 25),
-                            Mode = ResizeMode.Min
-                        };
+                        Sampler = sampler,
+                        Size = new Size(image.Width - 50, image.Height - 25),
+                        Mode = ResizeMode.Min
+                    };
 
-                        image.Resize(options)
-                             .Save(output);
-                    }
+                    image.Resize(options)
+                          .Save(output);
                 }
             }
         }
@@ -325,25 +298,22 @@ namespace ImageProcessorCore.Tests
                 Directory.CreateDirectory(path);
             }
 
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
+                string filename = file.GetFileName(name);
+                Image image = file.CreateImage();
+
+                using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + name + Path.GetExtension(file);
-
-                    Image image = new Image(stream);
-                    using (FileStream output = File.OpenWrite($"{path}/{filename}"))
+                    ResizeOptions options = new ResizeOptions()
                     {
-                        ResizeOptions options = new ResizeOptions()
-                        {
-                            Sampler = sampler,
-                            Size = new Size(image.Width - 200, image.Height),
-                            Mode = ResizeMode.Stretch
-                        };
+                        Sampler = sampler,
+                        Size = new Size(image.Width - 200, image.Height),
+                        Mode = ResizeMode.Stretch
+                    };
 
-                        image.Resize(options)
-                             .Save(output);
-                    }
+                    image.Resize(options)
+                          .Save(output);
                 }
             }
         }

@@ -37,18 +37,15 @@ namespace ImageProcessorCore.Tests
                 Directory.CreateDirectory(path);
             }
 
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
-                {
-                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + value + Path.GetExtension(file);
+                string filename = file.GetFileName(value);
+                Image image = file.CreateImage();
 
-                    Image image = new Image(stream);
-                    using (FileStream output = File.OpenWrite($"{path}/{filename}"))
-                    {
-                        image.Rotate(value)
-                             .Save(output);
-                    }
+                using (FileStream output = File.OpenWrite($"{path}/{filename}"))
+                {
+                    image.Rotate(value)
+                          .Save(output);
                 }
             }
         }
@@ -63,18 +60,15 @@ namespace ImageProcessorCore.Tests
                 Directory.CreateDirectory(path);
             }
 
-            foreach (string file in Files)
+            foreach (TestFile file in Files)
             {
-                using (FileStream stream = File.OpenRead(file))
-                {
-                    string filename = Path.GetFileNameWithoutExtension(file) + "-" + value + Path.GetExtension(file);
+                string filename = file.GetFileName(value);
+                Image image = file.CreateImage();
 
-                    Image image = new Image(stream);
-                    using (FileStream output = File.OpenWrite($"{path}/{filename}"))
-                    {
-                        image.Rotate(value)
-                             .Save(output);
-                    }
+                using (FileStream output = File.OpenWrite($"{path}/{filename}"))
+                {
+                    image.Rotate(value)
+                          .Save(output);
                 }
             }
         }

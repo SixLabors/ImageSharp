@@ -1,7 +1,12 @@
-﻿using System;
+﻿// <copyright file="Clamp.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
 
 namespace ImageProcessorCore.Benchmarks.General
 {
+    using System;
+
     using BenchmarkDotNet.Attributes;
 
     public class Clamp

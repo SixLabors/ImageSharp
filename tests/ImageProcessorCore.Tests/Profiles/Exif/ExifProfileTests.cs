@@ -17,7 +17,7 @@ namespace ImageProcessorCore.Tests
         [Fact]
         public void Constructor()
         {
-            using (FileStream stream = File.OpenRead(TestImages.Jpg.Calliphora))
+            using (FileStream stream = File.OpenRead(TestImages.Jpeg.Calliphora))
             {
                 Image image = new Image(stream);
 
@@ -107,7 +107,7 @@ namespace ImageProcessorCore.Tests
         [Fact]
         public void ReadWriteInfinity()
         {
-            using (FileStream stream = File.OpenRead(TestImages.Jpg.Floorplan))
+            using (FileStream stream = File.OpenRead(TestImages.Jpeg.Floorplan))
             {
                 Image image = new Image(stream);
                 image.ExifProfile.SetValue(ExifTag.ExposureBiasValue, new SignedRational(double.PositiveInfinity));
@@ -138,7 +138,7 @@ namespace ImageProcessorCore.Tests
         {
             Rational[] latitude = new Rational[] { new Rational(12.3), new Rational(4.56), new Rational(789.0) };
 
-            using (FileStream stream = File.OpenRead(TestImages.Jpg.Floorplan))
+            using (FileStream stream = File.OpenRead(TestImages.Jpeg.Floorplan))
             {
                 Image image = new Image(stream);
                 image.ExifProfile.SetValue(ExifTag.Software, "ImageProcessorCore");
@@ -241,7 +241,7 @@ namespace ImageProcessorCore.Tests
 
         private static ExifProfile GetExifProfile()
         {
-            using (FileStream stream = File.OpenRead(TestImages.Jpg.Floorplan))
+            using (FileStream stream = File.OpenRead(TestImages.Jpeg.Floorplan))
             {
                 Image image = new Image(stream);
 

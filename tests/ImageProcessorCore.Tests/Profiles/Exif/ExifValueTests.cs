@@ -13,7 +13,7 @@ namespace ImageProcessorCore.Tests
     {
         private static ExifValue GetExifValue()
         {
-            using (FileStream stream = File.OpenRead(TestImages.Jpg.Floorplan))
+            using (FileStream stream = File.OpenRead(TestImages.Jpeg.Floorplan))
             {
                 Image image = new Image(stream);
 

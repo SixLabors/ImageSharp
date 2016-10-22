@@ -20,8 +20,8 @@ namespace ImageProcessorCore.Tests
         {
             //new TestFile(TestImages.Png.P1),
             //new TestFile(TestImages.Png.Pd),
-            new TestFile(TestImages.Jpg.Floorplan), // Perf: Enable for local testing only
-            new TestFile(TestImages.Jpg.Calliphora),
+            new TestFile(TestImages.Jpeg.Floorplan), // Perf: Enable for local testing only
+            new TestFile(TestImages.Jpeg.Calliphora),
             //new TestFile(TestImages.Jpg.Cmyk), // Perf: Enable for local testing only
             //new TestFile(TestImages.Jpg.Turtle),
             //new TestFile(TestImages.Jpg.Fb), // Perf: Enable for local testing only

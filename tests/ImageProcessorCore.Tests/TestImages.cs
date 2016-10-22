@@ -21,7 +21,7 @@ namespace ImageProcessorCore.Tests
             public static string Splash => folder + "splash.png";
         }
 
-        public static class Jpg
+        public static class Jpeg
         {
             private static readonly string folder = "TestImages/Formats/Jpg/";
             public static string Cmyk => folder + "cmyk.jpg";

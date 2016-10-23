@@ -24,7 +24,7 @@ namespace ImageProcessorCore
         /// <param name="brushSize">The number of neighbouring pixels used in calculating each individual pixel value.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> OilPaint<TColor, TPacked>(this Image<TColor, TPacked> source, int levels = 10, int brushSize = 15)
-            where TColor : IPackedVector<TPacked>
+            where TColor : IPackedPixel<TPacked>
             where TPacked : struct
         {
             return OilPaint(source, levels, brushSize, source.Bounds);
@@ -43,7 +43,7 @@ namespace ImageProcessorCore
         /// </param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> OilPaint<TColor, TPacked>(this Image<TColor, TPacked> source, int levels, int brushSize, Rectangle rectangle)
-            where TColor : IPackedVector<TPacked>
+            where TColor : IPackedPixel<TPacked>
             where TPacked : struct
         {
             Guard.MustBeGreaterThan(levels, 0, nameof(levels));

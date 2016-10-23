@@ -21,7 +21,7 @@ namespace ImageProcessorCore
         /// <param name="amount">The new saturation of the image. Must be between -100 and 100.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Saturation<TColor, TPacked>(this Image<TColor, TPacked> source, int amount)
-            where TColor : IPackedVector<TPacked>
+            where TColor : IPackedPixel<TPacked>
             where TPacked : struct
         {
             return Saturation(source, amount, source.Bounds);
@@ -39,7 +39,7 @@ namespace ImageProcessorCore
         /// </param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Saturation<TColor, TPacked>(this Image<TColor, TPacked> source, int amount, Rectangle rectangle)
-            where TColor : IPackedVector<TPacked>
+            where TColor : IPackedPixel<TPacked>
             where TPacked : struct
         {
             return source.Process(rectangle, new SaturationProcessor<TColor, TPacked>(amount));

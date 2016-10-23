@@ -431,7 +431,7 @@ namespace ImageProcessorCore.Formats
         // Encode writes the Image m to w in JPEG 4:2:0 baseline format with the given
         // options. Default parameters are used if a nil *Options is passed.
         public void Encode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream, int quality, JpegSubsample sample)
-            where TColor : IPackedVector<TPacked>
+            where TColor : IPackedPixel<TPacked>
             where TPacked : struct
         {
             Guard.NotNull(image, nameof(image));
@@ -571,7 +571,7 @@ namespace ImageProcessorCore.Formats
         }
 
         private void WriteProfiles<TColor, TPacked>(Image<TColor, TPacked> image)
-            where TColor : IPackedVector<TPacked>
+            where TColor : IPackedPixel<TPacked>
             where TPacked : struct
         {
             WriteProfile(image.ExifProfile);

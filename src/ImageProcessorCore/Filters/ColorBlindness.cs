@@ -21,7 +21,7 @@ namespace ImageProcessorCore
         /// <param name="colorBlindness">The type of color blindness simulator to apply.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> ColorBlindness<TColor, TPacked>(this Image<TColor, TPacked> source, ColorBlindness colorBlindness)
-            where TColor : IPackedVector<TPacked>
+            where TColor : IPackedPixel<TPacked>
             where TPacked : struct
         {
             return ColorBlindness(source, colorBlindness, source.Bounds);
@@ -39,7 +39,7 @@ namespace ImageProcessorCore
         /// </param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> ColorBlindness<TColor, TPacked>(this Image<TColor, TPacked> source, ColorBlindness colorBlindness, Rectangle rectangle)
-            where TColor : IPackedVector<TPacked>
+            where TColor : IPackedPixel<TPacked>
             where TPacked : struct
         {
             IImageFilter<TColor, TPacked> processor;

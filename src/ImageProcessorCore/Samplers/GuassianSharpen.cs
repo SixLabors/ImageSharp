@@ -21,7 +21,7 @@ namespace ImageProcessorCore
         /// <param name="sigma">The 'sigma' value representing the weight of the blur.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> GuassianSharpen<TColor, TPacked>(this Image<TColor, TPacked> source, float sigma = 3f)
-            where TColor : IPackedVector<TPacked>
+            where TColor : IPackedPixel<TPacked>
             where TPacked : struct
         {
             return GuassianSharpen(source, sigma, source.Bounds);
@@ -39,7 +39,7 @@ namespace ImageProcessorCore
         /// </param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> GuassianSharpen<TColor, TPacked>(this Image<TColor, TPacked> source, float sigma, Rectangle rectangle)
-            where TColor : IPackedVector<TPacked>
+            where TColor : IPackedPixel<TPacked>
             where TPacked : struct
         {
             return source.Process(rectangle, new GuassianSharpenProcessor<TColor, TPacked>(sigma));

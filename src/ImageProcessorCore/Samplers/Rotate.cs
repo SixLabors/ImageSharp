@@ -21,7 +21,7 @@ namespace ImageProcessorCore
         /// <param name="degrees">The angle in degrees to perform the rotation.</param>
         /// <returns>The <see cref="Image"/></returns>
         public static Image<TColor, TPacked> Rotate<TColor, TPacked>(this Image<TColor, TPacked> source, float degrees)
-            where TColor : IPackedVector<TPacked>
+            where TColor : IPackedPixel<TPacked>
             where TPacked : struct
         {
             return Rotate(source, degrees, true);
@@ -36,7 +36,7 @@ namespace ImageProcessorCore
         /// <param name="rotateType">The <see cref="RotateType"/> to perform the rotation.</param>
         /// <returns>The <see cref="Image"/></returns>
         public static Image<TColor, TPacked> Rotate<TColor, TPacked>(this Image<TColor, TPacked> source, RotateType rotateType)
-            where TColor : IPackedVector<TPacked>
+            where TColor : IPackedPixel<TPacked>
             where TPacked : struct
         {
             return Rotate(source, (float)rotateType, false);
@@ -52,7 +52,7 @@ namespace ImageProcessorCore
         /// <param name="expand">Whether to expand the image to fit the rotated result.</param>
         /// <returns>The <see cref="Image"/></returns>
         public static Image<TColor, TPacked> Rotate<TColor, TPacked>(this Image<TColor, TPacked> source, float degrees, bool expand)
-            where TColor : IPackedVector<TPacked>
+            where TColor : IPackedPixel<TPacked>
             where TPacked : struct
         {
             RotateProcessor<TColor, TPacked> processor = new RotateProcessor<TColor, TPacked> { Angle = degrees, Expand = expand };

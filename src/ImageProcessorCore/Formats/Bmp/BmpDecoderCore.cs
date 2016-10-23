@@ -61,7 +61,7 @@ namespace ImageProcessorCore.Formats
         ///    <para><paramref name="stream"/> is null.</para>
         /// </exception>
         public void Decode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream)
-            where TColor : IPackedVector<TPacked>
+            where TColor : IPackedPixel<TPacked>
             where TPacked : struct
         {
             this.currentStream = stream;

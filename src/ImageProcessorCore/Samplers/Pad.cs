@@ -20,7 +20,7 @@ namespace ImageProcessorCore
         /// <param name="height">The new height.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Pad<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height)
-            where TColor : IPackedVector<TPacked>
+            where TColor : IPackedPixel<TPacked>
             where TPacked : struct
         {
             ResizeOptions options = new ResizeOptions

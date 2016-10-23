@@ -21,7 +21,7 @@ namespace ImageProcessorCore
         /// <param name="radius">The 'radius' value representing the size of the area to sample.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> BoxBlur<TColor, TPacked>(this Image<TColor, TPacked> source, int radius = 7)
-            where TColor : IPackedVector<TPacked>
+            where TColor : IPackedPixel<TPacked>
             where TPacked : struct
         {
             return BoxBlur(source, radius, source.Bounds);
@@ -39,7 +39,7 @@ namespace ImageProcessorCore
         /// </param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> BoxBlur<TColor, TPacked>(this Image<TColor, TPacked> source, int radius, Rectangle rectangle)
-            where TColor : IPackedVector<TPacked>
+            where TColor : IPackedPixel<TPacked>
             where TPacked : struct
         {
             return source.Process(rectangle, new BoxBlurProcessor<TColor, TPacked>(radius));

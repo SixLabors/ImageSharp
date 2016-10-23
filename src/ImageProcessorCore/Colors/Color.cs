@@ -17,7 +17,7 @@ namespace ImageProcessorCore
     /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
     /// as it avoids the need to create new values for modification operations.
     /// </remarks>
-    public partial struct Color : IPackedVector<uint>, IEquatable<Color>
+    public partial struct Color : IPackedPixel<uint>, IEquatable<Color>
     {
         /// <summary>
         /// The maximum byte value.

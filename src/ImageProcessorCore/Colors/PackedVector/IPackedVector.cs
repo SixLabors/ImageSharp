@@ -15,6 +15,9 @@ namespace ImageProcessorCore
     public interface IPackedVector<TPacked> : IPackedVector
         where TPacked : struct
     {
+        /// <summary>
+        /// Gets or sets the packed representation of the value.
+        /// </summary>
         TPacked PackedValue { get; set; }
     }
 

@@ -23,7 +23,7 @@ namespace ImageProcessorCore.Processors
         /// </summary>
         /// <param name="kernelX">The horizontal gradient operator.</param>
         /// <param name="kernelY">The vertical gradient operator.</param>
-        public Convolution2DFilter(float[,] kernelX, float[,] kernelY)
+        public Convolution2DFilter(float[][] kernelX, float[][] kernelY)
         {
             this.KernelX = kernelX;
             this.KernelY = kernelY;
@@ -32,22 +32,20 @@ namespace ImageProcessorCore.Processors
         /// <summary>
         /// Gets the horizontal gradient operator.
         /// </summary>
-        public float[,] KernelX { get; }
+        public float[][] KernelX { get; }
 
         /// <summary>
         /// Gets the vertical gradient operator.
         /// </summary>
-        public float[,] KernelY { get; }
+        public float[][] KernelY { get; }
 
         /// <inheritdoc/>
         public override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-            float[,] kernelX = this.KernelX;
-            float[,] kernelY = this.KernelY;
-            int kernelYHeight = kernelY.GetLength(0);
-            int kernelYWidth = kernelY.GetLength(1);
-            int kernelXHeight = kernelX.GetLength(0);
-            int kernelXWidth = kernelX.GetLength(1);
+            int kernelYHeight = KernelY.Length;
+            int kernelYWidth = KernelY[0].Length;
+            int kernelXHeight = KernelX.Length;
+            int kernelXWidth = KernelX[0].Length;
             int radiusY = kernelYHeight >> 1;
             int radiusX = kernelXWidth >> 1;
 
@@ -100,16 +98,16 @@ namespace ImageProcessorCore.Processors
 
                                     if (fy < kernelXHeight)
                                     {
-                                        rX += kernelX[fy, fx] * r;
-                                        gX += kernelX[fy, fx] * g;
-                                        bX += kernelX[fy, fx] * b;
+                                        rX += KernelX[fy][fx] * r;
+                                        gX += KernelX[fy][fx] * g;
+                                        bX += KernelX[fy][fx] * b;
                                     }
 
                                     if (fx < kernelYWidth)
                                     {
-                                        rY += kernelY[fy, fx] * r;
-                                        gY += kernelY[fy, fx] * g;
-                                        bY += kernelY[fy, fx] * b;
+                                        rY += KernelY[fy][fx] * r;
+                                        gY += KernelY[fy][fx] * g;
+                                        bY += KernelY[fy][fx] * b;
                                     }
                                 }
                             }

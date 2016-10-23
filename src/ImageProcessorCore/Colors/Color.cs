@@ -35,72 +35,6 @@ namespace ImageProcessorCore
         private uint packedValue;
 
         /// <summary>
-        /// Gets or sets the red component.
-        /// </summary>
-        public byte R
-        {
-            get
-            {
-                return (byte)(this.packedValue >> 24);
-            }
-            set
-            {
-                this.packedValue = this.packedValue & 0x00FFFFFF | (uint)value << 24;
-            }
-        }
-
-
-        /// <summary>
-        /// Gets or sets the green component.
-        /// </summary>
-        public byte G
-        {
-            get
-            {
-                return (byte)(this.packedValue >> 16);
-            }
-            set
-            {
-                this.packedValue = this.packedValue & 0xFF00FFFF | (uint)value << 16;
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the blue component.
-        /// </summary>
-        public byte B
-        {
-            get
-            {
-                return (byte)(this.packedValue >> 8);
-            }
-            set
-            {
-                this.packedValue = this.packedValue & 0xFFFF00FF | (uint)value << 8;
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the alpha component.
-        /// </summary>
-        public byte A
-        {
-            get
-            {
-                return (byte)this.packedValue;
-            }
-            set
-            {
-                this.packedValue = this.packedValue & 0xFFFFFF00 | value;
-            }
-        }
-
-        /// <summary>
-        /// The packed value.
-        /// </summary>
-        public uint PackedValue { get { return this.packedValue; } set { this.packedValue = value; } }
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="Color"/> struct.
         /// </summary>
         /// <param name="r">The red component.</param>
@@ -163,6 +97,84 @@ namespace ImageProcessorCore
         public Color(Vector4 vector)
         {
             this.packedValue = Pack(ref vector);
+        }
+
+        /// <summary>
+        /// Gets or sets the red component.
+        /// </summary>
+        public byte R
+        {
+            get
+            {
+                return (byte)(this.packedValue >> 24);
+            }
+
+            set
+            {
+                this.packedValue = this.packedValue & 0x00FFFFFF | (uint)value << 24;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the green component.
+        /// </summary>
+        public byte G
+        {
+            get
+            {
+                return (byte)(this.packedValue >> 16);
+            }
+
+            set
+            {
+                this.packedValue = this.packedValue & 0xFF00FFFF | (uint)value << 16;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the blue component.
+        /// </summary>
+        public byte B
+        {
+            get
+            {
+                return (byte)(this.packedValue >> 8);
+            }
+
+            set
+            {
+                this.packedValue = this.packedValue & 0xFFFF00FF | (uint)value << 8;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the alpha component.
+        /// </summary>
+        public byte A
+        {
+            get
+            {
+                return (byte)this.packedValue;
+            }
+
+            set
+            {
+                this.packedValue = this.packedValue & 0xFFFFFF00 | value;
+            }
+        }
+
+        /// <inheritdoc/>
+        public uint PackedValue
+        {
+            get
+            {
+                return this.packedValue;
+            }
+
+            set
+            {
+                this.packedValue = value;
+            }
         }
 
         /// <summary>
@@ -311,11 +323,13 @@ namespace ImageProcessorCore
             {
                 return hex;
             }
-            else if (hex.Length == 6)
+
+            if (hex.Length == 6)
             {
                 return hex + "FF";
             }
-            else if (hex.Length < 3 || hex.Length > 4)
+
+            if (hex.Length < 3 || hex.Length > 4)
             {
                 return null;
             }

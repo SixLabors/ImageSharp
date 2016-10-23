@@ -28,7 +28,7 @@ namespace ImageProcessorCore.Benchmarks.Image
             }
             if (gifBytes == null)
             {
-                gifBytes = File.ReadAllBytes("../ImageProcessorCore.Tests/TestImages/Formats/Gif/giphy.gif");
+                gifBytes = File.ReadAllBytes("../ImageProcessorCore.Tests/TestImages/Formats/Gif/rings.gif");
             }
             if (jpegBytes == null)
             {

@@ -43,7 +43,7 @@ namespace ImageProcessorCore.Benchmarks.Image
 
             if (gifStream == null)
             { 
-                gifStream = File.OpenRead("../ImageProcessorCore.Tests/TestImages/Formats/Gif/giphy.gif");
+                gifStream = File.OpenRead("../ImageProcessorCore.Tests/TestImages/Formats/Gif/rings.gif");
                 gifCore = new CoreImage(gifStream);
                 gifStream.Position = 0;
                 gifDrawing = Image.FromStream(gifStream);

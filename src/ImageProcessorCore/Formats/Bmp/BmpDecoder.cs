@@ -71,7 +71,7 @@ namespace ImageProcessorCore.Formats
 
         /// <inheritdoc/>
         public void Decode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream)
-        where TColor : IPackedVector<TPacked>
+        where TColor : IPackedPixel<TPacked>
         where TPacked : struct
         {
             Guard.NotNull(image, "image");

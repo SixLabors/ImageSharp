@@ -21,7 +21,7 @@ namespace ImageProcessorCore
         /// <param name="color">The color to set as the background.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> BackgroundColor<TColor, TPacked>(this Image<TColor, TPacked> source, TColor color)
-            where TColor : IPackedVector<TPacked>
+            where TColor : IPackedPixel<TPacked>
             where TPacked : struct
         {
             return source.Process(source.Bounds, new BackgroundColorProcessor<TColor, TPacked>(color));

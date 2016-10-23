@@ -19,7 +19,7 @@ namespace ImageProcessorCore
         /// <param name="flipType">The <see cref="FlipType"/> to perform the flip.</param>
         /// <returns>The <see cref="Image"/></returns>
         public static Image<TColor, TPacked> RotateFlip<TColor, TPacked>(this Image<TColor, TPacked> source, RotateType rotateType, FlipType flipType)
-            where TColor : IPackedVector<TPacked>
+            where TColor : IPackedPixel<TPacked>
             where TPacked : struct
         {
             return source.Rotate(rotateType).Flip(flipType);

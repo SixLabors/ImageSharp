@@ -22,7 +22,7 @@ namespace ImageProcessorCore
         /// <returns>The <see cref="Image{TColor, TPacked}"/></returns>
         /// <remarks>Passing zero for one of height or width within the resize options will automatically preserve the aspect ratio of the original image</remarks>
         public static Image<TColor, TPacked> Resize<TColor, TPacked>(this Image<TColor, TPacked> source, ResizeOptions options)
-            where TColor : IPackedVector<TPacked>
+            where TColor : IPackedPixel<TPacked>
             where TPacked : struct
         {
             // Ensure size is populated across both dimensions.
@@ -52,7 +52,7 @@ namespace ImageProcessorCore
         /// <returns>The <see cref="Image{TColor, TPacked}"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
         public static Image<TColor, TPacked> Resize<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height)
-            where TColor : IPackedVector<TPacked>
+            where TColor : IPackedPixel<TPacked>
             where TPacked : struct
         {
             return Resize(source, width, height, new BicubicResampler(), false);
@@ -70,7 +70,7 @@ namespace ImageProcessorCore
         /// <returns>The <see cref="Image{TColor, TPacked}"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
         public static Image<TColor, TPacked> Resize<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height, bool compand)
-            where TColor : IPackedVector<TPacked>
+            where TColor : IPackedPixel<TPacked>
             where TPacked : struct
         {
             return Resize(source, width, height, new BicubicResampler(), compand);
@@ -88,7 +88,7 @@ namespace ImageProcessorCore
         /// <returns>The <see cref="Image{TColor, TPacked}"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
         public static Image<TColor, TPacked> Resize<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height, IResampler sampler)
-            where TColor : IPackedVector<TPacked>
+            where TColor : IPackedPixel<TPacked>
             where TPacked : struct
         {
             return Resize(source, width, height, sampler, false);
@@ -107,7 +107,7 @@ namespace ImageProcessorCore
         /// <returns>The <see cref="Image{TColor, TPacked}"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
         public static Image<TColor, TPacked> Resize<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height, IResampler sampler, bool compand)
-            where TColor : IPackedVector<TPacked>
+            where TColor : IPackedPixel<TPacked>
             where TPacked : struct
         {
             return Resize(source, width, height, sampler, source.Bounds, new Rectangle(0, 0, width, height), compand);
@@ -133,7 +133,7 @@ namespace ImageProcessorCore
         /// <returns>The <see cref="Image{TColor, TPacked}"/></returns>
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
         public static Image<TColor, TPacked> Resize<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height, IResampler sampler, Rectangle sourceRectangle, Rectangle targetRectangle, bool compand = false)
-            where TColor : IPackedVector<TPacked>
+            where TColor : IPackedPixel<TPacked>
             where TPacked : struct
         {
             if (width == 0 && height > 0)

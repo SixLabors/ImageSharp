@@ -82,7 +82,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="image">The <see cref="ImageBase{TColor, TPacked}"/> to decode to.</param>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         public void Decode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream)
-            where TColor : IPackedVector<TPacked>
+            where TColor : IPackedPixel<TPacked>
             where TPacked : struct
         {
             new PngDecoderCore().Decode(image, stream);

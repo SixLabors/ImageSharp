@@ -21,7 +21,7 @@ namespace ImageProcessorCore
         /// <param name="threshold">The threshold to apply binerization of the image. Must be between 0 and 1.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> BinaryThreshold<TColor, TPacked>(this Image<TColor, TPacked> source, float threshold)
-            where TColor : IPackedVector<TPacked>
+            where TColor : IPackedPixel<TPacked>
             where TPacked : struct
         {
             return BinaryThreshold(source, threshold, source.Bounds);
@@ -39,7 +39,7 @@ namespace ImageProcessorCore
         /// </param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> BinaryThreshold<TColor, TPacked>(this Image<TColor, TPacked> source, float threshold, Rectangle rectangle)
-            where TColor : IPackedVector<TPacked>
+            where TColor : IPackedPixel<TPacked>
             where TPacked : struct
         {
             return source.Process(rectangle, new BinaryThresholdProcessor<TColor, TPacked>(threshold));

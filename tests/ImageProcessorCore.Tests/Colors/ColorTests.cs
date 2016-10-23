@@ -24,13 +24,15 @@ namespace ImageProcessorCore.Tests
             Color color1 = new Color(0, 0, 0);
             Color color2 = new Color(0, 0, 0, 1F);
             Color color3 = new Color("#000");
-            Color color4 = new Color("#000000");
-            Color color5 = new Color("#FF000000");
+            Color color4 = new Color("#000F");
+            Color color5 = new Color("#000000");
+            Color color6 = new Color("#000000FF");
 
             Assert.Equal(color1, color2);
             Assert.Equal(color1, color3);
             Assert.Equal(color1, color4);
             Assert.Equal(color1, color5);
+            Assert.Equal(color1, color6);
         }
 
         /// <summary>
@@ -89,15 +91,31 @@ namespace ImageProcessorCore.Tests
         }
 
         /// <summary>
-        /// Tests to see that in the input hex matches that of the output.
+        /// Tests whether FromHex and ToHex work correctly.
         /// </summary>
         [Fact]
-        public void ConvertHex()
+        public void FromAndToHex()
         {
-            const string First = "FF000000";
-            Color color = Color.Black;
-            string second = color.PackedValue.ToString("X");
-            Assert.Equal(First, second);
+            Color color = Color.FromHex("#AABBCCDD");
+            Assert.Equal(170, color.R);
+            Assert.Equal(187, color.G);
+            Assert.Equal(204, color.B);
+            Assert.Equal(221, color.A);
+
+            color.A = 170;
+            color.B = 187;
+            color.G = 204;
+            color.R = 221;
+
+            Assert.Equal("DDCCBBAA", color.ToHex());
+
+            color.R = 0;
+
+            Assert.Equal("00CCBBAA", color.ToHex());
+
+            color.A = 255;
+
+            Assert.Equal("00CCBBFF", color.ToHex());
         }
     }
 }

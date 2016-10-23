@@ -8,7 +8,6 @@ namespace ImageProcessorCore
     using System;
     using System.Globalization;
     using System.Numerics;
-    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Packed vector type containing four 8-bit unsigned normalized values ranging from 0 to 255.
@@ -21,22 +20,17 @@ namespace ImageProcessorCore
     public partial struct Color : IPackedVector<uint>, IEquatable<Color>
     {
         /// <summary>
-        /// The maximum byte value
+        /// The maximum byte value.
         /// </summary>
-        private const float MaxBytes = 255F;
+        private static readonly Vector4 MaxBytes = new Vector4(255);
 
         /// <summary>
-        /// The minimum vector value
+        /// The half vector value.
         /// </summary>
-        private const float Zero = 0F;
+        private static readonly Vector4 Half = new Vector4(0.5f);
 
         /// <summary>
-        /// The maximum vector value
-        /// </summary>
-        private const float One = 1F;
-
-        /// <summary>
-        /// The packed value
+        /// The packed value.
         /// </summary>
         private uint packedValue;
 
@@ -268,7 +262,13 @@ namespace ImageProcessorCore
         /// <returns>The ulong containing the packed values.</returns>
         private static uint Pack(ref Vector4 vector)
         {
-            return Pack(vector.X, vector.Y, vector.Z, vector.W);
+            vector = Vector4.Clamp(vector, Vector4.Zero, Vector4.One);
+            vector *= MaxBytes;
+            vector += Half;
+            return (uint)(((byte)vector.X << 24)
+                        | ((byte)vector.Y << 16)
+                        | ((byte)vector.Z << 8)
+                        |  (byte)vector.W);
         }
 
         /// <summary>
@@ -278,7 +278,8 @@ namespace ImageProcessorCore
         /// <returns>The ulong containing the packed values.</returns>
         private static uint Pack(ref Vector3 vector)
         {
-            return Pack(vector.X, vector.Y, vector.Z, 1);
+            Vector4 value = new Vector4(vector, 1);
+            return Pack(ref value);
         }
 
         /// <summary>
@@ -289,13 +290,10 @@ namespace ImageProcessorCore
         /// <param name="z">The z-component</param>
         /// <param name="w">The w-component</param>
         /// <returns>The <see cref="uint"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static uint Pack(float x, float y, float z, float w)
         {
-            return (uint)((byte)Math.Round(x.Clamp(Zero, One) * MaxBytes) << 24
-                   | (byte)Math.Round(y.Clamp(Zero, One) * MaxBytes) << 16
-                   | (byte)Math.Round(z.Clamp(Zero, One) * MaxBytes) << 8
-                   | (byte)Math.Round(w.Clamp(Zero, One) * MaxBytes));
+            Vector4 value = new Vector4(x, y, z, w);
+            return Pack(ref value);
         }
 
         /// <summary>

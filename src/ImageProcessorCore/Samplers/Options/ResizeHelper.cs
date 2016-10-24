@@ -25,7 +25,7 @@ namespace ImageProcessorCore
         /// The <see cref="Rectangle"/>.
         /// </returns>
         public static Rectangle CalculateTargetLocationAndBounds<TColor, TPacked>(ImageBase<TColor, TPacked> source, ResizeOptions options)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
             switch (options.Mode)
@@ -58,7 +58,7 @@ namespace ImageProcessorCore
         /// The <see cref="Rectangle"/>.
         /// </returns>
         private static Rectangle CalculateCropRectangle<TColor, TPacked>(ImageBase<TColor, TPacked> source, ResizeOptions options)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
             int width = options.Size.Width;
@@ -179,7 +179,7 @@ namespace ImageProcessorCore
         /// The <see cref="Rectangle"/>.
         /// </returns>
         private static Rectangle CalculatePadRectangle<TColor, TPacked>(ImageBase<TColor, TPacked> source, ResizeOptions options)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
             int width = options.Size.Width;
@@ -262,7 +262,7 @@ namespace ImageProcessorCore
         /// The <see cref="Rectangle"/>.
         /// </returns>
         private static Rectangle CalculateBoxPadRectangle<TColor, TPacked>(ImageBase<TColor, TPacked> source, ResizeOptions options)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
             int width = options.Size.Width;
@@ -351,7 +351,7 @@ namespace ImageProcessorCore
         /// The <see cref="Rectangle"/>.
         /// </returns>
         private static Rectangle CalculateMaxRectangle<TColor, TPacked>(ImageBase<TColor, TPacked> source, ResizeOptions options)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
             int width = options.Size.Width;
@@ -394,7 +394,7 @@ namespace ImageProcessorCore
         /// The <see cref="Rectangle"/>.
         /// </returns>
         private static Rectangle CalculateMinRectangle<TColor, TPacked>(ImageBase<TColor, TPacked> source, ResizeOptions options)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
             int width = options.Size.Width;

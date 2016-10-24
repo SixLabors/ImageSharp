@@ -13,7 +13,7 @@ namespace ImageProcessorCore.Processors
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public class CropProcessor<TColor, TPacked> : ImageSampler<TColor, TPacked>
-        where TColor : struct, IPackedVector<TPacked>
+        where TColor : IPackedVector<TPacked>
         where TPacked : struct
     {
         /// <inheritdoc/>

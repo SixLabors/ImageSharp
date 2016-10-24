@@ -56,7 +56,7 @@ namespace ImageProcessorCore.Formats
 
         /// <inheritdoc/>
         public void Decode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
             new GifDecoderCore<TColor, TPacked>().Decode(image, stream);

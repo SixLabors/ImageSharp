@@ -18,7 +18,7 @@ namespace ImageProcessorCore
         /// <param name="source">The image to auto rotate.</param>
         /// <returns>The <see cref="Image"/></returns>
         public static Image<TColor, TPacked> AutoOrient<TColor, TPacked>(this Image<TColor, TPacked> source)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
             Orientation orientation = GetExifOrientation(source);
@@ -63,7 +63,7 @@ namespace ImageProcessorCore
         /// <param name="source">The image to auto rotate.</param>
         /// <returns>The <see cref="Orientation"/></returns>
         private static Orientation GetExifOrientation<TColor, TPacked>(Image<TColor, TPacked> source)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
             if (source.ExifProfile == null)

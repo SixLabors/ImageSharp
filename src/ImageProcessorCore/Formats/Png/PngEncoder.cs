@@ -73,7 +73,7 @@ namespace ImageProcessorCore.Formats
 
         /// <inheritdoc/>
         public void Encode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
             PngEncoderCore encoder = new PngEncoderCore

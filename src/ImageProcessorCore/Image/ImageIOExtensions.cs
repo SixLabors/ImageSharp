@@ -26,7 +26,7 @@ namespace ImageProcessorCore
         /// The <see cref="Image{TColor,TPacked}"/>.
         /// </returns>
         public static Image<TColor, TPacked> SaveAsBmp<TColor, TPacked>(this Image<TColor, TPacked> source, Stream stream)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : IPackedVector<TPacked>
             where TPacked : struct
             => source.Save(stream, new BmpEncoder());
 
@@ -45,7 +45,7 @@ namespace ImageProcessorCore
         /// The <see cref="Image{TColor,TPacked}"/>.
         /// </returns>
         public static Image<TColor, TPacked> SaveAsPng<TColor, TPacked>(this Image<TColor, TPacked> source, Stream stream, int quality = int.MaxValue)
-            where TColor : struct, IPackedVector<TPacked> where TPacked : struct
+            where TColor : IPackedVector<TPacked> where TPacked : struct
             => source.Save(stream, new PngEncoder { Quality = quality });
 
         /// <summary>
@@ -61,7 +61,7 @@ namespace ImageProcessorCore
         /// The <see cref="Image{TColor,TPacked}"/>.
         /// </returns>
         public static Image<TColor, TPacked> SaveAsJpeg<TColor, TPacked>(this Image<TColor, TPacked> source, Stream stream, int quality = 75)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : IPackedVector<TPacked>
             where TPacked : struct
             => source.Save(stream, new JpegEncoder { Quality = quality });
 
@@ -78,7 +78,7 @@ namespace ImageProcessorCore
         /// The <see cref="Image{TColor,TPacked}"/>.
         /// </returns>
         public static Image<TColor, TPacked> SaveAsGif<TColor, TPacked>(this Image<TColor, TPacked> source, Stream stream, int quality = 256)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : IPackedVector<TPacked>
             where TPacked : struct
             => source.Save(stream, new GifEncoder { Quality = quality });
     }

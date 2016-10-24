@@ -21,7 +21,7 @@ namespace ImageProcessorCore
         /// <param name="threshold">The threshold for entropic density.</param>
         /// <returns>The <see cref="Image"/></returns>
         public static Image<TColor, TPacked> EntropyCrop<TColor, TPacked>(this Image<TColor, TPacked> source, float threshold = .5f)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
             EntropyCropProcessor<TColor, TPacked> processor = new EntropyCropProcessor<TColor, TPacked>(threshold);

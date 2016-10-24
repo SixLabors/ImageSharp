@@ -20,7 +20,7 @@ namespace ImageProcessorCore
         /// <param name="source">The image this method extends.</param>
         /// <returns>The <see cref="Image"/>.</returns>
         public static Image<TColor, TPacked> Sepia<TColor, TPacked>(this Image<TColor, TPacked> source)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
             return Sepia(source, source.Bounds);
@@ -37,7 +37,7 @@ namespace ImageProcessorCore
         /// </param>
         /// <returns>The <see cref="Image"/>.</returns>
         public static Image<TColor, TPacked> Sepia<TColor, TPacked>(this Image<TColor, TPacked> source, Rectangle rectangle)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
             return source.Process(rectangle, new SepiaProcessor<TColor, TPacked>());

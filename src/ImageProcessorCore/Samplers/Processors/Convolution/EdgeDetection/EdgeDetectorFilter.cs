@@ -20,7 +20,7 @@ namespace ImageProcessorCore.Processors
         /// <summary>
         /// Gets the 2d gradient operator.
         /// </summary>
-        public abstract float[,] KernelXY { get; }
+        public abstract float[][] KernelXY { get; }
 
         /// <inheritdoc/>
         public override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)

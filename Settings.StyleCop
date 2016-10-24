@@ -1,5 +1,5 @@
 <StyleCopSettings Version="105">
-<GlobalSettings>
+  <GlobalSettings>
     <CollectionProperty Name="RecognizedWords">
       <Value>enum</Value>
       <Value>exif</Value>
@@ -11,14 +11,21 @@
       <Value>unzig</Value>
       <Value>cb</Value>
       <Value>cr</Value>
+      <Value>Laplacian</Value>
+      <Value>Sobel</Value>
+      <Value>Scharr</Value>
+      <Value>rrggbb</Value>
+      <Value>rrggbbaa</Value>
     </CollectionProperty>
   </GlobalSettings>
   <Analyzers>
     <Analyzer AnalyzerId="StyleCop.CSharp.DocumentationRules">
       <AnalyzerSettings>
         <StringProperty Name="CompanyName">James Jackson-South</StringProperty>
-        <StringProperty Name="Copyright">Copyright © James Jackson-South and contributors.
-Licensed under the Apache License, Version 2.0.</StringProperty>
+        <StringProperty Name="Copyright">
+          Copyright © James Jackson-South and contributors.
+          Licensed under the Apache License, Version 2.0.
+        </StringProperty>
       </AnalyzerSettings>
     </Analyzer>
   </Analyzers>

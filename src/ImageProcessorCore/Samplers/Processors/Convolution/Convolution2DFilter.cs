@@ -42,10 +42,10 @@ namespace ImageProcessorCore.Processors
         /// <inheritdoc/>
         public override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-            int kernelYHeight = KernelY.Length;
-            int kernelYWidth = KernelY[0].Length;
-            int kernelXHeight = KernelX.Length;
-            int kernelXWidth = KernelX[0].Length;
+            int kernelYHeight = this.KernelY.Length;
+            int kernelYWidth = this.KernelY[0].Length;
+            int kernelXHeight = this.KernelX.Length;
+            int kernelXWidth = this.KernelX[0].Length;
             int radiusY = kernelYHeight >> 1;
             int radiusX = kernelXWidth >> 1;
 
@@ -98,16 +98,16 @@ namespace ImageProcessorCore.Processors
 
                                     if (fy < kernelXHeight)
                                     {
-                                        rX += KernelX[fy][fx] * r;
-                                        gX += KernelX[fy][fx] * g;
-                                        bX += KernelX[fy][fx] * b;
+                                        rX += this.KernelX[fy][fx] * r;
+                                        gX += this.KernelX[fy][fx] * g;
+                                        bX += this.KernelX[fy][fx] * b;
                                     }
 
                                     if (fx < kernelYWidth)
                                     {
-                                        rY += KernelY[fy][fx] * r;
-                                        gY += KernelY[fy][fx] * g;
-                                        bY += KernelY[fy][fx] * b;
+                                        rY += this.KernelY[fy][fx] * r;
+                                        gY += this.KernelY[fy][fx] * g;
+                                        bY += this.KernelY[fy][fx] * b;
                                     }
                                 }
                             }

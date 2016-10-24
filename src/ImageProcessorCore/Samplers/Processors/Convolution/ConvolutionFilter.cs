@@ -21,7 +21,7 @@ namespace ImageProcessorCore.Processors
         /// Initializes a new instance of the <see cref="ConvolutionFilter{TColor,TPacked}"/> class.
         /// </summary>
         /// <param name="kernelXY">The 2d gradient operator.</param>
-        public ConvolutionFilter(float[,] kernelXY)
+        public ConvolutionFilter(float[][] kernelXY)
         {
             this.KernelXY = kernelXY;
         }
@@ -29,12 +29,12 @@ namespace ImageProcessorCore.Processors
         /// <summary>
         /// Gets the 2d gradient operator.
         /// </summary>
-        public virtual float[,] KernelXY { get; }
+        public virtual float[][] KernelXY { get; }
 
         /// <inheritdoc/>
         public override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-            float[,] kernelX = this.KernelXY;
+            float[][] kernelX = this.KernelXY;
             int kernelLength = kernelX.GetLength(0);
             int radius = kernelLength >> 1;
 
@@ -82,9 +82,9 @@ namespace ImageProcessorCore.Processors
                                     float g = currentColor.Y;
                                     float b = currentColor.Z;
 
-                                    rX += kernelX[fy, fx] * r;
-                                    gX += kernelX[fy, fx] * g;
-                                    bX += kernelX[fy, fx] * b;
+                                    rX += kernelX[fy][fx] * r;
+                                    gX += kernelX[fy][fx] * g;
+                                    bX += kernelX[fy][fx] * b;
                                 }
                             }
 

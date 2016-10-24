@@ -21,42 +21,42 @@ namespace ImageProcessorCore.Processors
         /// <summary>
         /// Gets the North gradient operator
         /// </summary>
-        public abstract float[,] North { get; }
+        public abstract float[][] North { get; }
 
         /// <summary>
         /// Gets the NorthWest gradient operator
         /// </summary>
-        public abstract float[,] NorthWest { get; }
+        public abstract float[][] NorthWest { get; }
 
         /// <summary>
         /// Gets the West gradient operator
         /// </summary>
-        public abstract float[,] West { get; }
+        public abstract float[][] West { get; }
 
         /// <summary>
         /// Gets the SouthWest gradient operator
         /// </summary>
-        public abstract float[,] SouthWest { get; }
+        public abstract float[][] SouthWest { get; }
 
         /// <summary>
         /// Gets the South gradient operator
         /// </summary>
-        public abstract float[,] South { get; }
+        public abstract float[][] South { get; }
 
         /// <summary>
         /// Gets the SouthEast gradient operator
         /// </summary>
-        public abstract float[,] SouthEast { get; }
+        public abstract float[][] SouthEast { get; }
 
         /// <summary>
         /// Gets the East gradient operator
         /// </summary>
-        public abstract float[,] East { get; }
+        public abstract float[][] East { get; }
 
         /// <summary>
         /// Gets the NorthEast gradient operator
         /// </summary>
-        public abstract float[,] NorthEast { get; }
+        public abstract float[][] NorthEast { get; }
 
         /// <inheritdoc/>
         public bool Grayscale { get; set; }
@@ -64,7 +64,7 @@ namespace ImageProcessorCore.Processors
         /// <inheritdoc />
         public override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-            float[][,] kernels = { this.North, this.NorthWest, this.West, this.SouthWest, this.South, this.SouthEast, this.East, this.NorthEast };
+            float[][][] kernels = { this.North, this.NorthWest, this.West, this.SouthWest, this.South, this.SouthEast, this.East, this.NorthEast };
 
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;

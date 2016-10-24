@@ -23,7 +23,7 @@ namespace ImageProcessorCore
         /// <param name="processor">The processor to apply to the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         internal static Image<TColor, TPacked> Process<TColor, TPacked>(this Image<TColor, TPacked> source, IImageFilter<TColor, TPacked> processor)
-            where TColor : IPackedPixel<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             return Process(source, source.Bounds, processor);
@@ -42,7 +42,7 @@ namespace ImageProcessorCore
         /// <param name="processor">The processors to apply to the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         internal static Image<TColor, TPacked> Process<TColor, TPacked>(this Image<TColor, TPacked> source, Rectangle sourceRectangle, IImageFilter<TColor, TPacked> processor)
-            where TColor : IPackedPixel<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             return PerformAction(source, (sourceImage) => processor.Apply(sourceImage, sourceRectangle));
@@ -58,7 +58,7 @@ namespace ImageProcessorCore
         /// <param name="processor">The processor to apply to the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         internal static Image<TColor, TPacked> Process<TColor, TPacked>(this Image<TColor, TPacked> source, IImageSampler<TColor, TPacked> processor)
-            where TColor : IPackedPixel<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             return Process(source, source.Bounds, processor);
@@ -77,7 +77,7 @@ namespace ImageProcessorCore
         /// <param name="processor">The processors to apply to the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         internal static Image<TColor, TPacked> Process<TColor, TPacked>(this Image<TColor, TPacked> source, Rectangle sourceRectangle, IImageSampler<TColor, TPacked> processor)
-            where TColor : IPackedPixel<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             return PerformAction(source, true, (sourceImage, targetImage) => processor.Apply(targetImage, sourceImage, sourceRectangle));
@@ -97,7 +97,7 @@ namespace ImageProcessorCore
         /// <param name="sampler">The processor to apply to the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         internal static Image<TColor, TPacked> Process<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height, IImageSampler<TColor, TPacked> sampler)
-            where TColor : IPackedPixel<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             return Process(source, width, height, source.Bounds, default(Rectangle), sampler);
@@ -124,7 +124,7 @@ namespace ImageProcessorCore
         /// <param name="sampler">The processor to apply to the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         internal static Image<TColor, TPacked> Process<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height, Rectangle sourceRectangle, Rectangle targetRectangle, IImageSampler<TColor, TPacked> sampler)
-            where TColor : IPackedPixel<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             return PerformAction(source, false, (sourceImage, targetImage) => sampler.Apply(targetImage, sourceImage, width, height, targetRectangle, sourceRectangle));
@@ -139,7 +139,7 @@ namespace ImageProcessorCore
         /// <param name="action">The <see cref="Action"/> to perform against the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         private static Image<TColor, TPacked> PerformAction<TColor, TPacked>(Image<TColor, TPacked> source, Action<ImageBase<TColor, TPacked>> action)
-            where TColor : IPackedPixel<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             action(source);
@@ -162,7 +162,7 @@ namespace ImageProcessorCore
         /// <param name="action">The <see cref="Action"/> to perform against the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         private static Image<TColor, TPacked> PerformAction<TColor, TPacked>(Image<TColor, TPacked> source, bool clone, Action<ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>> action)
-            where TColor : IPackedPixel<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             Image<TColor, TPacked> transformedImage = clone

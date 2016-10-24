@@ -21,7 +21,7 @@ namespace ImageProcessorCore
         /// <param name="percent">The new opacity of the image. Must be between 0 and 100.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Alpha<TColor, TPacked>(this Image<TColor, TPacked> source, int percent)
-            where TColor : IPackedPixel<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             return Alpha(source, percent, source.Bounds);
@@ -39,7 +39,7 @@ namespace ImageProcessorCore
         /// </param>
         /// <returns>The <see cref="Image"/>.</returns>
         public static Image<TColor, TPacked> Alpha<TColor, TPacked>(this Image<TColor, TPacked> source, int percent, Rectangle rectangle)
-            where TColor : IPackedPixel<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             return source.Process(rectangle, new AlphaProcessor<TColor, TPacked>(percent));

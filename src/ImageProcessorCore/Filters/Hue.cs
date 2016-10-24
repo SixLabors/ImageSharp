@@ -21,7 +21,7 @@ namespace ImageProcessorCore
         /// <param name="degrees">The angle in degrees to adjust the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Hue<TColor, TPacked>(this Image<TColor, TPacked> source, float degrees)
-            where TColor : IPackedPixel<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             return Hue(source, degrees, source.Bounds);
@@ -39,7 +39,7 @@ namespace ImageProcessorCore
         /// </param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Hue<TColor, TPacked>(this Image<TColor, TPacked> source, float degrees, Rectangle rectangle)
-            where TColor : IPackedPixel<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             return source.Process(rectangle, new HueProcessor<TColor, TPacked>(degrees));

@@ -21,7 +21,7 @@ namespace ImageProcessorCore
         /// <param name="mode">The formula to apply to perform the operation.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Grayscale<TColor, TPacked>(this Image<TColor, TPacked> source, GrayscaleMode mode = GrayscaleMode.Bt709)
-            where TColor : IPackedPixel<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             return Grayscale(source, source.Bounds, mode);
@@ -39,7 +39,7 @@ namespace ImageProcessorCore
         /// <param name="mode">The formula to apply to perform the operation.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Grayscale<TColor, TPacked>(this Image<TColor, TPacked> source, Rectangle rectangle, GrayscaleMode mode = GrayscaleMode.Bt709)
-            where TColor : IPackedPixel<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             IImageFilter<TColor, TPacked> processor = mode == GrayscaleMode.Bt709

@@ -22,7 +22,7 @@ namespace ImageProcessorCore
         /// <param name="height">The target image height.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/></returns>
         public static Image<TColor, TPacked> Crop<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height)
-            where TColor : IPackedPixel<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             return Crop(source, width, height, source.Bounds);
@@ -45,7 +45,7 @@ namespace ImageProcessorCore
         /// </param>
         /// <returns>The <see cref="Image"/></returns>
         public static Image<TColor, TPacked> Crop<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height, Rectangle sourceRectangle)
-            where TColor : IPackedPixel<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             Guard.MustBeGreaterThan(width, 0, nameof(width));

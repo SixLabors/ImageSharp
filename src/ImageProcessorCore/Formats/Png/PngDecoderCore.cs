@@ -91,7 +91,7 @@ namespace ImageProcessorCore.Formats
         /// Thrown if the image is larger than the maximum allowable size.
         /// </exception>
         public void Decode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream)
-            where TColor : IPackedPixel<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             Image<TColor, TPacked> currentImage = image;
@@ -163,7 +163,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="image">The image to read to.</param>
         /// <param name="data">The data containing physical data.</param>
         private void ReadPhysicalChunk<TColor, TPacked>(Image<TColor, TPacked> image, byte[] data)
-            where TColor : IPackedPixel<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             Array.Reverse(data, 0, 4);
@@ -227,7 +227,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="dataStream">The <see cref="MemoryStream"/> containing data.</param>
         /// <param name="pixels"> The pixel data.</param>
         private void ReadScanlines<TColor, TPacked>(MemoryStream dataStream, TColor[] pixels)
-            where TColor : IPackedVector<TPacked>
+            where TColor : struct, IPackedVector<TPacked>
             where TPacked : struct
         {
             this.bytesPerPixel = this.CalculateBytesPerPixel();
@@ -260,7 +260,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="pixelData">The pixel data.</param>
         /// <param name="pixels">The image pixels.</param>
         private void DecodePixelData<TColor, TPacked>(byte[] pixelData, TColor[] pixels)
-            where TColor : IPackedVector<TPacked>
+            where TColor : struct, IPackedVector<TPacked>
             where TPacked : struct
         {
             byte[] previousScanline = new byte[this.bytesPerScanline];
@@ -322,7 +322,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="row">The current image row.</param>
         /// <param name="pixels">The image pixels</param>
         private void ProcessDefilteredScanline<TColor, TPacked>(byte[] defilteredScanline, int row, TColor[] pixels)
-            where TColor : IPackedVector<TPacked>
+            where TColor : struct, IPackedVector<TPacked>
             where TPacked : struct
         {
             switch (this.PngColorType)
@@ -450,7 +450,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="image">The image to decode to.</param>
         /// <param name="data">The <see cref="T:byte[]"/> containing  data.</param>
         private void ReadTextChunk<TColor, TPacked>(Image<TColor, TPacked> image, byte[] data)
-            where TColor : IPackedPixel<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             int zeroIndex = 0;

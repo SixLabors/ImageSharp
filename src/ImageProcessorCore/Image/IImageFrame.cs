@@ -11,7 +11,7 @@ namespace ImageProcessorCore
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public interface IImageFrame<TColor, TPacked> : IImageBase<TColor, TPacked>
-        where TColor : IPackedVector<TPacked>
+        where TColor : struct, IPackedVector<TPacked>
         where TPacked : struct
     {
     }

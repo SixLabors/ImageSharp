@@ -22,7 +22,7 @@ namespace ImageProcessorCore
         /// <param name="maxColors">The maximum number of colors to return. Defaults to 256.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Quantize<TColor, TPacked>(this Image<TColor, TPacked> source, Quantization mode = Quantization.Octree, int maxColors = 256)
-            where TColor : IPackedPixel<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             IQuantizer<TColor, TPacked> quantizer;
@@ -54,7 +54,7 @@ namespace ImageProcessorCore
         /// <param name="maxColors">The maximum number of colors to return.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Quantize<TColor, TPacked>(this Image<TColor, TPacked> source, IQuantizer<TColor, TPacked> quantizer, int maxColors)
-            where TColor : IPackedPixel<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             QuantizedImage<TColor, TPacked> quantizedImage = quantizer.Quantize(source, maxColors);

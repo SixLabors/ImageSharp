@@ -47,7 +47,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="image">The <see cref="Image{TColor, TPacked}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
         public void Encode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream)
-            where TColor : IPackedPixel<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             Guard.NotNull(image, nameof(image));
@@ -116,7 +116,7 @@ namespace ImageProcessorCore.Formats
         /// The <see cref="int"/>.
         /// </returns>
         private static int GetTransparentIndex<TColor, TPacked>(QuantizedImage<TColor, TPacked> quantized)
-            where TColor : IPackedPixel<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             // Find the lowest alpha value and make it the transparent index.
@@ -153,7 +153,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="writer">The writer to write to the stream with.</param>
         /// <param name="tranparencyIndex">The transparency index to set the default background index to.</param>
         private void WriteLogicalScreenDescriptor<TColor, TPacked>(Image<TColor, TPacked> image, EndianBinaryWriter writer, int tranparencyIndex)
-            where TColor : IPackedPixel<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             GifLogicalScreenDescriptor descriptor = new GifLogicalScreenDescriptor
@@ -227,7 +227,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="writer">The stream to write to.</param>
         /// <param name="transparencyIndex">The index of the color in the color palette to make transparent.</param>
         private void WriteGraphicalControlExtension<TColor, TPacked>(ImageBase<TColor, TPacked> image, EndianBinaryWriter writer, int transparencyIndex)
-            where TColor : IPackedVector<TPacked>
+            where TColor : struct, IPackedVector<TPacked>
             where TPacked : struct
         {
             // TODO: Check transparency logic.
@@ -275,7 +275,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="image">The <see cref="ImageBase{TColor, TPacked}"/> to be encoded.</param>
         /// <param name="writer">The stream to write to.</param>
         private void WriteImageDescriptor<TColor, TPacked>(ImageBase<TColor, TPacked> image, EndianBinaryWriter writer)
-            where TColor : IPackedVector<TPacked>
+            where TColor : struct, IPackedVector<TPacked>
             where TPacked : struct
         {
             writer.Write(GifConstants.ImageDescriptorLabel); // 2c
@@ -302,7 +302,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="image">The <see cref="ImageBase{TColor, TPacked}"/> to encode.</param>
         /// <param name="writer">The writer to write to the stream with.</param>
         private void WriteColorTable<TColor, TPacked>(QuantizedImage<TColor, TPacked> image, EndianBinaryWriter writer)
-            where TColor : IPackedPixel<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             // Grab the palette and write it to the stream.
@@ -337,7 +337,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="image">The <see cref="QuantizedImage{TColor, TPacked}"/> containing indexed pixels.</param>
         /// <param name="writer">The stream to write to.</param>
         private void WriteImageData<TColor, TPacked>(QuantizedImage<TColor, TPacked> image, EndianBinaryWriter writer)
-            where TColor : IPackedPixel<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             byte[] indexedPixels = image.Pixels;

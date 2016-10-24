@@ -20,7 +20,7 @@ namespace ImageProcessorCore
         /// <param name="source">The image this method extends.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Polaroid<TColor, TPacked>(this Image<TColor, TPacked> source)
-            where TColor : IPackedVector<TPacked>
+            where TColor : struct, IPackedVector<TPacked>
             where TPacked : struct
         {
             return Polaroid(source, source.Bounds);
@@ -37,7 +37,7 @@ namespace ImageProcessorCore
         /// </param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Polaroid<TColor, TPacked>(this Image<TColor, TPacked> source, Rectangle rectangle)
-            where TColor : IPackedVector<TPacked>
+            where TColor : struct, IPackedVector<TPacked>
             where TPacked : struct
         {
             return source.Process(rectangle, new PolaroidProcessor<TColor, TPacked>());

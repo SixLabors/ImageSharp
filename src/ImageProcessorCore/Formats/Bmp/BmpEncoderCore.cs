@@ -33,7 +33,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
         /// <param name="bitsPerPixel">The <see cref="BmpBitsPerPixel"/></param>
         public void Encode<TColor, TPacked>(ImageBase<TColor, TPacked> image, Stream stream, BmpBitsPerPixel bitsPerPixel)
-            where TColor : IPackedVector<TPacked>
+            where TColor : struct, IPackedVector<TPacked>
             where TPacked : struct
         {
             Guard.NotNull(image, nameof(image));
@@ -126,7 +126,7 @@ namespace ImageProcessorCore.Formats
         /// The <see cref="ImageBase{TColor, TPacked}"/> containing pixel data.
         /// </param>
         private void WriteImage<TColor, TPacked>(EndianBinaryWriter writer, ImageBase<TColor, TPacked> image)
-            where TColor : IPackedVector<TPacked>
+            where TColor : struct, IPackedVector<TPacked>
             where TPacked : struct
         {
             using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
@@ -152,7 +152,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="writer">The <see cref="EndianBinaryWriter"/> containing the stream to write to.</param>
         /// <param name="pixels">The <see cref="PixelAccessor{TColor,TPacked}"/> containing pixel data.</param>
         private void Write32Bit<TColor, TPacked>(EndianBinaryWriter writer, PixelAccessor<TColor, TPacked> pixels)
-            where TColor : IPackedVector<TPacked>
+            where TColor : struct, IPackedVector<TPacked>
             where TPacked : struct
         {
             for (int y = pixels.Height - 1; y >= 0; y--)
@@ -180,7 +180,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="writer">The <see cref="EndianBinaryWriter"/> containing the stream to write to.</param>
         /// <param name="pixels">The <see cref="PixelAccessor{TColor,TPacked}"/> containing pixel data.</param>
         private void Write24Bit<TColor, TPacked>(EndianBinaryWriter writer, PixelAccessor<TColor, TPacked> pixels)
-            where TColor : IPackedVector<TPacked>
+            where TColor : struct, IPackedVector<TPacked>
             where TPacked : struct
         {
             for (int y = pixels.Height - 1; y >= 0; y--)

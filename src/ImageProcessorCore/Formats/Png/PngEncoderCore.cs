@@ -96,7 +96,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="image">The <see cref="ImageBase{TColor, TPacked}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
         public void Encode<TColor, TPacked>(ImageBase<TColor, TPacked> image, Stream stream)
-            where TColor : IPackedVector<TPacked>
+            where TColor : struct, IPackedVector<TPacked>
             where TPacked : struct
         {
             Guard.NotNull(image, nameof(image));
@@ -233,7 +233,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="header">The <see cref="PngHeader"/>.</param>
         private void CollectIndexedBytes<TColor, TPacked>(ImageBase<TColor, TPacked> image, Stream stream, PngHeader header)
-            where TColor : IPackedVector<TPacked>
+            where TColor : struct, IPackedVector<TPacked>
             where TPacked : struct
         {
             // Quatize the image and get the pixels
@@ -248,7 +248,7 @@ namespace ImageProcessorCore.Formats
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="image">The image to encode.</param>
         private void CollectGrayscaleBytes<TColor, TPacked>(ImageBase<TColor, TPacked> image)
-            where TColor : IPackedVector<TPacked>
+            where TColor : struct, IPackedVector<TPacked>
             where TPacked : struct
         {
             // Copy the pixels across from the image.
@@ -292,7 +292,7 @@ namespace ImageProcessorCore.Formats
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="image">The image to encode.</param>
         private void CollectColorBytes<TColor, TPacked>(ImageBase<TColor, TPacked> image)
-            where TColor : IPackedVector<TPacked>
+            where TColor : struct, IPackedVector<TPacked>
             where TPacked : struct
         {
             // Copy the pixels across from the image.
@@ -483,7 +483,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="image">The image to encode.</param>
         /// <returns>The <see cref="QuantizedImage{TColor, TPacked}"/></returns>
         private QuantizedImage<TColor, TPacked> WritePaletteChunk<TColor, TPacked>(Stream stream, PngHeader header, ImageBase<TColor, TPacked> image)
-            where TColor : IPackedVector<TPacked>
+            where TColor : struct, IPackedVector<TPacked>
             where TPacked : struct
         {
             if (this.Quality > 256)
@@ -553,7 +553,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="imageBase">The image base.</param>
         private void WritePhysicalChunk<TColor, TPacked>(Stream stream, ImageBase<TColor, TPacked> imageBase)
-            where TColor : IPackedVector<TPacked>
+            where TColor : struct, IPackedVector<TPacked>
             where TPacked : struct
         {
             Image<TColor, TPacked> image = imageBase as Image<TColor, TPacked>;

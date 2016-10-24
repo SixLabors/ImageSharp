@@ -9,8 +9,9 @@ namespace ImageProcessorCore.Benchmarks
     using System.Drawing.Drawing2D;
 
     using BenchmarkDotNet.Attributes;
-    using CoreSize = ImageProcessorCore.Size;
+
     using CoreImage = ImageProcessorCore.Image;
+    using CoreSize = ImageProcessorCore.Size;
 
     public class Crop
     {

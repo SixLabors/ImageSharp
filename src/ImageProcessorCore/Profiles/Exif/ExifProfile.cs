@@ -118,7 +118,7 @@ namespace ImageProcessorCore
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         public Image<TColor, TPacked> CreateThumbnail<TColor, TPacked>()
-            where TColor : IPackedPixel<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             this.InitializeValues();

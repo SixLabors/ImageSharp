@@ -343,7 +343,7 @@ namespace ImageProcessorCore.Formats
         // toYCbCr converts the 8x8 region of m whose top-left corner is p to its
         // YCbCr values.
         private void ToYCbCr<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, int x, int y, Block yBlock, Block cbBlock, Block crBlock)
-            where TColor : IPackedVector<TPacked>
+            where TColor : struct, IPackedVector<TPacked>
             where TPacked : struct
         {
             int xmax = pixels.Width - 1;
@@ -431,7 +431,7 @@ namespace ImageProcessorCore.Formats
         // Encode writes the Image m to w in JPEG 4:2:0 baseline format with the given
         // options. Default parameters are used if a nil *Options is passed.
         public void Encode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream, int quality, JpegSubsample sample)
-            where TColor : IPackedPixel<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             Guard.NotNull(image, nameof(image));
@@ -571,7 +571,7 @@ namespace ImageProcessorCore.Formats
         }
 
         private void WriteProfiles<TColor, TPacked>(Image<TColor, TPacked> image)
-            where TColor : IPackedPixel<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             WriteProfile(image.ExifProfile);
@@ -711,7 +711,7 @@ namespace ImageProcessorCore.Formats
         /// </summary>
         /// <param name="pixels">The pixel accessor providing acces to the image pixels.</param>
         private void WriteSOS<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels)
-            where TColor : IPackedVector<TPacked>
+            where TColor : struct, IPackedVector<TPacked>
             where TPacked : struct
         {
             // TODO: We should allow grayscale writing.
@@ -738,7 +738,7 @@ namespace ImageProcessorCore.Formats
         /// </summary>
         /// <param name="pixels">The pixel accessor providing acces to the image pixels.</param>
         private void Encode444<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels)
-            where TColor : IPackedVector<TPacked>
+            where TColor : struct, IPackedVector<TPacked>
             where TPacked : struct
         {
             Block b = new Block();
@@ -764,7 +764,7 @@ namespace ImageProcessorCore.Formats
         /// </summary>
         /// <param name="pixels">The pixel accessor providing acces to the image pixels.</param>
         private void Encode420<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels)
-            where TColor : IPackedVector<TPacked>
+            where TColor : struct, IPackedVector<TPacked>
             where TPacked : struct
         {
             Block b = new Block();

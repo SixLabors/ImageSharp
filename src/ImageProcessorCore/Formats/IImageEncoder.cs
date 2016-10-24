@@ -45,7 +45,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="image">The <see cref="Image{TColor, TPacked}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
         void Encode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream)
-            where TColor : IPackedPixel<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct;
     }
 }

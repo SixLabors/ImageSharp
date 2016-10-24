@@ -21,7 +21,7 @@ namespace ImageProcessorCore
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     [DebuggerDisplay("Image: {Width}x{Height}")]
     public class Image<TColor, TPacked> : ImageBase<TColor, TPacked>
-        where TColor : IPackedPixel<TPacked>
+        where TColor : struct, IPackedPixel<TPacked>
         where TPacked : struct
     {
         /// <summary>

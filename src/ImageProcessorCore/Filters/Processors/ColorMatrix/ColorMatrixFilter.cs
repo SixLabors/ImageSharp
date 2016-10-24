@@ -15,7 +15,7 @@ namespace ImageProcessorCore.Processors
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public abstract class ColorMatrixFilter<TColor, TPacked> : ImageFilter<TColor, TPacked>, IColorMatrixFilter<TColor, TPacked>
-        where TColor : IPackedVector<TPacked>
+        where TColor : struct, IPackedVector<TPacked>
         where TPacked : struct
     {
         /// <inheritdoc/>

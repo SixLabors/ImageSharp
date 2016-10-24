@@ -73,12 +73,12 @@ namespace ImageProcessorCore.Processors
         /// <summary>
         /// Gets the horizontal gradient operator.
         /// </summary>
-        public float[,] KernelX { get; }
+        public float[][] KernelX { get; }
 
         /// <summary>
         /// Gets the vertical gradient operator.
         /// </summary>
-        public float[,] KernelY { get; }
+        public float[][] KernelY { get; }
 
         /// <inheritdoc/>
         public override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
@@ -90,12 +90,18 @@ namespace ImageProcessorCore.Processors
         /// Create a 1 dimensional Gaussian kernel using the Gaussian G(x) function
         /// </summary>
         /// <param name="horizontal">Whether to calculate a horizontal kernel.</param>
-        /// <returns>The <see cref="T:float[,]"/></returns>
-        private float[,] CreateGaussianKernel(bool horizontal)
+        /// <returns>The <see cref="T:float[][]"/></returns>
+        private float[][] CreateGaussianKernel(bool horizontal)
         {
             int size = this.kernelSize;
             float weight = this.sigma;
-            float[,] kernel = horizontal ? new float[1, size] : new float[size, 1];
+            float[][] kernel = horizontal ? new float[1][] : new float[size][];
+
+            if (horizontal)
+            {
+                kernel[0] = new float[size];
+            }
+            
             float sum = 0.0f;
 
             float midpoint = (size - 1) / 2f;
@@ -106,11 +112,11 @@ namespace ImageProcessorCore.Processors
                 sum += gx;
                 if (horizontal)
                 {
-                    kernel[0, i] = gx;
+                    kernel[0][i] = gx;
                 }
                 else
                 {
-                    kernel[i, 0] = gx;
+                    kernel[i] = new[] { gx };
                 }
             }
 
@@ -119,14 +125,14 @@ namespace ImageProcessorCore.Processors
             {
                 for (int i = 0; i < size; i++)
                 {
-                    kernel[0, i] = kernel[0, i] / sum;
+                    kernel[0][i] = kernel[0][i] / sum;
                 }
             }
             else
             {
                 for (int i = 0; i < size; i++)
                 {
-                    kernel[i, 0] = kernel[i, 0] / sum;
+                    kernel[i][0] = kernel[i][0] / sum;
                 }
             }
 

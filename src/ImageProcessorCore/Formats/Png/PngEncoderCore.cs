@@ -2,7 +2,6 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
-
 namespace ImageProcessorCore.Formats
 {
     using System;
@@ -27,7 +26,7 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Contains the raw pixel data from the image.
         /// </summary>
-        byte[] pixelData;
+        private byte[] pixelData;
 
         /// <summary>
         /// The image width.
@@ -60,7 +59,7 @@ namespace ImageProcessorCore.Formats
         public PngColorType PngColorType { get; set; }
 
         /// <summary>
-        /// The compression level 1-9. 
+        /// Gets or sets the compression level 1-9. 
         /// <remarks>Defaults to 6.</remarks>
         /// </summary>
         public int CompressionLevel { get; set; } = 6;
@@ -80,7 +79,7 @@ namespace ImageProcessorCore.Formats
         public float Gamma { get; set; } = 2.2F;
 
         /// <summary>
-        /// The quantizer for reducing the color count.
+        /// Gets or sets the quantizer for reducing the color count.
         /// </summary>
         public IQuantizer Quantizer { get; set; }
 
@@ -134,7 +133,7 @@ namespace ImageProcessorCore.Formats
 
             // Set correct bit depth.
             this.bitDepth = this.Quality <= 256
-                               ? (byte)(ImageMaths.GetBitsNeededForColorDepth(this.Quality).Clamp(1, 8))
+                               ? (byte)ImageMaths.GetBitsNeededForColorDepth(this.Quality).Clamp(1, 8)
                                : (byte)8;
 
             // Png only supports in four pixel depths: 1, 2, 4, and 8 bits when using the PLTE chunk
@@ -147,7 +146,7 @@ namespace ImageProcessorCore.Formats
                 this.bitDepth = 8;
             }
 
-            this.bytesPerPixel = CalculateBytesPerPixel();
+            this.bytesPerPixel = this.CalculateBytesPerPixel();
 
             PngHeader header = new PngHeader
             {
@@ -184,6 +183,48 @@ namespace ImageProcessorCore.Formats
         }
 
         /// <summary>
+        /// Writes an integer to the byte array.
+        /// </summary>
+        /// <param name="data">The <see cref="T:byte[]"/> containing image data.</param>
+        /// <param name="offset">The amount to offset by.</param>
+        /// <param name="value">The value to write.</param>
+        private static void WriteInteger(byte[] data, int offset, int value)
+        {
+            byte[] buffer = BitConverter.GetBytes(value);
+
+            Array.Reverse(buffer);
+            Array.Copy(buffer, 0, data, offset, 4);
+        }
+
+        /// <summary>
+        /// Writes an integer to the stream.
+        /// </summary>
+        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+        /// <param name="value">The value to write.</param>
+        private static void WriteInteger(Stream stream, int value)
+        {
+            byte[] buffer = BitConverter.GetBytes(value);
+
+            Array.Reverse(buffer);
+
+            stream.Write(buffer, 0, 4);
+        }
+
+        /// <summary>
+        /// Writes an unsigned integer to the stream.
+        /// </summary>
+        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+        /// <param name="value">The value to write.</param>
+        private static void WriteInteger(Stream stream, uint value)
+        {
+            byte[] buffer = BitConverter.GetBytes(value);
+
+            Array.Reverse(buffer);
+
+            stream.Write(buffer, 0, 4);
+        }
+
+        /// <summary>
         /// Collects the indexed pixel data.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
@@ -197,7 +238,7 @@ namespace ImageProcessorCore.Formats
         {
             // Quatize the image and get the pixels
             QuantizedImage<TColor, TPacked> quantized = this.WritePaletteChunk(stream, header, image);
-            pixelData = quantized.Pixels;
+            this.pixelData = quantized.Pixels;
         }
 
         /// <summary>
@@ -291,12 +332,12 @@ namespace ImageProcessorCore.Formats
         {
             List<byte[]> filteredScanlines = new List<byte[]>();
 
-            byte[] previousScanline = new byte[width * this.bytesPerPixel];
+            byte[] previousScanline = new byte[this.width * this.bytesPerPixel];
 
-            for (int y = 0; y < height; y++)
+            for (int y = 0; y < this.height; y++)
             {
-                byte[] rawScanline = GetRawScanline(y);
-                byte[] filteredScanline = GetOptimalFilteredScanline(rawScanline, previousScanline, this.bytesPerPixel);
+                byte[] rawScanline = this.GetRawScanline(y);
+                byte[] filteredScanline = this.GetOptimalFilteredScanline(rawScanline, previousScanline, this.bytesPerPixel);
 
                 filteredScanlines.Add(filteredScanline);
 
@@ -320,22 +361,22 @@ namespace ImageProcessorCore.Formats
         /// <param name="rawScanline">The raw scanline</param>
         /// <param name="previousScanline">The previous scanline</param>
         /// <param name="byteCount">The number of bytes per pixel</param>
-        /// <returns></returns>
+        /// <returns>The <see cref="T:byte[]"/></returns>
         private byte[] GetOptimalFilteredScanline(byte[] rawScanline, byte[] previousScanline, int byteCount)
         {
             List<Tuple<byte[], int>> candidates = new List<Tuple<byte[], int>>();
 
             byte[] sub = SubFilter.Encode(rawScanline, byteCount);
-            candidates.Add(new Tuple<byte[], int>(sub, CalculateTotalVariation(sub)));
+            candidates.Add(new Tuple<byte[], int>(sub, this.CalculateTotalVariation(sub)));
 
             byte[] up = UpFilter.Encode(rawScanline, previousScanline);
-            candidates.Add(new Tuple<byte[], int>(up, CalculateTotalVariation(up)));
+            candidates.Add(new Tuple<byte[], int>(up, this.CalculateTotalVariation(up)));
 
             byte[] average = AverageFilter.Encode(rawScanline, previousScanline, byteCount);
-            candidates.Add(new Tuple<byte[], int>(average, CalculateTotalVariation(average)));
+            candidates.Add(new Tuple<byte[], int>(average, this.CalculateTotalVariation(average)));
 
             byte[] paeth = PaethFilter.Encode(rawScanline, previousScanline, byteCount);
-            candidates.Add(new Tuple<byte[], int>(paeth, CalculateTotalVariation(paeth)));
+            candidates.Add(new Tuple<byte[], int>(paeth, this.CalculateTotalVariation(paeth)));
 
             int lowestTotalVariation = int.MaxValue;
             int lowestTotalVariationIndex = 0;
@@ -354,7 +395,7 @@ namespace ImageProcessorCore.Formats
 
         /// <summary>
         /// Calculates the total variation of given byte array. Total variation is the sum of the absolute values of
-        /// neighbour differences.
+        /// neighbor differences.
         /// </summary>
         /// <param name="input">The scanline bytes</param>
         /// <returns>The <see cref="int"/></returns>
@@ -412,48 +453,6 @@ namespace ImageProcessorCore.Formats
         }
 
         /// <summary>
-        /// Writes an integer to the byte array.
-        /// </summary>
-        /// <param name="data">The <see cref="T:byte[]"/> containing image data.</param>
-        /// <param name="offset">The amount to offset by.</param>
-        /// <param name="value">The value to write.</param>
-        private static void WriteInteger(byte[] data, int offset, int value)
-        {
-            byte[] buffer = BitConverter.GetBytes(value);
-
-            Array.Reverse(buffer);
-            Array.Copy(buffer, 0, data, offset, 4);
-        }
-
-        /// <summary>
-        /// Writes an integer to the stream.
-        /// </summary>
-        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        /// <param name="value">The value to write.</param>
-        private static void WriteInteger(Stream stream, int value)
-        {
-            byte[] buffer = BitConverter.GetBytes(value);
-
-            Array.Reverse(buffer);
-
-            stream.Write(buffer, 0, 4);
-        }
-
-        /// <summary>
-        /// Writes an unsigned integer to the stream.
-        /// </summary>
-        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        /// <param name="value">The value to write.</param>
-        private static void WriteInteger(Stream stream, uint value)
-        {
-            byte[] buffer = BitConverter.GetBytes(value);
-
-            Array.Reverse(buffer);
-
-            stream.Write(buffer, 0, 4);
-        }
-
-        /// <summary>
         /// Writes the header chunk to the stream.
         /// </summary>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
@@ -482,6 +481,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="header">The <see cref="PngHeader"/>.</param>
         /// <param name="image">The image to encode.</param>
+        /// <returns>The <see cref="QuantizedImage{TColor, TPacked}"/></returns>
         private QuantizedImage<TColor, TPacked> WritePaletteChunk<TColor, TPacked>(Stream stream, PngHeader header, ImageBase<TColor, TPacked> image)
             where TColor : IPackedVector<TPacked>
             where TPacked : struct
@@ -600,6 +600,7 @@ namespace ImageProcessorCore.Formats
         /// <summary>
         /// Writes the pixel information to the stream.
         /// </summary>
+        /// <param name="stream">The stream.</param>
         private void WriteDataChunks(Stream stream)
         {
             byte[] data = this.EncodePixelData();

@@ -16,6 +16,9 @@
       <Value>Scharr</Value>
       <Value>rrggbb</Value>
       <Value>rrggbbaa</Value>
+      <Value>scanline</Value>
+      <Value>scanlines</Value>
+      <Value>png's</Value>
     </CollectionProperty>
   </GlobalSettings>
   <Analyzers>

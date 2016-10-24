@@ -22,7 +22,7 @@ namespace ImageProcessorCore.Processors
         /// </summary>
         /// <param name="kernelX">The horizontal gradient operator.</param>
         /// <param name="kernelY">The vertical gradient operator.</param>
-        public Convolution2PassFilter(float[,] kernelX, float[,] kernelY)
+        public Convolution2PassFilter(float[][] kernelX, float[][] kernelY)
         {
             this.KernelX = kernelX;
             this.KernelY = kernelY;
@@ -31,18 +31,18 @@ namespace ImageProcessorCore.Processors
         /// <summary>
         /// Gets the horizontal gradient operator.
         /// </summary>
-        public float[,] KernelX { get; }
+        public float[][] KernelX { get; }
 
         /// <summary>
         /// Gets the vertical gradient operator.
         /// </summary>
-        public float[,] KernelY { get; }
+        public float[][] KernelY { get; }
 
         /// <inheritdoc/>
         public override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-            float[,] kernelX = this.KernelX;
-            float[,] kernelY = this.KernelY;
+            float[][] kernelX = this.KernelX;
+            float[][] kernelY = this.KernelY;
 
             ImageBase<TColor, TPacked> firstPass = new Image<TColor, TPacked>(source.Width, source.Height);
             this.ApplyConvolution(firstPass, source, sourceRectangle, startY, endY, kernelX);
@@ -61,10 +61,10 @@ namespace ImageProcessorCore.Processors
         /// <param name="startY">The index of the row within the source image to start processing.</param>
         /// <param name="endY">The index of the row within the source image to end processing.</param>
         /// <param name="kernel">The kernel operator.</param>
-        private void ApplyConvolution(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle sourceRectangle, int startY, int endY, float[,] kernel)
+        private void ApplyConvolution(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle sourceRectangle, int startY, int endY, float[][] kernel)
         {
-            int kernelHeight = kernel.GetLength(0);
-            int kernelWidth = kernel.GetLength(1);
+            int kernelHeight = kernel.Length;
+            int kernelWidth = kernel[0].Length;
             int radiusY = kernelHeight >> 1;
             int radiusX = kernelWidth >> 1;
 
@@ -103,7 +103,7 @@ namespace ImageProcessorCore.Processors
                                 offsetX = offsetX.Clamp(0, maxX);
 
                                 Vector4 currentColor = sourcePixels[offsetX, offsetY].ToVector4();
-                                destination += kernel[fy, fx] * currentColor;
+                                destination += kernel[fy][fx] * currentColor;
                             }
                         }
 

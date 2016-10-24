@@ -43,7 +43,7 @@ namespace ImageProcessorCore
         /// <param name="a">The alpha component.</param>
         public Color(byte r, byte g, byte b, byte a = 255)
         {
-            this.packedValue = (uint)(r << 24 | g << 16 | b << 8 | a);
+            this.packedValue = Pack(r, g, b, a);
         }
 
         /// <summary>
@@ -219,6 +219,44 @@ namespace ImageProcessorCore
             return new Color(hex);
         }
 
+        /// <inheritdoc/>
+        public void PackFromBytes(byte r, byte g, byte b, byte a)
+        {
+            this.packedValue = Pack(r, g, b, a);
+        }
+
+        /// <inheritdoc/>
+        public void ToBytes(byte[] bytes, int startIndex, ComponentOrder componentOrder)
+        {
+            switch (componentOrder)
+            {
+                case ComponentOrder.BGR:
+                    bytes[startIndex] = this.B;
+                    bytes[startIndex + 1] = this.G;
+                    bytes[startIndex + 2] = this.R;
+                    break;
+                case ComponentOrder.BGRA:
+                    bytes[startIndex] = this.B;
+                    bytes[startIndex + 1] = this.G;
+                    bytes[startIndex + 2] = this.R;
+                    bytes[startIndex + 3] = this.A;
+                    break;
+                case ComponentOrder.RGB:
+                    bytes[startIndex] = this.R;
+                    bytes[startIndex + 1] = this.G;
+                    bytes[startIndex + 2] = this.B;
+                    break;
+                case ComponentOrder.RGBA:
+                    bytes[startIndex] = this.R;
+                    bytes[startIndex + 1] = this.G;
+                    bytes[startIndex + 2] = this.B;
+                    bytes[startIndex + 3] = this.A;
+                    break;
+                default:
+                   throw new NotSupportedException();
+            }
+        }
+
         /// <summary>
         /// Converts the value of this instance to a hexadecimal string.
         /// </summary>
@@ -295,7 +333,7 @@ namespace ImageProcessorCore
         }
 
         /// <summary>
-        /// Packs the four floats into a uint.
+        /// Packs the four floats into a <see cref="uint"/>.
         /// </summary>
         /// <param name="x">The x-component</param>
         /// <param name="y">The y-component</param>
@@ -306,6 +344,19 @@ namespace ImageProcessorCore
         {
             Vector4 value = new Vector4(x, y, z, w);
             return Pack(ref value);
+        }
+
+        /// <summary>
+        /// Packs the four floats into a <see cref="uint"/>.
+        /// </summary>
+        /// <param name="x">The x-component</param>
+        /// <param name="y">The y-component</param>
+        /// <param name="z">The z-component</param>
+        /// <param name="w">The w-component</param>
+        /// <returns>The <see cref="uint"/></returns>
+        private static uint Pack(byte x, byte y, byte z, byte w)
+        {
+            return (uint)(x << 24 | y << 16 | z << 8 | w);
         }
 
         /// <summary>

@@ -21,7 +21,7 @@ namespace ImageProcessorCore
         /// <param name="amount">The new contrast of the image. Must be between -100 and 100.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Contrast<TColor, TPacked>(this Image<TColor, TPacked> source, int amount)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
             return Contrast(source, amount, source.Bounds);
@@ -39,7 +39,7 @@ namespace ImageProcessorCore
         /// </param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Contrast<TColor, TPacked>(this Image<TColor, TPacked> source, int amount, Rectangle rectangle)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
             return source.Process(rectangle, new ContrastProcessor<TColor, TPacked>(amount));

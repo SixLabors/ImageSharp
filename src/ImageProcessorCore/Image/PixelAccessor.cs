@@ -15,7 +15,7 @@ namespace ImageProcessorCore
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public unsafe class PixelAccessor<TColor, TPacked> : IDisposable
-        where TColor : struct, IPackedVector<TPacked>
+        where TColor : IPackedVector<TPacked>
         where TPacked : struct
     {
         /// <summary>

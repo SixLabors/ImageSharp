@@ -20,7 +20,7 @@ namespace ImageProcessorCore
         /// <param name="source">The image this method extends.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Vignette<TColor, TPacked>(this Image<TColor, TPacked> source)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
             return Vignette(source, default(TColor), source.Bounds.Width * .5F, source.Bounds.Height * .5F, source.Bounds);
@@ -35,7 +35,7 @@ namespace ImageProcessorCore
         /// <param name="color">The color to set as the vignette.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Vignette<TColor, TPacked>(this Image<TColor, TPacked> source, TColor color)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
             return Vignette(source, color, source.Bounds.Width * .5F, source.Bounds.Height * .5F, source.Bounds);
@@ -51,7 +51,7 @@ namespace ImageProcessorCore
         /// <param name="radiusY">The the y-radius.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Vignette<TColor, TPacked>(this Image<TColor, TPacked> source, float radiusX, float radiusY)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
             return Vignette(source, default(TColor), radiusX, radiusY, source.Bounds);
@@ -68,7 +68,7 @@ namespace ImageProcessorCore
         /// </param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Vignette<TColor, TPacked>(this Image<TColor, TPacked> source, Rectangle rectangle)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
             return Vignette(source, default(TColor), 0, 0, rectangle);
@@ -88,7 +88,7 @@ namespace ImageProcessorCore
         /// </param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Vignette<TColor, TPacked>(this Image<TColor, TPacked> source, TColor color, float radiusX, float radiusY, Rectangle rectangle)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
             VignetteProcessor<TColor, TPacked> processor = new VignetteProcessor<TColor, TPacked> { RadiusX = radiusX, RadiusY = radiusY };

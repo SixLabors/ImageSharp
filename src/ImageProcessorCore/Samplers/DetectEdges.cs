@@ -21,7 +21,7 @@ namespace ImageProcessorCore
         /// <param name="source">The image this method extends.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> DetectEdges<TColor, TPacked>(this Image<TColor, TPacked> source)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
             return DetectEdges(source, source.Bounds, new SobelProcessor<TColor, TPacked> { Grayscale = true });
@@ -39,7 +39,7 @@ namespace ImageProcessorCore
         /// </param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> DetectEdges<TColor, TPacked>(this Image<TColor, TPacked> source, Rectangle rectangle)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
             return DetectEdges(source, rectangle, new SobelProcessor<TColor, TPacked> { Grayscale = true });
@@ -55,7 +55,7 @@ namespace ImageProcessorCore
         /// <param name="grayscale">Whether to convert the image to Grayscale first. Defaults to true.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> DetectEdges<TColor, TPacked>(this Image<TColor, TPacked> source, EdgeDetection filter, bool grayscale = true)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
             return DetectEdges(source, filter, source.Bounds, grayscale);
@@ -74,7 +74,7 @@ namespace ImageProcessorCore
         /// <param name="grayscale">Whether to convert the image to Grayscale first. Defaults to true.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> DetectEdges<TColor, TPacked>(this Image<TColor, TPacked> source, EdgeDetection filter, Rectangle rectangle, bool grayscale = true)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
             IEdgeDetectorFilter<TColor, TPacked> processor;
@@ -134,7 +134,7 @@ namespace ImageProcessorCore
         /// <param name="filter">The filter for detecting edges.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> DetectEdges<TColor, TPacked>(this Image<TColor, TPacked> source, IEdgeDetectorFilter<TColor, TPacked> filter)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
             return DetectEdges(source, source.Bounds, filter);
@@ -152,7 +152,7 @@ namespace ImageProcessorCore
         /// <param name="filter">The filter for detecting edges.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> DetectEdges<TColor, TPacked>(this Image<TColor, TPacked> source, Rectangle rectangle, IEdgeDetectorFilter<TColor, TPacked> filter)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : IPackedVector<TPacked>
             where TPacked : struct
         {
             return source.Process(rectangle, filter);

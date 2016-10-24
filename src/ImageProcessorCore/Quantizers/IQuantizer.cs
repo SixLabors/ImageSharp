@@ -11,7 +11,7 @@ namespace ImageProcessorCore.Quantizers
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public interface IQuantizer<TColor, TPacked> : IQuantizer
-        where TColor : struct, IPackedVector<TPacked>
+        where TColor : IPackedVector<TPacked>
         where TPacked : struct
     {
         /// <summary>

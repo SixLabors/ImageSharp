@@ -12,7 +12,7 @@ namespace ImageProcessorCore.Processors
     /// ITU-R Recommendation BT.709 <see href="https://en.wikipedia.org/wiki/Rec._709#Luma_coefficients"/>.
     /// </summary>
     public class GrayscaleBt709Processor<TColor, TPacked> : ColorMatrixFilter<TColor, TPacked>
-        where TColor : IPackedVector<TPacked>
+        where TColor : struct, IPackedVector<TPacked>
         where TPacked : struct
     {
         /// <inheritdoc/>

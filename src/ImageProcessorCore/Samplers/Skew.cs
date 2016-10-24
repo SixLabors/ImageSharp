@@ -22,7 +22,7 @@ namespace ImageProcessorCore
         /// <param name="degreesY">The angle in degrees to perform the rotation along the y-axis.</param>
         /// <returns>The <see cref="Image"/></returns>
         public static Image<TColor, TPacked> Skew<TColor, TPacked>(this Image<TColor, TPacked> source, float degreesX, float degreesY)
-            where TColor : IPackedVector<TPacked>
+            where TColor : struct, IPackedVector<TPacked>
             where TPacked : struct
         {
             return Skew(source, degreesX, degreesY, true);
@@ -39,7 +39,7 @@ namespace ImageProcessorCore
         /// <param name="expand">Whether to expand the image to fit the skewed result.</param>
         /// <returns>The <see cref="Image"/></returns>
         public static Image<TColor, TPacked> Skew<TColor, TPacked>(this Image<TColor, TPacked> source, float degreesX, float degreesY, bool expand)
-            where TColor : IPackedVector<TPacked>
+            where TColor : struct, IPackedVector<TPacked>
             where TPacked : struct
         {
             SkewProcessor<TColor, TPacked> processor = new SkewProcessor<TColor, TPacked> { AngleX = degreesX, AngleY = degreesY, Expand = expand };

@@ -22,7 +22,7 @@ namespace ImageProcessorCore
         /// <param name="percent">The opacity of the image image to blend. Must be between 0 and 100.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Blend<TColor, TPacked>(this Image<TColor, TPacked> source, ImageBase<TColor, TPacked> image, int percent = 50)
-            where TColor : IPackedVector<TPacked>
+            where TColor : struct, IPackedVector<TPacked>
             where TPacked : struct
         {
             return Blend(source, image, percent, source.Bounds);
@@ -41,7 +41,7 @@ namespace ImageProcessorCore
         /// </param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Blend<TColor, TPacked>(this Image<TColor, TPacked> source, ImageBase<TColor, TPacked> image, int percent, Rectangle rectangle)
-            where TColor : IPackedVector<TPacked>
+            where TColor : struct, IPackedVector<TPacked>
             where TPacked : struct
         {
             return source.Process(rectangle, new BlendProcessor<TColor, TPacked>(image, percent));

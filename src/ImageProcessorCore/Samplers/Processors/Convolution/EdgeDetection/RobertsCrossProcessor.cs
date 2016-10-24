@@ -15,7 +15,7 @@ namespace ImageProcessorCore.Processors
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     [SuppressMessage("ReSharper", "StaticMemberInGenericType", Justification = "We want to use only one instance of each array field for each generic type.")]
     public class RobertsCrossProcessor<TColor, TPacked> : EdgeDetector2DFilter<TColor, TPacked>
-        where TColor : IPackedVector<TPacked>
+        where TColor : struct, IPackedVector<TPacked>
         where TPacked : struct
     {
         /// <summary>

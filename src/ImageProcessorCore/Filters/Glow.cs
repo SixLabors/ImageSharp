@@ -20,7 +20,7 @@ namespace ImageProcessorCore
         /// <param name="source">The image this method extends.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Glow<TColor, TPacked>(this Image<TColor, TPacked> source)
-            where TColor : IPackedVector<TPacked>
+            where TColor : struct, IPackedVector<TPacked>
             where TPacked : struct
         {
             return Glow(source, default(TColor), source.Bounds.Width * .5F, source.Bounds);
@@ -35,7 +35,7 @@ namespace ImageProcessorCore
         /// <param name="color">The color to set as the glow.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Glow<TColor, TPacked>(this Image<TColor, TPacked> source, TColor color)
-            where TColor : IPackedVector<TPacked>
+            where TColor : struct, IPackedVector<TPacked>
             where TPacked : struct
         {
             return Glow(source, color, source.Bounds.Width * .5F, source.Bounds);
@@ -50,7 +50,7 @@ namespace ImageProcessorCore
         /// <param name="radius">The the radius.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Glow<TColor, TPacked>(this Image<TColor, TPacked> source, float radius)
-            where TColor : IPackedVector<TPacked>
+            where TColor : struct, IPackedVector<TPacked>
             where TPacked : struct
         {
             return Glow(source, default(TColor), radius, source.Bounds);
@@ -67,7 +67,7 @@ namespace ImageProcessorCore
         /// </param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Glow<TColor, TPacked>(this Image<TColor, TPacked> source, Rectangle rectangle)
-            where TColor : IPackedVector<TPacked>
+            where TColor : struct, IPackedVector<TPacked>
             where TPacked : struct
         {
             return Glow(source, default(TColor), 0, rectangle);
@@ -86,7 +86,7 @@ namespace ImageProcessorCore
         /// </param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Glow<TColor, TPacked>(this Image<TColor, TPacked> source, TColor color, float radius, Rectangle rectangle)
-            where TColor : IPackedVector<TPacked>
+            where TColor : struct, IPackedVector<TPacked>
             where TPacked : struct
         {
             GlowProcessor<TColor, TPacked> processor = new GlowProcessor<TColor, TPacked> { Radius = radius, };

@@ -21,7 +21,7 @@ namespace ImageProcessorCore
         /// <param name="flipType">The <see cref="FlipType"/> to perform the flip.</param>
         /// <returns>The <see cref="Image"/></returns>
         public static Image<TColor, TPacked> Flip<TColor, TPacked>(this Image<TColor, TPacked> source, FlipType flipType)
-            where TColor : IPackedVector<TPacked>
+            where TColor : struct, IPackedVector<TPacked>
             where TPacked : struct
         {
             FlipProcessor<TColor, TPacked> processor = new FlipProcessor<TColor, TPacked>(flipType);

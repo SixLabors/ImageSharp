@@ -20,9 +20,10 @@ namespace ImageProcessorCore
         where TColor : IPackedVector<TPacked>
         where TPacked : struct
     {
+
         /// <summary>
-        /// The image pixels		
-        /// </summary>		
+        /// The image pixels
+        /// </summary>
         private TColor[] pixelBuffer;
 
         /// <summary>
@@ -83,7 +84,6 @@ namespace ImageProcessorCore
         public int MaxHeight { get; set; } = int.MaxValue;
 
         /// <inheritdoc/>
-        //public TColor[] Pixels { get; private set; }
         public TColor[] Pixels => this.pixelBuffer;
 
         /// <inheritdoc/>

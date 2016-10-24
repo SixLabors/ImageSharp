@@ -234,12 +234,18 @@ namespace ImageProcessorCore
             return this;
         }
 
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            return $"Image: {this.Width}x{this.Height}";
+        }
+
         /// <summary>
         /// Returns a Base64 encoded string from the given image. 
         /// </summary>
         /// <example>data:image/gif;base64,R0lGODlhAQABAIABAEdJRgAAACwAAAAAAQABAAACAkQBAA==</example>
         /// <returns>The <see cref="string"/></returns>
-        public override string ToString()
+        public string ToBase64String()
         {
             using (MemoryStream stream = new MemoryStream())
             {

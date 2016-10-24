@@ -3,7 +3,6 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-
 namespace ImageProcessorCore.Benchmarks
 {
     using System.IO;
@@ -19,11 +18,11 @@ namespace ImageProcessorCore.Benchmarks
         [Setup]
         public void ReadImage()
         {
-            if (image == null)
+            if (this.image == null)
             {
-                using(FileStream stream = File.OpenRead("../ImageProcessorCore.Tests/TestImages/Formats/Bmp/Car.bmp"))
+                using (FileStream stream = File.OpenRead("../ImageProcessorCore.Tests/TestImages/Formats/Bmp/Car.bmp"))
                 {
-                    image = new CoreImage(stream);
+                    this.image = new CoreImage(stream);
                 }
             }
         }
@@ -31,17 +30,17 @@ namespace ImageProcessorCore.Benchmarks
         [Benchmark(Description = "ImageProcessorCore DetectEdges")]
         public void ImageProcessorCoreDetectEdges()
         {
-            image.DetectEdges(EdgeDetection.Kayyali);
-            image.DetectEdges(EdgeDetection.Kayyali);
-            image.DetectEdges(EdgeDetection.Kirsch);
-            image.DetectEdges(EdgeDetection.Lapacian3X3);
-            image.DetectEdges(EdgeDetection.Lapacian5X5);
-            image.DetectEdges(EdgeDetection.LaplacianOfGaussian);
-            image.DetectEdges(EdgeDetection.Prewitt);
-            image.DetectEdges(EdgeDetection.RobertsCross);
-            image.DetectEdges(EdgeDetection.Robinson);
-            image.DetectEdges(EdgeDetection.Scharr);
-            image.DetectEdges(EdgeDetection.Sobel);
+            this.image.DetectEdges(EdgeDetection.Kayyali);
+            this.image.DetectEdges(EdgeDetection.Kayyali);
+            this.image.DetectEdges(EdgeDetection.Kirsch);
+            this.image.DetectEdges(EdgeDetection.Lapacian3X3);
+            this.image.DetectEdges(EdgeDetection.Lapacian5X5);
+            this.image.DetectEdges(EdgeDetection.LaplacianOfGaussian);
+            this.image.DetectEdges(EdgeDetection.Prewitt);
+            this.image.DetectEdges(EdgeDetection.RobertsCross);
+            this.image.DetectEdges(EdgeDetection.Robinson);
+            this.image.DetectEdges(EdgeDetection.Scharr);
+            this.image.DetectEdges(EdgeDetection.Sobel);
         }
     }
 }

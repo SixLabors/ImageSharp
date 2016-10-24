@@ -40,7 +40,7 @@ namespace ImageProcessorCore.Tests
                 Image image = file.CreateImage();
 
                 string filename = path + "/" + file.FileNameWithoutExtension + ".txt";
-                File.WriteAllText(filename, image.ToString());
+                File.WriteAllText(filename, image.ToBase64String());
             }
         }
 

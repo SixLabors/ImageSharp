@@ -31,5 +31,11 @@ namespace ImageProcessorCore
             : base(frame)
         {
         }
+
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            return $"ImageFrame: {this.Width}x{this.Height}";
+        }
     }
 }

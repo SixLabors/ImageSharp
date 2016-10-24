@@ -2,15 +2,13 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
-
-using System.Numerics;
-
 namespace ImageProcessorCore.Formats
 {
     using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
+    using System.Numerics;
     using System.Text;
 
     /// <summary>
@@ -18,9 +16,9 @@ namespace ImageProcessorCore.Formats
     /// </summary>
     internal class PngDecoderCore
     {
-        ///// <summary>
-        ///// The dictionary of available color types.
-        ///// </summary>
+        /// <summary>
+        /// The dictionary of available color types.
+        /// </summary>
         private static readonly Dictionary<int, byte[]> ColorTypes = new Dictionary<int, byte[]>();
 
         /// <summary>
@@ -49,19 +47,14 @@ namespace ImageProcessorCore.Formats
         private int bytesPerScanline;
 
         /// <summary>
-        /// The palette containing color information for indexed pngs
+        /// The palette containing color information for indexed png's
         /// </summary>
         private byte[] palette;
 
         /// <summary>
-        /// The palette containing alpha channel color information for indexed pngs
+        /// The palette containing alpha channel color information for indexed png's
         /// </summary>
         private byte[] paletteAlpha;
-
-        /// <summary>
-        /// Gets or sets the png color type
-        /// </summary>
-        public PngColorType PngColorType { get; set; }
 
         /// <summary>
         /// Initializes static members of the <see cref="PngDecoderCore"/> class.
@@ -78,6 +71,11 @@ namespace ImageProcessorCore.Formats
 
             ColorTypes.Add((int)PngColorType.RgbWithAlpha, new byte[] { 8 });
         }
+
+        /// <summary>
+        /// Gets or sets the png color type
+        /// </summary>
+        public PngColorType PngColorType { get; set; }
 
         /// <summary>
         /// Decodes the stream to the image.
@@ -237,7 +235,7 @@ namespace ImageProcessorCore.Formats
             this.bytesPerSample = 1;
             if (this.header.BitDepth >= 8)
             {
-                this.bytesPerSample = (this.header.BitDepth) / 8;
+                this.bytesPerSample = this.header.BitDepth / 8;
             }
 
             dataStream.Position = 0;
@@ -249,7 +247,7 @@ namespace ImageProcessorCore.Formats
                     decompressedStream.Flush();
 
                     byte[] decompressedBytes = decompressedStream.ToArray();
-                    DecodePixelData<TColor, TPacked>(decompressedBytes, pixels);
+                    this.DecodePixelData<TColor, TPacked>(decompressedBytes, pixels);
                 }
             }
         }
@@ -284,7 +282,7 @@ namespace ImageProcessorCore.Formats
 
                     case FilterType.Sub:
 
-                        defilteredScanline = SubFilter.Decode(scanline, bytesPerPixel);
+                        defilteredScanline = SubFilter.Decode(scanline, this.bytesPerPixel);
 
                         break;
 
@@ -296,13 +294,13 @@ namespace ImageProcessorCore.Formats
 
                     case FilterType.Average:
 
-                        defilteredScanline = AverageFilter.Decode(scanline, previousScanline, bytesPerPixel);
+                        defilteredScanline = AverageFilter.Decode(scanline, previousScanline, this.bytesPerPixel);
 
                         break;
 
                     case FilterType.Paeth:
 
-                        defilteredScanline = PaethFilter.Decode(scanline, previousScanline, bytesPerPixel);
+                        defilteredScanline = PaethFilter.Decode(scanline, previousScanline, this.bytesPerPixel);
 
                         break;
 
@@ -311,16 +309,16 @@ namespace ImageProcessorCore.Formats
                 }
 
                 previousScanline = defilteredScanline;
-                ProcessDefilteredScanline<TColor, TPacked>(defilteredScanline, y, pixels);
+                this.ProcessDefilteredScanline<TColor, TPacked>(defilteredScanline, y, pixels);
             }
         }
 
         /// <summary>
-        /// Processes the defiltered scanline filling the image pixel data
+        /// Processes the de-filtered scanline filling the image pixel data
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-        /// <param name="defilteredScanline"></param>
+        /// <param name="defilteredScanline">The de-filtered scanline</param>
         /// <param name="row">The current image row.</param>
         /// <param name="pixels">The image pixels</param>
         private void ProcessDefilteredScanline<TColor, TPacked>(byte[] defilteredScanline, int row, TColor[] pixels)
@@ -333,7 +331,7 @@ namespace ImageProcessorCore.Formats
 
                     for (int x = 0; x < this.header.Width; x++)
                     {
-                        int offset = 1 + (x * bytesPerPixel);
+                        int offset = 1 + (x * this.bytesPerPixel);
 
                         byte intensity = defilteredScanline[offset];
 
@@ -348,10 +346,10 @@ namespace ImageProcessorCore.Formats
 
                     for (int x = 0; x < this.header.Width; x++)
                     {
-                        int offset = 1 + (x * bytesPerPixel);
+                        int offset = 1 + (x * this.bytesPerPixel);
 
                         byte intensity = defilteredScanline[offset];
-                        byte alpha = defilteredScanline[offset + bytesPerSample];
+                        byte alpha = defilteredScanline[offset + this.bytesPerSample];
 
                         TColor color = default(TColor);
                         color.PackFromVector4(new Vector4(intensity, intensity, intensity, alpha) / 255F);
@@ -362,16 +360,16 @@ namespace ImageProcessorCore.Formats
 
                 case PngColorType.Palette:
 
-                    byte[] newScanline = defilteredScanline.ToArrayByBitsLength(header.BitDepth);
+                    byte[] newScanline = defilteredScanline.ToArrayByBitsLength(this.header.BitDepth);
 
                     if (this.paletteAlpha != null && this.paletteAlpha.Length > 0)
                     {
                         // If the alpha palette is not null and has one or more entries, this means, that the image contains an alpha
                         // channel and we should try to read it.
-                        for (int i = 0; i < header.Width; i++)
+                        for (int i = 0; i < this.header.Width; i++)
                         {
                             int index = newScanline[i];
-                            int offset = (row * header.Width) + i;
+                            int offset = (row * this.header.Width) + i;
                             int pixelOffset = index * 3;
 
                             byte a = this.paletteAlpha.Length > index ? this.paletteAlpha[index] : (byte)255;
@@ -389,10 +387,10 @@ namespace ImageProcessorCore.Formats
                     }
                     else
                     {
-                        for (int i = 0; i < header.Width; i++)
+                        for (int i = 0; i < this.header.Width; i++)
                         {
                             int index = newScanline[i];
-                            int offset = (row * header.Width) + i;
+                            int offset = (row * this.header.Width) + i;
                             int pixelOffset = index * 3;
 
                             byte r = this.palette[pixelOffset];
@@ -411,11 +409,11 @@ namespace ImageProcessorCore.Formats
 
                     for (int x = 0; x < this.header.Width; x++)
                     {
-                        int offset = 1 + (x * bytesPerPixel);
+                        int offset = 1 + (x * this.bytesPerPixel);
 
                         byte r = defilteredScanline[offset];
-                        byte g = defilteredScanline[offset + bytesPerSample];
-                        byte b = defilteredScanline[offset + 2 * bytesPerSample];
+                        byte g = defilteredScanline[offset + this.bytesPerSample];
+                        byte b = defilteredScanline[offset + (2 * this.bytesPerSample)];
 
                         TColor color = default(TColor);
                         color.PackFromVector4(new Vector4(r, g, b, 255) / 255F);
@@ -428,21 +426,18 @@ namespace ImageProcessorCore.Formats
 
                     for (int x = 0; x < this.header.Width; x++)
                     {
-                        int offset = 1 + (x * bytesPerPixel);
+                        int offset = 1 + (x * this.bytesPerPixel);
 
                         byte r = defilteredScanline[offset];
-                        byte g = defilteredScanline[offset + bytesPerSample];
-                        byte b = defilteredScanline[offset + 2 * bytesPerSample];
-                        byte a = defilteredScanline[offset + 3 * bytesPerSample];
+                        byte g = defilteredScanline[offset + this.bytesPerSample];
+                        byte b = defilteredScanline[offset + (2 * this.bytesPerSample)];
+                        byte a = defilteredScanline[offset + (3 * this.bytesPerSample)];
 
                         TColor color = default(TColor);
                         color.PackFromVector4(new Vector4(r, g, b, a) / 255F);
                         pixels[(row * this.header.Width) + x] = color;
                     }
 
-                    break;
-
-                default:
                     break;
             }
         }

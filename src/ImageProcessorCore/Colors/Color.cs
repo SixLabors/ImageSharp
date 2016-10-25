@@ -214,15 +214,27 @@ namespace ImageProcessorCore
         /// The hexadecimal representation of the combined color components arranged
         /// in rgb, rgba, rrggbb, or rrggbbaa format to match web syntax.
         /// </param>
+        /// <returns>
+        /// The <see cref="Color"/>.
+        /// </returns>
         public static Color FromHex(string hex)
         {
             return new Color(hex);
         }
 
         /// <inheritdoc/>
-        public void PackFromBytes(byte r, byte g, byte b, byte a)
+        public void PackFromBytes(byte x, byte y, byte z, byte w)
         {
-            this.packedValue = Pack(r, g, b, a);
+            this.packedValue = Pack(x, y, z, w);
+        }
+
+        /// <summary>
+        /// Converts the value of this instance to a hexadecimal string.
+        /// </summary>
+        /// <returns>A hexadecimal string representation of the value.</returns>
+        public string ToHex()
+        {
+            return this.PackedValue.ToString("X8");
         }
 
         /// <inheritdoc/>
@@ -253,17 +265,8 @@ namespace ImageProcessorCore
                     bytes[startIndex + 3] = this.A;
                     break;
                 default:
-                   throw new NotSupportedException();
+                    throw new NotSupportedException();
             }
-        }
-
-        /// <summary>
-        /// Converts the value of this instance to a hexadecimal string.
-        /// </summary>
-        /// <returns>A hexadecimal string representation of the value.</returns>
-        public string ToHex()
-        {
-            return this.PackedValue.ToString("X8");
         }
 
         /// <inheritdoc/>
@@ -309,7 +312,7 @@ namespace ImageProcessorCore
         /// Packs a <see cref="Vector4"/> into a uint.
         /// </summary>
         /// <param name="vector">The vector containing the values to pack.</param>
-        /// <returns>The ulong containing the packed values.</returns>
+        /// <returns>The <see cref="uint"/> containing the packed values.</returns>
         private static uint Pack(ref Vector4 vector)
         {
             vector = Vector4.Clamp(vector, Vector4.Zero, Vector4.One);
@@ -318,14 +321,14 @@ namespace ImageProcessorCore
             return (uint)(((byte)vector.X << 24)
                         | ((byte)vector.Y << 16)
                         | ((byte)vector.Z << 8)
-                        |  (byte)vector.W);
+                        | (byte)vector.W);
         }
 
         /// <summary>
         /// Packs a <see cref="Vector3"/> into a uint.
         /// </summary>
         /// <param name="vector">The vector containing the values to pack.</param>
-        /// <returns>The ulong containing the packed values.</returns>
+        /// <returns>The <see cref="uint"/> containing the packed values.</returns>
         private static uint Pack(ref Vector3 vector)
         {
             Vector4 value = new Vector4(vector, 1);

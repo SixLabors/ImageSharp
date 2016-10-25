@@ -14,6 +14,8 @@
       <Value>Laplacian</Value>
       <Value>Sobel</Value>
       <Value>Scharr</Value>
+      <Value>rgb</Value>
+      <Value>rgba</Value>
       <Value>rrggbb</Value>
       <Value>rrggbbaa</Value>
       <Value>scanline</Value>

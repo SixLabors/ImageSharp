@@ -6,7 +6,7 @@
 namespace ImageProcessorCore
 {
     /// <summary>
-    /// An interface that converts packed vector types to and from <see cref="byte[]"/> values, 
+    /// An interface that converts packed vector types to and from <see cref="T:byte[]"/> values, 
     /// allowing multiple encodings to be manipulated in a generic manner.
     /// </summary>
     public interface IPackedBytes
@@ -16,7 +16,7 @@ namespace ImageProcessorCore
         /// </summary>
         /// <param name="x">The x-component.</param>
         /// <param name="y">The y-component.</param>
-        /// <param name="z">The z-omponent.</param>
+        /// <param name="z">The z-component.</param>
         /// <param name="w">The w-component.</param>
         void PackFromBytes(byte x, byte y, byte z, byte w);
 

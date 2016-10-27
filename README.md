@@ -17,7 +17,7 @@
 ---
 # Important
 
-## If you forked this repositoy before 27/10/2016 you will either have to [rebase](https://git-scm.com/book/en/v2/Git-Branching-Rebasing) your fork or reclone this repository. This is due to changes in the git history caused by shrinking the repository. 
+## If you forked this repository before 27/10/2016 you will either have to [rebase](https://git-scm.com/book/en/v2/Git-Branching-Rebasing) your fork or reclone this repository. This is due to changes in the git history caused by shrinking the repository. 
 ---
 
 ### Installation

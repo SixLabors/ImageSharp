@@ -346,7 +346,7 @@ namespace ImageProcessorCore.Formats
 
             List<byte> result = new List<byte>();
 
-            foreach (var encodedScanline in filteredScanlines)
+            foreach (byte[] encodedScanline in filteredScanlines)
             {
                 result.AddRange(encodedScanline);
             }
@@ -366,17 +366,25 @@ namespace ImageProcessorCore.Formats
         {
             List<Tuple<byte[], int>> candidates = new List<Tuple<byte[], int>>();
 
-            byte[] sub = SubFilter.Encode(rawScanline, byteCount);
-            candidates.Add(new Tuple<byte[], int>(sub, this.CalculateTotalVariation(sub)));
+            if (this.PngColorType == PngColorType.Palette)
+            {
+                byte[] none = NoneFilter.Encode(rawScanline);
+                candidates.Add(new Tuple<byte[], int>(none, this.CalculateTotalVariation(none)));
+            }
+            else
+            {
+                byte[] sub = SubFilter.Encode(rawScanline, byteCount);
+                candidates.Add(new Tuple<byte[], int>(sub, this.CalculateTotalVariation(sub)));
 
-            byte[] up = UpFilter.Encode(rawScanline, previousScanline);
-            candidates.Add(new Tuple<byte[], int>(up, this.CalculateTotalVariation(up)));
+                byte[] up = UpFilter.Encode(rawScanline, previousScanline);
+                candidates.Add(new Tuple<byte[], int>(up, this.CalculateTotalVariation(up)));
 
-            byte[] average = AverageFilter.Encode(rawScanline, previousScanline, byteCount);
-            candidates.Add(new Tuple<byte[], int>(average, this.CalculateTotalVariation(average)));
+                byte[] average = AverageFilter.Encode(rawScanline, previousScanline, byteCount);
+                candidates.Add(new Tuple<byte[], int>(average, this.CalculateTotalVariation(average)));
 
-            byte[] paeth = PaethFilter.Encode(rawScanline, previousScanline, byteCount);
-            candidates.Add(new Tuple<byte[], int>(paeth, this.CalculateTotalVariation(paeth)));
+                byte[] paeth = PaethFilter.Encode(rawScanline, previousScanline, byteCount);
+                candidates.Add(new Tuple<byte[], int>(paeth, this.CalculateTotalVariation(paeth)));
+            }
 
             int lowestTotalVariation = int.MaxValue;
             int lowestTotalVariationIndex = 0;
@@ -603,7 +611,7 @@ namespace ImageProcessorCore.Formats
         /// <param name="stream">The stream.</param>
         private void WriteDataChunks(Stream stream)
         {
-            byte[] data = this.EncodePixelData();
+            byte[] data =  this.EncodePixelData();
 
             byte[] buffer;
             int bufferLength;

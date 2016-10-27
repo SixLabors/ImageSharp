@@ -15,17 +15,9 @@
 
 
 ---
-## ImageProcessor Needs Your Help
+# Important
 
-**ImageProcessor is the work of a very, very, small number of developers who struggle balancing time to contribute to the project with family time and work commitments. If the project is to be successful we need more contribution from the community at large. There are several issues, most notably [#264](https://github.com/JimBobSquarePants/ImageProcessor/issues/264) and [#347](https://github.com/JimBobSquarePants/ImageProcessor/issues/446) that we cannot possibly solve on our own.**
-
-**We, and we believe many others in the community at large want a first-class 2D imaging library with a simple API that is not simply a wrapper round an existing library. We want it to have a low contribution bar which we believe can only happen if the library is written in C#. We want it to be written to cover as many use cases as possible. We want to write the same code once and have it work on any platform supporting .NET Core.**
-
-**With your help we can make all that a reality.**
-
-**If you can donate any time to improve on the project, be it helping with documentation, tests or contributing code please do.**
-
-**Thankyou for reading this**
+## If you forked this repositoy before 27/10/2016 you will either have to [rebase](https://git-scm.com/book/en/v2/Git-Branching-Rebasing) your fork or reclone this repository. This is due to changes in the git history caused by shrinking the repository. 
 ---
 
 ### Installation

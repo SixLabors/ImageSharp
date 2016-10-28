@@ -109,6 +109,7 @@ namespace ImageProcessorCore
         {
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
+            Guard.NotNull(pixels, nameof(pixels));
 
             if (pixels.Length != width * height)
             {
@@ -125,6 +126,7 @@ namespace ImageProcessorCore
         {
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
+            Guard.NotNull(pixels, nameof(pixels));
 
             if (pixels.Length != width * height)
             {

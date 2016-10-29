@@ -1,11 +1,11 @@
 
-# ImageProcessorCore
+# ImageSharp
 
-<img src="build/icons/imageprocessor-logo-512.png" width="128" height="128"/>
+<img src="build/icons/imagesharp-logo-512.png" width="128" height="128"/>
 
-**ImageProcessorCore** is a new cross-platform 2D graphics API designed to allow the processing of images without the use of `System.Drawing`. 
+**ImageSharp** is a new cross-platform 2D graphics API designed to allow the processing of images without the use of `System.Drawing`. 
 
-> **ImageProcessorCore is still in early stages (alpha) but progress has been pretty quick. As such, please do not use on production environments until the library reaches release candidate status. Pre-release downloads are available from the [MyGet package repository](https://www.myget.org/gallery/imageprocessor).**
+> **ImageSharp is still in early stages (alpha) but progress has been pretty quick. As such, please do not use on production environments until the library reaches release candidate status. Pre-release downloads are available from the [MyGet package repository](https://www.myget.org/gallery/imageprocessor).**
 
 > For the older `ImageFactory` based API that uses `System.Drawing` please check out the [Framework](https://github.com/JimBobSquarePants/ImageProcessor/tree/Framework) branch.
 
@@ -29,7 +29,7 @@ We already have a [MyGet package repository](https://www.myget.org/gallery/image
 
 ### Manual build
 
-If you prefer, you can compile ImageProcessorCore yourself (please do and help!), you'll need:
+If you prefer, you can compile ImageSharp yourself (please do and help!), you'll need:
 
 - [Visual Studio 2015 with Update 3 (or above)](https://www.visualstudio.com/news/releasenotes/vs2015-update3-vs)
 - The [.NET Core 1.0 SDK Installer](https://www.microsoft.com/net/core#windows) - Non VSCode link.

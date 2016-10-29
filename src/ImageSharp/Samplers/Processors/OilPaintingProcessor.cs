@@ -119,7 +119,7 @@ namespace ImageSharp.Processors
                                         float sourceBlue = color.Z;
                                         float sourceGreen = color.Y;
 
-                                        int currentIntensity = (int)Math.Round(((sourceBlue + sourceGreen + sourceRed) / 3.0 * (levels - 1)));
+                                        int currentIntensity = (int)Math.Round((sourceBlue + sourceGreen + sourceRed) / 3.0 * (levels - 1));
 
                                         intensityBin[currentIntensity] += 1;
                                         blueBin[currentIntensity] += sourceBlue;

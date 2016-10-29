@@ -611,7 +611,7 @@ namespace ImageSharp.Formats
         /// <param name="stream">The stream.</param>
         private void WriteDataChunks(Stream stream)
         {
-            byte[] data =  this.EncodePixelData();
+            byte[] data = this.EncodePixelData();
 
             byte[] buffer;
             int bufferLength;

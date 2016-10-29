@@ -361,8 +361,7 @@ namespace ImageSharp
             }
         }
 
-        private static TDataType[] ToArray<TDataType>(ExifDataType dataType, byte[] data,
-          ConverterMethod<TDataType> converter)
+        private static TDataType[] ToArray<TDataType>(ExifDataType dataType, byte[] data, ConverterMethod<TDataType> converter)
         {
             int dataTypeSize = (int)ExifValue.GetSize(dataType);
             int length = data.Length / dataTypeSize;

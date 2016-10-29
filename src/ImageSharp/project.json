@@ -23,7 +23,8 @@
   },
   "buildOptions": {
     "allowUnsafe": true,
-    "debugType": "portable"
+    "debugType": "portable",
+    "xmlDoc": true
   },
   "dependencies": {
     "System.Collections": "4.0.11",

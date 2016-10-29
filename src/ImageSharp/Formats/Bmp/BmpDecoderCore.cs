@@ -290,7 +290,7 @@ namespace ImageSharp.Formats
                             byte g = (byte)(((temp & Rgb16GMask) >> 5) * ScaleG);
                             byte b = (byte)((temp & Rgb16BMask) * ScaleR);
 
-                            int arrayOffset = ((row * width) + x);
+                            int arrayOffset = (row * width) + x;
 
                             // Stored in b-> g-> r order.
                             TColor packed = default(TColor);
@@ -330,7 +330,7 @@ namespace ImageSharp.Formats
                         for (int x = 0; x < width; x++)
                         {
                             int offset = rowOffset + (x * 3);
-                            int arrayOffset = ((row * width) + x);
+                            int arrayOffset = (row * width) + x;
 
                             // Stored in b-> g-> r-> a order.
                             TColor packed = default(TColor);
@@ -370,7 +370,7 @@ namespace ImageSharp.Formats
                         for (int x = 0; x < width; x++)
                         {
                             int offset = rowOffset + (x * 4);
-                            int arrayOffset = ((row * width) + x);
+                            int arrayOffset = (row * width) + x;
 
                             // Stored in b-> g-> r-> a order.
                             TColor packed = default(TColor);

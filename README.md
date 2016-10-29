@@ -1,31 +1,19 @@
 
-# ImageSharp
-
-<img src="build/icons/imagesharp-logo-512.png" width="128" height="128"/>
+# <img src="build/icons/imagesharp-logo-64.png" width="32" height="32"/> ImageSharp
 
 **ImageSharp** is a new cross-platform 2D graphics API designed to allow the processing of images without the use of `System.Drawing`. 
 
-> **ImageSharp is still in early stages (alpha) but progress has been pretty quick. As such, please do not use on production environments until the library reaches release candidate status. Pre-release downloads are available from the [MyGet package repository](https://www.myget.org/gallery/imageprocessor).**
+> **ImageSharp is still in early stages (alpha) but progress has been pretty quick. As such, please do not use on production environments until the library reaches release candidate status. Pre-release downloads are available from the [MyGet package repository](https://www.myget.org/gallery/imagesharp).**
 
-> For the older `ImageFactory` based API that uses `System.Drawing` please check out the [Framework](https://github.com/JimBobSquarePants/ImageProcessor/tree/Framework) branch.
-
-
-[![Build status](https://ci.appveyor.com/api/projects/status/8ypr7527dnao04yr/branch/Core?svg=true)](https://ci.appveyor.com/project/JamesSouth/imageprocessor/branch/Core)
-[![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/JimBobSquarePants/ImageProcessor?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-
-
----
-# Important
-
-## If you forked this repository before 27/10/2016 you will either have to [rebase](https://git-scm.com/book/en/v2/Git-Branching-Rebasing) your fork or reclone this repository. This is due to changes in the git history caused by shrinking the repository. 
----
+[![Build status](https://ci.appveyor.com/api/projects/status/hu6d1gdpxdw0q360/branch/master?svg=true)](https://ci.appveyor.com/project/JamesSouth/imagesharp/branch/master)
+[![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/ImageSharp/General?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 ### Installation
 At present the code is pre-release but when ready it will be available on [Nuget](http://www.nuget.org). 
 
 **Pre-release downloads**
 
-We already have a [MyGet package repository](https://www.myget.org/gallery/imageprocessor) - for bleeding-edge / development NuGet releases.
+We already have a [MyGet package repository](https://www.myget.org/gallery/imagesharp) - for bleeding-edge / development NuGet releases.
 
 ### Manual build
 
@@ -37,7 +25,7 @@ If you prefer, you can compile ImageSharp yourself (please do and help!), you'll
 To clone it locally click the "Clone in Windows" button above or run the following git commands.
 
 ```bash
-git clone https://github.com/JimBobSquarePants/ImageProcessor
+git clone https://github.com/JimBobSquarePants/ImageSharp
 ```
 
 ###What works so far/ What is planned?
@@ -45,7 +33,7 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
 - Encoding/decoding of image formats (plugable).
  - [x] Jpeg (Includes Subsampling. Progressive writing required)
  - [x] Bmp (Read: 32bit, 24bit, 16 bit. Write: 32bit, 24bit just now)
- - [x] Png (Read: Rgb, Rgba, Grayscale, Grayscale + alpha, Palette. Write: Rgb, Rgba, Grayscale, Grayscale + alpha, Palette) Needs interlaced decoding [#379](https://github.com/JimBobSquarePants/ImageProcessor/issues/379)
+ - [x] Png (Read: Rgb, Rgba, Grayscale, Grayscale + alpha, Palette. Write: Rgb, Rgba, Grayscale, Grayscale + alpha, Palette) Needs interlaced decoding 
  - [x] Gif (Includes animated)
  - [ ] Tiff
 - Metadata
@@ -54,7 +42,7 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
  - [x] Octree
  - [x] Xiaolin Wu
  - [x] Palette
-- Basic color structs with implicit operators. [#260](https://github.com/JimBobSquarePants/ImageProcessor/issues/260)
+- Basic color structs with implicit operators. 
  - [x] Color - 32bit color in RGBA order.
  - [x] BGRA32
  - [x] CIE Lab
@@ -141,21 +129,21 @@ git clone https://github.com/JimBobSquarePants/ImageProcessor
  - [x] Vignette
  - [x] Glow
  - [x] Threshold
-- Effects
- - [ ] Path brush (Need help) [#264](https://github.com/JimBobSquarePants/ImageProcessor/issues/264)
- - [ ] Pattern brush (Need help) [#264](https://github.com/JimBobSquarePants/ImageProcessor/issues/264)
- - [ ] Elliptical brush (Need help) [#264](https://github.com/JimBobSquarePants/ImageProcessor/issues/264)
- - [ ] Gradient brush (vignette? Need help) [#264](https://github.com/JimBobSquarePants/ImageProcessor/issues/264)
+- Drawing
+ - [ ] Path brush (Need help) 
+ - [ ] Pattern brush (Need help)
+ - [ ] Elliptical brush (Need help)
+ - [ ] Gradient brush (vignette? Need help)
 - Other stuff I haven't thought of.
  
-###What might never happen
-- Font support (Depends on new System.Text stuff) I don't know where to start coding this so if you have any pointers please chip in.
+### What might never happen
+- Font support. I don't know where to start coding this so if you have any pointers please chip in.
 
-###API Changes
+### API 
 
-With this version the API will change dramatically. Without the constraints of `System.Drawing` I have been able to develop something much more flexible, easier to code against, and much, much less prone to memory leaks. Gone are system wide proces locks with Images and processors thread safe usable in parallel processing utilizing all the availables cores. 
+Without the constraints of `System.Drawing` I have been able to develop something much more flexible, easier to code against, and much, much less prone to memory leaks. Gone are system-wide process-locks. Images and processors are thread safe usable in parallel processing utilizing all the availables cores. 
 
-Image methods are also fluent which allow chaining much like the `ImageFactory` class in the Framework version.
+Many `Image` methods are also fluent.
 
 Here's an example of the code required to resize an image using the default Bicubic resampler then turn the colors into their grayscale equivalent using the BT709 standard matrix.
 
@@ -190,23 +178,19 @@ For advanced usage the `Image<TColor, TPacked>` class is available allowing deve
 
 All in all this should allow image processing to be much more accessible to developers which has always been my goal from the start.
 
-###How can you help?
+### How can you help?
 
-Please... Spread the word, contribute algorithms, submit performance improvements, unit tests. Help me set up CI for nightly releases. 
+Please... Spread the word, contribute algorithms, submit performance improvements, unit tests. 
 
-[Performance is a biggie](https://github.com/JimBobSquarePants/ImageProcessor/issues/347), if you know anything about the new vector types and can apply some fancy new stuff with that it would be awesome. 
+Performance is a biggie, if you know anything about the new vector types and can apply some fancy new stuff with that it would be awesome. 
 
 There's a lot of developers out there who could write this stuff a lot better and faster than I and I would love to see what we collectively can come up with so please, if you can help in any way it would be most welcome and benificial for all.
 
-###The ImageProcessor Team
+### The ImageSharp Team
 
 Grand High Eternal Dictator
 - [James Jackson-South](https://github.com/jimbobsquarepants)
 
 Core Team
-- [Jeavon Leopold](https://github.com/jeavon)
 - [Dirk Lemstra](https://github.com/dlemstra)
-- [Yufeih Huang](https://github.com/yufeih)
-- [Thomas Broust](https://github.com/cosmo0)
-- [Christopher Bauer](https://github.com/christopherbauer)
-
+- [Jeavon Leopold](https://github.com/jeavon)

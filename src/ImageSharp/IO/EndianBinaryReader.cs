@@ -575,8 +575,7 @@ namespace ImageSharp.IO
                 int read = this.BaseStream.Read(data, index, size - index);
                 if (read == 0)
                 {
-                    throw new EndOfStreamException
-                        (
+                    throw new EndOfStreamException(
                         string.Format(
                             "End of stream reached with {0} byte{1} left to read.",
                             size - index,

@@ -196,7 +196,7 @@ namespace ImageSharp.Formats
                 this.rawStream.WriteByte((byte)((crc >> 24) & 0xFF));
                 this.rawStream.WriteByte((byte)((crc >> 16) & 0xFF));
                 this.rawStream.WriteByte((byte)((crc >> 8) & 0xFF));
-                this.rawStream.WriteByte((byte)((crc) & 0xFF));
+                this.rawStream.WriteByte((byte)(crc & 0xFF));
             }
 
             base.Dispose(disposing);

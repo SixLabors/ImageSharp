@@ -442,7 +442,7 @@ namespace ImageSharp
         {
             if (!this.ValidateArray(data, 8, 4))
             {
-                return new Rational();
+                return default(Rational);
             }
 
             uint numerator = BitConverter.ToUInt32(data, 0);
@@ -470,7 +470,7 @@ namespace ImageSharp
         {
             if (!this.ValidateArray(data, 8, 4))
             {
-                return new SignedRational();
+                return default(SignedRational);
             }
 
             int numerator = BitConverter.ToInt32(data, 0);

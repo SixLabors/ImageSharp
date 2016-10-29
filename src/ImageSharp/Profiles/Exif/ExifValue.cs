@@ -103,10 +103,10 @@ namespace ImageSharp
             return !Equals(left, right);
         }
 
-        ///<summary>
+        /// <summary>
         /// Determines whether the specified object is equal to the current exif value.
-        ///</summary>
-        ///<param name="obj">The object to compare this exif value with.</param>
+        /// </summary>
+        /// <param name="obj">The object to compare this exif value with.</param>
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(this, obj))
@@ -117,10 +117,10 @@ namespace ImageSharp
             return this.Equals(obj as ExifValue);
         }
 
-        ///<summary>
+        /// <summary>
         /// Determines whether the specified exif value is equal to the current exif value.
-        ///</summary>
-        ///<param name="other">The exif value to compare this exif value with.</param>
+        /// </summary>
+        /// <param name="other">The exif value to compare this exif value with.</param>
         public bool Equals(ExifValue other)
         {
             if (ReferenceEquals(other, null))

@@ -27,7 +27,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Encodes the image to the specified stream from the <see cref="ImageBase{TColor, TPacked}"/>.
         /// </summary>
-        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>long, float.</example></typeparam>
         /// <param name="image">The <see cref="ImageBase{TColor, TPacked}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>

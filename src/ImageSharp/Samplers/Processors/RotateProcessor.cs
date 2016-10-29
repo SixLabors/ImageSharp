@@ -39,7 +39,7 @@ namespace ImageSharp.Processors
         {
             const float Epsilon = .0001F;
 
-            if (Math.Abs(Angle) < Epsilon || Math.Abs(Angle - 90) < Epsilon || Math.Abs(Angle - 180) < Epsilon || Math.Abs(Angle - 270) < Epsilon)
+            if (Math.Abs(this.Angle) < Epsilon || Math.Abs(this.Angle - 90) < Epsilon || Math.Abs(this.Angle - 180) < Epsilon || Math.Abs(this.Angle - 270) < Epsilon)
             {
                 return;
             }
@@ -54,7 +54,7 @@ namespace ImageSharp.Processors
         /// <inheritdoc/>
         public override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-            if (OptimizedApply(target, source))
+            if (this.OptimizedApply(target, source))
             {
                 return;
             }
@@ -93,25 +93,25 @@ namespace ImageSharp.Processors
         private bool OptimizedApply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source)
         {
             const float Epsilon = .0001F;
-            if (Math.Abs(Angle) < Epsilon)
+            if (Math.Abs(this.Angle) < Epsilon)
             {
                 target.ClonePixels(target.Width, target.Height, source.Pixels);
                 return true;
             }
 
-            if (Math.Abs(Angle - 90) < Epsilon)
+            if (Math.Abs(this.Angle - 90) < Epsilon)
             {
                 this.Rotate90(target, source);
                 return true;
             }
 
-            if (Math.Abs(Angle - 180) < Epsilon)
+            if (Math.Abs(this.Angle - 180) < Epsilon)
             {
                 this.Rotate180(target, source);
                 return true;
             }
 
-            if (Math.Abs(Angle - 270) < Epsilon)
+            if (Math.Abs(this.Angle - 270) < Epsilon)
             {
                 this.Rotate270(target, source);
                 return true;

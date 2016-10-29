@@ -3,12 +3,11 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-using System.Numerics;
-
 namespace ImageSharp.Quantizers
 {
     using System;
     using System.Collections.Generic;
+    using System.Numerics;
     using System.Threading.Tasks;
 
     /// <summary>

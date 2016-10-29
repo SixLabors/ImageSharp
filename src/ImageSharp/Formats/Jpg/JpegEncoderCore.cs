@@ -488,9 +488,9 @@ namespace ImageSharp.Formats
             int componentCount = 3;
 
             // Write the Start Of Image marker.
-            WriteApplicationHeader((short)image.HorizontalResolution, (short)image.VerticalResolution);
+            this.WriteApplicationHeader((short)image.HorizontalResolution, (short)image.VerticalResolution);
 
-            WriteProfiles(image);
+            this.WriteProfiles(image);
 
             // Write the quantization tables.
             this.WriteDQT();
@@ -574,7 +574,7 @@ namespace ImageSharp.Formats
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
-            WriteProfile(image.ExifProfile);
+            this.WriteProfile(image.ExifProfile);
         }
 
         private void WriteProfile(ExifProfile exifProfile)

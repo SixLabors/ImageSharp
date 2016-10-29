@@ -184,8 +184,8 @@ namespace ImageSharp.Formats
                     this.deflateStream.Dispose();
                     this.deflateStream = null;
                 }
-                else {
-
+                else
+                {
                     // Hack: empty input?
                     this.rawStream.WriteByte(3);
                     this.rawStream.WriteByte(0);

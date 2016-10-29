@@ -49,7 +49,8 @@ namespace ImageSharp.Formats
         /// The values are derived from section K.1 after converting from natural to
         /// zig-zag order.
         /// </summary>
-        private readonly byte[,] unscaledQuant = {
+        private readonly byte[,] unscaledQuant =
+        {
             {
                 // Luminance.
                 16, 11, 12, 14, 12, 10, 16, 14, 13, 14, 18, 17, 16, 19, 24, 40,
@@ -71,7 +72,8 @@ namespace ImageSharp.Formats
         /// The Huffman encoding specifications.
         /// This encoder uses the same Huffman encoding for all images.
         /// </summary>
-        private readonly HuffmanSpec[] theHuffmanSpec = {
+        private readonly HuffmanSpec[] theHuffmanSpec =
+        {
             // Luminance DC.
             new HuffmanSpec(
                 new byte[]

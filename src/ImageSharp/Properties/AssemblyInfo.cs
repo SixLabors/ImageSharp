@@ -3,8 +3,8 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-using System.Resources;
 using System.Reflection;
+using System.Resources;
 using System.Runtime.CompilerServices;
 
 // General Information about an assembly is controlled through the following 

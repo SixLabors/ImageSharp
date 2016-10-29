@@ -8,7 +8,7 @@ namespace ImageSharp.Processors
     using System.Numerics;
 
     /// <summary>
-    /// An <see cref="IImageProcessor{TColor, TPacked}"/> to change the saturation of an <see cref="Image{TColor, TPacked}"/>.
+    /// An <see cref="ImageProcessor{TColor, TPacked}"/> to change the saturation of an <see cref="Image{TColor, TPacked}"/>.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>

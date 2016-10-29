@@ -6,7 +6,6 @@
 namespace ImageSharp
 {
     using System;
-    using System.Linq;
     using System.Reflection;
 
     /// <summary>
@@ -18,9 +17,9 @@ namespace ImageSharp
         private object value;
         private string description;
 
-        ///<summary>
+        /// <summary>
         /// Initializes a new instance of the ExifTagDescriptionAttribute class.
-        ///</summary>
+        /// </summary>
         /// <param name="value">The value of the exif tag.</param>
         /// <param name="description">The description for the value of the exif tag.</param>
         public ExifTagDescriptionAttribute(object value, string description)

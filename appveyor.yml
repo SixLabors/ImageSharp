@@ -21,7 +21,7 @@ assembly_info:
 
 before_build:
 - cmd: >-
-    dotnet restore src\ImageProcessorCore
+    dotnet restore src\ImageSharp
 
     cd build
 
@@ -33,20 +33,20 @@ before_build:
 
 build_script:
 - cmd: >-
-    dotnet pack src\ImageProcessorCore --configuration Release --output "artifacts\bin\ImageProcessorCore"
+    dotnet pack src\ImageSharp --configuration Release --output "artifacts\bin\ImageSharp"
 
 test: off
 
 artifacts:
-- path: artifacts\bin\ImageProcessorCore\**\*.nupkg
+- path: artifacts\bin\ImageSharp\**\*.nupkg
 
 deploy:
     # MyGet Deployment for builds & releases
  - provider: NuGet
-   server: https://www.myget.org/F/imageprocessor/api/v2/package
-   symbol_server: https://www.myget.org/F/imageprocessor/api/v2/package # https://nuget.symbolsource.org/MyGet/imageprocessor
+   server: https://www.myget.org/F/imagesharp/api/v2/package
+   symbol_server: https://www.myget.org/F/imagesharp/api/v2/package # https://nuget.symbolsource.org/MyGet/imagesharp
    api_key:
      secure: fz0rUrt3B1HczUC1ZehwVsrFSWX9WZGDQoueDztLte9/+yQG+BBU7UrO+coE8lUf
    artifact: /.*\.nupkg/
    on:
-     branch: Core
+     branch: master

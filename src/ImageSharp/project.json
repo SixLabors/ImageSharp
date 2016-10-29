@@ -45,7 +45,7 @@
     "System.Threading": "4.0.11",
     "System.Threading.Tasks": "4.0.11",
     "System.Threading.Tasks.Parallel": "4.0.1",
-    "StyleCop.Analyzers": "1.0.0"
+    "StyleCop.Analyzers": { "version": "1.0.0", "type": "build" }
   },
   "frameworks": {
     "netstandard1.1": {}

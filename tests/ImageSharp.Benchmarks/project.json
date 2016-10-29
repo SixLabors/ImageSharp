@@ -1,0 +1,32 @@
+{
+  "version": "1.0.0-*",
+  "description": "ImageSharp.Benchmarks Console Application",
+  "authors": [ "James.South" ],
+  "packOptions": {
+    "projectUrl": "https://github.com/JimBobSquarePants/ImageSharp",
+    "licenseUrl": "http://www.apache.org/licenses/LICENSE-2.0",
+    "tags": [
+      "Image Resize Crop Gif Jpg Jpeg Bitmap Png Core"
+    ]
+  },
+  "buildOptions": {
+    "emitEntryPoint": true,
+    "allowUnsafe": true
+  },
+  "dependencies": {
+    "BenchmarkDotNet.Diagnostics.Windows": "0.9.9.116",
+    "ImageSharp": "1.0.0-*"
+  },
+  "commands": {
+    "ImageSharp.Benchmarks": "ImageSharp.Benchmarks"
+  },
+  "frameworks": {
+    "net461": {
+      "dependencies": {
+      },
+      "frameworkAssemblies": {
+        "System.Drawing": ""
+      }
+    }
+  }
+}

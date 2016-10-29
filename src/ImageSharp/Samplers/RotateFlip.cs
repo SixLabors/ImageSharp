@@ -16,6 +16,7 @@ namespace ImageSharp
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image to rotate, flip, or both.</param>
+        /// <param name="rotateType">The <see cref="RotateType"/> to perform the rotation.</param>
         /// <param name="flipType">The <see cref="FlipType"/> to perform the flip.</param>
         /// <returns>The <see cref="Image"/></returns>
         public static Image<TColor, TPacked> RotateFlip<TColor, TPacked>(this Image<TColor, TPacked> source, RotateType rotateType, FlipType flipType)

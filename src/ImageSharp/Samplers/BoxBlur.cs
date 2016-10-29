@@ -15,7 +15,7 @@ namespace ImageSharp
         /// <summary>
         /// Applies a box blur to the image.
         /// </summary>
-        /// <typeparam name="T">The pixel format.</typeparam>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="radius">The 'radius' value representing the size of the area to sample.</param>

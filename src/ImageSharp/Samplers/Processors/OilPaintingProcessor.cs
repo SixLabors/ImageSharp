@@ -143,7 +143,6 @@ namespace ImageSharp.Processors
                                 packed.PackFromVector4(new Vector4(red, green, blue, targetColor.Z));
                                 targetPixels[x, y] = packed;
                             }
-
                         }
                     });
             }

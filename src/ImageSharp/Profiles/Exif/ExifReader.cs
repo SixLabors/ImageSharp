@@ -406,7 +406,6 @@ namespace ImageSharp
 
         private ushort ToShort(byte[] data)
         {
-
             if (!this.ValidateArray(data, 2))
             {
                 return default(ushort);

@@ -10,7 +10,7 @@ namespace ImageSharp.IO
     /// byte arrays.
     /// <remarks>
     /// Adapted from Miscellaneous Utility Library <see href="http://jonskeet.uk/csharp/miscutil/"/>
-    /// This product includes software developed by Jon Skeet and Marc Gravell. Contact <see href="mailto:skeet@pobox.com"/>, or see 
+    /// This product includes software developed by Jon Skeet and Marc Gravell. Contact <see href="mailto:skeet@pobox.com"/>, or see
     /// <see href="http://www.pobox.com/~skeet/"/>.
     /// </remarks>
     /// </summary>

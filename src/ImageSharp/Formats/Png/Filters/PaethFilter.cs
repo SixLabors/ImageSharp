@@ -9,7 +9,7 @@ namespace ImageSharp.Formats
 
     /// <summary>
     /// The Paeth filter computes a simple linear function of the three neighboring pixels (left, above, upper left),
-    /// then chooses as predictor the neighboring pixel closest to the computed value. 
+    /// then chooses as predictor the neighboring pixel closest to the computed value.
     /// This technique is due to Alan W. Paeth.
     /// <see href="https://www.w3.org/TR/PNG-Filters.html"/>
     /// </summary>

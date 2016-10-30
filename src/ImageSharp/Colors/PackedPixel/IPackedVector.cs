@@ -8,7 +8,7 @@ namespace ImageSharp
     using System.Numerics;
 
     /// <summary>
-    /// An interface that converts packed vector types to and from <see cref="Vector4"/> values, 
+    /// An interface that converts packed vector types to and from <see cref="Vector4"/> values,
     /// allowing multiple encodings to be manipulated in a generic manner.
     /// </summary>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>

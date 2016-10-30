@@ -20,7 +20,7 @@ namespace ImageSharp.Formats
         private readonly Stream rawStream;
 
         /// <summary>
-        /// Computes the checksum for the data stream. 
+        /// Computes the checksum for the data stream.
         /// </summary>
         private readonly Adler32 adler32 = new Adler32();
 
@@ -51,7 +51,7 @@ namespace ImageSharp.Formats
 
             // Write the zlib header : http://tools.ietf.org/html/rfc1950
             // CMF(Compression Method and flags)
-            // This byte is divided into a 4 - bit compression method and a 
+            // This byte is divided into a 4 - bit compression method and a
             // 4-bit information field depending on the compression method.
             // bits 0 to 3  CM Compression method
             // bits 4 to 7  CINFO Compression info

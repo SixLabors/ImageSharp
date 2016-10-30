@@ -6,7 +6,7 @@
 namespace ImageSharp
 {
     /// <summary>
-    /// An interface that converts packed vector types to and from <see cref="T:byte[]"/> values, 
+    /// An interface that converts packed vector types to and from <see cref="T:byte[]"/> values,
     /// allowing multiple encodings to be manipulated in a generic manner.
     /// </summary>
     public interface IPackedBytes

@@ -27,7 +27,7 @@ namespace ImageSharp.Processors
         /// Initializes a new instance of the <see cref="BlendProcessor{T,TP}"/> class.
         /// </summary>
         /// <param name="image">
-        /// The image to blend with the currently processing image. 
+        /// The image to blend with the currently processing image.
         /// Disposal of this image is the responsibility of the developer.
         /// </param>
         /// <param name="alpha">The opacity of the image to blend. Between 0 and 100.</param>

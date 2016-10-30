@@ -523,7 +523,7 @@ namespace ImageSharp.IO
 
         /// <summary>
         /// Reads a length-prefixed string from the stream, using the encoding for this reader.
-        /// A 7-bit encoded integer is first read, which specifies the number of bytes 
+        /// A 7-bit encoded integer is first read, which specifies the number of bytes
         /// to read from the stream. These bytes are then converted into a string with
         /// the encoding for this reader.
         /// </summary>

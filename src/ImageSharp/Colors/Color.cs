@@ -67,7 +67,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Color"/> struct. 
+        /// Initializes a new instance of the <see cref="Color"/> struct.
         /// </summary>
         /// <param name="r">The red component.</param>
         /// <param name="g">The green component.</param>
@@ -79,7 +79,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Color"/> struct. 
+        /// Initializes a new instance of the <see cref="Color"/> struct.
         /// </summary>
         /// <param name="vector">
         /// The vector containing the components for the packed vector.
@@ -90,7 +90,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Color"/> struct. 
+        /// Initializes a new instance of the <see cref="Color"/> struct.
         /// </summary>
         /// <param name="vector">
         /// The vector containing the components for the packed vector.

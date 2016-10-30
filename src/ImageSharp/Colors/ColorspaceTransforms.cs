@@ -267,7 +267,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Moves the specific value within the acceptable range for 
+        /// Moves the specific value within the acceptable range for
         /// conversion.
         /// <remarks>Used for converting <see cref="Hsl"/> colors to this type.</remarks>
         /// </summary>

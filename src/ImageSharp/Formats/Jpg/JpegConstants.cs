@@ -94,7 +94,7 @@ namespace ImageSharp.Formats
             /// <summary>
             /// Start of Frame (baseline DCT)
             /// <remarks>
-            /// Indicates that this is a baseline DCT-based JPEG, and specifies the width, height, number of components, 
+            /// Indicates that this is a baseline DCT-based JPEG, and specifies the width, height, number of components,
             /// and component subsampling (e.g., 4:2:0).
             /// </remarks>
             /// </summary>
@@ -103,7 +103,7 @@ namespace ImageSharp.Formats
             /// <summary>
             /// Start Of Frame (Extended Sequential DCT)
             /// <remarks>
-            /// Indicates that this is a progressive DCT-based JPEG, and specifies the width, height, number of components, 
+            /// Indicates that this is a progressive DCT-based JPEG, and specifies the width, height, number of components,
             /// and component subsampling (e.g., 4:2:0).
             /// </remarks>
             /// </summary>
@@ -112,7 +112,7 @@ namespace ImageSharp.Formats
             /// <summary>
             /// Start Of Frame (progressive DCT)
             /// <remarks>
-            /// Indicates that this is a progressive DCT-based JPEG, and specifies the width, height, number of components, 
+            /// Indicates that this is a progressive DCT-based JPEG, and specifies the width, height, number of components,
             /// and component subsampling (e.g., 4:2:0).
             /// </remarks>
             /// </summary>
@@ -137,7 +137,7 @@ namespace ImageSharp.Formats
             /// <summary>
             /// Define Restart Interval
             /// <remarks>
-            /// Specifies the interval between RSTn markers, in macroblocks. This marker is followed by two bytes 
+            /// Specifies the interval between RSTn markers, in macroblocks. This marker is followed by two bytes
             /// indicating the fixed size so it can be treated like any other variable size segment.
             /// </remarks>
             /// </summary>
@@ -146,7 +146,7 @@ namespace ImageSharp.Formats
             /// <summary>
             /// Define First Restart
             /// <remarks>
-            /// Inserted every r macroblocks, where r is the restart interval set by a DRI marker. 
+            /// Inserted every r macroblocks, where r is the restart interval set by a DRI marker.
             /// Not used if there was no DRI marker. The low three bits of the marker code cycle in value from 0 to 7.
             /// </remarks>
             /// </summary>
@@ -155,7 +155,7 @@ namespace ImageSharp.Formats
             /// <summary>
             /// Define Eigth Restart
             /// <remarks>
-            /// Inserted every r macroblocks, where r is the restart interval set by a DRI marker. 
+            /// Inserted every r macroblocks, where r is the restart interval set by a DRI marker.
             /// Not used if there was no DRI marker. The low three bits of the marker code cycle in value from 0 to 7.
             /// </remarks>
             /// </summary>
@@ -164,8 +164,8 @@ namespace ImageSharp.Formats
             /// <summary>
             /// Start of Scan
             /// <remarks>
-            /// Begins a top-to-bottom scan of the image. In baseline DCT JPEG images, there is generally a single scan. 
-            /// Progressive DCT JPEG images usually contain multiple scans. This marker specifies which slice of data it 
+            /// Begins a top-to-bottom scan of the image. In baseline DCT JPEG images, there is generally a single scan.
+            /// Progressive DCT JPEG images usually contain multiple scans. This marker specifies which slice of data it
             /// will contain, and is immediately followed by entropy-coded data.
             /// </remarks>
             /// </summary>
@@ -212,7 +212,7 @@ namespace ImageSharp.Formats
         internal static class Adobe
         {
             /// <summary>
-            /// The color transform is unknown.(RGB or CMYK) 
+            /// The color transform is unknown.(RGB or CMYK)
             /// </summary>
             public const int ColorTransformUnknown = 0;
 

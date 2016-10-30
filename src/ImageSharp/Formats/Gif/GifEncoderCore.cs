@@ -58,7 +58,7 @@ namespace ImageSharp.Formats
                 this.Quantizer = new OctreeQuantizer<TColor, TPacked>();
             }
 
-            // Do not use IDisposable pattern here as we want to preserve the stream. 
+            // Do not use IDisposable pattern here as we want to preserve the stream.
             EndianBinaryWriter writer = new EndianBinaryWriter(EndianBitConverter.Little, stream);
 
             // Ensure that quality can be set but has a fallback.

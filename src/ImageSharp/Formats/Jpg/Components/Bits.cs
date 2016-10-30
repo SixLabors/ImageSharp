@@ -18,7 +18,7 @@ namespace ImageSharp.Formats
         public uint Accumulator { get; set; }
 
         /// <summary>
-        /// Gets or sets the mask. 
+        /// Gets or sets the mask.
         /// <![CDATA[mask==1<<(unreadbits-1) when unreadbits>0, with mask==0 when unreadbits==0.]]>
         /// </summary>
         public uint Mask { get; set; }

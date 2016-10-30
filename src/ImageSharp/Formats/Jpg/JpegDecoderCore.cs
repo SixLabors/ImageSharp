@@ -679,7 +679,7 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Fills up the bytes buffer from the underlying stream. 
+        /// Fills up the bytes buffer from the underlying stream.
         /// It should only be called when there are no unread bytes in bytes.
         /// </summary>
         private void Fill()

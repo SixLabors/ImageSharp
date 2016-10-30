@@ -21,7 +21,7 @@ namespace ImageSharp.IO
 
         /// <inheritdoc/>
         public override bool IsLittleEndian() => false;
-        
+
         /// <inheritdoc/>
         protected internal override void CopyBytesImpl(long value, int bytes, byte[] buffer, int index)
         {

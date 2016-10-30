@@ -34,7 +34,7 @@ namespace ImageSharp.Quantizers
         /// Initializes a new instance of the <see cref="PaletteQuantizer{TColor, TPacked}"/> class.
         /// </summary>
         /// <param name="palette">
-        /// The color palette. If none is given this will default to the web safe colors defined 
+        /// The color palette. If none is given this will default to the web safe colors defined
         /// in the CSS Color Module Level 4.
         /// </param>
         public PaletteQuantizer(TColor[] palette = null)

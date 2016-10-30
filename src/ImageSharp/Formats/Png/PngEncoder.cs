@@ -32,7 +32,7 @@ namespace ImageSharp.Formats
         public string Extension => "png";
 
         /// <summary>
-        /// Gets or sets the compression level 1-9. 
+        /// Gets or sets the compression level 1-9.
         /// <remarks>Defaults to 6.</remarks>
         /// </summary>
         public int CompressionLevel { get; set; } = 6;

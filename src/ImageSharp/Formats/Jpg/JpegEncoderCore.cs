@@ -2,14 +2,18 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
-
 namespace ImageSharp.Formats
 {
     using System;
     using System.IO;
 
+    /// <summary>
+    /// Image encoder for writing an image to a stream as a jpeg.
+    /// </summary>
     internal class JpegEncoderCore
     {
+        private const int NQuantIndex = 2;
+
         /// <summary>
         /// Maps from the zig-zag ordering to the natural ordering. For example,
         /// unzig[3] is the column and row of the fourth element in zig-zag order. The
@@ -23,12 +27,10 @@ namespace ImageSharp.Formats
             39, 46, 53, 60, 61, 54, 47, 55, 62, 63,
         };
 
-        private const int NQuantIndex = 2;
-
         /// <summary>
         /// Counts the number of bits needed to hold an integer.
         /// </summary>
-        private readonly byte[] bitCount =
+        private readonly byte[] bitCountLut =
         {
             0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5,
             5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
@@ -143,48 +145,6 @@ namespace ImageSharp.Formats
                 })
         };
 
-        /// <summary>
-        /// A compiled look-up table representation of a huffmanSpec.
-        /// Each value maps to a uint32 of which the 8 most significant bits hold the
-        /// codeword size in bits and the 24 least significant bits hold the codeword.
-        /// The maximum codeword size is 16 bits.
-        /// </summary>
-        private class HuffmanLut
-        {
-            public readonly uint[] Values;
-
-            public HuffmanLut(HuffmanSpec s)
-            {
-                int maxValue = 0;
-
-                foreach (var v in s.Values)
-                {
-                    if (v > maxValue)
-                    {
-                        maxValue = v;
-                    }
-                }
-
-                this.Values = new uint[maxValue + 1];
-
-                int code = 0;
-                int k = 0;
-
-                for (int i = 0; i < s.Count.Length; i++)
-                {
-                    int nBits = (i + 1) << 24;
-                    for (int j = 0; j < s.Count[i]; j++)
-                    {
-                        this.Values[s.Values[k]] = (uint)(nBits | code);
-                        code++;
-                        k++;
-                    }
-
-                    code <<= 1;
-                }
-            }
-        }
-
         // w is the writer to write to. err is the first error encountered during
         // writing. All attempted writes after the first error become no-ops.
         private Stream outputStream;
@@ -220,10 +180,10 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Writes the given byte to the stream.
         /// </summary>
-        /// <param name="b"></param>
+        /// <param name="b">The byte to write.</param>
         private void WriteByte(byte b)
         {
-            var data = new byte[1];
+            byte[] data = new byte[1];
             data[0] = b;
             this.outputStream.Write(data, 0, 1);
         }
@@ -286,11 +246,11 @@ namespace ImageSharp.Formats
             uint bt;
             if (a < 0x100)
             {
-                bt = this.bitCount[a];
+                bt = this.bitCountLut[a];
             }
             else
             {
-                bt = 8 + (uint)this.bitCount[a >> 8];
+                bt = 8 + (uint)this.bitCountLut[a >> 8];
             }
 
             this.EmitHuff(index, (int)((uint)(runLength << 4) | bt));
@@ -318,7 +278,7 @@ namespace ImageSharp.Formats
             this.EmitHuffRLE((HuffIndex)((2 * (int)index) + 0), 0, dc - prevDC);
 
             // Emit the AC components.
-            var h = (HuffIndex)((2 * (int)index) + 1);
+            HuffIndex h = (HuffIndex)((2 * (int)index) + 1);
             int runLength = 0;
 
             for (int zig = 1; zig < Block.BlockSize; zig++)
@@ -715,7 +675,7 @@ namespace ImageSharp.Formats
                 specs = new[] { this.theHuffmanSpec[0], this.theHuffmanSpec[1] };
             }
 
-            foreach (var s in specs)
+            foreach (HuffmanSpec s in specs)
             {
                 markerlen += 1 + 16 + s.Values.Length;
             }
@@ -734,7 +694,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Writes the StartOfScan marker.
         /// </summary>
-        /// <param name="pixels">The pixel accessor providing acces to the image pixels.</param>
+        /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
         private void WriteSOS<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
@@ -869,6 +829,55 @@ namespace ImageSharp.Formats
             /// Chrominance
             /// </summary>
             Chrominance = 1,
+        }
+
+        /// <summary>
+        /// A compiled look-up table representation of a huffmanSpec.
+        /// Each value maps to a uint32 of which the 8 most significant bits hold the
+        /// codeword size in bits and the 24 least significant bits hold the codeword.
+        /// The maximum codeword size is 16 bits.
+        /// </summary>
+        private class HuffmanLut
+        {
+            /// <summary>
+            /// The collection of huffman values.
+            /// </summary>
+            public readonly uint[] Values;
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="HuffmanLut"/> class.
+            /// </summary>
+            /// <param name="spec">The encoding specifications.</param>
+            public HuffmanLut(HuffmanSpec spec)
+            {
+                int maxValue = 0;
+
+                foreach (byte v in spec.Values)
+                {
+                    if (v > maxValue)
+                    {
+                        maxValue = v;
+                    }
+                }
+
+                this.Values = new uint[maxValue + 1];
+
+                int code = 0;
+                int k = 0;
+
+                for (int i = 0; i < spec.Count.Length; i++)
+                {
+                    int bits = (i + 1) << 24;
+                    for (int j = 0; j < spec.Count[i]; j++)
+                    {
+                        this.Values[spec.Values[k]] = (uint)(bits | code);
+                        code++;
+                        k++;
+                    }
+
+                    code <<= 1;
+                }
+            }
         }
 
         /// <summary>

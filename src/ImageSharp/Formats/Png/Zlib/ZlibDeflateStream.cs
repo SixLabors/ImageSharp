@@ -41,7 +41,7 @@ namespace ImageSharp.Formats
         private DeflateStream deflateStream;
 
         /// <summary>
-        /// Initializes a new instance of <see cref="ZlibDeflateStream"/>
+        /// Initializes a new instance of the <see cref="ZlibDeflateStream"/> class.
         /// </summary>
         /// <param name="stream">The stream to compress.</param>
         /// <param name="compressionLevel">The compression level.</param>

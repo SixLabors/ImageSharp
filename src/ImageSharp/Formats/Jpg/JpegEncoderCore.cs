@@ -877,7 +877,7 @@ namespace ImageSharp.Formats
         private struct HuffmanSpec
         {
             /// <summary>
-            /// Initializes a n ew instance of the <see cref="HuffmanSpec"/> struct.
+            /// Initializes a new instance of the <see cref="HuffmanSpec"/> struct.
             /// </summary>
             /// <param name="count">The number of codes.</param>
             /// <param name="values">The decoded values.</param>

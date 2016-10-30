@@ -41,12 +41,7 @@ namespace ImageSharp
         /// </exception>
         protected ImageBase(int width, int height)
         {
-            Guard.MustBeGreaterThan(width, 0, nameof(width));
-            Guard.MustBeGreaterThan(height, 0, nameof(height));
-
-            this.Width = width;
-            this.Height = height;
-            this.pixelBuffer = new TColor[width * height];
+            this.InitPixels(width, height);
         }
 
         /// <summary>
@@ -101,6 +96,17 @@ namespace ImageSharp
 
         /// <inheritdoc/>
         public int FrameDelay { get; set; }
+
+        /// <inheritdoc/>
+        public void InitPixels(int width, int height)
+        {
+            Guard.MustBeGreaterThan(width, 0, nameof(width));
+            Guard.MustBeGreaterThan(height, 0, nameof(height));
+
+            this.Width = width;
+            this.Height = height;
+            this.pixelBuffer = new TColor[width * height];
+        }
 
         /// <inheritdoc/>
         public void SetPixels(int width, int height, TColor[] pixels)

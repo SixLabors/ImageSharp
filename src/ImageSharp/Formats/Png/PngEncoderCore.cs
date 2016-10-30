@@ -248,7 +248,7 @@ namespace ImageSharp.Formats
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="image">The image to encode.</param>
         private void CollectGrayscaleBytes<TColor, TPacked>(ImageBase<TColor, TPacked> image)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             // Copy the pixels across from the image.
@@ -292,7 +292,7 @@ namespace ImageSharp.Formats
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="image">The image to encode.</param>
         private void CollectColorBytes<TColor, TPacked>(ImageBase<TColor, TPacked> image)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             // Copy the pixels across from the image.

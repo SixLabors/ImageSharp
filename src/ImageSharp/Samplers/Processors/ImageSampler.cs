@@ -13,7 +13,7 @@ namespace ImageSharp.Processors
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public abstract class ImageSampler<TColor, TPacked> : ImageProcessor<TColor, TPacked>, IImageSampler<TColor, TPacked>
-        where TColor : struct, IPackedVector<TPacked>
+        where TColor : struct, IPackedPixel<TPacked>
         where TPacked : struct
     {
         /// <inheritdoc/>

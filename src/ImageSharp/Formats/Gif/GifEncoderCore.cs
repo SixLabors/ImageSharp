@@ -227,7 +227,7 @@ namespace ImageSharp.Formats
         /// <param name="writer">The stream to write to.</param>
         /// <param name="transparencyIndex">The index of the color in the color palette to make transparent.</param>
         private void WriteGraphicalControlExtension<TColor, TPacked>(ImageBase<TColor, TPacked> image, EndianBinaryWriter writer, int transparencyIndex)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             // TODO: Check transparency logic.
@@ -275,7 +275,7 @@ namespace ImageSharp.Formats
         /// <param name="image">The <see cref="ImageBase{TColor, TPacked}"/> to be encoded.</param>
         /// <param name="writer">The stream to write to.</param>
         private void WriteImageDescriptor<TColor, TPacked>(ImageBase<TColor, TPacked> image, EndianBinaryWriter writer)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             writer.Write(GifConstants.ImageDescriptorLabel); // 2c

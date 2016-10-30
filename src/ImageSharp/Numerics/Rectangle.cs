@@ -236,7 +236,7 @@ namespace ImageSharp
         /// <returns><see cref="Point"/></returns>
         public static Point Center(Rectangle rectangle)
         {
-            return new Point(rectangle.Left + rectangle.Width / 2, rectangle.Top + rectangle.Height / 2);
+            return new Point(rectangle.Left + (rectangle.Width / 2), rectangle.Top + (rectangle.Height / 2));
         }
 
         /// <inheritdoc/>

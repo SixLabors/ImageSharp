@@ -104,8 +104,8 @@ namespace ImageSharp
         /// <returns>The <see cref="TColor"/> at the specified position.</returns>
         public TColor this[int x, int y]
         {
-            get { return Unsafe.Read<TColor>(this.pixelsBase + (y * this.Width + x) * Unsafe.SizeOf<TColor>()); }
-            set { Unsafe.Write(this.pixelsBase + (y * this.Width + x) * Unsafe.SizeOf<TColor>(), value); }
+            get { return Unsafe.Read<TColor>(this.pixelsBase + (((y * this.Width) + x) * Unsafe.SizeOf<TColor>())); }
+            set { Unsafe.Write(this.pixelsBase + (((y * this.Width) + x) * Unsafe.SizeOf<TColor>()), value); }
         }
 
         /// <summary>
@@ -120,8 +120,8 @@ namespace ImageSharp
         public void CopyBlock(int sourceX, int sourceY, PixelAccessor<TColor, TPacked> target, int targetX, int targetY, int pixelCount)
         {
             int size = Unsafe.SizeOf<TColor>();
-            byte* sourcePtr = this.pixelsBase + (sourceY * this.Width + sourceX) * size;
-            byte* targetPtr = target.pixelsBase + (targetY * target.Width + targetX) * size;
+            byte* sourcePtr = this.pixelsBase + (((sourceY * this.Width) + sourceX) * size);
+            byte* targetPtr = target.pixelsBase + (((targetY * target.Width) + targetX) * size);
             uint byteCount = (uint)(pixelCount * size);
 
             Unsafe.CopyBlock(targetPtr, sourcePtr, byteCount);

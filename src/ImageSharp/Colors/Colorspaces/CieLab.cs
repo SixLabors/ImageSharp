@@ -89,9 +89,9 @@ namespace ImageSharp
             //y /= 1F;
             z /= 1.08883F;
 
-            x = x > 0.008856F ? (float)Math.Pow(x, 0.3333333F) : (903.3F * x + 16F) / 116F;
-            y = y > 0.008856F ? (float)Math.Pow(y, 0.3333333F) : (903.3F * y + 16F) / 116F;
-            z = z > 0.008856F ? (float)Math.Pow(z, 0.3333333F) : (903.3F * z + 16F) / 116F;
+            x = x > 0.008856F ? (float)Math.Pow(x, 0.3333333F) : ((903.3F * x) + 16F) / 116F;
+            y = y > 0.008856F ? (float)Math.Pow(y, 0.3333333F) : ((903.3F * y) + 16F) / 116F;
+            z = z > 0.008856F ? (float)Math.Pow(z, 0.3333333F) : ((903.3F * z) + 16F) / 116F;
 
             float l = Math.Max(0, (116F * y) - 16F);
             float a = 500F * (x - y);

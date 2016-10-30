@@ -78,7 +78,7 @@ namespace ImageSharp.Formats
             }
 
             // Just in case
-            flg -= (cmf * 256 + flg) % 31;
+            flg -= ((cmf * 256) + flg) % 31;
 
             if (flg < 0)
             {

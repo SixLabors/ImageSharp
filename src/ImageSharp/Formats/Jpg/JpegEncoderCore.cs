@@ -309,10 +309,10 @@ namespace ImageSharp.Formats
 
             // Emit the DC delta.
             int dc = Round(block[0], 8 * this.quant[(int)index][0]);
-            this.EmitHuffRLE((HuffIndex)(2 * (int)index + 0), 0, dc - prevDC);
+            this.EmitHuffRLE((HuffIndex)((2 * (int)index) + 0), 0, dc - prevDC);
 
             // Emit the AC components.
-            var h = (HuffIndex)(2 * (int)index + 1);
+            var h = (HuffIndex)((2 * (int)index) + 1);
             int runLength = 0;
 
             for (int zig = 1; zig < Block.BlockSize; zig++)
@@ -376,9 +376,9 @@ namespace ImageSharp.Formats
                 {
                     for (int x = 0; x < 4; x++)
                     {
-                        int j = 16 * y + 2 * x;
+                        int j = (16 * y) + (2 * x);
                         int sum = source[i][j] + source[i][j + 1] + source[i][j + 8] + source[i][j + 9];
-                        destination[8 * y + x + dstOff] = (sum + 2) / 4;
+                        destination[(8 * y) + x + dstOff] = (sum + 2) / 4;
                     }
                 }
             }
@@ -468,7 +468,7 @@ namespace ImageSharp.Formats
             }
             else
             {
-                scale = 200 - quality * 2;
+                scale = 200 - (quality * 2);
             }
 
             // Initialize the quantization tables.
@@ -477,7 +477,7 @@ namespace ImageSharp.Formats
                 for (int j = 0; j < Block.BlockSize; j++)
                 {
                     int x = this.unscaledQuant[i, j];
-                    x = (x * scale + 50) / 100;
+                    x = ((x * scale) + 50) / 100;
                     if (x < 1) x = 1;
                     if (x > 255) x = 255;
                     this.quant[i][j] = (byte)x;
@@ -611,7 +611,7 @@ namespace ImageSharp.Formats
         /// </summary>
         private void WriteDQT()
         {
-            int markerlen = 2 + NQuantIndex * (1 + Block.BlockSize);
+            int markerlen = 2 + (NQuantIndex * (1 + Block.BlockSize));
             this.WriteMarkerHeader(JpegConstants.Markers.DQT, markerlen);
             for (int i = 0; i < NQuantIndex; i++)
             {
@@ -643,7 +643,7 @@ namespace ImageSharp.Formats
             }
 
             // Length (high byte, low byte), 8 + components * 3.
-            int markerlen = 8 + 3 * componentCount;
+            int markerlen = 8 + (3 * componentCount);
             this.WriteMarkerHeader(JpegConstants.Markers.SOF0, markerlen);
             this.buffer[0] = 8; // Data Precision. 8 for now, 12 and 16 bit jpegs not supported
             this.buffer[1] = (byte)(height >> 8);
@@ -663,15 +663,15 @@ namespace ImageSharp.Formats
             {
                 for (int i = 0; i < componentCount; i++)
                 {
-                    this.buffer[3 * i + 6] = (byte)(i + 1);
+                    this.buffer[(3 * i) + 6] = (byte)(i + 1);
 
                     // We use 4:2:0 chroma subsampling by default.
-                    this.buffer[3 * i + 7] = subsamples[i];
-                    this.buffer[3 * i + 8] = chroma[i];
+                    this.buffer[(3 * i) + 7] = subsamples[i];
+                    this.buffer[(3 * i) + 8] = chroma[i];
                 }
             }
 
-            this.outputStream.Write(this.buffer, 0, 3 * (componentCount - 1) + 9);
+            this.outputStream.Write(this.buffer, 0, (3 * (componentCount - 1)) + 9);
         }
 
         /// <summary>

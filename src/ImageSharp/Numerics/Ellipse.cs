@@ -109,8 +109,8 @@ namespace ImageSharp
             int nX = normalized.X;
             int nY = normalized.Y;
 
-            return (double)(nX * nX) / (this.RadiusX * this.RadiusX)
-                 + (double)(nY * nY) / (this.RadiusY * this.RadiusY)
+            return ((double)(nX * nX) / (this.RadiusX * this.RadiusX))
+                 + ((double)(nY * nY) / (this.RadiusY * this.RadiusY))
                  <= 1.0;
         }
 

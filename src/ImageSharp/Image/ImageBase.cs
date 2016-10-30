@@ -146,7 +146,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc/>
-        public PixelAccessor<TColor, TPacked> Lock()
+        public virtual PixelAccessor<TColor, TPacked> Lock()
         {
             return new PixelAccessor<TColor, TPacked>(this);
         }

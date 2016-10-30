@@ -20,7 +20,6 @@ namespace ImageSharp
         where TColor : struct, IPackedVector<TPacked>
         where TPacked : struct
     {
-
         /// <summary>
         /// The image pixels
         /// </summary>

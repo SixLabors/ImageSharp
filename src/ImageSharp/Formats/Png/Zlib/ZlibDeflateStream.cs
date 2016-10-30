@@ -72,7 +72,6 @@ namespace ImageSharp.Formats
             {
                 flg = 94;
             }
-
             else if (compressionLevel <= 2)
             {
                 flg = 1;
@@ -96,7 +95,6 @@ namespace ImageSharp.Formats
             {
                 level = CompressionLevel.Fastest;
             }
-
             else if (compressionLevel == 0)
             {
                 level = CompressionLevel.NoCompression;

@@ -9,7 +9,7 @@ namespace ImageSharp
     using System.Linq;
 
     /// <summary>
-    /// Provides methods to help calculate the target rectangle when resizing using the 
+    /// Provides methods to help calculate the target rectangle when resizing using the
     /// <see cref="ResizeMode"/> enumeration.
     /// </summary>
     internal static class ResizeHelper
@@ -283,7 +283,7 @@ namespace ImageSharp
             int boxPadHeight = height > 0 ? height : Convert.ToInt32(sourceHeight * percentWidth);
             int boxPadWidth = width > 0 ? width : Convert.ToInt32(sourceWidth * percentHeight);
 
-            // Only calculate if upscaling. 
+            // Only calculate if upscaling.
             if (sourceWidth < boxPadWidth && sourceHeight < boxPadHeight)
             {
                 int destinationX;
@@ -336,7 +336,7 @@ namespace ImageSharp
                 return new Rectangle(destinationX, destinationY, destinationWidth, destinationHeight);
             }
 
-            // Switch to pad mode to downscale and calculate from there. 
+            // Switch to pad mode to downscale and calculate from there.
             return CalculatePadRectangle(source, options);
         }
 

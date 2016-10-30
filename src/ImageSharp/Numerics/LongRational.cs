@@ -18,10 +18,10 @@ namespace ImageSharp
     internal struct LongRational : IEquatable<LongRational>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="LongRational"/> struct. 
+        /// Initializes a new instance of the <see cref="LongRational"/> struct.
         /// </summary>
         /// <param name="numerator">
-        /// The number above the line in a vulgar fraction showing how many of the parts 
+        /// The number above the line in a vulgar fraction showing how many of the parts
         /// indicated by the denominator are taken.
         /// </param>
         /// <param name="denominator">
@@ -33,10 +33,10 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="LongRational"/> struct. 
+        /// Initializes a new instance of the <see cref="LongRational"/> struct.
         /// </summary>
         /// <param name="numerator">
-        /// The number above the line in a vulgar fraction showing how many of the parts 
+        /// The number above the line in a vulgar fraction showing how many of the parts
         /// indicated by the denominator are taken.
         /// </param>
         /// <param name="denominator">
@@ -58,7 +58,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="LongRational"/> struct. 
+        /// Initializes a new instance of the <see cref="LongRational"/> struct.
         /// </summary>
         /// <param name="value">The <see cref="double"/> to create the instance from.</param>
         /// <param name="bestPrecision">Whether to use the best possible precision when parsing the value.</param>
@@ -134,7 +134,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Gets a value indicating whether this instance is indeterminate. 
+        /// Gets a value indicating whether this instance is indeterminate.
         /// </summary>
         public bool IsIndeterminate
         {
@@ -155,7 +155,7 @@ namespace ImageSharp
         public bool IsInteger => this.Denominator == 1;
 
         /// <summary>
-        /// Gets a value indicating whether this instance is equal to negative infinity (-1, 0) 
+        /// Gets a value indicating whether this instance is equal to negative infinity (-1, 0)
         /// </summary>
         public bool IsNegativeInfinity
         {
@@ -171,7 +171,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Gets a value indicating whether this instance is equal to positive infinity (1, 0) 
+        /// Gets a value indicating whether this instance is equal to positive infinity (1, 0)
         /// </summary>
         public bool IsPositiveInfinity
         {
@@ -236,11 +236,11 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Converts the numeric value of this instance to its equivalent string representation using 
+        /// Converts the numeric value of this instance to its equivalent string representation using
         /// the specified culture-specific format information.
         /// </summary>
         /// <param name="provider">
-        /// An object that supplies culture-specific formatting information. 
+        /// An object that supplies culture-specific formatting information.
         /// </param>
         /// <returns>The <see cref="string"/></returns>
         public string ToString(IFormatProvider provider)

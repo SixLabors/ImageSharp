@@ -10,7 +10,7 @@ namespace ImageSharp
     using System.Diagnostics;
 
     /// <summary>
-    /// The base class of all images. Encapsulates the basic properties and methods required to manipulate 
+    /// The base class of all images. Encapsulates the basic properties and methods required to manipulate
     /// images in different pixel formats.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>

@@ -48,7 +48,7 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Returns a new <see cref="PackedField"/>  with the bits in the packed fields to 
+        /// Returns a new <see cref="PackedField"/>  with the bits in the packed fields to
         /// the corresponding bits from the supplied byte.
         /// </summary>
         /// <param name="value">The value to pack.</param>
@@ -61,7 +61,7 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Sets the specified bit within the packed fields to the supplied 
+        /// Sets the specified bit within the packed fields to the supplied
         /// value.
         /// </summary>
         /// <param name="index">
@@ -84,7 +84,7 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Sets the specified bits within the packed fields to the supplied 
+        /// Sets the specified bits within the packed fields to the supplied
         /// value.
         /// </summary>
         /// <param name="startIndex">The zero-based index within the packed fields of the first bit to  set.</param>

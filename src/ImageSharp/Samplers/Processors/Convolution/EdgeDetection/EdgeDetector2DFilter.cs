@@ -31,7 +31,7 @@ namespace ImageSharp.Processors
         /// <inheritdoc />
         public override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-            // TODO: Figure out a way to pass event handlers to child classes. 
+            // TODO: Figure out a way to pass event handlers to child classes.
             new Convolution2DFilter<TColor, TPacked>(this.KernelX, this.KernelY).Apply(target, source, targetRectangle, sourceRectangle, startY, endY);
         }
 

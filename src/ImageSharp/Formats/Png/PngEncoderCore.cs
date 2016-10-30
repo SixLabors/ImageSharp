@@ -59,7 +59,7 @@ namespace ImageSharp.Formats
         public PngColorType PngColorType { get; set; }
 
         /// <summary>
-        /// Gets or sets the compression level 1-9. 
+        /// Gets or sets the compression level 1-9.
         /// <remarks>Defaults to 6.</remarks>
         /// </summary>
         public int CompressionLevel { get; set; } = 6;

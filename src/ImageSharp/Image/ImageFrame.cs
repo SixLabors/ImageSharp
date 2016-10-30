@@ -15,14 +15,14 @@ namespace ImageSharp
         where TPacked : struct
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageFrame{TColor, TPacked}"/> class. 
+        /// Initializes a new instance of the <see cref="ImageFrame{TColor, TPacked}"/> class.
         /// </summary>
         public ImageFrame()
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageFrame{TColor, TPacked}"/> class. 
+        /// Initializes a new instance of the <see cref="ImageFrame{TColor, TPacked}"/> class.
         /// </summary>
         /// <param name="frame">
         /// The frame to create the frame from.

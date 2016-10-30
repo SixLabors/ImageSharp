@@ -6,7 +6,7 @@
 namespace ImageSharp.Formats
 {
     /// <summary>
-    /// The None filter, the scanline is transmitted unmodified; it is only necessary to 
+    /// The None filter, the scanline is transmitted unmodified; it is only necessary to
     /// insert a filter type byte before the data.
     /// <see href="https://www.w3.org/TR/PNG-Filters.html"/>
     /// </summary>

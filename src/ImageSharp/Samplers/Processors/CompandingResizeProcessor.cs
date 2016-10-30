@@ -10,7 +10,7 @@ namespace ImageSharp.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// Provides methods that allow the resizing of images using various algorithms. 
+    /// Provides methods that allow the resizing of images using various algorithms.
     /// This version will expand and compress the image to and from a linear color space during processing.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
@@ -88,7 +88,7 @@ namespace ImageSharp.Processors
             }
 
             // Interpolate the image using the calculated weights.
-            // A 2-pass 1D algorithm appears to be faster than splitting a 1-pass 2D algorithm 
+            // A 2-pass 1D algorithm appears to be faster than splitting a 1-pass 2D algorithm
             // First process the columns. Since we are not using multiple threads startY and endY
             // are the upper and lower bounds of the source rectangle.
             Image<TColor, TPacked> firstPass = new Image<TColor, TPacked>(target.Width, source.Height);

@@ -67,7 +67,7 @@ namespace ImageSharp.Formats
         private uint checksum;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Adler32"/> class. 
+        /// Initializes a new instance of the <see cref="Adler32"/> class.
         /// The checksum starts off with a value of 1.
         /// </summary>
         public Adler32()

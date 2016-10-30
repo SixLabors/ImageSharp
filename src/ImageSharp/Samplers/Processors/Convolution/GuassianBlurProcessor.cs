@@ -101,7 +101,7 @@ namespace ImageSharp.Processors
             {
                 kernel[0] = new float[size];
             }
-            
+
             float sum = 0.0f;
 
             float midpoint = (size - 1) / 2f;

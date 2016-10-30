@@ -37,7 +37,7 @@ namespace ImageSharp
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
-        /// <param name="quality">The quality to save the image to representing the number of colors. 
+        /// <param name="quality">The quality to save the image to representing the number of colors.
         /// Anything equal to 256 and below will cause the encoder to save the image in an indexed format.
         /// </param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>

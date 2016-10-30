@@ -173,11 +173,11 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Converts the numeric value of this instance to its equivalent string representation using 
+        /// Converts the numeric value of this instance to its equivalent string representation using
         /// the specified culture-specific format information.
         /// </summary>
         /// <param name="provider">
-        /// An object that supplies culture-specific formatting information. 
+        /// An object that supplies culture-specific formatting information.
         /// </param>
         /// <returns>The <see cref="string"/></returns>
         public string ToString(IFormatProvider provider)

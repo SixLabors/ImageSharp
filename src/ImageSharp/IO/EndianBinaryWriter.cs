@@ -31,7 +31,7 @@ namespace ImageSharp.IO
         private bool disposed;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="EndianBinaryWriter"/> class 
+        /// Initializes a new instance of the <see cref="EndianBinaryWriter"/> class
         /// with the given bit converter, writing to the given stream, using UTF-8 encoding.
         /// </summary>
         /// <param name="bitConverter">Converter to use when writing data</param>

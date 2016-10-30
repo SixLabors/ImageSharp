@@ -64,7 +64,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Finalizes an instance of the <see cref="PixelAccessor{TColor,TPacked}"/> class. 
+        /// Finalizes an instance of the <see cref="PixelAccessor{TColor,TPacked}"/> class.
         /// </summary>
         ~PixelAccessor()
         {
@@ -159,7 +159,7 @@ namespace ImageSharp
 
             // This object will be cleaned up by the Dispose method.
             // Therefore, you should call GC.SuppressFinalize to
-            // take this object off the finalization queue 
+            // take this object off the finalization queue
             // and prevent finalization code for this object
             // from executing a second time.
             GC.SuppressFinalize(this);

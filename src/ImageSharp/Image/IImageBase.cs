@@ -34,7 +34,7 @@ namespace ImageSharp
         void SetPixels(int width, int height, TColor[] pixels);
 
         /// <summary>
-        /// Sets the pixel array of the image to the given value, creating a copy of 
+        /// Sets the pixel array of the image to the given value, creating a copy of
         /// the original pixels.
         /// </summary>
         /// <param name="width">The new width of the image. Must be greater than zero.</param>

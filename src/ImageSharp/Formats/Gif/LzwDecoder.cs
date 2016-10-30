@@ -147,7 +147,7 @@ namespace ImageSharp.Formats
 
                     if (oldCode == NullCode)
                     {
-                        pixelStatck[top++] = suffix[code]; 
+                        pixelStatck[top++] = suffix[code];
                         oldCode = code;
                         first = code;
                         continue;

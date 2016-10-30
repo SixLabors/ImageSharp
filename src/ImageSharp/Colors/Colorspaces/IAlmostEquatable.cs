@@ -8,12 +8,12 @@ namespace ImageSharp
     using System;
 
     /// <summary>
-    /// Defines a generalized method that a value type or class implements to create 
+    /// Defines a generalized method that a value type or class implements to create
     /// a type-specific method for determining approximate equality of instances.
     /// </summary>
     /// <typeparam name="TColor">The type of objects to compare.</typeparam>
     /// <typeparam name="TPrecision">The object specifying the type to specify precision with.</typeparam>
-    public interface IAlmostEquatable<in TColor, in TPrecision> 
+    public interface IAlmostEquatable<in TColor, in TPrecision>
         where TPrecision : struct, IComparable<TPrecision>
     {
         /// <summary>

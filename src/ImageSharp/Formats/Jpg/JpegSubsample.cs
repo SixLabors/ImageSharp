@@ -11,13 +11,13 @@ namespace ImageSharp.Formats
     public enum JpegSubsample
     {
         /// <summary>
-        /// High Quality - Each of the three Y'CbCr components have the same sample rate, 
+        /// High Quality - Each of the three Y'CbCr components have the same sample rate,
         /// thus there is no chroma subsampling.
         /// </summary>
         Ratio444,
 
         /// <summary>
-        /// Medium Quality - The horizontal sampling is halved and the Cb and Cr channels are only 
+        /// Medium Quality - The horizontal sampling is halved and the Cb and Cr channels are only
         /// sampled on each alternate line.
         /// </summary>
         Ratio420

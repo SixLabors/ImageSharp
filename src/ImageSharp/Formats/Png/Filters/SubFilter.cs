@@ -6,7 +6,7 @@
 namespace ImageSharp.Formats
 {
     /// <summary>
-    /// The Sub filter transmits the difference between each byte and the value of the corresponding byte 
+    /// The Sub filter transmits the difference between each byte and the value of the corresponding byte
     /// of the prior pixel.
     /// <see href="https://www.w3.org/TR/PNG-Filters.html"/>
     /// </summary>

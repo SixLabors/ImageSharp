@@ -6,7 +6,7 @@
 namespace ImageSharp.Formats
 {
     /// <summary>
-    /// Represents an image made up of three color components (luminance, blue chroma, red chroma) 
+    /// Represents an image made up of three color components (luminance, blue chroma, red chroma)
     /// </summary>
     internal class YCbCrImage
     {

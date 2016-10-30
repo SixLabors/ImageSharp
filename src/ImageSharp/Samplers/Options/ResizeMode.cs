@@ -22,7 +22,7 @@ namespace ImageSharp
         Pad,
 
         /// <summary>
-        /// Pads the image to fit the bound of the container without resizing the 
+        /// Pads the image to fit the bound of the container without resizing the
         /// original source.
         /// When downscaling, performs the same functionality as <see cref="ResizeMode.Pad"/>
         /// </summary>
@@ -30,13 +30,13 @@ namespace ImageSharp
 
         /// <summary>
         /// Constrains the resized image to fit the bounds of its container maintaining
-        /// the original aspect ratio. 
+        /// the original aspect ratio.
         /// </summary>
         Max,
 
         /// <summary>
         /// Resizes the image until the shortest side reaches the set given dimension.
-        /// Upscaling is disabled in this mode and the original image will be returned 
+        /// Upscaling is disabled in this mode and the original image will be returned
         /// if attempted.
         /// </summary>
         Min,

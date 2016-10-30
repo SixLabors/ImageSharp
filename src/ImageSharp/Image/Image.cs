@@ -241,7 +241,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Returns a Base64 encoded string from the given image. 
+        /// Returns a Base64 encoded string from the given image.
         /// </summary>
         /// <example>data:image/gif;base64,R0lGODlhAQABAIABAEdJRgAAACwAAAAAAQABAAACAkQBAA==</example>
         /// <returns>The <see cref="string"/></returns>

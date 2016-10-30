@@ -14,7 +14,7 @@ namespace ImageSharp
     public static class ColorConstants
     {
         /// <summary>
-        /// Provides a lazy, one time method of returning the colors. 
+        /// Provides a lazy, one time method of returning the colors.
         /// </summary>
         private static readonly Lazy<Color[]> SafeColors = new Lazy<Color[]>(GetWebSafeColors);
 

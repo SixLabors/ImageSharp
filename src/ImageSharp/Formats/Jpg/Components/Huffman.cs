@@ -11,7 +11,7 @@ namespace ImageSharp.Formats
     internal class Huffman
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="Huffman"/> class. 
+        /// Initializes a new instance of the <see cref="Huffman"/> class.
         /// </summary>
         /// <param name="lutSize">The log-2 size of the Huffman decoder's look-up table.</param>
         /// <param name="maxNCodes">The maximum (inclusive) number of codes in a Huffman tree.</param>

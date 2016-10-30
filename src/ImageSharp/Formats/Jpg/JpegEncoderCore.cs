@@ -112,7 +112,7 @@ namespace ImageSharp.Formats
                 {
                     0, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0
                 },
-                new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 }), 
+                new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 }),
 
             // Chrominance AC.
             new HuffmanSpec(
@@ -296,7 +296,7 @@ namespace ImageSharp.Formats
 
         /// <summary>
         /// Writes a block of pixel data using the given quantization table,
-        /// returning the post-quantized DC value of the DCT-transformed block. 
+        /// returning the post-quantized DC value of the DCT-transformed block.
         /// The block is in natural (not zig-zag) order.
         /// </summary>
         /// <param name="block">The block to write.</param>
@@ -397,7 +397,7 @@ namespace ImageSharp.Formats
             0x00, 0x08, // Length (high byte, low byte), must be 6 + 2 * (number of components in scan)
             0x01, // Number of components in a scan, 1
             0x01, // Component Id Y
-            0x00, // DC/AC Huffman table 
+            0x00, // DC/AC Huffman table
             0x00, // Ss - Start of spectral selection.
             0x3f, // Se - End of spectral selection.
             0x00 // Ah + Ah (Successive approximation bit position high + low)
@@ -418,11 +418,11 @@ namespace ImageSharp.Formats
             0x00, 0x0c, // Length (high byte, low byte), must be 6 + 2 * (number of components in scan)
             0x03, // Number of components in a scan, 3
             0x01, // Component Id Y
-            0x00, // DC/AC Huffman table 
+            0x00, // DC/AC Huffman table
             0x02, // Component Id Cb
-            0x11, // DC/AC Huffman table 
+            0x11, // DC/AC Huffman table
             0x03, // Component Id Cr
-            0x11, // DC/AC Huffman table 
+            0x11, // DC/AC Huffman table
             0x00, // Ss - Start of spectral selection.
             0x3f, // Se - End of spectral selection.
             0x00 // Ah + Ah (Successive approximation bit position high + low)
@@ -759,7 +759,7 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Encodes the image with subsampling. The Cb and Cr components are each subsampled 
+        /// Encodes the image with subsampling. The Cb and Cr components are each subsampled
         /// at a factor of 2 both horizontally and vertically.
         /// </summary>
         /// <param name="pixels">The pixel accessor providing acces to the image pixels.</param>

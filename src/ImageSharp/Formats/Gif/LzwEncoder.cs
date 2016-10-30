@@ -94,7 +94,7 @@ namespace ImageSharp.Formats
         private int freeEntry;
 
         /// <summary>
-        /// Block compression parameters -- after all codes are used up, 
+        /// Block compression parameters -- after all codes are used up,
         /// and compression rate changes, start over.
         /// </summary>
         private bool clearFlag;
@@ -179,7 +179,7 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Add a character to the end of the current packet, and if it is 254 characters, 
+        /// Add a character to the end of the current packet, and if it is 254 characters,
         /// flush the packet to disk.
         /// </summary>
         /// <param name="c">The character to add.</param>

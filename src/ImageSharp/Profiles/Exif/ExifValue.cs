@@ -148,7 +148,6 @@ namespace ImageSharp
         /// <inheritdoc/>
         public override string ToString()
         {
-
             if (this.exifValue == null)
             {
                 return null;

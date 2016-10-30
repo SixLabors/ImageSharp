@@ -136,6 +136,27 @@ namespace ImageSharp
             this.CopyBlock(0, 0, target, 0, 0, target.Width * target.Height);
         }
 
+        public void CopyFrom(PixelRow<TColor, TPacked> row, int targetY)
+        {
+            switch (row.ComponentOrder)
+            {
+                case ComponentOrder.BGR:
+                    this.CopyFromBGR(row, targetY, Math.Min(row.Width, this.Width));
+                    break;
+                case ComponentOrder.BGRA:
+                    this.CopyFromBGRA(row, targetY, Math.Min(row.Width, this.Width));
+                    break;
+                case ComponentOrder.RGB:
+                    this.CopyFromRGB(row, targetY, Math.Min(row.Width, this.Width));
+                    break;
+                case ComponentOrder.RGBA:
+                    this.CopyFromRGBA(row, targetY, Math.Min(row.Width, this.Width));
+                    break;
+                default:
+                  throw new NotSupportedException();
+            }
+        }
+
         /// <summary>
         /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
@@ -163,6 +184,83 @@ namespace ImageSharp
             // and prevent finalization code for this object
             // from executing a second time.
             GC.SuppressFinalize(this);
+        }
+
+        protected virtual void CopyFromBGR(PixelRow<TColor, TPacked> row, int targetY, int width)
+        {
+            byte* source = row.DataPointer;
+            byte* destination = this.GetRowPointer(targetY);
+
+            TColor packed = default(TColor);
+            int size = Unsafe.SizeOf<TColor>();
+
+            for (int x = 0; x < width; x++)
+            {
+                packed.PackFromBytes(*(source + 2), *(source + 1), *source, 255);
+                Unsafe.Write(destination, packed);
+
+                source += 3;
+                destination += size;
+            }
+        }
+
+        protected virtual void CopyFromBGRA(PixelRow<TColor, TPacked> row, int targetY, int width)
+        {
+            byte* source = row.DataPointer;
+            byte* destination = this.GetRowPointer(targetY);
+
+            TColor packed = default(TColor);
+            int size = Unsafe.SizeOf<TColor>();
+
+            for (int x = 0; x < width; x++)
+            {
+                packed.PackFromBytes(*(source + 2), *(source + 1), *source, *(source + 3));
+                Unsafe.Write(destination, packed);
+
+                source += 4;
+                destination += size;
+            }
+        }
+
+        protected virtual void CopyFromRGB(PixelRow<TColor, TPacked> row, int targetY, int width)
+        {
+            byte* source = row.DataPointer;
+            byte* destination = this.GetRowPointer(targetY);
+
+            TColor packed = default(TColor);
+            int size = Unsafe.SizeOf<TColor>();
+
+            for (int x = 0; x < width; x++)
+            {
+                packed.PackFromBytes(*source, *(source + 1), *(source + 2), 255);
+                Unsafe.Write(destination, packed);
+
+                source += 3;
+                destination += size;
+            }
+        }
+
+        protected virtual void CopyFromRGBA(PixelRow<TColor, TPacked> row, int targetY, int width)
+        {
+            byte* source = row.DataPointer;
+            byte* destination = this.GetRowPointer(targetY);
+
+            TColor packed = default(TColor);
+            int size = Unsafe.SizeOf<TColor>();
+
+            for (int x = 0; x < width; x++)
+            {
+                packed.PackFromBytes(*source, *(source + 1), *(source + 2), *(source + 3));
+                Unsafe.Write(destination, packed);
+
+                source += 4;
+                destination += size;
+            }
+        }
+
+        protected byte* GetRowPointer(int targetY)
+        {
+            return this.pixelsBase + ((targetY * this.Width) * Unsafe.SizeOf<TColor>());
         }
     }
 }

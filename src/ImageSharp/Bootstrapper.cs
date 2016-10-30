@@ -45,7 +45,7 @@ namespace ImageSharp
         /// <summary>
         /// Gets the current bootstrapper instance.
         /// </summary>
-        public static Bootstrapper Instance = Lazy.Value;
+        public static Bootstrapper Instance => Lazy.Value;
 
         /// <summary>
         /// Gets the collection of supported <see cref="IImageFormat"/>

@@ -20,6 +20,16 @@ namespace ImageSharp
         TColor[] Pixels { get; }
 
         /// <summary>
+        /// Sets the size of the pixel array of the image to the given width and height.
+        /// </summary>
+        /// <param name="width">The new width of the image. Must be greater than zero.</param>
+        /// <param name="height">The new height of the image. Must be greater than zero.</param>
+        /// <exception cref="System.ArgumentOutOfRangeException">
+        /// Thrown if either <paramref name="width"/> or <paramref name="height"/> are less than or equal to 0.
+        /// </exception>
+        void InitPixels(int width, int height);
+
+        /// <summary>
         /// Sets the pixel array of the image to the given value.
         /// </summary>
         /// <param name="width">The new width of the image. Must be greater than zero.</param>

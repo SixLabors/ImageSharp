@@ -155,19 +155,12 @@ namespace ImageSharp.Formats
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
-            for (int y = pixels.Height - 1; y >= 0; y--)
+            using (PixelRow<TColor, TPacked> row = new PixelRow<TColor, TPacked>(pixels.Width, ComponentOrder.BGRA, this.padding))
             {
-                for (int x = 0; x < pixels.Width; x++)
+                for (int y = pixels.Height - 1; y >= 0; y--)
                 {
-                    // Convert back to b-> g-> r-> a order.
-                    Color color = new Color(pixels[x, y].ToVector4());
-                    writer.Write(new[] { color.B, color.G, color.R, color.A });
-                }
-
-                // Pad
-                for (int i = 0; i < this.padding; i++)
-                {
-                    writer.Write((byte)0);
+                    pixels.CopyTo(row, y);
+                    writer.Write(row.Data);
                 }
             }
         }
@@ -183,19 +176,12 @@ namespace ImageSharp.Formats
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
-            for (int y = pixels.Height - 1; y >= 0; y--)
+            using (PixelRow<TColor, TPacked> row = new PixelRow<TColor, TPacked>(pixels.Width, ComponentOrder.BGR, this.padding))
             {
-                for (int x = 0; x < pixels.Width; x++)
+                for (int y = pixels.Height - 1; y >= 0; y--)
                 {
-                    // Convert back to b-> g-> r order.
-                    Color color = new Color(pixels[x, y].ToVector4());
-                    writer.Write(new[] { color.B, color.G, color.R });
-                }
-
-                // Pad
-                for (int i = 0; i < this.padding; i++)
-                {
-                    writer.Write((byte)0);
+                    pixels.CopyTo(row, y);
+                    writer.Write(row.Data);
                 }
             }
         }

@@ -7,7 +7,6 @@ namespace ImageSharp.Formats
 {
     using System;
     using System.IO;
-    using System.Threading.Tasks;
 
     /// <summary>
     /// Performs the bmp decoding operation.
@@ -121,39 +120,40 @@ namespace ImageSharp.Formats
                         + $"bigger then the max allowed size '{image.MaxWidth}x{image.MaxHeight}'");
                 }
 
-                TColor[] imageData = new TColor[this.infoHeader.Width * this.infoHeader.Height];
+                image.InitPixels(this.infoHeader.Width, this.infoHeader.Height);
 
-                switch (this.infoHeader.Compression)
+                using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
                 {
-                    case BmpCompression.RGB:
-                        if (this.infoHeader.HeaderSize != 40)
-                        {
-                            throw new ImageFormatException($"Header Size value '{this.infoHeader.HeaderSize}' is not valid.");
-                        }
+                    switch (this.infoHeader.Compression)
+                    {
+                        case BmpCompression.RGB:
+                            if (this.infoHeader.HeaderSize != 40)
+                            {
+                                throw new ImageFormatException($"Header Size value '{this.infoHeader.HeaderSize}' is not valid.");
+                            }
 
-                        if (this.infoHeader.BitsPerPixel == 32)
-                        {
-                            this.ReadRgb32<TColor, TPacked>(imageData, this.infoHeader.Width, this.infoHeader.Height, inverted);
-                        }
-                        else if (this.infoHeader.BitsPerPixel == 24)
-                        {
-                            this.ReadRgb24<TColor, TPacked>(imageData, this.infoHeader.Width, this.infoHeader.Height, inverted);
-                        }
-                        else if (this.infoHeader.BitsPerPixel == 16)
-                        {
-                            this.ReadRgb16<TColor, TPacked>(imageData, this.infoHeader.Width, this.infoHeader.Height, inverted);
-                        }
-                        else if (this.infoHeader.BitsPerPixel <= 8)
-                        {
-                            this.ReadRgbPalette<TColor, TPacked>(imageData, palette, this.infoHeader.Width, this.infoHeader.Height, this.infoHeader.BitsPerPixel, inverted);
-                        }
+                            if (this.infoHeader.BitsPerPixel == 32)
+                            {
+                                this.ReadRgb32<TColor, TPacked>(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
+                            }
+                            else if (this.infoHeader.BitsPerPixel == 24)
+                            {
+                                this.ReadRgb24<TColor, TPacked>(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
+                            }
+                            else if (this.infoHeader.BitsPerPixel == 16)
+                            {
+                                this.ReadRgb16<TColor, TPacked>(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
+                            }
+                            else if (this.infoHeader.BitsPerPixel <= 8)
+                            {
+                                this.ReadRgbPalette<TColor, TPacked>(pixels, palette, this.infoHeader.Width, this.infoHeader.Height, this.infoHeader.BitsPerPixel, inverted);
+                            }
 
-                        break;
-                    default:
-                        throw new NotSupportedException("Does not support this kind of bitmap files.");
+                            break;
+                        default:
+                            throw new NotSupportedException("Does not support this kind of bitmap files.");
+                    }
                 }
-
-                image.SetPixels(this.infoHeader.Width, this.infoHeader.Height, imageData);
             }
             catch (IndexOutOfRangeException e)
             {
@@ -184,18 +184,30 @@ namespace ImageSharp.Formats
             return row;
         }
 
+        private static int CalculatPadding(int width, int componentCount)
+        {
+            int padding = (width * componentCount) % 4;
+
+            if (padding != 0)
+            {
+                padding = 4 - padding;
+            }
+
+            return padding;
+        }
+
         /// <summary>
         /// Reads the color palette from the stream.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-        /// <param name="imageData">The <see cref="T:T[]"/> image data to assign the palette to.</param>
+        /// <param name="pixels">The <see cref="PixelAccessor{TColor, TPacked}"/> to assign the palette to.</param>
         /// <param name="colors">The <see cref="T:byte[]"/> containing the colors.</param>
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="bits">The number of bits per pixel.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
-        private void ReadRgbPalette<TColor, TPacked>(TColor[] imageData, byte[] colors, int width, int height, int bits, bool inverted)
+        private void ReadRgbPalette<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, byte[] colors, int width, int height, int bits, bool inverted)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
@@ -207,46 +219,40 @@ namespace ImageSharp.Formats
             // Bit mask
             int mask = 0xFF >> (8 - bits);
 
-            byte[] data = new byte[arrayWidth * height];
-
-            this.currentStream.Read(data, 0, data.Length);
-
             // Rows are aligned on 4 byte boundaries
-            int alignment = arrayWidth % 4;
-            if (alignment != 0)
+            int padding = arrayWidth % 4;
+            if (padding != 0)
             {
-                alignment = 4 - alignment;
+                padding = 4 - padding;
             }
 
-            Parallel.For(
-                0,
-                height,
-                Bootstrapper.Instance.ParallelOptions,
-                y =>
+            byte[] row = new byte[arrayWidth + padding];
+            TColor color = default(TColor);
+
+            for (int y = 0; y < height; y++)
+            {
+                int newY = Invert(y, height, inverted);
+
+                this.currentStream.Read(row, 0, row.Length);
+
+                int offset = 0;
+                for (int x = 0; x < arrayWidth; x++)
+                {
+                    int colOffset = x * ppb;
+
+                    for (int shift = 0; shift < ppb && (x + shift) < width; shift++)
                     {
-                        int rowOffset = y * (arrayWidth + alignment);
+                        int colorIndex = ((row[offset] >> (8 - bits - (shift * bits))) & mask) * 4;
+                        int newX = colOffset + shift;
 
-                        for (int x = 0; x < arrayWidth; x++)
-                        {
-                            int offset = rowOffset + x;
+                        // Stored in b-> g-> r order.
+                        color.PackFromBytes(colors[colorIndex + 2], colors[colorIndex + 1], colors[colorIndex], 255);
+                        pixels[newX, newY] = color;
+                    }
 
-                            // Revert the y value, because bitmaps are saved from down to top
-                            int row = Invert(y, height, inverted);
-
-                            int colOffset = x * ppb;
-
-                            for (int shift = 0; shift < ppb && (colOffset + shift) < width; shift++)
-                            {
-                                int colorIndex = ((data[offset] >> (8 - bits - (shift * bits))) & mask) * 4;
-                                int arrayOffset = (row * width) + (colOffset + shift);
-
-                                // Stored in b-> g-> r order.
-                                TColor packed = default(TColor);
-                                packed.PackFromVector4(new Color(colors[colorIndex + 2], colors[colorIndex + 1], colors[colorIndex]).ToVector4());
-                                imageData[arrayOffset] = packed;
-                            }
-                        }
-                    });
+                    offset++;
+                }
+            }
         }
 
         /// <summary>
@@ -254,50 +260,43 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-        /// <param name="imageData">The <see cref="T:T[]"/> image data to assign the palette to.</param>
+        /// <param name="pixels">The <see cref="PixelAccessor{TColor, TPacked}"/> to assign the palette to.</param>
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
-        private void ReadRgb16<TColor, TPacked>(TColor[] imageData, int width, int height, bool inverted)
+        private void ReadRgb16<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, int width, int height, bool inverted)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             // We divide here as we will store the colors in our floating point format.
             const int ScaleR = 8; // 256/32
             const int ScaleG = 4; // 256/64
+            const int ComponentCount = 2;
 
-            int alignment;
-            byte[] data = this.GetImageArray(width, height, 2, out alignment);
+            TColor color = default(TColor);
+            using (PixelRow<TColor, TPacked> row = new PixelRow<TColor, TPacked>(width, ComponentOrder.RGB))
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    row.Read(this.currentStream);
 
-            Parallel.For(
-                0,
-                height,
-                Bootstrapper.Instance.ParallelOptions,
-                y =>
+                    int newY = Invert(y, height, inverted);
+
+                    int offset = 0;
+                    for (int x = 0; x < width; x++)
                     {
-                        int rowOffset = y * ((width * 2) + alignment);
+                        short temp = BitConverter.ToInt16(row.Data, offset);
 
-                        // Revert the y value, because bitmaps are saved from down to top
-                        int row = Invert(y, height, inverted);
+                        byte r = (byte)(((temp & Rgb16RMask) >> 11) * ScaleR);
+                        byte g = (byte)(((temp & Rgb16GMask) >> 5) * ScaleG);
+                        byte b = (byte)((temp & Rgb16BMask) * ScaleR);
 
-                        for (int x = 0; x < width; x++)
-                        {
-                            int offset = rowOffset + (x * 2);
-
-                            short temp = BitConverter.ToInt16(data, offset);
-
-                            byte r = (byte)(((temp & Rgb16RMask) >> 11) * ScaleR);
-                            byte g = (byte)(((temp & Rgb16GMask) >> 5) * ScaleG);
-                            byte b = (byte)((temp & Rgb16BMask) * ScaleR);
-
-                            int arrayOffset = (row * width) + x;
-
-                            // Stored in b-> g-> r order.
-                            TColor packed = default(TColor);
-                            packed.PackFromVector4(new Color(r, g, b).ToVector4());
-                            imageData[arrayOffset] = packed;
-                        }
-                    });
+                        color.PackFromBytes(r, g, b, 255);
+                        pixels[x, newY] = color;
+                        offset += ComponentCount;
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -305,39 +304,25 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-        /// <param name="imageData">The <see cref="T:T[]"/> image data to assign the palette to.</param>
+        /// <param name="pixels">The <see cref="PixelAccessor{TColor, TPacked}"/> to assign the palette to.</param>
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
-        private void ReadRgb24<TColor, TPacked>(TColor[] imageData, int width, int height, bool inverted)
+        private void ReadRgb24<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, int width, int height, bool inverted)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
-            int alignment;
-            byte[] data = this.GetImageArray(width, height, 3, out alignment);
+            int padding = CalculatPadding(width, 3);
+            using (PixelRow<TColor, TPacked> row = new PixelRow<TColor, TPacked>(width, ComponentOrder.BGR, padding))
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    row.Read(this.currentStream);
 
-            Parallel.For(
-                0,
-                height,
-                Bootstrapper.Instance.ParallelOptions,
-                y =>
-                    {
-                        int rowOffset = y * ((width * 3) + alignment);
-
-                        // Revert the y value, because bitmaps are saved from down to top
-                        int row = Invert(y, height, inverted);
-
-                        for (int x = 0; x < width; x++)
-                        {
-                            int offset = rowOffset + (x * 3);
-                            int arrayOffset = (row * width) + x;
-
-                            // Stored in b-> g-> r-> a order.
-                            TColor packed = default(TColor);
-                            packed.PackFromVector4(new Color(data[offset + 2], data[offset + 1], data[offset]).ToVector4());
-                            imageData[arrayOffset] = packed;
-                        }
-                    });
+                    int newY = Invert(y, height, inverted);
+                    pixels.CopyFrom(row, newY);
+                }
+            }
         }
 
         /// <summary>
@@ -345,69 +330,25 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-        /// <param name="imageData">The <see cref="T:T[]"/> image data to assign the palette to.</param>
+        /// <param name="pixels">The <see cref="PixelAccessor{TColor, TPacked}"/> to assign the palette to.</param>
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
-        private void ReadRgb32<TColor, TPacked>(TColor[] imageData, int width, int height, bool inverted)
+        private void ReadRgb32<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, int width, int height, bool inverted)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
-            int alignment;
-            byte[] data = this.GetImageArray(width, height, 4, out alignment);
-
-            Parallel.For(
-                0,
-                height,
-                Bootstrapper.Instance.ParallelOptions,
-                y =>
-                    {
-                        int rowOffset = y * ((width * 4) + alignment);
-
-                        // Revert the y value, because bitmaps are saved from down to top
-                        int row = Invert(y, height, inverted);
-
-                        for (int x = 0; x < width; x++)
-                        {
-                            int offset = rowOffset + (x * 4);
-                            int arrayOffset = (row * width) + x;
-
-                            // Stored in b-> g-> r-> a order.
-                            TColor packed = default(TColor);
-                            packed.PackFromVector4(new Color(data[offset + 2], data[offset + 1], data[offset], data[offset + 3]).ToVector4());
-                            imageData[arrayOffset] = packed;
-                        }
-                    });
-        }
-
-        /// <summary>
-        /// Returns a <see cref="T:byte[]"/> containing the pixels for the current bitmap.
-        /// </summary>
-        /// <param name="width">The width of the bitmap.</param>
-        /// <param name="height">The height.</param>
-        /// <param name="bytes">The number of bytes per pixel.</param>
-        /// <param name="alignment">The alignment of the pixels.</param>
-        /// <returns>
-        /// The <see cref="T:byte[]"/> containing the pixels.
-        /// </returns>
-        private byte[] GetImageArray(int width, int height, int bytes, out int alignment)
-        {
-            int dataWidth = width;
-
-            alignment = (width * bytes) % 4;
-
-            if (alignment != 0)
+            int padding = CalculatPadding(width, 4);
+            using (PixelRow<TColor, TPacked> row = new PixelRow<TColor, TPacked>(width, ComponentOrder.BGRA, padding))
             {
-                alignment = 4 - alignment;
+                for (int y = 0; y < height; y++)
+                {
+                    row.Read(this.currentStream);
+
+                    int newY = Invert(y, height, inverted);
+                    pixels.CopyFrom(row, newY);
+                }
             }
-
-            int size = ((dataWidth * bytes) + alignment) * height;
-
-            byte[] data = new byte[size];
-
-            this.currentStream.Read(data, 0, size);
-
-            return data;
         }
 
         /// <summary>

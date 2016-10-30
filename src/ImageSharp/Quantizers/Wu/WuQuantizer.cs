@@ -1,14 +1,13 @@
 ﻿// <copyright file="WuQuantizer.cs" company="James Jackson-South">
-// Copyright © James Jackson-South and contributors.
+// Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
-
-using System.Numerics;
 
 namespace ImageSharp.Quantizers
 {
     using System;
     using System.Collections.Generic;
+    using System.Numerics;
     using System.Threading.Tasks;
 
     /// <summary>

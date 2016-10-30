@@ -94,7 +94,7 @@ namespace ImageSharp
         {
             ImageProperty other = obj as ImageProperty;
 
-            return Equals(other);
+            return this.Equals(other);
         }
 
         /// <summary>

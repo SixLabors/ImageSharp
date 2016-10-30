@@ -85,7 +85,7 @@ namespace ImageSharp.Processors
                 {
                     for (int x = startX; x < endX; x++)
                     {
-                        Vector4 destination = new Vector4();
+                        Vector4 destination = default(Vector4);
 
                         // Apply each matrix multiplier to the color components for each pixel.
                         for (int fy = 0; fy < kernelHeight; fy++)

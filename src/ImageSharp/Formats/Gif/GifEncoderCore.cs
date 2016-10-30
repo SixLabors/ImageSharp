@@ -168,7 +168,7 @@ namespace ImageSharp.Formats
             writer.Write((ushort)descriptor.Width);
             writer.Write((ushort)descriptor.Height);
 
-            PackedField field = new PackedField();
+            PackedField field = default(PackedField);
             field.SetBit(0, descriptor.GlobalColorTableFlag); // 1   : Global color table flag = 1 || 0 (GCT used/ not used)
             field.SetBits(1, 3, descriptor.GlobalColorTableSize); // 2-4 : color resolution
             field.SetBit(4, false); // 5   : GCT sort flag = 0
@@ -254,7 +254,7 @@ namespace ImageSharp.Formats
 
             writer.Write(intro);
 
-            PackedField field = new PackedField();
+            PackedField field = default(PackedField);
             field.SetBits(3, 3, (int)extension.DisposalMethod); // 1-3 : Reserved, 4-6 : Disposal
 
             // TODO: Allow this as an option.
@@ -285,7 +285,7 @@ namespace ImageSharp.Formats
             writer.Write((ushort)image.Width);
             writer.Write((ushort)image.Height);
 
-            PackedField field = new PackedField();
+            PackedField field = default(PackedField);
             field.SetBit(0, true); // 1: Local color table flag = 1 (LCT used)
             field.SetBit(1, false); // 2: Interlace flag 0
             field.SetBit(2, false); // 3: Sort flag 0

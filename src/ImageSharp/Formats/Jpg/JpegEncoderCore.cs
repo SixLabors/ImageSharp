@@ -3,8 +3,6 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-using System.Numerics;
-
 namespace ImageSharp.Formats
 {
     using System;
@@ -51,7 +49,8 @@ namespace ImageSharp.Formats
         /// The values are derived from section K.1 after converting from natural to
         /// zig-zag order.
         /// </summary>
-        private readonly byte[,] unscaledQuant = {
+        private readonly byte[,] unscaledQuant =
+        {
             {
                 // Luminance.
                 16, 11, 12, 14, 12, 10, 16, 14, 13, 14, 18, 17, 16, 19, 24, 40,
@@ -73,7 +72,8 @@ namespace ImageSharp.Formats
         /// The Huffman encoding specifications.
         /// This encoder uses the same Huffman encoding for all images.
         /// </summary>
-        private readonly HuffmanSpec[] theHuffmanSpec = {
+        private readonly HuffmanSpec[] theHuffmanSpec =
+        {
             // Luminance DC.
             new HuffmanSpec(
                 new byte[]
@@ -488,9 +488,9 @@ namespace ImageSharp.Formats
             int componentCount = 3;
 
             // Write the Start Of Image marker.
-            WriteApplicationHeader((short)image.HorizontalResolution, (short)image.VerticalResolution);
+            this.WriteApplicationHeader((short)image.HorizontalResolution, (short)image.VerticalResolution);
 
-            WriteProfiles(image);
+            this.WriteProfiles(image);
 
             // Write the quantization tables.
             this.WriteDQT();
@@ -574,7 +574,7 @@ namespace ImageSharp.Formats
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
-            WriteProfile(image.ExifProfile);
+            this.WriteProfile(image.ExifProfile);
         }
 
         private void WriteProfile(ExifProfile exifProfile)

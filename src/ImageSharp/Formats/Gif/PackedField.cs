@@ -55,7 +55,7 @@ namespace ImageSharp.Formats
         /// <returns>The <see cref="PackedField"/></returns>
         public static PackedField FromInt(byte value)
         {
-            PackedField packed = new PackedField();
+            PackedField packed = default(PackedField);
             packed.SetBits(0, 8, value);
             return packed;
         }

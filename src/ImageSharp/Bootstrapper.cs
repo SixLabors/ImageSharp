@@ -52,7 +52,6 @@ namespace ImageSharp
         /// </summary>
         public IReadOnlyCollection<IImageFormat> ImageFormats => new ReadOnlyCollection<IImageFormat>(this.imageFormats);
 
-
         /// <summary>
         /// Gets or sets the global parallel options for processing tasks in parallel.
         /// </summary>

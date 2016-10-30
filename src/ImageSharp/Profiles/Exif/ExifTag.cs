@@ -27,7 +27,6 @@ namespace ImageSharp
         /// </summary>
         GPSIFDOffset = 0x8825,
 
-
         /// <summary>
         /// ImageWidth
         /// </summary>
@@ -275,7 +274,6 @@ namespace ImageSharp
         /// Copyright
         /// </summary>
         Copyright = 0x8298,
-
 
         /// <summary>
         /// DocumentName
@@ -607,7 +605,6 @@ namespace ImageSharp
         /// ImageLayer
         /// </summary>
         ImageLayer = 0x87AC,
-
 
         /// <summary>
         /// ExposureTime
@@ -1001,7 +998,6 @@ namespace ImageSharp
         /// ImageUniqueID
         /// </summary>
         ImageUniqueID = 0xA420,
-
 
         /// <summary>
         /// GPSVersionID

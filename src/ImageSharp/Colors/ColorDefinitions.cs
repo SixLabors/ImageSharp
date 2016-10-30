@@ -585,7 +585,6 @@ namespace ImageSharp
         /// </summary>
         public static readonly Color RebeccaPurple = new Color(102, 51, 153, 255);
 
-
         /// <summary>
         /// Represents a <see cref="Color"/> matching the W3C definition that has an hex value of #FF0000.
         /// </summary>

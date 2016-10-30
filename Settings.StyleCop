@@ -21,6 +21,9 @@
       <Value>scanline</Value>
       <Value>scanlines</Value>
       <Value>png's</Value>
+      <Value>codeword</Value>
+      <Value>unscaled</Value>
+      <Value>zig-zag</Value>
     </CollectionProperty>
   </GlobalSettings>
   <Analyzers>

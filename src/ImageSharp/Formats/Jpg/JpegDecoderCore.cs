@@ -1265,7 +1265,7 @@ namespace ImageSharp.Formats
 
                             // Implicit casting FTW
                             Color color = new YCbCr(yy, cb, cr);
-                            int keyline = 255 - this.blackPixels[y * this.blackStride + x];
+                            int keyline = 255 - this.blackPixels[(y * this.blackStride) + x];
                             Color final = new Cmyk(color.R / 255F, color.G / 255F, color.B / 255F, keyline / 255F);
 
                             TColor packed = default(TColor);

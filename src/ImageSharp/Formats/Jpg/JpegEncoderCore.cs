@@ -353,7 +353,7 @@ namespace ImageSharp.Formats
         // toYCbCr converts the 8x8 region of m whose top-left corner is p to its
         // YCbCr values.
         private void ToYCbCr<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, int x, int y, Block yBlock, Block cbBlock, Block crBlock)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             int xmax = pixels.Width - 1;
@@ -736,7 +736,7 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="pixels">The pixel accessor providing acces to the image pixels.</param>
         private void WriteSOS<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             // TODO: We should allow grayscale writing.
@@ -761,7 +761,7 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="pixels">The pixel accessor providing acces to the image pixels.</param>
         private void Encode444<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             Block b = new Block();
@@ -787,7 +787,7 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="pixels">The pixel accessor providing acces to the image pixels.</param>
         private void Encode420<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             Block b = new Block();

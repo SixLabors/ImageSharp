@@ -165,7 +165,7 @@ namespace ImageSharp
         /// The <see cref="Rectangle"/>.
         /// </returns>
         public static Rectangle GetFilteredBoundingRectangle<TColor, TPacked>(ImageBase<TColor, TPacked> bitmap, float componentValue, RgbaComponent channel = RgbaComponent.B)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             const float Epsilon = .00001f;

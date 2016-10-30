@@ -11,7 +11,7 @@ namespace ImageSharp
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public class ImageFrame<TColor, TPacked> : ImageBase<TColor, TPacked>
-        where TColor : struct, IPackedVector<TPacked>
+        where TColor : struct, IPackedPixel<TPacked>
         where TPacked : struct
     {
         /// <summary>

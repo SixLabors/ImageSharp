@@ -171,8 +171,8 @@ namespace ImageSharp
             const float Epsilon = .00001f;
             int width = bitmap.Width;
             int height = bitmap.Height;
-            Point topLeft = new Point();
-            Point bottomRight = new Point();
+            Point topLeft = default(Point);
+            Point bottomRight = default(Point);
 
             Func<PixelAccessor<TColor, TPacked>, int, int, float, bool> delegateFunc;
 

@@ -325,7 +325,7 @@ namespace ImageSharp.IO
         }
         #endregion
 
-        #region	Decimal conversions
+        #region Decimal conversions
         /// <summary>
         /// Returns a decimal value converted from sixteen bytes 
         /// at a specified position in a byte array.

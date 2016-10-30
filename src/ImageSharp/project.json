@@ -24,7 +24,8 @@
   "buildOptions": {
     "allowUnsafe": true,
     "debugType": "portable",
-    "xmlDoc": true
+    "xmlDoc": true,
+    "additionalArguments": [ "/additionalfile:stylecop.json" ]
   },
   "dependencies": {
     "System.Collections": "4.0.11",
@@ -43,7 +44,8 @@
     "System.Text.Encoding.Extensions": "4.0.11",
     "System.Threading": "4.0.11",
     "System.Threading.Tasks": "4.0.11",
-    "System.Threading.Tasks.Parallel": "4.0.1"
+    "System.Threading.Tasks.Parallel": "4.0.1",
+    "StyleCop.Analyzers": { "version": "1.0.0", "type": "build" }
   },
   "frameworks": {
     "netstandard1.1": {}

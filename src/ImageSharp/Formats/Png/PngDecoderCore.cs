@@ -227,7 +227,7 @@ namespace ImageSharp.Formats
         /// <param name="dataStream">The <see cref="MemoryStream"/> containing data.</param>
         /// <param name="pixels"> The pixel data.</param>
         private void ReadScanlines<TColor, TPacked>(MemoryStream dataStream, TColor[] pixels)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             this.bytesPerPixel = this.CalculateBytesPerPixel();
@@ -260,7 +260,7 @@ namespace ImageSharp.Formats
         /// <param name="pixelData">The pixel data.</param>
         /// <param name="pixels">The image pixels.</param>
         private void DecodePixelData<TColor, TPacked>(byte[] pixelData, TColor[] pixels)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             byte[] previousScanline = new byte[this.bytesPerScanline];
@@ -322,7 +322,7 @@ namespace ImageSharp.Formats
         /// <param name="row">The current image row.</param>
         /// <param name="pixels">The image pixels</param>
         private void ProcessDefilteredScanline<TColor, TPacked>(byte[] defilteredScanline, int row, TColor[] pixels)
-            where TColor : struct, IPackedVector<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             switch (this.PngColorType)

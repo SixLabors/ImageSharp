@@ -157,6 +157,27 @@ namespace ImageSharp
             }
         }
 
+        public void CopyTo(PixelRow<TColor, TPacked> row, int sourceY)
+        {
+            switch (row.ComponentOrder)
+            {
+                case ComponentOrder.BGR:
+                    this.CopyToBGR(row, sourceY, Math.Min(row.Width, this.Width));
+                    break;
+                case ComponentOrder.BGRA:
+                    this.CopyToBGRA(row, sourceY, Math.Min(row.Width, this.Width));
+                    break;
+                case ComponentOrder.RGB:
+                    this.CopyToRGB(row, sourceY, Math.Min(row.Width, this.Width));
+                    break;
+                case ComponentOrder.RGBA:
+                    this.CopyToRGBA(row, sourceY, Math.Min(row.Width, this.Width));
+                    break;
+                default:
+                  throw new NotSupportedException();
+            }
+        }
+
         /// <summary>
         /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
@@ -255,6 +276,46 @@ namespace ImageSharp
 
                 source += 4;
                 destination += size;
+            }
+        }
+
+        protected virtual void CopyToBGR(PixelRow<TColor, TPacked> row, int sourceY, int width)
+        {
+            int offset = 0;
+            for (int x = 0; x < width; x++)
+            {
+                this[x, sourceY].ToBytes(row.Data, offset, ComponentOrder.BGR);
+                offset += 3;
+            }
+        }
+
+        protected virtual void CopyToBGRA(PixelRow<TColor, TPacked> row, int sourceY, int width)
+        {
+            int offset = 0;
+            for (int x = 0; x < width; x++)
+            {
+                this[x, sourceY].ToBytes(row.Data, offset, ComponentOrder.BGRA);
+                offset += 4;
+            }
+        }
+
+        protected virtual void CopyToRGB(PixelRow<TColor, TPacked> row, int sourceY, int width)
+        {
+            int offset = 0;
+            for (int x = 0; x < width; x++)
+            {
+                this[x, sourceY].ToBytes(row.Data, offset, ComponentOrder.RGB);
+                offset += 3;
+            }
+        }
+
+        protected virtual void CopyToRGBA(PixelRow<TColor, TPacked> row, int sourceY, int width)
+        {
+            int offset = 0;
+            for (int x = 0; x < width; x++)
+            {
+                this[x, sourceY].ToBytes(row.Data, offset, ComponentOrder.RGBA);
+                offset += 4;
             }
         }
 

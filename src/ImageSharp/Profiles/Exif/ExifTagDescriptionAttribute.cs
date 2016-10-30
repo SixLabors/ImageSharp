@@ -18,7 +18,7 @@ namespace ImageSharp
         private string description;
 
         /// <summary>
-        /// Initializes a new instance of the ExifTagDescriptionAttribute class.
+        /// Initializes a new instance of the <see cref="ExifTagDescriptionAttribute"/> class.
         /// </summary>
         /// <param name="value">The value of the exif tag.</param>
         /// <param name="description">The description for the value of the exif tag.</param>

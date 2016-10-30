@@ -159,7 +159,10 @@ namespace ImageSharp.Formats
 
                 foreach (var v in s.Values)
                 {
-                    if (v > maxValue) maxValue = v;
+                    if (v > maxValue)
+                    {
+                        maxValue = v;
+                    }
                 }
 
                 this.Values = new uint[maxValue + 1];
@@ -240,7 +243,11 @@ namespace ImageSharp.Formats
             {
                 byte b = (byte)(bits >> 24);
                 this.WriteByte(b);
-                if (b == 0xff) this.WriteByte(0x00);
+                if (b == 0xff)
+                {
+                    this.WriteByte(0x00);
+                }
+
                 bits <<= 8;
                 nBits -= 8;
             }
@@ -293,7 +300,6 @@ namespace ImageSharp.Formats
             }
         }
 
-
         /// <summary>
         /// Writes a block of pixel data using the given quantization table,
         /// returning the post-quantized DC value of the DCT-transformed block.
@@ -336,7 +342,11 @@ namespace ImageSharp.Formats
                 }
             }
 
-            if (runLength > 0) this.EmitHuff(h, 0x00);
+            if (runLength > 0)
+            {
+                this.EmitHuff(h, 0x00);
+            }
+
             return dc;
         }
 
@@ -457,8 +467,15 @@ namespace ImageSharp.Formats
                 this.quant[i] = new byte[Block.BlockSize];
             }
 
-            if (quality < 1) quality = 1;
-            if (quality > 100) quality = 100;
+            if (quality < 1)
+            {
+                quality = 1;
+            }
+
+            if (quality > 100)
+            {
+                quality = 100;
+            }
 
             // Convert from a quality rating to a scaling factor.
             int scale;
@@ -478,8 +495,16 @@ namespace ImageSharp.Formats
                 {
                     int x = this.unscaledQuant[i, j];
                     x = ((x * scale) + 50) / 100;
-                    if (x < 1) x = 1;
-                    if (x > 255) x = 255;
+                    if (x < 1)
+                    {
+                        x = 1;
+                    }
+
+                    if (x > 255)
+                    {
+                        x = 255;
+                    }
+
                     this.quant[i][j] = (byte)x;
                 }
             }
@@ -731,8 +756,6 @@ namespace ImageSharp.Formats
             this.Emit(0x7f, 7);
         }
 
-
-
         /// <summary>
         /// Encodes the image with no subsampling.
         /// </summary>
@@ -772,8 +795,15 @@ namespace ImageSharp.Formats
             Block[] cr = new Block[4];
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
 
-            for (int i = 0; i < 4; i++) cb[i] = new Block();
-            for (int i = 0; i < 4; i++) cr[i] = new Block();
+            for (int i = 0; i < 4; i++)
+            {
+                cb[i] = new Block();
+            }
+
+            for (int i = 0; i < 4; i++)
+            {
+                cr[i] = new Block();
+            }
 
             for (int y = 0; y < pixels.Height; y += 16)
             {

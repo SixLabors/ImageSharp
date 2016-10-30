@@ -32,14 +32,18 @@ namespace ImageSharp
         {
             FieldInfo field = tag.GetType().GetTypeInfo().GetDeclaredField(tag.ToString());
             if (field == null)
-              return null;
+            {
+                return null;
+            }
 
             foreach (CustomAttributeData customAttribute in field.CustomAttributes)
             {
                 object attributeValue = customAttribute.ConstructorArguments[0].Value;
 
                 if (Equals(attributeValue, value))
+                {
                     return (string)customAttribute.ConstructorArguments[1].Value;
+                }
             }
 
             return null;

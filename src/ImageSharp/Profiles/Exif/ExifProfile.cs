@@ -148,7 +148,9 @@ namespace ImageSharp
             foreach (ExifValue exifValue in this.Values)
             {
                 if (exifValue.Tag == tag)
+                {
                     return exifValue;
+                }
             }
 
             return null;

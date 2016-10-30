@@ -15,7 +15,7 @@ namespace ImageSharp
     public class ImageProperty : IEquatable<ImageProperty>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageProperty"/> struct.
+        /// Initializes a new instance of the <see cref="ImageProperty"/> class.
         /// </summary>
         /// <param name="name">The name of the property.</param>
         /// <param name="value">The value of the property.</param>

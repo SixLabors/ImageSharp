@@ -145,32 +145,35 @@ namespace ImageSharp.Formats
                 })
         };
 
-        // w is the writer to write to. err is the first error encountered during
-        // writing. All attempted writes after the first error become no-ops.
-        private Stream outputStream;
-
         /// <summary>
         /// A scratch buffer to reduce allocations.
         /// </summary>
         private readonly byte[] buffer = new byte[16];
 
         /// <summary>
-        /// The accumulated bits to write to the stream.
-        /// </summary>
-        private uint bits;
-
-        /// <summary>
-        /// The accumulated bits to write to the stream.
-        /// </summary>
-        private uint nBits;
-
-        /// <summary>
         /// The scaled quantization tables, in zig-zag order.
         /// </summary>
         private readonly byte[][] quant = new byte[NQuantIndex][]; // [Block.blockSize];
 
-        // The compiled representations of theHuffmanSpec.
-        private readonly HuffmanLut[] theHuffmanLUT = new HuffmanLut[4];
+        /// <summary>
+        /// The compiled representations of theHuffmanSpec.
+        /// </summary>
+        private readonly HuffmanLut[] theHuffmanLut = new HuffmanLut[4];
+
+        /// <summary>
+        /// The accumulated bits to write to the stream.
+        /// </summary>
+        private uint accumulatedBits;
+
+        /// <summary>
+        /// The accumulated bit count.
+        /// </summary>
+        private uint bitCount;
+
+        /// <summary>
+        /// The output stream. All attempted writes after the first error become no-ops.
+        /// </summary>
+        private Stream outputStream;
 
         /// <summary>
         /// The subsampling method to use.
@@ -189,17 +192,17 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Emits the least significant nBits bits of bits to the bit-stream.
+        /// Emits the least significant count of bits of bits to the bit-stream.
         /// The precondition is bits <example>&lt; 1&lt;&lt;nBits &amp;&amp; nBits &lt;= 16</example>.
         /// </summary>
-        /// <param name="bits"></param>
-        /// <param name="nBits"></param>
-        private void Emit(uint bits, uint nBits)
+        /// <param name="bits">The packed bits.</param>
+        /// <param name="count">The number of bits</param>
+        private void Emit(uint bits, uint count)
         {
-            nBits += this.nBits;
-            bits <<= (int)(32 - nBits);
-            bits |= this.bits;
-            while (nBits >= 8)
+            count += this.bitCount;
+            bits <<= (int)(32 - count);
+            bits |= this.accumulatedBits;
+            while (count >= 8)
             {
                 byte b = (byte)(bits >> 24);
                 this.WriteByte(b);
@@ -209,11 +212,11 @@ namespace ImageSharp.Formats
                 }
 
                 bits <<= 8;
-                nBits -= 8;
+                count -= 8;
             }
 
-            this.bits = bits;
-            this.nBits = nBits;
+            this.accumulatedBits = bits;
+            this.bitCount = count;
         }
 
         /// <summary>
@@ -223,7 +226,7 @@ namespace ImageSharp.Formats
         /// <param name="value">The value to encode.</param>
         private void EmitHuff(HuffIndex index, int value)
         {
-            uint x = this.theHuffmanLUT[(int)index].Values[value];
+            uint x = this.theHuffmanLut[(int)index].Values[value];
             this.Emit(x & ((1 << 24) - 1), x >> 24);
         }
 
@@ -268,7 +271,7 @@ namespace ImageSharp.Formats
         /// <param name="block">The block to write.</param>
         /// <param name="index">The quantization table index.</param>
         /// <param name="prevDC">The previous DC value.</param>
-        /// <returns></returns>
+        /// <returns>The <see cref="int"/></returns>
         private int WriteBlock(Block block, QuantIndex index, int prevDC)
         {
             FDCT.Transform(block);
@@ -398,8 +401,15 @@ namespace ImageSharp.Formats
             0x00 // Ah + Ah (Successive approximation bit position high + low)
         };
 
-        // Encode writes the Image m to w in JPEG 4:2:0 baseline format with the given
-        // options. Default parameters are used if a nil *Options is passed.
+        /// <summary>
+        /// Encode writes the image to the jpeg baseline format with the given options.
+        /// </summary>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+        /// <param name="image">The image to write from.</param>
+        /// <param name="stream">The stream to write to.</param>
+        /// <param name="quality">The quality.</param>
+        /// <param name="sample">The subsampling mode.</param>
         public void Encode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream, int quality, JpegSubsample sample)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
@@ -419,7 +429,7 @@ namespace ImageSharp.Formats
             // TODO: This should be static should it not?
             for (int i = 0; i < this.theHuffmanSpec.Length; i++)
             {
-                this.theHuffmanLUT[i] = new HuffmanLut(this.theHuffmanSpec[i]);
+                this.theHuffmanLut[i] = new HuffmanLut(this.theHuffmanSpec[i]);
             }
 
             for (int i = 0; i < NQuantIndex; i++)
@@ -516,7 +526,7 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Writes the application header containing the Jfif identifier plus extra data.
+        /// Writes the application header containing the JFIF identifier plus extra data.
         /// </summary>
         /// <param name="horizontalResolution">The resolution of the image in the x- direction.</param>
         /// <param name="verticalResolution">The resolution of the image in the y- direction.</param>
@@ -564,12 +574,7 @@ namespace ImageSharp.Formats
 
         private void WriteProfile(ExifProfile exifProfile)
         {
-            if (exifProfile == null)
-            {
-                return;
-            }
-
-            byte[] data = exifProfile.ToByteArray();
+            byte[] data = exifProfile?.ToByteArray();
             if (data == null || data.Length == 0)
             {
                 return;
@@ -774,7 +779,7 @@ namespace ImageSharp.Formats
                         int xOff = (i & 1) * 8;
                         int yOff = (i & 2) * 4;
 
-                        this.ToYCbCr<TColor, TPacked>(pixels, x + xOff, y + yOff, b, cb[i], cr[i]);
+                        this.ToYCbCr(pixels, x + xOff, y + yOff, b, cb[i], cr[i]);
                         prevDCY = this.WriteBlock(b, QuantIndex.Luminance, prevDCY);
                     }
 
@@ -832,6 +837,33 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
+        /// The Huffman encoding specifications.
+        /// </summary>
+        private struct HuffmanSpec
+        {
+            /// <summary>
+            /// Gets count[i] - The number of codes of length i bits.
+            /// </summary>
+            public readonly byte[] Count;
+
+            /// <summary>
+            /// Gets value[i] - The decoded value of the codeword at the given index.
+            /// </summary>
+            public readonly byte[] Values;
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="HuffmanSpec"/> struct.
+            /// </summary>
+            /// <param name="count">The number of codes.</param>
+            /// <param name="values">The decoded values.</param>
+            public HuffmanSpec(byte[] count, byte[] values)
+            {
+                this.Count = count;
+                this.Values = values;
+            }
+        }
+
+        /// <summary>
         /// A compiled look-up table representation of a huffmanSpec.
         /// Each value maps to a uint32 of which the 8 most significant bits hold the
         /// codeword size in bits and the 24 least significant bits hold the codeword.
@@ -878,33 +910,6 @@ namespace ImageSharp.Formats
                     code <<= 1;
                 }
             }
-        }
-
-        /// <summary>
-        /// The Huffman encoding specifications.
-        /// </summary>
-        private struct HuffmanSpec
-        {
-            /// <summary>
-            /// Initializes a new instance of the <see cref="HuffmanSpec"/> struct.
-            /// </summary>
-            /// <param name="count">The number of codes.</param>
-            /// <param name="values">The decoded values.</param>
-            public HuffmanSpec(byte[] count, byte[] values)
-            {
-                this.Count = count;
-                this.Values = values;
-            }
-
-            /// <summary>
-            /// Gets count[i] - The number of codes of length i bits.
-            /// </summary>
-            public readonly byte[] Count;
-
-            /// <summary>
-            /// Gets value[i] - The decoded value of the i'th codeword.
-            /// </summary>
-            public readonly byte[] Values;
         }
     }
 }

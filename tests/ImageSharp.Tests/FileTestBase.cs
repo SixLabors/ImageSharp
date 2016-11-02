@@ -22,11 +22,11 @@ namespace ImageSharp.Tests
             //new TestFile(TestImages.Png.Pd),
             new TestFile(TestImages.Jpeg.Floorplan), // Perf: Enable for local testing only
             new TestFile(TestImages.Jpeg.Calliphora),
-            //new TestFile(TestImages.Jpg.Cmyk), // Perf: Enable for local testing only
-            //new TestFile(TestImages.Jpg.Turtle),
-            //new TestFile(TestImages.Jpg.Fb), // Perf: Enable for local testing only
-            //new TestFile(TestImages.Jpg.Progress), // Perf: Enable for local testing only
-            //new TestFile(TestImages.Jpg.Gamma_dalai_lama_gray). // Perf: Enable for local testing only
+            //new TestFile(TestImages.Jpeg.Cmyk), // Perf: Enable for local testing only
+            new TestFile(TestImages.Jpeg.Turtle),
+            //new TestFile(TestImages.Jpeg.Fb), // Perf: Enable for local testing only
+            //new TestFile(TestImages.Jpeg.Progress), // Perf: Enable for local testing only
+            //new TestFile(TestImages.Jpeg.Gamma_dalai_lama_gray). // Perf: Enable for local testing only
             new TestFile(TestImages.Bmp.Car),
             //new TestFile(TestImages.Bmp.Neg_height), // Perf: Enable for local testing only
             //new TestFile(TestImages.Png.Blur), // Perf: Enable for local testing only

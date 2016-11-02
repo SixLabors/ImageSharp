@@ -1,5 +1,5 @@
 
-# <img src="build/icons/imagesharp-logo-64.png" width="32" height="32"/> ImageSharp
+# <img src="build/icons/imagesharp-logo-64.png" width="48" height="48"/> ImageSharp
 
 **ImageSharp** is a new cross-platform 2D graphics API designed to allow the processing of images without the use of `System.Drawing`. 
 
@@ -168,13 +168,13 @@ Setting individual pixel values is perfomed as follows:
 
 ```csharp
 Image image = new Image(400, 400);
-using (PixelAccessor<Color, uint> pixels = image.Lock())
+using (PixelAccessor pixels = image.Lock())
 {
     pixels[200, 200] = Color.White;
 }
 ```
 
-For advanced usage the `Image<TColor, TPacked>` class is available allowing developers to implement their own color models in the same manner as Microsoft XNA Game Studio and MonoGame. 
+For advanced usage the `Image<TColor, TPacked>` and `PixelAccessor<TColor, TPacked>` classes are available allowing developers to implement their own color models in the same manner as Microsoft XNA Game Studio and MonoGame. 
 
 All in all this should allow image processing to be much more accessible to developers which has always been my goal from the start.
 

@@ -31,6 +31,7 @@
       <Value>ss</Value>
       <Value>Vol</Value>
       <Value>pp</Value>
+      <Value>cmyk</Value>
     </CollectionProperty>
   </GlobalSettings>
   <Analyzers>

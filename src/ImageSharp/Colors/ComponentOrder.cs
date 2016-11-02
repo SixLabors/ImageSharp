@@ -11,23 +11,23 @@ namespace ImageSharp
     public enum ComponentOrder
     {
         /// <summary>
-        /// Blue-> Green-> Red order.
+        /// Z-> Y-> X order. Equivalent to B-> G-> R in <see cref="Color"/>
         /// </summary>
-        BGR,
+        ZYX,
 
         /// <summary>
-        /// Blue-> Green-> Red-> Alpha order.
+        /// Z-> Y-> X-> W order. Equivalent to B-> G-> R-> A in <see cref="Color"/>
         /// </summary>
-        BGRA,
+        ZYXW,
 
         /// <summary>
-        /// Red-> Green-> Blue order.
+        /// X-> Y-> Z order. Equivalent to R-> G-> B in <see cref="Color"/>
         /// </summary>
-        RGB,
+        XYZ,
 
         /// <summary>
-        /// Red-> Green-> Blue-> Alpha order.
+        /// X-> Y-> Z-> W order. Equivalent to R-> G-> B-> A in <see cref="Color"/>
         /// </summary>
-        RGBA,
+        XYZW,
     }
 }

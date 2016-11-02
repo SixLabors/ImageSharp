@@ -242,23 +242,23 @@ namespace ImageSharp
         {
             switch (componentOrder)
             {
-                case ComponentOrder.BGR:
+                case ComponentOrder.ZYX:
                     bytes[startIndex] = this.B;
                     bytes[startIndex + 1] = this.G;
                     bytes[startIndex + 2] = this.R;
                     break;
-                case ComponentOrder.BGRA:
+                case ComponentOrder.ZYXW:
                     bytes[startIndex] = this.B;
                     bytes[startIndex + 1] = this.G;
                     bytes[startIndex + 2] = this.R;
                     bytes[startIndex + 3] = this.A;
                     break;
-                case ComponentOrder.RGB:
+                case ComponentOrder.XYZ:
                     bytes[startIndex] = this.R;
                     bytes[startIndex + 1] = this.G;
                     bytes[startIndex + 2] = this.B;
                     break;
-                case ComponentOrder.RGBA:
+                case ComponentOrder.XYZW:
                     bytes[startIndex] = this.R;
                     bytes[startIndex + 1] = this.G;
                     bytes[startIndex + 2] = this.B;

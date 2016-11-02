@@ -23,7 +23,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
-        protected override void CopyFromBGR(PixelRow<Color, uint> row, int targetY, int width)
+        protected override void CopyFromZYX(PixelRow<Color, uint> row, int targetY, int width)
         {
             byte* source = row.DataPointer;
             byte* destination = this.GetRowPointer(targetY);
@@ -38,7 +38,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
-        protected override void CopyFromBGRA(PixelRow<Color, uint> row, int targetY, int width)
+        protected override void CopyFromZYXW(PixelRow<Color, uint> row, int targetY, int width)
         {
             byte* source = row.DataPointer;
             byte* destination = this.GetRowPointer(targetY);
@@ -53,7 +53,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
-        protected override void CopyToBGR(PixelRow<Color, uint> row, int sourceY, int width)
+        protected override void CopyToZYX(PixelRow<Color, uint> row, int sourceY, int width)
         {
             byte* source = this.GetRowPointer(sourceY);
             byte* destination = row.DataPointer;
@@ -79,7 +79,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
-        protected override void CopyToBGRA(PixelRow<Color, uint> row, int sourceY, int width)
+        protected override void CopyToZYXW(PixelRow<Color, uint> row, int sourceY, int width)
         {
             byte* source = this.GetRowPointer(sourceY);
             byte* destination = row.DataPointer;

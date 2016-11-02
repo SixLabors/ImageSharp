@@ -155,7 +155,7 @@ namespace ImageSharp.Formats
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
-            using (PixelRow<TColor, TPacked> row = new PixelRow<TColor, TPacked>(pixels.Width, ComponentOrder.BGRA, this.padding))
+            using (PixelRow<TColor, TPacked> row = new PixelRow<TColor, TPacked>(pixels.Width, ComponentOrder.ZYXW, this.padding))
             {
                 for (int y = pixels.Height - 1; y >= 0; y--)
                 {
@@ -176,7 +176,7 @@ namespace ImageSharp.Formats
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
-            using (PixelRow<TColor, TPacked> row = new PixelRow<TColor, TPacked>(pixels.Width, ComponentOrder.BGR, this.padding))
+            using (PixelRow<TColor, TPacked> row = new PixelRow<TColor, TPacked>(pixels.Width, ComponentOrder.ZYX, this.padding))
             {
                 for (int y = pixels.Height - 1; y >= 0; y--)
                 {

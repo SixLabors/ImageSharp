@@ -24,6 +24,8 @@
       <Value>codeword</Value>
       <Value>unscaled</Value>
       <Value>zig-zag</Value>
+      <Value>crc</Value>
+      <Value>zlib</Value>
     </CollectionProperty>
   </GlobalSettings>
   <Analyzers>

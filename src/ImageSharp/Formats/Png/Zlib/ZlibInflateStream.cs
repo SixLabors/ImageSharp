@@ -15,6 +15,11 @@ namespace ImageSharp.Formats
     internal sealed class ZlibInflateStream : Stream
     {
         /// <summary>
+        /// The raw stream containing the uncompressed image data.
+        /// </summary>
+        private readonly Stream rawStream;
+
+        /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.
         /// </summary>
         /// <value><see langword="true"/> if this instance has been disposed; otherwise, <see langword="false"/>.</value>
@@ -28,18 +33,22 @@ namespace ImageSharp.Formats
         private bool isDisposed;
 
         /// <summary>
-        /// The raw stream containing the uncompressed image data.
-        /// </summary>
-        private readonly Stream rawStream;
-
-        /// <summary>
         /// The read crc data.
         /// </summary>
         private byte[] crcread;
 
-        // The stream responsible for decompressing the input stream.
+        /// <summary>
+        /// The stream responsible for decompressing the input stream.
+        /// </summary>
         private DeflateStream deflateStream;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ZlibInflateStream"/> class.
+        /// </summary>
+        /// <param name="stream">The stream.</param>
+        /// <exception cref="Exception">
+        /// Thrown if the compression method is incorrect.
+        /// </exception>
         public ZlibInflateStream(Stream stream)
         {
             // The DICT dictionary identifier identifying the used dictionary.

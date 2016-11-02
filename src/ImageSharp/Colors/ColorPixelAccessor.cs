@@ -8,13 +8,21 @@ namespace ImageSharp
     using System;
     using System.Runtime.CompilerServices;
 
-    public unsafe sealed class ColorPixelAccessor : PixelAccessor<Color, uint>
+    /// <summary>
+    /// An optimized pixel accessor for the <see cref="Image"/> class.
+    /// </summary>
+    public sealed unsafe class ColorPixelAccessor : PixelAccessor<Color, uint>
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ColorPixelAccessor"/> class.
+        /// </summary>
+        /// <param name="image">The image to provide pixel access for.</param>
         public ColorPixelAccessor(ImageBase<Color, uint> image)
           : base(image)
         {
         }
 
+        /// <inheritdoc />
         protected override void CopyFromBGR(PixelRow<Color, uint> row, int targetY, int width)
         {
             byte* source = row.DataPointer;
@@ -29,6 +37,7 @@ namespace ImageSharp
             }
         }
 
+        /// <inheritdoc />
         protected override void CopyFromBGRA(PixelRow<Color, uint> row, int targetY, int width)
         {
             byte* source = row.DataPointer;
@@ -43,6 +52,7 @@ namespace ImageSharp
             }
         }
 
+        /// <inheritdoc />
         protected override void CopyToBGR(PixelRow<Color, uint> row, int sourceY, int width)
         {
             byte* source = this.GetRowPointer(sourceY);
@@ -68,6 +78,7 @@ namespace ImageSharp
             }
         }
 
+        /// <inheritdoc />
         protected override void CopyToBGRA(PixelRow<Color, uint> row, int sourceY, int width)
         {
             byte* source = this.GetRowPointer(sourceY);

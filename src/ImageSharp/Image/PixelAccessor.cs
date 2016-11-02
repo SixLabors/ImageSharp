@@ -101,7 +101,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="x">The x-coordinate of the pixel. Must be greater than zero and smaller than the width of the pixel.</param>
         /// <param name="y">The y-coordinate of the pixel. Must be greater than zero and smaller than the width of the pixel.</param>
-        /// <returns>The <see cref="TColor"/> at the specified position.</returns>
+        /// <returns>The <see typeparam="TColor"/> at the specified position.</returns>
         public TColor this[int x, int y]
         {
             get { return Unsafe.Read<TColor>(this.pixelsBase + (((y * this.Width) + x) * Unsafe.SizeOf<TColor>())); }
@@ -136,6 +136,14 @@ namespace ImageSharp
             this.CopyBlock(0, 0, target, 0, 0, target.Width * target.Height);
         }
 
+        /// <summary>
+        /// Copied a row of pixels from the image.
+        /// </summary>
+        /// <param name="row">The row.</param>
+        /// <param name="targetY">The target row index.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown when an unsupported component order value is passed.
+        /// </exception>
         public void CopyFrom(PixelRow<TColor, TPacked> row, int targetY)
         {
             switch (row.ComponentOrder)
@@ -153,10 +161,18 @@ namespace ImageSharp
                     this.CopyFromRGBA(row, targetY, Math.Min(row.Width, this.Width));
                     break;
                 default:
-                  throw new NotSupportedException();
+                    throw new NotSupportedException();
             }
         }
 
+        /// <summary>
+        /// Copied a row of pixels to the image.
+        /// </summary>
+        /// <param name="row">The row.</param>
+        /// <param name="sourceY">The source row index.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown when an unsupported component order value is passed.
+        /// </exception>
         public void CopyTo(PixelRow<TColor, TPacked> row, int sourceY)
         {
             switch (row.ComponentOrder)
@@ -174,7 +190,7 @@ namespace ImageSharp
                     this.CopyToRGBA(row, sourceY, Math.Min(row.Width, this.Width));
                     break;
                 default:
-                  throw new NotSupportedException();
+                    throw new NotSupportedException();
             }
         }
 
@@ -207,6 +223,12 @@ namespace ImageSharp
             GC.SuppressFinalize(this);
         }
 
+        /// <summary>
+        /// Copies from a row in <see cref="ComponentOrder.BGR"/> format.
+        /// </summary>
+        /// <param name="row">The row.</param>
+        /// <param name="targetY">The target row index.</param>
+        /// <param name="width">The width.</param>
         protected virtual void CopyFromBGR(PixelRow<TColor, TPacked> row, int targetY, int width)
         {
             byte* source = row.DataPointer;
@@ -225,6 +247,12 @@ namespace ImageSharp
             }
         }
 
+        /// <summary>
+        /// Copies from a row in <see cref="ComponentOrder.BGRA"/> format.
+        /// </summary>
+        /// <param name="row">The row.</param>
+        /// <param name="targetY">The target row index.</param>
+        /// <param name="width">The width.</param>
         protected virtual void CopyFromBGRA(PixelRow<TColor, TPacked> row, int targetY, int width)
         {
             byte* source = row.DataPointer;
@@ -243,6 +271,12 @@ namespace ImageSharp
             }
         }
 
+        /// <summary>
+        /// Copies from a row in <see cref="ComponentOrder.RGB"/> format.
+        /// </summary>
+        /// <param name="row">The row.</param>
+        /// <param name="targetY">The target row index.</param>
+        /// <param name="width">The width.</param>
         protected virtual void CopyFromRGB(PixelRow<TColor, TPacked> row, int targetY, int width)
         {
             byte* source = row.DataPointer;
@@ -261,6 +295,12 @@ namespace ImageSharp
             }
         }
 
+        /// <summary>
+        /// Copies from a row in <see cref="ComponentOrder.RGBA"/> format.
+        /// </summary>
+        /// <param name="row">The row.</param>
+        /// <param name="targetY">The target row index.</param>
+        /// <param name="width">The width.</param>
         protected virtual void CopyFromRGBA(PixelRow<TColor, TPacked> row, int targetY, int width)
         {
             byte* source = row.DataPointer;
@@ -279,6 +319,12 @@ namespace ImageSharp
             }
         }
 
+        /// <summary>
+        /// Copies to a row in <see cref="ComponentOrder.RGBA"/> format.
+        /// </summary>
+        /// <param name="row">The row.</param>
+        /// <param name="sourceY">The target row index.</param>
+        /// <param name="width">The width.</param>
         protected virtual void CopyToBGR(PixelRow<TColor, TPacked> row, int sourceY, int width)
         {
             int offset = 0;
@@ -289,6 +335,12 @@ namespace ImageSharp
             }
         }
 
+        /// <summary>
+        /// Copies to a row in <see cref="ComponentOrder.BGRA"/> format.
+        /// </summary>
+        /// <param name="row">The row.</param>
+        /// <param name="sourceY">The target row index.</param>
+        /// <param name="width">The width.</param>
         protected virtual void CopyToBGRA(PixelRow<TColor, TPacked> row, int sourceY, int width)
         {
             int offset = 0;
@@ -299,6 +351,12 @@ namespace ImageSharp
             }
         }
 
+        /// <summary>
+        /// Copies to a row in <see cref="ComponentOrder.RGB"/> format.
+        /// </summary>
+        /// <param name="row">The row.</param>
+        /// <param name="sourceY">The target row index.</param>
+        /// <param name="width">The width.</param>
         protected virtual void CopyToRGB(PixelRow<TColor, TPacked> row, int sourceY, int width)
         {
             int offset = 0;
@@ -309,6 +367,12 @@ namespace ImageSharp
             }
         }
 
+        /// <summary>
+        /// Copies to a row in <see cref="ComponentOrder.RGBA"/> format.
+        /// </summary>
+        /// <param name="row">The row.</param>
+        /// <param name="sourceY">The target row index.</param>
+        /// <param name="width">The width.</param>
         protected virtual void CopyToRGBA(PixelRow<TColor, TPacked> row, int sourceY, int width)
         {
             int offset = 0;
@@ -319,6 +383,13 @@ namespace ImageSharp
             }
         }
 
+        /// <summary>
+        /// Gets the pointer at the specified row.
+        /// </summary>
+        /// <param name="targetY">The target row index.</param>
+        /// <returns>
+        /// The <see cref="T:byte*"/>.
+        /// </returns>
         protected byte* GetRowPointer(int targetY)
         {
             return this.pixelsBase + ((targetY * this.Width) * Unsafe.SizeOf<TColor>());

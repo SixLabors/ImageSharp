@@ -60,7 +60,7 @@ namespace ImageSharp
         /// <inheritdoc />
         public override PixelAccessor<Color, uint> Lock()
         {
-            return new ColorPixelAccessor(this);
+            return new PixelAccessor(this);
         }
     }
 }

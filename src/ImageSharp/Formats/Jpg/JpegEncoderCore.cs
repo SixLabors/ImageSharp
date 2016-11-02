@@ -32,53 +32,10 @@ namespace ImageSharp.Formats
         };
 
         /// <summary>
-        /// Counts the number of bits needed to hold an integer.
-        /// </summary>
-        private readonly byte[] bitCountLut =
-        {
-            0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5,
-            5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-            6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-            7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-            7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-            7, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-            8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-            8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-            8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-            8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-            8, 8, 8, 8, 8, 8,
-        };
-
-        /// <summary>
-        /// The unscaled quantization tables in zig-zag order. Each
-        /// encoder copies and scales the tables according to its quality parameter.
-        /// The values are derived from section K.1 after converting from natural to
-        /// zig-zag order.
-        /// </summary>
-        private readonly byte[,] unscaledQuant =
-        {
-            {
-                // Luminance.
-                16, 11, 12, 14, 12, 10, 16, 14, 13, 14, 18, 17, 16, 19, 24, 40,
-                26, 24, 22, 22, 24, 49, 35, 37, 29, 40, 58, 51, 61, 60, 57, 51,
-                56, 55, 64, 72, 92, 78, 64, 68, 87, 69, 55, 56, 80, 109, 81,
-                87, 95, 98, 103, 104, 103, 62, 77, 113, 121, 112, 100, 120, 92,
-                101, 103, 99,
-            },
-            {
-                // Chrominance.
-                17, 18, 18, 24, 21, 24, 47, 26, 26, 47, 99, 66, 56, 66, 99, 99,
-                99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
-                99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
-                99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
-            }
-        };
-
-        /// <summary>
         /// The Huffman encoding specifications.
         /// This encoder uses the same Huffman encoding for all images.
         /// </summary>
-        private readonly HuffmanSpec[] huffmanSpec =
+        private static readonly HuffmanSpec[] TheHuffmanSpecs =
         {
             // Luminance DC.
             new HuffmanSpec(
@@ -150,6 +107,54 @@ namespace ImageSharp.Formats
         };
 
         /// <summary>
+        /// The compiled representations of theHuffmanSpec.
+        /// </summary>
+        private static readonly HuffmanLut[] TheHuffmanLut = new HuffmanLut[4];
+
+        /// <summary>
+        /// Counts the number of bits needed to hold an integer.
+        /// </summary>
+        private readonly byte[] bitCountLut =
+        {
+            0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+            5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+            6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+            7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+            7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+            7, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+            8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+            8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+            8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+            8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+            8, 8, 8, 8, 8, 8,
+        };
+
+        /// <summary>
+        /// The unscaled quantization tables in zig-zag order. Each
+        /// encoder copies and scales the tables according to its quality parameter.
+        /// The values are derived from section K.1 after converting from natural to
+        /// zig-zag order.
+        /// </summary>
+        private readonly byte[,] unscaledQuant =
+        {
+            {
+                // Luminance.
+                16, 11, 12, 14, 12, 10, 16, 14, 13, 14, 18, 17, 16, 19, 24, 40,
+                26, 24, 22, 22, 24, 49, 35, 37, 29, 40, 58, 51, 61, 60, 57, 51,
+                56, 55, 64, 72, 92, 78, 64, 68, 87, 69, 55, 56, 80, 109, 81,
+                87, 95, 98, 103, 104, 103, 62, 77, 113, 121, 112, 100, 120, 92,
+                101, 103, 99,
+            },
+            {
+                // Chrominance.
+                17, 18, 18, 24, 21, 24, 47, 26, 26, 47, 99, 66, 56, 66, 99, 99,
+                99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
+                99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
+                99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
+            }
+        };
+
+        /// <summary>
         /// A scratch buffer to reduce allocations.
         /// </summary>
         private readonly byte[] buffer = new byte[16];
@@ -158,11 +163,6 @@ namespace ImageSharp.Formats
         /// The scaled quantization tables, in zig-zag order.
         /// </summary>
         private readonly byte[][] quant = new byte[NQuantIndex][];
-
-        /// <summary>
-        /// The compiled representations of theHuffmanSpec.
-        /// </summary>
-        private readonly HuffmanLut[] theHuffmanLut = new HuffmanLut[4];
 
         /// <summary>
         /// The SOS (Start Of Scan) marker "\xff\xda" followed by 12 bytes:
@@ -210,6 +210,18 @@ namespace ImageSharp.Formats
         /// The subsampling method to use.
         /// </summary>
         private JpegSubsample subsample;
+
+        /// <summary>
+        /// Initializes static members of the <see cref="JpegEncoderCore"/> class.
+        /// </summary>
+        static JpegEncoderCore()
+        {
+            // Initialize the Huffman tables
+            for (int i = 0; i < TheHuffmanSpecs.Length; i++)
+            {
+                TheHuffmanLut[i] = new HuffmanLut(TheHuffmanSpecs[i]);
+            }
+        }
 
         /// <summary>
         /// Enumerates the Huffman tables
@@ -279,12 +291,6 @@ namespace ImageSharp.Formats
 
             this.outputStream = stream;
             this.subsample = sample;
-
-            // TODO: This should be static should it not?
-            for (int i = 0; i < this.huffmanSpec.Length; i++)
-            {
-                this.theHuffmanLut[i] = new HuffmanLut(this.huffmanSpec[i]);
-            }
 
             for (int i = 0; i < NQuantIndex; i++)
             {
@@ -425,7 +431,7 @@ namespace ImageSharp.Formats
         /// <param name="value">The value to encode.</param>
         private void EmitHuff(HuffIndex index, int value)
         {
-            uint x = this.theHuffmanLut[(int)index].Values[value];
+            uint x = TheHuffmanLut[(int)index].Values[value];
             this.Emit(x & ((1 << 24) - 1), x >> 24);
         }
 
@@ -730,12 +736,12 @@ namespace ImageSharp.Formats
         {
             byte[] headers = { 0x00, 0x10, 0x01, 0x11 };
             int markerlen = 2;
-            HuffmanSpec[] specs = this.huffmanSpec;
+            HuffmanSpec[] specs = TheHuffmanSpecs;
 
             if (componentCount == 1)
             {
                 // Drop the Chrominance tables.
-                specs = new[] { this.huffmanSpec[0], this.huffmanSpec[1] };
+                specs = new[] { TheHuffmanSpecs[0], TheHuffmanSpecs[1] };
             }
 
             foreach (HuffmanSpec s in specs)

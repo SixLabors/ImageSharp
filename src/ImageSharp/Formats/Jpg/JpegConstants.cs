@@ -26,24 +26,24 @@ namespace ImageSharp.Formats
         public static readonly byte[] ChromaFourFourFourVertical = { 0x11, 0x11, 0x11 };
 
         /// <summary>
-        /// Represents medium detail chroma horizontal subsampling.
-        /// </summary>
-        public static readonly byte[] ChromaFourTwoTwoHorizontal = { 0x22, 0x11, 0x11 };
-
-        /// <summary>
         /// Represents medium detail chroma vertical subsampling.
         /// </summary>
         public static readonly byte[] ChromaFourTwoTwoVertical = { 0x11, 0x11, 0x11 };
 
         /// <summary>
-        /// Represents low detail chroma horizontal subsampling.
-        /// </summary>
-        public static readonly byte[] ChromaFourTwoZeroHorizontal = { 0x22, 0x11, 0x11 };
-
-        /// <summary>
         /// Represents low detail chroma vertical subsampling.
         /// </summary>
         public static readonly byte[] ChromaFourTwoZeroVertical = { 0x22, 0x11, 0x11 };
+
+        /// <summary>
+        /// Represents medium detail chroma horizontal subsampling.
+        /// </summary>
+        public static readonly byte[] ChromaFourTwoTwoHorizontal = { 0x22, 0x11, 0x11 };
+
+        /// <summary>
+        /// Represents low detail chroma horizontal subsampling.
+        /// </summary>
+        public static readonly byte[] ChromaFourTwoZeroHorizontal = { 0x22, 0x11, 0x11 };
 
         /// <summary>
         /// Describes component ids for start of frame components.

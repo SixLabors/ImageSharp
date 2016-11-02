@@ -5,6 +5,9 @@
 
 namespace ImageSharp.Formats
 {
+    /// <summary>
+    /// Performs a 2-D Inverse Discrete Cosine Transformation.
+    /// </summary>
     internal class IDCT
     {
         private const int w1 = 2841; // 2048*sqrt(2)*cos(1*pi/16)
@@ -23,16 +26,19 @@ namespace ImageSharp.Formats
 
         private const int r2 = 181; // 256/sqrt(2)
 
-        // idct performs a 2-D Inverse Discrete Cosine Transformation.
-        //
-        // The input coefficients should already have been multiplied by the
-        // appropriate quantization table. We use fixed-point computation, with the
-        // number of bits for the fractional component varying over the intermediate
-        // stages.
-        //
-        // For more on the actual algorithm, see Z. Wang, "Fast algorithms for the
-        // discrete W transform and for the discrete Fourier transform", IEEE Trans. on
-        // ASSP, Vol. ASSP- 32, pp. 803-816, Aug. 1984.
+        /// <summary>
+        /// Performs a 2-D Inverse Discrete Cosine Transformation.
+        /// <para>
+        /// The input coefficients should already have been multiplied by the
+        /// appropriate quantization table. We use fixed-point computation, with the
+        /// number of bits for the fractional component varying over the intermediate
+        /// stages.
+        /// </para>
+        /// For more on the actual algorithm, see Z. Wang, "Fast algorithms for the
+        /// discrete W transform and for the discrete Fourier transform", IEEE Trans. on
+        /// ASSP, Vol. ASSP- 32, pp. 803-816, Aug. 1984.
+        /// </summary>
+        /// <param name="src">The source block of coefficients</param>
         public static void Transform(Block src)
         {
             // Horizontal 1-D IDCT.

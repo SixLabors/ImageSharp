@@ -2,6 +2,7 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
+
 namespace ImageSharp.Formats
 {
     using System;
@@ -12,6 +13,9 @@ namespace ImageSharp.Formats
     /// </summary>
     internal class JpegEncoderCore
     {
+        /// <summary>
+        /// The number of quantization tables.
+        /// </summary>
         private const int NQuantIndex = 2;
 
         /// <summary>
@@ -74,7 +78,7 @@ namespace ImageSharp.Formats
         /// The Huffman encoding specifications.
         /// This encoder uses the same Huffman encoding for all images.
         /// </summary>
-        private readonly HuffmanSpec[] theHuffmanSpec =
+        private readonly HuffmanSpec[] huffmanSpec =
         {
             // Luminance DC.
             new HuffmanSpec(
@@ -153,12 +157,39 @@ namespace ImageSharp.Formats
         /// <summary>
         /// The scaled quantization tables, in zig-zag order.
         /// </summary>
-        private readonly byte[][] quant = new byte[NQuantIndex][]; // [Block.blockSize];
+        private readonly byte[][] quant = new byte[NQuantIndex][];
 
         /// <summary>
         /// The compiled representations of theHuffmanSpec.
         /// </summary>
         private readonly HuffmanLut[] theHuffmanLut = new HuffmanLut[4];
+
+        /// <summary>
+        /// The SOS (Start Of Scan) marker "\xff\xda" followed by 12 bytes:
+        /// - the marker length "\x00\x0c",
+        /// - the number of components "\x03",
+        /// - component 1 uses DC table 0 and AC table 0 "\x01\x00",
+        /// - component 2 uses DC table 1 and AC table 1 "\x02\x11",
+        /// - component 3 uses DC table 1 and AC table 1 "\x03\x11",
+        /// - the bytes "\x00\x3f\x00". Section B.2.3 of the spec says that for
+        /// sequential DCTs, those bytes (8-bit Ss, 8-bit Se, 4-bit Ah, 4-bit Al)
+        /// should be 0x00, 0x3f, 0x00&lt;&lt;4 | 0x00.
+        /// </summary>
+        private readonly byte[] sosHeaderYCbCr =
+        {
+            JpegConstants.Markers.XFF, JpegConstants.Markers.SOS, // Marker
+            0x00, 0x0c, // Length (high byte, low byte), must be 6 + 2 * (number of components in scan)
+            0x03, // Number of components in a scan, 3
+            0x01, // Component Id Y
+            0x00, // DC/AC Huffman table
+            0x02, // Component Id Cb
+            0x11, // DC/AC Huffman table
+            0x03, // Component Id Cr
+            0x11, // DC/AC Huffman table
+            0x00, // Ss - Start of spectral selection.
+            0x3f, // Se - End of spectral selection.
+            0x00 // Ah + Ah (Successive approximation bit position high + low)
+        };
 
         /// <summary>
         /// The accumulated bits to write to the stream.
@@ -179,6 +210,174 @@ namespace ImageSharp.Formats
         /// The subsampling method to use.
         /// </summary>
         private JpegSubsample subsample;
+
+        /// <summary>
+        /// Enumerates the Huffman tables
+        /// </summary>
+        private enum HuffIndex
+        {
+            /// <summary>
+            /// The DC luminance huffman table index
+            /// </summary>
+            LuminanceDC = 0,
+
+            /// <summary>
+            /// The AC luminance huffman table index
+            /// </summary>
+
+            LuminanceAC = 1,
+            // ReSharper restore UnusedMember.Local
+
+            /// <summary>
+            /// The DC chrominance huffman table index
+            /// </summary>
+            ChrominanceDC = 2,
+
+            /// <summary>
+            /// The AC chrominance huffman table index
+            /// </summary>
+            ChrominanceAC = 3,
+        }
+
+        /// <summary>
+        /// Enumerates the quantization tables
+        /// </summary>
+        private enum QuantIndex
+        {
+            /// <summary>
+            /// The luminance quantization table index
+            /// </summary>
+            Luminance = 0,
+
+            /// <summary>
+            /// The chrominance quantization table index
+            /// </summary>
+            Chrominance = 1,
+        }
+
+        /// <summary>
+        /// Encode writes the image to the jpeg baseline format with the given options.
+        /// </summary>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+        /// <param name="image">The image to write from.</param>
+        /// <param name="stream">The stream to write to.</param>
+        /// <param name="quality">The quality.</param>
+        /// <param name="sample">The subsampling mode.</param>
+        public void Encode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream, int quality, JpegSubsample sample)
+            where TColor : struct, IPackedPixel<TPacked>
+            where TPacked : struct
+        {
+            Guard.NotNull(image, nameof(image));
+            Guard.NotNull(stream, nameof(stream));
+
+            ushort max = JpegConstants.MaxLength;
+            if (image.Width >= max || image.Height >= max)
+            {
+                throw new ImageFormatException($"Image is too large to encode at {image.Width}x{image.Height}.");
+            }
+
+            this.outputStream = stream;
+            this.subsample = sample;
+
+            // TODO: This should be static should it not?
+            for (int i = 0; i < this.huffmanSpec.Length; i++)
+            {
+                this.theHuffmanLut[i] = new HuffmanLut(this.huffmanSpec[i]);
+            }
+
+            for (int i = 0; i < NQuantIndex; i++)
+            {
+                this.quant[i] = new byte[Block.BlockSize];
+            }
+
+            if (quality < 1)
+            {
+                quality = 1;
+            }
+
+            if (quality > 100)
+            {
+                quality = 100;
+            }
+
+            // Convert from a quality rating to a scaling factor.
+            int scale;
+            if (quality < 50)
+            {
+                scale = 5000 / quality;
+            }
+            else
+            {
+                scale = 200 - (quality * 2);
+            }
+
+            // Initialize the quantization tables.
+            for (int i = 0; i < NQuantIndex; i++)
+            {
+                for (int j = 0; j < Block.BlockSize; j++)
+                {
+                    int x = this.unscaledQuant[i, j];
+                    x = ((x * scale) + 50) / 100;
+                    if (x < 1)
+                    {
+                        x = 1;
+                    }
+
+                    if (x > 255)
+                    {
+                        x = 255;
+                    }
+
+                    this.quant[i][j] = (byte)x;
+                }
+            }
+
+            // Compute number of components based on input image type.
+            int componentCount = 3;
+
+            // Write the Start Of Image marker.
+            this.WriteApplicationHeader((short)image.HorizontalResolution, (short)image.VerticalResolution);
+
+            this.WriteProfiles(image);
+
+            // Write the quantization tables.
+            this.WriteDescreteQuantizationTables();
+
+            // Write the image dimensions.
+            this.WriteStartOfFrame(image.Width, image.Height, componentCount);
+
+            // Write the Huffman tables.
+            this.WriteDefineHuffmanTables(componentCount);
+
+            // Write the image data.
+            using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
+            {
+                this.WriteStartOfScan(pixels);
+            }
+
+            // Write the End Of Image marker.
+            this.buffer[0] = JpegConstants.Markers.XFF;
+            this.buffer[1] = JpegConstants.Markers.EOI;
+            stream.Write(this.buffer, 0, 2);
+            stream.Flush();
+        }
+
+        /// <summary>
+        /// Gets the quotient of the two numbers rounded to the nearest integer, instead of rounded to zero.
+        /// </summary>
+        /// <param name="dividend">The value to divide.</param>
+        /// <param name="divisor">The value to divide by.</param>
+        /// <returns>The <see cref="int"/></returns>
+        private static int Round(int dividend, int divisor)
+        {
+            if (dividend >= 0)
+            {
+                return (dividend + (divisor >> 1)) / divisor;
+            }
+
+            return -((-dividend + (divisor >> 1)) / divisor);
+        }
 
         /// <summary>
         /// Writes the given byte to the stream.
@@ -313,19 +512,32 @@ namespace ImageSharp.Formats
             return dc;
         }
 
-        // toYCbCr converts the 8x8 region of m whose top-left corner is p to its
-        // YCbCr values.
+        /// <summary>
+        /// Converts the 8x8 region of the image whose top-left corner is x,y to its YCbCr values.
+        /// </summary>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+        /// <param name="pixels">The pixel accessor.</param>
+        /// <param name="x">The x-position within the image.</param>
+        /// <param name="y">The y-position within the image.</param>
+        /// <param name="yBlock">The luminance block.</param>
+        /// <param name="cbBlock">The red chroma block.</param>
+        /// <param name="crBlock">The blue chroma block.</param>
+        // ReSharper disable StyleCop.SA1305
         private void ToYCbCr<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, int x, int y, Block yBlock, Block cbBlock, Block crBlock)
+            // ReSharper restore StyleCop.SA1305
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             int xmax = pixels.Width - 1;
             int ymax = pixels.Height - 1;
+            byte[] b = new byte[3];
             for (int j = 0; j < 8; j++)
             {
                 for (int i = 0; i < 8; i++)
                 {
-                    YCbCr color = new Color(pixels[Math.Min(x + i, xmax), Math.Min(y + j, ymax)].ToVector4());
+                    pixels[Math.Min(x + i, xmax), Math.Min(y + j, ymax)].ToBytes(b, 0, ComponentOrder.XYZ);
+                    YCbCr color = new Color(b[0], b[1], b[2]);
                     int index = (8 * j) + i;
                     yBlock[index] = (int)color.Y;
                     cbBlock[index] = (int)color.Cb;
@@ -335,12 +547,12 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Scales the 16x16 region represented by the 4 src blocks to the 8x8
-        /// dst block.
+        /// Scales the 16x16 region represented by the 4 source blocks to the 8x8
+        /// DST block.
         /// </summary>
         /// <param name="destination">The destination block array</param>
         /// <param name="source">The source block array.</param>
-        private void Scale16X16_8X8(Block destination, Block[] source)
+        private void Scale16X16To8X8(Block destination, Block[] source)
         {
             for (int i = 0; i < 4; i++)
             {
@@ -355,174 +567,6 @@ namespace ImageSharp.Formats
                     }
                 }
             }
-        }
-
-        // The SOS marker "\xff\xda" followed by 8 bytes:
-        // - the marker length "\x00\x08",
-        // - the number of components "\x01",
-        // - component 1 uses DC table 0 and AC table 0 "\x01\x00",
-        // - the bytes "\x00\x3f\x00". Section B.2.3 of the spec says that for
-        // sequential DCTs, those bytes (8-bit Ss, 8-bit Se, 4-bit Ah, 4-bit Al)
-        // should be 0x00, 0x3f, 0x00<<4 | 0x00.
-        private readonly byte[] SOSHeaderY =
-        {
-            JpegConstants.Markers.XFF, JpegConstants.Markers.SOS,
-            0x00, 0x08, // Length (high byte, low byte), must be 6 + 2 * (number of components in scan)
-            0x01, // Number of components in a scan, 1
-            0x01, // Component Id Y
-            0x00, // DC/AC Huffman table
-            0x00, // Ss - Start of spectral selection.
-            0x3f, // Se - End of spectral selection.
-            0x00 // Ah + Ah (Successive approximation bit position high + low)
-        };
-
-        // The SOS marker "\xff\xda" followed by 12 bytes:
-        // - the marker length "\x00\x0c",
-        // - the number of components "\x03",
-        // - component 1 uses DC table 0 and AC table 0 "\x01\x00",
-        // - component 2 uses DC table 1 and AC table 1 "\x02\x11",
-        // - component 3 uses DC table 1 and AC table 1 "\x03\x11",
-        // - the bytes "\x00\x3f\x00". Section B.2.3 of the spec says that for
-        // sequential DCTs, those bytes (8-bit Ss, 8-bit Se, 4-bit Ah, 4-bit Al)
-        // should be 0x00, 0x3f, 0x00<<4 | 0x00.
-        private readonly byte[] SOSHeaderYCbCr =
-        {
-            JpegConstants.Markers.XFF, JpegConstants.Markers.SOS,
-            0x00, 0x0c, // Length (high byte, low byte), must be 6 + 2 * (number of components in scan)
-            0x03, // Number of components in a scan, 3
-            0x01, // Component Id Y
-            0x00, // DC/AC Huffman table
-            0x02, // Component Id Cb
-            0x11, // DC/AC Huffman table
-            0x03, // Component Id Cr
-            0x11, // DC/AC Huffman table
-            0x00, // Ss - Start of spectral selection.
-            0x3f, // Se - End of spectral selection.
-            0x00 // Ah + Ah (Successive approximation bit position high + low)
-        };
-
-        /// <summary>
-        /// Encode writes the image to the jpeg baseline format with the given options.
-        /// </summary>
-        /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-        /// <param name="image">The image to write from.</param>
-        /// <param name="stream">The stream to write to.</param>
-        /// <param name="quality">The quality.</param>
-        /// <param name="sample">The subsampling mode.</param>
-        public void Encode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream, int quality, JpegSubsample sample)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
-        {
-            Guard.NotNull(image, nameof(image));
-            Guard.NotNull(stream, nameof(stream));
-
-            ushort max = JpegConstants.MaxLength;
-            if (image.Width >= max || image.Height >= max)
-            {
-                throw new ImageFormatException($"Image is too large to encode at {image.Width}x{image.Height}.");
-            }
-
-            this.outputStream = stream;
-            this.subsample = sample;
-
-            // TODO: This should be static should it not?
-            for (int i = 0; i < this.theHuffmanSpec.Length; i++)
-            {
-                this.theHuffmanLut[i] = new HuffmanLut(this.theHuffmanSpec[i]);
-            }
-
-            for (int i = 0; i < NQuantIndex; i++)
-            {
-                this.quant[i] = new byte[Block.BlockSize];
-            }
-
-            if (quality < 1)
-            {
-                quality = 1;
-            }
-
-            if (quality > 100)
-            {
-                quality = 100;
-            }
-
-            // Convert from a quality rating to a scaling factor.
-            int scale;
-            if (quality < 50)
-            {
-                scale = 5000 / quality;
-            }
-            else
-            {
-                scale = 200 - (quality * 2);
-            }
-
-            // Initialize the quantization tables.
-            for (int i = 0; i < NQuantIndex; i++)
-            {
-                for (int j = 0; j < Block.BlockSize; j++)
-                {
-                    int x = this.unscaledQuant[i, j];
-                    x = ((x * scale) + 50) / 100;
-                    if (x < 1)
-                    {
-                        x = 1;
-                    }
-
-                    if (x > 255)
-                    {
-                        x = 255;
-                    }
-
-                    this.quant[i][j] = (byte)x;
-                }
-            }
-
-            // Compute number of components based on input image type.
-            int componentCount = 3;
-
-            // Write the Start Of Image marker.
-            this.WriteApplicationHeader((short)image.HorizontalResolution, (short)image.VerticalResolution);
-
-            this.WriteProfiles(image);
-
-            // Write the quantization tables.
-            this.WriteDQT();
-
-            // Write the image dimensions.
-            this.WriteSOF0(image.Width, image.Height, componentCount);
-
-            // Write the Huffman tables.
-            this.WriteDHT(componentCount);
-
-            // Write the image data.
-            using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
-            {
-                this.WriteSOS<TColor, TPacked>(pixels);
-            }
-
-            // Write the End Of Image marker.
-            this.buffer[0] = 0xff;
-            this.buffer[1] = 0xd9;
-            stream.Write(this.buffer, 0, 2);
-            stream.Flush();
-        }
-
-        /// <summary>
-        /// Gets the quotient of the two numbers rounded to the nearest integer, instead of rounded to zero.
-        /// </summary>
-        /// <param name="dividend">The value to divide.</param>
-        /// <param name="divisor">The value to divide by.</param>
-        /// <returns>The <see cref="int"/></returns>
-        private static int Round(int dividend, int divisor)
-        {
-            if (dividend >= 0)
-            {
-                return (dividend + (divisor >> 1)) / divisor;
-            }
-
-            return -((-dividend + (divisor >> 1)) / divisor);
         }
 
         /// <summary>
@@ -565,6 +609,12 @@ namespace ImageSharp.Formats
             this.outputStream.Write(this.buffer, 0, 4);
         }
 
+        /// <summary>
+        /// Writes the metadata profiles to the image.
+        /// </summary>
+        /// <param name="image">The image.</param>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         private void WriteProfiles<TColor, TPacked>(Image<TColor, TPacked> image)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
@@ -572,17 +622,25 @@ namespace ImageSharp.Formats
             this.WriteProfile(image.ExifProfile);
         }
 
+        /// <summary>
+        /// Writes the EXIF profile.
+        /// </summary>
+        /// <param name="exifProfile">The exif profile.</param>
+        /// <exception cref="ImageFormatException">
+        /// Thrown if the EXIF profile size exceeds the limit
+        /// </exception>
         private void WriteProfile(ExifProfile exifProfile)
         {
+            const int Max = 65533;
             byte[] data = exifProfile?.ToByteArray();
             if (data == null || data.Length == 0)
             {
                 return;
             }
 
-            if (data.Length > 65533)
+            if (data.Length > Max)
             {
-                throw new ImageFormatException("Exif profile size exceeds limit.");
+                throw new ImageFormatException($"Exif profile size exceeds limit. nameof{Max}");
             }
 
             int length = data.Length + 2;
@@ -599,7 +657,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Writes the Define Quantization Marker and tables.
         /// </summary>
-        private void WriteDQT()
+        private void WriteDescreteQuantizationTables()
         {
             int markerlen = 2 + (NQuantIndex * (1 + Block.BlockSize));
             this.WriteMarkerHeader(JpegConstants.Markers.DQT, markerlen);
@@ -615,8 +673,8 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="width">The width of the image</param>
         /// <param name="height">The height of the image</param>
-        /// <param name="componentCount"></param>
-        private void WriteSOF0(int width, int height, int componentCount)
+        /// <param name="componentCount">The number of components in a pixel</param>
+        private void WriteStartOfFrame(int width, int height, int componentCount)
         {
             // "default" to 4:2:0
             byte[] subsamples = { 0x22, 0x11, 0x11 };
@@ -667,17 +725,17 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Writes the Define Huffman Table marker and tables.
         /// </summary>
-        /// <param name="nComponent">The number of components to write.</param>
-        private void WriteDHT(int nComponent)
+        /// <param name="componentCount">The number of components to write.</param>
+        private void WriteDefineHuffmanTables(int componentCount)
         {
             byte[] headers = { 0x00, 0x10, 0x01, 0x11 };
             int markerlen = 2;
-            HuffmanSpec[] specs = this.theHuffmanSpec;
+            HuffmanSpec[] specs = this.huffmanSpec;
 
-            if (nComponent == 1)
+            if (componentCount == 1)
             {
                 // Drop the Chrominance tables.
-                specs = new[] { this.theHuffmanSpec[0], this.theHuffmanSpec[1] };
+                specs = new[] { this.huffmanSpec[0], this.huffmanSpec[1] };
             }
 
             foreach (HuffmanSpec s in specs)
@@ -699,21 +757,25 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Writes the StartOfScan marker.
         /// </summary>
-        /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
-        private void WriteSOS<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels)
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+        /// <param name="pixels">
+        /// The pixel accessor providing access to the image pixels.
+        /// </param>
+        private void WriteStartOfScan<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             // TODO: We should allow grayscale writing.
-            this.outputStream.Write(this.SOSHeaderYCbCr, 0, this.SOSHeaderYCbCr.Length);
+            this.outputStream.Write(this.sosHeaderYCbCr, 0, this.sosHeaderYCbCr.Length);
 
             switch (this.subsample)
             {
                 case JpegSubsample.Ratio444:
-                    this.Encode444<TColor, TPacked>(pixels);
+                    this.Encode444(pixels);
                     break;
                 case JpegSubsample.Ratio420:
-                    this.Encode420<TColor, TPacked>(pixels);
+                    this.Encode420(pixels);
                     break;
             }
 
@@ -724,7 +786,9 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Encodes the image with no subsampling.
         /// </summary>
-        /// <param name="pixels">The pixel accessor providing acces to the image pixels.</param>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+        /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
         private void Encode444<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
@@ -732,13 +796,14 @@ namespace ImageSharp.Formats
             Block b = new Block();
             Block cb = new Block();
             Block cr = new Block();
+            // ReSharper disable once InconsistentNaming
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
 
             for (int y = 0; y < pixels.Height; y += 8)
             {
                 for (int x = 0; x < pixels.Width; x += 8)
                 {
-                    this.ToYCbCr<TColor, TPacked>(pixels, x, y, b, cb, cr);
+                    this.ToYCbCr(pixels, x, y, b, cb, cr);
                     prevDCY = this.WriteBlock(b, QuantIndex.Luminance, prevDCY);
                     prevDCCb = this.WriteBlock(cb, QuantIndex.Chrominance, prevDCCb);
                     prevDCCr = this.WriteBlock(cr, QuantIndex.Chrominance, prevDCCr);
@@ -750,7 +815,9 @@ namespace ImageSharp.Formats
         /// Encodes the image with subsampling. The Cb and Cr components are each subsampled
         /// at a factor of 2 both horizontally and vertically.
         /// </summary>
-        /// <param name="pixels">The pixel accessor providing acces to the image pixels.</param>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+        /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
         private void Encode420<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
@@ -758,6 +825,7 @@ namespace ImageSharp.Formats
             Block b = new Block();
             Block[] cb = new Block[4];
             Block[] cr = new Block[4];
+            // ReSharper disable once InconsistentNaming
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
 
             for (int i = 0; i < 4; i++)
@@ -783,9 +851,9 @@ namespace ImageSharp.Formats
                         prevDCY = this.WriteBlock(b, QuantIndex.Luminance, prevDCY);
                     }
 
-                    this.Scale16X16_8X8(b, cb);
+                    this.Scale16X16To8X8(b, cb);
                     prevDCCb = this.WriteBlock(b, QuantIndex.Chrominance, prevDCCb);
-                    this.Scale16X16_8X8(b, cr);
+                    this.Scale16X16To8X8(b, cr);
                     prevDCCr = this.WriteBlock(b, QuantIndex.Chrominance, prevDCCr);
                 }
             }
@@ -804,36 +872,6 @@ namespace ImageSharp.Formats
             this.buffer[2] = (byte)(length >> 8);
             this.buffer[3] = (byte)(length & 0xff);
             this.outputStream.Write(this.buffer, 0, 4);
-        }
-
-        /// <summary>
-        /// Enumerates the Huffman tables
-        /// </summary>
-        private enum HuffIndex
-        {
-            LuminanceDC = 0,
-
-            LuminanceAC = 1,
-
-            ChrominanceDC = 2,
-
-            ChrominanceAC = 3,
-        }
-
-        /// <summary>
-        /// Enumerates the quantization tables
-        /// </summary>
-        private enum QuantIndex
-        {
-            /// <summary>
-            /// Luminance
-            /// </summary>
-            Luminance = 0,
-
-            /// <summary>
-            /// Chrominance
-            /// </summary>
-            Chrominance = 1,
         }
 
         /// <summary>

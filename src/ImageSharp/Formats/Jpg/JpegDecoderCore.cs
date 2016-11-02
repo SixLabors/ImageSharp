@@ -194,6 +194,7 @@ namespace ImageSharp.Formats
             this.bits = new Bits();
             this.bytes = new Bytes();
 
+            // TODO: This looks like it could be static.
             for (int i = 0; i < MaxTc + 1; i++)
             {
                 for (int j = 0; j < MaxTh + 1; j++)
@@ -362,7 +363,7 @@ namespace ImageSharp.Formats
                         this.ProcessApp14Marker(remaining);
                         break;
                     default:
-                        if (JpegConstants.Markers.APP0 <= marker && marker <= JpegConstants.Markers.APP15 || marker == JpegConstants.Markers.COM)
+                        if ((JpegConstants.Markers.APP0 <= marker && marker <= JpegConstants.Markers.APP15) || marker == JpegConstants.Markers.COM)
                         {
                             this.Skip(remaining);
                         }
@@ -1385,7 +1386,7 @@ namespace ImageSharp.Formats
                             // Implicit casting FTW
                             Color color = new YCbCr(yy, cb, cr);
                             TColor packed = default(TColor);
-                            packed.PackFromBytes(color.R, color.G, color.B, color.A);
+                            packed.PackFromBytes(color.R, color.G, color.B, 255);
                             pixels[x, y] = packed;
                         }
                     });

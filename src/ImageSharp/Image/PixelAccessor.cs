@@ -148,17 +148,17 @@ namespace ImageSharp
         {
             switch (row.ComponentOrder)
             {
-                case ComponentOrder.BGR:
-                    this.CopyFromBGR(row, targetY, Math.Min(row.Width, this.Width));
+                case ComponentOrder.ZYX:
+                    this.CopyFromZYX(row, targetY, Math.Min(row.Width, this.Width));
                     break;
-                case ComponentOrder.BGRA:
-                    this.CopyFromBGRA(row, targetY, Math.Min(row.Width, this.Width));
+                case ComponentOrder.ZYXW:
+                    this.CopyFromZYXW(row, targetY, Math.Min(row.Width, this.Width));
                     break;
-                case ComponentOrder.RGB:
-                    this.CopyFromRGB(row, targetY, Math.Min(row.Width, this.Width));
+                case ComponentOrder.XYZ:
+                    this.CopyFromXYZ(row, targetY, Math.Min(row.Width, this.Width));
                     break;
-                case ComponentOrder.RGBA:
-                    this.CopyFromRGBA(row, targetY, Math.Min(row.Width, this.Width));
+                case ComponentOrder.XYZW:
+                    this.CopyFromXYZW(row, targetY, Math.Min(row.Width, this.Width));
                     break;
                 default:
                     throw new NotSupportedException();
@@ -177,17 +177,17 @@ namespace ImageSharp
         {
             switch (row.ComponentOrder)
             {
-                case ComponentOrder.BGR:
-                    this.CopyToBGR(row, sourceY, Math.Min(row.Width, this.Width));
+                case ComponentOrder.ZYX:
+                    this.CopyToZYX(row, sourceY, Math.Min(row.Width, this.Width));
                     break;
-                case ComponentOrder.BGRA:
-                    this.CopyToBGRA(row, sourceY, Math.Min(row.Width, this.Width));
+                case ComponentOrder.ZYXW:
+                    this.CopyToZYXW(row, sourceY, Math.Min(row.Width, this.Width));
                     break;
-                case ComponentOrder.RGB:
-                    this.CopyToRGB(row, sourceY, Math.Min(row.Width, this.Width));
+                case ComponentOrder.XYZ:
+                    this.CopyToXYZ(row, sourceY, Math.Min(row.Width, this.Width));
                     break;
-                case ComponentOrder.RGBA:
-                    this.CopyToRGBA(row, sourceY, Math.Min(row.Width, this.Width));
+                case ComponentOrder.XYZW:
+                    this.CopyToXYZW(row, sourceY, Math.Min(row.Width, this.Width));
                     break;
                 default:
                     throw new NotSupportedException();
@@ -224,12 +224,12 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Copies from a row in <see cref="ComponentOrder.BGR"/> format.
+        /// Copies from a row in <see cref="ComponentOrder.ZYX"/> format.
         /// </summary>
         /// <param name="row">The row.</param>
         /// <param name="targetY">The target row index.</param>
         /// <param name="width">The width.</param>
-        protected virtual void CopyFromBGR(PixelRow<TColor, TPacked> row, int targetY, int width)
+        protected virtual void CopyFromZYX(PixelRow<TColor, TPacked> row, int targetY, int width)
         {
             byte* source = row.DataPointer;
             byte* destination = this.GetRowPointer(targetY);
@@ -248,12 +248,12 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Copies from a row in <see cref="ComponentOrder.BGRA"/> format.
+        /// Copies from a row in <see cref="ComponentOrder.ZYXW"/> format.
         /// </summary>
         /// <param name="row">The row.</param>
         /// <param name="targetY">The target row index.</param>
         /// <param name="width">The width.</param>
-        protected virtual void CopyFromBGRA(PixelRow<TColor, TPacked> row, int targetY, int width)
+        protected virtual void CopyFromZYXW(PixelRow<TColor, TPacked> row, int targetY, int width)
         {
             byte* source = row.DataPointer;
             byte* destination = this.GetRowPointer(targetY);
@@ -272,12 +272,12 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Copies from a row in <see cref="ComponentOrder.RGB"/> format.
+        /// Copies from a row in <see cref="ComponentOrder.XYZ"/> format.
         /// </summary>
         /// <param name="row">The row.</param>
         /// <param name="targetY">The target row index.</param>
         /// <param name="width">The width.</param>
-        protected virtual void CopyFromRGB(PixelRow<TColor, TPacked> row, int targetY, int width)
+        protected virtual void CopyFromXYZ(PixelRow<TColor, TPacked> row, int targetY, int width)
         {
             byte* source = row.DataPointer;
             byte* destination = this.GetRowPointer(targetY);
@@ -296,12 +296,12 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Copies from a row in <see cref="ComponentOrder.RGBA"/> format.
+        /// Copies from a row in <see cref="ComponentOrder.XYZW"/> format.
         /// </summary>
         /// <param name="row">The row.</param>
         /// <param name="targetY">The target row index.</param>
         /// <param name="width">The width.</param>
-        protected virtual void CopyFromRGBA(PixelRow<TColor, TPacked> row, int targetY, int width)
+        protected virtual void CopyFromXYZW(PixelRow<TColor, TPacked> row, int targetY, int width)
         {
             byte* source = row.DataPointer;
             byte* destination = this.GetRowPointer(targetY);
@@ -320,65 +320,65 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Copies to a row in <see cref="ComponentOrder.RGBA"/> format.
+        /// Copies to a row in <see cref="ComponentOrder.ZYX"/> format.
         /// </summary>
         /// <param name="row">The row.</param>
         /// <param name="sourceY">The target row index.</param>
         /// <param name="width">The width.</param>
-        protected virtual void CopyToBGR(PixelRow<TColor, TPacked> row, int sourceY, int width)
+        protected virtual void CopyToZYX(PixelRow<TColor, TPacked> row, int sourceY, int width)
         {
             int offset = 0;
             for (int x = 0; x < width; x++)
             {
-                this[x, sourceY].ToBytes(row.Data, offset, ComponentOrder.BGR);
+                this[x, sourceY].ToBytes(row.Data, offset, ComponentOrder.ZYX);
                 offset += 3;
             }
         }
 
         /// <summary>
-        /// Copies to a row in <see cref="ComponentOrder.BGRA"/> format.
+        /// Copies to a row in <see cref="ComponentOrder.ZYXW"/> format.
         /// </summary>
         /// <param name="row">The row.</param>
         /// <param name="sourceY">The target row index.</param>
         /// <param name="width">The width.</param>
-        protected virtual void CopyToBGRA(PixelRow<TColor, TPacked> row, int sourceY, int width)
+        protected virtual void CopyToZYXW(PixelRow<TColor, TPacked> row, int sourceY, int width)
         {
             int offset = 0;
             for (int x = 0; x < width; x++)
             {
-                this[x, sourceY].ToBytes(row.Data, offset, ComponentOrder.BGRA);
+                this[x, sourceY].ToBytes(row.Data, offset, ComponentOrder.ZYXW);
                 offset += 4;
             }
         }
 
         /// <summary>
-        /// Copies to a row in <see cref="ComponentOrder.RGB"/> format.
+        /// Copies to a row in <see cref="ComponentOrder.XYZ"/> format.
         /// </summary>
         /// <param name="row">The row.</param>
         /// <param name="sourceY">The target row index.</param>
         /// <param name="width">The width.</param>
-        protected virtual void CopyToRGB(PixelRow<TColor, TPacked> row, int sourceY, int width)
+        protected virtual void CopyToXYZ(PixelRow<TColor, TPacked> row, int sourceY, int width)
         {
             int offset = 0;
             for (int x = 0; x < width; x++)
             {
-                this[x, sourceY].ToBytes(row.Data, offset, ComponentOrder.RGB);
+                this[x, sourceY].ToBytes(row.Data, offset, ComponentOrder.XYZ);
                 offset += 3;
             }
         }
 
         /// <summary>
-        /// Copies to a row in <see cref="ComponentOrder.RGBA"/> format.
+        /// Copies to a row in <see cref="ComponentOrder.XYZW"/> format.
         /// </summary>
         /// <param name="row">The row.</param>
         /// <param name="sourceY">The target row index.</param>
         /// <param name="width">The width.</param>
-        protected virtual void CopyToRGBA(PixelRow<TColor, TPacked> row, int sourceY, int width)
+        protected virtual void CopyToXYZW(PixelRow<TColor, TPacked> row, int sourceY, int width)
         {
             int offset = 0;
             for (int x = 0; x < width; x++)
             {
-                this[x, sourceY].ToBytes(row.Data, offset, ComponentOrder.RGBA);
+                this[x, sourceY].ToBytes(row.Data, offset, ComponentOrder.XYZW);
                 offset += 4;
             }
         }

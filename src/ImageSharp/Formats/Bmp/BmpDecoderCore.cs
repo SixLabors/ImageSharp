@@ -2,7 +2,6 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
-
 namespace ImageSharp.Formats
 {
     using System;
@@ -134,19 +133,19 @@ namespace ImageSharp.Formats
 
                             if (this.infoHeader.BitsPerPixel == 32)
                             {
-                                this.ReadRgb32<TColor, TPacked>(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
+                                this.ReadRgb32(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
                             }
                             else if (this.infoHeader.BitsPerPixel == 24)
                             {
-                                this.ReadRgb24<TColor, TPacked>(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
+                                this.ReadRgb24(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
                             }
                             else if (this.infoHeader.BitsPerPixel == 16)
                             {
-                                this.ReadRgb16<TColor, TPacked>(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
+                                this.ReadRgb16(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
                             }
                             else if (this.infoHeader.BitsPerPixel <= 8)
                             {
-                                this.ReadRgbPalette<TColor, TPacked>(pixels, palette, this.infoHeader.Width, this.infoHeader.Height, this.infoHeader.BitsPerPixel, inverted);
+                                this.ReadRgbPalette(pixels, palette, this.infoHeader.Width, this.infoHeader.Height, this.infoHeader.BitsPerPixel, inverted);
                             }
 
                             break;
@@ -184,7 +183,15 @@ namespace ImageSharp.Formats
             return row;
         }
 
-        private static int CalculatPadding(int width, int componentCount)
+        /// <summary>
+        /// Calculates the amount of bytes to pad a row.
+        /// </summary>
+        /// <param name="width">The image width.</param>
+        /// <param name="componentCount">The pixel component count.</param>
+        /// <returns>
+        /// The <see cref="int"/>.
+        /// </returns>
+        private static int CalculatePadding(int width, int componentCount)
         {
             int padding = (width * componentCount) % 4;
 
@@ -312,7 +319,7 @@ namespace ImageSharp.Formats
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
-            int padding = CalculatPadding(width, 3);
+            int padding = CalculatePadding(width, 3);
             using (PixelRow<TColor, TPacked> row = new PixelRow<TColor, TPacked>(width, ComponentOrder.BGR, padding))
             {
                 for (int y = 0; y < height; y++)
@@ -338,7 +345,7 @@ namespace ImageSharp.Formats
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
-            int padding = CalculatPadding(width, 4);
+            int padding = CalculatePadding(width, 4);
             using (PixelRow<TColor, TPacked> row = new PixelRow<TColor, TPacked>(width, ComponentOrder.BGRA, padding))
             {
                 for (int y = 0; y < height; y++)

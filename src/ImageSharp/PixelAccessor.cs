@@ -1,4 +1,4 @@
-﻿// <copyright file="ColorPixelAccessor.cs" company="James Jackson-South">
+﻿// <copyright file="PixelAccessor.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -11,13 +11,13 @@ namespace ImageSharp
     /// <summary>
     /// An optimized pixel accessor for the <see cref="Image"/> class.
     /// </summary>
-    public sealed unsafe class ColorPixelAccessor : PixelAccessor<Color, uint>
+    public sealed unsafe class PixelAccessor : PixelAccessor<Color, uint>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ColorPixelAccessor"/> class.
+        /// Initializes a new instance of the <see cref="PixelAccessor"/> class.
         /// </summary>
         /// <param name="image">The image to provide pixel access for.</param>
-        public ColorPixelAccessor(ImageBase<Color, uint> image)
+        public PixelAccessor(ImageBase<Color, uint> image)
           : base(image)
         {
         }

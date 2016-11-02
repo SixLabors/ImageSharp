@@ -26,6 +26,11 @@
       <Value>zig-zag</Value>
       <Value>crc</Value>
       <Value>zlib</Value>
+      <Value>xff</Value>
+      <Value>xda</Value>
+      <Value>ss</Value>
+      <Value>Vol</Value>
+      <Value>pp</Value>
     </CollectionProperty>
   </GlobalSettings>
   <Analyzers>

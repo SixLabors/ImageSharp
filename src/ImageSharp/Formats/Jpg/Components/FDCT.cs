@@ -6,7 +6,7 @@
 namespace ImageSharp.Formats
 {
     /// <summary>
-    /// Performs a fast, forward descrete cosine transform against the given block
+    /// Performs a fast, forward discrete cosine transform against the given block
     /// decomposing it into 64 orthogonal basis signals.
     /// </summary>
     internal class FDCT
@@ -42,10 +42,9 @@ namespace ImageSharp.Formats
         private const int CenterJSample = 128;
 
         /// <summary>
-        /// Performs a forward DCT on an 8x8 block of coefficients, including a
-        /// level shift.
+        /// Performs a forward DCT on an 8x8 block of coefficients, including a level shift.
         /// </summary>
-        /// <param name="block">The block.</param>
+        /// <param name="block">The block of coefficients.</param>
         public static void Transform(Block block)
         {
             // Pass 1: process rows.

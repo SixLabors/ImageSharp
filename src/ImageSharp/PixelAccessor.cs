@@ -60,6 +60,7 @@ namespace ImageSharp
 
             for (int x = 0; x < width; x++)
             {
+                // TODO: Do we need this? Only the encoder/decoder cares about the endianess. We should pass it in LittleEndian and let them work it out.
                 if (BitConverter.IsLittleEndian)
                 {
                     *destination = *(source + 1);

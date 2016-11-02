@@ -292,7 +292,7 @@ namespace ImageSharp.Formats
                     int offset = 0;
                     for (int x = 0; x < width; x++)
                     {
-                        short temp = BitConverter.ToInt16(row.Data, offset);
+                        short temp = BitConverter.ToInt16(row.Bytes, offset);
 
                         byte r = (byte)(((temp & Rgb16RMask) >> 11) * ScaleR);
                         byte g = (byte)(((temp & Rgb16GMask) >> 5) * ScaleG);

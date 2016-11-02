@@ -348,7 +348,7 @@ namespace ImageSharp.Formats
             this.WriteProfiles(image);
 
             // Write the quantization tables.
-            this.WriteDescreteQuantizationTables();
+            this.WriteDefineQuantizationTables();
 
             // Write the image dimensions.
             this.WriteStartOfFrame(image.Width, image.Height, componentCount);
@@ -661,9 +661,9 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Writes the Define Quantization Marker and tables.
+        /// Writes the Define Quantization Marker and tables. 
         /// </summary>
-        private void WriteDescreteQuantizationTables()
+        private void WriteDefineQuantizationTables()
         {
             int markerlen = 2 + (NQuantIndex * (1 + Block.BlockSize));
             this.WriteMarkerHeader(JpegConstants.Markers.DQT, markerlen);

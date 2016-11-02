@@ -34,15 +34,24 @@ namespace ImageSharp.Formats
         /// </summary>
         private const int MaxComponents = 4;
 
-        private const int maxTc = 1;
+        private const int MaxTc = 1;
 
-        private const int maxTh = 3;
+        private const int MaxTh = 3;
 
-        private const int maxTq = 3;
+        /// <summary>
+        /// The maximum number of quantization tables
+        /// </summary>
+        private const int MaxTq = 3;
 
-        private const int dcTable = 0;
+        /// <summary>
+        /// The DC table index
+        /// </summary>
+        private const int DcTable = 0;
 
-        private const int acTable = 1;
+        /// <summary>
+        /// The AC table index
+        /// </summary>
+        private const int AcTable = 1;
 
         /// <summary>
         /// Unzig maps from the zigzag ordering to the natural ordering. For example,
@@ -76,6 +85,11 @@ namespace ImageSharp.Formats
         /// Quantization tables, in zigzag order.
         /// </summary>
         private readonly Block[] quantizationTables;
+
+        /// <summary>
+        /// A temporary buffer for holding pixels
+        /// </summary>
+        private readonly byte[] temp;
 
         /// <summary>
         /// The byte buffer.
@@ -142,19 +156,20 @@ namespace ImageSharp.Formats
         /// </summary>
         private bool isJfif;
 
+        /// <summary>
+        /// Whether the image is in CMYK format with an App14 marker
+        /// </summary>
         private bool adobeTransformValid;
 
+        /// <summary>
+        /// The App14 marker color-space
+        /// </summary>
         private byte adobeTransform;
 
         /// <summary>
         /// End-of-Band run, specified in section G.1.2.2.
         /// </summary>
         private ushort eobRun;
-
-        /// <summary>
-        /// A temporary buffer for holding pixels
-        /// </summary>
-        private byte[] temp;
 
         /// <summary>
         /// The horizontal resolution. Calculated if the image has a JFIF header.
@@ -171,17 +186,17 @@ namespace ImageSharp.Formats
         /// </summary>
         public JpegDecoderCore()
         {
-            this.huffmanTrees = new Huffman[maxTc + 1, maxTh + 1];
-            this.quantizationTables = new Block[maxTq + 1];
+            this.huffmanTrees = new Huffman[MaxTc + 1, MaxTh + 1];
+            this.quantizationTables = new Block[MaxTq + 1];
             this.temp = new byte[2 * Block.BlockSize];
             this.componentArray = new Component[MaxComponents];
             this.progCoeffs = new Block[MaxComponents][];
             this.bits = new Bits();
             this.bytes = new Bytes();
 
-            for (int i = 0; i < maxTc + 1; i++)
+            for (int i = 0; i < MaxTc + 1; i++)
             {
-                for (int j = 0; j < maxTh + 1; j++)
+                for (int j = 0; j < MaxTh + 1; j++)
                 {
                     this.huffmanTrees[i, j] = new Huffman(LutSize, MaxNCodes, MaxCodeLength);
                 }
@@ -204,10 +219,8 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-        /// <param name="stream">The stream, where the image should be
-        /// decoded from. Cannot be null (Nothing in Visual Basic).</param>
-        /// <param name="image">The image, where the data should be set to.
-        /// Cannot be null (Nothing in Visual Basic).</param>
+        /// <param name="image">The image, where the data should be set to.</param>
+        /// <param name="stream">The stream, where the image should be.</param>
         /// <param name="configOnly">Whether to decode metadata only.</param>
         public void Decode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream, bool configOnly)
             where TColor : struct, IPackedPixel<TPacked>
@@ -283,7 +296,7 @@ namespace ImageSharp.Formats
                 // Read the 16-bit length of the segment. The value includes the 2 bytes for the
                 // length itself, so we subtract 2 to get the number of remaining bytes.
                 this.ReadFull(this.temp, 0, 2);
-                int remaining = ((int)this.temp[0] << 8) + (int)this.temp[1] - 2;
+                int remaining = (this.temp[0] << 8) + this.temp[1] - 2;
                 if (remaining < 0)
                 {
                     throw new ImageFormatException("Short segment length.");
@@ -295,7 +308,7 @@ namespace ImageSharp.Formats
                     case JpegConstants.Markers.SOF1:
                     case JpegConstants.Markers.SOF2:
                         this.isProgressive = marker == JpegConstants.Markers.SOF2;
-                        this.ProcessSOF(remaining);
+                        this.ProcessStartOfFrameMarker(remaining);
                         if (configOnly && this.isJfif)
                         {
                             return;
@@ -309,7 +322,7 @@ namespace ImageSharp.Formats
                         }
                         else
                         {
-                            this.ProcessDht(remaining);
+                            this.ProcessDefineHuffmanTablesMarker(remaining);
                         }
 
                         break;
@@ -335,12 +348,12 @@ namespace ImageSharp.Formats
                         }
                         else
                         {
-                            this.ProcessDri(remaining);
+                            this.ProcessDefineRestartIntervalMarker(remaining);
                         }
 
                         break;
                     case JpegConstants.Markers.APP0:
-                        this.ProcessApp0Marker(remaining);
+                        this.ProcessApplicationHeader(remaining);
                         break;
                     case JpegConstants.Markers.APP1:
                         this.ProcessApp1Marker(remaining, image);
@@ -457,12 +470,12 @@ namespace ImageSharp.Formats
         /// Processes a Define Huffman Table marker, and initializes a huffman
         /// struct from its contents. Specified in section B.2.4.2.
         /// </summary>
-        /// <param name="n"></param>
-        private void ProcessDht(int n)
+        /// <param name="remaining">The remaining bytes in the segment block.</param>
+        private void ProcessDefineHuffmanTablesMarker(int remaining)
         {
-            while (n > 0)
+            while (remaining > 0)
             {
-                if (n < 17)
+                if (remaining < 17)
                 {
                     throw new ImageFormatException("DHT has wrong length");
                 }
@@ -470,13 +483,13 @@ namespace ImageSharp.Formats
                 this.ReadFull(this.temp, 0, 17);
 
                 int tc = this.temp[0] >> 4;
-                if (tc > maxTc)
+                if (tc > MaxTc)
                 {
                     throw new ImageFormatException("Bad Tc value");
                 }
 
                 int th = this.temp[0] & 0x0f;
-                if (th > maxTh || (!this.isProgressive && (th > 1)))
+                if (th > MaxTh || (!this.isProgressive && (th > 1)))
                 {
                     throw new ImageFormatException("Bad Th value");
                 }
@@ -505,8 +518,8 @@ namespace ImageSharp.Formats
                     throw new ImageFormatException("Huffman table has excessive length");
                 }
 
-                n -= huffman.Length + 17;
-                if (n < 0)
+                remaining -= huffman.Length + 17;
+                if (remaining < 0)
                 {
                     throw new ImageFormatException("DHT has wrong length");
                 }
@@ -571,8 +584,7 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Returns the next Huffman-coded value from the bit-stream,
-        /// decoded according to the given value.
+        /// Returns the next Huffman-coded value from the bit-stream, decoded according to the given value.
         /// </summary>
         /// <param name="huffman">The huffman value</param>
         /// <returns>The <see cref="byte"/></returns>
@@ -868,15 +880,18 @@ namespace ImageSharp.Formats
             }
         }
 
-        // Specified in section B.2.2.
-        private void ProcessSOF(int n)
+        /// <summary>
+        /// Processes the Start of Frame marker.  Specified in section B.2.2.
+        /// </summary>
+        /// <param name="remaining">The remaining bytes in the segment block.</param>
+        private void ProcessStartOfFrameMarker(int remaining)
         {
             if (this.componentCount != 0)
             {
-                throw new ImageFormatException("multiple SOF markers");
+                throw new ImageFormatException("Multiple SOF markers");
             }
 
-            switch (n)
+            switch (remaining)
             {
                 case 6 + (3 * 1): // Grayscale image.
                     this.componentCount = 1;
@@ -891,7 +906,7 @@ namespace ImageSharp.Formats
                     throw new ImageFormatException("Incorrect number of components");
             }
 
-            this.ReadFull(this.temp, 0, n);
+            this.ReadFull(this.temp, 0, remaining);
 
             // We only support 8-bit precision.
             if (this.temp[0] != 8)
@@ -921,7 +936,7 @@ namespace ImageSharp.Formats
                 }
 
                 this.componentArray[i].Selector = this.temp[8 + (3 * i)];
-                if (this.componentArray[i].Selector > maxTq)
+                if (this.componentArray[i].Selector > MaxTq)
                 {
                     throw new ImageFormatException("Bad Tq value");
                 }
@@ -1053,17 +1068,23 @@ namespace ImageSharp.Formats
             }
         }
 
-        // Specified in section B.2.4.1.
-        private void ProcessDqt(int n)
+        /// <summary>
+        /// Processes the Define Quantization Marker and tables. Specified in section B.2.4.1.
+        /// </summary>
+        /// <param name="remaining">The remaining bytes in the segment block.</param>
+        /// <exception cref="ImageFormatException">
+        /// Thrown if the tables do not match the header
+        /// </exception>
+        private void ProcessDqt(int remaining)
         {
-            while (n > 0)
+            while (remaining > 0)
             {
                 bool done = false;
 
-                n--;
+                remaining--;
                 byte x = this.ReadByte();
                 byte tq = (byte)(x & 0x0f);
-                if (tq > maxTq)
+                if (tq > MaxTq)
                 {
                     throw new ImageFormatException("Bad Tq value");
                 }
@@ -1071,13 +1092,13 @@ namespace ImageSharp.Formats
                 switch (x >> 4)
                 {
                     case 0:
-                        if (n < Block.BlockSize)
+                        if (remaining < Block.BlockSize)
                         {
                             done = true;
                             break;
                         }
 
-                        n -= Block.BlockSize;
+                        remaining -= Block.BlockSize;
                         this.ReadFull(this.temp, 0, Block.BlockSize);
 
                         for (int i = 0; i < Block.BlockSize; i++)
@@ -1087,13 +1108,13 @@ namespace ImageSharp.Formats
 
                         break;
                     case 1:
-                        if (n < 2 * Block.BlockSize)
+                        if (remaining < 2 * Block.BlockSize)
                         {
                             done = true;
                             break;
                         }
 
-                        n -= 2 * Block.BlockSize;
+                        remaining -= 2 * Block.BlockSize;
                         this.ReadFull(this.temp, 0, 2 * Block.BlockSize);
 
                         for (int i = 0; i < Block.BlockSize; i++)
@@ -1112,16 +1133,19 @@ namespace ImageSharp.Formats
                 }
             }
 
-            if (n != 0)
+            if (remaining != 0)
             {
                 throw new ImageFormatException("DQT has wrong length");
             }
         }
 
-        // Specified in section B.2.4.4.
-        private void ProcessDri(int n)
+        /// <summary>
+        /// Processes the DRI (Define Restart Interval Marker) Which specifies the interval between RSTn markers, in macroblocks
+        /// </summary>
+        /// <param name="remaining">The remaining bytes in the segment block.</param>
+        private void ProcessDefineRestartIntervalMarker(int remaining)
         {
-            if (n != 2)
+            if (remaining != 2)
             {
                 throw new ImageFormatException("DRI has wrong length");
             }
@@ -1130,16 +1154,20 @@ namespace ImageSharp.Formats
             this.restartInterval = ((int)this.temp[0] << 8) + (int)this.temp[1];
         }
 
-        private void ProcessApp0Marker(int n)
+        /// <summary>
+        /// Processes the application header containing the JFIF identifier plus extra data.
+        /// </summary>
+        /// <param name="remaining">The remaining bytes in the segment block.</param>
+        private void ProcessApplicationHeader(int remaining)
         {
-            if (n < 5)
+            if (remaining < 5)
             {
-                this.Skip(n);
+                this.Skip(remaining);
                 return;
             }
 
             this.ReadFull(this.temp, 0, 13);
-            n -= 13;
+            remaining -= 13;
 
             // TODO: We should be using constants for this.
             this.isJfif = this.temp[0] == 'J' &&
@@ -1154,9 +1182,9 @@ namespace ImageSharp.Formats
                 this.verticalResolution = (short)(this.temp[11] + (this.temp[12] << 8));
             }
 
-            if (n > 0)
+            if (remaining > 0)
             {
-                this.Skip(n);
+                this.Skip(remaining);
             }
         }
 
@@ -1165,20 +1193,20 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-        /// <param name="n">The position in the stream.</param>
+        /// <param name="remaining">The remaining bytes in the segment block.</param>
         /// <param name="image">The image.</param>
-        private void ProcessApp1Marker<TColor, TPacked>(int n, Image<TColor, TPacked> image)
+        private void ProcessApp1Marker<TColor, TPacked>(int remaining, Image<TColor, TPacked> image)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
-            if (n < 6)
+            if (remaining < 6)
             {
-                this.Skip(n);
+                this.Skip(remaining);
                 return;
             }
 
-            byte[] profile = new byte[n];
-            this.ReadFull(profile, 0, n);
+            byte[] profile = new byte[remaining];
+            this.ReadFull(profile, 0, remaining);
 
             if (profile[0] == 'E' &&
                 profile[1] == 'x' &&
@@ -1191,16 +1219,22 @@ namespace ImageSharp.Formats
             }
         }
 
-        private void ProcessApp14Marker(int n)
+        /// <summary>
+        /// Processes the "Adobe" APP14 segment stores image encoding information for DCT filters. 
+        /// This segment may be copied or deleted as a block using the Extra "Adobe" tag, but note that it is not 
+        /// deleted by default when deleting all metadata because it may affect the appearance of the image.
+        /// </summary>
+        /// <param name="remaining">The remaining number of bytes in the stream.</param>
+        private void ProcessApp14Marker(int remaining)
         {
-            if (n < 12)
+            if (remaining < 12)
             {
-                this.Skip(n);
+                this.Skip(remaining);
                 return;
             }
 
             this.ReadFull(this.temp, 0, 12);
-            n -= 12;
+            remaining -= 12;
 
             if (this.temp[0] == 'A' &&
                 this.temp[1] == 'd' &&
@@ -1212,14 +1246,14 @@ namespace ImageSharp.Formats
                 this.adobeTransform = this.temp[11];
             }
 
-            if (n > 0)
+            if (remaining > 0)
             {
-                this.Skip(n);
+                this.Skip(remaining);
             }
         }
 
         /// <summary>
-        /// Converts the image from the original Cmyk image pixels.
+        /// Converts the image from the original CMYK image pixels.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
@@ -1241,40 +1275,41 @@ namespace ImageSharp.Formats
             {
                 int scale = this.componentArray[0].HorizontalFactor / this.componentArray[1].HorizontalFactor;
 
-                TColor[] pixels = new TColor[width * height];
+                image.InitPixels(width, height);
 
-                // Convert the YCbCr part of the YCbCrK to RGB, invert the RGB to get
-                // CMY, and patch in the original K. The RGB to CMY inversion cancels
-                // out the 'Adobe inversion' described in the applyBlack doc comment
-                // above, so in practice, only the fourth channel (black) is inverted.
-                Parallel.For(
-                    0,
-                    height,
-                    y =>
-                    {
-                        int yo = this.ycbcrImage.GetRowYOffset(y);
-                        int co = this.ycbcrImage.GetRowCOffset(y);
-
-                        for (int x = 0; x < width; x++)
+                using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
+                {
+                    // Convert the YCbCr part of the YCbCrK to RGB, invert the RGB to get
+                    // CMY, and patch in the original K. The RGB to CMY inversion cancels
+                    // out the 'Adobe inversion' described in the applyBlack doc comment
+                    // above, so in practice, only the fourth channel (black) is inverted.
+                    Parallel.For(
+                        0,
+                        height,
+                        y =>
                         {
-                            byte yy = this.ycbcrImage.YChannel[yo + x];
-                            byte cb = this.ycbcrImage.CbChannel[co + (x / scale)];
-                            byte cr = this.ycbcrImage.CrChannel[co + (x / scale)];
+                            int yo = this.ycbcrImage.GetRowYOffset(y);
+                            int co = this.ycbcrImage.GetRowCOffset(y);
 
-                            int index = (y * width) + x;
+                            for (int x = 0; x < width; x++)
+                            {
+                                byte yy = this.ycbcrImage.YChannel[yo + x];
+                                byte cb = this.ycbcrImage.CbChannel[co + (x / scale)];
+                                byte cr = this.ycbcrImage.CrChannel[co + (x / scale)];
 
-                            // Implicit casting FTW
-                            Color color = new YCbCr(yy, cb, cr);
-                            int keyline = 255 - this.blackPixels[(y * this.blackStride) + x];
-                            Color final = new Cmyk(color.R / 255F, color.G / 255F, color.B / 255F, keyline / 255F);
+                                // Implicit casting FTW
+                                Color color = new YCbCr(yy, cb, cr);
+                                int keyline = 255 - this.blackPixels[(y * this.blackStride) + x];
+                                Color final = new Cmyk(color.R / 255F, color.G / 255F, color.B / 255F, keyline / 255F);
 
-                            TColor packed = default(TColor);
-                            packed.PackFromVector4(final.ToVector4());
-                            pixels[index] = packed;
-                        }
-                    });
+                                TColor packed = default(TColor);
+                                packed.PackFromBytes(final.R, final.G, final.B, final.A);
+                                pixels[x, y] = packed;
+                            }
+                        });
+                }
 
-                image.SetPixels(width, height, pixels);
+                this.AssignResolution(image);
             }
         }
 
@@ -1290,27 +1325,28 @@ namespace ImageSharp.Formats
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
-            TColor[] pixels = new TColor[width * height];
+            image.InitPixels(width, height);
 
-            Parallel.For(
-                0,
-                height,
-                Bootstrapper.Instance.ParallelOptions,
-                y =>
-                {
-                    int yoff = this.grayImage.GetRowOffset(y);
-                    for (int x = 0; x < width; x++)
+            using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
+            {
+                Parallel.For(
+                    0,
+                    height,
+                    Bootstrapper.Instance.ParallelOptions,
+                    y =>
                     {
-                        int offset = (y * width) + x;
-                        byte rgb = this.grayImage.Pixels[yoff + x];
+                        int yoff = this.grayImage.GetRowOffset(y);
+                        for (int x = 0; x < width; x++)
+                        {
+                            byte rgb = this.grayImage.Pixels[yoff + x];
 
-                        TColor packed = default(TColor);
-                        packed.PackFromVector4(new Color(rgb, rgb, rgb).ToVector4());
-                        pixels[offset] = packed;
-                    }
-                });
+                            TColor packed = default(TColor);
+                            packed.PackFromBytes(rgb, rgb, rgb, 255);
+                            pixels[x, y] = packed;
+                        }
+                    });
+            }
 
-            image.SetPixels(width, height, pixels);
             this.AssignResolution(image);
         }
 
@@ -1327,14 +1363,15 @@ namespace ImageSharp.Formats
             where TPacked : struct
         {
             int scale = this.componentArray[0].HorizontalFactor / this.componentArray[1].HorizontalFactor;
+            image.InitPixels(width, height);
 
-            TColor[] pixels = new TColor[width * height];
-
-            Parallel.For(
-                0,
-                height,
-                Bootstrapper.Instance.ParallelOptions,
-                y =>
+            using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
+            {
+                Parallel.For(
+                    0,
+                    height,
+                    Bootstrapper.Instance.ParallelOptions,
+                    y =>
                     {
                         int yo = this.ycbcrImage.GetRowYOffset(y);
                         int co = this.ycbcrImage.GetRowCOffset(y);
@@ -1345,17 +1382,15 @@ namespace ImageSharp.Formats
                             byte cb = this.ycbcrImage.CbChannel[co + (x / scale)];
                             byte cr = this.ycbcrImage.CrChannel[co + (x / scale)];
 
-                            int index = (y * width) + x;
-
                             // Implicit casting FTW
                             Color color = new YCbCr(yy, cb, cr);
                             TColor packed = default(TColor);
-                            packed.PackFromVector4(color.ToVector4());
-                            pixels[index] = packed;
+                            packed.PackFromBytes(color.R, color.G, color.B, color.A);
+                            pixels[x, y] = packed;
                         }
                     });
+            }
 
-            image.SetPixels(width, height, pixels);
             this.AssignResolution(image);
         }
 
@@ -1372,13 +1407,15 @@ namespace ImageSharp.Formats
             where TPacked : struct
         {
             int scale = this.componentArray[0].HorizontalFactor / this.componentArray[1].HorizontalFactor;
-            TColor[] pixels = new TColor[width * height];
+            image.InitPixels(width, height);
 
-            Parallel.For(
-                0,
-                height,
-                Bootstrapper.Instance.ParallelOptions,
-                y =>
+            using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
+            {
+                Parallel.For(
+                    0,
+                    height,
+                    Bootstrapper.Instance.ParallelOptions,
+                    y =>
                     {
                         int yo = this.ycbcrImage.GetRowYOffset(y);
                         int co = this.ycbcrImage.GetRowCOffset(y);
@@ -1389,15 +1426,13 @@ namespace ImageSharp.Formats
                             byte green = this.ycbcrImage.CbChannel[co + (x / scale)];
                             byte blue = this.ycbcrImage.CrChannel[co + (x / scale)];
 
-                            int index = (y * width) + x;
                             TColor packed = default(TColor);
-                            packed.PackFromVector4(new Color(red, green, blue).ToVector4());
-
-                            pixels[index] = packed;
+                            packed.PackFromBytes(red, green, blue, 255);
+                            pixels[x, y] = packed;
                         }
                     });
+            }
 
-            image.SetPixels(width, height, pixels);
             this.AssignResolution(image);
         }
 
@@ -1424,29 +1459,27 @@ namespace ImageSharp.Formats
         /// <remarks>
         /// TODO: This also needs some significant refactoring to follow a more OO format.
         /// </remarks>
-        /// <param name="n">
-        /// The first byte of the current image marker.
-        /// </param>
+        /// <param name="remaining">The remaining bytes in the segment block.</param>
         /// <exception cref="ImageFormatException">
         /// Missing SOF Marker
         /// SOS has wrong length
         /// </exception>
-        private void ProcessStartOfScan(int n)
+        private void ProcessStartOfScan(int remaining)
         {
             if (this.componentCount == 0)
             {
                 throw new ImageFormatException("Missing SOF marker");
             }
 
-            if (n < 6 || 4 + (2 * this.componentCount) < n || n % 2 != 0)
+            if (remaining < 6 || 4 + (2 * this.componentCount) < remaining || remaining % 2 != 0)
             {
                 throw new ImageFormatException("SOS has wrong length");
             }
 
-            this.ReadFull(this.temp, 0, n);
-            byte lnComp = this.temp[0];
+            this.ReadFull(this.temp, 0, remaining);
+            byte scanComponentCount = this.temp[0];
 
-            if (n != 4 + (2 * lnComp))
+            if (remaining != 4 + (2 * scanComponentCount))
             {
                 throw new ImageFormatException("SOS length inconsistent with number of components");
             }
@@ -1454,7 +1487,7 @@ namespace ImageSharp.Formats
             Scan[] scan = new Scan[MaxComponents];
             int totalHv = 0;
 
-            for (int i = 0; i < lnComp; i++)
+            for (int i = 0; i < scanComponentCount; i++)
             {
                 // Component selector.
                 int cs = this.temp[1 + (2 * i)];
@@ -1488,17 +1521,16 @@ namespace ImageSharp.Formats
                     }
                 }
 
-                totalHv += this.componentArray[compIndex].HorizontalFactor
-                           * this.componentArray[compIndex].VerticalFactor;
+                totalHv += this.componentArray[compIndex].HorizontalFactor * this.componentArray[compIndex].VerticalFactor;
 
                 scan[i].DcTableSelector = (byte)(this.temp[2 + (2 * i)] >> 4);
-                if (scan[i].DcTableSelector > maxTh)
+                if (scan[i].DcTableSelector > MaxTh)
                 {
                     throw new ImageFormatException("Bad DC table selector value");
                 }
 
                 scan[i].AcTableSelector = (byte)(this.temp[2 + (2 * i)] & 0x0f);
-                if (scan[i].AcTableSelector > maxTh)
+                if (scan[i].AcTableSelector > MaxTh)
                 {
                     throw new ImageFormatException("Bad AC table selector  value");
                 }
@@ -1532,17 +1564,17 @@ namespace ImageSharp.Formats
 
             if (this.isProgressive)
             {
-                zigStart = (int)this.temp[1 + (2 * lnComp)];
-                zigEnd = (int)this.temp[2 + (2 * lnComp)];
-                ah = (int)(this.temp[3 + (2 * lnComp)] >> 4);
-                al = (int)(this.temp[3 + (2 * lnComp)] & 0x0f);
+                zigStart = this.temp[1 + (2 * scanComponentCount)];
+                zigEnd = this.temp[2 + (2 * scanComponentCount)];
+                ah = this.temp[3 + (2 * scanComponentCount)] >> 4;
+                al = this.temp[3 + (2 * scanComponentCount)] & 0x0f;
 
                 if ((zigStart == 0 && zigEnd != 0) || zigStart > zigEnd || Block.BlockSize <= zigEnd)
                 {
                     throw new ImageFormatException("Bad spectral selection bounds");
                 }
 
-                if (zigStart != 0 && lnComp != 1)
+                if (zigStart != 0 && scanComponentCount != 1)
                 {
                     throw new ImageFormatException("Progressive AC coefficients for more than one component");
                 }
@@ -1566,7 +1598,7 @@ namespace ImageSharp.Formats
 
             if (this.isProgressive)
             {
-                for (int i = 0; i < lnComp; i++)
+                for (int i = 0; i < scanComponentCount; i++)
                 {
                     int compIndex = scan[i].Index;
                     if (this.progCoeffs[compIndex] == null)
@@ -1586,7 +1618,7 @@ namespace ImageSharp.Formats
             int mcu = 0;
             byte expectedRst = JpegConstants.Markers.RST0;
 
-            // b is the decoded coefficients, in natural (not zig-zag) order.
+            // b is the decoded coefficients block, in natural (not zig-zag) order.
             Block b;
             int[] dc = new int[MaxComponents];
 
@@ -1598,7 +1630,7 @@ namespace ImageSharp.Formats
             {
                 for (int mx = 0; mx < mxx; mx++)
                 {
-                    for (int i = 0; i < lnComp; i++)
+                    for (int i = 0; i < scanComponentCount; i++)
                     {
                         int compIndex = scan[i].Index;
                         int hi = this.componentArray[compIndex].HorizontalFactor;
@@ -1612,7 +1644,7 @@ namespace ImageSharp.Formats
                             // For a baseline 32x16 pixel image, the Y blocks visiting order is:
                             // 0 1 4 5
                             // 2 3 6 7
-                            // For progressive images, the interleaved scans (those with nComp > 1)
+                            // For progressive images, the interleaved scans (those with component count > 1)
                             // are traversed as above, but non-interleaved scans are traversed left
                             // to right, top to bottom:
                             // 0 1 2 3
@@ -1629,7 +1661,7 @@ namespace ImageSharp.Formats
                             // The non-interleaved scans will process only 6 Y blocks:
                             // 0 1 2
                             // 3 4 5
-                            if (lnComp != 1)
+                            if (scanComponentCount != 1)
                             {
                                 bx = (hi * mx) + (j % hi);
                                 by = (vi * my) + (j / hi);
@@ -1651,7 +1683,7 @@ namespace ImageSharp.Formats
 
                             if (ah != 0)
                             {
-                                this.Refine(b, this.huffmanTrees[acTable, scan[i].AcTableSelector], zigStart, zigEnd, 1 << al);
+                                this.Refine(b, this.huffmanTrees[AcTable, scan[i].AcTableSelector], zigStart, zigEnd, 1 << al);
                             }
                             else
                             {
@@ -1661,14 +1693,14 @@ namespace ImageSharp.Formats
                                     zig++;
 
                                     // Decode the DC coefficient, as specified in section F.2.2.1.
-                                    byte value = this.DecodeHuffman(this.huffmanTrees[dcTable, scan[i].DcTableSelector]);
+                                    byte value = this.DecodeHuffman(this.huffmanTrees[DcTable, scan[i].DcTableSelector]);
                                     if (value > 16)
                                     {
                                         throw new ImageFormatException("Excessive DC component");
                                     }
 
-                                    int dcDelta = this.ReceiveExtend(value);
-                                    dc[compIndex] += dcDelta;
+                                    int deltaDC = this.ReceiveExtend(value);
+                                    dc[compIndex] += deltaDC;
                                     b[0] = dc[compIndex] << al;
                                 }
 
@@ -1679,7 +1711,7 @@ namespace ImageSharp.Formats
                                 else
                                 {
                                     // Decode the AC coefficients, as specified in section F.2.2.2.
-                                    Huffman huffv = this.huffmanTrees[acTable, scan[i].AcTableSelector];
+                                    Huffman huffv = this.huffmanTrees[AcTable, scan[i].AcTableSelector];
                                     for (; zig <= zigEnd; zig++)
                                     {
                                         byte value = this.DecodeHuffman(huffv);
@@ -1853,11 +1885,11 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Decodes a successive approximation refinement block, as specified in section G.1.2.
         /// </summary>
-        /// <param name="b"></param>
-        /// <param name="h"></param>
-        /// <param name="zigStart"></param>
-        /// <param name="zigEnd"></param>
-        /// <param name="delta"></param>
+        /// <param name="b">The block of coefficients</param>
+        /// <param name="h">The Huffman tree</param>
+        /// <param name="zigStart">The zig-zag start index</param>
+        /// <param name="zigEnd">The zig-zag end index</param>
+        /// <param name="delta">The low transform offset</param>
         private void Refine(Block b, Huffman h, int zigStart, int zigEnd, int delta)
         {
             // Refining a DC component is trivial.
@@ -1897,8 +1929,7 @@ namespace ImageSharp.Formats
                                 this.eobRun = (ushort)(1 << val0);
                                 if (val0 != 0)
                                 {
-                                    uint bits = this.DecodeBits(val0);
-                                    this.eobRun |= (ushort)bits;
+                                    this.eobRun |= (ushort)this.DecodeBits(val0);
                                 }
 
                                 done = true;
@@ -1943,8 +1974,16 @@ namespace ImageSharp.Formats
             }
         }
 
-        // refineNonZeroes refines non-zero entries of b in zig-zag order. If nz >= 0,
-        // the first nz zero entries are skipped over.
+        /// <summary>
+        /// Refines non-zero entries of b in zig-zag order. 
+        /// If <paramref name="nz"/> >= 0, the first <paramref name="nz"/> zero entries are skipped over.
+        /// </summary>
+        /// <param name="b">The block of coefficients</param>
+        /// <param name="zig">The zig-zag start index</param>
+        /// <param name="zigEnd">The zig-zag end index</param>
+        /// <param name="nz">The non-zero entry</param>
+        /// <param name="delta">The low transform offset</param>
+        /// <returns>The <see cref="int"/></returns>
         private int RefineNonZeroes(Block b, int zig, int zigEnd, int nz, int delta)
         {
             for (; zig <= zigEnd; zig++)
@@ -1983,14 +2022,14 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Makes the image from the buffer.
         /// </summary>
-        /// <param name="mxx"></param>
-        /// <param name="myy"></param>
+        /// <param name="mxx">The horizontal MCU count</param>
+        /// <param name="myy">The vertical MCU count</param>
         private void MakeImage(int mxx, int myy)
         {
             if (this.componentCount == 1)
             {
-                GrayImage m = new GrayImage(8 * mxx, 8 * myy);
-                this.grayImage = m.Subimage(0, 0, this.imageWidth, this.imageHeight);
+                GrayImage gray = new GrayImage(8 * mxx, 8 * myy);
+                this.grayImage = gray.Subimage(0, 0, this.imageWidth, this.imageHeight);
             }
             else
             {
@@ -2022,8 +2061,8 @@ namespace ImageSharp.Formats
                         break;
                 }
 
-                YCbCrImage m = new YCbCrImage(8 * h0 * mxx, 8 * v0 * myy, ratio);
-                this.ycbcrImage = m.Subimage(0, 0, this.imageWidth, this.imageHeight);
+                YCbCrImage ycbcr = new YCbCrImage(8 * h0 * mxx, 8 * v0 * myy, ratio);
+                this.ycbcrImage = ycbcr.Subimage(0, 0, this.imageWidth, this.imageHeight);
 
                 if (this.componentCount == 4)
                 {
@@ -2093,6 +2132,10 @@ namespace ImageSharp.Formats
         {
         }
 
+        /// <summary>
+        /// The EOF (End of File exception). 
+        /// Thrown when the decoder encounters an EOF marker without a proceeding EOI (End Of Image) marker
+        /// </summary>
         private class EOFException : Exception
         {
         }

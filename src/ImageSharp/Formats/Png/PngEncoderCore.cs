@@ -14,7 +14,7 @@ namespace ImageSharp.Formats
 
     /// <summary>
     /// Performs the png encoding operation.
-    /// TODO: Perf. There's lots of array parsing going on here. This should be unmanaged.
+    /// TODO: Perf. There's lots of array parsing and copying going on here. This should be unmanaged.
     /// </summary>
     internal sealed class PngEncoderCore
     {
@@ -254,34 +254,31 @@ namespace ImageSharp.Formats
             // Copy the pixels across from the image.
             this.pixelData = new byte[this.width * this.height * this.bytesPerPixel];
             int stride = this.width * this.bytesPerPixel;
+            byte[] bytes = new byte[4];
             using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
             {
-                Parallel.For(
-                   0,
-                   this.height,
-                   Bootstrapper.Instance.ParallelOptions,
-                   y =>
-                   {
-                       for (int x = 0; x < this.width; x++)
-                       {
-                           // Convert the color to YCbCr and store the luminance
-                           // Optionally store the original color alpha.
-                           int dataOffset = (y * stride) + (x * this.bytesPerPixel);
-                           Color source = new Color(pixels[x, y].ToVector4());
-                           YCbCr luminance = source;
-                           for (int i = 0; i < this.bytesPerPixel; i++)
-                           {
-                               if (i == 0)
-                               {
-                                   this.pixelData[dataOffset] = ((byte)luminance.Y).Clamp(0, 255);
-                               }
-                               else
-                               {
-                                   this.pixelData[dataOffset + i] = source.A;
-                               }
-                           }
-                       }
-                   });
+                for (int y = 0; y < this.height; y++)
+                {
+                    for (int x = 0; x < this.width; x++)
+                    {
+                        // Convert the color to YCbCr and store the luminance
+                        // Optionally store the original color alpha.
+                        int dataOffset = (y * stride) + (x * this.bytesPerPixel);
+                        pixels[x, y].ToBytes(bytes, 0, ComponentOrder.XYZW);
+                        YCbCr luminance = new Color(bytes[0], bytes[1], bytes[2], bytes[3]);
+                        for (int i = 0; i < this.bytesPerPixel; i++)
+                        {
+                            if (i == 0)
+                            {
+                                this.pixelData[dataOffset] = (byte)luminance.Y;
+                            }
+                            else
+                            {
+                                this.pixelData[dataOffset + i] = bytes[3];
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -296,10 +293,12 @@ namespace ImageSharp.Formats
             where TPacked : struct
         {
             // Copy the pixels across from the image.
+            // TODO: This could be sped up more if we add a method to PixelAccessor that does this by row directly to a byte array.
             this.pixelData = new byte[this.width * this.height * this.bytesPerPixel];
             int stride = this.width * this.bytesPerPixel;
             using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
             {
+                int bpp = this.bytesPerPixel;
                 Parallel.For(
                    0,
                    this.height,
@@ -309,15 +308,7 @@ namespace ImageSharp.Formats
                        for (int x = 0; x < this.width; x++)
                        {
                            int dataOffset = (y * stride) + (x * this.bytesPerPixel);
-                           Color source = new Color(pixels[x, y].ToVector4());
-
-                           this.pixelData[dataOffset] = source.R;
-                           this.pixelData[dataOffset + 1] = source.G;
-                           this.pixelData[dataOffset + 2] = source.B;
-                           if (this.bytesPerPixel == 4)
-                           {
-                               this.pixelData[dataOffset + 3] = source.A;
-                           }
+                           pixels[x, y].ToBytes(this.pixelData, dataOffset, bpp == 4 ? ComponentOrder.XYZW : ComponentOrder.XYZ);
                        }
                    });
             }
@@ -330,6 +321,7 @@ namespace ImageSharp.Formats
         /// <returns>The <see cref="T:byte[]"/></returns>
         private byte[] EncodePixelData()
         {
+            // TODO: Use pointers
             List<byte[]> filteredScanlines = new List<byte[]>();
 
             byte[] previousScanline = new byte[this.width * this.bytesPerPixel];
@@ -344,6 +336,7 @@ namespace ImageSharp.Formats
                 previousScanline = rawScanline;
             }
 
+            // TODO: We should be able to use a byte array when not using interlaced encoding.
             List<byte> result = new List<byte>();
 
             foreach (byte[] encodedScanline in filteredScanlines)
@@ -516,6 +509,7 @@ namespace ImageSharp.Formats
             int colorTableLength = (int)Math.Pow(2, header.BitDepth) * 3;
             byte[] colorTable = new byte[colorTableLength];
 
+            // TODO: Optimize this.
             Parallel.For(
                 0,
                 pixelCount,

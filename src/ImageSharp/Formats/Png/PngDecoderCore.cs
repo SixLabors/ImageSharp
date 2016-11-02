@@ -8,7 +8,6 @@ namespace ImageSharp.Formats
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
-    using System.Numerics;
     using System.Text;
 
     /// <summary>
@@ -336,7 +335,7 @@ namespace ImageSharp.Formats
                         byte intensity = defilteredScanline[offset];
 
                         TColor color = default(TColor);
-                        color.PackFromVector4(new Vector4(intensity, intensity, intensity, 255) / 255F);
+                        color.PackFromBytes(intensity, intensity, intensity, 255);
                         pixels[(row * this.header.Width) + x] = color;
                     }
 
@@ -352,7 +351,7 @@ namespace ImageSharp.Formats
                         byte alpha = defilteredScanline[offset + this.bytesPerSample];
 
                         TColor color = default(TColor);
-                        color.PackFromVector4(new Vector4(intensity, intensity, intensity, alpha) / 255F);
+                        color.PackFromBytes(intensity, intensity, intensity, alpha);
                         pixels[(row * this.header.Width) + x] = color;
                     }
 
@@ -379,7 +378,7 @@ namespace ImageSharp.Formats
                                 byte r = this.palette[pixelOffset];
                                 byte g = this.palette[pixelOffset + 1];
                                 byte b = this.palette[pixelOffset + 2];
-                                color.PackFromVector4(new Vector4(r, g, b, a) / 255F);
+                                color.PackFromBytes(r, g, b, a);
                             }
 
                             pixels[offset] = color;
@@ -398,7 +397,7 @@ namespace ImageSharp.Formats
                             byte b = this.palette[pixelOffset + 2];
 
                             TColor color = default(TColor);
-                            color.PackFromVector4(new Vector4(r, g, b, 255) / 255F);
+                            color.PackFromBytes(r, g, b, 255);
                             pixels[offset] = color;
                         }
                     }
@@ -416,7 +415,7 @@ namespace ImageSharp.Formats
                         byte b = defilteredScanline[offset + (2 * this.bytesPerSample)];
 
                         TColor color = default(TColor);
-                        color.PackFromVector4(new Vector4(r, g, b, 255) / 255F);
+                        color.PackFromBytes(r, g, b, 255);
                         pixels[(row * this.header.Width) + x] = color;
                     }
 
@@ -434,7 +433,7 @@ namespace ImageSharp.Formats
                         byte a = defilteredScanline[offset + (3 * this.bytesPerSample)];
 
                         TColor color = default(TColor);
-                        color.PackFromVector4(new Vector4(r, g, b, a) / 255F);
+                        color.PackFromBytes(r, g, b, a);
                         pixels[(row * this.header.Width) + x] = color;
                     }
 

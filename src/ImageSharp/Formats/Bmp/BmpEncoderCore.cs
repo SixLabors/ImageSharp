@@ -160,7 +160,7 @@ namespace ImageSharp.Formats
                 for (int y = pixels.Height - 1; y >= 0; y--)
                 {
                     pixels.CopyTo(row, y);
-                    writer.Write(row.Data);
+                    writer.Write(row.Bytes);
                 }
             }
         }
@@ -181,7 +181,7 @@ namespace ImageSharp.Formats
                 for (int y = pixels.Height - 1; y >= 0; y--)
                 {
                     pixels.CopyTo(row, y);
-                    writer.Write(row.Data);
+                    writer.Write(row.Bytes);
                 }
             }
         }

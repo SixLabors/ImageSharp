@@ -24,7 +24,7 @@ namespace ImageSharp
         private IntPtr dataPointer;
 
         /// <summary>
-        /// The position of the first pixel in the bitmap.
+        /// The position of the first pixel in the image.
         /// </summary>
         private byte* pixelsBase;
 
@@ -231,7 +231,7 @@ namespace ImageSharp
         /// <param name="width">The width.</param>
         protected virtual void CopyFromZYX(PixelRow<TColor, TPacked> row, int targetY, int width)
         {
-            byte* source = row.DataPointer;
+            byte* source = row.PixelBase;
             byte* destination = this.GetRowPointer(targetY);
 
             TColor packed = default(TColor);
@@ -255,7 +255,7 @@ namespace ImageSharp
         /// <param name="width">The width.</param>
         protected virtual void CopyFromZYXW(PixelRow<TColor, TPacked> row, int targetY, int width)
         {
-            byte* source = row.DataPointer;
+            byte* source = row.PixelBase;
             byte* destination = this.GetRowPointer(targetY);
 
             TColor packed = default(TColor);
@@ -279,7 +279,7 @@ namespace ImageSharp
         /// <param name="width">The width.</param>
         protected virtual void CopyFromXYZ(PixelRow<TColor, TPacked> row, int targetY, int width)
         {
-            byte* source = row.DataPointer;
+            byte* source = row.PixelBase;
             byte* destination = this.GetRowPointer(targetY);
 
             TColor packed = default(TColor);
@@ -303,7 +303,7 @@ namespace ImageSharp
         /// <param name="width">The width.</param>
         protected virtual void CopyFromXYZW(PixelRow<TColor, TPacked> row, int targetY, int width)
         {
-            byte* source = row.DataPointer;
+            byte* source = row.PixelBase;
             byte* destination = this.GetRowPointer(targetY);
 
             TColor packed = default(TColor);
@@ -330,7 +330,7 @@ namespace ImageSharp
             int offset = 0;
             for (int x = 0; x < width; x++)
             {
-                this[x, sourceY].ToBytes(row.Data, offset, ComponentOrder.ZYX);
+                this[x, sourceY].ToBytes(row.Bytes, offset, ComponentOrder.ZYX);
                 offset += 3;
             }
         }
@@ -346,7 +346,7 @@ namespace ImageSharp
             int offset = 0;
             for (int x = 0; x < width; x++)
             {
-                this[x, sourceY].ToBytes(row.Data, offset, ComponentOrder.ZYXW);
+                this[x, sourceY].ToBytes(row.Bytes, offset, ComponentOrder.ZYXW);
                 offset += 4;
             }
         }
@@ -362,7 +362,7 @@ namespace ImageSharp
             int offset = 0;
             for (int x = 0; x < width; x++)
             {
-                this[x, sourceY].ToBytes(row.Data, offset, ComponentOrder.XYZ);
+                this[x, sourceY].ToBytes(row.Bytes, offset, ComponentOrder.XYZ);
                 offset += 3;
             }
         }
@@ -378,7 +378,7 @@ namespace ImageSharp
             int offset = 0;
             for (int x = 0; x < width; x++)
             {
-                this[x, sourceY].ToBytes(row.Data, offset, ComponentOrder.XYZW);
+                this[x, sourceY].ToBytes(row.Bytes, offset, ComponentOrder.XYZW);
                 offset += 4;
             }
         }

@@ -62,15 +62,15 @@ namespace ImageSharp
         /// </returns>
         public static implicit operator Color(YCbCr color)
         {
-            float y = color.Y;
-            float cb = color.Cb - 128;
-            float cr = color.Cr - 128;
+            byte y = color.Y;
+            int cb = color.Cb - 128;
+            int cr = color.Cr - 128;
 
-            byte r = (byte)(y + (1.402 * cr)).Clamp(0, 255);
-            byte g = (byte)(y - (0.34414 * cb) - (0.71414 * cr)).Clamp(0, 255);
-            byte b = (byte)(y + (1.772 * cb)).Clamp(0, 255);
+            byte r = (byte)(y + (1.402F * cr)).Clamp(0, 255);
+            byte g = (byte)(y - (0.34414F * cb) - (0.71414F * cr)).Clamp(0, 255);
+            byte b = (byte)(y + (1.772F * cb)).Clamp(0, 255);
 
-            return new Color(r, g, b, 255);
+            return new Color(r, g, b);
         }
 
         /// <summary>

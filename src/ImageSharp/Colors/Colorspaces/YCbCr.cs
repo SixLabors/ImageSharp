@@ -7,14 +7,12 @@ namespace ImageSharp
 {
     using System;
     using System.ComponentModel;
-    using System.Numerics;
 
     /// <summary>
-    /// Represents an YCbCr (luminance, blue chroma, red chroma) color conforming to the
-    /// Full range standard used in digital imaging systems.
+    /// Represents an YCbCr (luminance, blue chroma, red chroma) color conforming to the full range standard used in digital imaging systems.
     /// <see href="http://en.wikipedia.org/wiki/YCbCr"/>
     /// </summary>
-    public struct YCbCr : IEquatable<YCbCr>, IAlmostEquatable<YCbCr, float>
+    public struct YCbCr : IEquatable<YCbCr>
     {
         /// <summary>
         /// Represents a <see cref="YCbCr"/> that has Y, Cb, and Cr values set to zero.
@@ -22,44 +20,36 @@ namespace ImageSharp
         public static readonly YCbCr Empty = default(YCbCr);
 
         /// <summary>
-        /// The epsilon for comparing floating point numbers.
-        /// </summary>
-        private const float Epsilon = 0.001F;
-
-        /// <summary>
-        /// The backing vector for SIMD support.
-        /// </summary>
-        private Vector3 backingVector;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="YCbCr"/> struct.
         /// </summary>
         /// <param name="y">The y luminance component.</param>
         /// <param name="cb">The cb chroma component.</param>
         /// <param name="cr">The cr chroma component.</param>
-        public YCbCr(float y, float cb, float cr)
+        public YCbCr(byte y, byte cb, byte cr)
             : this()
         {
-            this.backingVector = Vector3.Clamp(new Vector3(y, cb, cr), Vector3.Zero, new Vector3(255));
+            this.Y = y;
+            this.Cb = cb;
+            this.Cr = cr;
         }
 
         /// <summary>
         /// Gets the Y luminance component.
         /// <remarks>A value ranging between 0 and 255.</remarks>
         /// </summary>
-        public float Y => this.backingVector.X;
+        public byte Y { get; }
 
         /// <summary>
         /// Gets the Cb chroma component.
         /// <remarks>A value ranging between 0 and 255.</remarks>
         /// </summary>
-        public float Cb => this.backingVector.Y;
+        public byte Cb { get; }
 
         /// <summary>
         /// Gets the Cr chroma component.
         /// <remarks>A value ranging between 0 and 255.</remarks>
         /// </summary>
-        public float Cr => this.backingVector.Z;
+        public byte Cr { get; }
 
         /// <summary>
         /// Gets a value indicating whether this <see cref="YCbCr"/> is empty.
@@ -79,13 +69,13 @@ namespace ImageSharp
         /// </returns>
         public static implicit operator YCbCr(Color color)
         {
-            float r = color.R;
-            float g = color.G;
-            float b = color.B;
+            byte r = color.R;
+            byte g = color.G;
+            byte b = color.B;
 
-            float y = (float)((0.299 * r) + (0.587 * g) + (0.114 * b));
-            float cb = 128 + (float)((-0.168736 * r) - (0.331264 * g) + (0.5 * b));
-            float cr = 128 + (float)((0.5 * r) - (0.418688 * g) - (0.081312 * b));
+            byte y = (byte)((0.299F * r) + (0.587F * g) + (0.114F * b));
+            byte cb = (byte)(128 + ((-0.168736F * r) - (0.331264F * g) + (0.5F * b)));
+            byte cr = (byte)(128 + ((0.5F * r) - (0.418688F * g) - (0.081312F * b)));
 
             return new YCbCr(y, cb, cr);
         }
@@ -127,7 +117,13 @@ namespace ImageSharp
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            return GetHashCode(this);
+            unchecked
+            {
+                int hashCode = this.Y.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.Cb.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.Cr.GetHashCode();
+                return hashCode;
+            }
         }
 
         /// <inheritdoc/>
@@ -138,7 +134,7 @@ namespace ImageSharp
                 return "YCbCr [ Empty ]";
             }
 
-            return $"YCbCr [ Y={this.Y:#0.##}, Cb={this.Cb:#0.##}, Cr={this.Cr:#0.##} ]";
+            return $"YCbCr [ Y={this.Y}, Cb={this.Cb}, Cr={this.Cr} ]";
         }
 
         /// <inheritdoc/>
@@ -155,28 +151,7 @@ namespace ImageSharp
         /// <inheritdoc/>
         public bool Equals(YCbCr other)
         {
-            return this.AlmostEquals(other, Epsilon);
+            return this.Y == other.Y && this.Cb == other.Cb && this.Cr == other.Cr;
         }
-
-        /// <inheritdoc/>
-        public bool AlmostEquals(YCbCr other, float precision)
-        {
-            Vector3 result = Vector3.Abs(this.backingVector - other.backingVector);
-
-            return result.X < precision
-                && result.Y < precision
-                && result.Z < precision;
-        }
-
-        /// <summary>
-        /// Returns the hash code for this instance.
-        /// </summary>
-        /// <param name="color">
-        /// The instance of <see cref="YCbCr"/> to return the hash code for.
-        /// </param>
-        /// <returns>
-        /// A 32-bit signed integer that is the hash code for this instance.
-        /// </returns>
-        private static int GetHashCode(YCbCr color) => color.backingVector.GetHashCode();
     }
 }

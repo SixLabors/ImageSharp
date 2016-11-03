@@ -31,23 +31,41 @@ namespace ImageSharp.Tests
             Color color = Color.White;
             YCbCr yCbCr = color;
 
-            Assert.Equal(255, yCbCr.Y, 0);
-            Assert.Equal(128, yCbCr.Cb, 0);
-            Assert.Equal(128, yCbCr.Cr, 0);
+            Assert.Equal(255, yCbCr.Y);
+            Assert.Equal(128, yCbCr.Cb);
+            Assert.Equal(128, yCbCr.Cr);
 
             // Black
             Color color2 = Color.Black;
             YCbCr yCbCr2 = color2;
-            Assert.Equal(0, yCbCr2.Y, 0);
-            Assert.Equal(128, yCbCr2.Cb, 0);
-            Assert.Equal(128, yCbCr2.Cr, 0);
+            Assert.Equal(0, yCbCr2.Y);
+            Assert.Equal(128, yCbCr2.Cb);
+            Assert.Equal(128, yCbCr2.Cr);
 
             // Gray
             Color color3 = Color.Gray;
             YCbCr yCbCr3 = color3;
-            Assert.Equal(128, yCbCr3.Y, 0);
-            Assert.Equal(128, yCbCr3.Cb, 0);
-            Assert.Equal(128, yCbCr3.Cr, 0);
+            Assert.Equal(128, yCbCr3.Y);
+            Assert.Equal(128, yCbCr3.Cb);
+            Assert.Equal(128, yCbCr3.Cr);
+
+            //Assert.Equal(255, yCbCr.Y, 0);
+            //Assert.Equal(128, yCbCr.Cb, 0);
+            //Assert.Equal(128, yCbCr.Cr, 0);
+
+            //// Black
+            //Color color2 = Color.Black;
+            //YCbCr yCbCr2 = color2;
+            //Assert.Equal(0, yCbCr2.Y, 0);
+            //Assert.Equal(128, yCbCr2.Cb, 0);
+            //Assert.Equal(128, yCbCr2.Cr, 0);
+
+            //// Gray
+            //Color color3 = Color.Gray;
+            //YCbCr yCbCr3 = color3;
+            //Assert.Equal(128, yCbCr3.Y, 0);
+            //Assert.Equal(128, yCbCr3.Cb, 0);
+            //Assert.Equal(128, yCbCr3.Cr, 0);
         }
 
         /// <summary>

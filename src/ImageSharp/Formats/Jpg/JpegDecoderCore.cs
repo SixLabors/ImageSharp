@@ -34,8 +34,14 @@ namespace ImageSharp.Formats
         /// </summary>
         private const int MaxComponents = 4;
 
+        /// <summary>
+        /// The maximum number of Huffman table classes
+        /// </summary>
         private const int MaxTc = 1;
 
+        /// <summary>
+        /// The maximum number of Huffman table identifiers
+        /// </summary>
         private const int MaxTh = 3;
 
         /// <summary>
@@ -1383,10 +1389,8 @@ namespace ImageSharp.Formats
                             byte cb = this.ycbcrImage.CbChannel[co + (x / scale)];
                             byte cr = this.ycbcrImage.CrChannel[co + (x / scale)];
 
-                            // Implicit casting FTW
-                            Color color = new YCbCr(yy, cb, cr);
                             TColor packed = default(TColor);
-                            packed.PackFromBytes(color.R, color.G, color.B, 255);
+                            this.PackYcbCr<TColor, TPacked>(ref packed, yy, cb, cr);
                             pixels[x, y] = packed;
                         }
                     });
@@ -2096,6 +2100,30 @@ namespace ImageSharp.Formats
             }
 
             return this.componentArray[0].Identifier == 'R' && this.componentArray[1].Identifier == 'G' && this.componentArray[2].Identifier == 'B';
+        }
+
+        /// <summary>
+        /// Optimized method to pack bytes to the image from the YCbCr color space. 
+        /// This is faster than implicit casting as it avoids double packing.
+        /// </summary>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+        /// <param name="packed">The packed pixel.</param>
+        /// <param name="y">The y luminance component.</param>
+        /// <param name="cb">The cb chroma component.</param>
+        /// <param name="cr">The cr chroma component.</param>
+        private void PackYcbCr<TColor, TPacked>(ref TColor packed, byte y, byte cb, byte cr)
+            where TColor : struct, IPackedPixel<TPacked>
+            where TPacked : struct
+        {
+            int ccb = cb - 128;
+            int ccr = cr - 128;
+
+            byte r = (byte)(y + (1.402F * ccr)).Clamp(0, 255);
+            byte g = (byte)(y - (0.34414F * ccb) - (0.71414F * ccr)).Clamp(0, 255);
+            byte b = (byte)(y + (1.772F * ccb)).Clamp(0, 255);
+
+            packed.PackFromBytes(r, g, b, 255);
         }
 
         /// <summary>

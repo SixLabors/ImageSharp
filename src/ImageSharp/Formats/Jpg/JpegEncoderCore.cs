@@ -404,6 +404,7 @@ namespace ImageSharp.Formats
         /// <param name="count">The number of bits</param>
         private void Emit(uint bits, uint count)
         {
+            // TODO: This requires optimization. We have far too many writes to the underlying stream going on.
             count += this.bitCount;
             bits <<= (int)(32 - count);
             bits |= this.accumulatedBits;
@@ -545,9 +546,9 @@ namespace ImageSharp.Formats
                     pixels[Math.Min(x + i, xmax), Math.Min(y + j, ymax)].ToBytes(b, 0, ComponentOrder.XYZ);
                     YCbCr color = new Color(b[0], b[1], b[2]);
                     int index = (8 * j) + i;
-                    yBlock[index] = (int)color.Y;
-                    cbBlock[index] = (int)color.Cb;
-                    crBlock[index] = (int)color.Cr;
+                    yBlock[index] = color.Y;
+                    cbBlock[index] = color.Cb;
+                    crBlock[index] = color.Cr;
                 }
             }
         }

@@ -16,7 +16,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// The number of quantization tables.
         /// </summary>
-        private const int NQuantIndex = 2;
+        private const int QuantizationTableCount = 2;
 
         /// <summary>
         /// Maps from the zig-zag ordering to the natural ordering. For example,
@@ -162,7 +162,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// The scaled quantization tables, in zig-zag order.
         /// </summary>
-        private readonly byte[][] quant = new byte[NQuantIndex][];
+        private readonly byte[][] quant = new byte[QuantizationTableCount][];
 
         /// <summary>
         /// The SOS (Start Of Scan) marker "\xff\xda" followed by 12 bytes:
@@ -292,7 +292,7 @@ namespace ImageSharp.Formats
             this.outputStream = stream;
             this.subsample = sample;
 
-            for (int i = 0; i < NQuantIndex; i++)
+            for (int i = 0; i < QuantizationTableCount; i++)
             {
                 this.quant[i] = new byte[Block.BlockSize];
             }
@@ -319,7 +319,7 @@ namespace ImageSharp.Formats
             }
 
             // Initialize the quantization tables.
-            for (int i = 0; i < NQuantIndex; i++)
+            for (int i = 0; i < QuantizationTableCount; i++)
             {
                 for (int j = 0; j < Block.BlockSize; j++)
                 {
@@ -665,13 +665,25 @@ namespace ImageSharp.Formats
         /// </summary>
         private void WriteDefineQuantizationTables()
         {
-            int markerlen = 2 + (NQuantIndex * (1 + Block.BlockSize));
+            // Marker + quantization table lengths
+            int markerlen = 2 + (QuantizationTableCount * (1 + Block.BlockSize));
             this.WriteMarkerHeader(JpegConstants.Markers.DQT, markerlen);
-            for (int i = 0; i < NQuantIndex; i++)
+
+            // Loop through and collect the tables as one array.
+            // This allows us to reduce the number of writes to the stream.
+            byte[] dqt = new byte[(QuantizationTableCount * Block.BlockSize) + QuantizationTableCount];
+            int offset = 0;
+            for (int i = 0; i < QuantizationTableCount; i++)
             {
-                this.WriteByte((byte)i);
-                this.outputStream.Write(this.quant[i], 0, this.quant[i].Length);
+                dqt[offset++] = (byte)i;
+                int len = this.quant[i].Length;
+                for (int j = 0; j < len; j++)
+                {
+                    dqt[offset++] = this.quant[i][j];
+                }
             }
+
+            this.outputStream.Write(dqt, 0, dqt.Length);
         }
 
         /// <summary>
@@ -734,6 +746,7 @@ namespace ImageSharp.Formats
         /// <param name="componentCount">The number of components to write.</param>
         private void WriteDefineHuffmanTables(int componentCount)
         {
+            // Table identifiers. 
             byte[] headers = { 0x00, 0x10, 0x01, 0x11 };
             int markerlen = 2;
             HuffmanSpec[] specs = TheHuffmanSpecs;
@@ -754,6 +767,7 @@ namespace ImageSharp.Formats
             {
                 HuffmanSpec spec = specs[i];
 
+                // TODO: Investigate optimizing this. It might be better to create a single array.
                 this.WriteByte(headers[i]);
                 this.outputStream.Write(spec.Count, 0, spec.Count.Length);
                 this.outputStream.Write(spec.Values, 0, spec.Values.Length);

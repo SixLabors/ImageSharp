@@ -538,17 +538,26 @@ namespace ImageSharp.Formats
         {
             int xmax = pixels.Width - 1;
             int ymax = pixels.Height - 1;
-            byte[] b = new byte[3];
+            byte[] color = new byte[3];
             for (int j = 0; j < 8; j++)
             {
                 for (int i = 0; i < 8; i++)
                 {
-                    pixels[Math.Min(x + i, xmax), Math.Min(y + j, ymax)].ToBytes(b, 0, ComponentOrder.XYZ);
-                    YCbCr color = new Color(b[0], b[1], b[2]);
+                    pixels[Math.Min(x + i, xmax), Math.Min(y + j, ymax)].ToBytes(color, 0, ComponentOrder.XYZ);
+
+                    byte r = color[0];
+                    byte g = color[1];
+                    byte b = color[2];
+
+                    // Convert returned bytes into the YCbCr color space. Assume RGBA 
+                    byte yy = (byte)((0.299F * r) + (0.587F * g) + (0.114F * b));
+                    byte cb = (byte)(128 + ((-0.168736F * r) - (0.331264F * g) + (0.5F * b)));
+                    byte cr = (byte)(128 + ((0.5F * r) - (0.418688F * g) - (0.081312F * b)));
+                    
                     int index = (8 * j) + i;
-                    yBlock[index] = color.Y;
-                    cbBlock[index] = color.Cb;
-                    crBlock[index] = color.Cr;
+                    yBlock[index] = yy;
+                    cbBlock[index] = cb;
+                    crBlock[index] = cr;
                 }
             }
         }

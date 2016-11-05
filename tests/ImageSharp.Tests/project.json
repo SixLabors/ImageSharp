@@ -10,7 +10,8 @@
     ]
   },
   "buildOptions": {
-    "debugType": "portable"
+    "debugType": "portable",
+    "allowUnsafe": true
   },
   "dependencies": {
     "ImageSharp": "1.0.0-*",

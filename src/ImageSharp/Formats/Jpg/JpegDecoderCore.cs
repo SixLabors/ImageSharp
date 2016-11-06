@@ -1304,13 +1304,8 @@ namespace ImageSharp.Formats
                                 byte cb = this.ycbcrImage.CbChannel[co + (x / scale)];
                                 byte cr = this.ycbcrImage.CrChannel[co + (x / scale)];
 
-                                // Implicit casting FTW
-                                Color color = new YCbCr(yy, cb, cr);
-                                int keyline = 255 - this.blackPixels[(y * this.blackStride) + x];
-                                Color final = new Cmyk(color.R / 255F, color.G / 255F, color.B / 255F, keyline / 255F);
-
                                 TColor packed = default(TColor);
-                                packed.PackFromBytes(final.R, final.G, final.B, final.A);
+                                this.PackCmyk<TColor, TPacked>(ref packed, yy, cb, cr, x, y); 
                                 pixels[x, y] = packed;
                             }
                         });
@@ -2122,6 +2117,42 @@ namespace ImageSharp.Formats
             byte r = (byte)(y + (1.402F * ccr)).Clamp(0, 255);
             byte g = (byte)(y - (0.34414F * ccb) - (0.71414F * ccr)).Clamp(0, 255);
             byte b = (byte)(y + (1.772F * ccb)).Clamp(0, 255);
+
+            packed.PackFromBytes(r, g, b, 255);
+        }
+
+        /// <summary>
+        /// Optimized method to pack bytes to the image from the CMYK color space. 
+        /// This is faster than implicit casting as it avoids double packing.
+        /// </summary>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+        /// <param name="packed">The packed pixel.</param>
+        /// <param name="y">The y luminance component.</param>
+        /// <param name="cb">The cb chroma component.</param>
+        /// <param name="cr">The cr chroma component.</param>
+        /// <param name="xx">The x-position within the image.</param>
+        /// <param name="yy">The y-position within the image.</param>
+        private void PackCmyk<TColor, TPacked>(ref TColor packed, byte y, byte cb, byte cr, int xx, int yy)
+            where TColor : struct, IPackedPixel<TPacked>
+            where TPacked : struct
+        {
+            // TODO: We can speed this up further with Vector4
+            int ccb = cb - 128;
+            int ccr = cr - 128;
+
+            // First convert from YCbCr to CMY
+            float cyan = (y + (1.402F * ccr)).Clamp(0, 255) / 255F;
+            float magenta = (y - (0.34414F * ccb) - (0.71414F * ccr)).Clamp(0, 255) / 255F;
+            float yellow = (y + (1.772F * ccb)).Clamp(0, 255) / 255F;
+
+            // Get keyline
+            float keyline = (255 - this.blackPixels[(yy * this.blackStride) + xx]) / 255F;
+
+            // Convert back to RGB 
+            byte r = (byte)(((1 - cyan) * (1 - keyline)).Clamp(0, 1) * 255);
+            byte g = (byte)(((1 - magenta) * (1 - keyline)).Clamp(0, 1) * 255);
+            byte b = (byte)(((1 - yellow) * (1 - keyline)).Clamp(0, 1) * 255);
 
             packed.PackFromBytes(r, g, b, 255);
         }

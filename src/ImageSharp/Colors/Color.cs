@@ -19,6 +19,11 @@ namespace ImageSharp
     /// </remarks>
     public partial struct Color : IPackedPixel<uint>, IEquatable<Color>
     {
+        private const int RedShift = 0;
+        private const int GreenShift = 8;
+        private const int BlueShift = 16;
+        private const int AlphaShift = 24;
+
         /// <summary>
         /// The maximum byte value.
         /// </summary>
@@ -63,6 +68,9 @@ namespace ImageSharp
             {
                 throw new ArgumentException("Hexadecimal string is not in the correct format.", nameof(hex));
             }
+
+            // Order parsed from hex string will be backwards, so reverse it.
+            packedValue = Pack(A, B, G, R);
         }
 
         /// <summary>
@@ -106,12 +114,12 @@ namespace ImageSharp
         {
             get
             {
-                return (byte)(this.packedValue >> 24);
+                return (byte)(this.packedValue >> RedShift);
             }
 
             set
             {
-                this.packedValue = this.packedValue & 0x00FFFFFF | (uint)value << 24;
+                this.packedValue = this.packedValue & 0xFFFFFF00 | (uint)value << RedShift;
             }
         }
 
@@ -122,12 +130,12 @@ namespace ImageSharp
         {
             get
             {
-                return (byte)(this.packedValue >> 16);
+                return (byte)(this.packedValue >> GreenShift);
             }
 
             set
             {
-                this.packedValue = this.packedValue & 0xFF00FFFF | (uint)value << 16;
+                this.packedValue = this.packedValue & 0xFFFF00FF | (uint)value << GreenShift;
             }
         }
 
@@ -138,12 +146,12 @@ namespace ImageSharp
         {
             get
             {
-                return (byte)(this.packedValue >> 8);
+                return (byte)(this.packedValue >> BlueShift);
             }
 
             set
             {
-                this.packedValue = this.packedValue & 0xFFFF00FF | (uint)value << 8;
+                this.packedValue = this.packedValue & 0xFF00FFFF | (uint)value << BlueShift;
             }
         }
 
@@ -154,12 +162,12 @@ namespace ImageSharp
         {
             get
             {
-                return (byte)this.packedValue;
+                return (byte)(this.packedValue >> AlphaShift);
             }
 
             set
             {
-                this.packedValue = this.packedValue & 0xFFFFFF00 | value;
+                this.packedValue = this.packedValue & 0x00FFFFFF | (uint)value << AlphaShift;
             }
         }
 
@@ -234,7 +242,8 @@ namespace ImageSharp
         /// <returns>A hexadecimal string representation of the value.</returns>
         public string ToHex()
         {
-            return this.PackedValue.ToString("X8");
+            uint hexOrder = Pack(A, B, G, R);
+            return hexOrder.ToString("X8");
         }
 
         /// <inheritdoc/>
@@ -318,10 +327,10 @@ namespace ImageSharp
             vector = Vector4.Clamp(vector, Vector4.Zero, Vector4.One);
             vector *= MaxBytes;
             vector += Half;
-            return (uint)(((byte)vector.X << 24)
-                        | ((byte)vector.Y << 16)
-                        | ((byte)vector.Z << 8)
-                        | (byte)vector.W);
+            return (uint)(((byte)vector.X << RedShift)
+                        | ((byte)vector.Y << GreenShift)
+                        | ((byte)vector.Z << BlueShift)
+                        | (byte)vector.W << AlphaShift);
         }
 
         /// <summary>
@@ -359,7 +368,7 @@ namespace ImageSharp
         /// <returns>The <see cref="uint"/></returns>
         private static uint Pack(byte x, byte y, byte z, byte w)
         {
-            return (uint)(x << 24 | y << 16 | z << 8 | w);
+            return (uint)(x << RedShift | y << GreenShift | z << BlueShift | w << AlphaShift);
         }
 
         /// <summary>

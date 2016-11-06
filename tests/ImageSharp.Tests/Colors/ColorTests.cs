@@ -117,5 +117,19 @@ namespace ImageSharp.Tests
 
             Assert.Equal("00CCBBFF", color.ToHex());
         }
+
+        /// <summary>
+        /// Tests that the individual byte elements are layed out in RGBA order.
+        /// </summary>
+        [Fact]
+        public unsafe void ByteLayout()
+        {
+            Color color = new Color(1, 2, 3, 4);
+            byte* colorBase = (byte*)&color;
+            Assert.Equal(1, colorBase[0]);
+            Assert.Equal(2, colorBase[1]);
+            Assert.Equal(3, colorBase[2]);
+            Assert.Equal(4, colorBase[3]);
+        }
     }
 }

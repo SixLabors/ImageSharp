@@ -30,7 +30,7 @@ namespace ImageSharp
 
             for (int x = 0; x < width; x++)
             {
-                Unsafe.Write(destination, (uint)(*(source + 2) << 24 | *(source + 1) << 16 | *source << 8 | 255));
+                Unsafe.Write(destination, (uint)(*(source + 2) << 0 | *(source + 1) << 8 | *source << 16 | 255 << 24));
 
                 source += 3;
                 destination += 4;
@@ -45,7 +45,7 @@ namespace ImageSharp
 
             for (int x = 0; x < width; x++)
             {
-                Unsafe.Write(destination, (uint)(*(source + 2) << 24 | *(source + 1) << 16 | *source << 8 | *(source + 3)));
+                Unsafe.Write(destination, (uint)(*(source + 2) << 0 | *(source + 1) << 8 | *source << 16 | *(source + 3) << 24));
 
                 source += 4;
                 destination += 4;
@@ -60,9 +60,9 @@ namespace ImageSharp
 
             for (int x = 0; x < width; x++)
             {
-                *destination = *(source + 1);
-                *(destination + 1) = *(source + 2);
-                *(destination + 2) = *(source + 3);
+                *destination = *(source + 2);
+                *(destination + 1) = *(source + 1);
+                *(destination + 2) = *(source + 0);
 
                 source += 4;
                 destination += 3;
@@ -77,10 +77,10 @@ namespace ImageSharp
 
             for (int x = 0; x < width; x++)
             {
-                *destination = *(source + 1);
-                *(destination + 1) = *(source + 2);
-                *(destination + 2) = *(source + 3);
-                *(destination + 3) = *source;
+                *destination = *(source + 2);
+                *(destination + 1) = *(source + 1);
+                *(destination + 2) = *(source + 0);
+                *(destination + 3) = *(source + 3);
 
                 source += 4;
                 destination += 4;

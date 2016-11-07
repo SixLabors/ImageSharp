@@ -48,7 +48,11 @@ namespace ImageSharp.Formats
         /// <value>The subsample ratio of the jpg image.</value>
         public JpegSubsample Subsample
         {
-            get { return this.subsample; }
+            get
+            {
+                return this.subsample;
+            }
+
             set
             {
                 this.subsample = value;

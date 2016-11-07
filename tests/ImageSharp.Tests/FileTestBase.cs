@@ -5,8 +5,8 @@
 
 namespace ImageSharp.Tests
 {
-    using System.IO;
     using System.Collections.Generic;
+    using System.IO;
 
     /// <summary>
     /// The test base class for reading and writing to files.
@@ -18,22 +18,22 @@ namespace ImageSharp.Tests
         /// </summary>
         protected static readonly List<TestFile> Files = new List<TestFile>
         {
-            //new TestFile(TestImages.Png.P1),
-            //new TestFile(TestImages.Png.Pd),
-            new TestFile(TestImages.Jpeg.Floorplan), // Perf: Enable for local testing only
+            // new TestFile(TestImages.Png.P1), // Perf: Enable for local testing only
+            // new TestFile(TestImages.Png.Pd), // Perf: Enable for local testing only
+            // new TestFile(TestImages.Jpeg.Floorplan), // Perf: Enable for local testing only
             new TestFile(TestImages.Jpeg.Calliphora),
-            new TestFile(TestImages.Jpeg.Cmyk), // Perf: Enable for local testing only
+            // new TestFile(TestImages.Jpeg.Cmyk), // Perf: Enable for local testing only
             new TestFile(TestImages.Jpeg.Turtle),
-            //new TestFile(TestImages.Jpeg.Fb), // Perf: Enable for local testing only
-            //new TestFile(TestImages.Jpeg.Progress), // Perf: Enable for local testing only
-            //new TestFile(TestImages.Jpeg.Gamma_dalai_lama_gray). // Perf: Enable for local testing only
+            // new TestFile(TestImages.Jpeg.Fb), // Perf: Enable for local testing only
+            // new TestFile(TestImages.Jpeg.Progress), // Perf: Enable for local testing only
+            // new TestFile(TestImages.Jpeg.GammaDalaiLamaGray), // Perf: Enable for local testing only
             new TestFile(TestImages.Bmp.Car),
-            //new TestFile(TestImages.Bmp.Neg_height), // Perf: Enable for local testing only
-            //new TestFile(TestImages.Png.Blur), // Perf: Enable for local testing only
-            //new TestFile(TestImages.Png.Indexed), // Perf: Enable for local testing only
+            // new TestFile(TestImages.Bmp.Neg_height), // Perf: Enable for local testing only
+            // new TestFile(TestImages.Png.Blur), // Perf: Enable for local testing only
+            // new TestFile(TestImages.Png.Indexed), // Perf: Enable for local testing only
             new TestFile(TestImages.Png.Splash),
             new TestFile(TestImages.Gif.Rings),
-            //new TestFile(TestImages.Gif.Giphy) // Perf: Enable for local testing only
+            // new TestFile(TestImages.Gif.Giphy) // Perf: Enable for local testing only
         };
 
         protected string CreateOutputDirectory(string path)
@@ -42,7 +42,7 @@ namespace ImageSharp.Tests
 
             if (!Directory.Exists(path))
             {
-                  Directory.CreateDirectory(path);
+                Directory.CreateDirectory(path);
             }
 
             return path;

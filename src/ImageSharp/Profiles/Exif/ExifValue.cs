@@ -42,7 +42,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// The data type of the exif value.
+        /// Gets the data type of the exif value.
         /// </summary>
         public ExifDataType DataType
         {
@@ -50,7 +50,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Returns true if the value is an array.
+        /// Gets a value indicating whether the value is an array.
         /// </summary>
         public bool IsArray
         {
@@ -58,7 +58,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// The tag of the exif value.
+        /// Gets the tag of the exif value.
         /// </summary>
         public ExifTag Tag
         {
@@ -66,7 +66,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// The value.
+        /// Gets or sets the value.
         /// </summary>
         public object Value
         {

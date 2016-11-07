@@ -64,7 +64,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// The x-coordinate of this <see cref="Rectangle"/>.
+        /// Gets or sets the x-coordinate of this <see cref="Rectangle"/>.
         /// </summary>
         public int X
         {
@@ -80,7 +80,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// The y-coordinate of this <see cref="Rectangle"/>.
+        /// Gets or sets the y-coordinate of this <see cref="Rectangle"/>.
         /// </summary>
         public int Y
         {
@@ -96,7 +96,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// The width of this <see cref="Rectangle"/>.
+        /// Gets or sets the width of this <see cref="Rectangle"/>.
         /// </summary>
         public int Width
         {
@@ -112,7 +112,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// The height of this <see cref="Rectangle"/>.
+        /// Gets or sets the height of this <see cref="Rectangle"/>.
         /// </summary>
         public int Height
         {

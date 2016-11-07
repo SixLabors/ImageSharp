@@ -42,8 +42,6 @@ namespace ImageSharp.Formats
 
         /// <summary>
         /// Decodes and decompresses all pixel indices from the stream.
-        /// <remarks>
-        /// </remarks>
         /// </summary>
         /// <param name="width">The width of the pixel index array.</param>
         /// <param name="height">The height of the pixel index array.</param>

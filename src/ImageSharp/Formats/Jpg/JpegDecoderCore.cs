@@ -1227,8 +1227,8 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Processes the "Adobe" APP14 segment stores image encoding information for DCT filters. 
-        /// This segment may be copied or deleted as a block using the Extra "Adobe" tag, but note that it is not 
+        /// Processes the "Adobe" APP14 segment stores image encoding information for DCT filters.
+        /// This segment may be copied or deleted as a block using the Extra "Adobe" tag, but note that it is not
         /// deleted by default when deleting all metadata because it may affect the appearance of the image.
         /// </summary>
         /// <param name="remaining">The remaining number of bytes in the stream.</param>
@@ -1305,7 +1305,7 @@ namespace ImageSharp.Formats
                                 byte cr = this.ycbcrImage.CrChannel[co + (x / scale)];
 
                                 TColor packed = default(TColor);
-                                this.PackCmyk<TColor, TPacked>(ref packed, yy, cb, cr, x, y); 
+                                this.PackCmyk<TColor, TPacked>(ref packed, yy, cb, cr, x, y);
                                 pixels[x, y] = packed;
                             }
                         });
@@ -1975,7 +1975,7 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Refines non-zero entries of b in zig-zag order. 
+        /// Refines non-zero entries of b in zig-zag order.
         /// If <paramref name="nz"/> >= 0, the first <paramref name="nz"/> zero entries are skipped over.
         /// </summary>
         /// <param name="b">The block of coefficients</param>
@@ -2098,7 +2098,7 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Optimized method to pack bytes to the image from the YCbCr color space. 
+        /// Optimized method to pack bytes to the image from the YCbCr color space.
         /// This is faster than implicit casting as it avoids double packing.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
@@ -2122,7 +2122,7 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Optimized method to pack bytes to the image from the CMYK color space. 
+        /// Optimized method to pack bytes to the image from the CMYK color space.
         /// This is faster than implicit casting as it avoids double packing.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
@@ -2149,7 +2149,7 @@ namespace ImageSharp.Formats
             // Get keyline
             float keyline = (255 - this.blackPixels[(yy * this.blackStride) + xx]) / 255F;
 
-            // Convert back to RGB 
+            // Convert back to RGB
             byte r = (byte)(((1 - cyan) * (1 - keyline)).Clamp(0, 1) * 255);
             byte g = (byte)(((1 - magenta) * (1 - keyline)).Clamp(0, 1) * 255);
             byte b = (byte)(((1 - yellow) * (1 - keyline)).Clamp(0, 1) * 255);
@@ -2193,7 +2193,7 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// The EOF (End of File exception). 
+        /// The EOF (End of File exception).
         /// Thrown when the decoder encounters an EOF marker without a proceeding EOI (End Of Image) marker
         /// </summary>
         private class EOFException : Exception

@@ -70,7 +70,7 @@ namespace ImageSharp
             }
 
             // Order parsed from hex string will be backwards, so reverse it.
-            packedValue = Pack(A, B, G, R);
+            this.packedValue = Pack(this.A, this.B, this.G, this.R);
         }
 
         /// <summary>
@@ -242,7 +242,7 @@ namespace ImageSharp
         /// <returns>A hexadecimal string representation of the value.</returns>
         public string ToHex()
         {
-            uint hexOrder = Pack(A, B, G, R);
+            uint hexOrder = Pack(this.A, this.B, this.G, this.R);
             return hexOrder.ToString("X8");
         }
 

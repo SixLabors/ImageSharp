@@ -1,0 +1,167 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.IPackedBytes
+  commentId: T:ImageSharp.IPackedBytes
+  id: IPackedBytes
+  parent: ImageSharp
+  children:
+  - ImageSharp.IPackedBytes.PackFromBytes(System.Byte,System.Byte,System.Byte,System.Byte)
+  - ImageSharp.IPackedBytes.ToBytes(System.Byte[],System.Int32,ImageSharp.ComponentOrder)
+  langs:
+  - csharp
+  - vb
+  name: IPackedBytes
+  nameWithType: IPackedBytes
+  fullName: ImageSharp.IPackedBytes
+  type: Interface
+  source:
+    id: IPackedBytes
+    path: ''
+    startLine: 3427
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nAn interface that converts packed vector types to and from <xref href=\"byte%5b%5d\" data-throw-if-not-resolved=\"false\"></xref> values,\nallowing multiple encodings to be manipulated in a generic manner.\n"
+  example: []
+  syntax:
+    content: public interface IPackedBytes
+    content.vb: Public Interface IPackedBytes
+  modifiers.csharp:
+  - public
+  - interface
+  modifiers.vb:
+  - Public
+  - Interface
+- uid: ImageSharp.IPackedBytes.PackFromBytes(System.Byte,System.Byte,System.Byte,System.Byte)
+  commentId: M:ImageSharp.IPackedBytes.PackFromBytes(System.Byte,System.Byte,System.Byte,System.Byte)
+  id: PackFromBytes(System.Byte,System.Byte,System.Byte,System.Byte)
+  parent: ImageSharp.IPackedBytes
+  langs:
+  - csharp
+  - vb
+  name: PackFromBytes(Byte, Byte, Byte, Byte)
+  nameWithType: IPackedBytes.PackFromBytes(Byte, Byte, Byte, Byte)
+  fullName: ImageSharp.IPackedBytes.PackFromBytes(System.Byte, System.Byte, System.Byte, System.Byte)
+  type: Method
+  source:
+    id: PackFromBytes
+    path: ''
+    startLine: 3436
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the packed representation from the gives bytes.\n"
+  example: []
+  syntax:
+    content: void PackFromBytes(byte x, byte y, byte z, byte w)
+    content.vb: Sub PackFromBytes(x As Byte, y As Byte, z As Byte, w As Byte)
+    parameters:
+    - id: x
+      type: System.Byte
+      description: The x-component.
+    - id: y
+      type: System.Byte
+      description: The y-component.
+    - id: z
+      type: System.Byte
+      description: The z-component.
+    - id: w
+      type: System.Byte
+      description: The w-component.
+- uid: ImageSharp.IPackedBytes.ToBytes(System.Byte[],System.Int32,ImageSharp.ComponentOrder)
+  commentId: M:ImageSharp.IPackedBytes.ToBytes(System.Byte[],System.Int32,ImageSharp.ComponentOrder)
+  id: ToBytes(System.Byte[],System.Int32,ImageSharp.ComponentOrder)
+  parent: ImageSharp.IPackedBytes
+  langs:
+  - csharp
+  - vb
+  name: ToBytes(Byte[], Int32, ComponentOrder)
+  nameWithType: IPackedBytes.ToBytes(Byte[], Int32, ComponentOrder)
+  fullName: ImageSharp.IPackedBytes.ToBytes(System.Byte[], System.Int32, ImageSharp.ComponentOrder)
+  type: Method
+  source:
+    id: ToBytes
+    path: ''
+    startLine: 3444
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSets the packed representation into the gives bytes.\n"
+  example: []
+  syntax:
+    content: void ToBytes(byte[] bytes, int startIndex, ComponentOrder componentOrder)
+    content.vb: Sub ToBytes(bytes As Byte(), startIndex As Integer, componentOrder As ComponentOrder)
+    parameters:
+    - id: bytes
+      type: System.Byte[]
+      description: The bytes to set the color in.
+    - id: startIndex
+      type: System.Int32
+      description: The starting index of the <em>bytes</em>.
+    - id: componentOrder
+      type: ImageSharp.ComponentOrder
+      description: The order of the components.
+  nameWithType.vb: IPackedBytes.ToBytes(Byte(), Int32, ComponentOrder)
+  fullName.vb: ImageSharp.IPackedBytes.ToBytes(System.Byte(), System.Int32, ImageSharp.ComponentOrder)
+  name.vb: ToBytes(Byte(), Int32, ComponentOrder)
+references:
+- uid: byte[]
+  commentId: T:byte[]
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: System.Byte
+  commentId: T:System.Byte
+  parent: System
+  isExternal: true
+  name: Byte
+  nameWithType: Byte
+  fullName: System.Byte
+- uid: System
+  commentId: N:System
+  isExternal: false
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.Byte[]
+  name: Byte[]
+  nameWithType: Byte[]
+  fullName: System.Byte[]
+  nameWithType.vb: Byte()
+  fullname.vb: System.Byte()
+  name.vb: Byte()
+  spec.csharp:
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: '[]'
+    nameWithType: '[]'
+    fullName: '[]'
+  spec.vb:
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: ()
+    nameWithType: ()
+    fullName: ()
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  name: Int32
+  nameWithType: Int32
+  fullName: System.Int32
+- uid: ImageSharp.ComponentOrder
+  commentId: T:ImageSharp.ComponentOrder
+  parent: ImageSharp
+  isExternal: false
+  name: ComponentOrder
+  nameWithType: ComponentOrder
+  fullName: ImageSharp.ComponentOrder

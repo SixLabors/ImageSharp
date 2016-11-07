@@ -1,0 +1,300 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\..\packages\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.1.0.0\build\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.props" Condition="Exists('..\..\packages\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.1.0.0\build\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.props')" />
+  <Import Project="..\..\packages\Microsoft.Net.Compilers.1.0.0\build\Microsoft.Net.Compilers.props" Condition="Exists('..\..\packages\Microsoft.Net.Compilers.1.0.0\build\Microsoft.Net.Compilers.props')" />
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>
+    </ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{338DCBC4-5A15-485E-805E-DE186BA3F99B}</ProjectGuid>
+    <ProjectTypeGuids>{349c5851-65df-11da-9384-00065b846f21};{fae04ec0-301f-11d3-bf4b-00c04f79efbc}</ProjectTypeGuids>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>docs</RootNamespace>
+    <AssemblyName>docs</AssemblyName>
+    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    <UseIISExpress>true</UseIISExpress>
+    <IISExpressSSLPort />
+    <IISExpressAnonymousAuthentication />
+    <IISExpressWindowsAuthentication />
+    <IISExpressUseClassicPipelineMode />
+    <UseGlobalApplicationHostFile />
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.CodeDom.Providers.DotNetCompilerPlatform, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.1.0.0\lib\net45\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Web.DynamicData" />
+    <Reference Include="System.Web.Entity" />
+    <Reference Include="System.Web.ApplicationServices" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Web.Extensions" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Xml" />
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Web.Services" />
+    <Reference Include="System.EnterpriseServices" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="packages.config" />
+    <Content Include="docfx.json" />
+    <Content Include="toc.yml" />
+    <Content Include="index.md" />
+    <Content Include="api\index.md" />
+    <Content Include="api\.manifest" />
+    <Content Include="api\ImageSharp.AnchorPosition.yml" />
+    <Content Include="api\ImageSharp.Bgra32.yml" />
+    <Content Include="api\ImageSharp.BicubicResampler.yml" />
+    <Content Include="api\ImageSharp.Bootstrapper.yml" />
+    <Content Include="api\ImageSharp.BoxResampler.yml" />
+    <Content Include="api\ImageSharp.CatmullRomResampler.yml" />
+    <Content Include="api\ImageSharp.CieLab.yml" />
+    <Content Include="api\ImageSharp.CieXyz.yml" />
+    <Content Include="api\ImageSharp.Cmyk.yml" />
+    <Content Include="api\ImageSharp.Color.yml" />
+    <Content Include="api\ImageSharp.ColorBlindness.yml" />
+    <Content Include="api\ImageSharp.ColorConstants.yml" />
+    <Content Include="api\ImageSharp.ComponentOrder.yml" />
+    <Content Include="api\ImageSharp.EdgeDetection.yml" />
+    <Content Include="api\ImageSharp.Ellipse.yml" />
+    <Content Include="api\ImageSharp.EnumerableExtensions.yml" />
+    <Content Include="api\ImageSharp.ExifDataType.yml" />
+    <Content Include="api\ImageSharp.ExifParts.yml" />
+    <Content Include="api\ImageSharp.ExifProfile.yml" />
+    <Content Include="api\ImageSharp.ExifTag.yml" />
+    <Content Include="api\ImageSharp.ExifValue.yml" />
+    <Content Include="api\ImageSharp.FlipType.yml" />
+    <Content Include="api\ImageSharp.Formats.BmpBitsPerPixel.yml" />
+    <Content Include="api\ImageSharp.Formats.BmpDecoder.yml" />
+    <Content Include="api\ImageSharp.Formats.BmpEncoder.yml" />
+    <Content Include="api\ImageSharp.Formats.BmpFormat.yml" />
+    <Content Include="api\ImageSharp.Formats.DisposalMethod.yml" />
+    <Content Include="api\ImageSharp.Formats.GifDecoder.yml" />
+    <Content Include="api\ImageSharp.Formats.GifEncoder.yml" />
+    <Content Include="api\ImageSharp.Formats.GifFormat.yml" />
+    <Content Include="api\ImageSharp.Formats.IChecksum.yml" />
+    <Content Include="api\ImageSharp.Formats.IImageDecoder.yml" />
+    <Content Include="api\ImageSharp.Formats.IImageEncoder.yml" />
+    <Content Include="api\ImageSharp.Formats.IImageFormat.yml" />
+    <Content Include="api\ImageSharp.Formats.JpegDecoder.yml" />
+    <Content Include="api\ImageSharp.Formats.JpegEncoder.yml" />
+    <Content Include="api\ImageSharp.Formats.JpegFormat.yml" />
+    <Content Include="api\ImageSharp.Formats.JpegSubsample.yml" />
+    <Content Include="api\ImageSharp.Formats.PngColorType.yml" />
+    <Content Include="api\ImageSharp.Formats.PngDecoder.yml" />
+    <Content Include="api\ImageSharp.Formats.PngEncoder.yml" />
+    <Content Include="api\ImageSharp.Formats.PngFormat.yml" />
+    <Content Include="api\ImageSharp.Formats.PngHeader.yml" />
+    <Content Include="api\ImageSharp.Formats.yml" />
+    <Content Include="api\ImageSharp.GrayscaleMode.yml" />
+    <Content Include="api\ImageSharp.Hsl.yml" />
+    <Content Include="api\ImageSharp.Hsv.yml" />
+    <Content Include="api\ImageSharp.IAlmostEquatable-2.yml" />
+    <Content Include="api\ImageSharp.IImageBase-2.yml" />
+    <Content Include="api\ImageSharp.IImageBase.yml" />
+    <Content Include="api\ImageSharp.IImageFrame-2.yml" />
+    <Content Include="api\ImageSharp.Image-2.yml" />
+    <Content Include="api\ImageSharp.Image.yml" />
+    <Content Include="api\ImageSharp.ImageBase-2.yml" />
+    <Content Include="api\ImageSharp.ImageExtensions.yml" />
+    <Content Include="api\ImageSharp.ImageFormatException.yml" />
+    <Content Include="api\ImageSharp.ImageFrame-2.yml" />
+    <Content Include="api\ImageSharp.ImageProcessingException.yml" />
+    <Content Include="api\ImageSharp.ImageProperty.yml" />
+    <Content Include="api\ImageSharp.IPackedBytes.yml" />
+    <Content Include="api\ImageSharp.IPackedPixel-1.yml" />
+    <Content Include="api\ImageSharp.IPackedVector-1.yml" />
+    <Content Include="api\ImageSharp.IPackedVector.yml" />
+    <Content Include="api\ImageSharp.IResampler.yml" />
+    <Content Include="api\ImageSharp.Lanczos2Resampler.yml" />
+    <Content Include="api\ImageSharp.Lanczos3Resampler.yml" />
+    <Content Include="api\ImageSharp.Lanczos5Resampler.yml" />
+    <Content Include="api\ImageSharp.Lanczos8Resampler.yml" />
+    <Content Include="api\ImageSharp.MitchellNetravaliResampler.yml" />
+    <Content Include="api\ImageSharp.NearestNeighborResampler.yml" />
+    <Content Include="api\ImageSharp.PixelAccessor-2.yml" />
+    <Content Include="api\ImageSharp.PixelAccessor.yml" />
+    <Content Include="api\ImageSharp.PixelRow-2.yml" />
+    <Content Include="api\ImageSharp.Point.yml" />
+    <Content Include="api\ImageSharp.Processors.AchromatomalyProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.AchromatopsiaProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.AlphaProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.BackgroundColorProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.BinaryThresholdProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.BlackWhiteProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.BlendProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.BoxBlurProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.BrightnessProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.ColorMatrixFilter-2.yml" />
+    <Content Include="api\ImageSharp.Processors.CompandingResizeProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.ContrastProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.Convolution2DFilter-2.yml" />
+    <Content Include="api\ImageSharp.Processors.Convolution2PassFilter-2.yml" />
+    <Content Include="api\ImageSharp.Processors.ConvolutionFilter-2.yml" />
+    <Content Include="api\ImageSharp.Processors.CropProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.DeuteranomalyProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.DeuteranopiaProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.EdgeDetector2DFilter-2.yml" />
+    <Content Include="api\ImageSharp.Processors.EdgeDetectorCompassFilter-2.yml" />
+    <Content Include="api\ImageSharp.Processors.EdgeDetectorFilter-2.yml" />
+    <Content Include="api\ImageSharp.Processors.EntropyCropProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.FlipProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.GlowProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.GrayscaleBt601Processor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.GrayscaleBt709Processor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.GuassianBlurProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.GuassianSharpenProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.HermiteResampler.yml" />
+    <Content Include="api\ImageSharp.Processors.HueProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.IColorMatrixFilter-2.yml" />
+    <Content Include="api\ImageSharp.Processors.IEdgeDetectorFilter-2.yml" />
+    <Content Include="api\ImageSharp.Processors.IEdgeDetectorFilter.yml" />
+    <Content Include="api\ImageSharp.Processors.IImageFilter-2.yml" />
+    <Content Include="api\ImageSharp.Processors.IImageProcessor.yml" />
+    <Content Include="api\ImageSharp.Processors.IImageSampler-2.yml" />
+    <Content Include="api\ImageSharp.Processors.ImageFilter-2.yml" />
+    <Content Include="api\ImageSharp.Processors.ImageProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.ImageSampler-2.yml" />
+    <Content Include="api\ImageSharp.Processors.InvertProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.KayyaliProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.KirschProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.KodachromeProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.Laplacian3X3Processor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.Laplacian5X5Processor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.LaplacianOfGaussianProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.LomographProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.Matrix3x2Processor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.OilPaintingProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.PixelateProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.PolaroidProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.PrewittProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.ProtanomalyProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.ProtanopiaProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.ResamplingWeightedProcessor-2.Weight.yml" />
+    <Content Include="api\ImageSharp.Processors.ResamplingWeightedProcessor-2.Weights.yml" />
+    <Content Include="api\ImageSharp.Processors.ResamplingWeightedProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.ResizeProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.RobertsCrossProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.RobinsonProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.RotateProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.SaturationProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.ScharrProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.SepiaProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.SkewProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.SobelProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.TritanomalyProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.TritanopiaProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.VignetteProcessor-2.yml" />
+    <Content Include="api\ImageSharp.Processors.yml" />
+    <Content Include="api\ImageSharp.ProgressEventArgs.yml" />
+    <Content Include="api\ImageSharp.Quantization.yml" />
+    <Content Include="api\ImageSharp.Quantizers.IQuantizer-2.yml" />
+    <Content Include="api\ImageSharp.Quantizers.IQuantizer.yml" />
+    <Content Include="api\ImageSharp.Quantizers.OctreeQuantizer-2.yml" />
+    <Content Include="api\ImageSharp.Quantizers.PaletteQuantizer-2.yml" />
+    <Content Include="api\ImageSharp.Quantizers.QuantizedImage-2.yml" />
+    <Content Include="api\ImageSharp.Quantizers.Quantizer-2.yml" />
+    <Content Include="api\ImageSharp.Quantizers.WuQuantizer-2.yml" />
+    <Content Include="api\ImageSharp.Quantizers.yml" />
+    <Content Include="api\ImageSharp.Rational.yml" />
+    <Content Include="api\ImageSharp.Rectangle.yml" />
+    <Content Include="api\ImageSharp.ResizeMode.yml" />
+    <Content Include="api\ImageSharp.ResizeOptions.yml" />
+    <Content Include="api\ImageSharp.RgbaComponent.yml" />
+    <Content Include="api\ImageSharp.RobidouxResampler.yml" />
+    <Content Include="api\ImageSharp.RobidouxSharpResampler.yml" />
+    <Content Include="api\ImageSharp.RotateType.yml" />
+    <Content Include="api\ImageSharp.SignedRational.yml" />
+    <Content Include="api\ImageSharp.Size.yml" />
+    <Content Include="api\ImageSharp.SplineResampler.yml" />
+    <Content Include="api\ImageSharp.TriangleResampler.yml" />
+    <Content Include="api\ImageSharp.Vector4Extensions.yml" />
+    <Content Include="api\ImageSharp.WelchResampler.yml" />
+    <Content Include="api\ImageSharp.YCbCr.yml" />
+    <Content Include="api\ImageSharp.yml" />
+    <Content Include="api\toc.yml" />
+    <None Include="Web.Debug.config">
+      <DependentUpon>Web.config</DependentUpon>
+    </None>
+    <None Include="Web.Release.config">
+      <DependentUpon>Web.config</DependentUpon>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Web.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <PropertyGroup>
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
+    <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
+  </PropertyGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <Import Project="$(VSToolsPath)\WebApplications\Microsoft.WebApplication.targets" Condition="'$(VSToolsPath)' != ''" />
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v10.0\WebApplications\Microsoft.WebApplication.targets" Condition="false" />
+  <ProjectExtensions>
+    <VisualStudio>
+      <FlavorProperties GUID="{349c5851-65df-11da-9384-00065b846f21}">
+        <WebProjectProperties>
+          <UseIIS>True</UseIIS>
+          <AutoAssignPort>True</AutoAssignPort>
+          <DevelopmentServerPort>42633</DevelopmentServerPort>
+          <DevelopmentServerVPath>/</DevelopmentServerVPath>
+          <IISUrl>http://localhost:42633/</IISUrl>
+          <NTLMAuthentication>False</NTLMAuthentication>
+          <UseCustomServer>False</UseCustomServer>
+          <CustomServerUrl>
+          </CustomServerUrl>
+          <SaveServerSettingsInUserFile>False</SaveServerSettingsInUserFile>
+        </WebProjectProperties>
+      </FlavorProperties>
+    </VisualStudio>
+  </ProjectExtensions>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\..\packages\Microsoft.Net.Compilers.1.0.0\build\Microsoft.Net.Compilers.props')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\Microsoft.Net.Compilers.1.0.0\build\Microsoft.Net.Compilers.props'))" />
+    <Error Condition="!Exists('..\..\packages\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.1.0.0\build\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.props')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.1.0.0\build\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.props'))" />
+    <Error Condition="!Exists('..\..\packages\docfx.msbuild.2.4.0\build\docfx.msbuild.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\docfx.msbuild.2.4.0\build\docfx.msbuild.targets'))" />
+  </Target>
+  <Import Project="..\..\packages\docfx.msbuild.2.4.0\build\docfx.msbuild.targets" Condition="Exists('..\..\packages\docfx.msbuild.2.4.0\build\docfx.msbuild.targets')" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

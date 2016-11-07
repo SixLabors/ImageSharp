@@ -1,0 +1,496 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.Processors.ResamplingWeightedProcessor`2.Weight
+  commentId: T:ImageSharp.Processors.ResamplingWeightedProcessor`2.Weight
+  id: ResamplingWeightedProcessor`2.Weight
+  parent: ImageSharp.Processors
+  children:
+  - ImageSharp.Processors.ResamplingWeightedProcessor`2.Weight.#ctor(System.Int32,System.Single)
+  - ImageSharp.Processors.ResamplingWeightedProcessor`2.Weight.Index
+  - ImageSharp.Processors.ResamplingWeightedProcessor`2.Weight.Value
+  langs:
+  - csharp
+  - vb
+  name: ResamplingWeightedProcessor<TColor, TPacked>.Weight
+  nameWithType: ResamplingWeightedProcessor<TColor, TPacked>.Weight
+  fullName: ImageSharp.Processors.ResamplingWeightedProcessor<TColor, TPacked>.Weight
+  type: Class
+  source:
+    id: Weight
+    path: ''
+    startLine: 30940
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Processors
+  summary: "\nRepresents the weight to be added to a scaled pixel.\n"
+  example: []
+  syntax:
+    content: protected class Weight
+    content.vb: Protected Class Weight
+  inheritance:
+  - System.Object
+  inheritedMembers:
+  - System.Object.ToString
+  - System.Object.Equals(System.Object)
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.GetHashCode
+  - System.Object.GetType
+  - System.Object.MemberwiseClone
+  nameWithType.vb: ResamplingWeightedProcessor(Of TColor, TPacked).Weight
+  modifiers.csharp:
+  - protected
+  - class
+  modifiers.vb:
+  - Protected
+  - Class
+  fullName.vb: ImageSharp.Processors.ResamplingWeightedProcessor(Of TColor, TPacked).Weight
+  name.vb: ResamplingWeightedProcessor(Of TColor, TPacked).Weight
+- uid: ImageSharp.Processors.ResamplingWeightedProcessor`2.Weight.#ctor(System.Int32,System.Single)
+  commentId: M:ImageSharp.Processors.ResamplingWeightedProcessor`2.Weight.#ctor(System.Int32,System.Single)
+  id: '#ctor(System.Int32,System.Single)'
+  parent: ImageSharp.Processors.ResamplingWeightedProcessor`2.Weight
+  langs:
+  - csharp
+  - vb
+  name: Weight(Int32, Single)
+  nameWithType: ResamplingWeightedProcessor<TColor, TPacked>.Weight.Weight(Int32, Single)
+  fullName: ImageSharp.Processors.ResamplingWeightedProcessor<TColor, TPacked>.Weight.Weight(System.Int32, System.Single)
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 30947
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Processors
+  summary: "\nInitializes a new instance of the <xref href=\"ImageSharp.Processors.ResamplingWeightedProcessor%602.Weight\" data-throw-if-not-resolved=\"false\"></xref> class.\n"
+  example: []
+  syntax:
+    content: public Weight(int index, float value)
+    content.vb: Public Sub New(index As Integer, value As Single)
+    parameters:
+    - id: index
+      type: System.Int32
+      description: The index.
+    - id: value
+      type: System.Single
+      description: The value.
+  nameWithType.vb: ResamplingWeightedProcessor(Of TColor, TPacked).Weight.Weight(Int32, Single)
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+  fullName.vb: ImageSharp.Processors.ResamplingWeightedProcessor(Of TColor, TPacked).Weight.Weight(System.Int32, System.Single)
+- uid: ImageSharp.Processors.ResamplingWeightedProcessor`2.Weight.Index
+  commentId: P:ImageSharp.Processors.ResamplingWeightedProcessor`2.Weight.Index
+  id: Index
+  parent: ImageSharp.Processors.ResamplingWeightedProcessor`2.Weight
+  langs:
+  - csharp
+  - vb
+  name: Index
+  nameWithType: ResamplingWeightedProcessor<TColor, TPacked>.Weight.Index
+  fullName: ImageSharp.Processors.ResamplingWeightedProcessor<TColor, TPacked>.Weight.Index
+  type: Property
+  source:
+    id: Index
+    path: ''
+    startLine: 30956
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Processors
+  summary: "\nGets the pixel index.\n"
+  example: []
+  syntax:
+    content: public int Index { get; }
+    content.vb: Public ReadOnly Property Index As Integer
+    parameters: []
+    return:
+      type: System.Int32
+  nameWithType.vb: ResamplingWeightedProcessor(Of TColor, TPacked).Weight.Index
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+  fullName.vb: ImageSharp.Processors.ResamplingWeightedProcessor(Of TColor, TPacked).Weight.Index
+- uid: ImageSharp.Processors.ResamplingWeightedProcessor`2.Weight.Value
+  commentId: P:ImageSharp.Processors.ResamplingWeightedProcessor`2.Weight.Value
+  id: Value
+  parent: ImageSharp.Processors.ResamplingWeightedProcessor`2.Weight
+  langs:
+  - csharp
+  - vb
+  name: Value
+  nameWithType: ResamplingWeightedProcessor<TColor, TPacked>.Weight.Value
+  fullName: ImageSharp.Processors.ResamplingWeightedProcessor<TColor, TPacked>.Weight.Value
+  type: Property
+  source:
+    id: Value
+    path: ''
+    startLine: 30961
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Processors
+  summary: "\nGets or sets the result of the interpolation algorithm.\n"
+  example: []
+  syntax:
+    content: public float Value { get; set; }
+    content.vb: Public Property Value As Single
+    parameters: []
+    return:
+      type: System.Single
+  nameWithType.vb: ResamplingWeightedProcessor(Of TColor, TPacked).Weight.Value
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+  fullName.vb: ImageSharp.Processors.ResamplingWeightedProcessor(Of TColor, TPacked).Weight.Value
+references:
+- uid: ImageSharp.Processors
+  commentId: N:ImageSharp.Processors
+  isExternal: false
+  name: ImageSharp.Processors
+  nameWithType: ImageSharp.Processors
+  fullName: ImageSharp.Processors
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  name: Object
+  nameWithType: Object
+  fullName: System.Object
+- uid: System.Object.ToString
+  commentId: M:System.Object.ToString
+  parent: System.Object
+  isExternal: true
+  name: ToString()
+  nameWithType: Object.ToString()
+  fullName: System.Object.ToString()
+  spec.csharp:
+  - uid: System.Object.ToString
+    name: ToString
+    nameWithType: Object.ToString
+    fullName: System.Object.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ToString
+    name: ToString
+    nameWithType: Object.ToString
+    fullName: System.Object.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object)
+  commentId: M:System.Object.Equals(System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object)
+  nameWithType: Object.Equals(Object)
+  fullName: System.Object.Equals(System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object, Object)
+  nameWithType: Object.Equals(Object, Object)
+  fullName: System.Object.Equals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: ReferenceEquals(Object, Object)
+  nameWithType: Object.ReferenceEquals(Object, Object)
+  fullName: System.Object.ReferenceEquals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetHashCode
+  commentId: M:System.Object.GetHashCode
+  parent: System.Object
+  isExternal: true
+  name: GetHashCode()
+  nameWithType: Object.GetHashCode()
+  fullName: System.Object.GetHashCode()
+  spec.csharp:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    nameWithType: Object.GetHashCode
+    fullName: System.Object.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    nameWithType: Object.GetHashCode
+    fullName: System.Object.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  name: GetType()
+  nameWithType: Object.GetType()
+  fullName: System.Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.MemberwiseClone
+  commentId: M:System.Object.MemberwiseClone
+  parent: System.Object
+  isExternal: true
+  name: MemberwiseClone()
+  nameWithType: Object.MemberwiseClone()
+  fullName: System.Object.MemberwiseClone()
+  spec.csharp:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    nameWithType: Object.MemberwiseClone
+    fullName: System.Object.MemberwiseClone
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    nameWithType: Object.MemberwiseClone
+    fullName: System.Object.MemberwiseClone
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System
+  commentId: N:System
+  isExternal: false
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: ImageSharp.Processors.ResamplingWeightedProcessor`2.Weight
+  commentId: T:ImageSharp.Processors.ResamplingWeightedProcessor`2.Weight
+  isExternal: false
+  name: ResamplingWeightedProcessor.Weight<>
+  nameWithType: ResamplingWeightedProcessor.Weight<>
+  fullName: ImageSharp.Processors.ResamplingWeightedProcessor.Weight<>
+  nameWithType.vb: ResamplingWeightedProcessor.Weight(Of )
+  fullname.vb: ImageSharp.Processors.ResamplingWeightedProcessor.Weight(Of )
+  name.vb: ResamplingWeightedProcessor.Weight(Of )
+  spec.csharp:
+  - uid: ImageSharp.Processors.ResamplingWeightedProcessor`2.Weight
+    name: ResamplingWeightedProcessor.Weight
+    nameWithType: ResamplingWeightedProcessor.Weight
+    fullName: ImageSharp.Processors.ResamplingWeightedProcessor.Weight
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Processors.ResamplingWeightedProcessor`2.Weight
+    name: ResamplingWeightedProcessor.Weight
+    nameWithType: ResamplingWeightedProcessor.Weight
+    fullName: ImageSharp.Processors.ResamplingWeightedProcessor.Weight
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  name: Int32
+  nameWithType: Int32
+  fullName: System.Int32
+- uid: System.Single
+  commentId: T:System.Single
+  parent: System
+  isExternal: true
+  name: Single
+  nameWithType: Single
+  fullName: System.Single

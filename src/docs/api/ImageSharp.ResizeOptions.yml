@@ -1,0 +1,663 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.ResizeOptions
+  commentId: T:ImageSharp.ResizeOptions
+  id: ResizeOptions
+  parent: ImageSharp
+  children:
+  - ImageSharp.ResizeOptions.CenterCoordinates
+  - ImageSharp.ResizeOptions.Compand
+  - ImageSharp.ResizeOptions.Mode
+  - ImageSharp.ResizeOptions.Position
+  - ImageSharp.ResizeOptions.Sampler
+  - ImageSharp.ResizeOptions.Size
+  langs:
+  - csharp
+  - vb
+  name: ResizeOptions
+  nameWithType: ResizeOptions
+  fullName: ImageSharp.ResizeOptions
+  type: Class
+  source:
+    id: ResizeOptions
+    path: ''
+    startLine: 29819
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nThe resize options for resizing images against certain modes.\n"
+  example: []
+  syntax:
+    content: public class ResizeOptions
+    content.vb: Public Class ResizeOptions
+  inheritance:
+  - System.Object
+  inheritedMembers:
+  - System.Object.ToString
+  - System.Object.Equals(System.Object)
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.GetHashCode
+  - System.Object.GetType
+  - System.Object.MemberwiseClone
+  modifiers.csharp:
+  - public
+  - class
+  modifiers.vb:
+  - Public
+  - Class
+- uid: ImageSharp.ResizeOptions.Mode
+  commentId: P:ImageSharp.ResizeOptions.Mode
+  id: Mode
+  parent: ImageSharp.ResizeOptions
+  langs:
+  - csharp
+  - vb
+  name: Mode
+  nameWithType: ResizeOptions.Mode
+  fullName: ImageSharp.ResizeOptions.Mode
+  type: Property
+  source:
+    id: Mode
+    path: ''
+    startLine: 29824
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets or sets the resize mode.\n"
+  example: []
+  syntax:
+    content: public ResizeMode Mode { get; set; }
+    content.vb: Public Property Mode As ResizeMode
+    parameters: []
+    return:
+      type: ImageSharp.ResizeMode
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.ResizeOptions.Position
+  commentId: P:ImageSharp.ResizeOptions.Position
+  id: Position
+  parent: ImageSharp.ResizeOptions
+  langs:
+  - csharp
+  - vb
+  name: Position
+  nameWithType: ResizeOptions.Position
+  fullName: ImageSharp.ResizeOptions.Position
+  type: Property
+  source:
+    id: Position
+    path: ''
+    startLine: 29829
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets or sets the anchor position.\n"
+  example: []
+  syntax:
+    content: public AnchorPosition Position { get; set; }
+    content.vb: Public Property Position As AnchorPosition
+    parameters: []
+    return:
+      type: ImageSharp.AnchorPosition
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.ResizeOptions.CenterCoordinates
+  commentId: P:ImageSharp.ResizeOptions.CenterCoordinates
+  id: CenterCoordinates
+  parent: ImageSharp.ResizeOptions
+  langs:
+  - csharp
+  - vb
+  name: CenterCoordinates
+  nameWithType: ResizeOptions.CenterCoordinates
+  fullName: ImageSharp.ResizeOptions.CenterCoordinates
+  type: Property
+  source:
+    id: CenterCoordinates
+    path: ''
+    startLine: 29834
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets or sets the center coordinates.\n"
+  example: []
+  syntax:
+    content: public IEnumerable<float> CenterCoordinates { get; set; }
+    content.vb: Public Property CenterCoordinates As IEnumerable(Of Single)
+    parameters: []
+    return:
+      type: System.Collections.Generic.IEnumerable{System.Single}
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.ResizeOptions.Size
+  commentId: P:ImageSharp.ResizeOptions.Size
+  id: Size
+  parent: ImageSharp.ResizeOptions
+  langs:
+  - csharp
+  - vb
+  name: Size
+  nameWithType: ResizeOptions.Size
+  fullName: ImageSharp.ResizeOptions.Size
+  type: Property
+  source:
+    id: Size
+    path: ''
+    startLine: 29839
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets or sets the target size.\n"
+  example: []
+  syntax:
+    content: public Size Size { get; set; }
+    content.vb: Public Property Size As Size
+    parameters: []
+    return:
+      type: ImageSharp.Size
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.ResizeOptions.Sampler
+  commentId: P:ImageSharp.ResizeOptions.Sampler
+  id: Sampler
+  parent: ImageSharp.ResizeOptions
+  langs:
+  - csharp
+  - vb
+  name: Sampler
+  nameWithType: ResizeOptions.Sampler
+  fullName: ImageSharp.ResizeOptions.Sampler
+  type: Property
+  source:
+    id: Sampler
+    path: ''
+    startLine: 29844
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets or sets the sampler to perform the resize operation.\n"
+  example: []
+  syntax:
+    content: public IResampler Sampler { get; set; }
+    content.vb: Public Property Sampler As IResampler
+    parameters: []
+    return:
+      type: ImageSharp.IResampler
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.ResizeOptions.Compand
+  commentId: P:ImageSharp.ResizeOptions.Compand
+  id: Compand
+  parent: ImageSharp.ResizeOptions
+  langs:
+  - csharp
+  - vb
+  name: Compand
+  nameWithType: ResizeOptions.Compand
+  fullName: ImageSharp.ResizeOptions.Compand
+  type: Property
+  source:
+    id: Compand
+    path: ''
+    startLine: 29850
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets or sets a value indicating whether to compress\nor expand individual pixel colors the value on processing.\n"
+  example: []
+  syntax:
+    content: public bool Compand { get; set; }
+    content.vb: Public Property Compand As Boolean
+    parameters: []
+    return:
+      type: System.Boolean
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+references:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  name: Object
+  nameWithType: Object
+  fullName: System.Object
+- uid: System.Object.ToString
+  commentId: M:System.Object.ToString
+  parent: System.Object
+  isExternal: true
+  name: ToString()
+  nameWithType: Object.ToString()
+  fullName: System.Object.ToString()
+  spec.csharp:
+  - uid: System.Object.ToString
+    name: ToString
+    nameWithType: Object.ToString
+    fullName: System.Object.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ToString
+    name: ToString
+    nameWithType: Object.ToString
+    fullName: System.Object.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object)
+  commentId: M:System.Object.Equals(System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object)
+  nameWithType: Object.Equals(Object)
+  fullName: System.Object.Equals(System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object, Object)
+  nameWithType: Object.Equals(Object, Object)
+  fullName: System.Object.Equals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: ReferenceEquals(Object, Object)
+  nameWithType: Object.ReferenceEquals(Object, Object)
+  fullName: System.Object.ReferenceEquals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetHashCode
+  commentId: M:System.Object.GetHashCode
+  parent: System.Object
+  isExternal: true
+  name: GetHashCode()
+  nameWithType: Object.GetHashCode()
+  fullName: System.Object.GetHashCode()
+  spec.csharp:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    nameWithType: Object.GetHashCode
+    fullName: System.Object.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    nameWithType: Object.GetHashCode
+    fullName: System.Object.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  name: GetType()
+  nameWithType: Object.GetType()
+  fullName: System.Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.MemberwiseClone
+  commentId: M:System.Object.MemberwiseClone
+  parent: System.Object
+  isExternal: true
+  name: MemberwiseClone()
+  nameWithType: Object.MemberwiseClone()
+  fullName: System.Object.MemberwiseClone()
+  spec.csharp:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    nameWithType: Object.MemberwiseClone
+    fullName: System.Object.MemberwiseClone
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    nameWithType: Object.MemberwiseClone
+    fullName: System.Object.MemberwiseClone
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System
+  commentId: N:System
+  isExternal: false
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: ImageSharp.ResizeMode
+  commentId: T:ImageSharp.ResizeMode
+  parent: ImageSharp
+  isExternal: false
+  name: ResizeMode
+  nameWithType: ResizeMode
+  fullName: ImageSharp.ResizeMode
+- uid: ImageSharp.AnchorPosition
+  commentId: T:ImageSharp.AnchorPosition
+  parent: ImageSharp
+  isExternal: false
+  name: AnchorPosition
+  nameWithType: AnchorPosition
+  fullName: ImageSharp.AnchorPosition
+- uid: System.Collections.Generic.IEnumerable{System.Single}
+  commentId: T:System.Collections.Generic.IEnumerable{System.Single}
+  parent: System.Collections.Generic
+  definition: System.Collections.Generic.IEnumerable`1
+  name: IEnumerable<Single>
+  nameWithType: IEnumerable<Single>
+  fullName: System.Collections.Generic.IEnumerable<System.Single>
+  nameWithType.vb: IEnumerable(Of Single)
+  fullname.vb: System.Collections.Generic.IEnumerable(Of System.Single)
+  name.vb: IEnumerable(Of Single)
+  spec.csharp:
+  - uid: System.Collections.Generic.IEnumerable`1
+    name: IEnumerable
+    nameWithType: IEnumerable
+    fullName: System.Collections.Generic.IEnumerable
+    isExternal: true
+  - name: <
+    nameWithType: <
+    fullName: <
+  - uid: System.Single
+    name: Single
+    nameWithType: Single
+    fullName: System.Single
+    isExternal: true
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: System.Collections.Generic.IEnumerable`1
+    name: IEnumerable
+    nameWithType: IEnumerable
+    fullName: System.Collections.Generic.IEnumerable
+    isExternal: true
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - uid: System.Single
+    name: Single
+    nameWithType: Single
+    fullName: System.Single
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Collections.Generic.IEnumerable`1
+  commentId: T:System.Collections.Generic.IEnumerable`1
+  isExternal: true
+  name: IEnumerable<T>
+  nameWithType: IEnumerable<T>
+  fullName: System.Collections.Generic.IEnumerable<T>
+  nameWithType.vb: IEnumerable(Of T)
+  fullname.vb: System.Collections.Generic.IEnumerable(Of T)
+  name.vb: IEnumerable(Of T)
+  spec.csharp:
+  - uid: System.Collections.Generic.IEnumerable`1
+    name: IEnumerable
+    nameWithType: IEnumerable
+    fullName: System.Collections.Generic.IEnumerable
+    isExternal: true
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: System.Collections.Generic.IEnumerable`1
+    name: IEnumerable
+    nameWithType: IEnumerable
+    fullName: System.Collections.Generic.IEnumerable
+    isExternal: true
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Collections.Generic
+  commentId: N:System.Collections.Generic
+  isExternal: false
+  name: System.Collections.Generic
+  nameWithType: System.Collections.Generic
+  fullName: System.Collections.Generic
+- uid: ImageSharp.Size
+  commentId: T:ImageSharp.Size
+  parent: ImageSharp
+  isExternal: false
+  name: Size
+  nameWithType: Size
+  fullName: ImageSharp.Size
+- uid: ImageSharp.IResampler
+  commentId: T:ImageSharp.IResampler
+  parent: ImageSharp
+  isExternal: false
+  name: IResampler
+  nameWithType: IResampler
+  fullName: ImageSharp.IResampler
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  name: Boolean
+  nameWithType: Boolean
+  fullName: System.Boolean

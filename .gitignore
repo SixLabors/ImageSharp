@@ -210,3 +210,7 @@ artifacts/
 
 #BenchmarkDotNet
 **/BenchmarkDotNet.Artifacts/
+
+#docfx
+_site/*
+log.txt

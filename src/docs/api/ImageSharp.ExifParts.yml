@@ -1,0 +1,211 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.ExifParts
+  commentId: T:ImageSharp.ExifParts
+  id: ExifParts
+  parent: ImageSharp
+  children:
+  - ImageSharp.ExifParts.All
+  - ImageSharp.ExifParts.ExifTags
+  - ImageSharp.ExifParts.GPSTags
+  - ImageSharp.ExifParts.IfdTags
+  - ImageSharp.ExifParts.None
+  langs:
+  - csharp
+  - vb
+  name: ExifParts
+  nameWithType: ExifParts
+  fullName: ImageSharp.ExifParts
+  type: Enum
+  source:
+    id: ExifParts
+    path: ''
+    startLine: 23299
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSpecifies which parts will be written when the profile is added to an image.\n"
+  example: []
+  syntax:
+    content: >-
+      [Flags]
+
+      public enum ExifParts
+    content.vb: >-
+      <Flags>
+
+      Public Enum ExifParts
+  attributes:
+  - type: System.FlagsAttribute
+    ctor: System.FlagsAttribute.#ctor
+    arguments: []
+  modifiers.csharp:
+  - public
+  - enum
+  modifiers.vb:
+  - Public
+  - Enum
+- uid: ImageSharp.ExifParts.None
+  commentId: F:ImageSharp.ExifParts.None
+  id: None
+  parent: ImageSharp.ExifParts
+  langs:
+  - csharp
+  - vb
+  name: None
+  nameWithType: ExifParts.None
+  fullName: ImageSharp.ExifParts.None
+  type: Field
+  source:
+    id: None
+    path: ''
+    startLine: 23305
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nNone\n"
+  example: []
+  syntax:
+    content: None = 0
+    return:
+      type: ImageSharp.ExifParts
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifParts.IfdTags
+  commentId: F:ImageSharp.ExifParts.IfdTags
+  id: IfdTags
+  parent: ImageSharp.ExifParts
+  langs:
+  - csharp
+  - vb
+  name: IfdTags
+  nameWithType: ExifParts.IfdTags
+  fullName: ImageSharp.ExifParts.IfdTags
+  type: Field
+  source:
+    id: IfdTags
+    path: ''
+    startLine: 23310
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nIfdTags\n"
+  example: []
+  syntax:
+    content: IfdTags = 1
+    return:
+      type: ImageSharp.ExifParts
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifParts.ExifTags
+  commentId: F:ImageSharp.ExifParts.ExifTags
+  id: ExifTags
+  parent: ImageSharp.ExifParts
+  langs:
+  - csharp
+  - vb
+  name: ExifTags
+  nameWithType: ExifParts.ExifTags
+  fullName: ImageSharp.ExifParts.ExifTags
+  type: Field
+  source:
+    id: ExifTags
+    path: ''
+    startLine: 23315
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nExifTags\n"
+  example: []
+  syntax:
+    content: ExifTags = 4
+    return:
+      type: ImageSharp.ExifParts
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifParts.GPSTags
+  commentId: F:ImageSharp.ExifParts.GPSTags
+  id: GPSTags
+  parent: ImageSharp.ExifParts
+  langs:
+  - csharp
+  - vb
+  name: GPSTags
+  nameWithType: ExifParts.GPSTags
+  fullName: ImageSharp.ExifParts.GPSTags
+  type: Field
+  source:
+    id: GPSTags
+    path: ''
+    startLine: 23320
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGPSTags\n"
+  example: []
+  syntax:
+    content: GPSTags = 8
+    return:
+      type: ImageSharp.ExifParts
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifParts.All
+  commentId: F:ImageSharp.ExifParts.All
+  id: All
+  parent: ImageSharp.ExifParts
+  langs:
+  - csharp
+  - vb
+  name: All
+  nameWithType: ExifParts.All
+  fullName: ImageSharp.ExifParts.All
+  type: Field
+  source:
+    id: All
+    path: ''
+    startLine: 23325
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nAll\n"
+  example: []
+  syntax:
+    content: All = 13
+    return:
+      type: ImageSharp.ExifParts
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+references:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: ImageSharp.ExifParts
+  commentId: T:ImageSharp.ExifParts
+  parent: ImageSharp
+  isExternal: false
+  name: ExifParts
+  nameWithType: ExifParts
+  fullName: ImageSharp.ExifParts

@@ -1,0 +1,139 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.Quantization
+  commentId: T:ImageSharp.Quantization
+  id: Quantization
+  parent: ImageSharp
+  children:
+  - ImageSharp.Quantization.Octree
+  - ImageSharp.Quantization.Palette
+  - ImageSharp.Quantization.Wu
+  langs:
+  - csharp
+  - vb
+  name: Quantization
+  nameWithType: Quantization
+  fullName: ImageSharp.Quantization
+  type: Enum
+  source:
+    id: Quantization
+    path: ''
+    startLine: 27236
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nProvides enumeration over how an image should be quantized.\n"
+  example: []
+  syntax:
+    content: public enum Quantization
+    content.vb: Public Enum Quantization
+  modifiers.csharp:
+  - public
+  - enum
+  modifiers.vb:
+  - Public
+  - Enum
+- uid: ImageSharp.Quantization.Octree
+  commentId: F:ImageSharp.Quantization.Octree
+  id: Octree
+  parent: ImageSharp.Quantization
+  langs:
+  - csharp
+  - vb
+  name: Octree
+  nameWithType: Quantization.Octree
+  fullName: ImageSharp.Quantization.Octree
+  type: Field
+  source:
+    id: Octree
+    path: ''
+    startLine: 27241
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nAn adaptive Octree quantizer. Fast with good quality.\n"
+  example: []
+  syntax:
+    content: Octree = 0
+    return:
+      type: ImageSharp.Quantization
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.Quantization.Wu
+  commentId: F:ImageSharp.Quantization.Wu
+  id: Wu
+  parent: ImageSharp.Quantization
+  langs:
+  - csharp
+  - vb
+  name: Wu
+  nameWithType: Quantization.Wu
+  fullName: ImageSharp.Quantization.Wu
+  type: Field
+  source:
+    id: Wu
+    path: ''
+    startLine: 27246
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nXiaolin Wu's Color Quantizer which generates high quality output.\n"
+  example: []
+  syntax:
+    content: Wu = 1
+    return:
+      type: ImageSharp.Quantization
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.Quantization.Palette
+  commentId: F:ImageSharp.Quantization.Palette
+  id: Palette
+  parent: ImageSharp.Quantization
+  langs:
+  - csharp
+  - vb
+  name: Palette
+  nameWithType: Quantization.Palette
+  fullName: ImageSharp.Quantization.Palette
+  type: Field
+  source:
+    id: Palette
+    path: ''
+    startLine: 27251
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nPalette based, Uses the collection of web-safe colors by default.\n"
+  example: []
+  syntax:
+    content: Palette = 2
+    return:
+      type: ImageSharp.Quantization
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+references:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: ImageSharp.Quantization
+  commentId: T:ImageSharp.Quantization
+  parent: ImageSharp
+  isExternal: false
+  name: Quantization
+  nameWithType: Quantization
+  fullName: ImageSharp.Quantization

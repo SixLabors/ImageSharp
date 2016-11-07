@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+  
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Namespace ImageSharp
+   </title>
+    <meta name="viewport" content="width=device-width">
+    <meta name="title" content="Namespace ImageSharp
+   ">
+    <meta name="generator" content="docfx 2.4.0.0">
+    
+    <link rel="shortcut icon" href="../favicon.ico">
+    <link rel="stylesheet" href="../styles/docfx.vendor.css">
+    <link rel="stylesheet" href="../styles/docfx.css">
+    <link rel="stylesheet" href="../styles/main.css">
+    <meta property="docfx:navrel" content="../toc.html">
+    <meta property="docfx:tocrel" content="toc.html">
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix">
+    <div id="wrapper">
+      <header>
+        
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+        
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div role="main" class="container body-content hide-when-search">
+        
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content">
+              
+              <h1 id="ImageSharp" data-uid="ImageSharp">Namespace ImageSharp
+              </h1>
+              <div class="markdown level0 summary"></div>
+              <div class="markdown level0 conceptual"></div>
+              <div class="markdown level0 remarks"></div>
+                <h3 id="classes">Classes
+              </h3>
+                  <h4><a class="xref" href="ImageSharp.BicubicResampler.html#ImageSharp_BicubicResampler">BicubicResampler</a></h4>
+                  <section><p>The function implements the bicubic kernel algorithm W(x) as described on
+<a href="https://en.wikipedia.org/wiki/Bicubic_interpolation#Bicubic_convolution_algorithm">Wikipedia</a>
+A commonly used algorithm within imageprocessing that preserves sharpness better than triangle interpolation.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.Bootstrapper.html#ImageSharp_Bootstrapper">Bootstrapper</a></h4>
+                  <section><p>Provides initialization code which allows extending the library.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.BoxResampler.html#ImageSharp_BoxResampler">BoxResampler</a></h4>
+                  <section><p>The function implements the box algorithm. Similar to nearest neighbour when upscaling.
+When downscaling the pixels will average, merging together.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.CatmullRomResampler.html#ImageSharp_CatmullRomResampler">CatmullRomResampler</a></h4>
+                  <section><p>The Catmull-Rom filter is a well known standard Cubic Filter often used as a interpolation function.
+This filter produces a reasonably sharp edge, but without a the pronounced gradient change on large
+scale image enlargements that a &#39;Lagrange&#39; filter can produce.
+<a href="http://www.imagemagick.org/Usage/filter/#cubic_bc"></a></p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.ColorConstants.html#ImageSharp_ColorConstants">ColorConstants</a></h4>
+                  <section><p>Provides useful color definitions.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.EnumerableExtensions.html#ImageSharp_EnumerableExtensions">EnumerableExtensions</a></h4>
+                  <section><p>Encapsulates a series of time saving extension methods to the <span class="xref">System.Collections.IEnumerable</span> interface.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.ExifProfile.html#ImageSharp_ExifProfile">ExifProfile</a></h4>
+                  <section><p>Represents an EXIF profile providing access to the collection of values.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.ExifValue.html#ImageSharp_ExifValue">ExifValue</a></h4>
+                  <section><p>A value of the exif profile.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.Image.html#ImageSharp_Image">Image</a></h4>
+                  <section><p>Represents an image. Each pixel is a made up four 8-bit components red, green, blue, and alpha
+packed into a single unsigned integer value.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.Image-2.html#ImageSharp_Image_2">Image&lt;TColor, TPacked&gt;</a></h4>
+                  <section><p>Encapsulates an image, which consists of the pixel data for a graphics image and its attributes.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.ImageBase-2.html#ImageSharp_ImageBase_2">ImageBase&lt;TColor, TPacked&gt;</a></h4>
+                  <section><p>The base class of all images. Encapsulates the basic properties and methods required to manipulate
+images in different pixel formats.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.ImageExtensions.html#ImageSharp_ImageExtensions">ImageExtensions</a></h4>
+                  <section><p>Extension methods for the <a class="xref" href="ImageSharp.Image.html#ImageSharp_Image">Image</a> type.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.ImageFormatException.html#ImageSharp_ImageFormatException">ImageFormatException</a></h4>
+                  <section><p>The exception that is thrown when the library tries to load
+an image, which has an invalid format.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.ImageFrame-2.html#ImageSharp_ImageFrame_2">ImageFrame&lt;TColor, TPacked&gt;</a></h4>
+                  <section><p>Represents a single frame in a animation.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.ImageProcessingException.html#ImageSharp_ImageProcessingException">ImageProcessingException</a></h4>
+                  <section><p>The exception that is thrown when an error occurs when applying a process to an image.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.ImageProperty.html#ImageSharp_ImageProperty">ImageProperty</a></h4>
+                  <section><p>Stores meta information about a image, like the name of the author,
+the copyright information, the date, where the image was created
+or some other information.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.Lanczos2Resampler.html#ImageSharp_Lanczos2Resampler">Lanczos2Resampler</a></h4>
+                  <section><p>The function implements the Lanczos kernel algorithm as described on
+<a href="https://en.wikipedia.org/wiki/Lanczos_resampling#Algorithm">Wikipedia</a>
+with a radius of 2 pixels.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.Lanczos3Resampler.html#ImageSharp_Lanczos3Resampler">Lanczos3Resampler</a></h4>
+                  <section><p>The function implements the Lanczos kernel algorithm as described on
+<a href="https://en.wikipedia.org/wiki/Lanczos_resampling#Algorithm">Wikipedia</a>
+with a radius of 3 pixels.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.Lanczos5Resampler.html#ImageSharp_Lanczos5Resampler">Lanczos5Resampler</a></h4>
+                  <section><p>The function implements the Lanczos kernel algorithm as described on
+<a href="https://en.wikipedia.org/wiki/Lanczos_resampling#Algorithm">Wikipedia</a>
+with a radius of 5 pixels.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.Lanczos8Resampler.html#ImageSharp_Lanczos8Resampler">Lanczos8Resampler</a></h4>
+                  <section><p>The function implements the Lanczos kernel algorithm as described on
+<a href="https://en.wikipedia.org/wiki/Lanczos_resampling#Algorithm">Wikipedia</a>
+with a radius of 8 pixels.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.MitchellNetravaliResampler.html#ImageSharp_MitchellNetravaliResampler">MitchellNetravaliResampler</a></h4>
+                  <section><p>The function implements the mitchell algorithm as described on
+<a href="https://de.wikipedia.org/wiki/Mitchell-Netravali-Filter">Wikipedia</a></p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.NearestNeighborResampler.html#ImageSharp_NearestNeighborResampler">NearestNeighborResampler</a></h4>
+                  <section><p>The function implements the nearest neighbour algorithm. This uses an unscaled filter
+which will select the closest pixel to the new pixels position.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.PixelAccessor.html#ImageSharp_PixelAccessor">PixelAccessor</a></h4>
+                  <section><p>An optimized pixel accessor for the <a class="xref" href="ImageSharp.Image.html#ImageSharp_Image">Image</a> class.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.PixelAccessor-2.html#ImageSharp_PixelAccessor_2">PixelAccessor&lt;TColor, TPacked&gt;</a></h4>
+                  <section><p>Provides per-pixel access to generic <a class="xref" href="ImageSharp.Image-2.html#ImageSharp_Image_2">Image&lt;TColor, TPacked&gt;</a> pixels.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.PixelRow-2.html#ImageSharp_PixelRow_2">PixelRow&lt;TColor, TPacked&gt;</a></h4>
+                  <section><p>Represents a row of generic <a class="xref" href="ImageSharp.Image-2.html#ImageSharp_Image_2">Image&lt;TColor, TPacked&gt;</a> pixels.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.ProgressEventArgs.html#ImageSharp_ProgressEventArgs">ProgressEventArgs</a></h4>
+                  <section><p>Contains event data related to the progress made processing an image.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.ResizeOptions.html#ImageSharp_ResizeOptions">ResizeOptions</a></h4>
+                  <section><p>The resize options for resizing images against certain modes.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.RobidouxResampler.html#ImageSharp_RobidouxResampler">RobidouxResampler</a></h4>
+                  <section><p>The function implements the Robidoux algorithm.
+<a href="http://www.imagemagick.org/Usage/filter/#robidoux"></a></p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.RobidouxSharpResampler.html#ImageSharp_RobidouxSharpResampler">RobidouxSharpResampler</a></h4>
+                  <section><p>The function implements the Robidoux Sharp algorithm.
+<a href="http://www.imagemagick.org/Usage/filter/#robidoux"></a></p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.SplineResampler.html#ImageSharp_SplineResampler">SplineResampler</a></h4>
+                  <section><p>The function implements the spline algorithm.
+<a href="http://www.imagemagick.org/Usage/filter/#cubic_bc"></a></p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.TriangleResampler.html#ImageSharp_TriangleResampler">TriangleResampler</a></h4>
+                  <section><p>The function implements the triangle (bilinear) algorithm.
+Bilinear interpolation can be used where perfect image transformation with pixel matching is impossible,
+so that one can calculate and assign appropriate intensity values to pixels.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.Vector4Extensions.html#ImageSharp_Vector4Extensions">Vector4Extensions</a></h4>
+                  <section><p>Extension methods for the <see cref="!:Vector4"></see> struct.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.WelchResampler.html#ImageSharp_WelchResampler">WelchResampler</a></h4>
+                  <section><p>The function implements the welch algorithm.
+<a href="http://www.imagemagick.org/Usage/filter/"></a></p>
+</section>
+                <h3 id="structs">Structs
+              </h3>
+                  <h4><a class="xref" href="ImageSharp.Bgra32.html#ImageSharp_Bgra32">Bgra32</a></h4>
+                  <section><p>Represents an BGRA (blue, green, red, alpha) color.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.CieLab.html#ImageSharp_CieLab">CieLab</a></h4>
+                  <section><p>Represents an CIE LAB 1976 color.
+<a href="https://en.wikipedia.org/wiki/Lab_color_space"></a></p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.CieXyz.html#ImageSharp_CieXyz">CieXyz</a></h4>
+                  <section><p>Represents an CIE 1931 color
+<a href="https://en.wikipedia.org/wiki/CIE_1931_color_space"></a></p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.Cmyk.html#ImageSharp_Cmyk">Cmyk</a></h4>
+                  <section><p>Represents an CMYK (cyan, magenta, yellow, keyline) color.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.Color.html#ImageSharp_Color">Color</a></h4>
+                  <section><p>Packed vector type containing four 8-bit unsigned normalized values ranging from 0 to 255.
+The color components are stored in red, green, blue, and alpha order.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.Ellipse.html#ImageSharp_Ellipse">Ellipse</a></h4>
+                  <section></section>
+                  <h4><a class="xref" href="ImageSharp.Hsl.html#ImageSharp_Hsl">Hsl</a></h4>
+                  <section><p>Represents a Hsl (hue, saturation, lightness) color.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.Hsv.html#ImageSharp_Hsv">Hsv</a></h4>
+                  <section><p>Represents a HSV (hue, saturation, value) color. Also known as HSB (hue, saturation, brightness).</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.Point.html#ImageSharp_Point">Point</a></h4>
+                  <section><p>Represents an ordered pair of integer x- and y-coordinates that defines a point in
+a two-dimensional plane.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.Rational.html#ImageSharp_Rational">Rational</a></h4>
+                  <section><p>Represents a number that can be expressed as a fraction.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a></h4>
+                  <section><p>Stores a set of four integers that represent the location and size of a rectangle.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.SignedRational.html#ImageSharp_SignedRational">SignedRational</a></h4>
+                  <section><p>Represents a number that can be expressed as a fraction.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.Size.html#ImageSharp_Size">Size</a></h4>
+                  <section><p>Stores an ordered pair of integers, which specify a height and width.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.YCbCr.html#ImageSharp_YCbCr">YCbCr</a></h4>
+                  <section><p>Represents an YCbCr (luminance, blue chroma, red chroma) color conforming to the
+Full range standard used in digital imaging systems.
+<a href="http://en.wikipedia.org/wiki/YCbCr"></a></p>
+</section>
+                <h3 id="interfaces">Interfaces
+              </h3>
+                  <h4><a class="xref" href="ImageSharp.IAlmostEquatable-2.html#ImageSharp_IAlmostEquatable_2">IAlmostEquatable&lt;TColor, TPrecision&gt;</a></h4>
+                  <section><p>Defines a generalized method that a value type or class implements to create
+a type-specific method for determining approximate equality of instances.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.IImageBase.html#ImageSharp_IImageBase">IImageBase</a></h4>
+                  <section><p>Encapsulates the basic properties and methods required to manipulate images.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.IImageBase-2.html#ImageSharp_IImageBase_2">IImageBase&lt;TColor, TPacked&gt;</a></h4>
+                  <section><p>Encapsulates the basic properties and methods required to manipulate images in varying formats.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.IImageFrame-2.html#ImageSharp_IImageFrame_2">IImageFrame&lt;TColor, TPacked&gt;</a></h4>
+                  <section><p>Represents a single frame in a animation.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.IPackedBytes.html#ImageSharp_IPackedBytes">IPackedBytes</a></h4>
+                  <section><p>An interface that converts packed vector types to and from <span class="xref">byte[]</span> values,
+allowing multiple encodings to be manipulated in a generic manner.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.IPackedPixel-1.html#ImageSharp_IPackedPixel_1">IPackedPixel&lt;TPacked&gt;</a></h4>
+                  <section><p>An interface that represents a packed pixel type.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.IPackedVector.html#ImageSharp_IPackedVector">IPackedVector</a></h4>
+                  <section><p>An interface that converts packed vector types to and from <see cref="!:Vector4"></see> values.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.IPackedVector-1.html#ImageSharp_IPackedVector_1">IPackedVector&lt;TPacked&gt;</a></h4>
+                  <section><p>An interface that converts packed vector types to and from <see cref="!:Vector4"></see> values,
+allowing multiple encodings to be manipulated in a generic manner.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.IResampler.html#ImageSharp_IResampler">IResampler</a></h4>
+                  <section><p>Encapsulates an interpolation algorithm for resampling images.</p>
+</section>
+                <h3 id="enums">Enums
+              </h3>
+                  <h4><a class="xref" href="ImageSharp.AnchorPosition.html#ImageSharp_AnchorPosition">AnchorPosition</a></h4>
+                  <section><p>Enumerated anchor positions to apply to resized images.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.ColorBlindness.html#ImageSharp_ColorBlindness">ColorBlindness</a></h4>
+                  <section><p>Enumerates the various types of defined color blindness filters.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.ComponentOrder.html#ImageSharp_ComponentOrder">ComponentOrder</a></h4>
+                  <section><p>Enumerates the various component orders.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.EdgeDetection.html#ImageSharp_EdgeDetection">EdgeDetection</a></h4>
+                  <section><p>Enumerates the various types of defined edge detection filters.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.ExifDataType.html#ImageSharp_ExifDataType">ExifDataType</a></h4>
+                  <section><p>Specifies exif data types.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.ExifParts.html#ImageSharp_ExifParts">ExifParts</a></h4>
+                  <section><p>Specifies which parts will be written when the profile is added to an image.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.ExifTag.html#ImageSharp_ExifTag">ExifTag</a></h4>
+                  <section><p>All exif tags from the Exif standard 2.2</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.FlipType.html#ImageSharp_FlipType">FlipType</a></h4>
+                  <section><p>Provides enumeration over how a image should be flipped.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.GrayscaleMode.html#ImageSharp_GrayscaleMode">GrayscaleMode</a></h4>
+                  <section><p>Enumerates the various types of defined Grayscale filters.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.Quantization.html#ImageSharp_Quantization">Quantization</a></h4>
+                  <section><p>Provides enumeration over how an image should be quantized.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.ResizeMode.html#ImageSharp_ResizeMode">ResizeMode</a></h4>
+                  <section><p>Enumerated resize modes to apply to resized images.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.RgbaComponent.html#ImageSharp_RgbaComponent">RgbaComponent</a></h4>
+                  <section><p>Enumerates the RGBA (red, green, blue, alpha) color components.</p>
+</section>
+                  <h4><a class="xref" href="ImageSharp.RotateType.html#ImageSharp_RotateType">RotateType</a></h4>
+                  <section><p>Provides enumeration over how the image should be rotated.</p>
+</section>
+            </article>
+          </div>
+          
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                  <li>
+                    <a href="https://github.com/M-Zuber/ImageSharp/new/master/src/docs/apispec/new?filename=ImageSharp.md&amp;value=---%0Auid%3A%20ImageSharp%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A" class="contribution-link">Improve this Doc</a>
+                  </li>
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+            
+            <span>Copyright © 2015-2016 Microsoft<br>Generated by <strong>DocFX</strong></span>
+          </div>
+        </div>
+      </footer>
+    </div>
+    
+    <script type="text/javascript" src="../styles/docfx.vendor.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+  </body>
+</html>

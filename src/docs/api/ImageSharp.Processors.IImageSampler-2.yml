@@ -1,0 +1,295 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.Processors.IImageSampler`2
+  commentId: T:ImageSharp.Processors.IImageSampler`2
+  id: IImageSampler`2
+  parent: ImageSharp.Processors
+  children:
+  - ImageSharp.Processors.IImageSampler`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle)
+  - ImageSharp.Processors.IImageSampler`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},System.Int32,System.Int32,ImageSharp.Rectangle,ImageSharp.Rectangle)
+  langs:
+  - csharp
+  - vb
+  name: IImageSampler<TColor, TPacked>
+  nameWithType: IImageSampler<TColor, TPacked>
+  fullName: ImageSharp.Processors.IImageSampler<TColor, TPacked>
+  type: Interface
+  source:
+    id: IImageSampler
+    path: ''
+    startLine: 30325
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Processors
+  summary: "\nEncapsulates methods to alter the pixels of an image. The processor creates a copy of the original image to operate on.\n"
+  example: []
+  syntax:
+    content: 'public interface IImageSampler<TColor, TPacked> : IImageProcessor where TColor : struct, IPackedPixel<TPacked> where TPacked : struct'
+    content.vb: >-
+      Public Interface IImageSampler(Of TColor As {Structure, IPackedPixel(Of TPacked)}, TPacked As Structure)
+          Inherits IImageProcessor
+    typeParameters:
+    - id: TColor
+      description: The pixel format.
+    - id: TPacked
+      description: The packed format. <example>uint, long, float.</example>
+  inheritedMembers:
+  - ImageSharp.Processors.IImageProcessor.ParallelOptions
+  - ImageSharp.Processors.IImageProcessor.Compand
+  nameWithType.vb: IImageSampler(Of TColor, TPacked)
+  modifiers.csharp:
+  - public
+  - interface
+  modifiers.vb:
+  - Public
+  - Interface
+  fullName.vb: ImageSharp.Processors.IImageSampler(Of TColor, TPacked)
+  name.vb: IImageSampler(Of TColor, TPacked)
+- uid: ImageSharp.Processors.IImageSampler`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle)
+  commentId: M:ImageSharp.Processors.IImageSampler`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle)
+  id: Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},ImageSharp.Rectangle)
+  parent: ImageSharp.Processors.IImageSampler`2
+  langs:
+  - csharp
+  - vb
+  name: Apply(ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>, Rectangle)
+  nameWithType: IImageSampler<TColor, TPacked>.Apply(ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>, Rectangle)
+  fullName: ImageSharp.Processors.IImageSampler<TColor, TPacked>.Apply(ImageSharp.ImageBase<TColor, TPacked>, ImageSharp.ImageBase<TColor, TPacked>, ImageSharp.Rectangle)
+  type: Method
+  source:
+    id: Apply
+    path: ''
+    startLine: 30347
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Processors
+  summary: "\nApplies the process to the specified portion of the specified <xref href=\"ImageSharp.ImageBase%602\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  remarks: "\nThe method keeps the source image unchanged and returns the\nthe result of image processing filter as new image.\n"
+  example: []
+  syntax:
+    content: void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
+    content.vb: Sub Apply(target As ImageBase(Of TColor, TPacked), source As ImageBase(Of TColor, TPacked), sourceRectangle As Rectangle)
+    parameters:
+    - id: target
+      type: ImageSharp.ImageBase{{TColor},{TPacked}}
+      description: Target image to apply the process to.
+    - id: source
+      type: ImageSharp.ImageBase{{TColor},{TPacked}}
+      description: The source image. Cannot be null.
+    - id: sourceRectangle
+      type: ImageSharp.Rectangle
+      description: "\nThe <xref href=\"ImageSharp.Rectangle\" data-throw-if-not-resolved=\"false\"></xref> structure that specifies the portion of the image object to draw.\n"
+  exceptions:
+  - type: System.ArgumentNullException
+    commentId: T:System.ArgumentNullException
+    description: "\n<em>target</em> is null or <em>source</em> is null.\n"
+  - type: System.ArgumentException
+    commentId: T:System.ArgumentException
+    description: "\n<em>sourceRectangle</em> doesnt fit the dimension of the image.\n"
+  nameWithType.vb: IImageSampler(Of TColor, TPacked).Apply(ImageBase(Of TColor, TPacked), ImageBase(Of TColor, TPacked), Rectangle)
+  fullName.vb: ImageSharp.Processors.IImageSampler(Of TColor, TPacked).Apply(ImageSharp.ImageBase(Of TColor, TPacked), ImageSharp.ImageBase(Of TColor, TPacked), ImageSharp.Rectangle)
+  name.vb: Apply(ImageBase(Of TColor, TPacked), ImageBase(Of TColor, TPacked), Rectangle)
+- uid: ImageSharp.Processors.IImageSampler`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},System.Int32,System.Int32,ImageSharp.Rectangle,ImageSharp.Rectangle)
+  commentId: M:ImageSharp.Processors.IImageSampler`2.Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},System.Int32,System.Int32,ImageSharp.Rectangle,ImageSharp.Rectangle)
+  id: Apply(ImageSharp.ImageBase{`0,`1},ImageSharp.ImageBase{`0,`1},System.Int32,System.Int32,ImageSharp.Rectangle,ImageSharp.Rectangle)
+  parent: ImageSharp.Processors.IImageSampler`2
+  langs:
+  - csharp
+  - vb
+  name: Apply(ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>, Int32, Int32, Rectangle, Rectangle)
+  nameWithType: IImageSampler<TColor, TPacked>.Apply(ImageBase<TColor, TPacked>, ImageBase<TColor, TPacked>, Int32, Int32, Rectangle, Rectangle)
+  fullName: ImageSharp.Processors.IImageSampler<TColor, TPacked>.Apply(ImageSharp.ImageBase<TColor, TPacked>, ImageSharp.ImageBase<TColor, TPacked>, System.Int32, System.Int32, ImageSharp.Rectangle, ImageSharp.Rectangle)
+  type: Method
+  source:
+    id: Apply
+    path: ''
+    startLine: 30368
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Processors
+  summary: "\nApplies the process to the specified portion of the specified <xref href=\"ImageSharp.ImageBase%602\" data-throw-if-not-resolved=\"false\"></xref> at the specified\nlocation and with the specified size.\n"
+  remarks: "\nThe method keeps the source image unchanged and returns the\nthe result of image process as new image.\n"
+  example: []
+  syntax:
+    content: void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, int width, int height, Rectangle targetRectangle, Rectangle sourceRectangle)
+    content.vb: Sub Apply(target As ImageBase(Of TColor, TPacked), source As ImageBase(Of TColor, TPacked), width As Integer, height As Integer, targetRectangle As Rectangle, sourceRectangle As Rectangle)
+    parameters:
+    - id: target
+      type: ImageSharp.ImageBase{{TColor},{TPacked}}
+      description: Target image to apply the process to.
+    - id: source
+      type: ImageSharp.ImageBase{{TColor},{TPacked}}
+      description: The source image. Cannot be null.
+    - id: width
+      type: System.Int32
+      description: The target width.
+    - id: height
+      type: System.Int32
+      description: The target height.
+    - id: targetRectangle
+      type: ImageSharp.Rectangle
+      description: "\nThe <xref href=\"ImageSharp.Rectangle\" data-throw-if-not-resolved=\"false\"></xref> structure that specifies the location and size of the drawn image.\nThe image is scaled to fit the rectangle.\n"
+    - id: sourceRectangle
+      type: ImageSharp.Rectangle
+      description: "\nThe <xref href=\"ImageSharp.Rectangle\" data-throw-if-not-resolved=\"false\"></xref> structure that specifies the portion of the image object to draw.\n"
+  nameWithType.vb: IImageSampler(Of TColor, TPacked).Apply(ImageBase(Of TColor, TPacked), ImageBase(Of TColor, TPacked), Int32, Int32, Rectangle, Rectangle)
+  fullName.vb: ImageSharp.Processors.IImageSampler(Of TColor, TPacked).Apply(ImageSharp.ImageBase(Of TColor, TPacked), ImageSharp.ImageBase(Of TColor, TPacked), System.Int32, System.Int32, ImageSharp.Rectangle, ImageSharp.Rectangle)
+  name.vb: Apply(ImageBase(Of TColor, TPacked), ImageBase(Of TColor, TPacked), Int32, Int32, Rectangle, Rectangle)
+references:
+- uid: ImageSharp.Processors
+  commentId: N:ImageSharp.Processors
+  isExternal: false
+  name: ImageSharp.Processors
+  nameWithType: ImageSharp.Processors
+  fullName: ImageSharp.Processors
+- uid: ImageSharp.Processors.IImageProcessor.ParallelOptions
+  commentId: P:ImageSharp.Processors.IImageProcessor.ParallelOptions
+  parent: ImageSharp.Processors.IImageProcessor
+  isExternal: false
+  name: ParallelOptions
+  nameWithType: IImageProcessor.ParallelOptions
+  fullName: ImageSharp.Processors.IImageProcessor.ParallelOptions
+- uid: ImageSharp.Processors.IImageProcessor.Compand
+  commentId: P:ImageSharp.Processors.IImageProcessor.Compand
+  parent: ImageSharp.Processors.IImageProcessor
+  isExternal: false
+  name: Compand
+  nameWithType: IImageProcessor.Compand
+  fullName: ImageSharp.Processors.IImageProcessor.Compand
+- uid: ImageSharp.Processors.IImageProcessor
+  commentId: T:ImageSharp.Processors.IImageProcessor
+  parent: ImageSharp.Processors
+  isExternal: false
+  name: IImageProcessor
+  nameWithType: IImageProcessor
+  fullName: ImageSharp.Processors.IImageProcessor
+- uid: ImageSharp.ImageBase`2
+  commentId: T:ImageSharp.ImageBase`2
+  parent: ImageSharp
+  isExternal: false
+  name: ImageBase<TColor, TPacked>
+  nameWithType: ImageBase<TColor, TPacked>
+  fullName: ImageSharp.ImageBase<TColor, TPacked>
+  nameWithType.vb: ImageBase(Of TColor, TPacked)
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked)
+  name.vb: ImageBase(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Rectangle
+  commentId: T:ImageSharp.Rectangle
+  parent: ImageSharp
+  isExternal: false
+  name: Rectangle
+  nameWithType: Rectangle
+  fullName: ImageSharp.Rectangle
+- uid: System.ArgumentNullException
+  commentId: T:System.ArgumentNullException
+- uid: System.ArgumentException
+  commentId: T:System.ArgumentException
+- uid: ImageSharp.ImageBase{{TColor},{TPacked}}
+  commentId: T:ImageSharp.ImageBase{``0,``1}
+  parent: ImageSharp
+  definition: ImageSharp.ImageBase`2
+  name: ImageBase<TColor, TPacked>
+  nameWithType: ImageBase<TColor, TPacked>
+  fullName: ImageSharp.ImageBase<TColor, TPacked>
+  nameWithType.vb: ImageBase(Of TColor, TPacked)
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked)
+  name.vb: ImageBase(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  name: Int32
+  nameWithType: Int32
+  fullName: System.Int32
+- uid: System
+  commentId: N:System
+  isExternal: false
+  name: System
+  nameWithType: System
+  fullName: System

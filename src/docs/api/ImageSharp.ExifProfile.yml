@@ -1,0 +1,1006 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.ExifProfile
+  commentId: T:ImageSharp.ExifProfile
+  id: ExifProfile
+  parent: ImageSharp
+  children:
+  - ImageSharp.ExifProfile.#ctor
+  - ImageSharp.ExifProfile.#ctor(ImageSharp.ExifProfile)
+  - ImageSharp.ExifProfile.#ctor(System.Byte[])
+  - ImageSharp.ExifProfile.CreateThumbnail``2
+  - ImageSharp.ExifProfile.GetValue(ImageSharp.ExifTag)
+  - ImageSharp.ExifProfile.InvalidTags
+  - ImageSharp.ExifProfile.Parts
+  - ImageSharp.ExifProfile.RemoveValue(ImageSharp.ExifTag)
+  - ImageSharp.ExifProfile.SetValue(ImageSharp.ExifTag,System.Object)
+  - ImageSharp.ExifProfile.ToByteArray
+  - ImageSharp.ExifProfile.Values
+  langs:
+  - csharp
+  - vb
+  name: ExifProfile
+  nameWithType: ExifProfile
+  fullName: ImageSharp.ExifProfile
+  type: Class
+  source:
+    id: ExifProfile
+    path: ''
+    startLine: 23342
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents an EXIF profile providing access to the collection of values.\n"
+  example: []
+  syntax:
+    content: public sealed class ExifProfile
+    content.vb: Public NotInheritable Class ExifProfile
+  inheritance:
+  - System.Object
+  inheritedMembers:
+  - System.Object.ToString
+  - System.Object.Equals(System.Object)
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.GetHashCode
+  - System.Object.GetType
+  - System.Object.MemberwiseClone
+  modifiers.csharp:
+  - public
+  - sealed
+  - class
+  modifiers.vb:
+  - Public
+  - NotInheritable
+  - Class
+- uid: ImageSharp.ExifProfile.#ctor
+  commentId: M:ImageSharp.ExifProfile.#ctor
+  id: '#ctor'
+  parent: ImageSharp.ExifProfile
+  langs:
+  - csharp
+  - vb
+  name: ExifProfile()
+  nameWithType: ExifProfile.ExifProfile()
+  fullName: ImageSharp.ExifProfile.ExifProfile()
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 23372
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nInitializes a new instance of the <xref href=\"ImageSharp.ExifProfile\" data-throw-if-not-resolved=\"false\"></xref> class.\n"
+  example: []
+  syntax:
+    content: public ExifProfile()
+    content.vb: Public Sub New
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.ExifProfile.#ctor(System.Byte[])
+  commentId: M:ImageSharp.ExifProfile.#ctor(System.Byte[])
+  id: '#ctor(System.Byte[])'
+  parent: ImageSharp.ExifProfile
+  langs:
+  - csharp
+  - vb
+  name: ExifProfile(Byte[])
+  nameWithType: ExifProfile.ExifProfile(Byte[])
+  fullName: ImageSharp.ExifProfile.ExifProfile(System.Byte[])
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 23381
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nInitializes a new instance of the <xref href=\"ImageSharp.ExifProfile\" data-throw-if-not-resolved=\"false\"></xref> class.\n"
+  example: []
+  syntax:
+    content: public ExifProfile(byte[] data)
+    content.vb: Public Sub New(data As Byte())
+    parameters:
+    - id: data
+      type: System.Byte[]
+      description: The byte array to read the EXIF profile from.
+  nameWithType.vb: ExifProfile.ExifProfile(Byte())
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+  fullName.vb: ImageSharp.ExifProfile.ExifProfile(System.Byte())
+  name.vb: ExifProfile(Byte())
+- uid: ImageSharp.ExifProfile.#ctor(ImageSharp.ExifProfile)
+  commentId: M:ImageSharp.ExifProfile.#ctor(ImageSharp.ExifProfile)
+  id: '#ctor(ImageSharp.ExifProfile)'
+  parent: ImageSharp.ExifProfile
+  langs:
+  - csharp
+  - vb
+  name: ExifProfile(ExifProfile)
+  nameWithType: ExifProfile.ExifProfile(ExifProfile)
+  fullName: ImageSharp.ExifProfile.ExifProfile(ImageSharp.ExifProfile)
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 23394
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nInitializes a new instance of the <xref href=\"ImageSharp.ExifProfile\" data-throw-if-not-resolved=\"false\"></xref> class\nby making a copy from another EXIF profile.\n"
+  example: []
+  syntax:
+    content: public ExifProfile(ExifProfile other)
+    content.vb: Public Sub New(other As ExifProfile)
+    parameters:
+    - id: other
+      type: ImageSharp.ExifProfile
+      description: The other EXIF profile, where the clone should be made from.
+  exceptions:
+  - type: System.ArgumentNullException
+    commentId: T:System.ArgumentNullException
+    description: <em>other</em> is null.
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.ExifProfile.Parts
+  commentId: P:ImageSharp.ExifProfile.Parts
+  id: Parts
+  parent: ImageSharp.ExifProfile
+  langs:
+  - csharp
+  - vb
+  name: Parts
+  nameWithType: ExifProfile.Parts
+  fullName: ImageSharp.ExifProfile.Parts
+  type: Property
+  source:
+    id: Parts
+    path: ''
+    startLine: 23419
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets or sets which parts will be written when the profile is added to an image.\n"
+  example: []
+  syntax:
+    content: public ExifParts Parts { get; set; }
+    content.vb: Public Property Parts As ExifParts
+    parameters: []
+    return:
+      type: ImageSharp.ExifParts
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.ExifProfile.InvalidTags
+  commentId: P:ImageSharp.ExifProfile.InvalidTags
+  id: InvalidTags
+  parent: ImageSharp.ExifProfile
+  langs:
+  - csharp
+  - vb
+  name: InvalidTags
+  nameWithType: ExifProfile.InvalidTags
+  fullName: ImageSharp.ExifProfile.InvalidTags
+  type: Property
+  source:
+    id: InvalidTags
+    path: ''
+    startLine: 23428
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the tags that where found but contained an invalid value.\n"
+  example: []
+  syntax:
+    content: public IEnumerable<ExifTag> InvalidTags { get; }
+    content.vb: Public ReadOnly Property InvalidTags As IEnumerable(Of ExifTag)
+    parameters: []
+    return:
+      type: System.Collections.Generic.IEnumerable{ImageSharp.ExifTag}
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.ExifProfile.Values
+  commentId: P:ImageSharp.ExifProfile.Values
+  id: Values
+  parent: ImageSharp.ExifProfile
+  langs:
+  - csharp
+  - vb
+  name: Values
+  nameWithType: ExifProfile.Values
+  fullName: ImageSharp.ExifProfile.Values
+  type: Property
+  source:
+    id: Values
+    path: ''
+    startLine: 23433
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the values of this EXIF profile.\n"
+  example: []
+  syntax:
+    content: public IEnumerable<ExifValue> Values { get; }
+    content.vb: Public ReadOnly Property Values As IEnumerable(Of ExifValue)
+    parameters: []
+    return:
+      type: System.Collections.Generic.IEnumerable{ImageSharp.ExifValue}
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.ExifProfile.CreateThumbnail``2
+  commentId: M:ImageSharp.ExifProfile.CreateThumbnail``2
+  id: CreateThumbnail``2
+  parent: ImageSharp.ExifProfile
+  langs:
+  - csharp
+  - vb
+  name: CreateThumbnail<TColor, TPacked>()
+  nameWithType: ExifProfile.CreateThumbnail<TColor, TPacked>()
+  fullName: ImageSharp.ExifProfile.CreateThumbnail<TColor, TPacked>()
+  type: Method
+  source:
+    id: CreateThumbnail
+    path: ''
+    startLine: 23447
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nReturns the thumbnail in the EXIF profile when available.\n"
+  example: []
+  syntax:
+    content: 'public Image<TColor, TPacked> CreateThumbnail<TColor, TPacked>()where TColor : struct, IPackedPixel<TPacked> where TPacked : struct'
+    content.vb: Public Function CreateThumbnail(Of TColor As {Structure, IPackedPixel(Of TPacked)}, TPacked As Structure) As Image(Of TColor, TPacked)
+    typeParameters:
+    - id: TColor
+      description: The pixel format.
+    - id: TPacked
+      description: The packed format. <example>uint, long, float.</example>
+    return:
+      type: ImageSharp.Image{{TColor},{TPacked}}
+  nameWithType.vb: ExifProfile.CreateThumbnail(Of TColor, TPacked)()
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+  fullName.vb: ImageSharp.ExifProfile.CreateThumbnail(Of TColor, TPacked)()
+  name.vb: CreateThumbnail(Of TColor, TPacked)()
+- uid: ImageSharp.ExifProfile.GetValue(ImageSharp.ExifTag)
+  commentId: M:ImageSharp.ExifProfile.GetValue(ImageSharp.ExifTag)
+  id: GetValue(ImageSharp.ExifTag)
+  parent: ImageSharp.ExifProfile
+  langs:
+  - csharp
+  - vb
+  name: GetValue(ExifTag)
+  nameWithType: ExifProfile.GetValue(ExifTag)
+  fullName: ImageSharp.ExifProfile.GetValue(ImageSharp.ExifTag)
+  type: Method
+  source:
+    id: GetValue
+    path: ''
+    startLine: 23473
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nReturns the value with the specified tag.\n"
+  example: []
+  syntax:
+    content: public ExifValue GetValue(ExifTag tag)
+    content.vb: Public Function GetValue(tag As ExifTag) As ExifValue
+    parameters:
+    - id: tag
+      type: ImageSharp.ExifTag
+      description: The tag of the EXIF value.
+    return:
+      type: ImageSharp.ExifValue
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.ExifProfile.RemoveValue(ImageSharp.ExifTag)
+  commentId: M:ImageSharp.ExifProfile.RemoveValue(ImageSharp.ExifTag)
+  id: RemoveValue(ImageSharp.ExifTag)
+  parent: ImageSharp.ExifProfile
+  langs:
+  - csharp
+  - vb
+  name: RemoveValue(ExifTag)
+  nameWithType: ExifProfile.RemoveValue(ExifTag)
+  fullName: ImageSharp.ExifProfile.RemoveValue(ImageSharp.ExifTag)
+  type: Method
+  source:
+    id: RemoveValue
+    path: ''
+    startLine: 23490
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRemoves the value with the specified tag.\n"
+  example: []
+  syntax:
+    content: public bool RemoveValue(ExifTag tag)
+    content.vb: Public Function RemoveValue(tag As ExifTag) As Boolean
+    parameters:
+    - id: tag
+      type: ImageSharp.ExifTag
+      description: The tag of the EXIF value.
+    return:
+      type: System.Boolean
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.ExifProfile.SetValue(ImageSharp.ExifTag,System.Object)
+  commentId: M:ImageSharp.ExifProfile.SetValue(ImageSharp.ExifTag,System.Object)
+  id: SetValue(ImageSharp.ExifTag,System.Object)
+  parent: ImageSharp.ExifProfile
+  langs:
+  - csharp
+  - vb
+  name: SetValue(ExifTag, Object)
+  nameWithType: ExifProfile.SetValue(ExifTag, Object)
+  fullName: ImageSharp.ExifProfile.SetValue(ImageSharp.ExifTag, System.Object)
+  type: Method
+  source:
+    id: SetValue
+    path: ''
+    startLine: 23511
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSets the value of the specified tag.\n"
+  example: []
+  syntax:
+    content: public void SetValue(ExifTag tag, object value)
+    content.vb: Public Sub SetValue(tag As ExifTag, value As Object)
+    parameters:
+    - id: tag
+      type: ImageSharp.ExifTag
+      description: The tag of the EXIF value.
+    - id: value
+      type: System.Object
+      description: The value.
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.ExifProfile.ToByteArray
+  commentId: M:ImageSharp.ExifProfile.ToByteArray
+  id: ToByteArray
+  parent: ImageSharp.ExifProfile
+  langs:
+  - csharp
+  - vb
+  name: ToByteArray()
+  nameWithType: ExifProfile.ToByteArray()
+  fullName: ImageSharp.ExifProfile.ToByteArray()
+  type: Method
+  source:
+    id: ToByteArray
+    path: ''
+    startLine: 23530
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nConverts this instance to a byte array.\n"
+  example: []
+  syntax:
+    content: public byte[] ToByteArray()
+    content.vb: Public Function ToByteArray As Byte()
+    return:
+      type: System.Byte[]
+      description: The <xref href="byte%5b%5d" data-throw-if-not-resolved="false"></xref>
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+references:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  name: Object
+  nameWithType: Object
+  fullName: System.Object
+- uid: System.Object.ToString
+  commentId: M:System.Object.ToString
+  parent: System.Object
+  isExternal: true
+  name: ToString()
+  nameWithType: Object.ToString()
+  fullName: System.Object.ToString()
+  spec.csharp:
+  - uid: System.Object.ToString
+    name: ToString
+    nameWithType: Object.ToString
+    fullName: System.Object.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ToString
+    name: ToString
+    nameWithType: Object.ToString
+    fullName: System.Object.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object)
+  commentId: M:System.Object.Equals(System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object)
+  nameWithType: Object.Equals(Object)
+  fullName: System.Object.Equals(System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object, Object)
+  nameWithType: Object.Equals(Object, Object)
+  fullName: System.Object.Equals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: ReferenceEquals(Object, Object)
+  nameWithType: Object.ReferenceEquals(Object, Object)
+  fullName: System.Object.ReferenceEquals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetHashCode
+  commentId: M:System.Object.GetHashCode
+  parent: System.Object
+  isExternal: true
+  name: GetHashCode()
+  nameWithType: Object.GetHashCode()
+  fullName: System.Object.GetHashCode()
+  spec.csharp:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    nameWithType: Object.GetHashCode
+    fullName: System.Object.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    nameWithType: Object.GetHashCode
+    fullName: System.Object.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  name: GetType()
+  nameWithType: Object.GetType()
+  fullName: System.Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.MemberwiseClone
+  commentId: M:System.Object.MemberwiseClone
+  parent: System.Object
+  isExternal: true
+  name: MemberwiseClone()
+  nameWithType: Object.MemberwiseClone()
+  fullName: System.Object.MemberwiseClone()
+  spec.csharp:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    nameWithType: Object.MemberwiseClone
+    fullName: System.Object.MemberwiseClone
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    nameWithType: Object.MemberwiseClone
+    fullName: System.Object.MemberwiseClone
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System
+  commentId: N:System
+  isExternal: false
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: ImageSharp.ExifProfile
+  commentId: T:ImageSharp.ExifProfile
+  parent: ImageSharp
+  isExternal: false
+  name: ExifProfile
+  nameWithType: ExifProfile
+  fullName: ImageSharp.ExifProfile
+- uid: System.Byte[]
+  name: Byte[]
+  nameWithType: Byte[]
+  fullName: System.Byte[]
+  nameWithType.vb: Byte()
+  fullname.vb: System.Byte()
+  name.vb: Byte()
+  spec.csharp:
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: '[]'
+    nameWithType: '[]'
+    fullName: '[]'
+  spec.vb:
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: ()
+    nameWithType: ()
+    fullName: ()
+- uid: System.ArgumentNullException
+  commentId: T:System.ArgumentNullException
+- uid: ImageSharp.ExifParts
+  commentId: T:ImageSharp.ExifParts
+  parent: ImageSharp
+  isExternal: false
+  name: ExifParts
+  nameWithType: ExifParts
+  fullName: ImageSharp.ExifParts
+- uid: System.Collections.Generic.IEnumerable{ImageSharp.ExifTag}
+  commentId: T:System.Collections.Generic.IEnumerable{ImageSharp.ExifTag}
+  parent: System.Collections.Generic
+  definition: System.Collections.Generic.IEnumerable`1
+  name: IEnumerable<ExifTag>
+  nameWithType: IEnumerable<ExifTag>
+  fullName: System.Collections.Generic.IEnumerable<ImageSharp.ExifTag>
+  nameWithType.vb: IEnumerable(Of ExifTag)
+  fullname.vb: System.Collections.Generic.IEnumerable(Of ImageSharp.ExifTag)
+  name.vb: IEnumerable(Of ExifTag)
+  spec.csharp:
+  - uid: System.Collections.Generic.IEnumerable`1
+    name: IEnumerable
+    nameWithType: IEnumerable
+    fullName: System.Collections.Generic.IEnumerable
+    isExternal: true
+  - name: <
+    nameWithType: <
+    fullName: <
+  - uid: ImageSharp.ExifTag
+    name: ExifTag
+    nameWithType: ExifTag
+    fullName: ImageSharp.ExifTag
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: System.Collections.Generic.IEnumerable`1
+    name: IEnumerable
+    nameWithType: IEnumerable
+    fullName: System.Collections.Generic.IEnumerable
+    isExternal: true
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - uid: ImageSharp.ExifTag
+    name: ExifTag
+    nameWithType: ExifTag
+    fullName: ImageSharp.ExifTag
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Collections.Generic.IEnumerable`1
+  commentId: T:System.Collections.Generic.IEnumerable`1
+  isExternal: true
+  name: IEnumerable<T>
+  nameWithType: IEnumerable<T>
+  fullName: System.Collections.Generic.IEnumerable<T>
+  nameWithType.vb: IEnumerable(Of T)
+  fullname.vb: System.Collections.Generic.IEnumerable(Of T)
+  name.vb: IEnumerable(Of T)
+  spec.csharp:
+  - uid: System.Collections.Generic.IEnumerable`1
+    name: IEnumerable
+    nameWithType: IEnumerable
+    fullName: System.Collections.Generic.IEnumerable
+    isExternal: true
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: System.Collections.Generic.IEnumerable`1
+    name: IEnumerable
+    nameWithType: IEnumerable
+    fullName: System.Collections.Generic.IEnumerable
+    isExternal: true
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Collections.Generic
+  commentId: N:System.Collections.Generic
+  isExternal: false
+  name: System.Collections.Generic
+  nameWithType: System.Collections.Generic
+  fullName: System.Collections.Generic
+- uid: System.Collections.Generic.IEnumerable{ImageSharp.ExifValue}
+  commentId: T:System.Collections.Generic.IEnumerable{ImageSharp.ExifValue}
+  parent: System.Collections.Generic
+  definition: System.Collections.Generic.IEnumerable`1
+  name: IEnumerable<ExifValue>
+  nameWithType: IEnumerable<ExifValue>
+  fullName: System.Collections.Generic.IEnumerable<ImageSharp.ExifValue>
+  nameWithType.vb: IEnumerable(Of ExifValue)
+  fullname.vb: System.Collections.Generic.IEnumerable(Of ImageSharp.ExifValue)
+  name.vb: IEnumerable(Of ExifValue)
+  spec.csharp:
+  - uid: System.Collections.Generic.IEnumerable`1
+    name: IEnumerable
+    nameWithType: IEnumerable
+    fullName: System.Collections.Generic.IEnumerable
+    isExternal: true
+  - name: <
+    nameWithType: <
+    fullName: <
+  - uid: ImageSharp.ExifValue
+    name: ExifValue
+    nameWithType: ExifValue
+    fullName: ImageSharp.ExifValue
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: System.Collections.Generic.IEnumerable`1
+    name: IEnumerable
+    nameWithType: IEnumerable
+    fullName: System.Collections.Generic.IEnumerable
+    isExternal: true
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - uid: ImageSharp.ExifValue
+    name: ExifValue
+    nameWithType: ExifValue
+    fullName: ImageSharp.ExifValue
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Image{{TColor},{TPacked}}
+  commentId: T:ImageSharp.Image{``0,``1}
+  parent: ImageSharp
+  definition: ImageSharp.Image`2
+  name: Image<TColor, TPacked>
+  nameWithType: Image<TColor, TPacked>
+  fullName: ImageSharp.Image<TColor, TPacked>
+  nameWithType.vb: Image(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Image(Of TColor, TPacked)
+  name.vb: Image(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Image`2
+    name: Image
+    nameWithType: Image
+    fullName: ImageSharp.Image
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Image`2
+    name: Image
+    nameWithType: Image
+    fullName: ImageSharp.Image
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Image`2
+  commentId: T:ImageSharp.Image`2
+  parent: ImageSharp
+  isExternal: false
+  name: Image<TColor, TPacked>
+  nameWithType: Image<TColor, TPacked>
+  fullName: ImageSharp.Image<TColor, TPacked>
+  nameWithType.vb: Image(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Image(Of TColor, TPacked)
+  name.vb: Image(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Image`2
+    name: Image
+    nameWithType: Image
+    fullName: ImageSharp.Image
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Image`2
+    name: Image
+    nameWithType: Image
+    fullName: ImageSharp.Image
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.ExifTag
+  commentId: T:ImageSharp.ExifTag
+  parent: ImageSharp
+  isExternal: false
+  name: ExifTag
+  nameWithType: ExifTag
+  fullName: ImageSharp.ExifTag
+- uid: ImageSharp.ExifValue
+  commentId: T:ImageSharp.ExifValue
+  parent: ImageSharp
+  isExternal: false
+  name: ExifValue
+  nameWithType: ExifValue
+  fullName: ImageSharp.ExifValue
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  name: Boolean
+  nameWithType: Boolean
+  fullName: System.Boolean
+- uid: byte[]
+  commentId: T:byte[]

@@ -1,0 +1,114 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.IResampler
+  commentId: T:ImageSharp.IResampler
+  id: IResampler
+  parent: ImageSharp
+  children:
+  - ImageSharp.IResampler.GetValue(System.Single)
+  - ImageSharp.IResampler.Radius
+  langs:
+  - csharp
+  - vb
+  name: IResampler
+  nameWithType: IResampler
+  fullName: ImageSharp.IResampler
+  type: Interface
+  source:
+    id: IResampler
+    path: ''
+    startLine: 33190
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nEncapsulates an interpolation algorithm for resampling images.\n"
+  example: []
+  syntax:
+    content: public interface IResampler
+    content.vb: Public Interface IResampler
+  modifiers.csharp:
+  - public
+  - interface
+  modifiers.vb:
+  - Public
+  - Interface
+- uid: ImageSharp.IResampler.Radius
+  commentId: P:ImageSharp.IResampler.Radius
+  id: Radius
+  parent: ImageSharp.IResampler
+  langs:
+  - csharp
+  - vb
+  name: Radius
+  nameWithType: IResampler.Radius
+  fullName: ImageSharp.IResampler.Radius
+  type: Property
+  source:
+    id: Radius
+    path: ''
+    startLine: 33195
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the radius in which to sample pixels.\n"
+  example: []
+  syntax:
+    content: float Radius { get; }
+    content.vb: ReadOnly Property Radius As Single
+    parameters: []
+    return:
+      type: System.Single
+  modifiers.csharp:
+  - get
+  modifiers.vb:
+  - ReadOnly
+- uid: ImageSharp.IResampler.GetValue(System.Single)
+  commentId: M:ImageSharp.IResampler.GetValue(System.Single)
+  id: GetValue(System.Single)
+  parent: ImageSharp.IResampler
+  langs:
+  - csharp
+  - vb
+  name: GetValue(Single)
+  nameWithType: IResampler.GetValue(Single)
+  fullName: ImageSharp.IResampler.GetValue(System.Single)
+  type: Method
+  source:
+    id: GetValue
+    path: ''
+    startLine: 33204
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the result of the interpolation algorithm.\n"
+  example: []
+  syntax:
+    content: float GetValue(float x)
+    content.vb: Function GetValue(x As Single) As Single
+    parameters:
+    - id: x
+      type: System.Single
+      description: The value to process.
+    return:
+      type: System.Single
+      description: "\nThe <xref href=\"System.Single\" data-throw-if-not-resolved=\"false\"></xref>\n"
+references:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: System.Single
+  commentId: T:System.Single
+  parent: System
+  isExternal: true
+  name: Single
+  nameWithType: Single
+  fullName: System.Single
+- uid: System
+  commentId: N:System
+  isExternal: false
+  name: System
+  nameWithType: System
+  fullName: System

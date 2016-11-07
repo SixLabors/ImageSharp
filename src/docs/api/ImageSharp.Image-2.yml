@@ -1,0 +1,2509 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.Image`2
+  commentId: T:ImageSharp.Image`2
+  id: Image`2
+  parent: ImageSharp
+  children:
+  - ImageSharp.Image`2.#ctor
+  - ImageSharp.Image`2.#ctor(ImageSharp.Image{`0,`1})
+  - ImageSharp.Image`2.#ctor(System.Int32,System.Int32)
+  - ImageSharp.Image`2.#ctor(System.IO.Stream)
+  - ImageSharp.Image`2.CurrentImageFormat
+  - ImageSharp.Image`2.DefaultHorizontalResolution
+  - ImageSharp.Image`2.DefaultVerticalResolution
+  - ImageSharp.Image`2.ExifProfile
+  - ImageSharp.Image`2.Formats
+  - ImageSharp.Image`2.Frames
+  - ImageSharp.Image`2.HorizontalResolution
+  - ImageSharp.Image`2.InchHeight
+  - ImageSharp.Image`2.InchWidth
+  - ImageSharp.Image`2.IsAnimated
+  - ImageSharp.Image`2.Properties
+  - ImageSharp.Image`2.RepeatCount
+  - ImageSharp.Image`2.Save(System.IO.Stream)
+  - ImageSharp.Image`2.Save(System.IO.Stream,ImageSharp.Formats.IImageEncoder)
+  - ImageSharp.Image`2.Save(System.IO.Stream,ImageSharp.Formats.IImageFormat)
+  - ImageSharp.Image`2.ToBase64String
+  - ImageSharp.Image`2.ToString
+  - ImageSharp.Image`2.VerticalResolution
+  langs:
+  - csharp
+  - vb
+  name: Image<TColor, TPacked>
+  nameWithType: Image<TColor, TPacked>
+  fullName: ImageSharp.Image<TColor, TPacked>
+  type: Class
+  source:
+    id: Image
+    path: ''
+    startLine: 18143
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nEncapsulates an image, which consists of the pixel data for a graphics image and its attributes.\n"
+  example: []
+  syntax:
+    content: 'public class Image<TColor, TPacked> : ImageBase<TColor, TPacked>, IImageBase<TColor, TPacked>, IImageBase where TColor : struct, IPackedPixel<TPacked> where TPacked : struct'
+    content.vb: >-
+      Public Class Image(Of TColor As {Structure, IPackedPixel(Of TPacked)}, TPacked As Structure)
+          Inherits ImageBase(Of TColor, TPacked)
+          Implements IImageBase(Of TColor, TPacked), IImageBase
+    typeParameters:
+    - id: TColor
+      description: The pixel format.
+    - id: TPacked
+      description: The packed format. <example>uint, long, float.</example>
+  inheritance:
+  - System.Object
+  - ImageSharp.ImageBase{{TColor},{TPacked}}
+  implements:
+  - ImageSharp.IImageBase{{TColor},{TPacked}}
+  - ImageSharp.IImageBase
+  inheritedMembers:
+  - ImageSharp.ImageBase{{TColor},{TPacked}}.MaxWidth
+  - ImageSharp.ImageBase{{TColor},{TPacked}}.MaxHeight
+  - ImageSharp.ImageBase{{TColor},{TPacked}}.Pixels
+  - ImageSharp.ImageBase{{TColor},{TPacked}}.Width
+  - ImageSharp.ImageBase{{TColor},{TPacked}}.Height
+  - ImageSharp.ImageBase{{TColor},{TPacked}}.PixelRatio
+  - ImageSharp.ImageBase{{TColor},{TPacked}}.Bounds
+  - ImageSharp.ImageBase{{TColor},{TPacked}}.Quality
+  - ImageSharp.ImageBase{{TColor},{TPacked}}.FrameDelay
+  - ImageSharp.ImageBase{{TColor},{TPacked}}.InitPixels(System.Int32,System.Int32)
+  - ImageSharp.ImageBase{{TColor},{TPacked}}.SetPixels(System.Int32,System.Int32,{TColor}[])
+  - ImageSharp.ImageBase{{TColor},{TPacked}}.ClonePixels(System.Int32,System.Int32,{TColor}[])
+  - ImageSharp.ImageBase{{TColor},{TPacked}}.Lock
+  - ImageSharp.ImageBase{{TColor},{TPacked}}.CopyProperties(ImageSharp.ImageBase{{TColor},{TPacked}})
+  - System.Object.Equals(System.Object)
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.GetHashCode
+  - System.Object.GetType
+  - System.Object.MemberwiseClone
+  nameWithType.vb: Image(Of TColor, TPacked)
+  modifiers.csharp:
+  - public
+  - class
+  modifiers.vb:
+  - Public
+  - Class
+  fullName.vb: ImageSharp.Image(Of TColor, TPacked)
+  name.vb: Image(Of TColor, TPacked)
+- uid: ImageSharp.Image`2.DefaultHorizontalResolution
+  commentId: F:ImageSharp.Image`2.DefaultHorizontalResolution
+  id: DefaultHorizontalResolution
+  parent: ImageSharp.Image`2
+  langs:
+  - csharp
+  - vb
+  name: DefaultHorizontalResolution
+  nameWithType: Image<TColor, TPacked>.DefaultHorizontalResolution
+  fullName: ImageSharp.Image<TColor, TPacked>.DefaultHorizontalResolution
+  type: Field
+  source:
+    id: DefaultHorizontalResolution
+    path: ''
+    startLine: 18152
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nThe default horizontal resolution value (dots per inch) in x direction.\n<remarks>The default value is 96 dots per inch.</remarks>\n"
+  example: []
+  syntax:
+    content: public const double DefaultHorizontalResolution = 96
+    content.vb: Public Const DefaultHorizontalResolution As Double = 96
+    return:
+      type: System.Double
+  nameWithType.vb: Image(Of TColor, TPacked).DefaultHorizontalResolution
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+  fullName.vb: ImageSharp.Image(Of TColor, TPacked).DefaultHorizontalResolution
+- uid: ImageSharp.Image`2.DefaultVerticalResolution
+  commentId: F:ImageSharp.Image`2.DefaultVerticalResolution
+  id: DefaultVerticalResolution
+  parent: ImageSharp.Image`2
+  langs:
+  - csharp
+  - vb
+  name: DefaultVerticalResolution
+  nameWithType: Image<TColor, TPacked>.DefaultVerticalResolution
+  fullName: ImageSharp.Image<TColor, TPacked>.DefaultVerticalResolution
+  type: Field
+  source:
+    id: DefaultVerticalResolution
+    path: ''
+    startLine: 18158
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nThe default vertical resolution value (dots per inch) in y direction.\n<remarks>The default value is 96 dots per inch.</remarks>\n"
+  example: []
+  syntax:
+    content: public const double DefaultVerticalResolution = 96
+    content.vb: Public Const DefaultVerticalResolution As Double = 96
+    return:
+      type: System.Double
+  nameWithType.vb: Image(Of TColor, TPacked).DefaultVerticalResolution
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+  fullName.vb: ImageSharp.Image(Of TColor, TPacked).DefaultVerticalResolution
+- uid: ImageSharp.Image`2.#ctor
+  commentId: M:ImageSharp.Image`2.#ctor
+  id: '#ctor'
+  parent: ImageSharp.Image`2
+  langs:
+  - csharp
+  - vb
+  name: Image()
+  nameWithType: Image<TColor, TPacked>.Image()
+  fullName: ImageSharp.Image<TColor, TPacked>.Image()
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 18163
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nInitializes a new instance of the <xref href=\"ImageSharp.Image%602\" data-throw-if-not-resolved=\"false\"></xref> class.\n"
+  example: []
+  syntax:
+    content: public Image()
+    content.vb: Public Sub New
+  nameWithType.vb: Image(Of TColor, TPacked).Image()
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+  fullName.vb: ImageSharp.Image(Of TColor, TPacked).Image()
+- uid: ImageSharp.Image`2.#ctor(System.Int32,System.Int32)
+  commentId: M:ImageSharp.Image`2.#ctor(System.Int32,System.Int32)
+  id: '#ctor(System.Int32,System.Int32)'
+  parent: ImageSharp.Image`2
+  langs:
+  - csharp
+  - vb
+  name: Image(Int32, Int32)
+  nameWithType: Image<TColor, TPacked>.Image(Int32, Int32)
+  fullName: ImageSharp.Image<TColor, TPacked>.Image(System.Int32, System.Int32)
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 18174
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nInitializes a new instance of the <xref href=\"ImageSharp.Image%602\" data-throw-if-not-resolved=\"false\"></xref> class\nwith the height and the width of the image.\n"
+  example: []
+  syntax:
+    content: public Image(int width, int height)
+    content.vb: Public Sub New(width As Integer, height As Integer)
+    parameters:
+    - id: width
+      type: System.Int32
+      description: The width of the image in pixels.
+    - id: height
+      type: System.Int32
+      description: The height of the image in pixels.
+  nameWithType.vb: Image(Of TColor, TPacked).Image(Int32, Int32)
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+  fullName.vb: ImageSharp.Image(Of TColor, TPacked).Image(System.Int32, System.Int32)
+- uid: ImageSharp.Image`2.#ctor(System.IO.Stream)
+  commentId: M:ImageSharp.Image`2.#ctor(System.IO.Stream)
+  id: '#ctor(System.IO.Stream)'
+  parent: ImageSharp.Image`2
+  langs:
+  - csharp
+  - vb
+  name: Image(Stream)
+  nameWithType: Image<TColor, TPacked>.Image(Stream)
+  fullName: ImageSharp.Image<TColor, TPacked>.Image(System.IO.Stream)
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 18187
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nInitializes a new instance of the <xref href=\"ImageSharp.Image%602\" data-throw-if-not-resolved=\"false\"></xref> class.\n"
+  example: []
+  syntax:
+    content: public Image(Stream stream)
+    content.vb: Public Sub New(stream As Stream)
+    parameters:
+    - id: stream
+      type: System.IO.Stream
+      description: "\nThe stream containing image information.\n"
+  exceptions:
+  - type: System.ArgumentNullException
+    commentId: T:System.ArgumentNullException
+    description: Thrown if the <em>stream</em> is null.
+  nameWithType.vb: Image(Of TColor, TPacked).Image(Stream)
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+  fullName.vb: ImageSharp.Image(Of TColor, TPacked).Image(System.IO.Stream)
+- uid: ImageSharp.Image`2.#ctor(ImageSharp.Image{`0,`1})
+  commentId: M:ImageSharp.Image`2.#ctor(ImageSharp.Image{`0,`1})
+  id: '#ctor(ImageSharp.Image{`0,`1})'
+  parent: ImageSharp.Image`2
+  langs:
+  - csharp
+  - vb
+  name: Image(Image<TColor, TPacked>)
+  nameWithType: Image<TColor, TPacked>.Image(Image<TColor, TPacked>)
+  fullName: ImageSharp.Image<TColor, TPacked>.Image(ImageSharp.Image<TColor, TPacked>)
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 18199
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nInitializes a new instance of the <xref href=\"ImageSharp.Image%602\" data-throw-if-not-resolved=\"false\"></xref> class\nby making a copy from another image.\n"
+  example: []
+  syntax:
+    content: public Image(Image<TColor, TPacked> other)
+    content.vb: Public Sub New(other As Image(Of TColor, TPacked))
+    parameters:
+    - id: other
+      type: ImageSharp.Image`2
+      description: The other image, where the clone should be made from.
+  exceptions:
+  - type: System.ArgumentNullException
+    commentId: T:System.ArgumentNullException
+    description: <em>other</em> is null.
+  nameWithType.vb: Image(Of TColor, TPacked).Image(Image(Of TColor, TPacked))
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+  fullName.vb: ImageSharp.Image(Of TColor, TPacked).Image(ImageSharp.Image(Of TColor, TPacked))
+  name.vb: Image(Image(Of TColor, TPacked))
+- uid: ImageSharp.Image`2.Formats
+  commentId: P:ImageSharp.Image`2.Formats
+  id: Formats
+  parent: ImageSharp.Image`2
+  langs:
+  - csharp
+  - vb
+  name: Formats
+  nameWithType: Image<TColor, TPacked>.Formats
+  fullName: ImageSharp.Image<TColor, TPacked>.Formats
+  type: Property
+  source:
+    id: Formats
+    path: ''
+    startLine: 18216
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets a list of supported image formats.\n"
+  example: []
+  syntax:
+    content: public IReadOnlyCollection<IImageFormat> Formats { get; }
+    content.vb: Public ReadOnly Property Formats As IReadOnlyCollection(Of IImageFormat)
+    parameters: []
+    return:
+      type: System.Collections.Generic.IReadOnlyCollection{ImageSharp.Formats.IImageFormat}
+  nameWithType.vb: Image(Of TColor, TPacked).Formats
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+  fullName.vb: ImageSharp.Image(Of TColor, TPacked).Formats
+- uid: ImageSharp.Image`2.HorizontalResolution
+  commentId: P:ImageSharp.Image`2.HorizontalResolution
+  id: HorizontalResolution
+  parent: ImageSharp.Image`2
+  langs:
+  - csharp
+  - vb
+  name: HorizontalResolution
+  nameWithType: Image<TColor, TPacked>.HorizontalResolution
+  fullName: ImageSharp.Image<TColor, TPacked>.HorizontalResolution
+  type: Property
+  source:
+    id: HorizontalResolution
+    path: ''
+    startLine: 18223
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets or sets the resolution of the image in x- direction. It is defined as\n number of dots per inch and should be an positive value.\n"
+  example: []
+  syntax:
+    content: public double HorizontalResolution { get; set; }
+    content.vb: Public Property HorizontalResolution As Double
+    parameters: []
+    return:
+      type: System.Double
+      description: The density of the image in x- direction.
+  nameWithType.vb: Image(Of TColor, TPacked).HorizontalResolution
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+  fullName.vb: ImageSharp.Image(Of TColor, TPacked).HorizontalResolution
+- uid: ImageSharp.Image`2.VerticalResolution
+  commentId: P:ImageSharp.Image`2.VerticalResolution
+  id: VerticalResolution
+  parent: ImageSharp.Image`2
+  langs:
+  - csharp
+  - vb
+  name: VerticalResolution
+  nameWithType: Image<TColor, TPacked>.VerticalResolution
+  fullName: ImageSharp.Image<TColor, TPacked>.VerticalResolution
+  type: Property
+  source:
+    id: VerticalResolution
+    path: ''
+    startLine: 18230
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets or sets the resolution of the image in y- direction. It is defined as\nnumber of dots per inch and should be an positive value.\n"
+  example: []
+  syntax:
+    content: public double VerticalResolution { get; set; }
+    content.vb: Public Property VerticalResolution As Double
+    parameters: []
+    return:
+      type: System.Double
+      description: The density of the image in y- direction.
+  nameWithType.vb: Image(Of TColor, TPacked).VerticalResolution
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+  fullName.vb: ImageSharp.Image(Of TColor, TPacked).VerticalResolution
+- uid: ImageSharp.Image`2.InchWidth
+  commentId: P:ImageSharp.Image`2.InchWidth
+  id: InchWidth
+  parent: ImageSharp.Image`2
+  langs:
+  - csharp
+  - vb
+  name: InchWidth
+  nameWithType: Image<TColor, TPacked>.InchWidth
+  fullName: ImageSharp.Image<TColor, TPacked>.InchWidth
+  type: Property
+  source:
+    id: InchWidth
+    path: ''
+    startLine: 18238
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the width of the image in inches. It is calculated as the width of the image\nin pixels multiplied with the density. When the density is equals or less than zero\nthe default value is used.\n"
+  example: []
+  syntax:
+    content: public double InchWidth { get; }
+    content.vb: Public ReadOnly Property InchWidth As Double
+    parameters: []
+    return:
+      type: System.Double
+      description: The width of the image in inches.
+  nameWithType.vb: Image(Of TColor, TPacked).InchWidth
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+  fullName.vb: ImageSharp.Image(Of TColor, TPacked).InchWidth
+- uid: ImageSharp.Image`2.InchHeight
+  commentId: P:ImageSharp.Image`2.InchHeight
+  id: InchHeight
+  parent: ImageSharp.Image`2
+  langs:
+  - csharp
+  - vb
+  name: InchHeight
+  nameWithType: Image<TColor, TPacked>.InchHeight
+  fullName: ImageSharp.Image<TColor, TPacked>.InchHeight
+  type: Property
+  source:
+    id: InchHeight
+    path: ''
+    startLine: 18259
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the height of the image in inches. It is calculated as the height of the image\nin pixels multiplied with the density. When the density is equals or less than zero\nthe default value is used.\n"
+  example: []
+  syntax:
+    content: public double InchHeight { get; }
+    content.vb: Public ReadOnly Property InchHeight As Double
+    parameters: []
+    return:
+      type: System.Double
+      description: The height of the image in inches.
+  nameWithType.vb: Image(Of TColor, TPacked).InchHeight
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+  fullName.vb: ImageSharp.Image(Of TColor, TPacked).InchHeight
+- uid: ImageSharp.Image`2.IsAnimated
+  commentId: P:ImageSharp.Image`2.IsAnimated
+  id: IsAnimated
+  parent: ImageSharp.Image`2
+  langs:
+  - csharp
+  - vb
+  name: IsAnimated
+  nameWithType: Image<TColor, TPacked>.IsAnimated
+  fullName: ImageSharp.Image<TColor, TPacked>.IsAnimated
+  type: Property
+  source:
+    id: IsAnimated
+    path: ''
+    startLine: 18280
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets a value indicating whether this image is animated.\n"
+  example: []
+  syntax:
+    content: public bool IsAnimated { get; }
+    content.vb: Public ReadOnly Property IsAnimated As Boolean
+    parameters: []
+    return:
+      type: System.Boolean
+      description: "\n<code>True</code> if this image is animated; otherwise, <code>false</code>.\n"
+  nameWithType.vb: Image(Of TColor, TPacked).IsAnimated
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+  fullName.vb: ImageSharp.Image(Of TColor, TPacked).IsAnimated
+- uid: ImageSharp.Image`2.RepeatCount
+  commentId: P:ImageSharp.Image`2.RepeatCount
+  id: RepeatCount
+  parent: ImageSharp.Image`2
+  langs:
+  - csharp
+  - vb
+  name: RepeatCount
+  nameWithType: Image<TColor, TPacked>.RepeatCount
+  fullName: ImageSharp.Image<TColor, TPacked>.RepeatCount
+  type: Property
+  source:
+    id: RepeatCount
+    path: ''
+    startLine: 18286
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets or sets the number of times any animation is repeated.\n<remarks>0 means to repeat indefinitely.</remarks>\n"
+  example: []
+  syntax:
+    content: public ushort RepeatCount { get; set; }
+    content.vb: Public Property RepeatCount As UShort
+    parameters: []
+    return:
+      type: System.UInt16
+  nameWithType.vb: Image(Of TColor, TPacked).RepeatCount
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+  fullName.vb: ImageSharp.Image(Of TColor, TPacked).RepeatCount
+- uid: ImageSharp.Image`2.Frames
+  commentId: P:ImageSharp.Image`2.Frames
+  id: Frames
+  parent: ImageSharp.Image`2
+  langs:
+  - csharp
+  - vb
+  name: Frames
+  nameWithType: Image<TColor, TPacked>.Frames
+  fullName: ImageSharp.Image<TColor, TPacked>.Frames
+  type: Property
+  source:
+    id: Frames
+    path: ''
+    startLine: 18292
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the other frames for the animation.\n"
+  example: []
+  syntax:
+    content: public IList<ImageFrame<TColor, TPacked>> Frames { get; }
+    content.vb: Public ReadOnly Property Frames As IList(Of ImageFrame(Of TColor, TPacked))
+    parameters: []
+    return:
+      type: System.Collections.Generic.IList{ImageSharp.ImageFrame{{TColor},{TPacked}}}
+      description: The list of frame images.
+  nameWithType.vb: Image(Of TColor, TPacked).Frames
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+  fullName.vb: ImageSharp.Image(Of TColor, TPacked).Frames
+- uid: ImageSharp.Image`2.Properties
+  commentId: P:ImageSharp.Image`2.Properties
+  id: Properties
+  parent: ImageSharp.Image`2
+  langs:
+  - csharp
+  - vb
+  name: Properties
+  nameWithType: Image<TColor, TPacked>.Properties
+  fullName: ImageSharp.Image<TColor, TPacked>.Properties
+  type: Property
+  source:
+    id: Properties
+    path: ''
+    startLine: 18298
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the list of properties for storing meta information about this image.\n"
+  example: []
+  syntax:
+    content: public IList<ImageProperty> Properties { get; }
+    content.vb: Public ReadOnly Property Properties As IList(Of ImageProperty)
+    parameters: []
+    return:
+      type: System.Collections.Generic.IList{ImageSharp.ImageProperty}
+      description: A list of image properties.
+  nameWithType.vb: Image(Of TColor, TPacked).Properties
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+  fullName.vb: ImageSharp.Image(Of TColor, TPacked).Properties
+- uid: ImageSharp.Image`2.CurrentImageFormat
+  commentId: P:ImageSharp.Image`2.CurrentImageFormat
+  id: CurrentImageFormat
+  parent: ImageSharp.Image`2
+  langs:
+  - csharp
+  - vb
+  name: CurrentImageFormat
+  nameWithType: Image<TColor, TPacked>.CurrentImageFormat
+  fullName: ImageSharp.Image<TColor, TPacked>.CurrentImageFormat
+  type: Property
+  source:
+    id: CurrentImageFormat
+    path: ''
+    startLine: 18303
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the currently loaded image format.\n"
+  example: []
+  syntax:
+    content: public IImageFormat CurrentImageFormat { get; }
+    content.vb: Public ReadOnly Property CurrentImageFormat As IImageFormat
+    parameters: []
+    return:
+      type: ImageSharp.Formats.IImageFormat
+  nameWithType.vb: Image(Of TColor, TPacked).CurrentImageFormat
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+  fullName.vb: ImageSharp.Image(Of TColor, TPacked).CurrentImageFormat
+- uid: ImageSharp.Image`2.ExifProfile
+  commentId: P:ImageSharp.Image`2.ExifProfile
+  id: ExifProfile
+  parent: ImageSharp.Image`2
+  langs:
+  - csharp
+  - vb
+  name: ExifProfile
+  nameWithType: Image<TColor, TPacked>.ExifProfile
+  fullName: ImageSharp.Image<TColor, TPacked>.ExifProfile
+  type: Property
+  source:
+    id: ExifProfile
+    path: ''
+    startLine: 18308
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets or sets the Exif profile.\n"
+  example: []
+  syntax:
+    content: public ExifProfile ExifProfile { get; set; }
+    content.vb: Public Property ExifProfile As ExifProfile
+    parameters: []
+    return:
+      type: ImageSharp.ExifProfile
+  nameWithType.vb: Image(Of TColor, TPacked).ExifProfile
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+  fullName.vb: ImageSharp.Image(Of TColor, TPacked).ExifProfile
+- uid: ImageSharp.Image`2.Save(System.IO.Stream)
+  commentId: M:ImageSharp.Image`2.Save(System.IO.Stream)
+  id: Save(System.IO.Stream)
+  parent: ImageSharp.Image`2
+  langs:
+  - csharp
+  - vb
+  name: Save(Stream)
+  nameWithType: Image<TColor, TPacked>.Save(Stream)
+  fullName: ImageSharp.Image<TColor, TPacked>.Save(System.IO.Stream)
+  type: Method
+  source:
+    id: Save
+    path: ''
+    startLine: 18315
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSaves the image to the given stream using the currently loaded image format.\n"
+  example: []
+  syntax:
+    content: public Image<TColor, TPacked> Save(Stream stream)
+    content.vb: Public Function Save(stream As Stream) As Image(Of TColor, TPacked)
+    parameters:
+    - id: stream
+      type: System.IO.Stream
+      description: The stream to save the image to.
+    return:
+      type: ImageSharp.Image`2
+  exceptions:
+  - type: System.ArgumentNullException
+    commentId: T:System.ArgumentNullException
+    description: Thrown if the stream is null.
+  nameWithType.vb: Image(Of TColor, TPacked).Save(Stream)
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+  fullName.vb: ImageSharp.Image(Of TColor, TPacked).Save(System.IO.Stream)
+- uid: ImageSharp.Image`2.Save(System.IO.Stream,ImageSharp.Formats.IImageFormat)
+  commentId: M:ImageSharp.Image`2.Save(System.IO.Stream,ImageSharp.Formats.IImageFormat)
+  id: Save(System.IO.Stream,ImageSharp.Formats.IImageFormat)
+  parent: ImageSharp.Image`2
+  langs:
+  - csharp
+  - vb
+  name: Save(Stream, IImageFormat)
+  nameWithType: Image<TColor, TPacked>.Save(Stream, IImageFormat)
+  fullName: ImageSharp.Image<TColor, TPacked>.Save(System.IO.Stream, ImageSharp.Formats.IImageFormat)
+  type: Method
+  source:
+    id: Save
+    path: ''
+    startLine: 18328
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSaves the image to the given stream using the given image format.\n"
+  example: []
+  syntax:
+    content: public Image<TColor, TPacked> Save(Stream stream, IImageFormat format)
+    content.vb: Public Function Save(stream As Stream, format As IImageFormat) As Image(Of TColor, TPacked)
+    parameters:
+    - id: stream
+      type: System.IO.Stream
+      description: The stream to save the image to.
+    - id: format
+      type: ImageSharp.Formats.IImageFormat
+      description: The format to save the image as.
+    return:
+      type: ImageSharp.Image`2
+  exceptions:
+  - type: System.ArgumentNullException
+    commentId: T:System.ArgumentNullException
+    description: Thrown if the stream is null.
+  nameWithType.vb: Image(Of TColor, TPacked).Save(Stream, IImageFormat)
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+  fullName.vb: ImageSharp.Image(Of TColor, TPacked).Save(System.IO.Stream, ImageSharp.Formats.IImageFormat)
+- uid: ImageSharp.Image`2.Save(System.IO.Stream,ImageSharp.Formats.IImageEncoder)
+  commentId: M:ImageSharp.Image`2.Save(System.IO.Stream,ImageSharp.Formats.IImageEncoder)
+  id: Save(System.IO.Stream,ImageSharp.Formats.IImageEncoder)
+  parent: ImageSharp.Image`2
+  langs:
+  - csharp
+  - vb
+  name: Save(Stream, IImageEncoder)
+  nameWithType: Image<TColor, TPacked>.Save(Stream, IImageEncoder)
+  fullName: ImageSharp.Image<TColor, TPacked>.Save(System.IO.Stream, ImageSharp.Formats.IImageEncoder)
+  type: Method
+  source:
+    id: Save
+    path: ''
+    startLine: 18344
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSaves the image to the given stream using the given image encoder.\n"
+  example: []
+  syntax:
+    content: public Image<TColor, TPacked> Save(Stream stream, IImageEncoder encoder)
+    content.vb: Public Function Save(stream As Stream, encoder As IImageEncoder) As Image(Of TColor, TPacked)
+    parameters:
+    - id: stream
+      type: System.IO.Stream
+      description: The stream to save the image to.
+    - id: encoder
+      type: ImageSharp.Formats.IImageEncoder
+      description: The encoder to save the image with.
+    return:
+      type: ImageSharp.Image`2
+      description: "\nThe <xref href=\"ImageSharp.Image%602\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  exceptions:
+  - type: System.ArgumentNullException
+    commentId: T:System.ArgumentNullException
+    description: Thrown if the stream is null.
+  nameWithType.vb: Image(Of TColor, TPacked).Save(Stream, IImageEncoder)
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+  fullName.vb: ImageSharp.Image(Of TColor, TPacked).Save(System.IO.Stream, ImageSharp.Formats.IImageEncoder)
+- uid: ImageSharp.Image`2.ToString
+  commentId: M:ImageSharp.Image`2.ToString
+  id: ToString
+  parent: ImageSharp.Image`2
+  langs:
+  - csharp
+  - vb
+  name: ToString()
+  nameWithType: Image<TColor, TPacked>.ToString()
+  fullName: ImageSharp.Image<TColor, TPacked>.ToString()
+  type: Method
+  source:
+    id: ToString
+    path: ''
+    startLine: 18359
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public override string ToString()
+    content.vb: Public Overrides Function ToString As String
+    return:
+      type: System.String
+  overridden: System.Object.ToString
+  nameWithType.vb: Image(Of TColor, TPacked).ToString()
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+  fullName.vb: ImageSharp.Image(Of TColor, TPacked).ToString()
+- uid: ImageSharp.Image`2.ToBase64String
+  commentId: M:ImageSharp.Image`2.ToBase64String
+  id: ToBase64String
+  parent: ImageSharp.Image`2
+  langs:
+  - csharp
+  - vb
+  name: ToBase64String()
+  nameWithType: Image<TColor, TPacked>.ToBase64String()
+  fullName: ImageSharp.Image<TColor, TPacked>.ToBase64String()
+  type: Method
+  source:
+    id: ToBase64String
+    path: ''
+    startLine: 18369
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nReturns a Base64 encoded string from the given image.\n"
+  example:
+  - data:image/gif;base64,R0lGODlhAQABAIABAEdJRgAAACwAAAAAAQABAAACAkQBAA==
+  syntax:
+    content: public string ToBase64String()
+    content.vb: Public Function ToBase64String As String
+    return:
+      type: System.String
+      description: The <xref href="System.String" data-throw-if-not-resolved="false"></xref>
+  nameWithType.vb: Image(Of TColor, TPacked).ToBase64String()
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+  fullName.vb: ImageSharp.Image(Of TColor, TPacked).ToBase64String()
+references:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  name: Object
+  nameWithType: Object
+  fullName: System.Object
+- uid: ImageSharp.ImageBase{{TColor},{TPacked}}
+  commentId: T:ImageSharp.ImageBase{``0,``1}
+  parent: ImageSharp
+  definition: ImageSharp.ImageBase`2
+  name: ImageBase<TColor, TPacked>
+  nameWithType: ImageBase<TColor, TPacked>
+  fullName: ImageSharp.ImageBase<TColor, TPacked>
+  nameWithType.vb: ImageBase(Of TColor, TPacked)
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked)
+  name.vb: ImageBase(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.IImageBase{{TColor},{TPacked}}
+  commentId: T:ImageSharp.IImageBase{`0,`1}
+  parent: ImageSharp
+  definition: ImageSharp.IImageBase`2
+  name: IImageBase<TColor, TPacked>
+  nameWithType: IImageBase<TColor, TPacked>
+  fullName: ImageSharp.IImageBase<TColor, TPacked>
+  nameWithType.vb: IImageBase(Of TColor, TPacked)
+  fullname.vb: ImageSharp.IImageBase(Of TColor, TPacked)
+  name.vb: IImageBase(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.IImageBase`2
+    name: IImageBase
+    nameWithType: IImageBase
+    fullName: ImageSharp.IImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.IImageBase`2
+    name: IImageBase
+    nameWithType: IImageBase
+    fullName: ImageSharp.IImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.IImageBase
+  commentId: T:ImageSharp.IImageBase
+  parent: ImageSharp
+  isExternal: false
+  name: IImageBase
+  nameWithType: IImageBase
+  fullName: ImageSharp.IImageBase
+- uid: ImageSharp.ImageBase{{TColor},{TPacked}}.MaxWidth
+  commentId: P:ImageSharp.ImageBase{`0,`1}.MaxWidth
+  parent: ImageSharp.ImageBase{{TColor},{TPacked}}
+  definition: ImageSharp.ImageBase`2.MaxWidth
+  name: MaxWidth
+  nameWithType: ImageBase<TColor, TPacked>.MaxWidth
+  fullName: ImageSharp.ImageBase<TColor, TPacked>.MaxWidth
+  nameWithType.vb: ImageBase(Of TColor, TPacked).MaxWidth
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked).MaxWidth
+- uid: ImageSharp.ImageBase{{TColor},{TPacked}}.MaxHeight
+  commentId: P:ImageSharp.ImageBase{`0,`1}.MaxHeight
+  parent: ImageSharp.ImageBase{{TColor},{TPacked}}
+  definition: ImageSharp.ImageBase`2.MaxHeight
+  name: MaxHeight
+  nameWithType: ImageBase<TColor, TPacked>.MaxHeight
+  fullName: ImageSharp.ImageBase<TColor, TPacked>.MaxHeight
+  nameWithType.vb: ImageBase(Of TColor, TPacked).MaxHeight
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked).MaxHeight
+- uid: ImageSharp.ImageBase{{TColor},{TPacked}}.Pixels
+  commentId: P:ImageSharp.ImageBase{`0,`1}.Pixels
+  parent: ImageSharp.ImageBase{{TColor},{TPacked}}
+  definition: ImageSharp.ImageBase`2.Pixels
+  name: Pixels
+  nameWithType: ImageBase<TColor, TPacked>.Pixels
+  fullName: ImageSharp.ImageBase<TColor, TPacked>.Pixels
+  nameWithType.vb: ImageBase(Of TColor, TPacked).Pixels
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked).Pixels
+- uid: ImageSharp.ImageBase{{TColor},{TPacked}}.Width
+  commentId: P:ImageSharp.ImageBase{`0,`1}.Width
+  parent: ImageSharp.ImageBase{{TColor},{TPacked}}
+  definition: ImageSharp.ImageBase`2.Width
+  name: Width
+  nameWithType: ImageBase<TColor, TPacked>.Width
+  fullName: ImageSharp.ImageBase<TColor, TPacked>.Width
+  nameWithType.vb: ImageBase(Of TColor, TPacked).Width
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked).Width
+- uid: ImageSharp.ImageBase{{TColor},{TPacked}}.Height
+  commentId: P:ImageSharp.ImageBase{`0,`1}.Height
+  parent: ImageSharp.ImageBase{{TColor},{TPacked}}
+  definition: ImageSharp.ImageBase`2.Height
+  name: Height
+  nameWithType: ImageBase<TColor, TPacked>.Height
+  fullName: ImageSharp.ImageBase<TColor, TPacked>.Height
+  nameWithType.vb: ImageBase(Of TColor, TPacked).Height
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked).Height
+- uid: ImageSharp.ImageBase{{TColor},{TPacked}}.PixelRatio
+  commentId: P:ImageSharp.ImageBase{`0,`1}.PixelRatio
+  parent: ImageSharp.ImageBase{{TColor},{TPacked}}
+  definition: ImageSharp.ImageBase`2.PixelRatio
+  name: PixelRatio
+  nameWithType: ImageBase<TColor, TPacked>.PixelRatio
+  fullName: ImageSharp.ImageBase<TColor, TPacked>.PixelRatio
+  nameWithType.vb: ImageBase(Of TColor, TPacked).PixelRatio
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked).PixelRatio
+- uid: ImageSharp.ImageBase{{TColor},{TPacked}}.Bounds
+  commentId: P:ImageSharp.ImageBase{`0,`1}.Bounds
+  parent: ImageSharp.ImageBase{{TColor},{TPacked}}
+  definition: ImageSharp.ImageBase`2.Bounds
+  name: Bounds
+  nameWithType: ImageBase<TColor, TPacked>.Bounds
+  fullName: ImageSharp.ImageBase<TColor, TPacked>.Bounds
+  nameWithType.vb: ImageBase(Of TColor, TPacked).Bounds
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked).Bounds
+- uid: ImageSharp.ImageBase{{TColor},{TPacked}}.Quality
+  commentId: P:ImageSharp.ImageBase{`0,`1}.Quality
+  parent: ImageSharp.ImageBase{{TColor},{TPacked}}
+  definition: ImageSharp.ImageBase`2.Quality
+  name: Quality
+  nameWithType: ImageBase<TColor, TPacked>.Quality
+  fullName: ImageSharp.ImageBase<TColor, TPacked>.Quality
+  nameWithType.vb: ImageBase(Of TColor, TPacked).Quality
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked).Quality
+- uid: ImageSharp.ImageBase{{TColor},{TPacked}}.FrameDelay
+  commentId: P:ImageSharp.ImageBase{`0,`1}.FrameDelay
+  parent: ImageSharp.ImageBase{{TColor},{TPacked}}
+  definition: ImageSharp.ImageBase`2.FrameDelay
+  name: FrameDelay
+  nameWithType: ImageBase<TColor, TPacked>.FrameDelay
+  fullName: ImageSharp.ImageBase<TColor, TPacked>.FrameDelay
+  nameWithType.vb: ImageBase(Of TColor, TPacked).FrameDelay
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked).FrameDelay
+- uid: ImageSharp.ImageBase{{TColor},{TPacked}}.InitPixels(System.Int32,System.Int32)
+  commentId: M:ImageSharp.ImageBase{`0,`1}.InitPixels(System.Int32,System.Int32)
+  parent: ImageSharp.ImageBase{{TColor},{TPacked}}
+  definition: ImageSharp.ImageBase`2.InitPixels(System.Int32,System.Int32)
+  name: InitPixels(Int32, Int32)
+  nameWithType: ImageBase<TColor, TPacked>.InitPixels(Int32, Int32)
+  fullName: ImageSharp.ImageBase<TColor, TPacked>.InitPixels(System.Int32, System.Int32)
+  nameWithType.vb: ImageBase(Of TColor, TPacked).InitPixels(Int32, Int32)
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked).InitPixels(System.Int32, System.Int32)
+  spec.csharp:
+  - uid: ImageSharp.ImageBase`2.InitPixels(System.Int32,System.Int32)
+    name: InitPixels
+    nameWithType: ImageBase<TColor, TPacked>.InitPixels
+    fullName: ImageSharp.ImageBase<TColor, TPacked>.InitPixels
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.ImageBase`2.InitPixels(System.Int32,System.Int32)
+    name: InitPixels
+    nameWithType: ImageBase(Of TColor, TPacked).InitPixels
+    fullName: ImageSharp.ImageBase(Of TColor, TPacked).InitPixels
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.ImageBase{{TColor},{TPacked}}.SetPixels(System.Int32,System.Int32,{TColor}[])
+  commentId: M:ImageSharp.ImageBase{`0,`1}.SetPixels(System.Int32,System.Int32,`0[])
+  parent: ImageSharp.ImageBase{{TColor},{TPacked}}
+  definition: ImageSharp.ImageBase`2.SetPixels(System.Int32,System.Int32,`0[])
+  name: SetPixels(Int32, Int32, TColor[])
+  nameWithType: ImageBase<TColor, TPacked>.SetPixels(Int32, Int32, TColor[])
+  fullName: ImageSharp.ImageBase<TColor, TPacked>.SetPixels(System.Int32, System.Int32, TColor[])
+  nameWithType.vb: ImageBase(Of TColor, TPacked).SetPixels(Int32, Int32, TColor())
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked).SetPixels(System.Int32, System.Int32, TColor())
+  name.vb: SetPixels(Int32, Int32, TColor())
+  spec.csharp:
+  - uid: ImageSharp.ImageBase`2.SetPixels(System.Int32,System.Int32,`0[])
+    name: SetPixels
+    nameWithType: ImageBase<TColor, TPacked>.SetPixels
+    fullName: ImageSharp.ImageBase<TColor, TPacked>.SetPixels
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: '[]'
+    nameWithType: '[]'
+    fullName: '[]'
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.ImageBase`2.SetPixels(System.Int32,System.Int32,`0[])
+    name: SetPixels
+    nameWithType: ImageBase(Of TColor, TPacked).SetPixels
+    fullName: ImageSharp.ImageBase(Of TColor, TPacked).SetPixels
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ()
+    nameWithType: ()
+    fullName: ()
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.ImageBase{{TColor},{TPacked}}.ClonePixels(System.Int32,System.Int32,{TColor}[])
+  commentId: M:ImageSharp.ImageBase{`0,`1}.ClonePixels(System.Int32,System.Int32,`0[])
+  parent: ImageSharp.ImageBase{{TColor},{TPacked}}
+  definition: ImageSharp.ImageBase`2.ClonePixels(System.Int32,System.Int32,`0[])
+  name: ClonePixels(Int32, Int32, TColor[])
+  nameWithType: ImageBase<TColor, TPacked>.ClonePixels(Int32, Int32, TColor[])
+  fullName: ImageSharp.ImageBase<TColor, TPacked>.ClonePixels(System.Int32, System.Int32, TColor[])
+  nameWithType.vb: ImageBase(Of TColor, TPacked).ClonePixels(Int32, Int32, TColor())
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked).ClonePixels(System.Int32, System.Int32, TColor())
+  name.vb: ClonePixels(Int32, Int32, TColor())
+  spec.csharp:
+  - uid: ImageSharp.ImageBase`2.ClonePixels(System.Int32,System.Int32,`0[])
+    name: ClonePixels
+    nameWithType: ImageBase<TColor, TPacked>.ClonePixels
+    fullName: ImageSharp.ImageBase<TColor, TPacked>.ClonePixels
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: '[]'
+    nameWithType: '[]'
+    fullName: '[]'
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.ImageBase`2.ClonePixels(System.Int32,System.Int32,`0[])
+    name: ClonePixels
+    nameWithType: ImageBase(Of TColor, TPacked).ClonePixels
+    fullName: ImageSharp.ImageBase(Of TColor, TPacked).ClonePixels
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ()
+    nameWithType: ()
+    fullName: ()
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.ImageBase{{TColor},{TPacked}}.Lock
+  commentId: M:ImageSharp.ImageBase{`0,`1}.Lock
+  parent: ImageSharp.ImageBase{{TColor},{TPacked}}
+  definition: ImageSharp.ImageBase`2.Lock
+  name: Lock()
+  nameWithType: ImageBase<TColor, TPacked>.Lock()
+  fullName: ImageSharp.ImageBase<TColor, TPacked>.Lock()
+  nameWithType.vb: ImageBase(Of TColor, TPacked).Lock()
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked).Lock()
+  spec.csharp:
+  - uid: ImageSharp.ImageBase`2.Lock
+    name: Lock
+    nameWithType: ImageBase<TColor, TPacked>.Lock
+    fullName: ImageSharp.ImageBase<TColor, TPacked>.Lock
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.ImageBase`2.Lock
+    name: Lock
+    nameWithType: ImageBase(Of TColor, TPacked).Lock
+    fullName: ImageSharp.ImageBase(Of TColor, TPacked).Lock
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.ImageBase{{TColor},{TPacked}}.CopyProperties(ImageSharp.ImageBase{{TColor},{TPacked}})
+  commentId: M:ImageSharp.ImageBase{`0,`1}.CopyProperties(ImageSharp.ImageBase{`0,`1})
+  parent: ImageSharp.ImageBase{{TColor},{TPacked}}
+  definition: ImageSharp.ImageBase`2.CopyProperties(ImageSharp.ImageBase{`0,`1})
+  name: CopyProperties(ImageBase<TColor, TPacked>)
+  nameWithType: ImageBase<TColor, TPacked>.CopyProperties(ImageBase<TColor, TPacked>)
+  fullName: ImageSharp.ImageBase<TColor, TPacked>.CopyProperties(ImageSharp.ImageBase<TColor, TPacked>)
+  nameWithType.vb: ImageBase(Of TColor, TPacked).CopyProperties(ImageBase(Of TColor, TPacked))
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked).CopyProperties(ImageSharp.ImageBase(Of TColor, TPacked))
+  name.vb: CopyProperties(ImageBase(Of TColor, TPacked))
+  spec.csharp:
+  - uid: ImageSharp.ImageBase`2.CopyProperties(ImageSharp.ImageBase{`0,`1})
+    name: CopyProperties
+    nameWithType: ImageBase<TColor, TPacked>.CopyProperties
+    fullName: ImageSharp.ImageBase<TColor, TPacked>.CopyProperties
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.ImageBase`2.CopyProperties(ImageSharp.ImageBase{`0,`1})
+    name: CopyProperties
+    nameWithType: ImageBase(Of TColor, TPacked).CopyProperties
+    fullName: ImageSharp.ImageBase(Of TColor, TPacked).CopyProperties
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object)
+  commentId: M:System.Object.Equals(System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object)
+  nameWithType: Object.Equals(Object)
+  fullName: System.Object.Equals(System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object, Object)
+  nameWithType: Object.Equals(Object, Object)
+  fullName: System.Object.Equals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: ReferenceEquals(Object, Object)
+  nameWithType: Object.ReferenceEquals(Object, Object)
+  fullName: System.Object.ReferenceEquals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetHashCode
+  commentId: M:System.Object.GetHashCode
+  parent: System.Object
+  isExternal: true
+  name: GetHashCode()
+  nameWithType: Object.GetHashCode()
+  fullName: System.Object.GetHashCode()
+  spec.csharp:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    nameWithType: Object.GetHashCode
+    fullName: System.Object.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    nameWithType: Object.GetHashCode
+    fullName: System.Object.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  name: GetType()
+  nameWithType: Object.GetType()
+  fullName: System.Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.MemberwiseClone
+  commentId: M:System.Object.MemberwiseClone
+  parent: System.Object
+  isExternal: true
+  name: MemberwiseClone()
+  nameWithType: Object.MemberwiseClone()
+  fullName: System.Object.MemberwiseClone()
+  spec.csharp:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    nameWithType: Object.MemberwiseClone
+    fullName: System.Object.MemberwiseClone
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    nameWithType: Object.MemberwiseClone
+    fullName: System.Object.MemberwiseClone
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System
+  commentId: N:System
+  isExternal: false
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: ImageSharp.ImageBase`2
+  commentId: T:ImageSharp.ImageBase`2
+  parent: ImageSharp
+  isExternal: false
+  name: ImageBase<TColor, TPacked>
+  nameWithType: ImageBase<TColor, TPacked>
+  fullName: ImageSharp.ImageBase<TColor, TPacked>
+  nameWithType.vb: ImageBase(Of TColor, TPacked)
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked)
+  name.vb: ImageBase(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.IImageBase`2
+  commentId: T:ImageSharp.IImageBase`2
+  isExternal: false
+  name: IImageBase<TColor, TPacked>
+  nameWithType: IImageBase<TColor, TPacked>
+  fullName: ImageSharp.IImageBase<TColor, TPacked>
+  nameWithType.vb: IImageBase(Of TColor, TPacked)
+  fullname.vb: ImageSharp.IImageBase(Of TColor, TPacked)
+  name.vb: IImageBase(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.IImageBase`2
+    name: IImageBase
+    nameWithType: IImageBase
+    fullName: ImageSharp.IImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.IImageBase`2
+    name: IImageBase
+    nameWithType: IImageBase
+    fullName: ImageSharp.IImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.ImageBase`2.MaxWidth
+  commentId: P:ImageSharp.ImageBase`2.MaxWidth
+  isExternal: false
+  name: MaxWidth
+  nameWithType: ImageBase<TColor, TPacked>.MaxWidth
+  fullName: ImageSharp.ImageBase<TColor, TPacked>.MaxWidth
+  nameWithType.vb: ImageBase(Of TColor, TPacked).MaxWidth
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked).MaxWidth
+- uid: ImageSharp.ImageBase`2.MaxHeight
+  commentId: P:ImageSharp.ImageBase`2.MaxHeight
+  isExternal: false
+  name: MaxHeight
+  nameWithType: ImageBase<TColor, TPacked>.MaxHeight
+  fullName: ImageSharp.ImageBase<TColor, TPacked>.MaxHeight
+  nameWithType.vb: ImageBase(Of TColor, TPacked).MaxHeight
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked).MaxHeight
+- uid: ImageSharp.ImageBase`2.Pixels
+  commentId: P:ImageSharp.ImageBase`2.Pixels
+  isExternal: false
+  name: Pixels
+  nameWithType: ImageBase<TColor, TPacked>.Pixels
+  fullName: ImageSharp.ImageBase<TColor, TPacked>.Pixels
+  nameWithType.vb: ImageBase(Of TColor, TPacked).Pixels
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked).Pixels
+- uid: ImageSharp.ImageBase`2.Width
+  commentId: P:ImageSharp.ImageBase`2.Width
+  isExternal: false
+  name: Width
+  nameWithType: ImageBase<TColor, TPacked>.Width
+  fullName: ImageSharp.ImageBase<TColor, TPacked>.Width
+  nameWithType.vb: ImageBase(Of TColor, TPacked).Width
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked).Width
+- uid: ImageSharp.ImageBase`2.Height
+  commentId: P:ImageSharp.ImageBase`2.Height
+  isExternal: false
+  name: Height
+  nameWithType: ImageBase<TColor, TPacked>.Height
+  fullName: ImageSharp.ImageBase<TColor, TPacked>.Height
+  nameWithType.vb: ImageBase(Of TColor, TPacked).Height
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked).Height
+- uid: ImageSharp.ImageBase`2.PixelRatio
+  commentId: P:ImageSharp.ImageBase`2.PixelRatio
+  isExternal: false
+  name: PixelRatio
+  nameWithType: ImageBase<TColor, TPacked>.PixelRatio
+  fullName: ImageSharp.ImageBase<TColor, TPacked>.PixelRatio
+  nameWithType.vb: ImageBase(Of TColor, TPacked).PixelRatio
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked).PixelRatio
+- uid: ImageSharp.ImageBase`2.Bounds
+  commentId: P:ImageSharp.ImageBase`2.Bounds
+  isExternal: false
+  name: Bounds
+  nameWithType: ImageBase<TColor, TPacked>.Bounds
+  fullName: ImageSharp.ImageBase<TColor, TPacked>.Bounds
+  nameWithType.vb: ImageBase(Of TColor, TPacked).Bounds
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked).Bounds
+- uid: ImageSharp.ImageBase`2.Quality
+  commentId: P:ImageSharp.ImageBase`2.Quality
+  isExternal: false
+  name: Quality
+  nameWithType: ImageBase<TColor, TPacked>.Quality
+  fullName: ImageSharp.ImageBase<TColor, TPacked>.Quality
+  nameWithType.vb: ImageBase(Of TColor, TPacked).Quality
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked).Quality
+- uid: ImageSharp.ImageBase`2.FrameDelay
+  commentId: P:ImageSharp.ImageBase`2.FrameDelay
+  isExternal: false
+  name: FrameDelay
+  nameWithType: ImageBase<TColor, TPacked>.FrameDelay
+  fullName: ImageSharp.ImageBase<TColor, TPacked>.FrameDelay
+  nameWithType.vb: ImageBase(Of TColor, TPacked).FrameDelay
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked).FrameDelay
+- uid: ImageSharp.ImageBase`2.InitPixels(System.Int32,System.Int32)
+  commentId: M:ImageSharp.ImageBase`2.InitPixels(System.Int32,System.Int32)
+  isExternal: true
+  name: InitPixels(Int32, Int32)
+  nameWithType: ImageBase<TColor, TPacked>.InitPixels(Int32, Int32)
+  fullName: ImageSharp.ImageBase<TColor, TPacked>.InitPixels(System.Int32, System.Int32)
+  nameWithType.vb: ImageBase(Of TColor, TPacked).InitPixels(Int32, Int32)
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked).InitPixels(System.Int32, System.Int32)
+  spec.csharp:
+  - uid: ImageSharp.ImageBase`2.InitPixels(System.Int32,System.Int32)
+    name: InitPixels
+    nameWithType: ImageBase<TColor, TPacked>.InitPixels
+    fullName: ImageSharp.ImageBase<TColor, TPacked>.InitPixels
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.ImageBase`2.InitPixels(System.Int32,System.Int32)
+    name: InitPixels
+    nameWithType: ImageBase(Of TColor, TPacked).InitPixels
+    fullName: ImageSharp.ImageBase(Of TColor, TPacked).InitPixels
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.ImageBase`2.SetPixels(System.Int32,System.Int32,`0[])
+  commentId: M:ImageSharp.ImageBase`2.SetPixels(System.Int32,System.Int32,`0[])
+  isExternal: true
+  name: SetPixels(Int32, Int32, TColor[])
+  nameWithType: ImageBase<TColor, TPacked>.SetPixels(Int32, Int32, TColor[])
+  fullName: ImageSharp.ImageBase<TColor, TPacked>.SetPixels(System.Int32, System.Int32, TColor[])
+  nameWithType.vb: ImageBase(Of TColor, TPacked).SetPixels(Int32, Int32, TColor())
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked).SetPixels(System.Int32, System.Int32, TColor())
+  name.vb: SetPixels(Int32, Int32, TColor())
+  spec.csharp:
+  - uid: ImageSharp.ImageBase`2.SetPixels(System.Int32,System.Int32,`0[])
+    name: SetPixels
+    nameWithType: ImageBase<TColor, TPacked>.SetPixels
+    fullName: ImageSharp.ImageBase<TColor, TPacked>.SetPixels
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: '[]'
+    nameWithType: '[]'
+    fullName: '[]'
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.ImageBase`2.SetPixels(System.Int32,System.Int32,`0[])
+    name: SetPixels
+    nameWithType: ImageBase(Of TColor, TPacked).SetPixels
+    fullName: ImageSharp.ImageBase(Of TColor, TPacked).SetPixels
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ()
+    nameWithType: ()
+    fullName: ()
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.ImageBase`2.ClonePixels(System.Int32,System.Int32,`0[])
+  commentId: M:ImageSharp.ImageBase`2.ClonePixels(System.Int32,System.Int32,`0[])
+  isExternal: true
+  name: ClonePixels(Int32, Int32, TColor[])
+  nameWithType: ImageBase<TColor, TPacked>.ClonePixels(Int32, Int32, TColor[])
+  fullName: ImageSharp.ImageBase<TColor, TPacked>.ClonePixels(System.Int32, System.Int32, TColor[])
+  nameWithType.vb: ImageBase(Of TColor, TPacked).ClonePixels(Int32, Int32, TColor())
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked).ClonePixels(System.Int32, System.Int32, TColor())
+  name.vb: ClonePixels(Int32, Int32, TColor())
+  spec.csharp:
+  - uid: ImageSharp.ImageBase`2.ClonePixels(System.Int32,System.Int32,`0[])
+    name: ClonePixels
+    nameWithType: ImageBase<TColor, TPacked>.ClonePixels
+    fullName: ImageSharp.ImageBase<TColor, TPacked>.ClonePixels
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: '[]'
+    nameWithType: '[]'
+    fullName: '[]'
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.ImageBase`2.ClonePixels(System.Int32,System.Int32,`0[])
+    name: ClonePixels
+    nameWithType: ImageBase(Of TColor, TPacked).ClonePixels
+    fullName: ImageSharp.ImageBase(Of TColor, TPacked).ClonePixels
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ()
+    nameWithType: ()
+    fullName: ()
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.ImageBase`2.Lock
+  commentId: M:ImageSharp.ImageBase`2.Lock
+  isExternal: false
+  name: Lock()
+  nameWithType: ImageBase<TColor, TPacked>.Lock()
+  fullName: ImageSharp.ImageBase<TColor, TPacked>.Lock()
+  nameWithType.vb: ImageBase(Of TColor, TPacked).Lock()
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked).Lock()
+  spec.csharp:
+  - uid: ImageSharp.ImageBase`2.Lock
+    name: Lock
+    nameWithType: ImageBase<TColor, TPacked>.Lock
+    fullName: ImageSharp.ImageBase<TColor, TPacked>.Lock
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.ImageBase`2.Lock
+    name: Lock
+    nameWithType: ImageBase(Of TColor, TPacked).Lock
+    fullName: ImageSharp.ImageBase(Of TColor, TPacked).Lock
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.ImageBase`2.CopyProperties(ImageSharp.ImageBase{`0,`1})
+  commentId: M:ImageSharp.ImageBase`2.CopyProperties(ImageSharp.ImageBase{`0,`1})
+  isExternal: false
+  name: CopyProperties(ImageBase<TColor, TPacked>)
+  nameWithType: ImageBase<TColor, TPacked>.CopyProperties(ImageBase<TColor, TPacked>)
+  fullName: ImageSharp.ImageBase<TColor, TPacked>.CopyProperties(ImageSharp.ImageBase<TColor, TPacked>)
+  nameWithType.vb: ImageBase(Of TColor, TPacked).CopyProperties(ImageBase(Of TColor, TPacked))
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked).CopyProperties(ImageSharp.ImageBase(Of TColor, TPacked))
+  name.vb: CopyProperties(ImageBase(Of TColor, TPacked))
+  spec.csharp:
+  - uid: ImageSharp.ImageBase`2.CopyProperties(ImageSharp.ImageBase{`0,`1})
+    name: CopyProperties
+    nameWithType: ImageBase<TColor, TPacked>.CopyProperties
+    fullName: ImageSharp.ImageBase<TColor, TPacked>.CopyProperties
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.ImageBase`2.CopyProperties(ImageSharp.ImageBase{`0,`1})
+    name: CopyProperties
+    nameWithType: ImageBase(Of TColor, TPacked).CopyProperties
+    fullName: ImageSharp.ImageBase(Of TColor, TPacked).CopyProperties
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Double
+  commentId: T:System.Double
+  parent: System
+  isExternal: true
+  name: Double
+  nameWithType: Double
+  fullName: System.Double
+- uid: ImageSharp.Image`2
+  commentId: T:ImageSharp.Image`2
+  parent: ImageSharp
+  isExternal: false
+  name: Image<TColor, TPacked>
+  nameWithType: Image<TColor, TPacked>
+  fullName: ImageSharp.Image<TColor, TPacked>
+  nameWithType.vb: Image(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Image(Of TColor, TPacked)
+  name.vb: Image(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Image`2
+    name: Image
+    nameWithType: Image
+    fullName: ImageSharp.Image
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Image`2
+    name: Image
+    nameWithType: Image
+    fullName: ImageSharp.Image
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  name: Int32
+  nameWithType: Int32
+  fullName: System.Int32
+- uid: System.ArgumentNullException
+  commentId: T:System.ArgumentNullException
+- uid: System.IO.Stream
+  commentId: T:System.IO.Stream
+  parent: System.IO
+  isExternal: true
+  name: Stream
+  nameWithType: Stream
+  fullName: System.IO.Stream
+- uid: System.IO
+  commentId: N:System.IO
+  isExternal: false
+  name: System.IO
+  nameWithType: System.IO
+  fullName: System.IO
+- uid: System.Collections.Generic.IReadOnlyCollection{ImageSharp.Formats.IImageFormat}
+  commentId: T:System.Collections.Generic.IReadOnlyCollection{ImageSharp.Formats.IImageFormat}
+  parent: System.Collections.Generic
+  definition: System.Collections.Generic.IReadOnlyCollection`1
+  name: IReadOnlyCollection<IImageFormat>
+  nameWithType: IReadOnlyCollection<IImageFormat>
+  fullName: System.Collections.Generic.IReadOnlyCollection<ImageSharp.Formats.IImageFormat>
+  nameWithType.vb: IReadOnlyCollection(Of IImageFormat)
+  fullname.vb: System.Collections.Generic.IReadOnlyCollection(Of ImageSharp.Formats.IImageFormat)
+  name.vb: IReadOnlyCollection(Of IImageFormat)
+  spec.csharp:
+  - uid: System.Collections.Generic.IReadOnlyCollection`1
+    name: IReadOnlyCollection
+    nameWithType: IReadOnlyCollection
+    fullName: System.Collections.Generic.IReadOnlyCollection
+    isExternal: true
+  - name: <
+    nameWithType: <
+    fullName: <
+  - uid: ImageSharp.Formats.IImageFormat
+    name: IImageFormat
+    nameWithType: IImageFormat
+    fullName: ImageSharp.Formats.IImageFormat
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: System.Collections.Generic.IReadOnlyCollection`1
+    name: IReadOnlyCollection
+    nameWithType: IReadOnlyCollection
+    fullName: System.Collections.Generic.IReadOnlyCollection
+    isExternal: true
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - uid: ImageSharp.Formats.IImageFormat
+    name: IImageFormat
+    nameWithType: IImageFormat
+    fullName: ImageSharp.Formats.IImageFormat
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Collections.Generic.IReadOnlyCollection`1
+  commentId: T:System.Collections.Generic.IReadOnlyCollection`1
+  isExternal: true
+  name: IReadOnlyCollection<T>
+  nameWithType: IReadOnlyCollection<T>
+  fullName: System.Collections.Generic.IReadOnlyCollection<T>
+  nameWithType.vb: IReadOnlyCollection(Of T)
+  fullname.vb: System.Collections.Generic.IReadOnlyCollection(Of T)
+  name.vb: IReadOnlyCollection(Of T)
+  spec.csharp:
+  - uid: System.Collections.Generic.IReadOnlyCollection`1
+    name: IReadOnlyCollection
+    nameWithType: IReadOnlyCollection
+    fullName: System.Collections.Generic.IReadOnlyCollection
+    isExternal: true
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: System.Collections.Generic.IReadOnlyCollection`1
+    name: IReadOnlyCollection
+    nameWithType: IReadOnlyCollection
+    fullName: System.Collections.Generic.IReadOnlyCollection
+    isExternal: true
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Collections.Generic
+  commentId: N:System.Collections.Generic
+  isExternal: false
+  name: System.Collections.Generic
+  nameWithType: System.Collections.Generic
+  fullName: System.Collections.Generic
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  name: Boolean
+  nameWithType: Boolean
+  fullName: System.Boolean
+- uid: System.UInt16
+  commentId: T:System.UInt16
+  parent: System
+  isExternal: true
+  name: UInt16
+  nameWithType: UInt16
+  fullName: System.UInt16
+- uid: System.Collections.Generic.IList{ImageSharp.ImageFrame{{TColor},{TPacked}}}
+  commentId: T:System.Collections.Generic.IList{ImageSharp.ImageFrame{`0,`1}}
+  parent: System.Collections.Generic
+  definition: System.Collections.Generic.IList`1
+  name: IList<ImageFrame<TColor, TPacked>>
+  nameWithType: IList<ImageFrame<TColor, TPacked>>
+  fullName: System.Collections.Generic.IList<ImageSharp.ImageFrame<TColor, TPacked>>
+  nameWithType.vb: IList(Of ImageFrame(Of TColor, TPacked))
+  fullname.vb: System.Collections.Generic.IList(Of ImageSharp.ImageFrame(Of TColor, TPacked))
+  name.vb: IList(Of ImageFrame(Of TColor, TPacked))
+  spec.csharp:
+  - uid: System.Collections.Generic.IList`1
+    name: IList
+    nameWithType: IList
+    fullName: System.Collections.Generic.IList
+    isExternal: true
+  - name: <
+    nameWithType: <
+    fullName: <
+  - uid: ImageSharp.ImageFrame`2
+    name: ImageFrame
+    nameWithType: ImageFrame
+    fullName: ImageSharp.ImageFrame
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: System.Collections.Generic.IList`1
+    name: IList
+    nameWithType: IList
+    fullName: System.Collections.Generic.IList
+    isExternal: true
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - uid: ImageSharp.ImageFrame`2
+    name: ImageFrame
+    nameWithType: ImageFrame
+    fullName: ImageSharp.ImageFrame
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Collections.Generic.IList`1
+  commentId: T:System.Collections.Generic.IList`1
+  isExternal: true
+  name: IList<T>
+  nameWithType: IList<T>
+  fullName: System.Collections.Generic.IList<T>
+  nameWithType.vb: IList(Of T)
+  fullname.vb: System.Collections.Generic.IList(Of T)
+  name.vb: IList(Of T)
+  spec.csharp:
+  - uid: System.Collections.Generic.IList`1
+    name: IList
+    nameWithType: IList
+    fullName: System.Collections.Generic.IList
+    isExternal: true
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: System.Collections.Generic.IList`1
+    name: IList
+    nameWithType: IList
+    fullName: System.Collections.Generic.IList
+    isExternal: true
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Collections.Generic.IList{ImageSharp.ImageProperty}
+  commentId: T:System.Collections.Generic.IList{ImageSharp.ImageProperty}
+  parent: System.Collections.Generic
+  definition: System.Collections.Generic.IList`1
+  name: IList<ImageProperty>
+  nameWithType: IList<ImageProperty>
+  fullName: System.Collections.Generic.IList<ImageSharp.ImageProperty>
+  nameWithType.vb: IList(Of ImageProperty)
+  fullname.vb: System.Collections.Generic.IList(Of ImageSharp.ImageProperty)
+  name.vb: IList(Of ImageProperty)
+  spec.csharp:
+  - uid: System.Collections.Generic.IList`1
+    name: IList
+    nameWithType: IList
+    fullName: System.Collections.Generic.IList
+    isExternal: true
+  - name: <
+    nameWithType: <
+    fullName: <
+  - uid: ImageSharp.ImageProperty
+    name: ImageProperty
+    nameWithType: ImageProperty
+    fullName: ImageSharp.ImageProperty
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: System.Collections.Generic.IList`1
+    name: IList
+    nameWithType: IList
+    fullName: System.Collections.Generic.IList
+    isExternal: true
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - uid: ImageSharp.ImageProperty
+    name: ImageProperty
+    nameWithType: ImageProperty
+    fullName: ImageSharp.ImageProperty
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.Formats.IImageFormat
+  commentId: T:ImageSharp.Formats.IImageFormat
+  parent: ImageSharp.Formats
+  isExternal: false
+  name: IImageFormat
+  nameWithType: IImageFormat
+  fullName: ImageSharp.Formats.IImageFormat
+- uid: ImageSharp.Formats
+  commentId: N:ImageSharp.Formats
+  isExternal: false
+  name: ImageSharp.Formats
+  nameWithType: ImageSharp.Formats
+  fullName: ImageSharp.Formats
+- uid: ImageSharp.ExifProfile
+  commentId: T:ImageSharp.ExifProfile
+  parent: ImageSharp
+  isExternal: false
+  name: ExifProfile
+  nameWithType: ExifProfile
+  fullName: ImageSharp.ExifProfile
+- uid: ImageSharp.Formats.IImageEncoder
+  commentId: T:ImageSharp.Formats.IImageEncoder
+  parent: ImageSharp.Formats
+  isExternal: false
+  name: IImageEncoder
+  nameWithType: IImageEncoder
+  fullName: ImageSharp.Formats.IImageEncoder
+- uid: System.Object.ToString
+  commentId: M:System.Object.ToString
+  parent: System.Object
+  isExternal: true
+  name: ToString()
+  nameWithType: Object.ToString()
+  fullName: System.Object.ToString()
+  spec.csharp:
+  - uid: System.Object.ToString
+    name: ToString
+    nameWithType: Object.ToString
+    fullName: System.Object.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ToString
+    name: ToString
+    nameWithType: Object.ToString
+    fullName: System.Object.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  name: String
+  nameWithType: String
+  fullName: System.String

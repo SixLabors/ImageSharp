@@ -1,0 +1,170 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.RotateType
+  commentId: T:ImageSharp.RotateType
+  id: RotateType
+  parent: ImageSharp
+  children:
+  - ImageSharp.RotateType.None
+  - ImageSharp.RotateType.Rotate180
+  - ImageSharp.RotateType.Rotate270
+  - ImageSharp.RotateType.Rotate90
+  langs:
+  - csharp
+  - vb
+  name: RotateType
+  nameWithType: RotateType
+  fullName: ImageSharp.RotateType
+  type: Enum
+  source:
+    id: RotateType
+    path: ''
+    startLine: 29864
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nProvides enumeration over how the image should be rotated.\n"
+  example: []
+  syntax:
+    content: public enum RotateType
+    content.vb: Public Enum RotateType
+  modifiers.csharp:
+  - public
+  - enum
+  modifiers.vb:
+  - Public
+  - Enum
+- uid: ImageSharp.RotateType.None
+  commentId: F:ImageSharp.RotateType.None
+  id: None
+  parent: ImageSharp.RotateType
+  langs:
+  - csharp
+  - vb
+  name: None
+  nameWithType: RotateType.None
+  fullName: ImageSharp.RotateType.None
+  type: Field
+  source:
+    id: None
+    path: ''
+    startLine: 29869
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nDo not rotate the image.\n"
+  example: []
+  syntax:
+    content: None = 0
+    return:
+      type: ImageSharp.RotateType
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.RotateType.Rotate90
+  commentId: F:ImageSharp.RotateType.Rotate90
+  id: Rotate90
+  parent: ImageSharp.RotateType
+  langs:
+  - csharp
+  - vb
+  name: Rotate90
+  nameWithType: RotateType.Rotate90
+  fullName: ImageSharp.RotateType.Rotate90
+  type: Field
+  source:
+    id: Rotate90
+    path: ''
+    startLine: 29874
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRotate the image by 90 degrees clockwise.\n"
+  example: []
+  syntax:
+    content: Rotate90 = 90
+    return:
+      type: ImageSharp.RotateType
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.RotateType.Rotate180
+  commentId: F:ImageSharp.RotateType.Rotate180
+  id: Rotate180
+  parent: ImageSharp.RotateType
+  langs:
+  - csharp
+  - vb
+  name: Rotate180
+  nameWithType: RotateType.Rotate180
+  fullName: ImageSharp.RotateType.Rotate180
+  type: Field
+  source:
+    id: Rotate180
+    path: ''
+    startLine: 29879
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRotate the image by 180 degrees clockwise.\n"
+  example: []
+  syntax:
+    content: Rotate180 = 180
+    return:
+      type: ImageSharp.RotateType
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.RotateType.Rotate270
+  commentId: F:ImageSharp.RotateType.Rotate270
+  id: Rotate270
+  parent: ImageSharp.RotateType
+  langs:
+  - csharp
+  - vb
+  name: Rotate270
+  nameWithType: RotateType.Rotate270
+  fullName: ImageSharp.RotateType.Rotate270
+  type: Field
+  source:
+    id: Rotate270
+    path: ''
+    startLine: 29884
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRotate the image by 270 degrees clockwise.\n"
+  example: []
+  syntax:
+    content: Rotate270 = 270
+    return:
+      type: ImageSharp.RotateType
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+references:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: ImageSharp.RotateType
+  commentId: T:ImageSharp.RotateType
+  parent: ImageSharp
+  isExternal: false
+  name: RotateType
+  nameWithType: RotateType
+  fullName: ImageSharp.RotateType

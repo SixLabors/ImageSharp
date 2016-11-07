@@ -1,0 +1,974 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.Ellipse
+  commentId: T:ImageSharp.Ellipse
+  id: Ellipse
+  parent: ImageSharp
+  children:
+  - ImageSharp.Ellipse.#ctor(ImageSharp.Point,System.Single,System.Single)
+  - ImageSharp.Ellipse.Center(ImageSharp.Ellipse)
+  - ImageSharp.Ellipse.Contains(System.Int32,System.Int32)
+  - ImageSharp.Ellipse.Empty
+  - ImageSharp.Ellipse.Equals(ImageSharp.Ellipse)
+  - ImageSharp.Ellipse.Equals(System.Object)
+  - ImageSharp.Ellipse.GetHashCode
+  - ImageSharp.Ellipse.IsEmpty
+  - ImageSharp.Ellipse.op_Equality(ImageSharp.Ellipse,ImageSharp.Ellipse)
+  - ImageSharp.Ellipse.op_Inequality(ImageSharp.Ellipse,ImageSharp.Ellipse)
+  - ImageSharp.Ellipse.RadiusX
+  - ImageSharp.Ellipse.RadiusY
+  - ImageSharp.Ellipse.ToString
+  langs:
+  - csharp
+  - vb
+  name: Ellipse
+  nameWithType: Ellipse
+  fullName: ImageSharp.Ellipse
+  type: Struct
+  source:
+    id: Ellipse
+    path: ''
+    startLine: 21571
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  syntax:
+    content: 'public struct Ellipse : IEquatable<Ellipse>'
+    content.vb: >-
+      Public Structure Ellipse
+          Implements IEquatable(Of Ellipse)
+  implements:
+  - System.IEquatable{ImageSharp.Ellipse}
+  inheritedMembers:
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.GetType
+  modifiers.csharp:
+  - public
+  - struct
+  modifiers.vb:
+  - Public
+  - Structure
+- uid: ImageSharp.Ellipse.Empty
+  commentId: F:ImageSharp.Ellipse.Empty
+  id: Empty
+  parent: ImageSharp.Ellipse
+  langs:
+  - csharp
+  - vb
+  name: Empty
+  nameWithType: Ellipse.Empty
+  fullName: ImageSharp.Ellipse.Empty
+  type: Field
+  source:
+    id: Empty
+    path: ''
+    startLine: 21581
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Ellipse\" data-throw-if-not-resolved=\"false\"></xref> that has X and Y values set to zero.\n"
+  example: []
+  syntax:
+    content: public static readonly Ellipse Empty
+    content.vb: Public Shared ReadOnly Empty As Ellipse
+    return:
+      type: ImageSharp.Ellipse
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Ellipse.#ctor(ImageSharp.Point,System.Single,System.Single)
+  commentId: M:ImageSharp.Ellipse.#ctor(ImageSharp.Point,System.Single,System.Single)
+  id: '#ctor(ImageSharp.Point,System.Single,System.Single)'
+  parent: ImageSharp.Ellipse
+  langs:
+  - csharp
+  - vb
+  name: Ellipse(Point, Single, Single)
+  nameWithType: Ellipse.Ellipse(Point, Single, Single)
+  fullName: ImageSharp.Ellipse.Ellipse(ImageSharp.Point, System.Single, System.Single)
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 21583
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  syntax:
+    content: public Ellipse(Point center, float radiusX, float radiusY)
+    content.vb: Public Sub New(center As Point, radiusX As Single, radiusY As Single)
+    parameters:
+    - id: center
+      type: ImageSharp.Point
+    - id: radiusX
+      type: System.Single
+    - id: radiusY
+      type: System.Single
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Ellipse.RadiusX
+  commentId: P:ImageSharp.Ellipse.RadiusX
+  id: RadiusX
+  parent: ImageSharp.Ellipse
+  langs:
+  - csharp
+  - vb
+  name: RadiusX
+  nameWithType: Ellipse.RadiusX
+  fullName: ImageSharp.Ellipse.RadiusX
+  type: Property
+  source:
+    id: RadiusX
+    path: ''
+    startLine: 21593
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the x-radius of this <xref href=\"ImageSharp.Ellipse\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  example: []
+  syntax:
+    content: public float RadiusX { get; }
+    content.vb: Public ReadOnly Property RadiusX As Single
+    parameters: []
+    return:
+      type: System.Single
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.Ellipse.RadiusY
+  commentId: P:ImageSharp.Ellipse.RadiusY
+  id: RadiusY
+  parent: ImageSharp.Ellipse
+  langs:
+  - csharp
+  - vb
+  name: RadiusY
+  nameWithType: Ellipse.RadiusY
+  fullName: ImageSharp.Ellipse.RadiusY
+  type: Property
+  source:
+    id: RadiusY
+    path: ''
+    startLine: 21598
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the y-radius of this <xref href=\"ImageSharp.Ellipse\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  example: []
+  syntax:
+    content: public float RadiusY { get; }
+    content.vb: Public ReadOnly Property RadiusY As Single
+    parameters: []
+    return:
+      type: System.Single
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.Ellipse.IsEmpty
+  commentId: P:ImageSharp.Ellipse.IsEmpty
+  id: IsEmpty
+  parent: ImageSharp.Ellipse
+  langs:
+  - csharp
+  - vb
+  name: IsEmpty
+  nameWithType: Ellipse.IsEmpty
+  fullName: ImageSharp.Ellipse.IsEmpty
+  type: Property
+  source:
+    id: IsEmpty
+    path: ''
+    startLine: 21603
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets a value indicating whether this <xref href=\"ImageSharp.Ellipse\" data-throw-if-not-resolved=\"false\"></xref> is empty.\n"
+  example: []
+  syntax:
+    content: public bool IsEmpty { get; }
+    content.vb: Public ReadOnly Property IsEmpty As Boolean
+    parameters: []
+    return:
+      type: System.Boolean
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.Ellipse.op_Equality(ImageSharp.Ellipse,ImageSharp.Ellipse)
+  commentId: M:ImageSharp.Ellipse.op_Equality(ImageSharp.Ellipse,ImageSharp.Ellipse)
+  id: op_Equality(ImageSharp.Ellipse,ImageSharp.Ellipse)
+  parent: ImageSharp.Ellipse
+  langs:
+  - csharp
+  - vb
+  name: Equality(Ellipse, Ellipse)
+  nameWithType: Ellipse.Equality(Ellipse, Ellipse)
+  fullName: ImageSharp.Ellipse.Equality(ImageSharp.Ellipse, ImageSharp.Ellipse)
+  type: Operator
+  source:
+    id: op_Equality
+    path: ''
+    startLine: 21618
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCompares two <xref href=\"ImageSharp.Ellipse\" data-throw-if-not-resolved=\"false\"></xref> objects for equality.\n"
+  example: []
+  syntax:
+    content: public static bool operator ==(Ellipse left, Ellipse right)
+    content.vb: Public Shared Operator =(left As Ellipse, right As Ellipse) As Boolean
+    parameters:
+    - id: left
+      type: ImageSharp.Ellipse
+      description: "\nThe <xref href=\"ImageSharp.Ellipse\" data-throw-if-not-resolved=\"false\"></xref> on the left side of the operand.\n"
+    - id: right
+      type: ImageSharp.Ellipse
+      description: "\nThe <xref href=\"ImageSharp.Ellipse\" data-throw-if-not-resolved=\"false\"></xref> on the right side of the operand.\n"
+    return:
+      type: System.Boolean
+      description: "\nTrue if the current left is equal to the <em>right</em> parameter; otherwise, false.\n"
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.Ellipse.op_Inequality(ImageSharp.Ellipse,ImageSharp.Ellipse)
+  commentId: M:ImageSharp.Ellipse.op_Inequality(ImageSharp.Ellipse,ImageSharp.Ellipse)
+  id: op_Inequality(ImageSharp.Ellipse,ImageSharp.Ellipse)
+  parent: ImageSharp.Ellipse
+  langs:
+  - csharp
+  - vb
+  name: Inequality(Ellipse, Ellipse)
+  nameWithType: Ellipse.Inequality(Ellipse, Ellipse)
+  fullName: ImageSharp.Ellipse.Inequality(ImageSharp.Ellipse, ImageSharp.Ellipse)
+  type: Operator
+  source:
+    id: op_Inequality
+    path: ''
+    startLine: 21635
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCompares two <xref href=\"ImageSharp.Ellipse\" data-throw-if-not-resolved=\"false\"></xref> objects for inequality.\n"
+  example: []
+  syntax:
+    content: public static bool operator !=(Ellipse left, Ellipse right)
+    content.vb: Public Shared Operator <>(left As Ellipse, right As Ellipse) As Boolean
+    parameters:
+    - id: left
+      type: ImageSharp.Ellipse
+      description: "\nThe <xref href=\"ImageSharp.Ellipse\" data-throw-if-not-resolved=\"false\"></xref> on the left side of the operand.\n"
+    - id: right
+      type: ImageSharp.Ellipse
+      description: "\nThe <xref href=\"ImageSharp.Ellipse\" data-throw-if-not-resolved=\"false\"></xref> on the right side of the operand.\n"
+    return:
+      type: System.Boolean
+      description: "\nTrue if the current left is unequal to the <em>right</em> parameter; otherwise, false.\n"
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.Ellipse.Center(ImageSharp.Ellipse)
+  commentId: M:ImageSharp.Ellipse.Center(ImageSharp.Ellipse)
+  id: Center(ImageSharp.Ellipse)
+  parent: ImageSharp.Ellipse
+  langs:
+  - csharp
+  - vb
+  name: Center(Ellipse)
+  nameWithType: Ellipse.Center(Ellipse)
+  fullName: ImageSharp.Ellipse.Center(ImageSharp.Ellipse)
+  type: Method
+  source:
+    id: Center
+    path: ''
+    startLine: 21645
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nReturns the center point of the given <xref href=\"ImageSharp.Ellipse\" data-throw-if-not-resolved=\"false\"></xref>\n"
+  example: []
+  syntax:
+    content: public static Vector2 Center(Ellipse ellipse)
+    content.vb: Public Shared Function Center(ellipse As Ellipse) As Vector2
+    parameters:
+    - id: ellipse
+      type: ImageSharp.Ellipse
+      description: The ellipse
+    return:
+      type: Vector2
+      description: <see cref="!:Vector2"></see>
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.Ellipse.Contains(System.Int32,System.Int32)
+  commentId: M:ImageSharp.Ellipse.Contains(System.Int32,System.Int32)
+  id: Contains(System.Int32,System.Int32)
+  parent: ImageSharp.Ellipse
+  langs:
+  - csharp
+  - vb
+  name: Contains(Int32, Int32)
+  nameWithType: Ellipse.Contains(Int32, Int32)
+  fullName: ImageSharp.Ellipse.Contains(System.Int32, System.Int32)
+  type: Method
+  source:
+    id: Contains
+    path: ''
+    startLine: 21657
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nDetermines if the specfied point is contained within the rectangular region defined by\nthis <xref href=\"ImageSharp.Ellipse\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  example: []
+  syntax:
+    content: public bool Contains(int x, int y)
+    content.vb: Public Function Contains(x As Integer, y As Integer) As Boolean
+    parameters:
+    - id: x
+      type: System.Int32
+      description: The x-coordinate of the given point.
+    - id: y
+      type: System.Int32
+      description: The y-coordinate of the given point.
+    return:
+      type: System.Boolean
+      description: The <xref href="System.Boolean" data-throw-if-not-resolved="false"></xref>
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Ellipse.GetHashCode
+  commentId: M:ImageSharp.Ellipse.GetHashCode
+  id: GetHashCode
+  parent: ImageSharp.Ellipse
+  langs:
+  - csharp
+  - vb
+  name: GetHashCode()
+  nameWithType: Ellipse.GetHashCode()
+  fullName: ImageSharp.Ellipse.GetHashCode()
+  type: Method
+  source:
+    id: GetHashCode
+    path: ''
+    startLine: 21677
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public override int GetHashCode()
+    content.vb: Public Overrides Function GetHashCode As Integer
+    return:
+      type: System.Int32
+  overridden: System.ValueType.GetHashCode
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+- uid: ImageSharp.Ellipse.ToString
+  commentId: M:ImageSharp.Ellipse.ToString
+  id: ToString
+  parent: ImageSharp.Ellipse
+  langs:
+  - csharp
+  - vb
+  name: ToString()
+  nameWithType: Ellipse.ToString()
+  fullName: ImageSharp.Ellipse.ToString()
+  type: Method
+  source:
+    id: ToString
+    path: ''
+    startLine: 21683
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public override string ToString()
+    content.vb: Public Overrides Function ToString As String
+    return:
+      type: System.String
+  overridden: System.ValueType.ToString
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+- uid: ImageSharp.Ellipse.Equals(System.Object)
+  commentId: M:ImageSharp.Ellipse.Equals(System.Object)
+  id: Equals(System.Object)
+  parent: ImageSharp.Ellipse
+  langs:
+  - csharp
+  - vb
+  name: Equals(Object)
+  nameWithType: Ellipse.Equals(Object)
+  fullName: ImageSharp.Ellipse.Equals(System.Object)
+  type: Method
+  source:
+    id: Equals
+    path: ''
+    startLine: 21695
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public override bool Equals(object obj)
+    content.vb: Public Overrides Function Equals(obj As Object) As Boolean
+    parameters:
+    - id: obj
+      type: System.Object
+    return:
+      type: System.Boolean
+  overridden: System.ValueType.Equals(System.Object)
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+- uid: ImageSharp.Ellipse.Equals(ImageSharp.Ellipse)
+  commentId: M:ImageSharp.Ellipse.Equals(ImageSharp.Ellipse)
+  id: Equals(ImageSharp.Ellipse)
+  parent: ImageSharp.Ellipse
+  langs:
+  - csharp
+  - vb
+  name: Equals(Ellipse)
+  nameWithType: Ellipse.Equals(Ellipse)
+  fullName: ImageSharp.Ellipse.Equals(ImageSharp.Ellipse)
+  type: Method
+  source:
+    id: Equals
+    path: ''
+    startLine: 21706
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public bool Equals(Ellipse other)
+    content.vb: Public Function Equals(other As Ellipse) As Boolean
+    parameters:
+    - id: other
+      type: ImageSharp.Ellipse
+    return:
+      type: System.Boolean
+  implements:
+  - System.IEquatable{ImageSharp.Ellipse}.Equals(ImageSharp.Ellipse)
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+references:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: System.IEquatable{ImageSharp.Ellipse}
+  commentId: T:System.IEquatable{ImageSharp.Ellipse}
+  parent: System
+  definition: System.IEquatable`1
+  name: IEquatable<Ellipse>
+  nameWithType: IEquatable<Ellipse>
+  fullName: System.IEquatable<ImageSharp.Ellipse>
+  nameWithType.vb: IEquatable(Of Ellipse)
+  fullname.vb: System.IEquatable(Of ImageSharp.Ellipse)
+  name.vb: IEquatable(Of Ellipse)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: <
+    nameWithType: <
+    fullName: <
+  - uid: ImageSharp.Ellipse
+    name: Ellipse
+    nameWithType: Ellipse
+    fullName: ImageSharp.Ellipse
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - uid: ImageSharp.Ellipse
+    name: Ellipse
+    nameWithType: Ellipse
+    fullName: ImageSharp.Ellipse
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object, Object)
+  nameWithType: Object.Equals(Object, Object)
+  fullName: System.Object.Equals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: ReferenceEquals(Object, Object)
+  nameWithType: Object.ReferenceEquals(Object, Object)
+  fullName: System.Object.ReferenceEquals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  name: GetType()
+  nameWithType: Object.GetType()
+  fullName: System.Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.IEquatable`1
+  commentId: T:System.IEquatable`1
+  isExternal: true
+  name: IEquatable<T>
+  nameWithType: IEquatable<T>
+  fullName: System.IEquatable<T>
+  nameWithType.vb: IEquatable(Of T)
+  fullname.vb: System.IEquatable(Of T)
+  name.vb: IEquatable(Of T)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System
+  commentId: N:System
+  isExternal: false
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  name: Object
+  nameWithType: Object
+  fullName: System.Object
+- uid: ImageSharp.Ellipse
+  commentId: T:ImageSharp.Ellipse
+  parent: ImageSharp
+  isExternal: false
+  name: Ellipse
+  nameWithType: Ellipse
+  fullName: ImageSharp.Ellipse
+- uid: ImageSharp.Point
+  commentId: T:ImageSharp.Point
+  parent: ImageSharp
+  isExternal: false
+  name: Point
+  nameWithType: Point
+  fullName: ImageSharp.Point
+- uid: System.Single
+  commentId: T:System.Single
+  parent: System
+  isExternal: true
+  name: Single
+  nameWithType: Single
+  fullName: System.Single
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  name: Boolean
+  nameWithType: Boolean
+  fullName: System.Boolean
+- uid: Vector2
+  isExternal: true
+  name: Vector2
+  nameWithType: Vector2
+  fullName: Vector2
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  name: Int32
+  nameWithType: Int32
+  fullName: System.Int32
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    nameWithType: ValueType.GetHashCode
+    fullName: System.ValueType.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    nameWithType: ValueType.GetHashCode
+    fullName: System.ValueType.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    nameWithType: ValueType.ToString
+    fullName: System.ValueType.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    nameWithType: ValueType.ToString
+    fullName: System.ValueType.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  name: String
+  nameWithType: String
+  fullName: System.String
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  name: Equals(Object)
+  nameWithType: ValueType.Equals(Object)
+  fullName: System.ValueType.Equals(System.Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    nameWithType: ValueType.Equals
+    fullName: System.ValueType.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    nameWithType: ValueType.Equals
+    fullName: System.ValueType.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.IEquatable{ImageSharp.Ellipse}.Equals(ImageSharp.Ellipse)
+  commentId: M:System.IEquatable{ImageSharp.Ellipse}.Equals(ImageSharp.Ellipse)
+  parent: System.IEquatable{ImageSharp.Ellipse}
+  definition: System.IEquatable`1.Equals(`0)
+  name: Equals(Ellipse)
+  nameWithType: IEquatable<Ellipse>.Equals(Ellipse)
+  fullName: System.IEquatable<ImageSharp.Ellipse>.Equals(ImageSharp.Ellipse)
+  nameWithType.vb: IEquatable(Of Ellipse).Equals(Ellipse)
+  fullname.vb: System.IEquatable(Of ImageSharp.Ellipse).Equals(ImageSharp.Ellipse)
+  spec.csharp:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable<Ellipse>.Equals
+    fullName: System.IEquatable<ImageSharp.Ellipse>.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.Ellipse
+    name: Ellipse
+    nameWithType: Ellipse
+    fullName: ImageSharp.Ellipse
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable(Of Ellipse).Equals
+    fullName: System.IEquatable(Of ImageSharp.Ellipse).Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.Ellipse
+    name: Ellipse
+    nameWithType: Ellipse
+    fullName: ImageSharp.Ellipse
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.IEquatable`1.Equals(`0)
+  commentId: M:System.IEquatable`1.Equals(`0)
+  isExternal: true
+  name: Equals(T)
+  nameWithType: IEquatable<T>.Equals(T)
+  fullName: System.IEquatable<T>.Equals(T)
+  nameWithType.vb: IEquatable(Of T).Equals(T)
+  fullname.vb: System.IEquatable(Of T).Equals(T)
+  spec.csharp:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable<T>.Equals
+    fullName: System.IEquatable<T>.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable(Of T).Equals
+    fullName: System.IEquatable(Of T).Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )

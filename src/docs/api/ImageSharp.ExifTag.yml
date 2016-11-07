@@ -1,0 +1,5688 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.ExifTag
+  commentId: T:ImageSharp.ExifTag
+  id: ExifTag
+  parent: ImageSharp
+  children:
+  - ImageSharp.ExifTag.ApertureValue
+  - ImageSharp.ExifTag.Artist
+  - ImageSharp.ExifTag.BadFaxLines
+  - ImageSharp.ExifTag.BitsPerSample
+  - ImageSharp.ExifTag.BrightnessValue
+  - ImageSharp.ExifTag.CellLength
+  - ImageSharp.ExifTag.CellWidth
+  - ImageSharp.ExifTag.CFAPattern
+  - ImageSharp.ExifTag.CleanFaxData
+  - ImageSharp.ExifTag.ClipPath
+  - ImageSharp.ExifTag.CodingMethods
+  - ImageSharp.ExifTag.ColorMap
+  - ImageSharp.ExifTag.ColorSpace
+  - ImageSharp.ExifTag.ComponentsConfiguration
+  - ImageSharp.ExifTag.CompressedBitsPerPixel
+  - ImageSharp.ExifTag.Compression
+  - ImageSharp.ExifTag.ConsecutiveBadFaxLines
+  - ImageSharp.ExifTag.Contrast
+  - ImageSharp.ExifTag.Copyright
+  - ImageSharp.ExifTag.CustomRendered
+  - ImageSharp.ExifTag.DateTime
+  - ImageSharp.ExifTag.DateTimeDigitized
+  - ImageSharp.ExifTag.DateTimeOriginal
+  - ImageSharp.ExifTag.Decode
+  - ImageSharp.ExifTag.DefaultImageColor
+  - ImageSharp.ExifTag.DeviceSettingDescription
+  - ImageSharp.ExifTag.DigitalZoomRatio
+  - ImageSharp.ExifTag.DocumentName
+  - ImageSharp.ExifTag.DotRange
+  - ImageSharp.ExifTag.ExifVersion
+  - ImageSharp.ExifTag.ExposureBiasValue
+  - ImageSharp.ExifTag.ExposureIndex
+  - ImageSharp.ExifTag.ExposureMode
+  - ImageSharp.ExifTag.ExposureProgram
+  - ImageSharp.ExifTag.ExposureTime
+  - ImageSharp.ExifTag.ExtraSamples
+  - ImageSharp.ExifTag.FaxProfile
+  - ImageSharp.ExifTag.FileSource
+  - ImageSharp.ExifTag.FillOrder
+  - ImageSharp.ExifTag.Flash
+  - ImageSharp.ExifTag.FlashEnergy
+  - ImageSharp.ExifTag.FlashpixVersion
+  - ImageSharp.ExifTag.FNumber
+  - ImageSharp.ExifTag.FocalLength
+  - ImageSharp.ExifTag.FocalLengthIn35mmFilm
+  - ImageSharp.ExifTag.FocalPlaneResolutionUnit
+  - ImageSharp.ExifTag.FocalPlaneXResolution
+  - ImageSharp.ExifTag.FocalPlaneYResolution
+  - ImageSharp.ExifTag.FreeByteCounts
+  - ImageSharp.ExifTag.FreeOffsets
+  - ImageSharp.ExifTag.GainControl
+  - ImageSharp.ExifTag.GPSAltitude
+  - ImageSharp.ExifTag.GPSAltitudeRef
+  - ImageSharp.ExifTag.GPSAreaInformation
+  - ImageSharp.ExifTag.GPSDateStamp
+  - ImageSharp.ExifTag.GPSDestBearing
+  - ImageSharp.ExifTag.GPSDestBearingRef
+  - ImageSharp.ExifTag.GPSDestDistance
+  - ImageSharp.ExifTag.GPSDestDistanceRef
+  - ImageSharp.ExifTag.GPSDestLatitude
+  - ImageSharp.ExifTag.GPSDestLatitudeRef
+  - ImageSharp.ExifTag.GPSDestLongitude
+  - ImageSharp.ExifTag.GPSDestLongitudeRef
+  - ImageSharp.ExifTag.GPSDifferential
+  - ImageSharp.ExifTag.GPSDOP
+  - ImageSharp.ExifTag.GPSIFDOffset
+  - ImageSharp.ExifTag.GPSImgDirection
+  - ImageSharp.ExifTag.GPSImgDirectionRef
+  - ImageSharp.ExifTag.GPSLatitude
+  - ImageSharp.ExifTag.GPSLatitudeRef
+  - ImageSharp.ExifTag.GPSLongitude
+  - ImageSharp.ExifTag.GPSLongitudeRef
+  - ImageSharp.ExifTag.GPSMapDatum
+  - ImageSharp.ExifTag.GPSMeasureMode
+  - ImageSharp.ExifTag.GPSProcessingMethod
+  - ImageSharp.ExifTag.GPSSatellites
+  - ImageSharp.ExifTag.GPSSpeed
+  - ImageSharp.ExifTag.GPSSpeedRef
+  - ImageSharp.ExifTag.GPSStatus
+  - ImageSharp.ExifTag.GPSTimestamp
+  - ImageSharp.ExifTag.GPSTrack
+  - ImageSharp.ExifTag.GPSTrackRef
+  - ImageSharp.ExifTag.GPSVersionID
+  - ImageSharp.ExifTag.GrayResponseCurve
+  - ImageSharp.ExifTag.GrayResponseUnit
+  - ImageSharp.ExifTag.HalftoneHints
+  - ImageSharp.ExifTag.HostComputer
+  - ImageSharp.ExifTag.ImageDescription
+  - ImageSharp.ExifTag.ImageID
+  - ImageSharp.ExifTag.ImageLayer
+  - ImageSharp.ExifTag.ImageLength
+  - ImageSharp.ExifTag.ImageUniqueID
+  - ImageSharp.ExifTag.ImageWidth
+  - ImageSharp.ExifTag.Indexed
+  - ImageSharp.ExifTag.InkNames
+  - ImageSharp.ExifTag.InkSet
+  - ImageSharp.ExifTag.ISOSpeedRatings
+  - ImageSharp.ExifTag.JPEGACTables
+  - ImageSharp.ExifTag.JPEGDCTables
+  - ImageSharp.ExifTag.JPEGInterchangeFormat
+  - ImageSharp.ExifTag.JPEGInterchangeFormatLength
+  - ImageSharp.ExifTag.JPEGLosslessPredictors
+  - ImageSharp.ExifTag.JPEGPointTransforms
+  - ImageSharp.ExifTag.JPEGProc
+  - ImageSharp.ExifTag.JPEGQTables
+  - ImageSharp.ExifTag.JPEGRestartInterval
+  - ImageSharp.ExifTag.JPEGTables
+  - ImageSharp.ExifTag.LightSource
+  - ImageSharp.ExifTag.Make
+  - ImageSharp.ExifTag.MakerNote
+  - ImageSharp.ExifTag.MaxApertureValue
+  - ImageSharp.ExifTag.MaxSampleValue
+  - ImageSharp.ExifTag.MeteringMode
+  - ImageSharp.ExifTag.MinSampleValue
+  - ImageSharp.ExifTag.Model
+  - ImageSharp.ExifTag.ModeNumber
+  - ImageSharp.ExifTag.NumberOfInks
+  - ImageSharp.ExifTag.OECF
+  - ImageSharp.ExifTag.OPIProxy
+  - ImageSharp.ExifTag.Orientation
+  - ImageSharp.ExifTag.PageName
+  - ImageSharp.ExifTag.PageNumber
+  - ImageSharp.ExifTag.PhotometricInterpretation
+  - ImageSharp.ExifTag.PixelXDimension
+  - ImageSharp.ExifTag.PixelYDimension
+  - ImageSharp.ExifTag.PlanarConfiguration
+  - ImageSharp.ExifTag.Predictor
+  - ImageSharp.ExifTag.PrimaryChromaticities
+  - ImageSharp.ExifTag.ProfileType
+  - ImageSharp.ExifTag.ReferenceBlackWhite
+  - ImageSharp.ExifTag.RelatedSoundFile
+  - ImageSharp.ExifTag.ResolutionUnit
+  - ImageSharp.ExifTag.RowsPerStrip
+  - ImageSharp.ExifTag.SampleFormat
+  - ImageSharp.ExifTag.SamplesPerPixel
+  - ImageSharp.ExifTag.Saturation
+  - ImageSharp.ExifTag.SceneCaptureType
+  - ImageSharp.ExifTag.SceneType
+  - ImageSharp.ExifTag.SensingMethod
+  - ImageSharp.ExifTag.Sharpness
+  - ImageSharp.ExifTag.ShutterSpeedValue
+  - ImageSharp.ExifTag.SMaxSampleValue
+  - ImageSharp.ExifTag.SMinSampleValue
+  - ImageSharp.ExifTag.Software
+  - ImageSharp.ExifTag.SpatialFrequencyResponse
+  - ImageSharp.ExifTag.SpectralSensitivity
+  - ImageSharp.ExifTag.StripByteCounts
+  - ImageSharp.ExifTag.StripOffsets
+  - ImageSharp.ExifTag.StripRowCounts
+  - ImageSharp.ExifTag.SubIFDOffset
+  - ImageSharp.ExifTag.SubjectArea
+  - ImageSharp.ExifTag.SubjectDistance
+  - ImageSharp.ExifTag.SubjectDistanceRange
+  - ImageSharp.ExifTag.SubjectLocation
+  - ImageSharp.ExifTag.SubsecTime
+  - ImageSharp.ExifTag.SubsecTimeDigitized
+  - ImageSharp.ExifTag.SubsecTimeOriginal
+  - ImageSharp.ExifTag.T4Options
+  - ImageSharp.ExifTag.T6Options
+  - ImageSharp.ExifTag.TargetPrinter
+  - ImageSharp.ExifTag.Thresholding
+  - ImageSharp.ExifTag.TileByteCounts
+  - ImageSharp.ExifTag.TileLength
+  - ImageSharp.ExifTag.TileOffsets
+  - ImageSharp.ExifTag.TileWidth
+  - ImageSharp.ExifTag.TransferFunction
+  - ImageSharp.ExifTag.TransferRange
+  - ImageSharp.ExifTag.Unknown
+  - ImageSharp.ExifTag.UserComment
+  - ImageSharp.ExifTag.VersionYear
+  - ImageSharp.ExifTag.WhiteBalance
+  - ImageSharp.ExifTag.WhitePoint
+  - ImageSharp.ExifTag.XClipPathUnits
+  - ImageSharp.ExifTag.XMP
+  - ImageSharp.ExifTag.XPosition
+  - ImageSharp.ExifTag.XResolution
+  - ImageSharp.ExifTag.YCbCrCoefficients
+  - ImageSharp.ExifTag.YCbCrPositioning
+  - ImageSharp.ExifTag.YCbCrSubsampling
+  - ImageSharp.ExifTag.YClipPathUnits
+  - ImageSharp.ExifTag.YPosition
+  - ImageSharp.ExifTag.YResolution
+  langs:
+  - csharp
+  - vb
+  name: ExifTag
+  nameWithType: ExifTag
+  fullName: ImageSharp.ExifTag
+  type: Enum
+  source:
+    id: ExifTag
+    path: ''
+    startLine: 24094
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nAll exif tags from the Exif standard 2.2\n"
+  example: []
+  syntax:
+    content: public enum ExifTag
+    content.vb: Public Enum ExifTag
+  modifiers.csharp:
+  - public
+  - enum
+  modifiers.vb:
+  - Public
+  - Enum
+- uid: ImageSharp.ExifTag.Unknown
+  commentId: F:ImageSharp.ExifTag.Unknown
+  id: Unknown
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: Unknown
+  nameWithType: ExifTag.Unknown
+  fullName: ImageSharp.ExifTag.Unknown
+  type: Field
+  source:
+    id: Unknown
+    path: ''
+    startLine: 24099
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nUnknown\n"
+  example: []
+  syntax:
+    content: Unknown = 65535
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.SubIFDOffset
+  commentId: F:ImageSharp.ExifTag.SubIFDOffset
+  id: SubIFDOffset
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: SubIFDOffset
+  nameWithType: ExifTag.SubIFDOffset
+  fullName: ImageSharp.ExifTag.SubIFDOffset
+  type: Field
+  source:
+    id: SubIFDOffset
+    path: ''
+    startLine: 24104
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSubIFDOffset\n"
+  example: []
+  syntax:
+    content: SubIFDOffset = 34665
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GPSIFDOffset
+  commentId: F:ImageSharp.ExifTag.GPSIFDOffset
+  id: GPSIFDOffset
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GPSIFDOffset
+  nameWithType: ExifTag.GPSIFDOffset
+  fullName: ImageSharp.ExifTag.GPSIFDOffset
+  type: Field
+  source:
+    id: GPSIFDOffset
+    path: ''
+    startLine: 24109
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGPSIFDOffset\n"
+  example: []
+  syntax:
+    content: GPSIFDOffset = 34853
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.ImageWidth
+  commentId: F:ImageSharp.ExifTag.ImageWidth
+  id: ImageWidth
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: ImageWidth
+  nameWithType: ExifTag.ImageWidth
+  fullName: ImageSharp.ExifTag.ImageWidth
+  type: Field
+  source:
+    id: ImageWidth
+    path: ''
+    startLine: 24114
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nImageWidth\n"
+  example: []
+  syntax:
+    content: ImageWidth = 256
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.ImageLength
+  commentId: F:ImageSharp.ExifTag.ImageLength
+  id: ImageLength
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: ImageLength
+  nameWithType: ExifTag.ImageLength
+  fullName: ImageSharp.ExifTag.ImageLength
+  type: Field
+  source:
+    id: ImageLength
+    path: ''
+    startLine: 24119
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nImageLength\n"
+  example: []
+  syntax:
+    content: ImageLength = 257
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.BitsPerSample
+  commentId: F:ImageSharp.ExifTag.BitsPerSample
+  id: BitsPerSample
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: BitsPerSample
+  nameWithType: ExifTag.BitsPerSample
+  fullName: ImageSharp.ExifTag.BitsPerSample
+  type: Field
+  source:
+    id: BitsPerSample
+    path: ''
+    startLine: 24124
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nBitsPerSample\n"
+  example: []
+  syntax:
+    content: BitsPerSample = 258
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.Compression
+  commentId: F:ImageSharp.ExifTag.Compression
+  id: Compression
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: Compression
+  nameWithType: ExifTag.Compression
+  fullName: ImageSharp.ExifTag.Compression
+  type: Field
+  source:
+    id: Compression
+    path: ''
+    startLine: 24129
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCompression\n"
+  example: []
+  syntax:
+    content: Compression = 259
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.PhotometricInterpretation
+  commentId: F:ImageSharp.ExifTag.PhotometricInterpretation
+  id: PhotometricInterpretation
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: PhotometricInterpretation
+  nameWithType: ExifTag.PhotometricInterpretation
+  fullName: ImageSharp.ExifTag.PhotometricInterpretation
+  type: Field
+  source:
+    id: PhotometricInterpretation
+    path: ''
+    startLine: 24175
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nPhotometricInterpretation\n"
+  example: []
+  syntax:
+    content: PhotometricInterpretation = 262
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.Thresholding
+  commentId: F:ImageSharp.ExifTag.Thresholding
+  id: Thresholding
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: Thresholding
+  nameWithType: ExifTag.Thresholding
+  fullName: ImageSharp.ExifTag.Thresholding
+  type: Field
+  source:
+    id: Thresholding
+    path: ''
+    startLine: 24194
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nThresholding\n"
+  example: []
+  syntax:
+    content: Thresholding = 263
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.CellWidth
+  commentId: F:ImageSharp.ExifTag.CellWidth
+  id: CellWidth
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: CellWidth
+  nameWithType: ExifTag.CellWidth
+  fullName: ImageSharp.ExifTag.CellWidth
+  type: Field
+  source:
+    id: CellWidth
+    path: ''
+    startLine: 24202
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCellWidth\n"
+  example: []
+  syntax:
+    content: CellWidth = 264
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.CellLength
+  commentId: F:ImageSharp.ExifTag.CellLength
+  id: CellLength
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: CellLength
+  nameWithType: ExifTag.CellLength
+  fullName: ImageSharp.ExifTag.CellLength
+  type: Field
+  source:
+    id: CellLength
+    path: ''
+    startLine: 24207
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCellLength\n"
+  example: []
+  syntax:
+    content: CellLength = 265
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.FillOrder
+  commentId: F:ImageSharp.ExifTag.FillOrder
+  id: FillOrder
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: FillOrder
+  nameWithType: ExifTag.FillOrder
+  fullName: ImageSharp.ExifTag.FillOrder
+  type: Field
+  source:
+    id: FillOrder
+    path: ''
+    startLine: 24212
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nFillOrder\n"
+  example: []
+  syntax:
+    content: FillOrder = 266
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.ImageDescription
+  commentId: F:ImageSharp.ExifTag.ImageDescription
+  id: ImageDescription
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: ImageDescription
+  nameWithType: ExifTag.ImageDescription
+  fullName: ImageSharp.ExifTag.ImageDescription
+  type: Field
+  source:
+    id: ImageDescription
+    path: ''
+    startLine: 24219
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nImageDescription\n"
+  example: []
+  syntax:
+    content: ImageDescription = 270
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.Make
+  commentId: F:ImageSharp.ExifTag.Make
+  id: Make
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: Make
+  nameWithType: ExifTag.Make
+  fullName: ImageSharp.ExifTag.Make
+  type: Field
+  source:
+    id: Make
+    path: ''
+    startLine: 24224
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nMake\n"
+  example: []
+  syntax:
+    content: Make = 271
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.Model
+  commentId: F:ImageSharp.ExifTag.Model
+  id: Model
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: Model
+  nameWithType: ExifTag.Model
+  fullName: ImageSharp.ExifTag.Model
+  type: Field
+  source:
+    id: Model
+    path: ''
+    startLine: 24229
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nModel\n"
+  example: []
+  syntax:
+    content: Model = 272
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.StripOffsets
+  commentId: F:ImageSharp.ExifTag.StripOffsets
+  id: StripOffsets
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: StripOffsets
+  nameWithType: ExifTag.StripOffsets
+  fullName: ImageSharp.ExifTag.StripOffsets
+  type: Field
+  source:
+    id: StripOffsets
+    path: ''
+    startLine: 24234
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nStripOffsets\n"
+  example: []
+  syntax:
+    content: StripOffsets = 273
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.Orientation
+  commentId: F:ImageSharp.ExifTag.Orientation
+  id: Orientation
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: Orientation
+  nameWithType: ExifTag.Orientation
+  fullName: ImageSharp.ExifTag.Orientation
+  type: Field
+  source:
+    id: Orientation
+    path: ''
+    startLine: 24239
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nOrientation\n"
+  example: []
+  syntax:
+    content: Orientation = 274
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.SamplesPerPixel
+  commentId: F:ImageSharp.ExifTag.SamplesPerPixel
+  id: SamplesPerPixel
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: SamplesPerPixel
+  nameWithType: ExifTag.SamplesPerPixel
+  fullName: ImageSharp.ExifTag.SamplesPerPixel
+  type: Field
+  source:
+    id: SamplesPerPixel
+    path: ''
+    startLine: 24252
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSamplesPerPixel\n"
+  example: []
+  syntax:
+    content: SamplesPerPixel = 277
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.RowsPerStrip
+  commentId: F:ImageSharp.ExifTag.RowsPerStrip
+  id: RowsPerStrip
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: RowsPerStrip
+  nameWithType: ExifTag.RowsPerStrip
+  fullName: ImageSharp.ExifTag.RowsPerStrip
+  type: Field
+  source:
+    id: RowsPerStrip
+    path: ''
+    startLine: 24257
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRowsPerStrip\n"
+  example: []
+  syntax:
+    content: RowsPerStrip = 278
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.StripByteCounts
+  commentId: F:ImageSharp.ExifTag.StripByteCounts
+  id: StripByteCounts
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: StripByteCounts
+  nameWithType: ExifTag.StripByteCounts
+  fullName: ImageSharp.ExifTag.StripByteCounts
+  type: Field
+  source:
+    id: StripByteCounts
+    path: ''
+    startLine: 24262
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nStripByteCounts\n"
+  example: []
+  syntax:
+    content: StripByteCounts = 279
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.MinSampleValue
+  commentId: F:ImageSharp.ExifTag.MinSampleValue
+  id: MinSampleValue
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: MinSampleValue
+  nameWithType: ExifTag.MinSampleValue
+  fullName: ImageSharp.ExifTag.MinSampleValue
+  type: Field
+  source:
+    id: MinSampleValue
+    path: ''
+    startLine: 24267
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nMinSampleValue\n"
+  example: []
+  syntax:
+    content: MinSampleValue = 280
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.MaxSampleValue
+  commentId: F:ImageSharp.ExifTag.MaxSampleValue
+  id: MaxSampleValue
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: MaxSampleValue
+  nameWithType: ExifTag.MaxSampleValue
+  fullName: ImageSharp.ExifTag.MaxSampleValue
+  type: Field
+  source:
+    id: MaxSampleValue
+    path: ''
+    startLine: 24272
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nMaxSampleValue\n"
+  example: []
+  syntax:
+    content: MaxSampleValue = 281
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.XResolution
+  commentId: F:ImageSharp.ExifTag.XResolution
+  id: XResolution
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: XResolution
+  nameWithType: ExifTag.XResolution
+  fullName: ImageSharp.ExifTag.XResolution
+  type: Field
+  source:
+    id: XResolution
+    path: ''
+    startLine: 24277
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nXResolution\n"
+  example: []
+  syntax:
+    content: XResolution = 282
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.YResolution
+  commentId: F:ImageSharp.ExifTag.YResolution
+  id: YResolution
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: YResolution
+  nameWithType: ExifTag.YResolution
+  fullName: ImageSharp.ExifTag.YResolution
+  type: Field
+  source:
+    id: YResolution
+    path: ''
+    startLine: 24282
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nYResolution\n"
+  example: []
+  syntax:
+    content: YResolution = 283
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.PlanarConfiguration
+  commentId: F:ImageSharp.ExifTag.PlanarConfiguration
+  id: PlanarConfiguration
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: PlanarConfiguration
+  nameWithType: ExifTag.PlanarConfiguration
+  fullName: ImageSharp.ExifTag.PlanarConfiguration
+  type: Field
+  source:
+    id: PlanarConfiguration
+    path: ''
+    startLine: 24287
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nPlanarConfiguration\n"
+  example: []
+  syntax:
+    content: PlanarConfiguration = 284
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.FreeOffsets
+  commentId: F:ImageSharp.ExifTag.FreeOffsets
+  id: FreeOffsets
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: FreeOffsets
+  nameWithType: ExifTag.FreeOffsets
+  fullName: ImageSharp.ExifTag.FreeOffsets
+  type: Field
+  source:
+    id: FreeOffsets
+    path: ''
+    startLine: 24294
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nFreeOffsets\n"
+  example: []
+  syntax:
+    content: FreeOffsets = 288
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.FreeByteCounts
+  commentId: F:ImageSharp.ExifTag.FreeByteCounts
+  id: FreeByteCounts
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: FreeByteCounts
+  nameWithType: ExifTag.FreeByteCounts
+  fullName: ImageSharp.ExifTag.FreeByteCounts
+  type: Field
+  source:
+    id: FreeByteCounts
+    path: ''
+    startLine: 24299
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nFreeByteCounts\n"
+  example: []
+  syntax:
+    content: FreeByteCounts = 289
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GrayResponseUnit
+  commentId: F:ImageSharp.ExifTag.GrayResponseUnit
+  id: GrayResponseUnit
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GrayResponseUnit
+  nameWithType: ExifTag.GrayResponseUnit
+  fullName: ImageSharp.ExifTag.GrayResponseUnit
+  type: Field
+  source:
+    id: GrayResponseUnit
+    path: ''
+    startLine: 24304
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGrayResponseUnit\n"
+  example: []
+  syntax:
+    content: GrayResponseUnit = 290
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GrayResponseCurve
+  commentId: F:ImageSharp.ExifTag.GrayResponseCurve
+  id: GrayResponseCurve
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GrayResponseCurve
+  nameWithType: ExifTag.GrayResponseCurve
+  fullName: ImageSharp.ExifTag.GrayResponseCurve
+  type: Field
+  source:
+    id: GrayResponseCurve
+    path: ''
+    startLine: 24314
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGrayResponseCurve\n"
+  example: []
+  syntax:
+    content: GrayResponseCurve = 291
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.ResolutionUnit
+  commentId: F:ImageSharp.ExifTag.ResolutionUnit
+  id: ResolutionUnit
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: ResolutionUnit
+  nameWithType: ExifTag.ResolutionUnit
+  fullName: ImageSharp.ExifTag.ResolutionUnit
+  type: Field
+  source:
+    id: ResolutionUnit
+    path: ''
+    startLine: 24319
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nResolutionUnit\n"
+  example: []
+  syntax:
+    content: ResolutionUnit = 296
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.Software
+  commentId: F:ImageSharp.ExifTag.Software
+  id: Software
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: Software
+  nameWithType: ExifTag.Software
+  fullName: ImageSharp.ExifTag.Software
+  type: Field
+  source:
+    id: Software
+    path: ''
+    startLine: 24327
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSoftware\n"
+  example: []
+  syntax:
+    content: Software = 305
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.DateTime
+  commentId: F:ImageSharp.ExifTag.DateTime
+  id: DateTime
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: DateTime
+  nameWithType: ExifTag.DateTime
+  fullName: ImageSharp.ExifTag.DateTime
+  type: Field
+  source:
+    id: DateTime
+    path: ''
+    startLine: 24332
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nDateTime\n"
+  example: []
+  syntax:
+    content: DateTime = 306
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.Artist
+  commentId: F:ImageSharp.ExifTag.Artist
+  id: Artist
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: Artist
+  nameWithType: ExifTag.Artist
+  fullName: ImageSharp.ExifTag.Artist
+  type: Field
+  source:
+    id: Artist
+    path: ''
+    startLine: 24337
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nArtist\n"
+  example: []
+  syntax:
+    content: Artist = 315
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.HostComputer
+  commentId: F:ImageSharp.ExifTag.HostComputer
+  id: HostComputer
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: HostComputer
+  nameWithType: ExifTag.HostComputer
+  fullName: ImageSharp.ExifTag.HostComputer
+  type: Field
+  source:
+    id: HostComputer
+    path: ''
+    startLine: 24342
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nHostComputer\n"
+  example: []
+  syntax:
+    content: HostComputer = 316
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.ColorMap
+  commentId: F:ImageSharp.ExifTag.ColorMap
+  id: ColorMap
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: ColorMap
+  nameWithType: ExifTag.ColorMap
+  fullName: ImageSharp.ExifTag.ColorMap
+  type: Field
+  source:
+    id: ColorMap
+    path: ''
+    startLine: 24347
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nColorMap\n"
+  example: []
+  syntax:
+    content: ColorMap = 320
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.ExtraSamples
+  commentId: F:ImageSharp.ExifTag.ExtraSamples
+  id: ExtraSamples
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: ExtraSamples
+  nameWithType: ExifTag.ExtraSamples
+  fullName: ImageSharp.ExifTag.ExtraSamples
+  type: Field
+  source:
+    id: ExtraSamples
+    path: ''
+    startLine: 24352
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nExtraSamples\n"
+  example: []
+  syntax:
+    content: ExtraSamples = 338
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.Copyright
+  commentId: F:ImageSharp.ExifTag.Copyright
+  id: Copyright
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: Copyright
+  nameWithType: ExifTag.Copyright
+  fullName: ImageSharp.ExifTag.Copyright
+  type: Field
+  source:
+    id: Copyright
+    path: ''
+    startLine: 24357
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCopyright\n"
+  example: []
+  syntax:
+    content: Copyright = 33432
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.DocumentName
+  commentId: F:ImageSharp.ExifTag.DocumentName
+  id: DocumentName
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: DocumentName
+  nameWithType: ExifTag.DocumentName
+  fullName: ImageSharp.ExifTag.DocumentName
+  type: Field
+  source:
+    id: DocumentName
+    path: ''
+    startLine: 24362
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nDocumentName\n"
+  example: []
+  syntax:
+    content: DocumentName = 269
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.PageName
+  commentId: F:ImageSharp.ExifTag.PageName
+  id: PageName
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: PageName
+  nameWithType: ExifTag.PageName
+  fullName: ImageSharp.ExifTag.PageName
+  type: Field
+  source:
+    id: PageName
+    path: ''
+    startLine: 24367
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nPageName\n"
+  example: []
+  syntax:
+    content: PageName = 285
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.XPosition
+  commentId: F:ImageSharp.ExifTag.XPosition
+  id: XPosition
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: XPosition
+  nameWithType: ExifTag.XPosition
+  fullName: ImageSharp.ExifTag.XPosition
+  type: Field
+  source:
+    id: XPosition
+    path: ''
+    startLine: 24372
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nXPosition\n"
+  example: []
+  syntax:
+    content: XPosition = 286
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.YPosition
+  commentId: F:ImageSharp.ExifTag.YPosition
+  id: YPosition
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: YPosition
+  nameWithType: ExifTag.YPosition
+  fullName: ImageSharp.ExifTag.YPosition
+  type: Field
+  source:
+    id: YPosition
+    path: ''
+    startLine: 24377
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nYPosition\n"
+  example: []
+  syntax:
+    content: YPosition = 287
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.T4Options
+  commentId: F:ImageSharp.ExifTag.T4Options
+  id: T4Options
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: T4Options
+  nameWithType: ExifTag.T4Options
+  fullName: ImageSharp.ExifTag.T4Options
+  type: Field
+  source:
+    id: T4Options
+    path: ''
+    startLine: 24382
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nT4Options\n"
+  example: []
+  syntax:
+    content: T4Options = 292
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.T6Options
+  commentId: F:ImageSharp.ExifTag.T6Options
+  id: T6Options
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: T6Options
+  nameWithType: ExifTag.T6Options
+  fullName: ImageSharp.ExifTag.T6Options
+  type: Field
+  source:
+    id: T6Options
+    path: ''
+    startLine: 24390
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nT6Options\n"
+  example: []
+  syntax:
+    content: T6Options = 293
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.PageNumber
+  commentId: F:ImageSharp.ExifTag.PageNumber
+  id: PageNumber
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: PageNumber
+  nameWithType: ExifTag.PageNumber
+  fullName: ImageSharp.ExifTag.PageNumber
+  type: Field
+  source:
+    id: PageNumber
+    path: ''
+    startLine: 24396
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nPageNumber\n"
+  example: []
+  syntax:
+    content: PageNumber = 297
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.TransferFunction
+  commentId: F:ImageSharp.ExifTag.TransferFunction
+  id: TransferFunction
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: TransferFunction
+  nameWithType: ExifTag.TransferFunction
+  fullName: ImageSharp.ExifTag.TransferFunction
+  type: Field
+  source:
+    id: TransferFunction
+    path: ''
+    startLine: 24401
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nTransferFunction\n"
+  example: []
+  syntax:
+    content: TransferFunction = 301
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.Predictor
+  commentId: F:ImageSharp.ExifTag.Predictor
+  id: Predictor
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: Predictor
+  nameWithType: ExifTag.Predictor
+  fullName: ImageSharp.ExifTag.Predictor
+  type: Field
+  source:
+    id: Predictor
+    path: ''
+    startLine: 24406
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nPredictor\n"
+  example: []
+  syntax:
+    content: Predictor = 317
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.WhitePoint
+  commentId: F:ImageSharp.ExifTag.WhitePoint
+  id: WhitePoint
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: WhitePoint
+  nameWithType: ExifTag.WhitePoint
+  fullName: ImageSharp.ExifTag.WhitePoint
+  type: Field
+  source:
+    id: WhitePoint
+    path: ''
+    startLine: 24411
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nWhitePoint\n"
+  example: []
+  syntax:
+    content: WhitePoint = 318
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.PrimaryChromaticities
+  commentId: F:ImageSharp.ExifTag.PrimaryChromaticities
+  id: PrimaryChromaticities
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: PrimaryChromaticities
+  nameWithType: ExifTag.PrimaryChromaticities
+  fullName: ImageSharp.ExifTag.PrimaryChromaticities
+  type: Field
+  source:
+    id: PrimaryChromaticities
+    path: ''
+    startLine: 24416
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nPrimaryChromaticities\n"
+  example: []
+  syntax:
+    content: PrimaryChromaticities = 319
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.HalftoneHints
+  commentId: F:ImageSharp.ExifTag.HalftoneHints
+  id: HalftoneHints
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: HalftoneHints
+  nameWithType: ExifTag.HalftoneHints
+  fullName: ImageSharp.ExifTag.HalftoneHints
+  type: Field
+  source:
+    id: HalftoneHints
+    path: ''
+    startLine: 24421
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nHalftoneHints\n"
+  example: []
+  syntax:
+    content: HalftoneHints = 321
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.TileWidth
+  commentId: F:ImageSharp.ExifTag.TileWidth
+  id: TileWidth
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: TileWidth
+  nameWithType: ExifTag.TileWidth
+  fullName: ImageSharp.ExifTag.TileWidth
+  type: Field
+  source:
+    id: TileWidth
+    path: ''
+    startLine: 24426
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nTileWidth\n"
+  example: []
+  syntax:
+    content: TileWidth = 322
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.TileLength
+  commentId: F:ImageSharp.ExifTag.TileLength
+  id: TileLength
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: TileLength
+  nameWithType: ExifTag.TileLength
+  fullName: ImageSharp.ExifTag.TileLength
+  type: Field
+  source:
+    id: TileLength
+    path: ''
+    startLine: 24431
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nTileLength\n"
+  example: []
+  syntax:
+    content: TileLength = 323
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.TileOffsets
+  commentId: F:ImageSharp.ExifTag.TileOffsets
+  id: TileOffsets
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: TileOffsets
+  nameWithType: ExifTag.TileOffsets
+  fullName: ImageSharp.ExifTag.TileOffsets
+  type: Field
+  source:
+    id: TileOffsets
+    path: ''
+    startLine: 24436
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nTileOffsets\n"
+  example: []
+  syntax:
+    content: TileOffsets = 324
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.TileByteCounts
+  commentId: F:ImageSharp.ExifTag.TileByteCounts
+  id: TileByteCounts
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: TileByteCounts
+  nameWithType: ExifTag.TileByteCounts
+  fullName: ImageSharp.ExifTag.TileByteCounts
+  type: Field
+  source:
+    id: TileByteCounts
+    path: ''
+    startLine: 24441
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nTileByteCounts\n"
+  example: []
+  syntax:
+    content: TileByteCounts = 325
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.BadFaxLines
+  commentId: F:ImageSharp.ExifTag.BadFaxLines
+  id: BadFaxLines
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: BadFaxLines
+  nameWithType: ExifTag.BadFaxLines
+  fullName: ImageSharp.ExifTag.BadFaxLines
+  type: Field
+  source:
+    id: BadFaxLines
+    path: ''
+    startLine: 24446
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nBadFaxLines\n"
+  example: []
+  syntax:
+    content: BadFaxLines = 326
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.CleanFaxData
+  commentId: F:ImageSharp.ExifTag.CleanFaxData
+  id: CleanFaxData
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: CleanFaxData
+  nameWithType: ExifTag.CleanFaxData
+  fullName: ImageSharp.ExifTag.CleanFaxData
+  type: Field
+  source:
+    id: CleanFaxData
+    path: ''
+    startLine: 24451
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCleanFaxData\n"
+  example: []
+  syntax:
+    content: CleanFaxData = 327
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.ConsecutiveBadFaxLines
+  commentId: F:ImageSharp.ExifTag.ConsecutiveBadFaxLines
+  id: ConsecutiveBadFaxLines
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: ConsecutiveBadFaxLines
+  nameWithType: ExifTag.ConsecutiveBadFaxLines
+  fullName: ImageSharp.ExifTag.ConsecutiveBadFaxLines
+  type: Field
+  source:
+    id: ConsecutiveBadFaxLines
+    path: ''
+    startLine: 24459
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nConsecutiveBadFaxLines\n"
+  example: []
+  syntax:
+    content: ConsecutiveBadFaxLines = 328
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.InkSet
+  commentId: F:ImageSharp.ExifTag.InkSet
+  id: InkSet
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: InkSet
+  nameWithType: ExifTag.InkSet
+  fullName: ImageSharp.ExifTag.InkSet
+  type: Field
+  source:
+    id: InkSet
+    path: ''
+    startLine: 24464
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nInkSet\n"
+  example: []
+  syntax:
+    content: InkSet = 332
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.InkNames
+  commentId: F:ImageSharp.ExifTag.InkNames
+  id: InkNames
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: InkNames
+  nameWithType: ExifTag.InkNames
+  fullName: ImageSharp.ExifTag.InkNames
+  type: Field
+  source:
+    id: InkNames
+    path: ''
+    startLine: 24471
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nInkNames\n"
+  example: []
+  syntax:
+    content: InkNames = 333
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.NumberOfInks
+  commentId: F:ImageSharp.ExifTag.NumberOfInks
+  id: NumberOfInks
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: NumberOfInks
+  nameWithType: ExifTag.NumberOfInks
+  fullName: ImageSharp.ExifTag.NumberOfInks
+  type: Field
+  source:
+    id: NumberOfInks
+    path: ''
+    startLine: 24476
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nNumberOfInks\n"
+  example: []
+  syntax:
+    content: NumberOfInks = 334
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.DotRange
+  commentId: F:ImageSharp.ExifTag.DotRange
+  id: DotRange
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: DotRange
+  nameWithType: ExifTag.DotRange
+  fullName: ImageSharp.ExifTag.DotRange
+  type: Field
+  source:
+    id: DotRange
+    path: ''
+    startLine: 24481
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nDotRange\n"
+  example: []
+  syntax:
+    content: DotRange = 336
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.TargetPrinter
+  commentId: F:ImageSharp.ExifTag.TargetPrinter
+  id: TargetPrinter
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: TargetPrinter
+  nameWithType: ExifTag.TargetPrinter
+  fullName: ImageSharp.ExifTag.TargetPrinter
+  type: Field
+  source:
+    id: TargetPrinter
+    path: ''
+    startLine: 24486
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nTargetPrinter\n"
+  example: []
+  syntax:
+    content: TargetPrinter = 337
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.SampleFormat
+  commentId: F:ImageSharp.ExifTag.SampleFormat
+  id: SampleFormat
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: SampleFormat
+  nameWithType: ExifTag.SampleFormat
+  fullName: ImageSharp.ExifTag.SampleFormat
+  type: Field
+  source:
+    id: SampleFormat
+    path: ''
+    startLine: 24491
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSampleFormat\n"
+  example: []
+  syntax:
+    content: SampleFormat = 339
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.SMinSampleValue
+  commentId: F:ImageSharp.ExifTag.SMinSampleValue
+  id: SMinSampleValue
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: SMinSampleValue
+  nameWithType: ExifTag.SMinSampleValue
+  fullName: ImageSharp.ExifTag.SMinSampleValue
+  type: Field
+  source:
+    id: SMinSampleValue
+    path: ''
+    startLine: 24502
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSMinSampleValue\n"
+  example: []
+  syntax:
+    content: SMinSampleValue = 340
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.SMaxSampleValue
+  commentId: F:ImageSharp.ExifTag.SMaxSampleValue
+  id: SMaxSampleValue
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: SMaxSampleValue
+  nameWithType: ExifTag.SMaxSampleValue
+  fullName: ImageSharp.ExifTag.SMaxSampleValue
+  type: Field
+  source:
+    id: SMaxSampleValue
+    path: ''
+    startLine: 24507
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSMaxSampleValue\n"
+  example: []
+  syntax:
+    content: SMaxSampleValue = 341
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.TransferRange
+  commentId: F:ImageSharp.ExifTag.TransferRange
+  id: TransferRange
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: TransferRange
+  nameWithType: ExifTag.TransferRange
+  fullName: ImageSharp.ExifTag.TransferRange
+  type: Field
+  source:
+    id: TransferRange
+    path: ''
+    startLine: 24512
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nTransferRange\n"
+  example: []
+  syntax:
+    content: TransferRange = 342
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.ClipPath
+  commentId: F:ImageSharp.ExifTag.ClipPath
+  id: ClipPath
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: ClipPath
+  nameWithType: ExifTag.ClipPath
+  fullName: ImageSharp.ExifTag.ClipPath
+  type: Field
+  source:
+    id: ClipPath
+    path: ''
+    startLine: 24517
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nClipPath\n"
+  example: []
+  syntax:
+    content: ClipPath = 343
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.XClipPathUnits
+  commentId: F:ImageSharp.ExifTag.XClipPathUnits
+  id: XClipPathUnits
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: XClipPathUnits
+  nameWithType: ExifTag.XClipPathUnits
+  fullName: ImageSharp.ExifTag.XClipPathUnits
+  type: Field
+  source:
+    id: XClipPathUnits
+    path: ''
+    startLine: 24522
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nXClipPathUnits\n"
+  example: []
+  syntax:
+    content: XClipPathUnits = 344
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.YClipPathUnits
+  commentId: F:ImageSharp.ExifTag.YClipPathUnits
+  id: YClipPathUnits
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: YClipPathUnits
+  nameWithType: ExifTag.YClipPathUnits
+  fullName: ImageSharp.ExifTag.YClipPathUnits
+  type: Field
+  source:
+    id: YClipPathUnits
+    path: ''
+    startLine: 24527
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nYClipPathUnits\n"
+  example: []
+  syntax:
+    content: YClipPathUnits = 345
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.Indexed
+  commentId: F:ImageSharp.ExifTag.Indexed
+  id: Indexed
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: Indexed
+  nameWithType: ExifTag.Indexed
+  fullName: ImageSharp.ExifTag.Indexed
+  type: Field
+  source:
+    id: Indexed
+    path: ''
+    startLine: 24532
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nIndexed\n"
+  example: []
+  syntax:
+    content: Indexed = 346
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.JPEGTables
+  commentId: F:ImageSharp.ExifTag.JPEGTables
+  id: JPEGTables
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: JPEGTables
+  nameWithType: ExifTag.JPEGTables
+  fullName: ImageSharp.ExifTag.JPEGTables
+  type: Field
+  source:
+    id: JPEGTables
+    path: ''
+    startLine: 24539
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nJPEGTables\n"
+  example: []
+  syntax:
+    content: JPEGTables = 347
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.OPIProxy
+  commentId: F:ImageSharp.ExifTag.OPIProxy
+  id: OPIProxy
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: OPIProxy
+  nameWithType: ExifTag.OPIProxy
+  fullName: ImageSharp.ExifTag.OPIProxy
+  type: Field
+  source:
+    id: OPIProxy
+    path: ''
+    startLine: 24544
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nOPIProxy\n"
+  example: []
+  syntax:
+    content: OPIProxy = 351
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.ProfileType
+  commentId: F:ImageSharp.ExifTag.ProfileType
+  id: ProfileType
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: ProfileType
+  nameWithType: ExifTag.ProfileType
+  fullName: ImageSharp.ExifTag.ProfileType
+  type: Field
+  source:
+    id: ProfileType
+    path: ''
+    startLine: 24551
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nProfileType\n"
+  example: []
+  syntax:
+    content: ProfileType = 401
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.FaxProfile
+  commentId: F:ImageSharp.ExifTag.FaxProfile
+  id: FaxProfile
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: FaxProfile
+  nameWithType: ExifTag.FaxProfile
+  fullName: ImageSharp.ExifTag.FaxProfile
+  type: Field
+  source:
+    id: FaxProfile
+    path: ''
+    startLine: 24558
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nFaxProfile\n"
+  example: []
+  syntax:
+    content: FaxProfile = 402
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.CodingMethods
+  commentId: F:ImageSharp.ExifTag.CodingMethods
+  id: CodingMethods
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: CodingMethods
+  nameWithType: ExifTag.CodingMethods
+  fullName: ImageSharp.ExifTag.CodingMethods
+  type: Field
+  source:
+    id: CodingMethods
+    path: ''
+    startLine: 24572
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCodingMethods\n"
+  example: []
+  syntax:
+    content: CodingMethods = 403
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.VersionYear
+  commentId: F:ImageSharp.ExifTag.VersionYear
+  id: VersionYear
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: VersionYear
+  nameWithType: ExifTag.VersionYear
+  fullName: ImageSharp.ExifTag.VersionYear
+  type: Field
+  source:
+    id: VersionYear
+    path: ''
+    startLine: 24584
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nVersionYear\n"
+  example: []
+  syntax:
+    content: VersionYear = 404
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.ModeNumber
+  commentId: F:ImageSharp.ExifTag.ModeNumber
+  id: ModeNumber
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: ModeNumber
+  nameWithType: ExifTag.ModeNumber
+  fullName: ImageSharp.ExifTag.ModeNumber
+  type: Field
+  source:
+    id: ModeNumber
+    path: ''
+    startLine: 24589
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nModeNumber\n"
+  example: []
+  syntax:
+    content: ModeNumber = 405
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.Decode
+  commentId: F:ImageSharp.ExifTag.Decode
+  id: Decode
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: Decode
+  nameWithType: ExifTag.Decode
+  fullName: ImageSharp.ExifTag.Decode
+  type: Field
+  source:
+    id: Decode
+    path: ''
+    startLine: 24594
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nDecode\n"
+  example: []
+  syntax:
+    content: Decode = 433
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.DefaultImageColor
+  commentId: F:ImageSharp.ExifTag.DefaultImageColor
+  id: DefaultImageColor
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: DefaultImageColor
+  nameWithType: ExifTag.DefaultImageColor
+  fullName: ImageSharp.ExifTag.DefaultImageColor
+  type: Field
+  source:
+    id: DefaultImageColor
+    path: ''
+    startLine: 24599
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nDefaultImageColor\n"
+  example: []
+  syntax:
+    content: DefaultImageColor = 434
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.JPEGProc
+  commentId: F:ImageSharp.ExifTag.JPEGProc
+  id: JPEGProc
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: JPEGProc
+  nameWithType: ExifTag.JPEGProc
+  fullName: ImageSharp.ExifTag.JPEGProc
+  type: Field
+  source:
+    id: JPEGProc
+    path: ''
+    startLine: 24604
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nJPEGProc\n"
+  example: []
+  syntax:
+    content: JPEGProc = 512
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.JPEGInterchangeFormat
+  commentId: F:ImageSharp.ExifTag.JPEGInterchangeFormat
+  id: JPEGInterchangeFormat
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: JPEGInterchangeFormat
+  nameWithType: ExifTag.JPEGInterchangeFormat
+  fullName: ImageSharp.ExifTag.JPEGInterchangeFormat
+  type: Field
+  source:
+    id: JPEGInterchangeFormat
+    path: ''
+    startLine: 24611
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nJPEGInterchangeFormat\n"
+  example: []
+  syntax:
+    content: JPEGInterchangeFormat = 513
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.JPEGInterchangeFormatLength
+  commentId: F:ImageSharp.ExifTag.JPEGInterchangeFormatLength
+  id: JPEGInterchangeFormatLength
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: JPEGInterchangeFormatLength
+  nameWithType: ExifTag.JPEGInterchangeFormatLength
+  fullName: ImageSharp.ExifTag.JPEGInterchangeFormatLength
+  type: Field
+  source:
+    id: JPEGInterchangeFormatLength
+    path: ''
+    startLine: 24616
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nJPEGInterchangeFormatLength\n"
+  example: []
+  syntax:
+    content: JPEGInterchangeFormatLength = 514
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.JPEGRestartInterval
+  commentId: F:ImageSharp.ExifTag.JPEGRestartInterval
+  id: JPEGRestartInterval
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: JPEGRestartInterval
+  nameWithType: ExifTag.JPEGRestartInterval
+  fullName: ImageSharp.ExifTag.JPEGRestartInterval
+  type: Field
+  source:
+    id: JPEGRestartInterval
+    path: ''
+    startLine: 24621
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nJPEGRestartInterval\n"
+  example: []
+  syntax:
+    content: JPEGRestartInterval = 515
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.JPEGLosslessPredictors
+  commentId: F:ImageSharp.ExifTag.JPEGLosslessPredictors
+  id: JPEGLosslessPredictors
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: JPEGLosslessPredictors
+  nameWithType: ExifTag.JPEGLosslessPredictors
+  fullName: ImageSharp.ExifTag.JPEGLosslessPredictors
+  type: Field
+  source:
+    id: JPEGLosslessPredictors
+    path: ''
+    startLine: 24626
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nJPEGLosslessPredictors\n"
+  example: []
+  syntax:
+    content: JPEGLosslessPredictors = 517
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.JPEGPointTransforms
+  commentId: F:ImageSharp.ExifTag.JPEGPointTransforms
+  id: JPEGPointTransforms
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: JPEGPointTransforms
+  nameWithType: ExifTag.JPEGPointTransforms
+  fullName: ImageSharp.ExifTag.JPEGPointTransforms
+  type: Field
+  source:
+    id: JPEGPointTransforms
+    path: ''
+    startLine: 24631
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nJPEGPointTransforms\n"
+  example: []
+  syntax:
+    content: JPEGPointTransforms = 518
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.JPEGQTables
+  commentId: F:ImageSharp.ExifTag.JPEGQTables
+  id: JPEGQTables
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: JPEGQTables
+  nameWithType: ExifTag.JPEGQTables
+  fullName: ImageSharp.ExifTag.JPEGQTables
+  type: Field
+  source:
+    id: JPEGQTables
+    path: ''
+    startLine: 24636
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nJPEGQTables\n"
+  example: []
+  syntax:
+    content: JPEGQTables = 519
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.JPEGDCTables
+  commentId: F:ImageSharp.ExifTag.JPEGDCTables
+  id: JPEGDCTables
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: JPEGDCTables
+  nameWithType: ExifTag.JPEGDCTables
+  fullName: ImageSharp.ExifTag.JPEGDCTables
+  type: Field
+  source:
+    id: JPEGDCTables
+    path: ''
+    startLine: 24641
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nJPEGDCTables\n"
+  example: []
+  syntax:
+    content: JPEGDCTables = 520
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.JPEGACTables
+  commentId: F:ImageSharp.ExifTag.JPEGACTables
+  id: JPEGACTables
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: JPEGACTables
+  nameWithType: ExifTag.JPEGACTables
+  fullName: ImageSharp.ExifTag.JPEGACTables
+  type: Field
+  source:
+    id: JPEGACTables
+    path: ''
+    startLine: 24646
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nJPEGACTables\n"
+  example: []
+  syntax:
+    content: JPEGACTables = 521
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.YCbCrCoefficients
+  commentId: F:ImageSharp.ExifTag.YCbCrCoefficients
+  id: YCbCrCoefficients
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: YCbCrCoefficients
+  nameWithType: ExifTag.YCbCrCoefficients
+  fullName: ImageSharp.ExifTag.YCbCrCoefficients
+  type: Field
+  source:
+    id: YCbCrCoefficients
+    path: ''
+    startLine: 24651
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nYCbCrCoefficients\n"
+  example: []
+  syntax:
+    content: YCbCrCoefficients = 529
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.YCbCrSubsampling
+  commentId: F:ImageSharp.ExifTag.YCbCrSubsampling
+  id: YCbCrSubsampling
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: YCbCrSubsampling
+  nameWithType: ExifTag.YCbCrSubsampling
+  fullName: ImageSharp.ExifTag.YCbCrSubsampling
+  type: Field
+  source:
+    id: YCbCrSubsampling
+    path: ''
+    startLine: 24656
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nYCbCrSubsampling\n"
+  example: []
+  syntax:
+    content: YCbCrSubsampling = 530
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.YCbCrPositioning
+  commentId: F:ImageSharp.ExifTag.YCbCrPositioning
+  id: YCbCrPositioning
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: YCbCrPositioning
+  nameWithType: ExifTag.YCbCrPositioning
+  fullName: ImageSharp.ExifTag.YCbCrPositioning
+  type: Field
+  source:
+    id: YCbCrPositioning
+    path: ''
+    startLine: 24661
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nYCbCrPositioning\n"
+  example: []
+  syntax:
+    content: YCbCrPositioning = 531
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.ReferenceBlackWhite
+  commentId: F:ImageSharp.ExifTag.ReferenceBlackWhite
+  id: ReferenceBlackWhite
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: ReferenceBlackWhite
+  nameWithType: ExifTag.ReferenceBlackWhite
+  fullName: ImageSharp.ExifTag.ReferenceBlackWhite
+  type: Field
+  source:
+    id: ReferenceBlackWhite
+    path: ''
+    startLine: 24668
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nReferenceBlackWhite\n"
+  example: []
+  syntax:
+    content: ReferenceBlackWhite = 532
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.StripRowCounts
+  commentId: F:ImageSharp.ExifTag.StripRowCounts
+  id: StripRowCounts
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: StripRowCounts
+  nameWithType: ExifTag.StripRowCounts
+  fullName: ImageSharp.ExifTag.StripRowCounts
+  type: Field
+  source:
+    id: StripRowCounts
+    path: ''
+    startLine: 24673
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nStripRowCounts\n"
+  example: []
+  syntax:
+    content: StripRowCounts = 559
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.XMP
+  commentId: F:ImageSharp.ExifTag.XMP
+  id: XMP
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: XMP
+  nameWithType: ExifTag.XMP
+  fullName: ImageSharp.ExifTag.XMP
+  type: Field
+  source:
+    id: XMP
+    path: ''
+    startLine: 24678
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nXMP\n"
+  example: []
+  syntax:
+    content: XMP = 700
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.ImageID
+  commentId: F:ImageSharp.ExifTag.ImageID
+  id: ImageID
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: ImageID
+  nameWithType: ExifTag.ImageID
+  fullName: ImageSharp.ExifTag.ImageID
+  type: Field
+  source:
+    id: ImageID
+    path: ''
+    startLine: 24683
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nImageID\n"
+  example: []
+  syntax:
+    content: ImageID = 32781
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.ImageLayer
+  commentId: F:ImageSharp.ExifTag.ImageLayer
+  id: ImageLayer
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: ImageLayer
+  nameWithType: ExifTag.ImageLayer
+  fullName: ImageSharp.ExifTag.ImageLayer
+  type: Field
+  source:
+    id: ImageLayer
+    path: ''
+    startLine: 24688
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nImageLayer\n"
+  example: []
+  syntax:
+    content: ImageLayer = 34732
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.ExposureTime
+  commentId: F:ImageSharp.ExifTag.ExposureTime
+  id: ExposureTime
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: ExposureTime
+  nameWithType: ExifTag.ExposureTime
+  fullName: ImageSharp.ExifTag.ExposureTime
+  type: Field
+  source:
+    id: ExposureTime
+    path: ''
+    startLine: 24693
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nExposureTime\n"
+  example: []
+  syntax:
+    content: ExposureTime = 33434
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.FNumber
+  commentId: F:ImageSharp.ExifTag.FNumber
+  id: FNumber
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: FNumber
+  nameWithType: ExifTag.FNumber
+  fullName: ImageSharp.ExifTag.FNumber
+  type: Field
+  source:
+    id: FNumber
+    path: ''
+    startLine: 24698
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nFNumber\n"
+  example: []
+  syntax:
+    content: FNumber = 33437
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.ExposureProgram
+  commentId: F:ImageSharp.ExifTag.ExposureProgram
+  id: ExposureProgram
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: ExposureProgram
+  nameWithType: ExifTag.ExposureProgram
+  fullName: ImageSharp.ExifTag.ExposureProgram
+  type: Field
+  source:
+    id: ExposureProgram
+    path: ''
+    startLine: 24703
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nExposureProgram\n"
+  example: []
+  syntax:
+    content: ExposureProgram = 34850
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.SpectralSensitivity
+  commentId: F:ImageSharp.ExifTag.SpectralSensitivity
+  id: SpectralSensitivity
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: SpectralSensitivity
+  nameWithType: ExifTag.SpectralSensitivity
+  fullName: ImageSharp.ExifTag.SpectralSensitivity
+  type: Field
+  source:
+    id: SpectralSensitivity
+    path: ''
+    startLine: 24718
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSpectralSensitivity\n"
+  example: []
+  syntax:
+    content: SpectralSensitivity = 34852
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.ISOSpeedRatings
+  commentId: F:ImageSharp.ExifTag.ISOSpeedRatings
+  id: ISOSpeedRatings
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: ISOSpeedRatings
+  nameWithType: ExifTag.ISOSpeedRatings
+  fullName: ImageSharp.ExifTag.ISOSpeedRatings
+  type: Field
+  source:
+    id: ISOSpeedRatings
+    path: ''
+    startLine: 24723
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nISOSpeedRatings\n"
+  example: []
+  syntax:
+    content: ISOSpeedRatings = 34855
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.OECF
+  commentId: F:ImageSharp.ExifTag.OECF
+  id: OECF
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: OECF
+  nameWithType: ExifTag.OECF
+  fullName: ImageSharp.ExifTag.OECF
+  type: Field
+  source:
+    id: OECF
+    path: ''
+    startLine: 24728
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nOECF\n"
+  example: []
+  syntax:
+    content: OECF = 34856
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.ExifVersion
+  commentId: F:ImageSharp.ExifTag.ExifVersion
+  id: ExifVersion
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: ExifVersion
+  nameWithType: ExifTag.ExifVersion
+  fullName: ImageSharp.ExifTag.ExifVersion
+  type: Field
+  source:
+    id: ExifVersion
+    path: ''
+    startLine: 24733
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nExifVersion\n"
+  example: []
+  syntax:
+    content: ExifVersion = 36864
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.DateTimeOriginal
+  commentId: F:ImageSharp.ExifTag.DateTimeOriginal
+  id: DateTimeOriginal
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: DateTimeOriginal
+  nameWithType: ExifTag.DateTimeOriginal
+  fullName: ImageSharp.ExifTag.DateTimeOriginal
+  type: Field
+  source:
+    id: DateTimeOriginal
+    path: ''
+    startLine: 24738
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nDateTimeOriginal\n"
+  example: []
+  syntax:
+    content: DateTimeOriginal = 36867
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.DateTimeDigitized
+  commentId: F:ImageSharp.ExifTag.DateTimeDigitized
+  id: DateTimeDigitized
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: DateTimeDigitized
+  nameWithType: ExifTag.DateTimeDigitized
+  fullName: ImageSharp.ExifTag.DateTimeDigitized
+  type: Field
+  source:
+    id: DateTimeDigitized
+    path: ''
+    startLine: 24743
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nDateTimeDigitized\n"
+  example: []
+  syntax:
+    content: DateTimeDigitized = 36868
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.ComponentsConfiguration
+  commentId: F:ImageSharp.ExifTag.ComponentsConfiguration
+  id: ComponentsConfiguration
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: ComponentsConfiguration
+  nameWithType: ExifTag.ComponentsConfiguration
+  fullName: ImageSharp.ExifTag.ComponentsConfiguration
+  type: Field
+  source:
+    id: ComponentsConfiguration
+    path: ''
+    startLine: 24748
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nComponentsConfiguration\n"
+  example: []
+  syntax:
+    content: ComponentsConfiguration = 37121
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.CompressedBitsPerPixel
+  commentId: F:ImageSharp.ExifTag.CompressedBitsPerPixel
+  id: CompressedBitsPerPixel
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: CompressedBitsPerPixel
+  nameWithType: ExifTag.CompressedBitsPerPixel
+  fullName: ImageSharp.ExifTag.CompressedBitsPerPixel
+  type: Field
+  source:
+    id: CompressedBitsPerPixel
+    path: ''
+    startLine: 24753
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCompressedBitsPerPixel\n"
+  example: []
+  syntax:
+    content: CompressedBitsPerPixel = 37122
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.ShutterSpeedValue
+  commentId: F:ImageSharp.ExifTag.ShutterSpeedValue
+  id: ShutterSpeedValue
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: ShutterSpeedValue
+  nameWithType: ExifTag.ShutterSpeedValue
+  fullName: ImageSharp.ExifTag.ShutterSpeedValue
+  type: Field
+  source:
+    id: ShutterSpeedValue
+    path: ''
+    startLine: 24758
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nShutterSpeedValue\n"
+  example: []
+  syntax:
+    content: ShutterSpeedValue = 37377
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.ApertureValue
+  commentId: F:ImageSharp.ExifTag.ApertureValue
+  id: ApertureValue
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: ApertureValue
+  nameWithType: ExifTag.ApertureValue
+  fullName: ImageSharp.ExifTag.ApertureValue
+  type: Field
+  source:
+    id: ApertureValue
+    path: ''
+    startLine: 24763
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nApertureValue\n"
+  example: []
+  syntax:
+    content: ApertureValue = 37378
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.BrightnessValue
+  commentId: F:ImageSharp.ExifTag.BrightnessValue
+  id: BrightnessValue
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: BrightnessValue
+  nameWithType: ExifTag.BrightnessValue
+  fullName: ImageSharp.ExifTag.BrightnessValue
+  type: Field
+  source:
+    id: BrightnessValue
+    path: ''
+    startLine: 24768
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nBrightnessValue\n"
+  example: []
+  syntax:
+    content: BrightnessValue = 37379
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.ExposureBiasValue
+  commentId: F:ImageSharp.ExifTag.ExposureBiasValue
+  id: ExposureBiasValue
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: ExposureBiasValue
+  nameWithType: ExifTag.ExposureBiasValue
+  fullName: ImageSharp.ExifTag.ExposureBiasValue
+  type: Field
+  source:
+    id: ExposureBiasValue
+    path: ''
+    startLine: 24773
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nExposureBiasValue\n"
+  example: []
+  syntax:
+    content: ExposureBiasValue = 37380
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.MaxApertureValue
+  commentId: F:ImageSharp.ExifTag.MaxApertureValue
+  id: MaxApertureValue
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: MaxApertureValue
+  nameWithType: ExifTag.MaxApertureValue
+  fullName: ImageSharp.ExifTag.MaxApertureValue
+  type: Field
+  source:
+    id: MaxApertureValue
+    path: ''
+    startLine: 24778
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nMaxApertureValue\n"
+  example: []
+  syntax:
+    content: MaxApertureValue = 37381
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.SubjectDistance
+  commentId: F:ImageSharp.ExifTag.SubjectDistance
+  id: SubjectDistance
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: SubjectDistance
+  nameWithType: ExifTag.SubjectDistance
+  fullName: ImageSharp.ExifTag.SubjectDistance
+  type: Field
+  source:
+    id: SubjectDistance
+    path: ''
+    startLine: 24783
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSubjectDistance\n"
+  example: []
+  syntax:
+    content: SubjectDistance = 37382
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.MeteringMode
+  commentId: F:ImageSharp.ExifTag.MeteringMode
+  id: MeteringMode
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: MeteringMode
+  nameWithType: ExifTag.MeteringMode
+  fullName: ImageSharp.ExifTag.MeteringMode
+  type: Field
+  source:
+    id: MeteringMode
+    path: ''
+    startLine: 24788
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nMeteringMode\n"
+  example: []
+  syntax:
+    content: MeteringMode = 37383
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.LightSource
+  commentId: F:ImageSharp.ExifTag.LightSource
+  id: LightSource
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: LightSource
+  nameWithType: ExifTag.LightSource
+  fullName: ImageSharp.ExifTag.LightSource
+  type: Field
+  source:
+    id: LightSource
+    path: ''
+    startLine: 24801
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nLightSource\n"
+  example: []
+  syntax:
+    content: LightSource = 37384
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.Flash
+  commentId: F:ImageSharp.ExifTag.Flash
+  id: Flash
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: Flash
+  nameWithType: ExifTag.Flash
+  fullName: ImageSharp.ExifTag.Flash
+  type: Field
+  source:
+    id: Flash
+    path: ''
+    startLine: 24828
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nFlash\n"
+  example: []
+  syntax:
+    content: Flash = 37385
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.FocalLength
+  commentId: F:ImageSharp.ExifTag.FocalLength
+  id: FocalLength
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: FocalLength
+  nameWithType: ExifTag.FocalLength
+  fullName: ImageSharp.ExifTag.FocalLength
+  type: Field
+  source:
+    id: FocalLength
+    path: ''
+    startLine: 24860
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nFocalLength\n"
+  example: []
+  syntax:
+    content: FocalLength = 37386
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.SubjectArea
+  commentId: F:ImageSharp.ExifTag.SubjectArea
+  id: SubjectArea
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: SubjectArea
+  nameWithType: ExifTag.SubjectArea
+  fullName: ImageSharp.ExifTag.SubjectArea
+  type: Field
+  source:
+    id: SubjectArea
+    path: ''
+    startLine: 24865
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSubjectArea\n"
+  example: []
+  syntax:
+    content: SubjectArea = 37396
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.MakerNote
+  commentId: F:ImageSharp.ExifTag.MakerNote
+  id: MakerNote
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: MakerNote
+  nameWithType: ExifTag.MakerNote
+  fullName: ImageSharp.ExifTag.MakerNote
+  type: Field
+  source:
+    id: MakerNote
+    path: ''
+    startLine: 24870
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nMakerNote\n"
+  example: []
+  syntax:
+    content: MakerNote = 37500
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.UserComment
+  commentId: F:ImageSharp.ExifTag.UserComment
+  id: UserComment
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: UserComment
+  nameWithType: ExifTag.UserComment
+  fullName: ImageSharp.ExifTag.UserComment
+  type: Field
+  source:
+    id: UserComment
+    path: ''
+    startLine: 24875
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nUserComment\n"
+  example: []
+  syntax:
+    content: UserComment = 37510
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.SubsecTime
+  commentId: F:ImageSharp.ExifTag.SubsecTime
+  id: SubsecTime
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: SubsecTime
+  nameWithType: ExifTag.SubsecTime
+  fullName: ImageSharp.ExifTag.SubsecTime
+  type: Field
+  source:
+    id: SubsecTime
+    path: ''
+    startLine: 24880
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSubsecTime\n"
+  example: []
+  syntax:
+    content: SubsecTime = 37520
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.SubsecTimeOriginal
+  commentId: F:ImageSharp.ExifTag.SubsecTimeOriginal
+  id: SubsecTimeOriginal
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: SubsecTimeOriginal
+  nameWithType: ExifTag.SubsecTimeOriginal
+  fullName: ImageSharp.ExifTag.SubsecTimeOriginal
+  type: Field
+  source:
+    id: SubsecTimeOriginal
+    path: ''
+    startLine: 24885
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSubsecTimeOriginal\n"
+  example: []
+  syntax:
+    content: SubsecTimeOriginal = 37521
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.SubsecTimeDigitized
+  commentId: F:ImageSharp.ExifTag.SubsecTimeDigitized
+  id: SubsecTimeDigitized
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: SubsecTimeDigitized
+  nameWithType: ExifTag.SubsecTimeDigitized
+  fullName: ImageSharp.ExifTag.SubsecTimeDigitized
+  type: Field
+  source:
+    id: SubsecTimeDigitized
+    path: ''
+    startLine: 24890
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSubsecTimeDigitized\n"
+  example: []
+  syntax:
+    content: SubsecTimeDigitized = 37522
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.FlashpixVersion
+  commentId: F:ImageSharp.ExifTag.FlashpixVersion
+  id: FlashpixVersion
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: FlashpixVersion
+  nameWithType: ExifTag.FlashpixVersion
+  fullName: ImageSharp.ExifTag.FlashpixVersion
+  type: Field
+  source:
+    id: FlashpixVersion
+    path: ''
+    startLine: 24895
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nFlashpixVersion\n"
+  example: []
+  syntax:
+    content: FlashpixVersion = 40960
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.ColorSpace
+  commentId: F:ImageSharp.ExifTag.ColorSpace
+  id: ColorSpace
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: ColorSpace
+  nameWithType: ExifTag.ColorSpace
+  fullName: ImageSharp.ExifTag.ColorSpace
+  type: Field
+  source:
+    id: ColorSpace
+    path: ''
+    startLine: 24900
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nColorSpace\n"
+  example: []
+  syntax:
+    content: ColorSpace = 40961
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.PixelXDimension
+  commentId: F:ImageSharp.ExifTag.PixelXDimension
+  id: PixelXDimension
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: PixelXDimension
+  nameWithType: ExifTag.PixelXDimension
+  fullName: ImageSharp.ExifTag.PixelXDimension
+  type: Field
+  source:
+    id: PixelXDimension
+    path: ''
+    startLine: 24910
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nPixelXDimension\n"
+  example: []
+  syntax:
+    content: PixelXDimension = 40962
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.PixelYDimension
+  commentId: F:ImageSharp.ExifTag.PixelYDimension
+  id: PixelYDimension
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: PixelYDimension
+  nameWithType: ExifTag.PixelYDimension
+  fullName: ImageSharp.ExifTag.PixelYDimension
+  type: Field
+  source:
+    id: PixelYDimension
+    path: ''
+    startLine: 24915
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nPixelYDimension\n"
+  example: []
+  syntax:
+    content: PixelYDimension = 40963
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.RelatedSoundFile
+  commentId: F:ImageSharp.ExifTag.RelatedSoundFile
+  id: RelatedSoundFile
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: RelatedSoundFile
+  nameWithType: ExifTag.RelatedSoundFile
+  fullName: ImageSharp.ExifTag.RelatedSoundFile
+  type: Field
+  source:
+    id: RelatedSoundFile
+    path: ''
+    startLine: 24920
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRelatedSoundFile\n"
+  example: []
+  syntax:
+    content: RelatedSoundFile = 40964
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.FlashEnergy
+  commentId: F:ImageSharp.ExifTag.FlashEnergy
+  id: FlashEnergy
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: FlashEnergy
+  nameWithType: ExifTag.FlashEnergy
+  fullName: ImageSharp.ExifTag.FlashEnergy
+  type: Field
+  source:
+    id: FlashEnergy
+    path: ''
+    startLine: 24925
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nFlashEnergy\n"
+  example: []
+  syntax:
+    content: FlashEnergy = 41483
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.SpatialFrequencyResponse
+  commentId: F:ImageSharp.ExifTag.SpatialFrequencyResponse
+  id: SpatialFrequencyResponse
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: SpatialFrequencyResponse
+  nameWithType: ExifTag.SpatialFrequencyResponse
+  fullName: ImageSharp.ExifTag.SpatialFrequencyResponse
+  type: Field
+  source:
+    id: SpatialFrequencyResponse
+    path: ''
+    startLine: 24930
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSpatialFrequencyResponse\n"
+  example: []
+  syntax:
+    content: SpatialFrequencyResponse = 41484
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.FocalPlaneXResolution
+  commentId: F:ImageSharp.ExifTag.FocalPlaneXResolution
+  id: FocalPlaneXResolution
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: FocalPlaneXResolution
+  nameWithType: ExifTag.FocalPlaneXResolution
+  fullName: ImageSharp.ExifTag.FocalPlaneXResolution
+  type: Field
+  source:
+    id: FocalPlaneXResolution
+    path: ''
+    startLine: 24935
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nFocalPlaneXResolution\n"
+  example: []
+  syntax:
+    content: FocalPlaneXResolution = 41486
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.FocalPlaneYResolution
+  commentId: F:ImageSharp.ExifTag.FocalPlaneYResolution
+  id: FocalPlaneYResolution
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: FocalPlaneYResolution
+  nameWithType: ExifTag.FocalPlaneYResolution
+  fullName: ImageSharp.ExifTag.FocalPlaneYResolution
+  type: Field
+  source:
+    id: FocalPlaneYResolution
+    path: ''
+    startLine: 24940
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nFocalPlaneYResolution\n"
+  example: []
+  syntax:
+    content: FocalPlaneYResolution = 41487
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.FocalPlaneResolutionUnit
+  commentId: F:ImageSharp.ExifTag.FocalPlaneResolutionUnit
+  id: FocalPlaneResolutionUnit
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: FocalPlaneResolutionUnit
+  nameWithType: ExifTag.FocalPlaneResolutionUnit
+  fullName: ImageSharp.ExifTag.FocalPlaneResolutionUnit
+  type: Field
+  source:
+    id: FocalPlaneResolutionUnit
+    path: ''
+    startLine: 24945
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nFocalPlaneResolutionUnit\n"
+  example: []
+  syntax:
+    content: FocalPlaneResolutionUnit = 41488
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.SubjectLocation
+  commentId: F:ImageSharp.ExifTag.SubjectLocation
+  id: SubjectLocation
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: SubjectLocation
+  nameWithType: ExifTag.SubjectLocation
+  fullName: ImageSharp.ExifTag.SubjectLocation
+  type: Field
+  source:
+    id: SubjectLocation
+    path: ''
+    startLine: 24955
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSubjectLocation\n"
+  example: []
+  syntax:
+    content: SubjectLocation = 41492
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.ExposureIndex
+  commentId: F:ImageSharp.ExifTag.ExposureIndex
+  id: ExposureIndex
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: ExposureIndex
+  nameWithType: ExifTag.ExposureIndex
+  fullName: ImageSharp.ExifTag.ExposureIndex
+  type: Field
+  source:
+    id: ExposureIndex
+    path: ''
+    startLine: 24960
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nExposureIndex\n"
+  example: []
+  syntax:
+    content: ExposureIndex = 41493
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.SensingMethod
+  commentId: F:ImageSharp.ExifTag.SensingMethod
+  id: SensingMethod
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: SensingMethod
+  nameWithType: ExifTag.SensingMethod
+  fullName: ImageSharp.ExifTag.SensingMethod
+  type: Field
+  source:
+    id: SensingMethod
+    path: ''
+    startLine: 24965
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSensingMethod\n"
+  example: []
+  syntax:
+    content: SensingMethod = 41495
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.FileSource
+  commentId: F:ImageSharp.ExifTag.FileSource
+  id: FileSource
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: FileSource
+  nameWithType: ExifTag.FileSource
+  fullName: ImageSharp.ExifTag.FileSource
+  type: Field
+  source:
+    id: FileSource
+    path: ''
+    startLine: 24977
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nFileSource\n"
+  example: []
+  syntax:
+    content: FileSource = 41728
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.SceneType
+  commentId: F:ImageSharp.ExifTag.SceneType
+  id: SceneType
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: SceneType
+  nameWithType: ExifTag.SceneType
+  fullName: ImageSharp.ExifTag.SceneType
+  type: Field
+  source:
+    id: SceneType
+    path: ''
+    startLine: 24982
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSceneType\n"
+  example: []
+  syntax:
+    content: SceneType = 41729
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.CFAPattern
+  commentId: F:ImageSharp.ExifTag.CFAPattern
+  id: CFAPattern
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: CFAPattern
+  nameWithType: ExifTag.CFAPattern
+  fullName: ImageSharp.ExifTag.CFAPattern
+  type: Field
+  source:
+    id: CFAPattern
+    path: ''
+    startLine: 24987
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCFAPattern\n"
+  example: []
+  syntax:
+    content: CFAPattern = 41730
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.CustomRendered
+  commentId: F:ImageSharp.ExifTag.CustomRendered
+  id: CustomRendered
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: CustomRendered
+  nameWithType: ExifTag.CustomRendered
+  fullName: ImageSharp.ExifTag.CustomRendered
+  type: Field
+  source:
+    id: CustomRendered
+    path: ''
+    startLine: 24992
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCustomRendered\n"
+  example: []
+  syntax:
+    content: CustomRendered = 41985
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.ExposureMode
+  commentId: F:ImageSharp.ExifTag.ExposureMode
+  id: ExposureMode
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: ExposureMode
+  nameWithType: ExifTag.ExposureMode
+  fullName: ImageSharp.ExifTag.ExposureMode
+  type: Field
+  source:
+    id: ExposureMode
+    path: ''
+    startLine: 24999
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nExposureMode\n"
+  example: []
+  syntax:
+    content: ExposureMode = 41986
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.WhiteBalance
+  commentId: F:ImageSharp.ExifTag.WhiteBalance
+  id: WhiteBalance
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: WhiteBalance
+  nameWithType: ExifTag.WhiteBalance
+  fullName: ImageSharp.ExifTag.WhiteBalance
+  type: Field
+  source:
+    id: WhiteBalance
+    path: ''
+    startLine: 25007
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nWhiteBalance\n"
+  example: []
+  syntax:
+    content: WhiteBalance = 41987
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.DigitalZoomRatio
+  commentId: F:ImageSharp.ExifTag.DigitalZoomRatio
+  id: DigitalZoomRatio
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: DigitalZoomRatio
+  nameWithType: ExifTag.DigitalZoomRatio
+  fullName: ImageSharp.ExifTag.DigitalZoomRatio
+  type: Field
+  source:
+    id: DigitalZoomRatio
+    path: ''
+    startLine: 25014
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nDigitalZoomRatio\n"
+  example: []
+  syntax:
+    content: DigitalZoomRatio = 41988
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.FocalLengthIn35mmFilm
+  commentId: F:ImageSharp.ExifTag.FocalLengthIn35mmFilm
+  id: FocalLengthIn35mmFilm
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: FocalLengthIn35mmFilm
+  nameWithType: ExifTag.FocalLengthIn35mmFilm
+  fullName: ImageSharp.ExifTag.FocalLengthIn35mmFilm
+  type: Field
+  source:
+    id: FocalLengthIn35mmFilm
+    path: ''
+    startLine: 25019
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nFocalLengthIn35mmFilm\n"
+  example: []
+  syntax:
+    content: FocalLengthIn35mmFilm = 41989
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.SceneCaptureType
+  commentId: F:ImageSharp.ExifTag.SceneCaptureType
+  id: SceneCaptureType
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: SceneCaptureType
+  nameWithType: ExifTag.SceneCaptureType
+  fullName: ImageSharp.ExifTag.SceneCaptureType
+  type: Field
+  source:
+    id: SceneCaptureType
+    path: ''
+    startLine: 25024
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSceneCaptureType\n"
+  example: []
+  syntax:
+    content: SceneCaptureType = 41990
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GainControl
+  commentId: F:ImageSharp.ExifTag.GainControl
+  id: GainControl
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GainControl
+  nameWithType: ExifTag.GainControl
+  fullName: ImageSharp.ExifTag.GainControl
+  type: Field
+  source:
+    id: GainControl
+    path: ''
+    startLine: 25033
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGainControl\n"
+  example: []
+  syntax:
+    content: GainControl = 41991
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.Contrast
+  commentId: F:ImageSharp.ExifTag.Contrast
+  id: Contrast
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: Contrast
+  nameWithType: ExifTag.Contrast
+  fullName: ImageSharp.ExifTag.Contrast
+  type: Field
+  source:
+    id: Contrast
+    path: ''
+    startLine: 25043
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nContrast\n"
+  example: []
+  syntax:
+    content: Contrast = 41992
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.Saturation
+  commentId: F:ImageSharp.ExifTag.Saturation
+  id: Saturation
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: Saturation
+  nameWithType: ExifTag.Saturation
+  fullName: ImageSharp.ExifTag.Saturation
+  type: Field
+  source:
+    id: Saturation
+    path: ''
+    startLine: 25051
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSaturation\n"
+  example: []
+  syntax:
+    content: Saturation = 41993
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.Sharpness
+  commentId: F:ImageSharp.ExifTag.Sharpness
+  id: Sharpness
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: Sharpness
+  nameWithType: ExifTag.Sharpness
+  fullName: ImageSharp.ExifTag.Sharpness
+  type: Field
+  source:
+    id: Sharpness
+    path: ''
+    startLine: 25059
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSharpness\n"
+  example: []
+  syntax:
+    content: Sharpness = 41994
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.DeviceSettingDescription
+  commentId: F:ImageSharp.ExifTag.DeviceSettingDescription
+  id: DeviceSettingDescription
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: DeviceSettingDescription
+  nameWithType: ExifTag.DeviceSettingDescription
+  fullName: ImageSharp.ExifTag.DeviceSettingDescription
+  type: Field
+  source:
+    id: DeviceSettingDescription
+    path: ''
+    startLine: 25067
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nDeviceSettingDescription\n"
+  example: []
+  syntax:
+    content: DeviceSettingDescription = 41995
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.SubjectDistanceRange
+  commentId: F:ImageSharp.ExifTag.SubjectDistanceRange
+  id: SubjectDistanceRange
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: SubjectDistanceRange
+  nameWithType: ExifTag.SubjectDistanceRange
+  fullName: ImageSharp.ExifTag.SubjectDistanceRange
+  type: Field
+  source:
+    id: SubjectDistanceRange
+    path: ''
+    startLine: 25072
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSubjectDistanceRange\n"
+  example: []
+  syntax:
+    content: SubjectDistanceRange = 41996
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.ImageUniqueID
+  commentId: F:ImageSharp.ExifTag.ImageUniqueID
+  id: ImageUniqueID
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: ImageUniqueID
+  nameWithType: ExifTag.ImageUniqueID
+  fullName: ImageSharp.ExifTag.ImageUniqueID
+  type: Field
+  source:
+    id: ImageUniqueID
+    path: ''
+    startLine: 25081
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nImageUniqueID\n"
+  example: []
+  syntax:
+    content: ImageUniqueID = 42016
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GPSVersionID
+  commentId: F:ImageSharp.ExifTag.GPSVersionID
+  id: GPSVersionID
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GPSVersionID
+  nameWithType: ExifTag.GPSVersionID
+  fullName: ImageSharp.ExifTag.GPSVersionID
+  type: Field
+  source:
+    id: GPSVersionID
+    path: ''
+    startLine: 25086
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGPSVersionID\n"
+  example: []
+  syntax:
+    content: GPSVersionID = 0
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GPSLatitudeRef
+  commentId: F:ImageSharp.ExifTag.GPSLatitudeRef
+  id: GPSLatitudeRef
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GPSLatitudeRef
+  nameWithType: ExifTag.GPSLatitudeRef
+  fullName: ImageSharp.ExifTag.GPSLatitudeRef
+  type: Field
+  source:
+    id: GPSLatitudeRef
+    path: ''
+    startLine: 25091
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGPSLatitudeRef\n"
+  example: []
+  syntax:
+    content: GPSLatitudeRef = 1
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GPSLatitude
+  commentId: F:ImageSharp.ExifTag.GPSLatitude
+  id: GPSLatitude
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GPSLatitude
+  nameWithType: ExifTag.GPSLatitude
+  fullName: ImageSharp.ExifTag.GPSLatitude
+  type: Field
+  source:
+    id: GPSLatitude
+    path: ''
+    startLine: 25096
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGPSLatitude\n"
+  example: []
+  syntax:
+    content: GPSLatitude = 2
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GPSLongitudeRef
+  commentId: F:ImageSharp.ExifTag.GPSLongitudeRef
+  id: GPSLongitudeRef
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GPSLongitudeRef
+  nameWithType: ExifTag.GPSLongitudeRef
+  fullName: ImageSharp.ExifTag.GPSLongitudeRef
+  type: Field
+  source:
+    id: GPSLongitudeRef
+    path: ''
+    startLine: 25101
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGPSLongitudeRef\n"
+  example: []
+  syntax:
+    content: GPSLongitudeRef = 3
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GPSLongitude
+  commentId: F:ImageSharp.ExifTag.GPSLongitude
+  id: GPSLongitude
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GPSLongitude
+  nameWithType: ExifTag.GPSLongitude
+  fullName: ImageSharp.ExifTag.GPSLongitude
+  type: Field
+  source:
+    id: GPSLongitude
+    path: ''
+    startLine: 25106
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGPSLongitude\n"
+  example: []
+  syntax:
+    content: GPSLongitude = 4
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GPSAltitudeRef
+  commentId: F:ImageSharp.ExifTag.GPSAltitudeRef
+  id: GPSAltitudeRef
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GPSAltitudeRef
+  nameWithType: ExifTag.GPSAltitudeRef
+  fullName: ImageSharp.ExifTag.GPSAltitudeRef
+  type: Field
+  source:
+    id: GPSAltitudeRef
+    path: ''
+    startLine: 25111
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGPSAltitudeRef\n"
+  example: []
+  syntax:
+    content: GPSAltitudeRef = 5
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GPSAltitude
+  commentId: F:ImageSharp.ExifTag.GPSAltitude
+  id: GPSAltitude
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GPSAltitude
+  nameWithType: ExifTag.GPSAltitude
+  fullName: ImageSharp.ExifTag.GPSAltitude
+  type: Field
+  source:
+    id: GPSAltitude
+    path: ''
+    startLine: 25116
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGPSAltitude\n"
+  example: []
+  syntax:
+    content: GPSAltitude = 6
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GPSTimestamp
+  commentId: F:ImageSharp.ExifTag.GPSTimestamp
+  id: GPSTimestamp
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GPSTimestamp
+  nameWithType: ExifTag.GPSTimestamp
+  fullName: ImageSharp.ExifTag.GPSTimestamp
+  type: Field
+  source:
+    id: GPSTimestamp
+    path: ''
+    startLine: 25121
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGPSTimestamp\n"
+  example: []
+  syntax:
+    content: GPSTimestamp = 7
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GPSSatellites
+  commentId: F:ImageSharp.ExifTag.GPSSatellites
+  id: GPSSatellites
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GPSSatellites
+  nameWithType: ExifTag.GPSSatellites
+  fullName: ImageSharp.ExifTag.GPSSatellites
+  type: Field
+  source:
+    id: GPSSatellites
+    path: ''
+    startLine: 25126
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGPSSatellites\n"
+  example: []
+  syntax:
+    content: GPSSatellites = 8
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GPSStatus
+  commentId: F:ImageSharp.ExifTag.GPSStatus
+  id: GPSStatus
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GPSStatus
+  nameWithType: ExifTag.GPSStatus
+  fullName: ImageSharp.ExifTag.GPSStatus
+  type: Field
+  source:
+    id: GPSStatus
+    path: ''
+    startLine: 25131
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGPSStatus\n"
+  example: []
+  syntax:
+    content: GPSStatus = 9
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GPSMeasureMode
+  commentId: F:ImageSharp.ExifTag.GPSMeasureMode
+  id: GPSMeasureMode
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GPSMeasureMode
+  nameWithType: ExifTag.GPSMeasureMode
+  fullName: ImageSharp.ExifTag.GPSMeasureMode
+  type: Field
+  source:
+    id: GPSMeasureMode
+    path: ''
+    startLine: 25136
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGPSMeasureMode\n"
+  example: []
+  syntax:
+    content: GPSMeasureMode = 10
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GPSDOP
+  commentId: F:ImageSharp.ExifTag.GPSDOP
+  id: GPSDOP
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GPSDOP
+  nameWithType: ExifTag.GPSDOP
+  fullName: ImageSharp.ExifTag.GPSDOP
+  type: Field
+  source:
+    id: GPSDOP
+    path: ''
+    startLine: 25141
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGPSDOP\n"
+  example: []
+  syntax:
+    content: GPSDOP = 11
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GPSSpeedRef
+  commentId: F:ImageSharp.ExifTag.GPSSpeedRef
+  id: GPSSpeedRef
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GPSSpeedRef
+  nameWithType: ExifTag.GPSSpeedRef
+  fullName: ImageSharp.ExifTag.GPSSpeedRef
+  type: Field
+  source:
+    id: GPSSpeedRef
+    path: ''
+    startLine: 25146
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGPSSpeedRef\n"
+  example: []
+  syntax:
+    content: GPSSpeedRef = 12
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GPSSpeed
+  commentId: F:ImageSharp.ExifTag.GPSSpeed
+  id: GPSSpeed
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GPSSpeed
+  nameWithType: ExifTag.GPSSpeed
+  fullName: ImageSharp.ExifTag.GPSSpeed
+  type: Field
+  source:
+    id: GPSSpeed
+    path: ''
+    startLine: 25151
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGPSSpeed\n"
+  example: []
+  syntax:
+    content: GPSSpeed = 13
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GPSTrackRef
+  commentId: F:ImageSharp.ExifTag.GPSTrackRef
+  id: GPSTrackRef
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GPSTrackRef
+  nameWithType: ExifTag.GPSTrackRef
+  fullName: ImageSharp.ExifTag.GPSTrackRef
+  type: Field
+  source:
+    id: GPSTrackRef
+    path: ''
+    startLine: 25156
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGPSTrackRef\n"
+  example: []
+  syntax:
+    content: GPSTrackRef = 14
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GPSTrack
+  commentId: F:ImageSharp.ExifTag.GPSTrack
+  id: GPSTrack
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GPSTrack
+  nameWithType: ExifTag.GPSTrack
+  fullName: ImageSharp.ExifTag.GPSTrack
+  type: Field
+  source:
+    id: GPSTrack
+    path: ''
+    startLine: 25161
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGPSTrack\n"
+  example: []
+  syntax:
+    content: GPSTrack = 15
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GPSImgDirectionRef
+  commentId: F:ImageSharp.ExifTag.GPSImgDirectionRef
+  id: GPSImgDirectionRef
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GPSImgDirectionRef
+  nameWithType: ExifTag.GPSImgDirectionRef
+  fullName: ImageSharp.ExifTag.GPSImgDirectionRef
+  type: Field
+  source:
+    id: GPSImgDirectionRef
+    path: ''
+    startLine: 25166
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGPSImgDirectionRef\n"
+  example: []
+  syntax:
+    content: GPSImgDirectionRef = 16
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GPSImgDirection
+  commentId: F:ImageSharp.ExifTag.GPSImgDirection
+  id: GPSImgDirection
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GPSImgDirection
+  nameWithType: ExifTag.GPSImgDirection
+  fullName: ImageSharp.ExifTag.GPSImgDirection
+  type: Field
+  source:
+    id: GPSImgDirection
+    path: ''
+    startLine: 25171
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGPSImgDirection\n"
+  example: []
+  syntax:
+    content: GPSImgDirection = 17
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GPSMapDatum
+  commentId: F:ImageSharp.ExifTag.GPSMapDatum
+  id: GPSMapDatum
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GPSMapDatum
+  nameWithType: ExifTag.GPSMapDatum
+  fullName: ImageSharp.ExifTag.GPSMapDatum
+  type: Field
+  source:
+    id: GPSMapDatum
+    path: ''
+    startLine: 25176
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGPSMapDatum\n"
+  example: []
+  syntax:
+    content: GPSMapDatum = 18
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GPSDestLatitudeRef
+  commentId: F:ImageSharp.ExifTag.GPSDestLatitudeRef
+  id: GPSDestLatitudeRef
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GPSDestLatitudeRef
+  nameWithType: ExifTag.GPSDestLatitudeRef
+  fullName: ImageSharp.ExifTag.GPSDestLatitudeRef
+  type: Field
+  source:
+    id: GPSDestLatitudeRef
+    path: ''
+    startLine: 25181
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGPSDestLatitudeRef\n"
+  example: []
+  syntax:
+    content: GPSDestLatitudeRef = 19
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GPSDestLatitude
+  commentId: F:ImageSharp.ExifTag.GPSDestLatitude
+  id: GPSDestLatitude
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GPSDestLatitude
+  nameWithType: ExifTag.GPSDestLatitude
+  fullName: ImageSharp.ExifTag.GPSDestLatitude
+  type: Field
+  source:
+    id: GPSDestLatitude
+    path: ''
+    startLine: 25186
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGPSDestLatitude\n"
+  example: []
+  syntax:
+    content: GPSDestLatitude = 20
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GPSDestLongitudeRef
+  commentId: F:ImageSharp.ExifTag.GPSDestLongitudeRef
+  id: GPSDestLongitudeRef
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GPSDestLongitudeRef
+  nameWithType: ExifTag.GPSDestLongitudeRef
+  fullName: ImageSharp.ExifTag.GPSDestLongitudeRef
+  type: Field
+  source:
+    id: GPSDestLongitudeRef
+    path: ''
+    startLine: 25191
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGPSDestLongitudeRef\n"
+  example: []
+  syntax:
+    content: GPSDestLongitudeRef = 21
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GPSDestLongitude
+  commentId: F:ImageSharp.ExifTag.GPSDestLongitude
+  id: GPSDestLongitude
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GPSDestLongitude
+  nameWithType: ExifTag.GPSDestLongitude
+  fullName: ImageSharp.ExifTag.GPSDestLongitude
+  type: Field
+  source:
+    id: GPSDestLongitude
+    path: ''
+    startLine: 25196
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGPSDestLongitude\n"
+  example: []
+  syntax:
+    content: GPSDestLongitude = 22
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GPSDestBearingRef
+  commentId: F:ImageSharp.ExifTag.GPSDestBearingRef
+  id: GPSDestBearingRef
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GPSDestBearingRef
+  nameWithType: ExifTag.GPSDestBearingRef
+  fullName: ImageSharp.ExifTag.GPSDestBearingRef
+  type: Field
+  source:
+    id: GPSDestBearingRef
+    path: ''
+    startLine: 25201
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGPSDestBearingRef\n"
+  example: []
+  syntax:
+    content: GPSDestBearingRef = 23
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GPSDestBearing
+  commentId: F:ImageSharp.ExifTag.GPSDestBearing
+  id: GPSDestBearing
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GPSDestBearing
+  nameWithType: ExifTag.GPSDestBearing
+  fullName: ImageSharp.ExifTag.GPSDestBearing
+  type: Field
+  source:
+    id: GPSDestBearing
+    path: ''
+    startLine: 25206
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGPSDestBearing\n"
+  example: []
+  syntax:
+    content: GPSDestBearing = 24
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GPSDestDistanceRef
+  commentId: F:ImageSharp.ExifTag.GPSDestDistanceRef
+  id: GPSDestDistanceRef
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GPSDestDistanceRef
+  nameWithType: ExifTag.GPSDestDistanceRef
+  fullName: ImageSharp.ExifTag.GPSDestDistanceRef
+  type: Field
+  source:
+    id: GPSDestDistanceRef
+    path: ''
+    startLine: 25211
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGPSDestDistanceRef\n"
+  example: []
+  syntax:
+    content: GPSDestDistanceRef = 25
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GPSDestDistance
+  commentId: F:ImageSharp.ExifTag.GPSDestDistance
+  id: GPSDestDistance
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GPSDestDistance
+  nameWithType: ExifTag.GPSDestDistance
+  fullName: ImageSharp.ExifTag.GPSDestDistance
+  type: Field
+  source:
+    id: GPSDestDistance
+    path: ''
+    startLine: 25216
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGPSDestDistance\n"
+  example: []
+  syntax:
+    content: GPSDestDistance = 26
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GPSProcessingMethod
+  commentId: F:ImageSharp.ExifTag.GPSProcessingMethod
+  id: GPSProcessingMethod
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GPSProcessingMethod
+  nameWithType: ExifTag.GPSProcessingMethod
+  fullName: ImageSharp.ExifTag.GPSProcessingMethod
+  type: Field
+  source:
+    id: GPSProcessingMethod
+    path: ''
+    startLine: 25221
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGPSProcessingMethod\n"
+  example: []
+  syntax:
+    content: GPSProcessingMethod = 27
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GPSAreaInformation
+  commentId: F:ImageSharp.ExifTag.GPSAreaInformation
+  id: GPSAreaInformation
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GPSAreaInformation
+  nameWithType: ExifTag.GPSAreaInformation
+  fullName: ImageSharp.ExifTag.GPSAreaInformation
+  type: Field
+  source:
+    id: GPSAreaInformation
+    path: ''
+    startLine: 25226
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGPSAreaInformation\n"
+  example: []
+  syntax:
+    content: GPSAreaInformation = 28
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GPSDateStamp
+  commentId: F:ImageSharp.ExifTag.GPSDateStamp
+  id: GPSDateStamp
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GPSDateStamp
+  nameWithType: ExifTag.GPSDateStamp
+  fullName: ImageSharp.ExifTag.GPSDateStamp
+  type: Field
+  source:
+    id: GPSDateStamp
+    path: ''
+    startLine: 25231
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGPSDateStamp\n"
+  example: []
+  syntax:
+    content: GPSDateStamp = 29
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ExifTag.GPSDifferential
+  commentId: F:ImageSharp.ExifTag.GPSDifferential
+  id: GPSDifferential
+  parent: ImageSharp.ExifTag
+  langs:
+  - csharp
+  - vb
+  name: GPSDifferential
+  nameWithType: ExifTag.GPSDifferential
+  fullName: ImageSharp.ExifTag.GPSDifferential
+  type: Field
+  source:
+    id: GPSDifferential
+    path: ''
+    startLine: 25236
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGPSDifferential\n"
+  example: []
+  syntax:
+    content: GPSDifferential = 30
+    return:
+      type: ImageSharp.ExifTag
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+references:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: ImageSharp.ExifTag
+  commentId: T:ImageSharp.ExifTag
+  parent: ImageSharp
+  isExternal: false
+  name: ExifTag
+  nameWithType: ExifTag
+  fullName: ImageSharp.ExifTag

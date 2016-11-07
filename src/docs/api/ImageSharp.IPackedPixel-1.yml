@@ -1,0 +1,392 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.IPackedPixel`1
+  commentId: T:ImageSharp.IPackedPixel`1
+  id: IPackedPixel`1
+  parent: ImageSharp
+  children: []
+  langs:
+  - csharp
+  - vb
+  name: IPackedPixel<TPacked>
+  nameWithType: IPackedPixel<TPacked>
+  fullName: ImageSharp.IPackedPixel<TPacked>
+  type: Interface
+  source:
+    id: IPackedPixel
+    path: ''
+    startLine: 3459
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nAn interface that represents a packed pixel type.\n"
+  example: []
+  syntax:
+    content: 'public interface IPackedPixel<TPacked> : IPackedVector<TPacked>, IPackedVector, IPackedBytes where TPacked : struct'
+    content.vb: >-
+      Public Interface IPackedPixel(Of TPacked As Structure)
+          Inherits IPackedVector(Of TPacked), IPackedBytes
+    typeParameters:
+    - id: TPacked
+      description: The packed format. <example>uint, long, float.</example>
+  inheritedMembers:
+  - ImageSharp.IPackedVector{{TPacked}}.PackedValue
+  - ImageSharp.IPackedVector.PackFromVector4(Vector4)
+  - ImageSharp.IPackedVector.ToVector4
+  - ImageSharp.IPackedBytes.PackFromBytes(System.Byte,System.Byte,System.Byte,System.Byte)
+  - ImageSharp.IPackedBytes.ToBytes(System.Byte[],System.Int32,ImageSharp.ComponentOrder)
+  nameWithType.vb: IPackedPixel(Of TPacked)
+  modifiers.csharp:
+  - public
+  - interface
+  modifiers.vb:
+  - Public
+  - Interface
+  fullName.vb: ImageSharp.IPackedPixel(Of TPacked)
+  name.vb: IPackedPixel(Of TPacked)
+references:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: ImageSharp.IPackedVector{{TPacked}}.PackedValue
+  commentId: P:ImageSharp.IPackedVector{`0}.PackedValue
+  parent: ImageSharp.IPackedVector{{TPacked}}
+  definition: ImageSharp.IPackedVector`1.PackedValue
+  name: PackedValue
+  nameWithType: IPackedVector<TPacked>.PackedValue
+  fullName: ImageSharp.IPackedVector<TPacked>.PackedValue
+  nameWithType.vb: IPackedVector(Of TPacked).PackedValue
+  fullname.vb: ImageSharp.IPackedVector(Of TPacked).PackedValue
+- uid: ImageSharp.IPackedVector.PackFromVector4(Vector4)
+  commentId: M:ImageSharp.IPackedVector.PackFromVector4(Vector4)
+  parent: ImageSharp.IPackedVector
+  isExternal: true
+  name: PackFromVector4(Vector4)
+  nameWithType: IPackedVector.PackFromVector4(Vector4)
+  fullName: ImageSharp.IPackedVector.PackFromVector4(Vector4)
+  spec.csharp:
+  - uid: ImageSharp.IPackedVector.PackFromVector4(Vector4)
+    name: PackFromVector4
+    nameWithType: IPackedVector.PackFromVector4
+    fullName: ImageSharp.IPackedVector.PackFromVector4
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: Vector4
+    name: Vector4
+    nameWithType: Vector4
+    fullName: Vector4
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.IPackedVector.PackFromVector4(Vector4)
+    name: PackFromVector4
+    nameWithType: IPackedVector.PackFromVector4
+    fullName: ImageSharp.IPackedVector.PackFromVector4
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: Vector4
+    name: Vector4
+    nameWithType: Vector4
+    fullName: Vector4
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.IPackedVector.ToVector4
+  commentId: M:ImageSharp.IPackedVector.ToVector4
+  parent: ImageSharp.IPackedVector
+  isExternal: false
+  name: ToVector4()
+  nameWithType: IPackedVector.ToVector4()
+  fullName: ImageSharp.IPackedVector.ToVector4()
+  spec.csharp:
+  - uid: ImageSharp.IPackedVector.ToVector4
+    name: ToVector4
+    nameWithType: IPackedVector.ToVector4
+    fullName: ImageSharp.IPackedVector.ToVector4
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.IPackedVector.ToVector4
+    name: ToVector4
+    nameWithType: IPackedVector.ToVector4
+    fullName: ImageSharp.IPackedVector.ToVector4
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.IPackedBytes.PackFromBytes(System.Byte,System.Byte,System.Byte,System.Byte)
+  commentId: M:ImageSharp.IPackedBytes.PackFromBytes(System.Byte,System.Byte,System.Byte,System.Byte)
+  parent: ImageSharp.IPackedBytes
+  isExternal: true
+  name: PackFromBytes(Byte, Byte, Byte, Byte)
+  nameWithType: IPackedBytes.PackFromBytes(Byte, Byte, Byte, Byte)
+  fullName: ImageSharp.IPackedBytes.PackFromBytes(System.Byte, System.Byte, System.Byte, System.Byte)
+  spec.csharp:
+  - uid: ImageSharp.IPackedBytes.PackFromBytes(System.Byte,System.Byte,System.Byte,System.Byte)
+    name: PackFromBytes
+    nameWithType: IPackedBytes.PackFromBytes
+    fullName: ImageSharp.IPackedBytes.PackFromBytes
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.IPackedBytes.PackFromBytes(System.Byte,System.Byte,System.Byte,System.Byte)
+    name: PackFromBytes
+    nameWithType: IPackedBytes.PackFromBytes
+    fullName: ImageSharp.IPackedBytes.PackFromBytes
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.IPackedBytes.ToBytes(System.Byte[],System.Int32,ImageSharp.ComponentOrder)
+  commentId: M:ImageSharp.IPackedBytes.ToBytes(System.Byte[],System.Int32,ImageSharp.ComponentOrder)
+  parent: ImageSharp.IPackedBytes
+  isExternal: true
+  name: ToBytes(Byte[], Int32, ComponentOrder)
+  nameWithType: IPackedBytes.ToBytes(Byte[], Int32, ComponentOrder)
+  fullName: ImageSharp.IPackedBytes.ToBytes(System.Byte[], System.Int32, ImageSharp.ComponentOrder)
+  nameWithType.vb: IPackedBytes.ToBytes(Byte(), Int32, ComponentOrder)
+  fullname.vb: ImageSharp.IPackedBytes.ToBytes(System.Byte(), System.Int32, ImageSharp.ComponentOrder)
+  name.vb: ToBytes(Byte(), Int32, ComponentOrder)
+  spec.csharp:
+  - uid: ImageSharp.IPackedBytes.ToBytes(System.Byte[],System.Int32,ImageSharp.ComponentOrder)
+    name: ToBytes
+    nameWithType: IPackedBytes.ToBytes
+    fullName: ImageSharp.IPackedBytes.ToBytes
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: '[]'
+    nameWithType: '[]'
+    fullName: '[]'
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.ComponentOrder
+    name: ComponentOrder
+    nameWithType: ComponentOrder
+    fullName: ImageSharp.ComponentOrder
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.IPackedBytes.ToBytes(System.Byte[],System.Int32,ImageSharp.ComponentOrder)
+    name: ToBytes
+    nameWithType: IPackedBytes.ToBytes
+    fullName: ImageSharp.IPackedBytes.ToBytes
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: ()
+    nameWithType: ()
+    fullName: ()
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Int32
+    name: Int32
+    nameWithType: Int32
+    fullName: System.Int32
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: ImageSharp.ComponentOrder
+    name: ComponentOrder
+    nameWithType: ComponentOrder
+    fullName: ImageSharp.ComponentOrder
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.IPackedVector`1.PackedValue
+  commentId: P:ImageSharp.IPackedVector`1.PackedValue
+  isExternal: false
+  name: PackedValue
+  nameWithType: IPackedVector<TPacked>.PackedValue
+  fullName: ImageSharp.IPackedVector<TPacked>.PackedValue
+  nameWithType.vb: IPackedVector(Of TPacked).PackedValue
+  fullname.vb: ImageSharp.IPackedVector(Of TPacked).PackedValue
+- uid: ImageSharp.IPackedVector{{TPacked}}
+  commentId: T:ImageSharp.IPackedVector{`0}
+  parent: ImageSharp
+  definition: ImageSharp.IPackedVector`1
+  name: IPackedVector<TPacked>
+  nameWithType: IPackedVector<TPacked>
+  fullName: ImageSharp.IPackedVector<TPacked>
+  nameWithType.vb: IPackedVector(Of TPacked)
+  fullname.vb: ImageSharp.IPackedVector(Of TPacked)
+  name.vb: IPackedVector(Of TPacked)
+  spec.csharp:
+  - uid: ImageSharp.IPackedVector`1
+    name: IPackedVector
+    nameWithType: IPackedVector
+    fullName: ImageSharp.IPackedVector
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.IPackedVector`1
+    name: IPackedVector
+    nameWithType: IPackedVector
+    fullName: ImageSharp.IPackedVector
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.IPackedVector
+  commentId: T:ImageSharp.IPackedVector
+  parent: ImageSharp
+  isExternal: false
+  name: IPackedVector
+  nameWithType: IPackedVector
+  fullName: ImageSharp.IPackedVector
+- uid: ImageSharp.IPackedBytes
+  commentId: T:ImageSharp.IPackedBytes
+  parent: ImageSharp
+  isExternal: false
+  name: IPackedBytes
+  nameWithType: IPackedBytes
+  fullName: ImageSharp.IPackedBytes
+- uid: ImageSharp.IPackedVector`1
+  commentId: T:ImageSharp.IPackedVector`1
+  isExternal: false
+  name: IPackedVector<TPacked>
+  nameWithType: IPackedVector<TPacked>
+  fullName: ImageSharp.IPackedVector<TPacked>
+  nameWithType.vb: IPackedVector(Of TPacked)
+  fullname.vb: ImageSharp.IPackedVector(Of TPacked)
+  name.vb: IPackedVector(Of TPacked)
+  spec.csharp:
+  - uid: ImageSharp.IPackedVector`1
+    name: IPackedVector
+    nameWithType: IPackedVector
+    fullName: ImageSharp.IPackedVector
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.IPackedVector`1
+    name: IPackedVector
+    nameWithType: IPackedVector
+    fullName: ImageSharp.IPackedVector
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )

@@ -1,0 +1,170 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.RgbaComponent
+  commentId: T:ImageSharp.RgbaComponent
+  id: RgbaComponent
+  parent: ImageSharp
+  children:
+  - ImageSharp.RgbaComponent.A
+  - ImageSharp.RgbaComponent.B
+  - ImageSharp.RgbaComponent.G
+  - ImageSharp.RgbaComponent.R
+  langs:
+  - csharp
+  - vb
+  name: RgbaComponent
+  nameWithType: RgbaComponent
+  fullName: ImageSharp.RgbaComponent
+  type: Enum
+  source:
+    id: RgbaComponent
+    path: ''
+    startLine: 2015
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nEnumerates the RGBA (red, green, blue, alpha) color components.\n"
+  example: []
+  syntax:
+    content: public enum RgbaComponent
+    content.vb: Public Enum RgbaComponent
+  modifiers.csharp:
+  - public
+  - enum
+  modifiers.vb:
+  - Public
+  - Enum
+- uid: ImageSharp.RgbaComponent.R
+  commentId: F:ImageSharp.RgbaComponent.R
+  id: R
+  parent: ImageSharp.RgbaComponent
+  langs:
+  - csharp
+  - vb
+  name: R
+  nameWithType: RgbaComponent.R
+  fullName: ImageSharp.RgbaComponent.R
+  type: Field
+  source:
+    id: R
+    path: ''
+    startLine: 2020
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nThe red component.\n"
+  example: []
+  syntax:
+    content: R = 0
+    return:
+      type: ImageSharp.RgbaComponent
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.RgbaComponent.G
+  commentId: F:ImageSharp.RgbaComponent.G
+  id: G
+  parent: ImageSharp.RgbaComponent
+  langs:
+  - csharp
+  - vb
+  name: G
+  nameWithType: RgbaComponent.G
+  fullName: ImageSharp.RgbaComponent.G
+  type: Field
+  source:
+    id: G
+    path: ''
+    startLine: 2025
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nThe green component.\n"
+  example: []
+  syntax:
+    content: G = 1
+    return:
+      type: ImageSharp.RgbaComponent
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.RgbaComponent.B
+  commentId: F:ImageSharp.RgbaComponent.B
+  id: B
+  parent: ImageSharp.RgbaComponent
+  langs:
+  - csharp
+  - vb
+  name: B
+  nameWithType: RgbaComponent.B
+  fullName: ImageSharp.RgbaComponent.B
+  type: Field
+  source:
+    id: B
+    path: ''
+    startLine: 2030
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nThe blue component.\n"
+  example: []
+  syntax:
+    content: B = 2
+    return:
+      type: ImageSharp.RgbaComponent
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.RgbaComponent.A
+  commentId: F:ImageSharp.RgbaComponent.A
+  id: A
+  parent: ImageSharp.RgbaComponent
+  langs:
+  - csharp
+  - vb
+  name: A
+  nameWithType: RgbaComponent.A
+  fullName: ImageSharp.RgbaComponent.A
+  type: Field
+  source:
+    id: A
+    path: ''
+    startLine: 2035
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nThe alpha component.\n"
+  example: []
+  syntax:
+    content: A = 3
+    return:
+      type: ImageSharp.RgbaComponent
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+references:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: ImageSharp.RgbaComponent
+  commentId: T:ImageSharp.RgbaComponent
+  parent: ImageSharp
+  isExternal: false
+  name: RgbaComponent
+  nameWithType: RgbaComponent
+  fullName: ImageSharp.RgbaComponent

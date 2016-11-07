@@ -1,0 +1,201 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.Formats.PngColorType
+  commentId: T:ImageSharp.Formats.PngColorType
+  id: PngColorType
+  parent: ImageSharp.Formats
+  children:
+  - ImageSharp.Formats.PngColorType.Grayscale
+  - ImageSharp.Formats.PngColorType.GrayscaleWithAlpha
+  - ImageSharp.Formats.PngColorType.Palette
+  - ImageSharp.Formats.PngColorType.Rgb
+  - ImageSharp.Formats.PngColorType.RgbWithAlpha
+  langs:
+  - csharp
+  - vb
+  name: PngColorType
+  nameWithType: PngColorType
+  fullName: ImageSharp.Formats.PngColorType
+  type: Enum
+  source:
+    id: PngColorType
+    path: ''
+    startLine: 15074
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nProvides enumeration of available PNG color types.\n"
+  example: []
+  syntax:
+    content: 'public enum PngColorType : byte'
+    content.vb: Public Enum PngColorType As Byte
+  modifiers.csharp:
+  - public
+  - enum
+  modifiers.vb:
+  - Public
+  - Enum
+- uid: ImageSharp.Formats.PngColorType.Grayscale
+  commentId: F:ImageSharp.Formats.PngColorType.Grayscale
+  id: Grayscale
+  parent: ImageSharp.Formats.PngColorType
+  langs:
+  - csharp
+  - vb
+  name: Grayscale
+  nameWithType: PngColorType.Grayscale
+  fullName: ImageSharp.Formats.PngColorType.Grayscale
+  type: Field
+  source:
+    id: Grayscale
+    path: ''
+    startLine: 15079
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nEach pixel is a grayscale sample.\n"
+  example: []
+  syntax:
+    content: Grayscale = 0
+    return:
+      type: ImageSharp.Formats.PngColorType
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.Formats.PngColorType.Rgb
+  commentId: F:ImageSharp.Formats.PngColorType.Rgb
+  id: Rgb
+  parent: ImageSharp.Formats.PngColorType
+  langs:
+  - csharp
+  - vb
+  name: Rgb
+  nameWithType: PngColorType.Rgb
+  fullName: ImageSharp.Formats.PngColorType.Rgb
+  type: Field
+  source:
+    id: Rgb
+    path: ''
+    startLine: 15084
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nEach pixel is an R,G,B triple.\n"
+  example: []
+  syntax:
+    content: Rgb = 2
+    return:
+      type: ImageSharp.Formats.PngColorType
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.Formats.PngColorType.Palette
+  commentId: F:ImageSharp.Formats.PngColorType.Palette
+  id: Palette
+  parent: ImageSharp.Formats.PngColorType
+  langs:
+  - csharp
+  - vb
+  name: Palette
+  nameWithType: PngColorType.Palette
+  fullName: ImageSharp.Formats.PngColorType.Palette
+  type: Field
+  source:
+    id: Palette
+    path: ''
+    startLine: 15089
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nEach pixel is a palette index; a PLTE chunk must appear.\n"
+  example: []
+  syntax:
+    content: Palette = 3
+    return:
+      type: ImageSharp.Formats.PngColorType
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.Formats.PngColorType.GrayscaleWithAlpha
+  commentId: F:ImageSharp.Formats.PngColorType.GrayscaleWithAlpha
+  id: GrayscaleWithAlpha
+  parent: ImageSharp.Formats.PngColorType
+  langs:
+  - csharp
+  - vb
+  name: GrayscaleWithAlpha
+  nameWithType: PngColorType.GrayscaleWithAlpha
+  fullName: ImageSharp.Formats.PngColorType.GrayscaleWithAlpha
+  type: Field
+  source:
+    id: GrayscaleWithAlpha
+    path: ''
+    startLine: 15094
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nEach pixel is a grayscale sample, followed by an alpha sample.\n"
+  example: []
+  syntax:
+    content: GrayscaleWithAlpha = 4
+    return:
+      type: ImageSharp.Formats.PngColorType
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.Formats.PngColorType.RgbWithAlpha
+  commentId: F:ImageSharp.Formats.PngColorType.RgbWithAlpha
+  id: RgbWithAlpha
+  parent: ImageSharp.Formats.PngColorType
+  langs:
+  - csharp
+  - vb
+  name: RgbWithAlpha
+  nameWithType: PngColorType.RgbWithAlpha
+  fullName: ImageSharp.Formats.PngColorType.RgbWithAlpha
+  type: Field
+  source:
+    id: RgbWithAlpha
+    path: ''
+    startLine: 15099
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nEach pixel is an R,G,B triple, followed by an alpha sample.\n"
+  example: []
+  syntax:
+    content: RgbWithAlpha = 6
+    return:
+      type: ImageSharp.Formats.PngColorType
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+references:
+- uid: ImageSharp.Formats
+  commentId: N:ImageSharp.Formats
+  isExternal: false
+  name: ImageSharp.Formats
+  nameWithType: ImageSharp.Formats
+  fullName: ImageSharp.Formats
+- uid: ImageSharp.Formats.PngColorType
+  commentId: T:ImageSharp.Formats.PngColorType
+  parent: ImageSharp.Formats
+  isExternal: false
+  name: PngColorType
+  nameWithType: PngColorType
+  fullName: ImageSharp.Formats.PngColorType

@@ -1,0 +1,448 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.Formats.BmpFormat
+  commentId: T:ImageSharp.Formats.BmpFormat
+  id: BmpFormat
+  parent: ImageSharp.Formats
+  children:
+  - ImageSharp.Formats.BmpFormat.Decoder
+  - ImageSharp.Formats.BmpFormat.Encoder
+  langs:
+  - csharp
+  - vb
+  name: BmpFormat
+  nameWithType: BmpFormat
+  fullName: ImageSharp.Formats.BmpFormat
+  type: Class
+  source:
+    id: BmpFormat
+    path: ''
+    startLine: 8406
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nEncapsulates the means to encode and decode bitmap images.\n"
+  example: []
+  syntax:
+    content: 'public class BmpFormat : IImageFormat'
+    content.vb: >-
+      Public Class BmpFormat
+          Implements IImageFormat
+  inheritance:
+  - System.Object
+  implements:
+  - ImageSharp.Formats.IImageFormat
+  inheritedMembers:
+  - System.Object.ToString
+  - System.Object.Equals(System.Object)
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.GetHashCode
+  - System.Object.GetType
+  - System.Object.MemberwiseClone
+  modifiers.csharp:
+  - public
+  - class
+  modifiers.vb:
+  - Public
+  - Class
+- uid: ImageSharp.Formats.BmpFormat.Decoder
+  commentId: P:ImageSharp.Formats.BmpFormat.Decoder
+  id: Decoder
+  parent: ImageSharp.Formats.BmpFormat
+  langs:
+  - csharp
+  - vb
+  name: Decoder
+  nameWithType: BmpFormat.Decoder
+  fullName: ImageSharp.Formats.BmpFormat.Decoder
+  type: Property
+  source:
+    id: Decoder
+    path: ''
+    startLine: 8409
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  example: []
+  syntax:
+    content: public IImageDecoder Decoder { get; }
+    content.vb: Public ReadOnly Property Decoder As IImageDecoder
+    parameters: []
+    return:
+      type: ImageSharp.Formats.IImageDecoder
+  implements:
+  - ImageSharp.Formats.IImageFormat.Decoder
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.Formats.BmpFormat.Encoder
+  commentId: P:ImageSharp.Formats.BmpFormat.Encoder
+  id: Encoder
+  parent: ImageSharp.Formats.BmpFormat
+  langs:
+  - csharp
+  - vb
+  name: Encoder
+  nameWithType: BmpFormat.Encoder
+  fullName: ImageSharp.Formats.BmpFormat.Encoder
+  type: Property
+  source:
+    id: Encoder
+    path: ''
+    startLine: 8412
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  example: []
+  syntax:
+    content: public IImageEncoder Encoder { get; }
+    content.vb: Public ReadOnly Property Encoder As IImageEncoder
+    parameters: []
+    return:
+      type: ImageSharp.Formats.IImageEncoder
+  implements:
+  - ImageSharp.Formats.IImageFormat.Encoder
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+references:
+- uid: ImageSharp.Formats
+  commentId: N:ImageSharp.Formats
+  isExternal: false
+  name: ImageSharp.Formats
+  nameWithType: ImageSharp.Formats
+  fullName: ImageSharp.Formats
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  name: Object
+  nameWithType: Object
+  fullName: System.Object
+- uid: ImageSharp.Formats.IImageFormat
+  commentId: T:ImageSharp.Formats.IImageFormat
+  parent: ImageSharp.Formats
+  isExternal: false
+  name: IImageFormat
+  nameWithType: IImageFormat
+  fullName: ImageSharp.Formats.IImageFormat
+- uid: System.Object.ToString
+  commentId: M:System.Object.ToString
+  parent: System.Object
+  isExternal: true
+  name: ToString()
+  nameWithType: Object.ToString()
+  fullName: System.Object.ToString()
+  spec.csharp:
+  - uid: System.Object.ToString
+    name: ToString
+    nameWithType: Object.ToString
+    fullName: System.Object.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ToString
+    name: ToString
+    nameWithType: Object.ToString
+    fullName: System.Object.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object)
+  commentId: M:System.Object.Equals(System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object)
+  nameWithType: Object.Equals(Object)
+  fullName: System.Object.Equals(System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object, Object)
+  nameWithType: Object.Equals(Object, Object)
+  fullName: System.Object.Equals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: ReferenceEquals(Object, Object)
+  nameWithType: Object.ReferenceEquals(Object, Object)
+  fullName: System.Object.ReferenceEquals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetHashCode
+  commentId: M:System.Object.GetHashCode
+  parent: System.Object
+  isExternal: true
+  name: GetHashCode()
+  nameWithType: Object.GetHashCode()
+  fullName: System.Object.GetHashCode()
+  spec.csharp:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    nameWithType: Object.GetHashCode
+    fullName: System.Object.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    nameWithType: Object.GetHashCode
+    fullName: System.Object.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  name: GetType()
+  nameWithType: Object.GetType()
+  fullName: System.Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.MemberwiseClone
+  commentId: M:System.Object.MemberwiseClone
+  parent: System.Object
+  isExternal: true
+  name: MemberwiseClone()
+  nameWithType: Object.MemberwiseClone()
+  fullName: System.Object.MemberwiseClone()
+  spec.csharp:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    nameWithType: Object.MemberwiseClone
+    fullName: System.Object.MemberwiseClone
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    nameWithType: Object.MemberwiseClone
+    fullName: System.Object.MemberwiseClone
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System
+  commentId: N:System
+  isExternal: false
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: ImageSharp.Formats.IImageFormat.Decoder
+  commentId: P:ImageSharp.Formats.IImageFormat.Decoder
+  parent: ImageSharp.Formats.IImageFormat
+  isExternal: false
+  name: Decoder
+  nameWithType: IImageFormat.Decoder
+  fullName: ImageSharp.Formats.IImageFormat.Decoder
+- uid: ImageSharp.Formats.IImageDecoder
+  commentId: T:ImageSharp.Formats.IImageDecoder
+  parent: ImageSharp.Formats
+  isExternal: false
+  name: IImageDecoder
+  nameWithType: IImageDecoder
+  fullName: ImageSharp.Formats.IImageDecoder
+- uid: ImageSharp.Formats.IImageFormat.Encoder
+  commentId: P:ImageSharp.Formats.IImageFormat.Encoder
+  parent: ImageSharp.Formats.IImageFormat
+  isExternal: false
+  name: Encoder
+  nameWithType: IImageFormat.Encoder
+  fullName: ImageSharp.Formats.IImageFormat.Encoder
+- uid: ImageSharp.Formats.IImageEncoder
+  commentId: T:ImageSharp.Formats.IImageEncoder
+  parent: ImageSharp.Formats
+  isExternal: false
+  name: IImageEncoder
+  nameWithType: IImageEncoder
+  fullName: ImageSharp.Formats.IImageEncoder

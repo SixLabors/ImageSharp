@@ -1,0 +1,294 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.ColorBlindness
+  commentId: T:ImageSharp.ColorBlindness
+  id: ColorBlindness
+  parent: ImageSharp
+  children:
+  - ImageSharp.ColorBlindness.Achromatomaly
+  - ImageSharp.ColorBlindness.Achromatopsia
+  - ImageSharp.ColorBlindness.Deuteranomaly
+  - ImageSharp.ColorBlindness.Deuteranopia
+  - ImageSharp.ColorBlindness.Protanomaly
+  - ImageSharp.ColorBlindness.Protanopia
+  - ImageSharp.ColorBlindness.Tritanomaly
+  - ImageSharp.ColorBlindness.Tritanopia
+  langs:
+  - csharp
+  - vb
+  name: ColorBlindness
+  nameWithType: ColorBlindness
+  fullName: ImageSharp.ColorBlindness
+  type: Enum
+  source:
+    id: ColorBlindness
+    path: ''
+    startLine: 5514
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nEnumerates the various types of defined color blindness filters.\n"
+  example: []
+  syntax:
+    content: public enum ColorBlindness
+    content.vb: Public Enum ColorBlindness
+  modifiers.csharp:
+  - public
+  - enum
+  modifiers.vb:
+  - Public
+  - Enum
+- uid: ImageSharp.ColorBlindness.Achromatomaly
+  commentId: F:ImageSharp.ColorBlindness.Achromatomaly
+  id: Achromatomaly
+  parent: ImageSharp.ColorBlindness
+  langs:
+  - csharp
+  - vb
+  name: Achromatomaly
+  nameWithType: ColorBlindness.Achromatomaly
+  fullName: ImageSharp.ColorBlindness.Achromatomaly
+  type: Field
+  source:
+    id: Achromatomaly
+    path: ''
+    startLine: 5519
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nPartial color desensitivity.\n"
+  example: []
+  syntax:
+    content: Achromatomaly = 0
+    return:
+      type: ImageSharp.ColorBlindness
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ColorBlindness.Achromatopsia
+  commentId: F:ImageSharp.ColorBlindness.Achromatopsia
+  id: Achromatopsia
+  parent: ImageSharp.ColorBlindness
+  langs:
+  - csharp
+  - vb
+  name: Achromatopsia
+  nameWithType: ColorBlindness.Achromatopsia
+  fullName: ImageSharp.ColorBlindness.Achromatopsia
+  type: Field
+  source:
+    id: Achromatopsia
+    path: ''
+    startLine: 5524
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nComplete color desensitivity (Monochrome)\n"
+  example: []
+  syntax:
+    content: Achromatopsia = 1
+    return:
+      type: ImageSharp.ColorBlindness
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ColorBlindness.Deuteranomaly
+  commentId: F:ImageSharp.ColorBlindness.Deuteranomaly
+  id: Deuteranomaly
+  parent: ImageSharp.ColorBlindness
+  langs:
+  - csharp
+  - vb
+  name: Deuteranomaly
+  nameWithType: ColorBlindness.Deuteranomaly
+  fullName: ImageSharp.ColorBlindness.Deuteranomaly
+  type: Field
+  source:
+    id: Deuteranomaly
+    path: ''
+    startLine: 5529
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGreen weak\n"
+  example: []
+  syntax:
+    content: Deuteranomaly = 2
+    return:
+      type: ImageSharp.ColorBlindness
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ColorBlindness.Deuteranopia
+  commentId: F:ImageSharp.ColorBlindness.Deuteranopia
+  id: Deuteranopia
+  parent: ImageSharp.ColorBlindness
+  langs:
+  - csharp
+  - vb
+  name: Deuteranopia
+  nameWithType: ColorBlindness.Deuteranopia
+  fullName: ImageSharp.ColorBlindness.Deuteranopia
+  type: Field
+  source:
+    id: Deuteranopia
+    path: ''
+    startLine: 5534
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGreen blind\n"
+  example: []
+  syntax:
+    content: Deuteranopia = 3
+    return:
+      type: ImageSharp.ColorBlindness
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ColorBlindness.Protanomaly
+  commentId: F:ImageSharp.ColorBlindness.Protanomaly
+  id: Protanomaly
+  parent: ImageSharp.ColorBlindness
+  langs:
+  - csharp
+  - vb
+  name: Protanomaly
+  nameWithType: ColorBlindness.Protanomaly
+  fullName: ImageSharp.ColorBlindness.Protanomaly
+  type: Field
+  source:
+    id: Protanomaly
+    path: ''
+    startLine: 5539
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRed weak\n"
+  example: []
+  syntax:
+    content: Protanomaly = 4
+    return:
+      type: ImageSharp.ColorBlindness
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ColorBlindness.Protanopia
+  commentId: F:ImageSharp.ColorBlindness.Protanopia
+  id: Protanopia
+  parent: ImageSharp.ColorBlindness
+  langs:
+  - csharp
+  - vb
+  name: Protanopia
+  nameWithType: ColorBlindness.Protanopia
+  fullName: ImageSharp.ColorBlindness.Protanopia
+  type: Field
+  source:
+    id: Protanopia
+    path: ''
+    startLine: 5544
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRed blind\n"
+  example: []
+  syntax:
+    content: Protanopia = 5
+    return:
+      type: ImageSharp.ColorBlindness
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ColorBlindness.Tritanomaly
+  commentId: F:ImageSharp.ColorBlindness.Tritanomaly
+  id: Tritanomaly
+  parent: ImageSharp.ColorBlindness
+  langs:
+  - csharp
+  - vb
+  name: Tritanomaly
+  nameWithType: ColorBlindness.Tritanomaly
+  fullName: ImageSharp.ColorBlindness.Tritanomaly
+  type: Field
+  source:
+    id: Tritanomaly
+    path: ''
+    startLine: 5549
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nBlue weak\n"
+  example: []
+  syntax:
+    content: Tritanomaly = 6
+    return:
+      type: ImageSharp.ColorBlindness
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+- uid: ImageSharp.ColorBlindness.Tritanopia
+  commentId: F:ImageSharp.ColorBlindness.Tritanopia
+  id: Tritanopia
+  parent: ImageSharp.ColorBlindness
+  langs:
+  - csharp
+  - vb
+  name: Tritanopia
+  nameWithType: ColorBlindness.Tritanopia
+  fullName: ImageSharp.ColorBlindness.Tritanopia
+  type: Field
+  source:
+    id: Tritanopia
+    path: ''
+    startLine: 5554
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nBlue blind\n"
+  example: []
+  syntax:
+    content: Tritanopia = 7
+    return:
+      type: ImageSharp.ColorBlindness
+  modifiers.csharp:
+  - public
+  - const
+  modifiers.vb:
+  - Public
+  - Const
+references:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: ImageSharp.ColorBlindness
+  commentId: T:ImageSharp.ColorBlindness
+  parent: ImageSharp
+  isExternal: false
+  name: ColorBlindness
+  nameWithType: ColorBlindness
+  fullName: ImageSharp.ColorBlindness

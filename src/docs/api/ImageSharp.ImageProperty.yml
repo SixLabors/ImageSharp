@@ -1,0 +1,859 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.ImageProperty
+  commentId: T:ImageSharp.ImageProperty
+  id: ImageProperty
+  parent: ImageSharp
+  children:
+  - ImageSharp.ImageProperty.#ctor(System.String,System.String)
+  - ImageSharp.ImageProperty.Equals(ImageSharp.ImageProperty)
+  - ImageSharp.ImageProperty.Equals(System.Object)
+  - ImageSharp.ImageProperty.GetHashCode
+  - ImageSharp.ImageProperty.Name
+  - ImageSharp.ImageProperty.op_Equality(ImageSharp.ImageProperty,ImageSharp.ImageProperty)
+  - ImageSharp.ImageProperty.op_Inequality(ImageSharp.ImageProperty,ImageSharp.ImageProperty)
+  - ImageSharp.ImageProperty.ToString
+  - ImageSharp.ImageProperty.Value
+  langs:
+  - csharp
+  - vb
+  name: ImageProperty
+  nameWithType: ImageProperty
+  fullName: ImageSharp.ImageProperty
+  type: Class
+  source:
+    id: ImageProperty
+    path: ''
+    startLine: 18998
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nStores meta information about a image, like the name of the author,\nthe copyright information, the date, where the image was created\nor some other information.\n"
+  example: []
+  syntax:
+    content: 'public class ImageProperty : IEquatable<ImageProperty>'
+    content.vb: >-
+      Public Class ImageProperty
+          Implements IEquatable(Of ImageProperty)
+  inheritance:
+  - System.Object
+  implements:
+  - System.IEquatable{ImageSharp.ImageProperty}
+  inheritedMembers:
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.GetType
+  - System.Object.MemberwiseClone
+  modifiers.csharp:
+  - public
+  - class
+  modifiers.vb:
+  - Public
+  - Class
+- uid: ImageSharp.ImageProperty.#ctor(System.String,System.String)
+  commentId: M:ImageSharp.ImageProperty.#ctor(System.String,System.String)
+  id: '#ctor(System.String,System.String)'
+  parent: ImageSharp.ImageProperty
+  langs:
+  - csharp
+  - vb
+  name: ImageProperty(String, String)
+  nameWithType: ImageProperty.ImageProperty(String, String)
+  fullName: ImageSharp.ImageProperty.ImageProperty(System.String, System.String)
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 19005
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nInitializes a new instance of the <xref href=\"ImageSharp.ImageProperty\" data-throw-if-not-resolved=\"false\"></xref> class.\n"
+  example: []
+  syntax:
+    content: public ImageProperty(string name, string value)
+    content.vb: Public Sub New(name As String, value As String)
+    parameters:
+    - id: name
+      type: System.String
+      description: The name of the property.
+    - id: value
+      type: System.String
+      description: The value of the property.
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.ImageProperty.Name
+  commentId: P:ImageSharp.ImageProperty.Name
+  id: Name
+  parent: ImageSharp.ImageProperty
+  langs:
+  - csharp
+  - vb
+  name: Name
+  nameWithType: ImageProperty.Name
+  fullName: ImageSharp.ImageProperty.Name
+  type: Property
+  source:
+    id: Name
+    path: ''
+    startLine: 19021
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the name of this <xref href=\"ImageSharp.ImageProperty\" data-throw-if-not-resolved=\"false\"></xref> indicating which kind of\ninformation this property stores.\n"
+  example:
+  - "\nTypical properties are the author, copyright\ninformation or other meta information.\n"
+  syntax:
+    content: public string Name { get; }
+    content.vb: Public ReadOnly Property Name As String
+    parameters: []
+    return:
+      type: System.String
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.ImageProperty.Value
+  commentId: P:ImageSharp.ImageProperty.Value
+  id: Value
+  parent: ImageSharp.ImageProperty
+  langs:
+  - csharp
+  - vb
+  name: Value
+  nameWithType: ImageProperty.Value
+  fullName: ImageSharp.ImageProperty.Value
+  type: Property
+  source:
+    id: Value
+    path: ''
+    startLine: 19026
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nThe value of this <xref href=\"ImageSharp.ImageProperty\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  example: []
+  syntax:
+    content: public string Value { get; }
+    content.vb: Public ReadOnly Property Value As String
+    parameters: []
+    return:
+      type: System.String
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.ImageProperty.op_Equality(ImageSharp.ImageProperty,ImageSharp.ImageProperty)
+  commentId: M:ImageSharp.ImageProperty.op_Equality(ImageSharp.ImageProperty,ImageSharp.ImageProperty)
+  id: op_Equality(ImageSharp.ImageProperty,ImageSharp.ImageProperty)
+  parent: ImageSharp.ImageProperty
+  langs:
+  - csharp
+  - vb
+  name: Equality(ImageProperty, ImageProperty)
+  nameWithType: ImageProperty.Equality(ImageProperty, ImageProperty)
+  fullName: ImageSharp.ImageProperty.Equality(ImageSharp.ImageProperty, ImageSharp.ImageProperty)
+  type: Operator
+  source:
+    id: op_Equality
+    path: ''
+    startLine: 19042
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCompares two <xref href=\"ImageSharp.ImageProperty\" data-throw-if-not-resolved=\"false\"></xref> objects. The result specifies whether the values\nof the <xref href=\"ImageSharp.ImageProperty.Name\" data-throw-if-not-resolved=\"false\"></xref> or <xref href=\"ImageSharp.ImageProperty.Value\" data-throw-if-not-resolved=\"false\"></xref> properties of the two\n<xref href=\"ImageSharp.ImageProperty\" data-throw-if-not-resolved=\"false\"></xref> objects are equal.\n"
+  example: []
+  syntax:
+    content: public static bool operator ==(ImageProperty left, ImageProperty right)
+    content.vb: Public Shared Operator =(left As ImageProperty, right As ImageProperty) As Boolean
+    parameters:
+    - id: left
+      type: ImageSharp.ImageProperty
+      description: "\nThe <xref href=\"ImageSharp.ImageProperty\" data-throw-if-not-resolved=\"false\"></xref> on the left side of the operand.\n"
+    - id: right
+      type: ImageSharp.ImageProperty
+      description: "\nThe <xref href=\"ImageSharp.ImageProperty\" data-throw-if-not-resolved=\"false\"></xref> on the right side of the operand.\n"
+    return:
+      type: System.Boolean
+      description: "\nTrue if the current left is equal to the <em>right</em> parameter; otherwise, false.\n"
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.ImageProperty.op_Inequality(ImageSharp.ImageProperty,ImageSharp.ImageProperty)
+  commentId: M:ImageSharp.ImageProperty.op_Inequality(ImageSharp.ImageProperty,ImageSharp.ImageProperty)
+  id: op_Inequality(ImageSharp.ImageProperty,ImageSharp.ImageProperty)
+  parent: ImageSharp.ImageProperty
+  langs:
+  - csharp
+  - vb
+  name: Inequality(ImageProperty, ImageProperty)
+  nameWithType: ImageProperty.Inequality(ImageProperty, ImageProperty)
+  fullName: ImageSharp.ImageProperty.Inequality(ImageSharp.ImageProperty, ImageSharp.ImageProperty)
+  type: Operator
+  source:
+    id: op_Inequality
+    path: ''
+    startLine: 19061
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCompares two <xref href=\"ImageSharp.ImageProperty\" data-throw-if-not-resolved=\"false\"></xref> objects. The result specifies whether the values\nof the <xref href=\"ImageSharp.ImageProperty.Name\" data-throw-if-not-resolved=\"false\"></xref> or <xref href=\"ImageSharp.ImageProperty.Value\" data-throw-if-not-resolved=\"false\"></xref> properties of the two\n<xref href=\"ImageSharp.ImageProperty\" data-throw-if-not-resolved=\"false\"></xref> objects are unequal.\n"
+  example: []
+  syntax:
+    content: public static bool operator !=(ImageProperty left, ImageProperty right)
+    content.vb: Public Shared Operator <>(left As ImageProperty, right As ImageProperty) As Boolean
+    parameters:
+    - id: left
+      type: ImageSharp.ImageProperty
+      description: "\nThe <xref href=\"ImageSharp.ImageProperty\" data-throw-if-not-resolved=\"false\"></xref> on the left side of the operand.\n"
+    - id: right
+      type: ImageSharp.ImageProperty
+      description: "\nThe <xref href=\"ImageSharp.ImageProperty\" data-throw-if-not-resolved=\"false\"></xref> on the right side of the operand.\n"
+    return:
+      type: System.Boolean
+      description: "\nTrue if the current left is unequal to the <em>right</em> parameter; otherwise, false.\n"
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.ImageProperty.Equals(System.Object)
+  commentId: M:ImageSharp.ImageProperty.Equals(System.Object)
+  id: Equals(System.Object)
+  parent: ImageSharp.ImageProperty
+  langs:
+  - csharp
+  - vb
+  name: Equals(Object)
+  nameWithType: ImageProperty.Equals(Object)
+  fullName: ImageSharp.ImageProperty.Equals(System.Object)
+  type: Method
+  source:
+    id: Equals
+    path: ''
+    startLine: 19076
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nIndicates whether this instance and a specified object are equal.\n"
+  example: []
+  syntax:
+    content: public override bool Equals(object obj)
+    content.vb: Public Overrides Function Equals(obj As Object) As Boolean
+    parameters:
+    - id: obj
+      type: System.Object
+      description: "\nThe object to compare with the current instance.\n"
+    return:
+      type: System.Boolean
+      description: "\ntrue if <em>obj</em> and this instance are the same type and represent the\nsame value; otherwise, false.\n"
+  overridden: System.Object.Equals(System.Object)
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+- uid: ImageSharp.ImageProperty.GetHashCode
+  commentId: M:ImageSharp.ImageProperty.GetHashCode
+  id: GetHashCode
+  parent: ImageSharp.ImageProperty
+  langs:
+  - csharp
+  - vb
+  name: GetHashCode()
+  nameWithType: ImageProperty.GetHashCode()
+  fullName: ImageSharp.ImageProperty.GetHashCode()
+  type: Method
+  source:
+    id: GetHashCode
+    path: ''
+    startLine: 19089
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nReturns the hash code for this instance.\n"
+  example: []
+  syntax:
+    content: public override int GetHashCode()
+    content.vb: Public Overrides Function GetHashCode As Integer
+    return:
+      type: System.Int32
+      description: "\nA 32-bit signed integer that is the hash code for this instance.\n"
+  overridden: System.Object.GetHashCode
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+- uid: ImageSharp.ImageProperty.ToString
+  commentId: M:ImageSharp.ImageProperty.ToString
+  id: ToString
+  parent: ImageSharp.ImageProperty
+  langs:
+  - csharp
+  - vb
+  name: ToString()
+  nameWithType: ImageProperty.ToString()
+  fullName: ImageSharp.ImageProperty.ToString()
+  type: Method
+  source:
+    id: ToString
+    path: ''
+    startLine: 19109
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nReturns the fully qualified type name of this instance.\n"
+  example: []
+  syntax:
+    content: public override string ToString()
+    content.vb: Public Overrides Function ToString As String
+    return:
+      type: System.String
+      description: "\nA <xref href=\"System.String\" data-throw-if-not-resolved=\"false\"></xref> containing a fully qualified type name.\n"
+  overridden: System.Object.ToString
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+- uid: ImageSharp.ImageProperty.Equals(ImageSharp.ImageProperty)
+  commentId: M:ImageSharp.ImageProperty.Equals(ImageSharp.ImageProperty)
+  id: Equals(ImageSharp.ImageProperty)
+  parent: ImageSharp.ImageProperty
+  langs:
+  - csharp
+  - vb
+  name: Equals(ImageProperty)
+  nameWithType: ImageProperty.Equals(ImageProperty)
+  fullName: ImageSharp.ImageProperty.Equals(ImageSharp.ImageProperty)
+  type: Method
+  source:
+    id: Equals
+    path: ''
+    startLine: 19121
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nIndicates whether the current object is equal to another object of the same type.\n"
+  example: []
+  syntax:
+    content: public bool Equals(ImageProperty other)
+    content.vb: Public Function Equals(other As ImageProperty) As Boolean
+    parameters:
+    - id: other
+      type: ImageSharp.ImageProperty
+      description: An object to compare with this object.
+    return:
+      type: System.Boolean
+      description: "\nTrue if the current object is equal to the <em>other</em> parameter; otherwise, false.\n"
+  implements:
+  - System.IEquatable{ImageSharp.ImageProperty}.Equals(ImageSharp.ImageProperty)
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+references:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  name: Object
+  nameWithType: Object
+  fullName: System.Object
+- uid: System.IEquatable{ImageSharp.ImageProperty}
+  commentId: T:System.IEquatable{ImageSharp.ImageProperty}
+  parent: System
+  definition: System.IEquatable`1
+  name: IEquatable<ImageProperty>
+  nameWithType: IEquatable<ImageProperty>
+  fullName: System.IEquatable<ImageSharp.ImageProperty>
+  nameWithType.vb: IEquatable(Of ImageProperty)
+  fullname.vb: System.IEquatable(Of ImageSharp.ImageProperty)
+  name.vb: IEquatable(Of ImageProperty)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: <
+    nameWithType: <
+    fullName: <
+  - uid: ImageSharp.ImageProperty
+    name: ImageProperty
+    nameWithType: ImageProperty
+    fullName: ImageSharp.ImageProperty
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - uid: ImageSharp.ImageProperty
+    name: ImageProperty
+    nameWithType: ImageProperty
+    fullName: ImageSharp.ImageProperty
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object, Object)
+  nameWithType: Object.Equals(Object, Object)
+  fullName: System.Object.Equals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: ReferenceEquals(Object, Object)
+  nameWithType: Object.ReferenceEquals(Object, Object)
+  fullName: System.Object.ReferenceEquals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  name: GetType()
+  nameWithType: Object.GetType()
+  fullName: System.Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.MemberwiseClone
+  commentId: M:System.Object.MemberwiseClone
+  parent: System.Object
+  isExternal: true
+  name: MemberwiseClone()
+  nameWithType: Object.MemberwiseClone()
+  fullName: System.Object.MemberwiseClone()
+  spec.csharp:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    nameWithType: Object.MemberwiseClone
+    fullName: System.Object.MemberwiseClone
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    nameWithType: Object.MemberwiseClone
+    fullName: System.Object.MemberwiseClone
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System
+  commentId: N:System
+  isExternal: false
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.IEquatable`1
+  commentId: T:System.IEquatable`1
+  isExternal: true
+  name: IEquatable<T>
+  nameWithType: IEquatable<T>
+  fullName: System.IEquatable<T>
+  nameWithType.vb: IEquatable(Of T)
+  fullname.vb: System.IEquatable(Of T)
+  name.vb: IEquatable(Of T)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.ImageProperty
+  commentId: T:ImageSharp.ImageProperty
+  parent: ImageSharp
+  isExternal: false
+  name: ImageProperty
+  nameWithType: ImageProperty
+  fullName: ImageSharp.ImageProperty
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  name: String
+  nameWithType: String
+  fullName: System.String
+- uid: ImageSharp.ImageProperty.Name
+  commentId: P:ImageSharp.ImageProperty.Name
+- uid: ImageSharp.ImageProperty.Value
+  commentId: P:ImageSharp.ImageProperty.Value
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  name: Boolean
+  nameWithType: Boolean
+  fullName: System.Boolean
+- uid: System.Object.Equals(System.Object)
+  commentId: M:System.Object.Equals(System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object)
+  nameWithType: Object.Equals(Object)
+  fullName: System.Object.Equals(System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetHashCode
+  commentId: M:System.Object.GetHashCode
+  parent: System.Object
+  isExternal: true
+  name: GetHashCode()
+  nameWithType: Object.GetHashCode()
+  fullName: System.Object.GetHashCode()
+  spec.csharp:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    nameWithType: Object.GetHashCode
+    fullName: System.Object.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    nameWithType: Object.GetHashCode
+    fullName: System.Object.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  name: Int32
+  nameWithType: Int32
+  fullName: System.Int32
+- uid: System.Object.ToString
+  commentId: M:System.Object.ToString
+  parent: System.Object
+  isExternal: true
+  name: ToString()
+  nameWithType: Object.ToString()
+  fullName: System.Object.ToString()
+  spec.csharp:
+  - uid: System.Object.ToString
+    name: ToString
+    nameWithType: Object.ToString
+    fullName: System.Object.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ToString
+    name: ToString
+    nameWithType: Object.ToString
+    fullName: System.Object.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.IEquatable{ImageSharp.ImageProperty}.Equals(ImageSharp.ImageProperty)
+  commentId: M:System.IEquatable{ImageSharp.ImageProperty}.Equals(ImageSharp.ImageProperty)
+  parent: System.IEquatable{ImageSharp.ImageProperty}
+  definition: System.IEquatable`1.Equals(`0)
+  name: Equals(ImageProperty)
+  nameWithType: IEquatable<ImageProperty>.Equals(ImageProperty)
+  fullName: System.IEquatable<ImageSharp.ImageProperty>.Equals(ImageSharp.ImageProperty)
+  nameWithType.vb: IEquatable(Of ImageProperty).Equals(ImageProperty)
+  fullname.vb: System.IEquatable(Of ImageSharp.ImageProperty).Equals(ImageSharp.ImageProperty)
+  spec.csharp:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable<ImageProperty>.Equals
+    fullName: System.IEquatable<ImageSharp.ImageProperty>.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageProperty
+    name: ImageProperty
+    nameWithType: ImageProperty
+    fullName: ImageSharp.ImageProperty
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable(Of ImageProperty).Equals
+    fullName: System.IEquatable(Of ImageSharp.ImageProperty).Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.ImageProperty
+    name: ImageProperty
+    nameWithType: ImageProperty
+    fullName: ImageSharp.ImageProperty
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.IEquatable`1.Equals(`0)
+  commentId: M:System.IEquatable`1.Equals(`0)
+  isExternal: true
+  name: Equals(T)
+  nameWithType: IEquatable<T>.Equals(T)
+  fullName: System.IEquatable<T>.Equals(T)
+  nameWithType.vb: IEquatable(Of T).Equals(T)
+  fullname.vb: System.IEquatable(Of T).Equals(T)
+  spec.csharp:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable<T>.Equals
+    fullName: System.IEquatable<T>.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable(Of T).Equals
+    fullName: System.IEquatable(Of T).Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )

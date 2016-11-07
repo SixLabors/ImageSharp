@@ -1,0 +1,121 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.IAlmostEquatable`2
+  commentId: T:ImageSharp.IAlmostEquatable`2
+  id: IAlmostEquatable`2
+  parent: ImageSharp
+  children:
+  - ImageSharp.IAlmostEquatable`2.AlmostEquals(`0,`1)
+  langs:
+  - csharp
+  - vb
+  name: IAlmostEquatable<TColor, TPrecision>
+  nameWithType: IAlmostEquatable<TColor, TPrecision>
+  fullName: ImageSharp.IAlmostEquatable<TColor, TPrecision>
+  type: Interface
+  source:
+    id: IAlmostEquatable
+    path: ''
+    startLine: 3217
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nDefines a generalized method that a value type or class implements to create\na type-specific method for determining approximate equality of instances.\n"
+  example: []
+  syntax:
+    content: >-
+      public interface IAlmostEquatable<in TColor, in TPrecision>
+          where TPrecision : struct, IComparable<TPrecision>
+    content.vb: Public Interface IAlmostEquatable(Of In TColor, In TPrecision As {Structure, IComparable(Of TPrecision)})
+    typeParameters:
+    - id: TColor
+      description: The type of objects to compare.
+    - id: TPrecision
+      description: The object specifying the type to specify precision with.
+  nameWithType.vb: IAlmostEquatable(Of TColor, TPrecision)
+  modifiers.csharp:
+  - public
+  - interface
+  modifiers.vb:
+  - Public
+  - Interface
+  fullName.vb: ImageSharp.IAlmostEquatable(Of TColor, TPrecision)
+  name.vb: IAlmostEquatable(Of TColor, TPrecision)
+- uid: ImageSharp.IAlmostEquatable`2.AlmostEquals(`0,`1)
+  commentId: M:ImageSharp.IAlmostEquatable`2.AlmostEquals(`0,`1)
+  id: AlmostEquals(`0,`1)
+  parent: ImageSharp.IAlmostEquatable`2
+  langs:
+  - csharp
+  - vb
+  name: AlmostEquals(TColor, TPrecision)
+  nameWithType: IAlmostEquatable<TColor, TPrecision>.AlmostEquals(TColor, TPrecision)
+  fullName: ImageSharp.IAlmostEquatable<TColor, TPrecision>.AlmostEquals(TColor, TPrecision)
+  type: Method
+  source:
+    id: AlmostEquals
+    path: ''
+    startLine: 3229
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nIndicates whether the current object is equal to another object of the same type\nwhen compared to the specified precision level.\n"
+  example: []
+  syntax:
+    content: bool AlmostEquals(TColor other, TPrecision precision)
+    content.vb: Function AlmostEquals(other As TColor, precision As TPrecision) As Boolean
+    parameters:
+    - id: other
+      type: '{TColor}'
+      description: An object to compare with this object.
+    - id: precision
+      type: '{TPrecision}'
+      description: The object specifying the level of precision.
+    return:
+      type: System.Boolean
+      description: "\ntrue if the current object is equal to the other parameter; otherwise, false.\n"
+  nameWithType.vb: IAlmostEquatable(Of TColor, TPrecision).AlmostEquals(TColor, TPrecision)
+  fullName.vb: ImageSharp.IAlmostEquatable(Of TColor, TPrecision).AlmostEquals(TColor, TPrecision)
+references:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: '{TColor}'
+  commentId: '!:TColor'
+  definition: TColor
+  name: TColor
+  nameWithType: TColor
+  fullName: TColor
+- uid: '{TPrecision}'
+  commentId: '!:TPrecision'
+  definition: TPrecision
+  name: TPrecision
+  nameWithType: TPrecision
+  fullName: TPrecision
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  name: Boolean
+  nameWithType: Boolean
+  fullName: System.Boolean
+- uid: TColor
+  isExternal: false
+  name: TColor
+  nameWithType: TColor
+  fullName: TColor
+- uid: TPrecision
+  commentId: '!:TPrecision'
+  isExternal: false
+  name: TPrecision
+  nameWithType: TPrecision
+  fullName: TPrecision
+- uid: System
+  commentId: N:System
+  isExternal: false
+  name: System
+  nameWithType: System
+  fullName: System

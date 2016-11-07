@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+  
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Struct Rectangle
+   </title>
+    <meta name="viewport" content="width=device-width">
+    <meta name="title" content="Struct Rectangle
+   ">
+    <meta name="generator" content="docfx 2.4.0.0">
+    
+    <link rel="shortcut icon" href="../favicon.ico">
+    <link rel="stylesheet" href="../styles/docfx.vendor.css">
+    <link rel="stylesheet" href="../styles/docfx.css">
+    <link rel="stylesheet" href="../styles/main.css">
+    <meta property="docfx:navrel" content="../toc.html">
+    <meta property="docfx:tocrel" content="toc.html">
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix">
+    <div id="wrapper">
+      <header>
+        
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+        
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div role="main" class="container body-content hide-when-search">
+        
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content">
+              
+              
+              <h1 id="ImageSharp_Rectangle" data-uid="ImageSharp.Rectangle">Struct Rectangle
+              </h1>
+              <div class="markdown level0 summary"><p>Stores a set of four integers that represent the location and size of a rectangle.</p>
+</div>
+              <div class="markdown level0 conceptual"></div>
+              <div class="inheritedMembers">
+                <h5>Inherited Members</h5>
+                <div>
+                  <span class="xref">System.Object.Equals(System.Object, System.Object)</span>
+                </div>
+                <div>
+                  <span class="xref">System.Object.ReferenceEquals(System.Object, System.Object)</span>
+                </div>
+                <div>
+                  <span class="xref">System.Object.GetType()</span>
+                </div>
+              </div>
+              <h6><strong>Namespace</strong>:ImageSharp</h6>
+              <h6><strong>Assembly</strong>:cs.temp.dll.dll</h6>
+              <h5 id="ImageSharp_Rectangle_syntax">Syntax</h5>
+              <div class="codewrapper">
+                <pre><code class="lang-csharp hljs">public struct Rectangle : IEquatable&lt;Rectangle&gt;</code></pre>
+              </div>
+              <h5 id="ImageSharp_Rectangle_remarks"><strong>Remarks</strong></h5>
+              <div class="markdown level0 remarks"><p>This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
+as it avoids the need to create new values for modification operations.</p>
+</div>
+              <h3 id="constructors">Constructors
+              </h3>
+              <span class="small pull-right mobile-hide">
+                <span class="divider">|</span>
+                <a href="https://github.com/M-Zuber/ImageSharp/new/master/src/docs/apispec/new?filename=ImageSharp_Rectangle__ctor_ImageSharp_Point_ImageSharp_Size_.md&amp;value=---%0Auid%3A%20ImageSharp.Rectangle.%23ctor(ImageSharp.Point%2CImageSharp.Size)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+              </span>
+              
+              <h4 id="ImageSharp_Rectangle__ctor_ImageSharp_Point_ImageSharp_Size_" data-uid="ImageSharp.Rectangle.#ctor(ImageSharp.Point,ImageSharp.Size)">Rectangle(Point, Size)</h4>
+              <div class="markdown level1 summary"><p>Initializes a new instance of the <a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a> struct.</p>
+</div>
+              <div class="markdown level1 conceptual"></div>
+              <h5 class="decalaration">Declaration</h5>
+              <div class="codewrapper">
+                <pre><code class="lang-csharp hljs">public Rectangle(Point point, Size size)</code></pre>
+              </div>
+              <h5 class="parameters">Parameters</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Name</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><a class="xref" href="ImageSharp.Point.html#ImageSharp_Point">Point</a></td>
+                    <td><em>point</em></td>
+                    <td><p>The <a class="xref" href="ImageSharp.Point.html#ImageSharp_Point">Point</a> which specifies the rectangles point in a two-dimensional plane.</p>
+</td>
+                  </tr>
+                  <tr>
+                    <td><a class="xref" href="ImageSharp.Size.html#ImageSharp_Size">Size</a></td>
+                    <td><em>size</em></td>
+                    <td><p>The <a class="xref" href="ImageSharp.Size.html#ImageSharp_Size">Size</a> which specifies the rectangles height and width.</p>
+</td>
+                  </tr>
+                </tbody>
+              </table>
+              <span class="small pull-right mobile-hide">
+                <span class="divider">|</span>
+                <a href="https://github.com/M-Zuber/ImageSharp/new/master/src/docs/apispec/new?filename=ImageSharp_Rectangle__ctor_System_Int32_System_Int32_System_Int32_System_Int32_.md&amp;value=---%0Auid%3A%20ImageSharp.Rectangle.%23ctor(System.Int32%2CSystem.Int32%2CSystem.Int32%2CSystem.Int32)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+              </span>
+              
+              <h4 id="ImageSharp_Rectangle__ctor_System_Int32_System_Int32_System_Int32_System_Int32_" data-uid="ImageSharp.Rectangle.#ctor(System.Int32,System.Int32,System.Int32,System.Int32)">Rectangle(Int32, Int32, Int32, Int32)</h4>
+              <div class="markdown level1 summary"><p>Initializes a new instance of the <a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a> struct.</p>
+</div>
+              <div class="markdown level1 conceptual"></div>
+              <h5 class="decalaration">Declaration</h5>
+              <div class="codewrapper">
+                <pre><code class="lang-csharp hljs">public Rectangle(int x, int y, int width, int height)</code></pre>
+              </div>
+              <h5 class="parameters">Parameters</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Name</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="xref">System.Int32</span></td>
+                    <td><em>x</em></td>
+                    <td><p>The horizontal position of the rectangle.</p>
+</td>
+                  </tr>
+                  <tr>
+                    <td><span class="xref">System.Int32</span></td>
+                    <td><em>y</em></td>
+                    <td><p>The vertical position of the rectangle.</p>
+</td>
+                  </tr>
+                  <tr>
+                    <td><span class="xref">System.Int32</span></td>
+                    <td><em>width</em></td>
+                    <td><p>The width of the rectangle.</p>
+</td>
+                  </tr>
+                  <tr>
+                    <td><span class="xref">System.Int32</span></td>
+                    <td><em>height</em></td>
+                    <td><p>The height of the rectangle.</p>
+</td>
+                  </tr>
+                </tbody>
+              </table>
+              <span class="small pull-right mobile-hide">
+                <span class="divider">|</span>
+                <a href="https://github.com/M-Zuber/ImageSharp/new/master/src/docs/apispec/new?filename=ImageSharp_Rectangle__ctor_Vector4_.md&amp;value=---%0Auid%3A%20ImageSharp.Rectangle.%23ctor(Vector4)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+              </span>
+              
+              <h4 id="ImageSharp_Rectangle__ctor_Vector4_" data-uid="ImageSharp.Rectangle.#ctor(Vector4)">Rectangle(Vector4)</h4>
+              <div class="markdown level1 summary"><p>Initializes a new instance of the <a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a> struct.</p>
+</div>
+              <div class="markdown level1 conceptual"></div>
+              <h5 class="decalaration">Declaration</h5>
+              <div class="codewrapper">
+                <pre><code class="lang-csharp hljs">public Rectangle(Vector4 vector)</code></pre>
+              </div>
+              <h5 class="parameters">Parameters</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Name</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="xref">Vector4</span></td>
+                    <td><em>vector</em></td>
+                    <td><p>The vector.</p>
+</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3 id="fields">Fields
+              </h3>
+              <span class="small pull-right mobile-hide">
+                <span class="divider">|</span>
+                <a href="https://github.com/M-Zuber/ImageSharp/new/master/src/docs/apispec/new?filename=ImageSharp_Rectangle_Empty.md&amp;value=---%0Auid%3A%20ImageSharp.Rectangle.Empty%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+              </span>
+              
+              <h4 id="ImageSharp_Rectangle_Empty" data-uid="ImageSharp.Rectangle.Empty">Empty</h4>
+              <div class="markdown level1 summary"><p>Represents a <a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a> that has X, Y, Width, and Height values set to zero.</p>
+</div>
+              <div class="markdown level1 conceptual"></div>
+              <h5 class="decalaration">Declaration</h5>
+              <div class="codewrapper">
+                <pre><code class="lang-csharp hljs">public static readonly Rectangle Empty</code></pre>
+              </div>
+              <h5 class="fieldValue">Field Value</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a></td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3 id="properties">Properties
+              </h3>
+              <span class="small pull-right mobile-hide">
+                <span class="divider">|</span>
+                <a href="https://github.com/M-Zuber/ImageSharp/new/master/src/docs/apispec/new?filename=ImageSharp_Rectangle_Bottom.md&amp;value=---%0Auid%3A%20ImageSharp.Rectangle.Bottom%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+              </span>
+              
+              <h4 id="ImageSharp_Rectangle_Bottom" data-uid="ImageSharp.Rectangle.Bottom">Bottom</h4>
+              <div class="markdown level1 summary"><p>Gets the y-coordinate of the bottom edge of this <a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a>.</p>
+</div>
+              <div class="markdown level1 conceptual"></div>
+              <h5 class="decalaration">Declaration</h5>
+              <div class="codewrapper">
+                <pre><code class="lang-csharp hljs">public int Bottom { get; }</code></pre>
+              </div>
+              <h5 class="propertyValue">Property Value</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="xref">System.Int32</span></td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+              <span class="small pull-right mobile-hide">
+                <span class="divider">|</span>
+                <a href="https://github.com/M-Zuber/ImageSharp/new/master/src/docs/apispec/new?filename=ImageSharp_Rectangle_Height.md&amp;value=---%0Auid%3A%20ImageSharp.Rectangle.Height%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+              </span>
+              
+              <h4 id="ImageSharp_Rectangle_Height" data-uid="ImageSharp.Rectangle.Height">Height</h4>
+              <div class="markdown level1 summary"><p>The height of this <a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a>.</p>
+</div>
+              <div class="markdown level1 conceptual"></div>
+              <h5 class="decalaration">Declaration</h5>
+              <div class="codewrapper">
+                <pre><code class="lang-csharp hljs">public int Height { get; set; }</code></pre>
+              </div>
+              <h5 class="propertyValue">Property Value</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="xref">System.Int32</span></td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+              <span class="small pull-right mobile-hide">
+                <span class="divider">|</span>
+                <a href="https://github.com/M-Zuber/ImageSharp/new/master/src/docs/apispec/new?filename=ImageSharp_Rectangle_IsEmpty.md&amp;value=---%0Auid%3A%20ImageSharp.Rectangle.IsEmpty%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+              </span>
+              
+              <h4 id="ImageSharp_Rectangle_IsEmpty" data-uid="ImageSharp.Rectangle.IsEmpty">IsEmpty</h4>
+              <div class="markdown level1 summary"><p>Gets a value indicating whether this <a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a> is empty.</p>
+</div>
+              <div class="markdown level1 conceptual"></div>
+              <h5 class="decalaration">Declaration</h5>
+              <div class="codewrapper">
+                <pre><code class="lang-csharp hljs">public bool IsEmpty { get; }</code></pre>
+              </div>
+              <h5 class="propertyValue">Property Value</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="xref">System.Boolean</span></td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+              <span class="small pull-right mobile-hide">
+                <span class="divider">|</span>
+                <a href="https://github.com/M-Zuber/ImageSharp/new/master/src/docs/apispec/new?filename=ImageSharp_Rectangle_Left.md&amp;value=---%0Auid%3A%20ImageSharp.Rectangle.Left%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+              </span>
+              
+              <h4 id="ImageSharp_Rectangle_Left" data-uid="ImageSharp.Rectangle.Left">Left</h4>
+              <div class="markdown level1 summary"><p>Gets the x-coordinate of the left edge of this <a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a>.</p>
+</div>
+              <div class="markdown level1 conceptual"></div>
+              <h5 class="decalaration">Declaration</h5>
+              <div class="codewrapper">
+                <pre><code class="lang-csharp hljs">public int Left { get; }</code></pre>
+              </div>
+              <h5 class="propertyValue">Property Value</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="xref">System.Int32</span></td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+              <span class="small pull-right mobile-hide">
+                <span class="divider">|</span>
+                <a href="https://github.com/M-Zuber/ImageSharp/new/master/src/docs/apispec/new?filename=ImageSharp_Rectangle_Right.md&amp;value=---%0Auid%3A%20ImageSharp.Rectangle.Right%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+              </span>
+              
+              <h4 id="ImageSharp_Rectangle_Right" data-uid="ImageSharp.Rectangle.Right">Right</h4>
+              <div class="markdown level1 summary"><p>Gets the x-coordinate of the right edge of this <a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a>.</p>
+</div>
+              <div class="markdown level1 conceptual"></div>
+              <h5 class="decalaration">Declaration</h5>
+              <div class="codewrapper">
+                <pre><code class="lang-csharp hljs">public int Right { get; }</code></pre>
+              </div>
+              <h5 class="propertyValue">Property Value</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="xref">System.Int32</span></td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+              <span class="small pull-right mobile-hide">
+                <span class="divider">|</span>
+                <a href="https://github.com/M-Zuber/ImageSharp/new/master/src/docs/apispec/new?filename=ImageSharp_Rectangle_Top.md&amp;value=---%0Auid%3A%20ImageSharp.Rectangle.Top%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+              </span>
+              
+              <h4 id="ImageSharp_Rectangle_Top" data-uid="ImageSharp.Rectangle.Top">Top</h4>
+              <div class="markdown level1 summary"><p>Gets the y-coordinate of the top edge of this <a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a>.</p>
+</div>
+              <div class="markdown level1 conceptual"></div>
+              <h5 class="decalaration">Declaration</h5>
+              <div class="codewrapper">
+                <pre><code class="lang-csharp hljs">public int Top { get; }</code></pre>
+              </div>
+              <h5 class="propertyValue">Property Value</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="xref">System.Int32</span></td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+              <span class="small pull-right mobile-hide">
+                <span class="divider">|</span>
+                <a href="https://github.com/M-Zuber/ImageSharp/new/master/src/docs/apispec/new?filename=ImageSharp_Rectangle_Width.md&amp;value=---%0Auid%3A%20ImageSharp.Rectangle.Width%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+              </span>
+              
+              <h4 id="ImageSharp_Rectangle_Width" data-uid="ImageSharp.Rectangle.Width">Width</h4>
+              <div class="markdown level1 summary"><p>The width of this <a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a>.</p>
+</div>
+              <div class="markdown level1 conceptual"></div>
+              <h5 class="decalaration">Declaration</h5>
+              <div class="codewrapper">
+                <pre><code class="lang-csharp hljs">public int Width { get; set; }</code></pre>
+              </div>
+              <h5 class="propertyValue">Property Value</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="xref">System.Int32</span></td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+              <span class="small pull-right mobile-hide">
+                <span class="divider">|</span>
+                <a href="https://github.com/M-Zuber/ImageSharp/new/master/src/docs/apispec/new?filename=ImageSharp_Rectangle_X.md&amp;value=---%0Auid%3A%20ImageSharp.Rectangle.X%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+              </span>
+              
+              <h4 id="ImageSharp_Rectangle_X" data-uid="ImageSharp.Rectangle.X">X</h4>
+              <div class="markdown level1 summary"><p>The x-coordinate of this <a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a>.</p>
+</div>
+              <div class="markdown level1 conceptual"></div>
+              <h5 class="decalaration">Declaration</h5>
+              <div class="codewrapper">
+                <pre><code class="lang-csharp hljs">public int X { get; set; }</code></pre>
+              </div>
+              <h5 class="propertyValue">Property Value</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="xref">System.Int32</span></td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+              <span class="small pull-right mobile-hide">
+                <span class="divider">|</span>
+                <a href="https://github.com/M-Zuber/ImageSharp/new/master/src/docs/apispec/new?filename=ImageSharp_Rectangle_Y.md&amp;value=---%0Auid%3A%20ImageSharp.Rectangle.Y%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+              </span>
+              
+              <h4 id="ImageSharp_Rectangle_Y" data-uid="ImageSharp.Rectangle.Y">Y</h4>
+              <div class="markdown level1 summary"><p>The y-coordinate of this <a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a>.</p>
+</div>
+              <div class="markdown level1 conceptual"></div>
+              <h5 class="decalaration">Declaration</h5>
+              <div class="codewrapper">
+                <pre><code class="lang-csharp hljs">public int Y { get; set; }</code></pre>
+              </div>
+              <h5 class="propertyValue">Property Value</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="xref">System.Int32</span></td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3 id="methods">Methods
+              </h3>
+              <span class="small pull-right mobile-hide">
+                <span class="divider">|</span>
+                <a href="https://github.com/M-Zuber/ImageSharp/new/master/src/docs/apispec/new?filename=ImageSharp_Rectangle_Center_ImageSharp_Rectangle_.md&amp;value=---%0Auid%3A%20ImageSharp.Rectangle.Center(ImageSharp.Rectangle)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+              </span>
+              
+              <h4 id="ImageSharp_Rectangle_Center_ImageSharp_Rectangle_" data-uid="ImageSharp.Rectangle.Center(ImageSharp.Rectangle)">Center(Rectangle)</h4>
+              <div class="markdown level1 summary"><p>Returns the center point of the given <a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a></p>
+</div>
+              <div class="markdown level1 conceptual"></div>
+              <h5 class="decalaration">Declaration</h5>
+              <div class="codewrapper">
+                <pre><code class="lang-csharp hljs">public static Point Center(Rectangle rectangle)</code></pre>
+              </div>
+              <h5 class="parameters">Parameters</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Name</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a></td>
+                    <td><em>rectangle</em></td>
+                    <td><p>The rectangle</p>
+</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h5 class="returns">Returns</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><a class="xref" href="ImageSharp.Point.html#ImageSharp_Point">Point</a></td>
+                    <td><a class="xref" href="ImageSharp.Point.html#ImageSharp_Point">Point</a></td>
+                  </tr>
+                </tbody>
+              </table>
+              <span class="small pull-right mobile-hide">
+                <span class="divider">|</span>
+                <a href="https://github.com/M-Zuber/ImageSharp/new/master/src/docs/apispec/new?filename=ImageSharp_Rectangle_Contains_System_Int32_System_Int32_.md&amp;value=---%0Auid%3A%20ImageSharp.Rectangle.Contains(System.Int32%2CSystem.Int32)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+              </span>
+              
+              <h4 id="ImageSharp_Rectangle_Contains_System_Int32_System_Int32_" data-uid="ImageSharp.Rectangle.Contains(System.Int32,System.Int32)">Contains(Int32, Int32)</h4>
+              <div class="markdown level1 summary"><p>Determines if the specfied point is contained within the rectangular region defined by
+this <a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a>.</p>
+</div>
+              <div class="markdown level1 conceptual"></div>
+              <h5 class="decalaration">Declaration</h5>
+              <div class="codewrapper">
+                <pre><code class="lang-csharp hljs">public bool Contains(int x, int y)</code></pre>
+              </div>
+              <h5 class="parameters">Parameters</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Name</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="xref">System.Int32</span></td>
+                    <td><em>x</em></td>
+                    <td><p>The x-coordinate of the given point.</p>
+</td>
+                  </tr>
+                  <tr>
+                    <td><span class="xref">System.Int32</span></td>
+                    <td><em>y</em></td>
+                    <td><p>The y-coordinate of the given point.</p>
+</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h5 class="returns">Returns</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="xref">System.Boolean</span></td>
+                    <td><p>The <span class="xref">Boolean</span></p>
+</td>
+                  </tr>
+                </tbody>
+              </table>
+              <span class="small pull-right mobile-hide">
+                <span class="divider">|</span>
+                <a href="https://github.com/M-Zuber/ImageSharp/new/master/src/docs/apispec/new?filename=ImageSharp_Rectangle_Equals_ImageSharp_Rectangle_.md&amp;value=---%0Auid%3A%20ImageSharp.Rectangle.Equals(ImageSharp.Rectangle)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+              </span>
+              
+              <h4 id="ImageSharp_Rectangle_Equals_ImageSharp_Rectangle_" data-uid="ImageSharp.Rectangle.Equals(ImageSharp.Rectangle)">Equals(Rectangle)</h4>
+              <div class="markdown level1 summary"></div>
+              <div class="markdown level1 conceptual"></div>
+              <h5 class="decalaration">Declaration</h5>
+              <div class="codewrapper">
+                <pre><code class="lang-csharp hljs">public bool Equals(Rectangle other)</code></pre>
+              </div>
+              <h5 class="parameters">Parameters</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Name</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a></td>
+                    <td><em>other</em></td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+              <h5 class="returns">Returns</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="xref">System.Boolean</span></td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+              <h5 class="implements">Implements</h5>
+                  <div><span class="xref">System.IEquatable&lt;ImageSharp.Rectangle&gt;.Equals(ImageSharp.Rectangle)</span></div>
+              <span class="small pull-right mobile-hide">
+                <span class="divider">|</span>
+                <a href="https://github.com/M-Zuber/ImageSharp/new/master/src/docs/apispec/new?filename=ImageSharp_Rectangle_Equals_System_Object_.md&amp;value=---%0Auid%3A%20ImageSharp.Rectangle.Equals(System.Object)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+              </span>
+              
+              <h4 id="ImageSharp_Rectangle_Equals_System_Object_" data-uid="ImageSharp.Rectangle.Equals(System.Object)">Equals(Object)</h4>
+              <div class="markdown level1 summary"></div>
+              <div class="markdown level1 conceptual"></div>
+              <h5 class="decalaration">Declaration</h5>
+              <div class="codewrapper">
+                <pre><code class="lang-csharp hljs">public override bool Equals(object obj)</code></pre>
+              </div>
+              <h5 class="parameters">Parameters</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Name</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="xref">System.Object</span></td>
+                    <td><em>obj</em></td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+              <h5 class="returns">Returns</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="xref">System.Boolean</span></td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+              <h5 class="overrides">Overrides</h5>
+              <div><span class="xref">System.ValueType.Equals(System.Object)</span></div>
+              <span class="small pull-right mobile-hide">
+                <span class="divider">|</span>
+                <a href="https://github.com/M-Zuber/ImageSharp/new/master/src/docs/apispec/new?filename=ImageSharp_Rectangle_GetHashCode.md&amp;value=---%0Auid%3A%20ImageSharp.Rectangle.GetHashCode%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+              </span>
+              
+              <h4 id="ImageSharp_Rectangle_GetHashCode" data-uid="ImageSharp.Rectangle.GetHashCode">GetHashCode()</h4>
+              <div class="markdown level1 summary"></div>
+              <div class="markdown level1 conceptual"></div>
+              <h5 class="decalaration">Declaration</h5>
+              <div class="codewrapper">
+                <pre><code class="lang-csharp hljs">public override int GetHashCode()</code></pre>
+              </div>
+              <h5 class="returns">Returns</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="xref">System.Int32</span></td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+              <h5 class="overrides">Overrides</h5>
+              <div><span class="xref">System.ValueType.GetHashCode()</span></div>
+              <span class="small pull-right mobile-hide">
+                <span class="divider">|</span>
+                <a href="https://github.com/M-Zuber/ImageSharp/new/master/src/docs/apispec/new?filename=ImageSharp_Rectangle_ToString.md&amp;value=---%0Auid%3A%20ImageSharp.Rectangle.ToString%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+              </span>
+              
+              <h4 id="ImageSharp_Rectangle_ToString" data-uid="ImageSharp.Rectangle.ToString">ToString()</h4>
+              <div class="markdown level1 summary"></div>
+              <div class="markdown level1 conceptual"></div>
+              <h5 class="decalaration">Declaration</h5>
+              <div class="codewrapper">
+                <pre><code class="lang-csharp hljs">public override string ToString()</code></pre>
+              </div>
+              <h5 class="returns">Returns</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="xref">System.String</span></td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+              <h5 class="overrides">Overrides</h5>
+              <div><span class="xref">System.ValueType.ToString()</span></div>
+              <h3 id="operators">Operators
+              </h3>
+              <span class="small pull-right mobile-hide">
+                <span class="divider">|</span>
+                <a href="https://github.com/M-Zuber/ImageSharp/new/master/src/docs/apispec/new?filename=ImageSharp_Rectangle_op_Addition_ImageSharp_Rectangle_ImageSharp_Rectangle_.md&amp;value=---%0Auid%3A%20ImageSharp.Rectangle.op_Addition(ImageSharp.Rectangle%2CImageSharp.Rectangle)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+              </span>
+              
+              <h4 id="ImageSharp_Rectangle_op_Addition_ImageSharp_Rectangle_ImageSharp_Rectangle_" data-uid="ImageSharp.Rectangle.op_Addition(ImageSharp.Rectangle,ImageSharp.Rectangle)">Addition(Rectangle, Rectangle)</h4>
+              <div class="markdown level1 summary"><p>Computes the sum of adding two rectangles.</p>
+</div>
+              <div class="markdown level1 conceptual"></div>
+              <h5 class="decalaration">Declaration</h5>
+              <div class="codewrapper">
+                <pre><code class="lang-csharp hljs">public static Rectangle operator +(Rectangle left, Rectangle right)</code></pre>
+              </div>
+              <h5 class="parameters">Parameters</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Name</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a></td>
+                    <td><em>left</em></td>
+                    <td><p>The rectangle on the left hand of the operand.</p>
+</td>
+                  </tr>
+                  <tr>
+                    <td><a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a></td>
+                    <td><em>right</em></td>
+                    <td><p>The rectangle on the right hand of the operand.</p>
+</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h5 class="returns">Returns</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a></td>
+                    <td><p>The <a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a></p>
+</td>
+                  </tr>
+                </tbody>
+              </table>
+              <span class="small pull-right mobile-hide">
+                <span class="divider">|</span>
+                <a href="https://github.com/M-Zuber/ImageSharp/new/master/src/docs/apispec/new?filename=ImageSharp_Rectangle_op_Equality_ImageSharp_Rectangle_ImageSharp_Rectangle_.md&amp;value=---%0Auid%3A%20ImageSharp.Rectangle.op_Equality(ImageSharp.Rectangle%2CImageSharp.Rectangle)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+              </span>
+              
+              <h4 id="ImageSharp_Rectangle_op_Equality_ImageSharp_Rectangle_ImageSharp_Rectangle_" data-uid="ImageSharp.Rectangle.op_Equality(ImageSharp.Rectangle,ImageSharp.Rectangle)">Equality(Rectangle, Rectangle)</h4>
+              <div class="markdown level1 summary"><p>Compares two <a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a> objects for equality.</p>
+</div>
+              <div class="markdown level1 conceptual"></div>
+              <h5 class="decalaration">Declaration</h5>
+              <div class="codewrapper">
+                <pre><code class="lang-csharp hljs">public static bool operator ==(Rectangle left, Rectangle right)</code></pre>
+              </div>
+              <h5 class="parameters">Parameters</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Name</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a></td>
+                    <td><em>left</em></td>
+                    <td><p>The <a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a> on the left side of the operand.</p>
+</td>
+                  </tr>
+                  <tr>
+                    <td><a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a></td>
+                    <td><em>right</em></td>
+                    <td><p>The <a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a> on the right side of the operand.</p>
+</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h5 class="returns">Returns</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="xref">System.Boolean</span></td>
+                    <td><p>True if the current left is equal to the <em>right</em> parameter; otherwise, false.</p>
+</td>
+                  </tr>
+                </tbody>
+              </table>
+              <span class="small pull-right mobile-hide">
+                <span class="divider">|</span>
+                <a href="https://github.com/M-Zuber/ImageSharp/new/master/src/docs/apispec/new?filename=ImageSharp_Rectangle_op_Inequality_ImageSharp_Rectangle_ImageSharp_Rectangle_.md&amp;value=---%0Auid%3A%20ImageSharp.Rectangle.op_Inequality(ImageSharp.Rectangle%2CImageSharp.Rectangle)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+              </span>
+              
+              <h4 id="ImageSharp_Rectangle_op_Inequality_ImageSharp_Rectangle_ImageSharp_Rectangle_" data-uid="ImageSharp.Rectangle.op_Inequality(ImageSharp.Rectangle,ImageSharp.Rectangle)">Inequality(Rectangle, Rectangle)</h4>
+              <div class="markdown level1 summary"><p>Compares two <a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a> objects for inequality.</p>
+</div>
+              <div class="markdown level1 conceptual"></div>
+              <h5 class="decalaration">Declaration</h5>
+              <div class="codewrapper">
+                <pre><code class="lang-csharp hljs">public static bool operator !=(Rectangle left, Rectangle right)</code></pre>
+              </div>
+              <h5 class="parameters">Parameters</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Name</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a></td>
+                    <td><em>left</em></td>
+                    <td><p>The <a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a> on the left side of the operand.</p>
+</td>
+                  </tr>
+                  <tr>
+                    <td><a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a></td>
+                    <td><em>right</em></td>
+                    <td><p>The <a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a> on the right side of the operand.</p>
+</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h5 class="returns">Returns</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="xref">System.Boolean</span></td>
+                    <td><p>True if the current left is unequal to the <em>right</em> parameter; otherwise, false.</p>
+</td>
+                  </tr>
+                </tbody>
+              </table>
+              <span class="small pull-right mobile-hide">
+                <span class="divider">|</span>
+                <a href="https://github.com/M-Zuber/ImageSharp/new/master/src/docs/apispec/new?filename=ImageSharp_Rectangle_op_Subtraction_ImageSharp_Rectangle_ImageSharp_Rectangle_.md&amp;value=---%0Auid%3A%20ImageSharp.Rectangle.op_Subtraction(ImageSharp.Rectangle%2CImageSharp.Rectangle)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+              </span>
+              
+              <h4 id="ImageSharp_Rectangle_op_Subtraction_ImageSharp_Rectangle_ImageSharp_Rectangle_" data-uid="ImageSharp.Rectangle.op_Subtraction(ImageSharp.Rectangle,ImageSharp.Rectangle)">Subtraction(Rectangle, Rectangle)</h4>
+              <div class="markdown level1 summary"><p>Computes the difference left by subtracting one rectangle from another.</p>
+</div>
+              <div class="markdown level1 conceptual"></div>
+              <h5 class="decalaration">Declaration</h5>
+              <div class="codewrapper">
+                <pre><code class="lang-csharp hljs">public static Rectangle operator -(Rectangle left, Rectangle right)</code></pre>
+              </div>
+              <h5 class="parameters">Parameters</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Name</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a></td>
+                    <td><em>left</em></td>
+                    <td><p>The rectangle on the left hand of the operand.</p>
+</td>
+                  </tr>
+                  <tr>
+                    <td><a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a></td>
+                    <td><em>right</em></td>
+                    <td><p>The rectangle on the right hand of the operand.</p>
+</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h5 class="returns">Returns</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a></td>
+                    <td><p>The <a class="xref" href="ImageSharp.Rectangle.html#ImageSharp_Rectangle">Rectangle</a></p>
+</td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          </div>
+          
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                  <li>
+                    <a href="https://github.com/M-Zuber/ImageSharp/new/master/src/docs/apispec/new?filename=ImageSharp_Rectangle.md&amp;value=---%0Auid%3A%20ImageSharp.Rectangle%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A" class="contribution-link">Improve this Doc</a>
+                  </li>
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+            
+            <span>Copyright © 2015-2016 Microsoft<br>Generated by <strong>DocFX</strong></span>
+          </div>
+        </div>
+      </footer>
+    </div>
+    
+    <script type="text/javascript" src="../styles/docfx.vendor.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+  </body>
+</html>

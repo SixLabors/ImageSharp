@@ -1,0 +1,1219 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.CieXyz
+  commentId: T:ImageSharp.CieXyz
+  id: CieXyz
+  parent: ImageSharp
+  children:
+  - ImageSharp.CieXyz.#ctor(System.Single,System.Single,System.Single)
+  - ImageSharp.CieXyz.AlmostEquals(ImageSharp.CieXyz,System.Single)
+  - ImageSharp.CieXyz.Empty
+  - ImageSharp.CieXyz.Equals(ImageSharp.CieXyz)
+  - ImageSharp.CieXyz.Equals(System.Object)
+  - ImageSharp.CieXyz.GetHashCode
+  - ImageSharp.CieXyz.IsEmpty
+  - ImageSharp.CieXyz.op_Equality(ImageSharp.CieXyz,ImageSharp.CieXyz)
+  - ImageSharp.CieXyz.op_Implicit(ImageSharp.Color)~ImageSharp.CieXyz
+  - ImageSharp.CieXyz.op_Inequality(ImageSharp.CieXyz,ImageSharp.CieXyz)
+  - ImageSharp.CieXyz.ToString
+  - ImageSharp.CieXyz.X
+  - ImageSharp.CieXyz.Y
+  - ImageSharp.CieXyz.Z
+  langs:
+  - csharp
+  - vb
+  name: CieXyz
+  nameWithType: CieXyz
+  fullName: ImageSharp.CieXyz
+  type: Struct
+  source:
+    id: CieXyz
+    path: ''
+    startLine: 2415
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents an CIE 1931 color\n<a href=\"https://en.wikipedia.org/wiki/CIE_1931_color_space\"></a>\n"
+  example: []
+  syntax:
+    content: 'public struct CieXyz : IEquatable<CieXyz>, IAlmostEquatable<CieXyz, float>'
+    content.vb: >-
+      Public Structure CieXyz
+          Implements IEquatable(Of CieXyz), IAlmostEquatable(Of CieXyz, Single)
+  implements:
+  - System.IEquatable{ImageSharp.CieXyz}
+  - ImageSharp.IAlmostEquatable{ImageSharp.CieXyz,System.Single}
+  inheritedMembers:
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.GetType
+  modifiers.csharp:
+  - public
+  - struct
+  modifiers.vb:
+  - Public
+  - Structure
+- uid: ImageSharp.CieXyz.Empty
+  commentId: F:ImageSharp.CieXyz.Empty
+  id: Empty
+  parent: ImageSharp.CieXyz
+  langs:
+  - csharp
+  - vb
+  name: Empty
+  nameWithType: CieXyz.Empty
+  fullName: ImageSharp.CieXyz.Empty
+  type: Field
+  source:
+    id: Empty
+    path: ''
+    startLine: 2420
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.CieXyz\" data-throw-if-not-resolved=\"false\"></xref> that has Y, Cb, and Cr values set to zero.\n"
+  example: []
+  syntax:
+    content: public static readonly CieXyz Empty
+    content.vb: Public Shared ReadOnly Empty As CieXyz
+    return:
+      type: ImageSharp.CieXyz
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.CieXyz.#ctor(System.Single,System.Single,System.Single)
+  commentId: M:ImageSharp.CieXyz.#ctor(System.Single,System.Single,System.Single)
+  id: '#ctor(System.Single,System.Single,System.Single)'
+  parent: ImageSharp.CieXyz
+  langs:
+  - csharp
+  - vb
+  name: CieXyz(Single, Single, Single)
+  nameWithType: CieXyz.CieXyz(Single, Single, Single)
+  fullName: ImageSharp.CieXyz.CieXyz(System.Single, System.Single, System.Single)
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 2438
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nInitializes a new instance of the <xref href=\"ImageSharp.CieXyz\" data-throw-if-not-resolved=\"false\"></xref> struct.\n"
+  example: []
+  syntax:
+    content: public CieXyz(float x, float y, float z)
+    content.vb: Public Sub New(x As Single, y As Single, z As Single)
+    parameters:
+    - id: x
+      type: System.Single
+      description: X is a mix (a linear combination) of cone response curves chosen to be nonnegative
+    - id: y
+      type: System.Single
+      description: The y luminance component.
+    - id: z
+      type: System.Single
+      description: Z is quasi-equal to blue stimulation, or the S cone of the human eye.
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.CieXyz.X
+  commentId: P:ImageSharp.CieXyz.X
+  id: X
+  parent: ImageSharp.CieXyz
+  langs:
+  - csharp
+  - vb
+  name: X
+  nameWithType: CieXyz.X
+  fullName: ImageSharp.CieXyz.X
+  type: Property
+  source:
+    id: X
+    path: ''
+    startLine: 2449
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the Y luminance component.\n<remarks>A value ranging between 380 and 780.</remarks>\n"
+  example: []
+  syntax:
+    content: public float X { get; }
+    content.vb: Public ReadOnly Property X As Single
+    parameters: []
+    return:
+      type: System.Single
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.CieXyz.Y
+  commentId: P:ImageSharp.CieXyz.Y
+  id: Y
+  parent: ImageSharp.CieXyz
+  langs:
+  - csharp
+  - vb
+  name: Y
+  nameWithType: CieXyz.Y
+  fullName: ImageSharp.CieXyz.Y
+  type: Property
+  source:
+    id: Y
+    path: ''
+    startLine: 2455
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the Cb chroma component.\n<remarks>A value ranging between 380 and 780.</remarks>\n"
+  example: []
+  syntax:
+    content: public float Y { get; }
+    content.vb: Public ReadOnly Property Y As Single
+    parameters: []
+    return:
+      type: System.Single
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.CieXyz.Z
+  commentId: P:ImageSharp.CieXyz.Z
+  id: Z
+  parent: ImageSharp.CieXyz
+  langs:
+  - csharp
+  - vb
+  name: Z
+  nameWithType: CieXyz.Z
+  fullName: ImageSharp.CieXyz.Z
+  type: Property
+  source:
+    id: Z
+    path: ''
+    startLine: 2461
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the Cr chroma component.\n<remarks>A value ranging between 380 and 780.</remarks>\n"
+  example: []
+  syntax:
+    content: public float Z { get; }
+    content.vb: Public ReadOnly Property Z As Single
+    parameters: []
+    return:
+      type: System.Single
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.CieXyz.IsEmpty
+  commentId: P:ImageSharp.CieXyz.IsEmpty
+  id: IsEmpty
+  parent: ImageSharp.CieXyz
+  langs:
+  - csharp
+  - vb
+  name: IsEmpty
+  nameWithType: CieXyz.IsEmpty
+  fullName: ImageSharp.CieXyz.IsEmpty
+  type: Property
+  source:
+    id: IsEmpty
+    path: ''
+    startLine: 2466
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets a value indicating whether this <xref href=\"ImageSharp.CieXyz\" data-throw-if-not-resolved=\"false\"></xref> is empty.\n"
+  example: []
+  syntax:
+    content: public bool IsEmpty { get; }
+    content.vb: Public ReadOnly Property IsEmpty As Boolean
+    parameters: []
+    return:
+      type: System.Boolean
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.CieXyz.op_Implicit(ImageSharp.Color)~ImageSharp.CieXyz
+  commentId: M:ImageSharp.CieXyz.op_Implicit(ImageSharp.Color)~ImageSharp.CieXyz
+  id: op_Implicit(ImageSharp.Color)~ImageSharp.CieXyz
+  parent: ImageSharp.CieXyz
+  langs:
+  - csharp
+  - vb
+  name: Implicit(Color to CieXyz)
+  nameWithType: CieXyz.Implicit(Color to CieXyz)
+  fullName: ImageSharp.CieXyz.Implicit(ImageSharp.Color to ImageSharp.CieXyz)
+  type: Operator
+  source:
+    id: op_Implicit
+    path: ''
+    startLine: 2479
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nAllows the implicit conversion of an instance of <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> to a\n<xref href=\"ImageSharp.CieXyz\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  example: []
+  syntax:
+    content: public static implicit operator CieXyz(Color color)
+    content.vb: Public Shared Widening Operator CType(color As Color) As CieXyz
+    parameters:
+    - id: color
+      type: ImageSharp.Color
+      description: "\nThe instance of <xref href=\"ImageSharp.Color\" data-throw-if-not-resolved=\"false\"></xref> to convert.\n"
+    return:
+      type: ImageSharp.CieXyz
+      description: "\nAn instance of <xref href=\"ImageSharp.CieXyz\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  nameWithType.vb: CieXyz.Widening(Color to CieXyz)
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+  fullName.vb: ImageSharp.CieXyz.Widening(ImageSharp.Color to ImageSharp.CieXyz)
+  name.vb: Widening(Color to CieXyz)
+- uid: ImageSharp.CieXyz.op_Equality(ImageSharp.CieXyz,ImageSharp.CieXyz)
+  commentId: M:ImageSharp.CieXyz.op_Equality(ImageSharp.CieXyz,ImageSharp.CieXyz)
+  id: op_Equality(ImageSharp.CieXyz,ImageSharp.CieXyz)
+  parent: ImageSharp.CieXyz
+  langs:
+  - csharp
+  - vb
+  name: Equality(CieXyz, CieXyz)
+  nameWithType: CieXyz.Equality(CieXyz, CieXyz)
+  fullName: ImageSharp.CieXyz.Equality(ImageSharp.CieXyz, ImageSharp.CieXyz)
+  type: Operator
+  source:
+    id: op_Equality
+    path: ''
+    startLine: 2506
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCompares two <xref href=\"ImageSharp.CieXyz\" data-throw-if-not-resolved=\"false\"></xref> objects for equality.\n"
+  example: []
+  syntax:
+    content: public static bool operator ==(CieXyz left, CieXyz right)
+    content.vb: Public Shared Operator =(left As CieXyz, right As CieXyz) As Boolean
+    parameters:
+    - id: left
+      type: ImageSharp.CieXyz
+      description: "\nThe <xref href=\"ImageSharp.CieXyz\" data-throw-if-not-resolved=\"false\"></xref> on the left side of the operand.\n"
+    - id: right
+      type: ImageSharp.CieXyz
+      description: "\nThe <xref href=\"ImageSharp.CieXyz\" data-throw-if-not-resolved=\"false\"></xref> on the right side of the operand.\n"
+    return:
+      type: System.Boolean
+      description: "\nTrue if the current left is equal to the <em>right</em> parameter; otherwise, false.\n"
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.CieXyz.op_Inequality(ImageSharp.CieXyz,ImageSharp.CieXyz)
+  commentId: M:ImageSharp.CieXyz.op_Inequality(ImageSharp.CieXyz,ImageSharp.CieXyz)
+  id: op_Inequality(ImageSharp.CieXyz,ImageSharp.CieXyz)
+  parent: ImageSharp.CieXyz
+  langs:
+  - csharp
+  - vb
+  name: Inequality(CieXyz, CieXyz)
+  nameWithType: CieXyz.Inequality(CieXyz, CieXyz)
+  fullName: ImageSharp.CieXyz.Inequality(ImageSharp.CieXyz, ImageSharp.CieXyz)
+  type: Operator
+  source:
+    id: op_Inequality
+    path: ''
+    startLine: 2523
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCompares two <xref href=\"ImageSharp.CieXyz\" data-throw-if-not-resolved=\"false\"></xref> objects for inequality.\n"
+  example: []
+  syntax:
+    content: public static bool operator !=(CieXyz left, CieXyz right)
+    content.vb: Public Shared Operator <>(left As CieXyz, right As CieXyz) As Boolean
+    parameters:
+    - id: left
+      type: ImageSharp.CieXyz
+      description: "\nThe <xref href=\"ImageSharp.CieXyz\" data-throw-if-not-resolved=\"false\"></xref> on the left side of the operand.\n"
+    - id: right
+      type: ImageSharp.CieXyz
+      description: "\nThe <xref href=\"ImageSharp.CieXyz\" data-throw-if-not-resolved=\"false\"></xref> on the right side of the operand.\n"
+    return:
+      type: System.Boolean
+      description: "\nTrue if the current left is unequal to the <em>right</em> parameter; otherwise, false.\n"
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.CieXyz.GetHashCode
+  commentId: M:ImageSharp.CieXyz.GetHashCode
+  id: GetHashCode
+  parent: ImageSharp.CieXyz
+  langs:
+  - csharp
+  - vb
+  name: GetHashCode()
+  nameWithType: CieXyz.GetHashCode()
+  fullName: ImageSharp.CieXyz.GetHashCode()
+  type: Method
+  source:
+    id: GetHashCode
+    path: ''
+    startLine: 2529
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public override int GetHashCode()
+    content.vb: Public Overrides Function GetHashCode As Integer
+    return:
+      type: System.Int32
+  overridden: System.ValueType.GetHashCode
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+- uid: ImageSharp.CieXyz.ToString
+  commentId: M:ImageSharp.CieXyz.ToString
+  id: ToString
+  parent: ImageSharp.CieXyz
+  langs:
+  - csharp
+  - vb
+  name: ToString()
+  nameWithType: CieXyz.ToString()
+  fullName: ImageSharp.CieXyz.ToString()
+  type: Method
+  source:
+    id: ToString
+    path: ''
+    startLine: 2535
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public override string ToString()
+    content.vb: Public Overrides Function ToString As String
+    return:
+      type: System.String
+  overridden: System.ValueType.ToString
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+- uid: ImageSharp.CieXyz.Equals(System.Object)
+  commentId: M:ImageSharp.CieXyz.Equals(System.Object)
+  id: Equals(System.Object)
+  parent: ImageSharp.CieXyz
+  langs:
+  - csharp
+  - vb
+  name: Equals(Object)
+  nameWithType: CieXyz.Equals(Object)
+  fullName: ImageSharp.CieXyz.Equals(System.Object)
+  type: Method
+  source:
+    id: Equals
+    path: ''
+    startLine: 2546
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public override bool Equals(object obj)
+    content.vb: Public Overrides Function Equals(obj As Object) As Boolean
+    parameters:
+    - id: obj
+      type: System.Object
+    return:
+      type: System.Boolean
+  overridden: System.ValueType.Equals(System.Object)
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+- uid: ImageSharp.CieXyz.Equals(ImageSharp.CieXyz)
+  commentId: M:ImageSharp.CieXyz.Equals(ImageSharp.CieXyz)
+  id: Equals(ImageSharp.CieXyz)
+  parent: ImageSharp.CieXyz
+  langs:
+  - csharp
+  - vb
+  name: Equals(CieXyz)
+  nameWithType: CieXyz.Equals(CieXyz)
+  fullName: ImageSharp.CieXyz.Equals(ImageSharp.CieXyz)
+  type: Method
+  source:
+    id: Equals
+    path: ''
+    startLine: 2557
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public bool Equals(CieXyz other)
+    content.vb: Public Function Equals(other As CieXyz) As Boolean
+    parameters:
+    - id: other
+      type: ImageSharp.CieXyz
+    return:
+      type: System.Boolean
+  implements:
+  - System.IEquatable{ImageSharp.CieXyz}.Equals(ImageSharp.CieXyz)
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.CieXyz.AlmostEquals(ImageSharp.CieXyz,System.Single)
+  commentId: M:ImageSharp.CieXyz.AlmostEquals(ImageSharp.CieXyz,System.Single)
+  id: AlmostEquals(ImageSharp.CieXyz,System.Single)
+  parent: ImageSharp.CieXyz
+  langs:
+  - csharp
+  - vb
+  name: AlmostEquals(CieXyz, Single)
+  nameWithType: CieXyz.AlmostEquals(CieXyz, Single)
+  fullName: ImageSharp.CieXyz.AlmostEquals(ImageSharp.CieXyz, System.Single)
+  type: Method
+  source:
+    id: AlmostEquals
+    path: ''
+    startLine: 2563
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public bool AlmostEquals(CieXyz other, float precision)
+    content.vb: Public Function AlmostEquals(other As CieXyz, precision As Single) As Boolean
+    parameters:
+    - id: other
+      type: ImageSharp.CieXyz
+    - id: precision
+      type: System.Single
+    return:
+      type: System.Boolean
+  implements:
+  - ImageSharp.IAlmostEquatable{ImageSharp.CieXyz,System.Single}.AlmostEquals(ImageSharp.CieXyz,System.Single)
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+references:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: System.IEquatable{ImageSharp.CieXyz}
+  commentId: T:System.IEquatable{ImageSharp.CieXyz}
+  parent: System
+  definition: System.IEquatable`1
+  name: IEquatable<CieXyz>
+  nameWithType: IEquatable<CieXyz>
+  fullName: System.IEquatable<ImageSharp.CieXyz>
+  nameWithType.vb: IEquatable(Of CieXyz)
+  fullname.vb: System.IEquatable(Of ImageSharp.CieXyz)
+  name.vb: IEquatable(Of CieXyz)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: <
+    nameWithType: <
+    fullName: <
+  - uid: ImageSharp.CieXyz
+    name: CieXyz
+    nameWithType: CieXyz
+    fullName: ImageSharp.CieXyz
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - uid: ImageSharp.CieXyz
+    name: CieXyz
+    nameWithType: CieXyz
+    fullName: ImageSharp.CieXyz
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.IAlmostEquatable{ImageSharp.CieXyz,System.Single}
+  commentId: T:ImageSharp.IAlmostEquatable{ImageSharp.CieXyz,System.Single}
+  parent: ImageSharp
+  definition: ImageSharp.IAlmostEquatable`2
+  name: IAlmostEquatable<CieXyz, Single>
+  nameWithType: IAlmostEquatable<CieXyz, Single>
+  fullName: ImageSharp.IAlmostEquatable<ImageSharp.CieXyz, System.Single>
+  nameWithType.vb: IAlmostEquatable(Of CieXyz, Single)
+  fullname.vb: ImageSharp.IAlmostEquatable(Of ImageSharp.CieXyz, System.Single)
+  name.vb: IAlmostEquatable(Of CieXyz, Single)
+  spec.csharp:
+  - uid: ImageSharp.IAlmostEquatable`2
+    name: IAlmostEquatable
+    nameWithType: IAlmostEquatable
+    fullName: ImageSharp.IAlmostEquatable
+  - name: <
+    nameWithType: <
+    fullName: <
+  - uid: ImageSharp.CieXyz
+    name: CieXyz
+    nameWithType: CieXyz
+    fullName: ImageSharp.CieXyz
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Single
+    name: Single
+    nameWithType: Single
+    fullName: System.Single
+    isExternal: true
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.IAlmostEquatable`2
+    name: IAlmostEquatable
+    nameWithType: IAlmostEquatable
+    fullName: ImageSharp.IAlmostEquatable
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - uid: ImageSharp.CieXyz
+    name: CieXyz
+    nameWithType: CieXyz
+    fullName: ImageSharp.CieXyz
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Single
+    name: Single
+    nameWithType: Single
+    fullName: System.Single
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object, Object)
+  nameWithType: Object.Equals(Object, Object)
+  fullName: System.Object.Equals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: ReferenceEquals(Object, Object)
+  nameWithType: Object.ReferenceEquals(Object, Object)
+  fullName: System.Object.ReferenceEquals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  name: GetType()
+  nameWithType: Object.GetType()
+  fullName: System.Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.IEquatable`1
+  commentId: T:System.IEquatable`1
+  isExternal: true
+  name: IEquatable<T>
+  nameWithType: IEquatable<T>
+  fullName: System.IEquatable<T>
+  nameWithType.vb: IEquatable(Of T)
+  fullname.vb: System.IEquatable(Of T)
+  name.vb: IEquatable(Of T)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System
+  commentId: N:System
+  isExternal: false
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: ImageSharp.IAlmostEquatable`2
+  commentId: T:ImageSharp.IAlmostEquatable`2
+  isExternal: false
+  name: IAlmostEquatable<TColor, TPrecision>
+  nameWithType: IAlmostEquatable<TColor, TPrecision>
+  fullName: ImageSharp.IAlmostEquatable<TColor, TPrecision>
+  nameWithType.vb: IAlmostEquatable(Of TColor, TPrecision)
+  fullname.vb: ImageSharp.IAlmostEquatable(Of TColor, TPrecision)
+  name.vb: IAlmostEquatable(Of TColor, TPrecision)
+  spec.csharp:
+  - uid: ImageSharp.IAlmostEquatable`2
+    name: IAlmostEquatable
+    nameWithType: IAlmostEquatable
+    fullName: ImageSharp.IAlmostEquatable
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPrecision
+    nameWithType: TPrecision
+    fullName: TPrecision
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.IAlmostEquatable`2
+    name: IAlmostEquatable
+    nameWithType: IAlmostEquatable
+    fullName: ImageSharp.IAlmostEquatable
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPrecision
+    nameWithType: TPrecision
+    fullName: TPrecision
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  name: Object
+  nameWithType: Object
+  fullName: System.Object
+- uid: ImageSharp.CieXyz
+  commentId: T:ImageSharp.CieXyz
+  parent: ImageSharp
+  isExternal: false
+  name: CieXyz
+  nameWithType: CieXyz
+  fullName: ImageSharp.CieXyz
+- uid: System.Single
+  commentId: T:System.Single
+  parent: System
+  isExternal: true
+  name: Single
+  nameWithType: Single
+  fullName: System.Single
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  name: Boolean
+  nameWithType: Boolean
+  fullName: System.Boolean
+- uid: ImageSharp.Color
+  commentId: T:ImageSharp.Color
+  parent: ImageSharp
+  isExternal: false
+  name: Color
+  nameWithType: Color
+  fullName: ImageSharp.Color
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    nameWithType: ValueType.GetHashCode
+    fullName: System.ValueType.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    nameWithType: ValueType.GetHashCode
+    fullName: System.ValueType.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  name: Int32
+  nameWithType: Int32
+  fullName: System.Int32
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    nameWithType: ValueType.ToString
+    fullName: System.ValueType.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    nameWithType: ValueType.ToString
+    fullName: System.ValueType.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  name: String
+  nameWithType: String
+  fullName: System.String
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  name: Equals(Object)
+  nameWithType: ValueType.Equals(Object)
+  fullName: System.ValueType.Equals(System.Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    nameWithType: ValueType.Equals
+    fullName: System.ValueType.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    nameWithType: ValueType.Equals
+    fullName: System.ValueType.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.IEquatable{ImageSharp.CieXyz}.Equals(ImageSharp.CieXyz)
+  commentId: M:System.IEquatable{ImageSharp.CieXyz}.Equals(ImageSharp.CieXyz)
+  parent: System.IEquatable{ImageSharp.CieXyz}
+  definition: System.IEquatable`1.Equals(`0)
+  name: Equals(CieXyz)
+  nameWithType: IEquatable<CieXyz>.Equals(CieXyz)
+  fullName: System.IEquatable<ImageSharp.CieXyz>.Equals(ImageSharp.CieXyz)
+  nameWithType.vb: IEquatable(Of CieXyz).Equals(CieXyz)
+  fullname.vb: System.IEquatable(Of ImageSharp.CieXyz).Equals(ImageSharp.CieXyz)
+  spec.csharp:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable<CieXyz>.Equals
+    fullName: System.IEquatable<ImageSharp.CieXyz>.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.CieXyz
+    name: CieXyz
+    nameWithType: CieXyz
+    fullName: ImageSharp.CieXyz
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable(Of CieXyz).Equals
+    fullName: System.IEquatable(Of ImageSharp.CieXyz).Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.CieXyz
+    name: CieXyz
+    nameWithType: CieXyz
+    fullName: ImageSharp.CieXyz
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.IEquatable`1.Equals(`0)
+  commentId: M:System.IEquatable`1.Equals(`0)
+  isExternal: true
+  name: Equals(T)
+  nameWithType: IEquatable<T>.Equals(T)
+  fullName: System.IEquatable<T>.Equals(T)
+  nameWithType.vb: IEquatable(Of T).Equals(T)
+  fullname.vb: System.IEquatable(Of T).Equals(T)
+  spec.csharp:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable<T>.Equals
+    fullName: System.IEquatable<T>.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable(Of T).Equals
+    fullName: System.IEquatable(Of T).Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.IAlmostEquatable{ImageSharp.CieXyz,System.Single}.AlmostEquals(ImageSharp.CieXyz,System.Single)
+  commentId: M:ImageSharp.IAlmostEquatable{ImageSharp.CieXyz,System.Single}.AlmostEquals(ImageSharp.CieXyz,System.Single)
+  parent: ImageSharp.IAlmostEquatable{ImageSharp.CieXyz,System.Single}
+  definition: ImageSharp.IAlmostEquatable`2.AlmostEquals(`0,`1)
+  name: AlmostEquals(CieXyz, Single)
+  nameWithType: IAlmostEquatable<CieXyz, Single>.AlmostEquals(CieXyz, Single)
+  fullName: ImageSharp.IAlmostEquatable<ImageSharp.CieXyz, System.Single>.AlmostEquals(ImageSharp.CieXyz, System.Single)
+  nameWithType.vb: IAlmostEquatable(Of CieXyz, Single).AlmostEquals(CieXyz, Single)
+  fullname.vb: ImageSharp.IAlmostEquatable(Of ImageSharp.CieXyz, System.Single).AlmostEquals(ImageSharp.CieXyz, System.Single)
+  spec.csharp:
+  - uid: ImageSharp.IAlmostEquatable`2.AlmostEquals(`0,`1)
+    name: AlmostEquals
+    nameWithType: IAlmostEquatable<CieXyz, Single>.AlmostEquals
+    fullName: ImageSharp.IAlmostEquatable<ImageSharp.CieXyz, System.Single>.AlmostEquals
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.CieXyz
+    name: CieXyz
+    nameWithType: CieXyz
+    fullName: ImageSharp.CieXyz
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Single
+    name: Single
+    nameWithType: Single
+    fullName: System.Single
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.IAlmostEquatable`2.AlmostEquals(`0,`1)
+    name: AlmostEquals
+    nameWithType: IAlmostEquatable(Of CieXyz, Single).AlmostEquals
+    fullName: ImageSharp.IAlmostEquatable(Of ImageSharp.CieXyz, System.Single).AlmostEquals
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.CieXyz
+    name: CieXyz
+    nameWithType: CieXyz
+    fullName: ImageSharp.CieXyz
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Single
+    name: Single
+    nameWithType: Single
+    fullName: System.Single
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.IAlmostEquatable`2.AlmostEquals(`0,`1)
+  commentId: M:ImageSharp.IAlmostEquatable`2.AlmostEquals(`0,`1)
+  isExternal: false
+  name: AlmostEquals(TColor, TPrecision)
+  nameWithType: IAlmostEquatable<TColor, TPrecision>.AlmostEquals(TColor, TPrecision)
+  fullName: ImageSharp.IAlmostEquatable<TColor, TPrecision>.AlmostEquals(TColor, TPrecision)
+  nameWithType.vb: IAlmostEquatable(Of TColor, TPrecision).AlmostEquals(TColor, TPrecision)
+  fullname.vb: ImageSharp.IAlmostEquatable(Of TColor, TPrecision).AlmostEquals(TColor, TPrecision)
+  spec.csharp:
+  - uid: ImageSharp.IAlmostEquatable`2.AlmostEquals(`0,`1)
+    name: AlmostEquals
+    nameWithType: IAlmostEquatable<TColor, TPrecision>.AlmostEquals
+    fullName: ImageSharp.IAlmostEquatable<TColor, TPrecision>.AlmostEquals
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPrecision
+    nameWithType: TPrecision
+    fullName: TPrecision
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: ImageSharp.IAlmostEquatable`2.AlmostEquals(`0,`1)
+    name: AlmostEquals
+    nameWithType: IAlmostEquatable(Of TColor, TPrecision).AlmostEquals
+    fullName: ImageSharp.IAlmostEquatable(Of TColor, TPrecision).AlmostEquals
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPrecision
+    nameWithType: TPrecision
+    fullName: TPrecision
+  - name: )
+    nameWithType: )
+    fullName: )

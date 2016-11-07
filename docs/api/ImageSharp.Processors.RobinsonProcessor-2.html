@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+  
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Class RobinsonProcessor&lt;TColor, TPacked&gt;
+   </title>
+    <meta name="viewport" content="width=device-width">
+    <meta name="title" content="Class RobinsonProcessor&lt;TColor, TPacked&gt;
+   ">
+    <meta name="generator" content="docfx 2.4.0.0">
+    
+    <link rel="shortcut icon" href="../favicon.ico">
+    <link rel="stylesheet" href="../styles/docfx.vendor.css">
+    <link rel="stylesheet" href="../styles/docfx.css">
+    <link rel="stylesheet" href="../styles/main.css">
+    <meta property="docfx:navrel" content="../toc.html">
+    <meta property="docfx:tocrel" content="toc.html">
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix">
+    <div id="wrapper">
+      <header>
+        
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+        
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div role="main" class="container body-content hide-when-search">
+        
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content">
+              
+              
+              <h1 id="ImageSharp_Processors_RobinsonProcessor_2" data-uid="ImageSharp.Processors.RobinsonProcessor`2">Class RobinsonProcessor&lt;TColor, TPacked&gt;
+              </h1>
+              <div class="markdown level0 summary"><p>The Kirsch operator filter.
+<a href="http://www.tutorialspoint.com/dip/Robinson_Compass_Mask.htm"></a></p>
+</div>
+              <div class="markdown level0 conceptual"></div>
+              <div class="inheritance">
+                <h5>Inheritance</h5>
+                  <div class="level0"><span class="xref">System.Object</span></div>
+                  <div class="level1"><a class="xref" href="ImageSharp.Processors.ImageProcessor-2.html#ImageSharp_Processors_ImageProcessor_2">ImageProcessor</a>&lt;TColor, TPacked&gt;</div>
+                  <div class="level2"><a class="xref" href="ImageSharp.Processors.ImageSampler-2.html#ImageSharp_Processors_ImageSampler_2">ImageSampler</a>&lt;TColor, TPacked&gt;</div>
+                  <div class="level3"><a class="xref" href="ImageSharp.Processors.EdgeDetectorCompassFilter-2.html#ImageSharp_Processors_EdgeDetectorCompassFilter_2">EdgeDetectorCompassFilter</a>&lt;TColor, TPacked&gt;</div>
+                  <div class="level4"><span class="xref">RobinsonProcessor&lt;TColor, TPacked&gt;</span></div>
+              </div>
+              <div class="inheritedMembers">
+                <h5>Inherited Members</h5>
+                <div>
+                  <a class="xref" href="ImageSharp.Processors.EdgeDetectorCompassFilter-2.html#ImageSharp_Processors_EdgeDetectorCompassFilter_2_North">EdgeDetectorCompassFilter&lt;TColor, TPacked&gt;.North</a>
+                </div>
+                <div>
+                  <a class="xref" href="ImageSharp.Processors.EdgeDetectorCompassFilter-2.html#ImageSharp_Processors_EdgeDetectorCompassFilter_2_NorthWest">EdgeDetectorCompassFilter&lt;TColor, TPacked&gt;.NorthWest</a>
+                </div>
+                <div>
+                  <a class="xref" href="ImageSharp.Processors.EdgeDetectorCompassFilter-2.html#ImageSharp_Processors_EdgeDetectorCompassFilter_2_West">EdgeDetectorCompassFilter&lt;TColor, TPacked&gt;.West</a>
+                </div>
+                <div>
+                  <a class="xref" href="ImageSharp.Processors.EdgeDetectorCompassFilter-2.html#ImageSharp_Processors_EdgeDetectorCompassFilter_2_SouthWest">EdgeDetectorCompassFilter&lt;TColor, TPacked&gt;.SouthWest</a>
+                </div>
+                <div>
+                  <a class="xref" href="ImageSharp.Processors.EdgeDetectorCompassFilter-2.html#ImageSharp_Processors_EdgeDetectorCompassFilter_2_South">EdgeDetectorCompassFilter&lt;TColor, TPacked&gt;.South</a>
+                </div>
+                <div>
+                  <a class="xref" href="ImageSharp.Processors.EdgeDetectorCompassFilter-2.html#ImageSharp_Processors_EdgeDetectorCompassFilter_2_SouthEast">EdgeDetectorCompassFilter&lt;TColor, TPacked&gt;.SouthEast</a>
+                </div>
+                <div>
+                  <a class="xref" href="ImageSharp.Processors.EdgeDetectorCompassFilter-2.html#ImageSharp_Processors_EdgeDetectorCompassFilter_2_East">EdgeDetectorCompassFilter&lt;TColor, TPacked&gt;.East</a>
+                </div>
+                <div>
+                  <a class="xref" href="ImageSharp.Processors.EdgeDetectorCompassFilter-2.html#ImageSharp_Processors_EdgeDetectorCompassFilter_2_NorthEast">EdgeDetectorCompassFilter&lt;TColor, TPacked&gt;.NorthEast</a>
+                </div>
+                <div>
+                  <a class="xref" href="ImageSharp.Processors.EdgeDetectorCompassFilter-2.html#ImageSharp_Processors_EdgeDetectorCompassFilter_2_Grayscale">EdgeDetectorCompassFilter&lt;TColor, TPacked&gt;.Grayscale</a>
+                </div>
+                <div>
+                  <a class="xref" href="ImageSharp.Processors.EdgeDetectorCompassFilter-2.html#ImageSharp_Processors_EdgeDetectorCompassFilter_2_Apply_ImageSharp_ImageBase__0__1__ImageSharp_ImageBase__0__1__ImageSharp_Rectangle_ImageSharp_Rectangle_System_Int32_System_Int32_">EdgeDetectorCompassFilter&lt;TColor, TPacked&gt;.Apply(ImageBase&lt;TColor, TPacked&gt;, ImageBase&lt;TColor, TPacked&gt;, Rectangle, Rectangle, Int32, Int32)</a>
+                </div>
+                <div>
+                  <a class="xref" href="ImageSharp.Processors.EdgeDetectorCompassFilter-2.html#ImageSharp_Processors_EdgeDetectorCompassFilter_2_OnApply_ImageSharp_ImageBase__0__1__ImageSharp_ImageBase__0__1__ImageSharp_Rectangle_ImageSharp_Rectangle_">EdgeDetectorCompassFilter&lt;TColor, TPacked&gt;.OnApply(ImageBase&lt;TColor, TPacked&gt;, ImageBase&lt;TColor, TPacked&gt;, Rectangle, Rectangle)</a>
+                </div>
+                <div>
+                  <a class="xref" href="ImageSharp.Processors.ImageSampler-2.html#ImageSharp_Processors_ImageSampler_2_Apply_ImageSharp_ImageBase__0__1__ImageSharp_ImageBase__0__1__ImageSharp_Rectangle_">ImageSampler&lt;TColor, TPacked&gt;.Apply(ImageBase&lt;TColor, TPacked&gt;, ImageBase&lt;TColor, TPacked&gt;, Rectangle)</a>
+                </div>
+                <div>
+                  <a class="xref" href="ImageSharp.Processors.ImageSampler-2.html#ImageSharp_Processors_ImageSampler_2_Apply_ImageSharp_ImageBase__0__1__ImageSharp_ImageBase__0__1__System_Int32_System_Int32_ImageSharp_Rectangle_ImageSharp_Rectangle_">ImageSampler&lt;TColor, TPacked&gt;.Apply(ImageBase&lt;TColor, TPacked&gt;, ImageBase&lt;TColor, TPacked&gt;, Int32, Int32, Rectangle, Rectangle)</a>
+                </div>
+                <div>
+                  <a class="xref" href="ImageSharp.Processors.ImageSampler-2.html#ImageSharp_Processors_ImageSampler_2_Apply_ImageSharp_ImageBase__0__1__ImageSharp_ImageBase__0__1__ImageSharp_Rectangle_ImageSharp_Rectangle_System_Int32_System_Int32_">ImageSampler&lt;TColor, TPacked&gt;.Apply(ImageBase&lt;TColor, TPacked&gt;, ImageBase&lt;TColor, TPacked&gt;, Rectangle, Rectangle, Int32, Int32)</a>
+                </div>
+                <div>
+                  <a class="xref" href="ImageSharp.Processors.ImageSampler-2.html#ImageSharp_Processors_ImageSampler_2_OnApply_ImageSharp_ImageBase__0__1__ImageSharp_ImageBase__0__1__ImageSharp_Rectangle_ImageSharp_Rectangle_">ImageSampler&lt;TColor, TPacked&gt;.OnApply(ImageBase&lt;TColor, TPacked&gt;, ImageBase&lt;TColor, TPacked&gt;, Rectangle, Rectangle)</a>
+                </div>
+                <div>
+                  <a class="xref" href="ImageSharp.Processors.ImageSampler-2.html#ImageSharp_Processors_ImageSampler_2_AfterApply_ImageSharp_ImageBase__0__1__ImageSharp_ImageBase__0__1__ImageSharp_Rectangle_ImageSharp_Rectangle_">ImageSampler&lt;TColor, TPacked&gt;.AfterApply(ImageBase&lt;TColor, TPacked&gt;, ImageBase&lt;TColor, TPacked&gt;, Rectangle, Rectangle)</a>
+                </div>
+                <div>
+                  <a class="xref" href="ImageSharp.Processors.ImageProcessor-2.html#ImageSharp_Processors_ImageProcessor_2_ParallelOptions">ImageProcessor&lt;TColor, TPacked&gt;.ParallelOptions</a>
+                </div>
+                <div>
+                  <a class="xref" href="ImageSharp.Processors.ImageProcessor-2.html#ImageSharp_Processors_ImageProcessor_2_Compand">ImageProcessor&lt;TColor, TPacked&gt;.Compand</a>
+                </div>
+                <div>
+                  <span class="xref">System.Object.ToString()</span>
+                </div>
+                <div>
+                  <span class="xref">System.Object.Equals(System.Object)</span>
+                </div>
+                <div>
+                  <span class="xref">System.Object.Equals(System.Object, System.Object)</span>
+                </div>
+                <div>
+                  <span class="xref">System.Object.ReferenceEquals(System.Object, System.Object)</span>
+                </div>
+                <div>
+                  <span class="xref">System.Object.GetHashCode()</span>
+                </div>
+                <div>
+                  <span class="xref">System.Object.GetType()</span>
+                </div>
+                <div>
+                  <span class="xref">System.Object.MemberwiseClone()</span>
+                </div>
+              </div>
+              <h6><strong>Namespace</strong>:ImageSharp.Processors</h6>
+              <h6><strong>Assembly</strong>:cs.temp.dll.dll</h6>
+              <h5 id="ImageSharp_Processors_RobinsonProcessor_2_syntax">Syntax</h5>
+              <div class="codewrapper">
+                <pre><code class="lang-csharp hljs">public class RobinsonProcessor&lt;TColor, TPacked&gt; : EdgeDetectorCompassFilter&lt;TColor, TPacked&gt;, IEdgeDetectorFilter&lt;TColor, TPacked&gt;, IImageSampler&lt;TColor, TPacked&gt;, IImageProcessor, IEdgeDetectorFilter where TColor : struct, IPackedPixel&lt;TPacked&gt; where TPacked : struct</code></pre>
+              </div>
+              <h5 class="typeParameters">Type Parameters</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><em>TColor</em></td>
+                    <td>The pixel format.</td>
+                  </tr>
+                  <tr>
+                    <td><em>TPacked</em></td>
+                    <td>The packed format. <example>uint, long, float.</example></td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3 id="properties">Properties
+              </h3>
+              <span class="small pull-right mobile-hide">
+                <span class="divider">|</span>
+                <a href="https://github.com/M-Zuber/ImageSharp/new/master/src/docs/apispec/new?filename=ImageSharp_Processors_RobinsonProcessor_2_East.md&amp;value=---%0Auid%3A%20ImageSharp.Processors.RobinsonProcessor%602.East%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+              </span>
+              
+              <h4 id="ImageSharp_Processors_RobinsonProcessor_2_East" data-uid="ImageSharp.Processors.RobinsonProcessor`2.East">East</h4>
+              <div class="markdown level1 summary"></div>
+              <div class="markdown level1 conceptual"></div>
+              <h5 class="decalaration">Declaration</h5>
+              <div class="codewrapper">
+                <pre><code class="lang-csharp hljs">public override float[][] East { get; }</code></pre>
+              </div>
+              <h5 class="propertyValue">Property Value</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="xref">System.Single</span>[][]</td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+              <h5 class="overrides">Overrides</h5>
+              <div><span class="xref">ImageSharp.Processors.EdgeDetectorCompassFilter&lt;TColor, TPacked&gt;.East</span></div>
+              <span class="small pull-right mobile-hide">
+                <span class="divider">|</span>
+                <a href="https://github.com/M-Zuber/ImageSharp/new/master/src/docs/apispec/new?filename=ImageSharp_Processors_RobinsonProcessor_2_North.md&amp;value=---%0Auid%3A%20ImageSharp.Processors.RobinsonProcessor%602.North%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+              </span>
+              
+              <h4 id="ImageSharp_Processors_RobinsonProcessor_2_North" data-uid="ImageSharp.Processors.RobinsonProcessor`2.North">North</h4>
+              <div class="markdown level1 summary"></div>
+              <div class="markdown level1 conceptual"></div>
+              <h5 class="decalaration">Declaration</h5>
+              <div class="codewrapper">
+                <pre><code class="lang-csharp hljs">public override float[][] North { get; }</code></pre>
+              </div>
+              <h5 class="propertyValue">Property Value</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="xref">System.Single</span>[][]</td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+              <h5 class="overrides">Overrides</h5>
+              <div><span class="xref">ImageSharp.Processors.EdgeDetectorCompassFilter&lt;TColor, TPacked&gt;.North</span></div>
+              <span class="small pull-right mobile-hide">
+                <span class="divider">|</span>
+                <a href="https://github.com/M-Zuber/ImageSharp/new/master/src/docs/apispec/new?filename=ImageSharp_Processors_RobinsonProcessor_2_NorthEast.md&amp;value=---%0Auid%3A%20ImageSharp.Processors.RobinsonProcessor%602.NorthEast%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+              </span>
+              
+              <h4 id="ImageSharp_Processors_RobinsonProcessor_2_NorthEast" data-uid="ImageSharp.Processors.RobinsonProcessor`2.NorthEast">NorthEast</h4>
+              <div class="markdown level1 summary"></div>
+              <div class="markdown level1 conceptual"></div>
+              <h5 class="decalaration">Declaration</h5>
+              <div class="codewrapper">
+                <pre><code class="lang-csharp hljs">public override float[][] NorthEast { get; }</code></pre>
+              </div>
+              <h5 class="propertyValue">Property Value</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="xref">System.Single</span>[][]</td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+              <h5 class="overrides">Overrides</h5>
+              <div><span class="xref">ImageSharp.Processors.EdgeDetectorCompassFilter&lt;TColor, TPacked&gt;.NorthEast</span></div>
+              <span class="small pull-right mobile-hide">
+                <span class="divider">|</span>
+                <a href="https://github.com/M-Zuber/ImageSharp/new/master/src/docs/apispec/new?filename=ImageSharp_Processors_RobinsonProcessor_2_NorthWest.md&amp;value=---%0Auid%3A%20ImageSharp.Processors.RobinsonProcessor%602.NorthWest%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+              </span>
+              
+              <h4 id="ImageSharp_Processors_RobinsonProcessor_2_NorthWest" data-uid="ImageSharp.Processors.RobinsonProcessor`2.NorthWest">NorthWest</h4>
+              <div class="markdown level1 summary"></div>
+              <div class="markdown level1 conceptual"></div>
+              <h5 class="decalaration">Declaration</h5>
+              <div class="codewrapper">
+                <pre><code class="lang-csharp hljs">public override float[][] NorthWest { get; }</code></pre>
+              </div>
+              <h5 class="propertyValue">Property Value</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="xref">System.Single</span>[][]</td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+              <h5 class="overrides">Overrides</h5>
+              <div><span class="xref">ImageSharp.Processors.EdgeDetectorCompassFilter&lt;TColor, TPacked&gt;.NorthWest</span></div>
+              <span class="small pull-right mobile-hide">
+                <span class="divider">|</span>
+                <a href="https://github.com/M-Zuber/ImageSharp/new/master/src/docs/apispec/new?filename=ImageSharp_Processors_RobinsonProcessor_2_South.md&amp;value=---%0Auid%3A%20ImageSharp.Processors.RobinsonProcessor%602.South%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+              </span>
+              
+              <h4 id="ImageSharp_Processors_RobinsonProcessor_2_South" data-uid="ImageSharp.Processors.RobinsonProcessor`2.South">South</h4>
+              <div class="markdown level1 summary"></div>
+              <div class="markdown level1 conceptual"></div>
+              <h5 class="decalaration">Declaration</h5>
+              <div class="codewrapper">
+                <pre><code class="lang-csharp hljs">public override float[][] South { get; }</code></pre>
+              </div>
+              <h5 class="propertyValue">Property Value</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="xref">System.Single</span>[][]</td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+              <h5 class="overrides">Overrides</h5>
+              <div><span class="xref">ImageSharp.Processors.EdgeDetectorCompassFilter&lt;TColor, TPacked&gt;.South</span></div>
+              <span class="small pull-right mobile-hide">
+                <span class="divider">|</span>
+                <a href="https://github.com/M-Zuber/ImageSharp/new/master/src/docs/apispec/new?filename=ImageSharp_Processors_RobinsonProcessor_2_SouthEast.md&amp;value=---%0Auid%3A%20ImageSharp.Processors.RobinsonProcessor%602.SouthEast%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+              </span>
+              
+              <h4 id="ImageSharp_Processors_RobinsonProcessor_2_SouthEast" data-uid="ImageSharp.Processors.RobinsonProcessor`2.SouthEast">SouthEast</h4>
+              <div class="markdown level1 summary"></div>
+              <div class="markdown level1 conceptual"></div>
+              <h5 class="decalaration">Declaration</h5>
+              <div class="codewrapper">
+                <pre><code class="lang-csharp hljs">public override float[][] SouthEast { get; }</code></pre>
+              </div>
+              <h5 class="propertyValue">Property Value</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="xref">System.Single</span>[][]</td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+              <h5 class="overrides">Overrides</h5>
+              <div><span class="xref">ImageSharp.Processors.EdgeDetectorCompassFilter&lt;TColor, TPacked&gt;.SouthEast</span></div>
+              <span class="small pull-right mobile-hide">
+                <span class="divider">|</span>
+                <a href="https://github.com/M-Zuber/ImageSharp/new/master/src/docs/apispec/new?filename=ImageSharp_Processors_RobinsonProcessor_2_SouthWest.md&amp;value=---%0Auid%3A%20ImageSharp.Processors.RobinsonProcessor%602.SouthWest%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+              </span>
+              
+              <h4 id="ImageSharp_Processors_RobinsonProcessor_2_SouthWest" data-uid="ImageSharp.Processors.RobinsonProcessor`2.SouthWest">SouthWest</h4>
+              <div class="markdown level1 summary"></div>
+              <div class="markdown level1 conceptual"></div>
+              <h5 class="decalaration">Declaration</h5>
+              <div class="codewrapper">
+                <pre><code class="lang-csharp hljs">public override float[][] SouthWest { get; }</code></pre>
+              </div>
+              <h5 class="propertyValue">Property Value</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="xref">System.Single</span>[][]</td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+              <h5 class="overrides">Overrides</h5>
+              <div><span class="xref">ImageSharp.Processors.EdgeDetectorCompassFilter&lt;TColor, TPacked&gt;.SouthWest</span></div>
+              <span class="small pull-right mobile-hide">
+                <span class="divider">|</span>
+                <a href="https://github.com/M-Zuber/ImageSharp/new/master/src/docs/apispec/new?filename=ImageSharp_Processors_RobinsonProcessor_2_West.md&amp;value=---%0Auid%3A%20ImageSharp.Processors.RobinsonProcessor%602.West%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+              </span>
+              
+              <h4 id="ImageSharp_Processors_RobinsonProcessor_2_West" data-uid="ImageSharp.Processors.RobinsonProcessor`2.West">West</h4>
+              <div class="markdown level1 summary"></div>
+              <div class="markdown level1 conceptual"></div>
+              <h5 class="decalaration">Declaration</h5>
+              <div class="codewrapper">
+                <pre><code class="lang-csharp hljs">public override float[][] West { get; }</code></pre>
+              </div>
+              <h5 class="propertyValue">Property Value</h5>
+              <table class="table table-bordered table-striped table-condensed">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="xref">System.Single</span>[][]</td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+              <h5 class="overrides">Overrides</h5>
+              <div><span class="xref">ImageSharp.Processors.EdgeDetectorCompassFilter&lt;TColor, TPacked&gt;.West</span></div>
+            </article>
+          </div>
+          
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                  <li>
+                    <a href="https://github.com/M-Zuber/ImageSharp/new/master/src/docs/apispec/new?filename=ImageSharp_Processors_RobinsonProcessor_2.md&amp;value=---%0Auid%3A%20ImageSharp.Processors.RobinsonProcessor%602%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A" class="contribution-link">Improve this Doc</a>
+                  </li>
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+            
+            <span>Copyright © 2015-2016 Microsoft<br>Generated by <strong>DocFX</strong></span>
+          </div>
+        </div>
+      </footer>
+    </div>
+    
+    <script type="text/javascript" src="../styles/docfx.vendor.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+  </body>
+</html>

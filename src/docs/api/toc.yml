@@ -1,0 +1,427 @@
+### YamlMime:TableOfContent
+- uid: ImageSharp
+  name: ImageSharp
+  items:
+  - uid: ImageSharp.AnchorPosition
+    name: AnchorPosition
+  - uid: ImageSharp.Bgra32
+    name: Bgra32
+  - uid: ImageSharp.BicubicResampler
+    name: BicubicResampler
+  - uid: ImageSharp.Bootstrapper
+    name: Bootstrapper
+  - uid: ImageSharp.BoxResampler
+    name: BoxResampler
+  - uid: ImageSharp.CatmullRomResampler
+    name: CatmullRomResampler
+  - uid: ImageSharp.CieLab
+    name: CieLab
+  - uid: ImageSharp.CieXyz
+    name: CieXyz
+  - uid: ImageSharp.Cmyk
+    name: Cmyk
+  - uid: ImageSharp.Color
+    name: Color
+  - uid: ImageSharp.ColorBlindness
+    name: ColorBlindness
+  - uid: ImageSharp.ColorConstants
+    name: ColorConstants
+  - uid: ImageSharp.ComponentOrder
+    name: ComponentOrder
+  - uid: ImageSharp.EdgeDetection
+    name: EdgeDetection
+  - uid: ImageSharp.Ellipse
+    name: Ellipse
+  - uid: ImageSharp.EnumerableExtensions
+    name: EnumerableExtensions
+  - uid: ImageSharp.ExifDataType
+    name: ExifDataType
+  - uid: ImageSharp.ExifParts
+    name: ExifParts
+  - uid: ImageSharp.ExifProfile
+    name: ExifProfile
+  - uid: ImageSharp.ExifTag
+    name: ExifTag
+  - uid: ImageSharp.ExifValue
+    name: ExifValue
+  - uid: ImageSharp.FlipType
+    name: FlipType
+  - uid: ImageSharp.GrayscaleMode
+    name: GrayscaleMode
+  - uid: ImageSharp.Hsl
+    name: Hsl
+  - uid: ImageSharp.Hsv
+    name: Hsv
+  - uid: ImageSharp.IAlmostEquatable`2
+    name: IAlmostEquatable<TColor, TPrecision>
+    name.vb: IAlmostEquatable(Of TColor, TPrecision)
+  - uid: ImageSharp.IImageBase
+    name: IImageBase
+  - uid: ImageSharp.IImageBase`2
+    name: IImageBase<TColor, TPacked>
+    name.vb: IImageBase(Of TColor, TPacked)
+  - uid: ImageSharp.IImageFrame`2
+    name: IImageFrame<TColor, TPacked>
+    name.vb: IImageFrame(Of TColor, TPacked)
+  - uid: ImageSharp.Image
+    name: Image
+  - uid: ImageSharp.Image`2
+    name: Image<TColor, TPacked>
+    name.vb: Image(Of TColor, TPacked)
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase<TColor, TPacked>
+    name.vb: ImageBase(Of TColor, TPacked)
+  - uid: ImageSharp.ImageExtensions
+    name: ImageExtensions
+  - uid: ImageSharp.ImageFormatException
+    name: ImageFormatException
+  - uid: ImageSharp.ImageFrame`2
+    name: ImageFrame<TColor, TPacked>
+    name.vb: ImageFrame(Of TColor, TPacked)
+  - uid: ImageSharp.ImageProcessingException
+    name: ImageProcessingException
+  - uid: ImageSharp.ImageProperty
+    name: ImageProperty
+  - uid: ImageSharp.IPackedBytes
+    name: IPackedBytes
+  - uid: ImageSharp.IPackedPixel`1
+    name: IPackedPixel<TPacked>
+    name.vb: IPackedPixel(Of TPacked)
+  - uid: ImageSharp.IPackedVector
+    name: IPackedVector
+  - uid: ImageSharp.IPackedVector`1
+    name: IPackedVector<TPacked>
+    name.vb: IPackedVector(Of TPacked)
+  - uid: ImageSharp.IResampler
+    name: IResampler
+  - uid: ImageSharp.Lanczos2Resampler
+    name: Lanczos2Resampler
+  - uid: ImageSharp.Lanczos3Resampler
+    name: Lanczos3Resampler
+  - uid: ImageSharp.Lanczos5Resampler
+    name: Lanczos5Resampler
+  - uid: ImageSharp.Lanczos8Resampler
+    name: Lanczos8Resampler
+  - uid: ImageSharp.MitchellNetravaliResampler
+    name: MitchellNetravaliResampler
+  - uid: ImageSharp.NearestNeighborResampler
+    name: NearestNeighborResampler
+  - uid: ImageSharp.PixelAccessor
+    name: PixelAccessor
+  - uid: ImageSharp.PixelAccessor`2
+    name: PixelAccessor<TColor, TPacked>
+    name.vb: PixelAccessor(Of TColor, TPacked)
+  - uid: ImageSharp.PixelRow`2
+    name: PixelRow<TColor, TPacked>
+    name.vb: PixelRow(Of TColor, TPacked)
+  - uid: ImageSharp.Point
+    name: Point
+  - uid: ImageSharp.ProgressEventArgs
+    name: ProgressEventArgs
+  - uid: ImageSharp.Quantization
+    name: Quantization
+  - uid: ImageSharp.Rational
+    name: Rational
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+  - uid: ImageSharp.ResizeMode
+    name: ResizeMode
+  - uid: ImageSharp.ResizeOptions
+    name: ResizeOptions
+  - uid: ImageSharp.RgbaComponent
+    name: RgbaComponent
+  - uid: ImageSharp.RobidouxResampler
+    name: RobidouxResampler
+  - uid: ImageSharp.RobidouxSharpResampler
+    name: RobidouxSharpResampler
+  - uid: ImageSharp.RotateType
+    name: RotateType
+  - uid: ImageSharp.SignedRational
+    name: SignedRational
+  - uid: ImageSharp.Size
+    name: Size
+  - uid: ImageSharp.SplineResampler
+    name: SplineResampler
+  - uid: ImageSharp.TriangleResampler
+    name: TriangleResampler
+  - uid: ImageSharp.Vector4Extensions
+    name: Vector4Extensions
+  - uid: ImageSharp.WelchResampler
+    name: WelchResampler
+  - uid: ImageSharp.YCbCr
+    name: YCbCr
+- uid: ImageSharp.Formats
+  name: ImageSharp.Formats
+  items:
+  - uid: ImageSharp.Formats.BmpBitsPerPixel
+    name: BmpBitsPerPixel
+  - uid: ImageSharp.Formats.BmpDecoder
+    name: BmpDecoder
+  - uid: ImageSharp.Formats.BmpEncoder
+    name: BmpEncoder
+  - uid: ImageSharp.Formats.BmpFormat
+    name: BmpFormat
+  - uid: ImageSharp.Formats.DisposalMethod
+    name: DisposalMethod
+  - uid: ImageSharp.Formats.GifDecoder
+    name: GifDecoder
+  - uid: ImageSharp.Formats.GifEncoder
+    name: GifEncoder
+  - uid: ImageSharp.Formats.GifFormat
+    name: GifFormat
+  - uid: ImageSharp.Formats.IChecksum
+    name: IChecksum
+  - uid: ImageSharp.Formats.IImageDecoder
+    name: IImageDecoder
+  - uid: ImageSharp.Formats.IImageEncoder
+    name: IImageEncoder
+  - uid: ImageSharp.Formats.IImageFormat
+    name: IImageFormat
+  - uid: ImageSharp.Formats.JpegDecoder
+    name: JpegDecoder
+  - uid: ImageSharp.Formats.JpegEncoder
+    name: JpegEncoder
+  - uid: ImageSharp.Formats.JpegFormat
+    name: JpegFormat
+  - uid: ImageSharp.Formats.JpegSubsample
+    name: JpegSubsample
+  - uid: ImageSharp.Formats.PngColorType
+    name: PngColorType
+  - uid: ImageSharp.Formats.PngDecoder
+    name: PngDecoder
+  - uid: ImageSharp.Formats.PngEncoder
+    name: PngEncoder
+  - uid: ImageSharp.Formats.PngFormat
+    name: PngFormat
+  - uid: ImageSharp.Formats.PngHeader
+    name: PngHeader
+- uid: ImageSharp.Processors
+  name: ImageSharp.Processors
+  items:
+  - uid: ImageSharp.Processors.AchromatomalyProcessor`2
+    name: AchromatomalyProcessor<TColor, TPacked>
+    name.vb: AchromatomalyProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.AchromatopsiaProcessor`2
+    name: AchromatopsiaProcessor<TColor, TPacked>
+    name.vb: AchromatopsiaProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.AlphaProcessor`2
+    name: AlphaProcessor<TColor, TPacked>
+    name.vb: AlphaProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.BackgroundColorProcessor`2
+    name: BackgroundColorProcessor<TColor, TPacked>
+    name.vb: BackgroundColorProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.BinaryThresholdProcessor`2
+    name: BinaryThresholdProcessor<TColor, TPacked>
+    name.vb: BinaryThresholdProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.BlackWhiteProcessor`2
+    name: BlackWhiteProcessor<TColor, TPacked>
+    name.vb: BlackWhiteProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.BlendProcessor`2
+    name: BlendProcessor<TColor, TPacked>
+    name.vb: BlendProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.BoxBlurProcessor`2
+    name: BoxBlurProcessor<TColor, TPacked>
+    name.vb: BoxBlurProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.BrightnessProcessor`2
+    name: BrightnessProcessor<TColor, TPacked>
+    name.vb: BrightnessProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.ColorMatrixFilter`2
+    name: ColorMatrixFilter<TColor, TPacked>
+    name.vb: ColorMatrixFilter(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.CompandingResizeProcessor`2
+    name: CompandingResizeProcessor<TColor, TPacked>
+    name.vb: CompandingResizeProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.ContrastProcessor`2
+    name: ContrastProcessor<TColor, TPacked>
+    name.vb: ContrastProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.Convolution2DFilter`2
+    name: Convolution2DFilter<TColor, TPacked>
+    name.vb: Convolution2DFilter(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.Convolution2PassFilter`2
+    name: Convolution2PassFilter<TColor, TPacked>
+    name.vb: Convolution2PassFilter(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.ConvolutionFilter`2
+    name: ConvolutionFilter<TColor, TPacked>
+    name.vb: ConvolutionFilter(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.CropProcessor`2
+    name: CropProcessor<TColor, TPacked>
+    name.vb: CropProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.DeuteranomalyProcessor`2
+    name: DeuteranomalyProcessor<TColor, TPacked>
+    name.vb: DeuteranomalyProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.DeuteranopiaProcessor`2
+    name: DeuteranopiaProcessor<TColor, TPacked>
+    name.vb: DeuteranopiaProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.EdgeDetector2DFilter`2
+    name: EdgeDetector2DFilter<TColor, TPacked>
+    name.vb: EdgeDetector2DFilter(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.EdgeDetectorCompassFilter`2
+    name: EdgeDetectorCompassFilter<TColor, TPacked>
+    name.vb: EdgeDetectorCompassFilter(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.EdgeDetectorFilter`2
+    name: EdgeDetectorFilter<TColor, TPacked>
+    name.vb: EdgeDetectorFilter(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.EntropyCropProcessor`2
+    name: EntropyCropProcessor<TColor, TPacked>
+    name.vb: EntropyCropProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.FlipProcessor`2
+    name: FlipProcessor<TColor, TPacked>
+    name.vb: FlipProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.GlowProcessor`2
+    name: GlowProcessor<TColor, TPacked>
+    name.vb: GlowProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.GrayscaleBt601Processor`2
+    name: GrayscaleBt601Processor<TColor, TPacked>
+    name.vb: GrayscaleBt601Processor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.GrayscaleBt709Processor`2
+    name: GrayscaleBt709Processor<TColor, TPacked>
+    name.vb: GrayscaleBt709Processor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.GuassianBlurProcessor`2
+    name: GuassianBlurProcessor<TColor, TPacked>
+    name.vb: GuassianBlurProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.GuassianSharpenProcessor`2
+    name: GuassianSharpenProcessor<TColor, TPacked>
+    name.vb: GuassianSharpenProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.HermiteResampler
+    name: HermiteResampler
+  - uid: ImageSharp.Processors.HueProcessor`2
+    name: HueProcessor<TColor, TPacked>
+    name.vb: HueProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.IColorMatrixFilter`2
+    name: IColorMatrixFilter<TColor, TPacked>
+    name.vb: IColorMatrixFilter(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.IEdgeDetectorFilter
+    name: IEdgeDetectorFilter
+  - uid: ImageSharp.Processors.IEdgeDetectorFilter`2
+    name: IEdgeDetectorFilter<TColor, TPacked>
+    name.vb: IEdgeDetectorFilter(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.IImageFilter`2
+    name: IImageFilter<TColor, TPacked>
+    name.vb: IImageFilter(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.IImageProcessor
+    name: IImageProcessor
+  - uid: ImageSharp.Processors.IImageSampler`2
+    name: IImageSampler<TColor, TPacked>
+    name.vb: IImageSampler(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.ImageFilter`2
+    name: ImageFilter<TColor, TPacked>
+    name.vb: ImageFilter(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.ImageProcessor`2
+    name: ImageProcessor<TColor, TPacked>
+    name.vb: ImageProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.ImageSampler`2
+    name: ImageSampler<TColor, TPacked>
+    name.vb: ImageSampler(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.InvertProcessor`2
+    name: InvertProcessor<TColor, TPacked>
+    name.vb: InvertProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.KayyaliProcessor`2
+    name: KayyaliProcessor<TColor, TPacked>
+    name.vb: KayyaliProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.KirschProcessor`2
+    name: KirschProcessor<TColor, TPacked>
+    name.vb: KirschProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.KodachromeProcessor`2
+    name: KodachromeProcessor<TColor, TPacked>
+    name.vb: KodachromeProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.Laplacian3X3Processor`2
+    name: Laplacian3X3Processor<TColor, TPacked>
+    name.vb: Laplacian3X3Processor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.Laplacian5X5Processor`2
+    name: Laplacian5X5Processor<TColor, TPacked>
+    name.vb: Laplacian5X5Processor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.LaplacianOfGaussianProcessor`2
+    name: LaplacianOfGaussianProcessor<TColor, TPacked>
+    name.vb: LaplacianOfGaussianProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.LomographProcessor`2
+    name: LomographProcessor<TColor, TPacked>
+    name.vb: LomographProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.Matrix3x2Processor`2
+    name: Matrix3x2Processor<TColor, TPacked>
+    name.vb: Matrix3x2Processor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.OilPaintingProcessor`2
+    name: OilPaintingProcessor<TColor, TPacked>
+    name.vb: OilPaintingProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.PixelateProcessor`2
+    name: PixelateProcessor<TColor, TPacked>
+    name.vb: PixelateProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.PolaroidProcessor`2
+    name: PolaroidProcessor<TColor, TPacked>
+    name.vb: PolaroidProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.PrewittProcessor`2
+    name: PrewittProcessor<TColor, TPacked>
+    name.vb: PrewittProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.ProtanomalyProcessor`2
+    name: ProtanomalyProcessor<TColor, TPacked>
+    name.vb: ProtanomalyProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.ProtanopiaProcessor`2
+    name: ProtanopiaProcessor<TColor, TPacked>
+    name.vb: ProtanopiaProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.ResamplingWeightedProcessor`2
+    name: ResamplingWeightedProcessor<TColor, TPacked>
+    name.vb: ResamplingWeightedProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.ResamplingWeightedProcessor`2.Weight
+    name: ResamplingWeightedProcessor<TColor, TPacked>.Weight
+    name.vb: ResamplingWeightedProcessor(Of TColor, TPacked).Weight
+  - uid: ImageSharp.Processors.ResamplingWeightedProcessor`2.Weights
+    name: ResamplingWeightedProcessor<TColor, TPacked>.Weights
+    name.vb: ResamplingWeightedProcessor(Of TColor, TPacked).Weights
+  - uid: ImageSharp.Processors.ResizeProcessor`2
+    name: ResizeProcessor<TColor, TPacked>
+    name.vb: ResizeProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.RobertsCrossProcessor`2
+    name: RobertsCrossProcessor<TColor, TPacked>
+    name.vb: RobertsCrossProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.RobinsonProcessor`2
+    name: RobinsonProcessor<TColor, TPacked>
+    name.vb: RobinsonProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.RotateProcessor`2
+    name: RotateProcessor<TColor, TPacked>
+    name.vb: RotateProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.SaturationProcessor`2
+    name: SaturationProcessor<TColor, TPacked>
+    name.vb: SaturationProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.ScharrProcessor`2
+    name: ScharrProcessor<TColor, TPacked>
+    name.vb: ScharrProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.SepiaProcessor`2
+    name: SepiaProcessor<TColor, TPacked>
+    name.vb: SepiaProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.SkewProcessor`2
+    name: SkewProcessor<TColor, TPacked>
+    name.vb: SkewProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.SobelProcessor`2
+    name: SobelProcessor<TColor, TPacked>
+    name.vb: SobelProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.TritanomalyProcessor`2
+    name: TritanomalyProcessor<TColor, TPacked>
+    name.vb: TritanomalyProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.TritanopiaProcessor`2
+    name: TritanopiaProcessor<TColor, TPacked>
+    name.vb: TritanopiaProcessor(Of TColor, TPacked)
+  - uid: ImageSharp.Processors.VignetteProcessor`2
+    name: VignetteProcessor<TColor, TPacked>
+    name.vb: VignetteProcessor(Of TColor, TPacked)
+- uid: ImageSharp.Quantizers
+  name: ImageSharp.Quantizers
+  items:
+  - uid: ImageSharp.Quantizers.IQuantizer
+    name: IQuantizer
+  - uid: ImageSharp.Quantizers.IQuantizer`2
+    name: IQuantizer<TColor, TPacked>
+    name.vb: IQuantizer(Of TColor, TPacked)
+  - uid: ImageSharp.Quantizers.OctreeQuantizer`2
+    name: OctreeQuantizer<TColor, TPacked>
+    name.vb: OctreeQuantizer(Of TColor, TPacked)
+  - uid: ImageSharp.Quantizers.PaletteQuantizer`2
+    name: PaletteQuantizer<TColor, TPacked>
+    name.vb: PaletteQuantizer(Of TColor, TPacked)
+  - uid: ImageSharp.Quantizers.QuantizedImage`2
+    name: QuantizedImage<TColor, TPacked>
+    name.vb: QuantizedImage(Of TColor, TPacked)
+  - uid: ImageSharp.Quantizers.Quantizer`2
+    name: Quantizer<TColor, TPacked>
+    name.vb: Quantizer(Of TColor, TPacked)
+  - uid: ImageSharp.Quantizers.WuQuantizer`2
+    name: WuQuantizer<TColor, TPacked>
+    name.vb: WuQuantizer(Of TColor, TPacked)

@@ -1,0 +1,1330 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.Rectangle
+  commentId: T:ImageSharp.Rectangle
+  id: Rectangle
+  parent: ImageSharp
+  children:
+  - ImageSharp.Rectangle.#ctor(ImageSharp.Point,ImageSharp.Size)
+  - ImageSharp.Rectangle.#ctor(System.Int32,System.Int32,System.Int32,System.Int32)
+  - ImageSharp.Rectangle.#ctor(Vector4)
+  - ImageSharp.Rectangle.Bottom
+  - ImageSharp.Rectangle.Center(ImageSharp.Rectangle)
+  - ImageSharp.Rectangle.Contains(System.Int32,System.Int32)
+  - ImageSharp.Rectangle.Empty
+  - ImageSharp.Rectangle.Equals(ImageSharp.Rectangle)
+  - ImageSharp.Rectangle.Equals(System.Object)
+  - ImageSharp.Rectangle.GetHashCode
+  - ImageSharp.Rectangle.Height
+  - ImageSharp.Rectangle.IsEmpty
+  - ImageSharp.Rectangle.Left
+  - ImageSharp.Rectangle.op_Addition(ImageSharp.Rectangle,ImageSharp.Rectangle)
+  - ImageSharp.Rectangle.op_Equality(ImageSharp.Rectangle,ImageSharp.Rectangle)
+  - ImageSharp.Rectangle.op_Inequality(ImageSharp.Rectangle,ImageSharp.Rectangle)
+  - ImageSharp.Rectangle.op_Subtraction(ImageSharp.Rectangle,ImageSharp.Rectangle)
+  - ImageSharp.Rectangle.Right
+  - ImageSharp.Rectangle.Top
+  - ImageSharp.Rectangle.ToString
+  - ImageSharp.Rectangle.Width
+  - ImageSharp.Rectangle.X
+  - ImageSharp.Rectangle.Y
+  langs:
+  - csharp
+  - vb
+  name: Rectangle
+  nameWithType: Rectangle
+  fullName: ImageSharp.Rectangle
+  type: Struct
+  source:
+    id: Rectangle
+    path: ''
+    startLine: 22579
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nStores a set of four integers that represent the location and size of a rectangle.\n"
+  remarks: "\nThis struct is fully mutable. This is done (against the guidelines) for the sake of performance,\nas it avoids the need to create new values for modification operations.\n"
+  example: []
+  syntax:
+    content: 'public struct Rectangle : IEquatable<Rectangle>'
+    content.vb: >-
+      Public Structure Rectangle
+          Implements IEquatable(Of Rectangle)
+  implements:
+  - System.IEquatable{ImageSharp.Rectangle}
+  inheritedMembers:
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.GetType
+  modifiers.csharp:
+  - public
+  - struct
+  modifiers.vb:
+  - Public
+  - Structure
+- uid: ImageSharp.Rectangle.Empty
+  commentId: F:ImageSharp.Rectangle.Empty
+  id: Empty
+  parent: ImageSharp.Rectangle
+  langs:
+  - csharp
+  - vb
+  name: Empty
+  nameWithType: Rectangle.Empty
+  fullName: ImageSharp.Rectangle.Empty
+  type: Field
+  source:
+    id: Empty
+    path: ''
+    startLine: 22584
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a <xref href=\"ImageSharp.Rectangle\" data-throw-if-not-resolved=\"false\"></xref> that has X, Y, Width, and Height values set to zero.\n"
+  example: []
+  syntax:
+    content: public static readonly Rectangle Empty
+    content.vb: Public Shared ReadOnly Empty As Rectangle
+    return:
+      type: ImageSharp.Rectangle
+  modifiers.csharp:
+  - public
+  - static
+  - readonly
+  modifiers.vb:
+  - Public
+  - Shared
+  - ReadOnly
+- uid: ImageSharp.Rectangle.#ctor(System.Int32,System.Int32,System.Int32,System.Int32)
+  commentId: M:ImageSharp.Rectangle.#ctor(System.Int32,System.Int32,System.Int32,System.Int32)
+  id: '#ctor(System.Int32,System.Int32,System.Int32,System.Int32)'
+  parent: ImageSharp.Rectangle
+  langs:
+  - csharp
+  - vb
+  name: Rectangle(Int32, Int32, Int32, Int32)
+  nameWithType: Rectangle.Rectangle(Int32, Int32, Int32, Int32)
+  fullName: ImageSharp.Rectangle.Rectangle(System.Int32, System.Int32, System.Int32, System.Int32)
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 22598
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nInitializes a new instance of the <xref href=\"ImageSharp.Rectangle\" data-throw-if-not-resolved=\"false\"></xref> struct.\n"
+  example: []
+  syntax:
+    content: public Rectangle(int x, int y, int width, int height)
+    content.vb: Public Sub New(x As Integer, y As Integer, width As Integer, height As Integer)
+    parameters:
+    - id: x
+      type: System.Int32
+      description: The horizontal position of the rectangle.
+    - id: y
+      type: System.Int32
+      description: The vertical position of the rectangle.
+    - id: width
+      type: System.Int32
+      description: The width of the rectangle.
+    - id: height
+      type: System.Int32
+      description: The height of the rectangle.
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Rectangle.#ctor(ImageSharp.Point,ImageSharp.Size)
+  commentId: M:ImageSharp.Rectangle.#ctor(ImageSharp.Point,ImageSharp.Size)
+  id: '#ctor(ImageSharp.Point,ImageSharp.Size)'
+  parent: ImageSharp.Rectangle
+  langs:
+  - csharp
+  - vb
+  name: Rectangle(Point, Size)
+  nameWithType: Rectangle.Rectangle(Point, Size)
+  fullName: ImageSharp.Rectangle.Rectangle(ImageSharp.Point, ImageSharp.Size)
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 22612
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nInitializes a new instance of the <xref href=\"ImageSharp.Rectangle\" data-throw-if-not-resolved=\"false\"></xref> struct.\n"
+  example: []
+  syntax:
+    content: public Rectangle(Point point, Size size)
+    content.vb: Public Sub New(point As Point, size As Size)
+    parameters:
+    - id: point
+      type: ImageSharp.Point
+      description: "\nThe <xref href=\"ImageSharp.Point\" data-throw-if-not-resolved=\"false\"></xref> which specifies the rectangles point in a two-dimensional plane.\n"
+    - id: size
+      type: ImageSharp.Size
+      description: "\nThe <xref href=\"ImageSharp.Size\" data-throw-if-not-resolved=\"false\"></xref> which specifies the rectangles height and width.\n"
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Rectangle.#ctor(Vector4)
+  commentId: M:ImageSharp.Rectangle.#ctor(Vector4)
+  id: '#ctor(Vector4)'
+  parent: ImageSharp.Rectangle
+  langs:
+  - csharp
+  - vb
+  name: Rectangle(Vector4)
+  nameWithType: Rectangle.Rectangle(Vector4)
+  fullName: ImageSharp.Rectangle.Rectangle(Vector4)
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 22621
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nInitializes a new instance of the <xref href=\"ImageSharp.Rectangle\" data-throw-if-not-resolved=\"false\"></xref> struct.\n"
+  example: []
+  syntax:
+    content: public Rectangle(Vector4 vector)
+    content.vb: Public Sub New(vector As Vector4)
+    parameters:
+    - id: vector
+      type: Vector4
+      description: The vector.
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Rectangle.X
+  commentId: P:ImageSharp.Rectangle.X
+  id: X
+  parent: ImageSharp.Rectangle
+  langs:
+  - csharp
+  - vb
+  name: X
+  nameWithType: Rectangle.X
+  fullName: ImageSharp.Rectangle.X
+  type: Property
+  source:
+    id: X
+    path: ''
+    startLine: 22629
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nThe x-coordinate of this <xref href=\"ImageSharp.Rectangle\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  example: []
+  syntax:
+    content: public int X { get; set; }
+    content.vb: Public Property X As Integer
+    parameters: []
+    return:
+      type: System.Int32
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Rectangle.Y
+  commentId: P:ImageSharp.Rectangle.Y
+  id: Y
+  parent: ImageSharp.Rectangle
+  langs:
+  - csharp
+  - vb
+  name: Y
+  nameWithType: Rectangle.Y
+  fullName: ImageSharp.Rectangle.Y
+  type: Property
+  source:
+    id: Y
+    path: ''
+    startLine: 22645
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nThe y-coordinate of this <xref href=\"ImageSharp.Rectangle\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  example: []
+  syntax:
+    content: public int Y { get; set; }
+    content.vb: Public Property Y As Integer
+    parameters: []
+    return:
+      type: System.Int32
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Rectangle.Width
+  commentId: P:ImageSharp.Rectangle.Width
+  id: Width
+  parent: ImageSharp.Rectangle
+  langs:
+  - csharp
+  - vb
+  name: Width
+  nameWithType: Rectangle.Width
+  fullName: ImageSharp.Rectangle.Width
+  type: Property
+  source:
+    id: Width
+    path: ''
+    startLine: 22661
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nThe width of this <xref href=\"ImageSharp.Rectangle\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  example: []
+  syntax:
+    content: public int Width { get; set; }
+    content.vb: Public Property Width As Integer
+    parameters: []
+    return:
+      type: System.Int32
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Rectangle.Height
+  commentId: P:ImageSharp.Rectangle.Height
+  id: Height
+  parent: ImageSharp.Rectangle
+  langs:
+  - csharp
+  - vb
+  name: Height
+  nameWithType: Rectangle.Height
+  fullName: ImageSharp.Rectangle.Height
+  type: Property
+  source:
+    id: Height
+    path: ''
+    startLine: 22677
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nThe height of this <xref href=\"ImageSharp.Rectangle\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  example: []
+  syntax:
+    content: public int Height { get; set; }
+    content.vb: Public Property Height As Integer
+    parameters: []
+    return:
+      type: System.Int32
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Rectangle.IsEmpty
+  commentId: P:ImageSharp.Rectangle.IsEmpty
+  id: IsEmpty
+  parent: ImageSharp.Rectangle
+  langs:
+  - csharp
+  - vb
+  name: IsEmpty
+  nameWithType: Rectangle.IsEmpty
+  fullName: ImageSharp.Rectangle.IsEmpty
+  type: Property
+  source:
+    id: IsEmpty
+    path: ''
+    startLine: 22693
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets a value indicating whether this <xref href=\"ImageSharp.Rectangle\" data-throw-if-not-resolved=\"false\"></xref> is empty.\n"
+  example: []
+  syntax:
+    content: public bool IsEmpty { get; }
+    content.vb: Public ReadOnly Property IsEmpty As Boolean
+    parameters: []
+    return:
+      type: System.Boolean
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.Rectangle.Top
+  commentId: P:ImageSharp.Rectangle.Top
+  id: Top
+  parent: ImageSharp.Rectangle
+  langs:
+  - csharp
+  - vb
+  name: Top
+  nameWithType: Rectangle.Top
+  fullName: ImageSharp.Rectangle.Top
+  type: Property
+  source:
+    id: Top
+    path: ''
+    startLine: 22699
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the y-coordinate of the top edge of this <xref href=\"ImageSharp.Rectangle\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  example: []
+  syntax:
+    content: public int Top { get; }
+    content.vb: Public ReadOnly Property Top As Integer
+    parameters: []
+    return:
+      type: System.Int32
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.Rectangle.Right
+  commentId: P:ImageSharp.Rectangle.Right
+  id: Right
+  parent: ImageSharp.Rectangle
+  langs:
+  - csharp
+  - vb
+  name: Right
+  nameWithType: Rectangle.Right
+  fullName: ImageSharp.Rectangle.Right
+  type: Property
+  source:
+    id: Right
+    path: ''
+    startLine: 22704
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the x-coordinate of the right edge of this <xref href=\"ImageSharp.Rectangle\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  example: []
+  syntax:
+    content: public int Right { get; }
+    content.vb: Public ReadOnly Property Right As Integer
+    parameters: []
+    return:
+      type: System.Int32
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.Rectangle.Bottom
+  commentId: P:ImageSharp.Rectangle.Bottom
+  id: Bottom
+  parent: ImageSharp.Rectangle
+  langs:
+  - csharp
+  - vb
+  name: Bottom
+  nameWithType: Rectangle.Bottom
+  fullName: ImageSharp.Rectangle.Bottom
+  type: Property
+  source:
+    id: Bottom
+    path: ''
+    startLine: 22709
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the y-coordinate of the bottom edge of this <xref href=\"ImageSharp.Rectangle\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  example: []
+  syntax:
+    content: public int Bottom { get; }
+    content.vb: Public ReadOnly Property Bottom As Integer
+    parameters: []
+    return:
+      type: System.Int32
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.Rectangle.Left
+  commentId: P:ImageSharp.Rectangle.Left
+  id: Left
+  parent: ImageSharp.Rectangle
+  langs:
+  - csharp
+  - vb
+  name: Left
+  nameWithType: Rectangle.Left
+  fullName: ImageSharp.Rectangle.Left
+  type: Property
+  source:
+    id: Left
+    path: ''
+    startLine: 22714
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the x-coordinate of the left edge of this <xref href=\"ImageSharp.Rectangle\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  example: []
+  syntax:
+    content: public int Left { get; }
+    content.vb: Public ReadOnly Property Left As Integer
+    parameters: []
+    return:
+      type: System.Int32
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+- uid: ImageSharp.Rectangle.op_Addition(ImageSharp.Rectangle,ImageSharp.Rectangle)
+  commentId: M:ImageSharp.Rectangle.op_Addition(ImageSharp.Rectangle,ImageSharp.Rectangle)
+  id: op_Addition(ImageSharp.Rectangle,ImageSharp.Rectangle)
+  parent: ImageSharp.Rectangle
+  langs:
+  - csharp
+  - vb
+  name: Addition(Rectangle, Rectangle)
+  nameWithType: Rectangle.Addition(Rectangle, Rectangle)
+  fullName: ImageSharp.Rectangle.Addition(ImageSharp.Rectangle, ImageSharp.Rectangle)
+  type: Operator
+  source:
+    id: op_Addition
+    path: ''
+    startLine: 22724
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nComputes the sum of adding two rectangles.\n"
+  example: []
+  syntax:
+    content: public static Rectangle operator +(Rectangle left, Rectangle right)
+    content.vb: Public Shared Operator +(left As Rectangle, right As Rectangle) As Rectangle
+    parameters:
+    - id: left
+      type: ImageSharp.Rectangle
+      description: The rectangle on the left hand of the operand.
+    - id: right
+      type: ImageSharp.Rectangle
+      description: The rectangle on the right hand of the operand.
+    return:
+      type: ImageSharp.Rectangle
+      description: "\nThe <xref href=\"ImageSharp.Rectangle\" data-throw-if-not-resolved=\"false\"></xref>\n"
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.Rectangle.op_Subtraction(ImageSharp.Rectangle,ImageSharp.Rectangle)
+  commentId: M:ImageSharp.Rectangle.op_Subtraction(ImageSharp.Rectangle,ImageSharp.Rectangle)
+  id: op_Subtraction(ImageSharp.Rectangle,ImageSharp.Rectangle)
+  parent: ImageSharp.Rectangle
+  langs:
+  - csharp
+  - vb
+  name: Subtraction(Rectangle, Rectangle)
+  nameWithType: Rectangle.Subtraction(Rectangle, Rectangle)
+  fullName: ImageSharp.Rectangle.Subtraction(ImageSharp.Rectangle, ImageSharp.Rectangle)
+  type: Operator
+  source:
+    id: op_Subtraction
+    path: ''
+    startLine: 22737
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nComputes the difference left by subtracting one rectangle from another.\n"
+  example: []
+  syntax:
+    content: public static Rectangle operator -(Rectangle left, Rectangle right)
+    content.vb: Public Shared Operator -(left As Rectangle, right As Rectangle) As Rectangle
+    parameters:
+    - id: left
+      type: ImageSharp.Rectangle
+      description: The rectangle on the left hand of the operand.
+    - id: right
+      type: ImageSharp.Rectangle
+      description: The rectangle on the right hand of the operand.
+    return:
+      type: ImageSharp.Rectangle
+      description: "\nThe <xref href=\"ImageSharp.Rectangle\" data-throw-if-not-resolved=\"false\"></xref>\n"
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.Rectangle.op_Equality(ImageSharp.Rectangle,ImageSharp.Rectangle)
+  commentId: M:ImageSharp.Rectangle.op_Equality(ImageSharp.Rectangle,ImageSharp.Rectangle)
+  id: op_Equality(ImageSharp.Rectangle,ImageSharp.Rectangle)
+  parent: ImageSharp.Rectangle
+  langs:
+  - csharp
+  - vb
+  name: Equality(Rectangle, Rectangle)
+  nameWithType: Rectangle.Equality(Rectangle, Rectangle)
+  fullName: ImageSharp.Rectangle.Equality(ImageSharp.Rectangle, ImageSharp.Rectangle)
+  type: Operator
+  source:
+    id: op_Equality
+    path: ''
+    startLine: 22754
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCompares two <xref href=\"ImageSharp.Rectangle\" data-throw-if-not-resolved=\"false\"></xref> objects for equality.\n"
+  example: []
+  syntax:
+    content: public static bool operator ==(Rectangle left, Rectangle right)
+    content.vb: Public Shared Operator =(left As Rectangle, right As Rectangle) As Boolean
+    parameters:
+    - id: left
+      type: ImageSharp.Rectangle
+      description: "\nThe <xref href=\"ImageSharp.Rectangle\" data-throw-if-not-resolved=\"false\"></xref> on the left side of the operand.\n"
+    - id: right
+      type: ImageSharp.Rectangle
+      description: "\nThe <xref href=\"ImageSharp.Rectangle\" data-throw-if-not-resolved=\"false\"></xref> on the right side of the operand.\n"
+    return:
+      type: System.Boolean
+      description: "\nTrue if the current left is equal to the <em>right</em> parameter; otherwise, false.\n"
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.Rectangle.op_Inequality(ImageSharp.Rectangle,ImageSharp.Rectangle)
+  commentId: M:ImageSharp.Rectangle.op_Inequality(ImageSharp.Rectangle,ImageSharp.Rectangle)
+  id: op_Inequality(ImageSharp.Rectangle,ImageSharp.Rectangle)
+  parent: ImageSharp.Rectangle
+  langs:
+  - csharp
+  - vb
+  name: Inequality(Rectangle, Rectangle)
+  nameWithType: Rectangle.Inequality(Rectangle, Rectangle)
+  fullName: ImageSharp.Rectangle.Inequality(ImageSharp.Rectangle, ImageSharp.Rectangle)
+  type: Operator
+  source:
+    id: op_Inequality
+    path: ''
+    startLine: 22771
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCompares two <xref href=\"ImageSharp.Rectangle\" data-throw-if-not-resolved=\"false\"></xref> objects for inequality.\n"
+  example: []
+  syntax:
+    content: public static bool operator !=(Rectangle left, Rectangle right)
+    content.vb: Public Shared Operator <>(left As Rectangle, right As Rectangle) As Boolean
+    parameters:
+    - id: left
+      type: ImageSharp.Rectangle
+      description: "\nThe <xref href=\"ImageSharp.Rectangle\" data-throw-if-not-resolved=\"false\"></xref> on the left side of the operand.\n"
+    - id: right
+      type: ImageSharp.Rectangle
+      description: "\nThe <xref href=\"ImageSharp.Rectangle\" data-throw-if-not-resolved=\"false\"></xref> on the right side of the operand.\n"
+    return:
+      type: System.Boolean
+      description: "\nTrue if the current left is unequal to the <em>right</em> parameter; otherwise, false.\n"
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.Rectangle.Contains(System.Int32,System.Int32)
+  commentId: M:ImageSharp.Rectangle.Contains(System.Int32,System.Int32)
+  id: Contains(System.Int32,System.Int32)
+  parent: ImageSharp.Rectangle
+  langs:
+  - csharp
+  - vb
+  name: Contains(Int32, Int32)
+  nameWithType: Rectangle.Contains(Int32, Int32)
+  fullName: ImageSharp.Rectangle.Contains(System.Int32, System.Int32)
+  type: Method
+  source:
+    id: Contains
+    path: ''
+    startLine: 22783
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nDetermines if the specfied point is contained within the rectangular region defined by\nthis <xref href=\"ImageSharp.Rectangle\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  example: []
+  syntax:
+    content: public bool Contains(int x, int y)
+    content.vb: Public Function Contains(x As Integer, y As Integer) As Boolean
+    parameters:
+    - id: x
+      type: System.Int32
+      description: The x-coordinate of the given point.
+    - id: y
+      type: System.Int32
+      description: The y-coordinate of the given point.
+    return:
+      type: System.Boolean
+      description: The <xref href="System.Boolean" data-throw-if-not-resolved="false"></xref>
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Rectangle.Center(ImageSharp.Rectangle)
+  commentId: M:ImageSharp.Rectangle.Center(ImageSharp.Rectangle)
+  id: Center(ImageSharp.Rectangle)
+  parent: ImageSharp.Rectangle
+  langs:
+  - csharp
+  - vb
+  name: Center(Rectangle)
+  nameWithType: Rectangle.Center(Rectangle)
+  fullName: ImageSharp.Rectangle.Center(ImageSharp.Rectangle)
+  type: Method
+  source:
+    id: Center
+    path: ''
+    startLine: 22797
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nReturns the center point of the given <xref href=\"ImageSharp.Rectangle\" data-throw-if-not-resolved=\"false\"></xref>\n"
+  example: []
+  syntax:
+    content: public static Point Center(Rectangle rectangle)
+    content.vb: Public Shared Function Center(rectangle As Rectangle) As Point
+    parameters:
+    - id: rectangle
+      type: ImageSharp.Rectangle
+      description: The rectangle
+    return:
+      type: ImageSharp.Point
+      description: <xref href="ImageSharp.Point" data-throw-if-not-resolved="false"></xref>
+  modifiers.csharp:
+  - public
+  - static
+  modifiers.vb:
+  - Public
+  - Shared
+- uid: ImageSharp.Rectangle.GetHashCode
+  commentId: M:ImageSharp.Rectangle.GetHashCode
+  id: GetHashCode
+  parent: ImageSharp.Rectangle
+  langs:
+  - csharp
+  - vb
+  name: GetHashCode()
+  nameWithType: Rectangle.GetHashCode()
+  fullName: ImageSharp.Rectangle.GetHashCode()
+  type: Method
+  source:
+    id: GetHashCode
+    path: ''
+    startLine: 22803
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public override int GetHashCode()
+    content.vb: Public Overrides Function GetHashCode As Integer
+    return:
+      type: System.Int32
+  overridden: System.ValueType.GetHashCode
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+- uid: ImageSharp.Rectangle.ToString
+  commentId: M:ImageSharp.Rectangle.ToString
+  id: ToString
+  parent: ImageSharp.Rectangle
+  langs:
+  - csharp
+  - vb
+  name: ToString()
+  nameWithType: Rectangle.ToString()
+  fullName: ImageSharp.Rectangle.ToString()
+  type: Method
+  source:
+    id: ToString
+    path: ''
+    startLine: 22809
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public override string ToString()
+    content.vb: Public Overrides Function ToString As String
+    return:
+      type: System.String
+  overridden: System.ValueType.ToString
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+- uid: ImageSharp.Rectangle.Equals(System.Object)
+  commentId: M:ImageSharp.Rectangle.Equals(System.Object)
+  id: Equals(System.Object)
+  parent: ImageSharp.Rectangle
+  langs:
+  - csharp
+  - vb
+  name: Equals(Object)
+  nameWithType: Rectangle.Equals(Object)
+  fullName: ImageSharp.Rectangle.Equals(System.Object)
+  type: Method
+  source:
+    id: Equals
+    path: ''
+    startLine: 22821
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public override bool Equals(object obj)
+    content.vb: Public Overrides Function Equals(obj As Object) As Boolean
+    parameters:
+    - id: obj
+      type: System.Object
+    return:
+      type: System.Boolean
+  overridden: System.ValueType.Equals(System.Object)
+  modifiers.csharp:
+  - public
+  - override
+  modifiers.vb:
+  - Public
+  - Overrides
+- uid: ImageSharp.Rectangle.Equals(ImageSharp.Rectangle)
+  commentId: M:ImageSharp.Rectangle.Equals(ImageSharp.Rectangle)
+  id: Equals(ImageSharp.Rectangle)
+  parent: ImageSharp.Rectangle
+  langs:
+  - csharp
+  - vb
+  name: Equals(Rectangle)
+  nameWithType: Rectangle.Equals(Rectangle)
+  fullName: ImageSharp.Rectangle.Equals(ImageSharp.Rectangle)
+  type: Method
+  source:
+    id: Equals
+    path: ''
+    startLine: 22832
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  example: []
+  syntax:
+    content: public bool Equals(Rectangle other)
+    content.vb: Public Function Equals(other As Rectangle) As Boolean
+    parameters:
+    - id: other
+      type: ImageSharp.Rectangle
+    return:
+      type: System.Boolean
+  implements:
+  - System.IEquatable{ImageSharp.Rectangle}.Equals(ImageSharp.Rectangle)
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+references:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: System.IEquatable{ImageSharp.Rectangle}
+  commentId: T:System.IEquatable{ImageSharp.Rectangle}
+  parent: System
+  definition: System.IEquatable`1
+  name: IEquatable<Rectangle>
+  nameWithType: IEquatable<Rectangle>
+  fullName: System.IEquatable<ImageSharp.Rectangle>
+  nameWithType.vb: IEquatable(Of Rectangle)
+  fullname.vb: System.IEquatable(Of ImageSharp.Rectangle)
+  name.vb: IEquatable(Of Rectangle)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: <
+    nameWithType: <
+    fullName: <
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object, Object)
+  nameWithType: Object.Equals(Object, Object)
+  fullName: System.Object.Equals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: ReferenceEquals(Object, Object)
+  nameWithType: Object.ReferenceEquals(Object, Object)
+  fullName: System.Object.ReferenceEquals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  name: GetType()
+  nameWithType: Object.GetType()
+  fullName: System.Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.IEquatable`1
+  commentId: T:System.IEquatable`1
+  isExternal: true
+  name: IEquatable<T>
+  nameWithType: IEquatable<T>
+  fullName: System.IEquatable<T>
+  nameWithType.vb: IEquatable(Of T)
+  fullname.vb: System.IEquatable(Of T)
+  name.vb: IEquatable(Of T)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    nameWithType: IEquatable
+    fullName: System.IEquatable
+    isExternal: true
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System
+  commentId: N:System
+  isExternal: false
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  name: Object
+  nameWithType: Object
+  fullName: System.Object
+- uid: ImageSharp.Rectangle
+  commentId: T:ImageSharp.Rectangle
+  parent: ImageSharp
+  isExternal: false
+  name: Rectangle
+  nameWithType: Rectangle
+  fullName: ImageSharp.Rectangle
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  name: Int32
+  nameWithType: Int32
+  fullName: System.Int32
+- uid: ImageSharp.Point
+  commentId: T:ImageSharp.Point
+  parent: ImageSharp
+  isExternal: false
+  name: Point
+  nameWithType: Point
+  fullName: ImageSharp.Point
+- uid: ImageSharp.Size
+  commentId: T:ImageSharp.Size
+  parent: ImageSharp
+  isExternal: false
+  name: Size
+  nameWithType: Size
+  fullName: ImageSharp.Size
+- uid: Vector4
+  isExternal: true
+  name: Vector4
+  nameWithType: Vector4
+  fullName: Vector4
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  name: Boolean
+  nameWithType: Boolean
+  fullName: System.Boolean
+- uid: System.ValueType.GetHashCode
+  commentId: M:System.ValueType.GetHashCode
+  parent: System.ValueType
+  isExternal: true
+  name: GetHashCode()
+  nameWithType: ValueType.GetHashCode()
+  fullName: System.ValueType.GetHashCode()
+  spec.csharp:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    nameWithType: ValueType.GetHashCode
+    fullName: System.ValueType.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.ValueType.GetHashCode
+    name: GetHashCode
+    nameWithType: ValueType.GetHashCode
+    fullName: System.ValueType.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.ValueType
+  commentId: T:System.ValueType
+  parent: System
+  isExternal: true
+  name: ValueType
+  nameWithType: ValueType
+  fullName: System.ValueType
+- uid: System.ValueType.ToString
+  commentId: M:System.ValueType.ToString
+  parent: System.ValueType
+  isExternal: true
+  name: ToString()
+  nameWithType: ValueType.ToString()
+  fullName: System.ValueType.ToString()
+  spec.csharp:
+  - uid: System.ValueType.ToString
+    name: ToString
+    nameWithType: ValueType.ToString
+    fullName: System.ValueType.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.ValueType.ToString
+    name: ToString
+    nameWithType: ValueType.ToString
+    fullName: System.ValueType.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  name: String
+  nameWithType: String
+  fullName: System.String
+- uid: System.ValueType.Equals(System.Object)
+  commentId: M:System.ValueType.Equals(System.Object)
+  parent: System.ValueType
+  isExternal: true
+  name: Equals(Object)
+  nameWithType: ValueType.Equals(Object)
+  fullName: System.ValueType.Equals(System.Object)
+  spec.csharp:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    nameWithType: ValueType.Equals
+    fullName: System.ValueType.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.ValueType.Equals(System.Object)
+    name: Equals
+    nameWithType: ValueType.Equals
+    fullName: System.ValueType.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.IEquatable{ImageSharp.Rectangle}.Equals(ImageSharp.Rectangle)
+  commentId: M:System.IEquatable{ImageSharp.Rectangle}.Equals(ImageSharp.Rectangle)
+  parent: System.IEquatable{ImageSharp.Rectangle}
+  definition: System.IEquatable`1.Equals(`0)
+  name: Equals(Rectangle)
+  nameWithType: IEquatable<Rectangle>.Equals(Rectangle)
+  fullName: System.IEquatable<ImageSharp.Rectangle>.Equals(ImageSharp.Rectangle)
+  nameWithType.vb: IEquatable(Of Rectangle).Equals(Rectangle)
+  fullname.vb: System.IEquatable(Of ImageSharp.Rectangle).Equals(ImageSharp.Rectangle)
+  spec.csharp:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable<Rectangle>.Equals
+    fullName: System.IEquatable<ImageSharp.Rectangle>.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable(Of Rectangle).Equals
+    fullName: System.IEquatable(Of ImageSharp.Rectangle).Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: ImageSharp.Rectangle
+    name: Rectangle
+    nameWithType: Rectangle
+    fullName: ImageSharp.Rectangle
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.IEquatable`1.Equals(`0)
+  commentId: M:System.IEquatable`1.Equals(`0)
+  isExternal: true
+  name: Equals(T)
+  nameWithType: IEquatable<T>.Equals(T)
+  fullName: System.IEquatable<T>.Equals(T)
+  nameWithType.vb: IEquatable(Of T).Equals(T)
+  fullname.vb: System.IEquatable(Of T).Equals(T)
+  spec.csharp:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable<T>.Equals
+    fullName: System.IEquatable<T>.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.IEquatable`1.Equals(`0)
+    name: Equals
+    nameWithType: IEquatable(Of T).Equals
+    fullName: System.IEquatable(Of T).Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: T
+    nameWithType: T
+    fullName: T
+  - name: )
+    nameWithType: )
+    fullName: )

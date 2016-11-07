@@ -1,0 +1,125 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.Processors.IImageProcessor
+  commentId: T:ImageSharp.Processors.IImageProcessor
+  id: IImageProcessor
+  parent: ImageSharp.Processors
+  children:
+  - ImageSharp.Processors.IImageProcessor.Compand
+  - ImageSharp.Processors.IImageProcessor.ParallelOptions
+  langs:
+  - csharp
+  - vb
+  name: IImageProcessor
+  nameWithType: IImageProcessor
+  fullName: ImageSharp.Processors.IImageProcessor
+  type: Interface
+  source:
+    id: IImageProcessor
+    path: ''
+    startLine: 18107
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Processors
+  summary: "\nEncapsulates methods to alter the pixels of an image.\n"
+  example: []
+  syntax:
+    content: public interface IImageProcessor
+    content.vb: Public Interface IImageProcessor
+  modifiers.csharp:
+  - public
+  - interface
+  modifiers.vb:
+  - Public
+  - Interface
+- uid: ImageSharp.Processors.IImageProcessor.ParallelOptions
+  commentId: P:ImageSharp.Processors.IImageProcessor.ParallelOptions
+  id: ParallelOptions
+  parent: ImageSharp.Processors.IImageProcessor
+  langs:
+  - csharp
+  - vb
+  name: ParallelOptions
+  nameWithType: IImageProcessor.ParallelOptions
+  fullName: ImageSharp.Processors.IImageProcessor.ParallelOptions
+  type: Property
+  source:
+    id: ParallelOptions
+    path: ''
+    startLine: 18112
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Processors
+  summary: "\nGets or sets the parallel options for processing tasks in parallel.\n"
+  example: []
+  syntax:
+    content: ParallelOptions ParallelOptions { get; set; }
+    content.vb: Property ParallelOptions As ParallelOptions
+    parameters: []
+    return:
+      type: System.Threading.Tasks.ParallelOptions
+  modifiers.csharp:
+  - get
+  - set
+- uid: ImageSharp.Processors.IImageProcessor.Compand
+  commentId: P:ImageSharp.Processors.IImageProcessor.Compand
+  id: Compand
+  parent: ImageSharp.Processors.IImageProcessor
+  langs:
+  - csharp
+  - vb
+  name: Compand
+  nameWithType: IImageProcessor.Compand
+  fullName: ImageSharp.Processors.IImageProcessor.Compand
+  type: Property
+  source:
+    id: Compand
+    path: ''
+    startLine: 18118
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Processors
+  summary: "\nGets or sets a value indicating whether to compress\nor expand individual pixel colors the value on processing.\n"
+  example: []
+  syntax:
+    content: bool Compand { get; set; }
+    content.vb: Property Compand As Boolean
+    parameters: []
+    return:
+      type: System.Boolean
+  modifiers.csharp:
+  - get
+  - set
+references:
+- uid: ImageSharp.Processors
+  commentId: N:ImageSharp.Processors
+  isExternal: false
+  name: ImageSharp.Processors
+  nameWithType: ImageSharp.Processors
+  fullName: ImageSharp.Processors
+- uid: System.Threading.Tasks.ParallelOptions
+  commentId: T:System.Threading.Tasks.ParallelOptions
+  parent: System.Threading.Tasks
+  isExternal: true
+  name: ParallelOptions
+  nameWithType: ParallelOptions
+  fullName: System.Threading.Tasks.ParallelOptions
+- uid: System.Threading.Tasks
+  commentId: N:System.Threading.Tasks
+  isExternal: false
+  name: System.Threading.Tasks
+  nameWithType: System.Threading.Tasks
+  fullName: System.Threading.Tasks
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  name: Boolean
+  nameWithType: Boolean
+  fullName: System.Boolean
+- uid: System
+  commentId: N:System
+  isExternal: false
+  name: System
+  nameWithType: System
+  fullName: System

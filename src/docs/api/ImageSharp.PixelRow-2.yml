@@ -1,0 +1,955 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.PixelRow`2
+  commentId: T:ImageSharp.PixelRow`2
+  id: PixelRow`2
+  parent: ImageSharp
+  children:
+  - ImageSharp.PixelRow`2.#ctor(System.Int32,ImageSharp.ComponentOrder)
+  - ImageSharp.PixelRow`2.#ctor(System.Int32,ImageSharp.ComponentOrder,System.Int32)
+  - ImageSharp.PixelRow`2.Bytes
+  - ImageSharp.PixelRow`2.ComponentOrder
+  - ImageSharp.PixelRow`2.DataPointer
+  - ImageSharp.PixelRow`2.Dispose
+  - ImageSharp.PixelRow`2.Finalize
+  - ImageSharp.PixelRow`2.PixelBase
+  - ImageSharp.PixelRow`2.Read(System.IO.Stream)
+  - ImageSharp.PixelRow`2.Width
+  - ImageSharp.PixelRow`2.Write(System.IO.Stream)
+  langs:
+  - csharp
+  - vb
+  name: PixelRow<TColor, TPacked>
+  nameWithType: PixelRow<TColor, TPacked>
+  fullName: ImageSharp.PixelRow<TColor, TPacked>
+  type: Class
+  source:
+    id: PixelRow
+    path: ''
+    startLine: 19552
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nRepresents a row of generic <xref href=\"ImageSharp.Image%602\" data-throw-if-not-resolved=\"false\"></xref> pixels.\n"
+  example: []
+  syntax:
+    content: 'public sealed class PixelRow<TColor, TPacked> : IDisposable where TColor : struct, IPackedPixel<TPacked> where TPacked : struct'
+    content.vb: >-
+      Public NotInheritable Class PixelRow(Of TColor As {Structure, IPackedPixel(Of TPacked)}, TPacked As Structure)
+          Implements IDisposable
+    typeParameters:
+    - id: TColor
+      description: The pixel format.
+    - id: TPacked
+      description: The packed format. <example>uint, long, float.</example>
+  inheritance:
+  - System.Object
+  implements:
+  - System.IDisposable
+  inheritedMembers:
+  - System.Object.ToString
+  - System.Object.Equals(System.Object)
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.GetHashCode
+  - System.Object.GetType
+  - System.Object.MemberwiseClone
+  nameWithType.vb: PixelRow(Of TColor, TPacked)
+  modifiers.csharp:
+  - public
+  - sealed
+  - class
+  modifiers.vb:
+  - Public
+  - NotInheritable
+  - Class
+  fullName.vb: ImageSharp.PixelRow(Of TColor, TPacked)
+  name.vb: PixelRow(Of TColor, TPacked)
+- uid: ImageSharp.PixelRow`2.#ctor(System.Int32,ImageSharp.ComponentOrder)
+  commentId: M:ImageSharp.PixelRow`2.#ctor(System.Int32,ImageSharp.ComponentOrder)
+  id: '#ctor(System.Int32,ImageSharp.ComponentOrder)'
+  parent: ImageSharp.PixelRow`2
+  langs:
+  - csharp
+  - vb
+  name: PixelRow(Int32, ComponentOrder)
+  nameWithType: PixelRow<TColor, TPacked>.PixelRow(Int32, ComponentOrder)
+  fullName: ImageSharp.PixelRow<TColor, TPacked>.PixelRow(System.Int32, ImageSharp.ComponentOrder)
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 19582
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nInitializes a new instance of the <xref href=\"ImageSharp.PixelRow%602\" data-throw-if-not-resolved=\"false\"></xref> class.\n"
+  example: []
+  syntax:
+    content: public PixelRow(int width, ComponentOrder componentOrder)
+    content.vb: Public Sub New(width As Integer, componentOrder As ComponentOrder)
+    parameters:
+    - id: width
+      type: System.Int32
+      description: 'The width. '
+    - id: componentOrder
+      type: ImageSharp.ComponentOrder
+      description: The component order.
+  nameWithType.vb: PixelRow(Of TColor, TPacked).PixelRow(Int32, ComponentOrder)
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+  fullName.vb: ImageSharp.PixelRow(Of TColor, TPacked).PixelRow(System.Int32, ImageSharp.ComponentOrder)
+- uid: ImageSharp.PixelRow`2.#ctor(System.Int32,ImageSharp.ComponentOrder,System.Int32)
+  commentId: M:ImageSharp.PixelRow`2.#ctor(System.Int32,ImageSharp.ComponentOrder,System.Int32)
+  id: '#ctor(System.Int32,ImageSharp.ComponentOrder,System.Int32)'
+  parent: ImageSharp.PixelRow`2
+  langs:
+  - csharp
+  - vb
+  name: PixelRow(Int32, ComponentOrder, Int32)
+  nameWithType: PixelRow<TColor, TPacked>.PixelRow(Int32, ComponentOrder, Int32)
+  fullName: ImageSharp.PixelRow<TColor, TPacked>.PixelRow(System.Int32, ImageSharp.ComponentOrder, System.Int32)
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 19593
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nInitializes a new instance of the <xref href=\"ImageSharp.PixelRow%602\" data-throw-if-not-resolved=\"false\"></xref> class.\n"
+  example: []
+  syntax:
+    content: public PixelRow(int width, ComponentOrder componentOrder, int padding)
+    content.vb: Public Sub New(width As Integer, componentOrder As ComponentOrder, padding As Integer)
+    parameters:
+    - id: width
+      type: System.Int32
+      description: 'The width. '
+    - id: componentOrder
+      type: ImageSharp.ComponentOrder
+      description: The component order.
+    - id: padding
+      type: System.Int32
+      description: The number of bytes to pad each row.
+  nameWithType.vb: PixelRow(Of TColor, TPacked).PixelRow(Int32, ComponentOrder, Int32)
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+  fullName.vb: ImageSharp.PixelRow(Of TColor, TPacked).PixelRow(System.Int32, ImageSharp.ComponentOrder, System.Int32)
+- uid: ImageSharp.PixelRow`2.Finalize
+  commentId: M:ImageSharp.PixelRow`2.Finalize
+  id: Finalize
+  parent: ImageSharp.PixelRow`2
+  langs:
+  - csharp
+  - vb
+  name: Finalize()
+  nameWithType: PixelRow<TColor, TPacked>.Finalize()
+  fullName: ImageSharp.PixelRow<TColor, TPacked>.Finalize()
+  type: Method
+  source:
+    id: Finalize
+    path: ''
+    startLine: 19608
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nFinalizes an instance of the <xref href=\"ImageSharp.PixelRow%602\" data-throw-if-not-resolved=\"false\"></xref> class. \n"
+  example: []
+  syntax:
+    content: protected void Finalize()
+    content.vb: Protected Sub Finalize
+  nameWithType.vb: PixelRow(Of TColor, TPacked).Finalize()
+  modifiers.csharp:
+  - protected
+  modifiers.vb:
+  - Protected
+  fullName.vb: ImageSharp.PixelRow(Of TColor, TPacked).Finalize()
+- uid: ImageSharp.PixelRow`2.Bytes
+  commentId: P:ImageSharp.PixelRow`2.Bytes
+  id: Bytes
+  parent: ImageSharp.PixelRow`2
+  langs:
+  - csharp
+  - vb
+  name: Bytes
+  nameWithType: PixelRow<TColor, TPacked>.Bytes
+  fullName: ImageSharp.PixelRow<TColor, TPacked>.Bytes
+  type: Property
+  source:
+    id: Bytes
+    path: ''
+    startLine: 19616
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the data in bytes.\n"
+  example: []
+  syntax:
+    content: public byte[] Bytes { get; }
+    content.vb: Public ReadOnly Property Bytes As Byte()
+    parameters: []
+    return:
+      type: System.Byte[]
+  nameWithType.vb: PixelRow(Of TColor, TPacked).Bytes
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+  fullName.vb: ImageSharp.PixelRow(Of TColor, TPacked).Bytes
+- uid: ImageSharp.PixelRow`2.DataPointer
+  commentId: P:ImageSharp.PixelRow`2.DataPointer
+  id: DataPointer
+  parent: ImageSharp.PixelRow`2
+  langs:
+  - csharp
+  - vb
+  name: DataPointer
+  nameWithType: PixelRow<TColor, TPacked>.DataPointer
+  fullName: ImageSharp.PixelRow<TColor, TPacked>.DataPointer
+  type: Property
+  source:
+    id: DataPointer
+    path: ''
+    startLine: 19621
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the pointer to the pixel buffer.\n"
+  example: []
+  syntax:
+    content: public IntPtr DataPointer { get; }
+    content.vb: Public ReadOnly Property DataPointer As IntPtr
+    parameters: []
+    return:
+      type: System.IntPtr
+  nameWithType.vb: PixelRow(Of TColor, TPacked).DataPointer
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+  fullName.vb: ImageSharp.PixelRow(Of TColor, TPacked).DataPointer
+- uid: ImageSharp.PixelRow`2.PixelBase
+  commentId: P:ImageSharp.PixelRow`2.PixelBase
+  id: PixelBase
+  parent: ImageSharp.PixelRow`2
+  langs:
+  - csharp
+  - vb
+  name: PixelBase
+  nameWithType: PixelRow<TColor, TPacked>.PixelBase
+  fullName: ImageSharp.PixelRow<TColor, TPacked>.PixelBase
+  type: Property
+  source:
+    id: PixelBase
+    path: ''
+    startLine: 19626
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the data pointer.\n"
+  example: []
+  syntax:
+    content: public byte *PixelBase { get; }
+    content.vb: Public ReadOnly Property PixelBase As Byte
+    parameters: []
+    return:
+      type: System.Byte*
+  nameWithType.vb: PixelRow(Of TColor, TPacked).PixelBase
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+  fullName.vb: ImageSharp.PixelRow(Of TColor, TPacked).PixelBase
+- uid: ImageSharp.PixelRow`2.ComponentOrder
+  commentId: P:ImageSharp.PixelRow`2.ComponentOrder
+  id: ComponentOrder
+  parent: ImageSharp.PixelRow`2
+  langs:
+  - csharp
+  - vb
+  name: ComponentOrder
+  nameWithType: PixelRow<TColor, TPacked>.ComponentOrder
+  fullName: ImageSharp.PixelRow<TColor, TPacked>.ComponentOrder
+  type: Property
+  source:
+    id: ComponentOrder
+    path: ''
+    startLine: 19631
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the component order.\n"
+  example: []
+  syntax:
+    content: public ComponentOrder ComponentOrder { get; }
+    content.vb: Public ReadOnly Property ComponentOrder As ComponentOrder
+    parameters: []
+    return:
+      type: ImageSharp.ComponentOrder
+  nameWithType.vb: PixelRow(Of TColor, TPacked).ComponentOrder
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+  fullName.vb: ImageSharp.PixelRow(Of TColor, TPacked).ComponentOrder
+- uid: ImageSharp.PixelRow`2.Width
+  commentId: P:ImageSharp.PixelRow`2.Width
+  id: Width
+  parent: ImageSharp.PixelRow`2
+  langs:
+  - csharp
+  - vb
+  name: Width
+  nameWithType: PixelRow<TColor, TPacked>.Width
+  fullName: ImageSharp.PixelRow<TColor, TPacked>.Width
+  type: Property
+  source:
+    id: Width
+    path: ''
+    startLine: 19636
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the width.\n"
+  example: []
+  syntax:
+    content: public int Width { get; }
+    content.vb: Public ReadOnly Property Width As Integer
+    parameters: []
+    return:
+      type: System.Int32
+  nameWithType.vb: PixelRow(Of TColor, TPacked).Width
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+  fullName.vb: ImageSharp.PixelRow(Of TColor, TPacked).Width
+- uid: ImageSharp.PixelRow`2.Read(System.IO.Stream)
+  commentId: M:ImageSharp.PixelRow`2.Read(System.IO.Stream)
+  id: Read(System.IO.Stream)
+  parent: ImageSharp.PixelRow`2
+  langs:
+  - csharp
+  - vb
+  name: Read(Stream)
+  nameWithType: PixelRow<TColor, TPacked>.Read(Stream)
+  fullName: ImageSharp.PixelRow<TColor, TPacked>.Read(System.IO.Stream)
+  type: Method
+  source:
+    id: Read
+    path: ''
+    startLine: 19642
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nReads the stream to the row.\n"
+  example: []
+  syntax:
+    content: public void Read(Stream stream)
+    content.vb: Public Sub Read(stream As Stream)
+    parameters:
+    - id: stream
+      type: System.IO.Stream
+      description: The stream.
+  nameWithType.vb: PixelRow(Of TColor, TPacked).Read(Stream)
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+  fullName.vb: ImageSharp.PixelRow(Of TColor, TPacked).Read(System.IO.Stream)
+- uid: ImageSharp.PixelRow`2.Write(System.IO.Stream)
+  commentId: M:ImageSharp.PixelRow`2.Write(System.IO.Stream)
+  id: Write(System.IO.Stream)
+  parent: ImageSharp.PixelRow`2
+  langs:
+  - csharp
+  - vb
+  name: Write(Stream)
+  nameWithType: PixelRow<TColor, TPacked>.Write(Stream)
+  fullName: ImageSharp.PixelRow<TColor, TPacked>.Write(System.IO.Stream)
+  type: Method
+  source:
+    id: Write
+    path: ''
+    startLine: 19651
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nWrites the row to the stream.\n"
+  example: []
+  syntax:
+    content: public void Write(Stream stream)
+    content.vb: Public Sub Write(stream As Stream)
+    parameters:
+    - id: stream
+      type: System.IO.Stream
+      description: The stream.
+  nameWithType.vb: PixelRow(Of TColor, TPacked).Write(Stream)
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+  fullName.vb: ImageSharp.PixelRow(Of TColor, TPacked).Write(System.IO.Stream)
+- uid: ImageSharp.PixelRow`2.Dispose
+  commentId: M:ImageSharp.PixelRow`2.Dispose
+  id: Dispose
+  parent: ImageSharp.PixelRow`2
+  langs:
+  - csharp
+  - vb
+  name: Dispose()
+  nameWithType: PixelRow<TColor, TPacked>.Dispose()
+  fullName: ImageSharp.PixelRow<TColor, TPacked>.Dispose()
+  type: Method
+  source:
+    id: Dispose
+    path: ''
+    startLine: 19659
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nPerforms application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.\n"
+  example: []
+  syntax:
+    content: public void Dispose()
+    content.vb: Public Sub Dispose
+  implements:
+  - System.IDisposable.Dispose
+  nameWithType.vb: PixelRow(Of TColor, TPacked).Dispose()
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+  fullName.vb: ImageSharp.PixelRow(Of TColor, TPacked).Dispose()
+references:
+- uid: ImageSharp.Image`2
+  commentId: T:ImageSharp.Image`2
+  parent: ImageSharp
+  isExternal: false
+  name: Image<TColor, TPacked>
+  nameWithType: Image<TColor, TPacked>
+  fullName: ImageSharp.Image<TColor, TPacked>
+  nameWithType.vb: Image(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Image(Of TColor, TPacked)
+  name.vb: Image(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Image`2
+    name: Image
+    nameWithType: Image
+    fullName: ImageSharp.Image
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Image`2
+    name: Image
+    nameWithType: Image
+    fullName: ImageSharp.Image
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  name: Object
+  nameWithType: Object
+  fullName: System.Object
+- uid: System.IDisposable
+  commentId: T:System.IDisposable
+  parent: System
+  isExternal: true
+  name: IDisposable
+  nameWithType: IDisposable
+  fullName: System.IDisposable
+- uid: System.Object.ToString
+  commentId: M:System.Object.ToString
+  parent: System.Object
+  isExternal: true
+  name: ToString()
+  nameWithType: Object.ToString()
+  fullName: System.Object.ToString()
+  spec.csharp:
+  - uid: System.Object.ToString
+    name: ToString
+    nameWithType: Object.ToString
+    fullName: System.Object.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ToString
+    name: ToString
+    nameWithType: Object.ToString
+    fullName: System.Object.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object)
+  commentId: M:System.Object.Equals(System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object)
+  nameWithType: Object.Equals(Object)
+  fullName: System.Object.Equals(System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object, Object)
+  nameWithType: Object.Equals(Object, Object)
+  fullName: System.Object.Equals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: ReferenceEquals(Object, Object)
+  nameWithType: Object.ReferenceEquals(Object, Object)
+  fullName: System.Object.ReferenceEquals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetHashCode
+  commentId: M:System.Object.GetHashCode
+  parent: System.Object
+  isExternal: true
+  name: GetHashCode()
+  nameWithType: Object.GetHashCode()
+  fullName: System.Object.GetHashCode()
+  spec.csharp:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    nameWithType: Object.GetHashCode
+    fullName: System.Object.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    nameWithType: Object.GetHashCode
+    fullName: System.Object.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  name: GetType()
+  nameWithType: Object.GetType()
+  fullName: System.Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.MemberwiseClone
+  commentId: M:System.Object.MemberwiseClone
+  parent: System.Object
+  isExternal: true
+  name: MemberwiseClone()
+  nameWithType: Object.MemberwiseClone()
+  fullName: System.Object.MemberwiseClone()
+  spec.csharp:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    nameWithType: Object.MemberwiseClone
+    fullName: System.Object.MemberwiseClone
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    nameWithType: Object.MemberwiseClone
+    fullName: System.Object.MemberwiseClone
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System
+  commentId: N:System
+  isExternal: false
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: ImageSharp.PixelRow`2
+  commentId: T:ImageSharp.PixelRow`2
+  isExternal: false
+  name: PixelRow<TColor, TPacked>
+  nameWithType: PixelRow<TColor, TPacked>
+  fullName: ImageSharp.PixelRow<TColor, TPacked>
+  nameWithType.vb: PixelRow(Of TColor, TPacked)
+  fullname.vb: ImageSharp.PixelRow(Of TColor, TPacked)
+  name.vb: PixelRow(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.PixelRow`2
+    name: PixelRow
+    nameWithType: PixelRow
+    fullName: ImageSharp.PixelRow
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.PixelRow`2
+    name: PixelRow
+    nameWithType: PixelRow
+    fullName: ImageSharp.PixelRow
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  name: Int32
+  nameWithType: Int32
+  fullName: System.Int32
+- uid: ImageSharp.ComponentOrder
+  commentId: T:ImageSharp.ComponentOrder
+  parent: ImageSharp
+  isExternal: false
+  name: ComponentOrder
+  nameWithType: ComponentOrder
+  fullName: ImageSharp.ComponentOrder
+- uid: System.Byte[]
+  name: Byte[]
+  nameWithType: Byte[]
+  fullName: System.Byte[]
+  nameWithType.vb: Byte()
+  fullname.vb: System.Byte()
+  name.vb: Byte()
+  spec.csharp:
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: '[]'
+    nameWithType: '[]'
+    fullName: '[]'
+  spec.vb:
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: ()
+    nameWithType: ()
+    fullName: ()
+- uid: System.IntPtr
+  commentId: T:System.IntPtr
+  parent: System
+  isExternal: true
+  name: IntPtr
+  nameWithType: IntPtr
+  fullName: System.IntPtr
+- uid: System.Byte*
+  name: Byte*
+  nameWithType: Byte*
+  fullName: System.Byte*
+  spec.csharp:
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: '*'
+    nameWithType: '*'
+    fullName: '*'
+  spec.vb:
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: '*'
+    nameWithType: '*'
+    fullName: '*'
+- uid: System.IO.Stream
+  commentId: T:System.IO.Stream
+  parent: System.IO
+  isExternal: true
+  name: Stream
+  nameWithType: Stream
+  fullName: System.IO.Stream
+- uid: System.IO
+  commentId: N:System.IO
+  isExternal: false
+  name: System.IO
+  nameWithType: System.IO
+  fullName: System.IO
+- uid: System.IDisposable.Dispose
+  commentId: M:System.IDisposable.Dispose
+  parent: System.IDisposable
+  isExternal: true
+  name: Dispose()
+  nameWithType: IDisposable.Dispose()
+  fullName: System.IDisposable.Dispose()
+  spec.csharp:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    nameWithType: IDisposable.Dispose
+    fullName: System.IDisposable.Dispose
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    nameWithType: IDisposable.Dispose
+    fullName: System.IDisposable.Dispose
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )

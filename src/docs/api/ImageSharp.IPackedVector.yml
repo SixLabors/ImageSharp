@@ -1,0 +1,99 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.IPackedVector
+  commentId: T:ImageSharp.IPackedVector
+  id: IPackedVector
+  parent: ImageSharp
+  children:
+  - ImageSharp.IPackedVector.PackFromVector4(Vector4)
+  - ImageSharp.IPackedVector.ToVector4
+  langs:
+  - csharp
+  - vb
+  name: IPackedVector
+  nameWithType: IPackedVector
+  fullName: ImageSharp.IPackedVector
+  type: Interface
+  source:
+    id: IPackedVector
+    path: ''
+    startLine: 3491
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nAn interface that converts packed vector types to and from <see cref=\"!:Vector4\"></see> values.\n"
+  example: []
+  syntax:
+    content: public interface IPackedVector
+    content.vb: Public Interface IPackedVector
+  modifiers.csharp:
+  - public
+  - interface
+  modifiers.vb:
+  - Public
+  - Interface
+- uid: ImageSharp.IPackedVector.PackFromVector4(Vector4)
+  commentId: M:ImageSharp.IPackedVector.PackFromVector4(Vector4)
+  id: PackFromVector4(Vector4)
+  parent: ImageSharp.IPackedVector
+  langs:
+  - csharp
+  - vb
+  name: PackFromVector4(Vector4)
+  nameWithType: IPackedVector.PackFromVector4(Vector4)
+  fullName: ImageSharp.IPackedVector.PackFromVector4(Vector4)
+  type: Method
+  source:
+    id: PackFromVector4
+    path: ''
+    startLine: 3497
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nSets the packed representation from a <see cref=\"!:Vector4\"></see>.\n"
+  example: []
+  syntax:
+    content: void PackFromVector4(Vector4 vector)
+    content.vb: Sub PackFromVector4(vector As Vector4)
+    parameters:
+    - id: vector
+      type: Vector4
+      description: The vector to create the packed representation from.
+- uid: ImageSharp.IPackedVector.ToVector4
+  commentId: M:ImageSharp.IPackedVector.ToVector4
+  id: ToVector4
+  parent: ImageSharp.IPackedVector
+  langs:
+  - csharp
+  - vb
+  name: ToVector4()
+  nameWithType: IPackedVector.ToVector4()
+  fullName: ImageSharp.IPackedVector.ToVector4()
+  type: Method
+  source:
+    id: ToVector4
+    path: ''
+    startLine: 3504
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nExpands the packed representation into a <see cref=\"!:Vector4\"></see>.\nThe vector components are typically expanded in least to greatest significance order.\n"
+  example: []
+  syntax:
+    content: Vector4 ToVector4()
+    content.vb: Function ToVector4 As Vector4
+    return:
+      type: Vector4
+      description: The <see cref="!:Vector4"></see>.
+references:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: Vector4
+  isExternal: true
+  name: Vector4
+  nameWithType: Vector4
+  fullName: Vector4

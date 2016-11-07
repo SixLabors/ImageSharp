@@ -1,0 +1,310 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.IImageBase
+  commentId: T:ImageSharp.IImageBase
+  id: IImageBase
+  parent: ImageSharp
+  children:
+  - ImageSharp.IImageBase.Bounds
+  - ImageSharp.IImageBase.FrameDelay
+  - ImageSharp.IImageBase.Height
+  - ImageSharp.IImageBase.MaxHeight
+  - ImageSharp.IImageBase.MaxWidth
+  - ImageSharp.IImageBase.PixelRatio
+  - ImageSharp.IImageBase.Quality
+  - ImageSharp.IImageBase.Width
+  langs:
+  - csharp
+  - vb
+  name: IImageBase
+  nameWithType: IImageBase
+  fullName: ImageSharp.IImageBase
+  type: Interface
+  source:
+    id: IImageBase
+    path: ''
+    startLine: 18030
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nEncapsulates the basic properties and methods required to manipulate images.\n"
+  example: []
+  syntax:
+    content: public interface IImageBase
+    content.vb: Public Interface IImageBase
+  modifiers.csharp:
+  - public
+  - interface
+  modifiers.vb:
+  - Public
+  - Interface
+- uid: ImageSharp.IImageBase.Bounds
+  commentId: P:ImageSharp.IImageBase.Bounds
+  id: Bounds
+  parent: ImageSharp.IImageBase
+  langs:
+  - csharp
+  - vb
+  name: Bounds
+  nameWithType: IImageBase.Bounds
+  fullName: ImageSharp.IImageBase.Bounds
+  type: Property
+  source:
+    id: Bounds
+    path: ''
+    startLine: 18035
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the <xref href=\"ImageSharp.Rectangle\" data-throw-if-not-resolved=\"false\"></xref> representing the bounds of the image.\n"
+  example: []
+  syntax:
+    content: Rectangle Bounds { get; }
+    content.vb: ReadOnly Property Bounds As Rectangle
+    parameters: []
+    return:
+      type: ImageSharp.Rectangle
+  modifiers.csharp:
+  - get
+  modifiers.vb:
+  - ReadOnly
+- uid: ImageSharp.IImageBase.Quality
+  commentId: P:ImageSharp.IImageBase.Quality
+  id: Quality
+  parent: ImageSharp.IImageBase
+  langs:
+  - csharp
+  - vb
+  name: Quality
+  nameWithType: IImageBase.Quality
+  fullName: ImageSharp.IImageBase.Quality
+  type: Property
+  source:
+    id: Quality
+    path: ''
+    startLine: 18040
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets or sets the quality of the image. This affects the output quality of lossy image formats.\n"
+  example: []
+  syntax:
+    content: int Quality { get; set; }
+    content.vb: Property Quality As Integer
+    parameters: []
+    return:
+      type: System.Int32
+  modifiers.csharp:
+  - get
+  - set
+- uid: ImageSharp.IImageBase.FrameDelay
+  commentId: P:ImageSharp.IImageBase.FrameDelay
+  id: FrameDelay
+  parent: ImageSharp.IImageBase
+  langs:
+  - csharp
+  - vb
+  name: FrameDelay
+  nameWithType: IImageBase.FrameDelay
+  fullName: ImageSharp.IImageBase.FrameDelay
+  type: Property
+  source:
+    id: FrameDelay
+    path: ''
+    startLine: 18048
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets or sets the frame delay for animated images.\nIf not 0, this field specifies the number of hundredths (1/100) of a second to\nwait before continuing with the processing of the Data Stream.\nThe clock starts ticking immediately after the graphic is rendered.\n"
+  example: []
+  syntax:
+    content: int FrameDelay { get; set; }
+    content.vb: Property FrameDelay As Integer
+    parameters: []
+    return:
+      type: System.Int32
+  modifiers.csharp:
+  - get
+  - set
+- uid: ImageSharp.IImageBase.MaxWidth
+  commentId: P:ImageSharp.IImageBase.MaxWidth
+  id: MaxWidth
+  parent: ImageSharp.IImageBase
+  langs:
+  - csharp
+  - vb
+  name: MaxWidth
+  nameWithType: IImageBase.MaxWidth
+  fullName: ImageSharp.IImageBase.MaxWidth
+  type: Property
+  source:
+    id: MaxWidth
+    path: ''
+    startLine: 18053
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets or sets the maximum allowable width in pixels.\n"
+  example: []
+  syntax:
+    content: int MaxWidth { get; set; }
+    content.vb: Property MaxWidth As Integer
+    parameters: []
+    return:
+      type: System.Int32
+  modifiers.csharp:
+  - get
+  - set
+- uid: ImageSharp.IImageBase.MaxHeight
+  commentId: P:ImageSharp.IImageBase.MaxHeight
+  id: MaxHeight
+  parent: ImageSharp.IImageBase
+  langs:
+  - csharp
+  - vb
+  name: MaxHeight
+  nameWithType: IImageBase.MaxHeight
+  fullName: ImageSharp.IImageBase.MaxHeight
+  type: Property
+  source:
+    id: MaxHeight
+    path: ''
+    startLine: 18058
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets or sets the maximum allowable height in pixels.\n"
+  example: []
+  syntax:
+    content: int MaxHeight { get; set; }
+    content.vb: Property MaxHeight As Integer
+    parameters: []
+    return:
+      type: System.Int32
+  modifiers.csharp:
+  - get
+  - set
+- uid: ImageSharp.IImageBase.Width
+  commentId: P:ImageSharp.IImageBase.Width
+  id: Width
+  parent: ImageSharp.IImageBase
+  langs:
+  - csharp
+  - vb
+  name: Width
+  nameWithType: IImageBase.Width
+  fullName: ImageSharp.IImageBase.Width
+  type: Property
+  source:
+    id: Width
+    path: ''
+    startLine: 18063
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the width in pixels.\n"
+  example: []
+  syntax:
+    content: int Width { get; }
+    content.vb: ReadOnly Property Width As Integer
+    parameters: []
+    return:
+      type: System.Int32
+  modifiers.csharp:
+  - get
+  modifiers.vb:
+  - ReadOnly
+- uid: ImageSharp.IImageBase.Height
+  commentId: P:ImageSharp.IImageBase.Height
+  id: Height
+  parent: ImageSharp.IImageBase
+  langs:
+  - csharp
+  - vb
+  name: Height
+  nameWithType: IImageBase.Height
+  fullName: ImageSharp.IImageBase.Height
+  type: Property
+  source:
+    id: Height
+    path: ''
+    startLine: 18068
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the height in pixels.\n"
+  example: []
+  syntax:
+    content: int Height { get; }
+    content.vb: ReadOnly Property Height As Integer
+    parameters: []
+    return:
+      type: System.Int32
+  modifiers.csharp:
+  - get
+  modifiers.vb:
+  - ReadOnly
+- uid: ImageSharp.IImageBase.PixelRatio
+  commentId: P:ImageSharp.IImageBase.PixelRatio
+  id: PixelRatio
+  parent: ImageSharp.IImageBase
+  langs:
+  - csharp
+  - vb
+  name: PixelRatio
+  nameWithType: IImageBase.PixelRatio
+  fullName: ImageSharp.IImageBase.PixelRatio
+  type: Property
+  source:
+    id: PixelRatio
+    path: ''
+    startLine: 18073
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the pixel ratio made up of the width and height.\n"
+  example: []
+  syntax:
+    content: double PixelRatio { get; }
+    content.vb: ReadOnly Property PixelRatio As Double
+    parameters: []
+    return:
+      type: System.Double
+  modifiers.csharp:
+  - get
+  modifiers.vb:
+  - ReadOnly
+references:
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: ImageSharp.Rectangle
+  commentId: T:ImageSharp.Rectangle
+  parent: ImageSharp
+  isExternal: false
+  name: Rectangle
+  nameWithType: Rectangle
+  fullName: ImageSharp.Rectangle
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  name: Int32
+  nameWithType: Int32
+  fullName: System.Int32
+- uid: System
+  commentId: N:System
+  isExternal: false
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.Double
+  commentId: T:System.Double
+  parent: System
+  isExternal: true
+  name: Double
+  nameWithType: Double
+  fullName: System.Double

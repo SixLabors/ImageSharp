@@ -1,0 +1,1614 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.PixelAccessor`2
+  commentId: T:ImageSharp.PixelAccessor`2
+  id: PixelAccessor`2
+  parent: ImageSharp
+  children:
+  - ImageSharp.PixelAccessor`2.#ctor(ImageSharp.ImageBase{`0,`1})
+  - ImageSharp.PixelAccessor`2.CopyBlock(System.Int32,System.Int32,ImageSharp.PixelAccessor{`0,`1},System.Int32,System.Int32,System.Int32)
+  - ImageSharp.PixelAccessor`2.CopyFrom(ImageSharp.PixelRow{`0,`1},System.Int32)
+  - ImageSharp.PixelAccessor`2.CopyFromXYZ(ImageSharp.PixelRow{`0,`1},System.Int32,System.Int32)
+  - ImageSharp.PixelAccessor`2.CopyFromXYZW(ImageSharp.PixelRow{`0,`1},System.Int32,System.Int32)
+  - ImageSharp.PixelAccessor`2.CopyFromZYX(ImageSharp.PixelRow{`0,`1},System.Int32,System.Int32)
+  - ImageSharp.PixelAccessor`2.CopyFromZYXW(ImageSharp.PixelRow{`0,`1},System.Int32,System.Int32)
+  - ImageSharp.PixelAccessor`2.CopyImage(ImageSharp.PixelAccessor{`0,`1})
+  - ImageSharp.PixelAccessor`2.CopyTo(ImageSharp.PixelRow{`0,`1},System.Int32)
+  - ImageSharp.PixelAccessor`2.CopyToXYZ(ImageSharp.PixelRow{`0,`1},System.Int32,System.Int32)
+  - ImageSharp.PixelAccessor`2.CopyToXYZW(ImageSharp.PixelRow{`0,`1},System.Int32,System.Int32)
+  - ImageSharp.PixelAccessor`2.CopyToZYX(ImageSharp.PixelRow{`0,`1},System.Int32,System.Int32)
+  - ImageSharp.PixelAccessor`2.CopyToZYXW(ImageSharp.PixelRow{`0,`1},System.Int32,System.Int32)
+  - ImageSharp.PixelAccessor`2.DataPointer
+  - ImageSharp.PixelAccessor`2.Dispose
+  - ImageSharp.PixelAccessor`2.Finalize
+  - ImageSharp.PixelAccessor`2.GetRowPointer(System.Int32)
+  - ImageSharp.PixelAccessor`2.Height
+  - ImageSharp.PixelAccessor`2.Item(System.Int32,System.Int32)
+  - ImageSharp.PixelAccessor`2.PixelSize
+  - ImageSharp.PixelAccessor`2.RowStride
+  - ImageSharp.PixelAccessor`2.Width
+  langs:
+  - csharp
+  - vb
+  name: PixelAccessor<TColor, TPacked>
+  nameWithType: PixelAccessor<TColor, TPacked>
+  fullName: ImageSharp.PixelAccessor<TColor, TPacked>
+  type: Class
+  source:
+    id: PixelAccessor
+    path: ''
+    startLine: 19154
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nProvides per-pixel access to generic <xref href=\"ImageSharp.Image%602\" data-throw-if-not-resolved=\"false\"></xref> pixels.\n"
+  example: []
+  syntax:
+    content: 'public class PixelAccessor<TColor, TPacked> : IDisposable where TColor : struct, IPackedPixel<TPacked> where TPacked : struct'
+    content.vb: >-
+      Public Class PixelAccessor(Of TColor As {Structure, IPackedPixel(Of TPacked)}, TPacked As Structure)
+          Implements IDisposable
+    typeParameters:
+    - id: TColor
+      description: The pixel format.
+    - id: TPacked
+      description: The packed format. <example>uint, long, float.</example>
+  inheritance:
+  - System.Object
+  implements:
+  - System.IDisposable
+  inheritedMembers:
+  - System.Object.ToString
+  - System.Object.Equals(System.Object)
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.GetHashCode
+  - System.Object.GetType
+  - System.Object.MemberwiseClone
+  nameWithType.vb: PixelAccessor(Of TColor, TPacked)
+  modifiers.csharp:
+  - public
+  - class
+  modifiers.vb:
+  - Public
+  - Class
+  fullName.vb: ImageSharp.PixelAccessor(Of TColor, TPacked)
+  name.vb: PixelAccessor(Of TColor, TPacked)
+- uid: ImageSharp.PixelAccessor`2.#ctor(ImageSharp.ImageBase{`0,`1})
+  commentId: M:ImageSharp.PixelAccessor`2.#ctor(ImageSharp.ImageBase{`0,`1})
+  id: '#ctor(ImageSharp.ImageBase{`0,`1})'
+  parent: ImageSharp.PixelAccessor`2
+  langs:
+  - csharp
+  - vb
+  name: PixelAccessor(ImageBase<TColor, TPacked>)
+  nameWithType: PixelAccessor<TColor, TPacked>.PixelAccessor(ImageBase<TColor, TPacked>)
+  fullName: ImageSharp.PixelAccessor<TColor, TPacked>.PixelAccessor(ImageSharp.ImageBase<TColor, TPacked>)
+  type: Constructor
+  source:
+    id: .ctor
+    path: ''
+    startLine: 19188
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nInitializes a new instance of the <xref href=\"ImageSharp.PixelAccessor%602\" data-throw-if-not-resolved=\"false\"></xref> class.\n"
+  example: []
+  syntax:
+    content: public PixelAccessor(ImageBase<TColor, TPacked> image)
+    content.vb: Public Sub New(image As ImageBase(Of TColor, TPacked))
+    parameters:
+    - id: image
+      type: ImageSharp.ImageBase{{TColor},{TPacked}}
+      description: The image to provide pixel access for.
+  nameWithType.vb: PixelAccessor(Of TColor, TPacked).PixelAccessor(ImageBase(Of TColor, TPacked))
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+  fullName.vb: ImageSharp.PixelAccessor(Of TColor, TPacked).PixelAccessor(ImageSharp.ImageBase(Of TColor, TPacked))
+  name.vb: PixelAccessor(ImageBase(Of TColor, TPacked))
+- uid: ImageSharp.PixelAccessor`2.Finalize
+  commentId: M:ImageSharp.PixelAccessor`2.Finalize
+  id: Finalize
+  parent: ImageSharp.PixelAccessor`2
+  langs:
+  - csharp
+  - vb
+  name: Finalize()
+  nameWithType: PixelAccessor<TColor, TPacked>.Finalize()
+  fullName: ImageSharp.PixelAccessor<TColor, TPacked>.Finalize()
+  type: Method
+  source:
+    id: Finalize
+    path: ''
+    startLine: 19206
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nFinalizes an instance of the <xref href=\"ImageSharp.PixelAccessor%602\" data-throw-if-not-resolved=\"false\"></xref> class.\n"
+  example: []
+  syntax:
+    content: protected void Finalize()
+    content.vb: Protected Sub Finalize
+  nameWithType.vb: PixelAccessor(Of TColor, TPacked).Finalize()
+  modifiers.csharp:
+  - protected
+  modifiers.vb:
+  - Protected
+  fullName.vb: ImageSharp.PixelAccessor(Of TColor, TPacked).Finalize()
+- uid: ImageSharp.PixelAccessor`2.DataPointer
+  commentId: P:ImageSharp.PixelAccessor`2.DataPointer
+  id: DataPointer
+  parent: ImageSharp.PixelAccessor`2
+  langs:
+  - csharp
+  - vb
+  name: DataPointer
+  nameWithType: PixelAccessor<TColor, TPacked>.DataPointer
+  fullName: ImageSharp.PixelAccessor<TColor, TPacked>.DataPointer
+  type: Property
+  source:
+    id: DataPointer
+    path: ''
+    startLine: 19214
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the pointer to the pixel buffer.\n"
+  example: []
+  syntax:
+    content: public IntPtr DataPointer { get; }
+    content.vb: Public ReadOnly Property DataPointer As IntPtr
+    parameters: []
+    return:
+      type: System.IntPtr
+  nameWithType.vb: PixelAccessor(Of TColor, TPacked).DataPointer
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+  fullName.vb: ImageSharp.PixelAccessor(Of TColor, TPacked).DataPointer
+- uid: ImageSharp.PixelAccessor`2.PixelSize
+  commentId: P:ImageSharp.PixelAccessor`2.PixelSize
+  id: PixelSize
+  parent: ImageSharp.PixelAccessor`2
+  langs:
+  - csharp
+  - vb
+  name: PixelSize
+  nameWithType: PixelAccessor<TColor, TPacked>.PixelSize
+  fullName: ImageSharp.PixelAccessor<TColor, TPacked>.PixelSize
+  type: Property
+  source:
+    id: PixelSize
+    path: ''
+    startLine: 19219
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the size of a single pixel in the number of bytes.\n"
+  example: []
+  syntax:
+    content: public int PixelSize { get; }
+    content.vb: Public ReadOnly Property PixelSize As Integer
+    parameters: []
+    return:
+      type: System.Int32
+  nameWithType.vb: PixelAccessor(Of TColor, TPacked).PixelSize
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+  fullName.vb: ImageSharp.PixelAccessor(Of TColor, TPacked).PixelSize
+- uid: ImageSharp.PixelAccessor`2.RowStride
+  commentId: P:ImageSharp.PixelAccessor`2.RowStride
+  id: RowStride
+  parent: ImageSharp.PixelAccessor`2
+  langs:
+  - csharp
+  - vb
+  name: RowStride
+  nameWithType: PixelAccessor<TColor, TPacked>.RowStride
+  fullName: ImageSharp.PixelAccessor<TColor, TPacked>.RowStride
+  type: Property
+  source:
+    id: RowStride
+    path: ''
+    startLine: 19224
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the width of one row in the number of bytes.\n"
+  example: []
+  syntax:
+    content: public int RowStride { get; }
+    content.vb: Public ReadOnly Property RowStride As Integer
+    parameters: []
+    return:
+      type: System.Int32
+  nameWithType.vb: PixelAccessor(Of TColor, TPacked).RowStride
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+  fullName.vb: ImageSharp.PixelAccessor(Of TColor, TPacked).RowStride
+- uid: ImageSharp.PixelAccessor`2.Width
+  commentId: P:ImageSharp.PixelAccessor`2.Width
+  id: Width
+  parent: ImageSharp.PixelAccessor`2
+  langs:
+  - csharp
+  - vb
+  name: Width
+  nameWithType: PixelAccessor<TColor, TPacked>.Width
+  fullName: ImageSharp.PixelAccessor<TColor, TPacked>.Width
+  type: Property
+  source:
+    id: Width
+    path: ''
+    startLine: 19229
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the width of the image.\n"
+  example: []
+  syntax:
+    content: public int Width { get; }
+    content.vb: Public ReadOnly Property Width As Integer
+    parameters: []
+    return:
+      type: System.Int32
+  nameWithType.vb: PixelAccessor(Of TColor, TPacked).Width
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+  fullName.vb: ImageSharp.PixelAccessor(Of TColor, TPacked).Width
+- uid: ImageSharp.PixelAccessor`2.Height
+  commentId: P:ImageSharp.PixelAccessor`2.Height
+  id: Height
+  parent: ImageSharp.PixelAccessor`2
+  langs:
+  - csharp
+  - vb
+  name: Height
+  nameWithType: PixelAccessor<TColor, TPacked>.Height
+  fullName: ImageSharp.PixelAccessor<TColor, TPacked>.Height
+  type: Property
+  source:
+    id: Height
+    path: ''
+    startLine: 19234
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the height of the image.\n"
+  example: []
+  syntax:
+    content: public int Height { get; }
+    content.vb: Public ReadOnly Property Height As Integer
+    parameters: []
+    return:
+      type: System.Int32
+  nameWithType.vb: PixelAccessor(Of TColor, TPacked).Height
+  modifiers.csharp:
+  - public
+  - get
+  modifiers.vb:
+  - Public
+  - ReadOnly
+  fullName.vb: ImageSharp.PixelAccessor(Of TColor, TPacked).Height
+- uid: ImageSharp.PixelAccessor`2.Item(System.Int32,System.Int32)
+  commentId: P:ImageSharp.PixelAccessor`2.Item(System.Int32,System.Int32)
+  id: Item(System.Int32,System.Int32)
+  parent: ImageSharp.PixelAccessor`2
+  langs:
+  - csharp
+  - vb
+  name: Item[Int32, Int32]
+  nameWithType: PixelAccessor<TColor, TPacked>.Item[Int32, Int32]
+  fullName: ImageSharp.PixelAccessor<TColor, TPacked>.Item[System.Int32, System.Int32]
+  type: Property
+  source:
+    id: this[]
+    path: ''
+    startLine: 19242
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets or sets the pixel at the specified position.\n"
+  example: []
+  syntax:
+    content: public TColor this[int x, int y] { get; set; }
+    content.vb: Public Property Item(x As Integer, y As Integer) As TColor
+    parameters:
+    - id: x
+      type: System.Int32
+      description: The x-coordinate of the pixel. Must be greater than zero and smaller than the width of the pixel.
+    - id: y
+      type: System.Int32
+      description: The y-coordinate of the pixel. Must be greater than zero and smaller than the width of the pixel.
+    return:
+      type: '{TColor}'
+      description: The <see typeparam="TColor"></see> at the specified position.
+  nameWithType.vb: PixelAccessor(Of TColor, TPacked).Item(Int32, Int32)
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+  fullName.vb: ImageSharp.PixelAccessor(Of TColor, TPacked).Item(System.Int32, System.Int32)
+  name.vb: Item(Int32, Int32)
+- uid: ImageSharp.PixelAccessor`2.CopyBlock(System.Int32,System.Int32,ImageSharp.PixelAccessor{`0,`1},System.Int32,System.Int32,System.Int32)
+  commentId: M:ImageSharp.PixelAccessor`2.CopyBlock(System.Int32,System.Int32,ImageSharp.PixelAccessor{`0,`1},System.Int32,System.Int32,System.Int32)
+  id: CopyBlock(System.Int32,System.Int32,ImageSharp.PixelAccessor{`0,`1},System.Int32,System.Int32,System.Int32)
+  parent: ImageSharp.PixelAccessor`2
+  langs:
+  - csharp
+  - vb
+  name: CopyBlock(Int32, Int32, PixelAccessor<TColor, TPacked>, Int32, Int32, Int32)
+  nameWithType: PixelAccessor<TColor, TPacked>.CopyBlock(Int32, Int32, PixelAccessor<TColor, TPacked>, Int32, Int32, Int32)
+  fullName: ImageSharp.PixelAccessor<TColor, TPacked>.CopyBlock(System.Int32, System.Int32, ImageSharp.PixelAccessor<TColor, TPacked>, System.Int32, System.Int32, System.Int32)
+  type: Method
+  source:
+    id: CopyBlock
+    path: ''
+    startLine: 19257
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCopies a block of pixels at the specified position.\n"
+  example: []
+  syntax:
+    content: public void CopyBlock(int sourceX, int sourceY, PixelAccessor<TColor, TPacked> target, int targetX, int targetY, int pixelCount)
+    content.vb: Public Sub CopyBlock(sourceX As Integer, sourceY As Integer, target As PixelAccessor(Of TColor, TPacked), targetX As Integer, targetY As Integer, pixelCount As Integer)
+    parameters:
+    - id: sourceX
+      type: System.Int32
+      description: The x-coordinate of the source image.
+    - id: sourceY
+      type: System.Int32
+      description: The y-coordinate of the source image.
+    - id: target
+      type: ImageSharp.PixelAccessor`2
+      description: The target pixel buffer accessor.
+    - id: targetX
+      type: System.Int32
+      description: The x-coordinate of the target image.
+    - id: targetY
+      type: System.Int32
+      description: The y-coordinate of the target image.
+    - id: pixelCount
+      type: System.Int32
+      description: The number of pixels to copy
+  nameWithType.vb: PixelAccessor(Of TColor, TPacked).CopyBlock(Int32, Int32, PixelAccessor(Of TColor, TPacked), Int32, Int32, Int32)
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+  fullName.vb: ImageSharp.PixelAccessor(Of TColor, TPacked).CopyBlock(System.Int32, System.Int32, ImageSharp.PixelAccessor(Of TColor, TPacked), System.Int32, System.Int32, System.Int32)
+  name.vb: CopyBlock(Int32, Int32, PixelAccessor(Of TColor, TPacked), Int32, Int32, Int32)
+- uid: ImageSharp.PixelAccessor`2.CopyImage(ImageSharp.PixelAccessor{`0,`1})
+  commentId: M:ImageSharp.PixelAccessor`2.CopyImage(ImageSharp.PixelAccessor{`0,`1})
+  id: CopyImage(ImageSharp.PixelAccessor{`0,`1})
+  parent: ImageSharp.PixelAccessor`2
+  langs:
+  - csharp
+  - vb
+  name: CopyImage(PixelAccessor<TColor, TPacked>)
+  nameWithType: PixelAccessor<TColor, TPacked>.CopyImage(PixelAccessor<TColor, TPacked>)
+  fullName: ImageSharp.PixelAccessor<TColor, TPacked>.CopyImage(ImageSharp.PixelAccessor<TColor, TPacked>)
+  type: Method
+  source:
+    id: CopyImage
+    path: ''
+    startLine: 19271
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCopies an entire image.\n"
+  example: []
+  syntax:
+    content: public void CopyImage(PixelAccessor<TColor, TPacked> target)
+    content.vb: Public Sub CopyImage(target As PixelAccessor(Of TColor, TPacked))
+    parameters:
+    - id: target
+      type: ImageSharp.PixelAccessor`2
+      description: The target pixel buffer accessor.
+  nameWithType.vb: PixelAccessor(Of TColor, TPacked).CopyImage(PixelAccessor(Of TColor, TPacked))
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+  fullName.vb: ImageSharp.PixelAccessor(Of TColor, TPacked).CopyImage(ImageSharp.PixelAccessor(Of TColor, TPacked))
+  name.vb: CopyImage(PixelAccessor(Of TColor, TPacked))
+- uid: ImageSharp.PixelAccessor`2.CopyFrom(ImageSharp.PixelRow{`0,`1},System.Int32)
+  commentId: M:ImageSharp.PixelAccessor`2.CopyFrom(ImageSharp.PixelRow{`0,`1},System.Int32)
+  id: CopyFrom(ImageSharp.PixelRow{`0,`1},System.Int32)
+  parent: ImageSharp.PixelAccessor`2
+  langs:
+  - csharp
+  - vb
+  name: CopyFrom(PixelRow<TColor, TPacked>, Int32)
+  nameWithType: PixelAccessor<TColor, TPacked>.CopyFrom(PixelRow<TColor, TPacked>, Int32)
+  fullName: ImageSharp.PixelAccessor<TColor, TPacked>.CopyFrom(ImageSharp.PixelRow<TColor, TPacked>, System.Int32)
+  type: Method
+  source:
+    id: CopyFrom
+    path: ''
+    startLine: 19284
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCopied a row of pixels from the image.\n"
+  example: []
+  syntax:
+    content: public void CopyFrom(PixelRow<TColor, TPacked> row, int targetY)
+    content.vb: Public Sub CopyFrom(row As PixelRow(Of TColor, TPacked), targetY As Integer)
+    parameters:
+    - id: row
+      type: ImageSharp.PixelRow{{TColor},{TPacked}}
+      description: The row.
+    - id: targetY
+      type: System.Int32
+      description: The target row index.
+  exceptions:
+  - type: System.NotSupportedException
+    commentId: T:System.NotSupportedException
+    description: "\nThrown when an unsupported component order value is passed.\n"
+  nameWithType.vb: PixelAccessor(Of TColor, TPacked).CopyFrom(PixelRow(Of TColor, TPacked), Int32)
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+  fullName.vb: ImageSharp.PixelAccessor(Of TColor, TPacked).CopyFrom(ImageSharp.PixelRow(Of TColor, TPacked), System.Int32)
+  name.vb: CopyFrom(PixelRow(Of TColor, TPacked), Int32)
+- uid: ImageSharp.PixelAccessor`2.CopyTo(ImageSharp.PixelRow{`0,`1},System.Int32)
+  commentId: M:ImageSharp.PixelAccessor`2.CopyTo(ImageSharp.PixelRow{`0,`1},System.Int32)
+  id: CopyTo(ImageSharp.PixelRow{`0,`1},System.Int32)
+  parent: ImageSharp.PixelAccessor`2
+  langs:
+  - csharp
+  - vb
+  name: CopyTo(PixelRow<TColor, TPacked>, Int32)
+  nameWithType: PixelAccessor<TColor, TPacked>.CopyTo(PixelRow<TColor, TPacked>, Int32)
+  fullName: ImageSharp.PixelAccessor<TColor, TPacked>.CopyTo(ImageSharp.PixelRow<TColor, TPacked>, System.Int32)
+  type: Method
+  source:
+    id: CopyTo
+    path: ''
+    startLine: 19313
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCopied a row of pixels to the image.\n"
+  example: []
+  syntax:
+    content: public void CopyTo(PixelRow<TColor, TPacked> row, int sourceY)
+    content.vb: Public Sub CopyTo(row As PixelRow(Of TColor, TPacked), sourceY As Integer)
+    parameters:
+    - id: row
+      type: ImageSharp.PixelRow{{TColor},{TPacked}}
+      description: The row.
+    - id: sourceY
+      type: System.Int32
+      description: The source row index.
+  exceptions:
+  - type: System.NotSupportedException
+    commentId: T:System.NotSupportedException
+    description: "\nThrown when an unsupported component order value is passed.\n"
+  nameWithType.vb: PixelAccessor(Of TColor, TPacked).CopyTo(PixelRow(Of TColor, TPacked), Int32)
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+  fullName.vb: ImageSharp.PixelAccessor(Of TColor, TPacked).CopyTo(ImageSharp.PixelRow(Of TColor, TPacked), System.Int32)
+  name.vb: CopyTo(PixelRow(Of TColor, TPacked), Int32)
+- uid: ImageSharp.PixelAccessor`2.Dispose
+  commentId: M:ImageSharp.PixelAccessor`2.Dispose
+  id: Dispose
+  parent: ImageSharp.PixelAccessor`2
+  langs:
+  - csharp
+  - vb
+  name: Dispose()
+  nameWithType: PixelAccessor<TColor, TPacked>.Dispose()
+  fullName: ImageSharp.PixelAccessor<TColor, TPacked>.Dispose()
+  type: Method
+  source:
+    id: Dispose
+    path: ''
+    startLine: 19337
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nPerforms application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.\n"
+  example: []
+  syntax:
+    content: public void Dispose()
+    content.vb: Public Sub Dispose
+  implements:
+  - System.IDisposable.Dispose
+  nameWithType.vb: PixelAccessor(Of TColor, TPacked).Dispose()
+  modifiers.csharp:
+  - public
+  modifiers.vb:
+  - Public
+  fullName.vb: ImageSharp.PixelAccessor(Of TColor, TPacked).Dispose()
+- uid: ImageSharp.PixelAccessor`2.CopyFromZYX(ImageSharp.PixelRow{`0,`1},System.Int32,System.Int32)
+  commentId: M:ImageSharp.PixelAccessor`2.CopyFromZYX(ImageSharp.PixelRow{`0,`1},System.Int32,System.Int32)
+  id: CopyFromZYX(ImageSharp.PixelRow{`0,`1},System.Int32,System.Int32)
+  parent: ImageSharp.PixelAccessor`2
+  langs:
+  - csharp
+  - vb
+  name: CopyFromZYX(PixelRow<TColor, TPacked>, Int32, Int32)
+  nameWithType: PixelAccessor<TColor, TPacked>.CopyFromZYX(PixelRow<TColor, TPacked>, Int32, Int32)
+  fullName: ImageSharp.PixelAccessor<TColor, TPacked>.CopyFromZYX(ImageSharp.PixelRow<TColor, TPacked>, System.Int32, System.Int32)
+  type: Method
+  source:
+    id: CopyFromZYX
+    path: ''
+    startLine: 19369
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCopies from a row in <xref href=\"ImageSharp.ComponentOrder.ZYX\" data-throw-if-not-resolved=\"false\"></xref> format.\n"
+  example: []
+  syntax:
+    content: protected virtual void CopyFromZYX(PixelRow<TColor, TPacked> row, int targetY, int width)
+    content.vb: Protected Overridable Sub CopyFromZYX(row As PixelRow(Of TColor, TPacked), targetY As Integer, width As Integer)
+    parameters:
+    - id: row
+      type: ImageSharp.PixelRow{{TColor},{TPacked}}
+      description: The row.
+    - id: targetY
+      type: System.Int32
+      description: The target row index.
+    - id: width
+      type: System.Int32
+      description: The width.
+  nameWithType.vb: PixelAccessor(Of TColor, TPacked).CopyFromZYX(PixelRow(Of TColor, TPacked), Int32, Int32)
+  modifiers.csharp:
+  - protected
+  - virtual
+  modifiers.vb:
+  - Protected
+  - Overridable
+  fullName.vb: ImageSharp.PixelAccessor(Of TColor, TPacked).CopyFromZYX(ImageSharp.PixelRow(Of TColor, TPacked), System.Int32, System.Int32)
+  name.vb: CopyFromZYX(PixelRow(Of TColor, TPacked), Int32, Int32)
+- uid: ImageSharp.PixelAccessor`2.CopyFromZYXW(ImageSharp.PixelRow{`0,`1},System.Int32,System.Int32)
+  commentId: M:ImageSharp.PixelAccessor`2.CopyFromZYXW(ImageSharp.PixelRow{`0,`1},System.Int32,System.Int32)
+  id: CopyFromZYXW(ImageSharp.PixelRow{`0,`1},System.Int32,System.Int32)
+  parent: ImageSharp.PixelAccessor`2
+  langs:
+  - csharp
+  - vb
+  name: CopyFromZYXW(PixelRow<TColor, TPacked>, Int32, Int32)
+  nameWithType: PixelAccessor<TColor, TPacked>.CopyFromZYXW(PixelRow<TColor, TPacked>, Int32, Int32)
+  fullName: ImageSharp.PixelAccessor<TColor, TPacked>.CopyFromZYXW(ImageSharp.PixelRow<TColor, TPacked>, System.Int32, System.Int32)
+  type: Method
+  source:
+    id: CopyFromZYXW
+    path: ''
+    startLine: 19393
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCopies from a row in <xref href=\"ImageSharp.ComponentOrder.ZYXW\" data-throw-if-not-resolved=\"false\"></xref> format.\n"
+  example: []
+  syntax:
+    content: protected virtual void CopyFromZYXW(PixelRow<TColor, TPacked> row, int targetY, int width)
+    content.vb: Protected Overridable Sub CopyFromZYXW(row As PixelRow(Of TColor, TPacked), targetY As Integer, width As Integer)
+    parameters:
+    - id: row
+      type: ImageSharp.PixelRow{{TColor},{TPacked}}
+      description: The row.
+    - id: targetY
+      type: System.Int32
+      description: The target row index.
+    - id: width
+      type: System.Int32
+      description: The width.
+  nameWithType.vb: PixelAccessor(Of TColor, TPacked).CopyFromZYXW(PixelRow(Of TColor, TPacked), Int32, Int32)
+  modifiers.csharp:
+  - protected
+  - virtual
+  modifiers.vb:
+  - Protected
+  - Overridable
+  fullName.vb: ImageSharp.PixelAccessor(Of TColor, TPacked).CopyFromZYXW(ImageSharp.PixelRow(Of TColor, TPacked), System.Int32, System.Int32)
+  name.vb: CopyFromZYXW(PixelRow(Of TColor, TPacked), Int32, Int32)
+- uid: ImageSharp.PixelAccessor`2.CopyFromXYZ(ImageSharp.PixelRow{`0,`1},System.Int32,System.Int32)
+  commentId: M:ImageSharp.PixelAccessor`2.CopyFromXYZ(ImageSharp.PixelRow{`0,`1},System.Int32,System.Int32)
+  id: CopyFromXYZ(ImageSharp.PixelRow{`0,`1},System.Int32,System.Int32)
+  parent: ImageSharp.PixelAccessor`2
+  langs:
+  - csharp
+  - vb
+  name: CopyFromXYZ(PixelRow<TColor, TPacked>, Int32, Int32)
+  nameWithType: PixelAccessor<TColor, TPacked>.CopyFromXYZ(PixelRow<TColor, TPacked>, Int32, Int32)
+  fullName: ImageSharp.PixelAccessor<TColor, TPacked>.CopyFromXYZ(ImageSharp.PixelRow<TColor, TPacked>, System.Int32, System.Int32)
+  type: Method
+  source:
+    id: CopyFromXYZ
+    path: ''
+    startLine: 19417
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCopies from a row in <xref href=\"ImageSharp.ComponentOrder.XYZ\" data-throw-if-not-resolved=\"false\"></xref> format.\n"
+  example: []
+  syntax:
+    content: protected virtual void CopyFromXYZ(PixelRow<TColor, TPacked> row, int targetY, int width)
+    content.vb: Protected Overridable Sub CopyFromXYZ(row As PixelRow(Of TColor, TPacked), targetY As Integer, width As Integer)
+    parameters:
+    - id: row
+      type: ImageSharp.PixelRow{{TColor},{TPacked}}
+      description: The row.
+    - id: targetY
+      type: System.Int32
+      description: The target row index.
+    - id: width
+      type: System.Int32
+      description: The width.
+  nameWithType.vb: PixelAccessor(Of TColor, TPacked).CopyFromXYZ(PixelRow(Of TColor, TPacked), Int32, Int32)
+  modifiers.csharp:
+  - protected
+  - virtual
+  modifiers.vb:
+  - Protected
+  - Overridable
+  fullName.vb: ImageSharp.PixelAccessor(Of TColor, TPacked).CopyFromXYZ(ImageSharp.PixelRow(Of TColor, TPacked), System.Int32, System.Int32)
+  name.vb: CopyFromXYZ(PixelRow(Of TColor, TPacked), Int32, Int32)
+- uid: ImageSharp.PixelAccessor`2.CopyFromXYZW(ImageSharp.PixelRow{`0,`1},System.Int32,System.Int32)
+  commentId: M:ImageSharp.PixelAccessor`2.CopyFromXYZW(ImageSharp.PixelRow{`0,`1},System.Int32,System.Int32)
+  id: CopyFromXYZW(ImageSharp.PixelRow{`0,`1},System.Int32,System.Int32)
+  parent: ImageSharp.PixelAccessor`2
+  langs:
+  - csharp
+  - vb
+  name: CopyFromXYZW(PixelRow<TColor, TPacked>, Int32, Int32)
+  nameWithType: PixelAccessor<TColor, TPacked>.CopyFromXYZW(PixelRow<TColor, TPacked>, Int32, Int32)
+  fullName: ImageSharp.PixelAccessor<TColor, TPacked>.CopyFromXYZW(ImageSharp.PixelRow<TColor, TPacked>, System.Int32, System.Int32)
+  type: Method
+  source:
+    id: CopyFromXYZW
+    path: ''
+    startLine: 19441
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCopies from a row in <xref href=\"ImageSharp.ComponentOrder.XYZW\" data-throw-if-not-resolved=\"false\"></xref> format.\n"
+  example: []
+  syntax:
+    content: protected virtual void CopyFromXYZW(PixelRow<TColor, TPacked> row, int targetY, int width)
+    content.vb: Protected Overridable Sub CopyFromXYZW(row As PixelRow(Of TColor, TPacked), targetY As Integer, width As Integer)
+    parameters:
+    - id: row
+      type: ImageSharp.PixelRow{{TColor},{TPacked}}
+      description: The row.
+    - id: targetY
+      type: System.Int32
+      description: The target row index.
+    - id: width
+      type: System.Int32
+      description: The width.
+  nameWithType.vb: PixelAccessor(Of TColor, TPacked).CopyFromXYZW(PixelRow(Of TColor, TPacked), Int32, Int32)
+  modifiers.csharp:
+  - protected
+  - virtual
+  modifiers.vb:
+  - Protected
+  - Overridable
+  fullName.vb: ImageSharp.PixelAccessor(Of TColor, TPacked).CopyFromXYZW(ImageSharp.PixelRow(Of TColor, TPacked), System.Int32, System.Int32)
+  name.vb: CopyFromXYZW(PixelRow(Of TColor, TPacked), Int32, Int32)
+- uid: ImageSharp.PixelAccessor`2.CopyToZYX(ImageSharp.PixelRow{`0,`1},System.Int32,System.Int32)
+  commentId: M:ImageSharp.PixelAccessor`2.CopyToZYX(ImageSharp.PixelRow{`0,`1},System.Int32,System.Int32)
+  id: CopyToZYX(ImageSharp.PixelRow{`0,`1},System.Int32,System.Int32)
+  parent: ImageSharp.PixelAccessor`2
+  langs:
+  - csharp
+  - vb
+  name: CopyToZYX(PixelRow<TColor, TPacked>, Int32, Int32)
+  nameWithType: PixelAccessor<TColor, TPacked>.CopyToZYX(PixelRow<TColor, TPacked>, Int32, Int32)
+  fullName: ImageSharp.PixelAccessor<TColor, TPacked>.CopyToZYX(ImageSharp.PixelRow<TColor, TPacked>, System.Int32, System.Int32)
+  type: Method
+  source:
+    id: CopyToZYX
+    path: ''
+    startLine: 19465
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCopies to a row in <xref href=\"ImageSharp.ComponentOrder.ZYX\" data-throw-if-not-resolved=\"false\"></xref> format.\n"
+  example: []
+  syntax:
+    content: protected virtual void CopyToZYX(PixelRow<TColor, TPacked> row, int sourceY, int width)
+    content.vb: Protected Overridable Sub CopyToZYX(row As PixelRow(Of TColor, TPacked), sourceY As Integer, width As Integer)
+    parameters:
+    - id: row
+      type: ImageSharp.PixelRow{{TColor},{TPacked}}
+      description: The row.
+    - id: sourceY
+      type: System.Int32
+      description: The target row index.
+    - id: width
+      type: System.Int32
+      description: The width.
+  nameWithType.vb: PixelAccessor(Of TColor, TPacked).CopyToZYX(PixelRow(Of TColor, TPacked), Int32, Int32)
+  modifiers.csharp:
+  - protected
+  - virtual
+  modifiers.vb:
+  - Protected
+  - Overridable
+  fullName.vb: ImageSharp.PixelAccessor(Of TColor, TPacked).CopyToZYX(ImageSharp.PixelRow(Of TColor, TPacked), System.Int32, System.Int32)
+  name.vb: CopyToZYX(PixelRow(Of TColor, TPacked), Int32, Int32)
+- uid: ImageSharp.PixelAccessor`2.CopyToZYXW(ImageSharp.PixelRow{`0,`1},System.Int32,System.Int32)
+  commentId: M:ImageSharp.PixelAccessor`2.CopyToZYXW(ImageSharp.PixelRow{`0,`1},System.Int32,System.Int32)
+  id: CopyToZYXW(ImageSharp.PixelRow{`0,`1},System.Int32,System.Int32)
+  parent: ImageSharp.PixelAccessor`2
+  langs:
+  - csharp
+  - vb
+  name: CopyToZYXW(PixelRow<TColor, TPacked>, Int32, Int32)
+  nameWithType: PixelAccessor<TColor, TPacked>.CopyToZYXW(PixelRow<TColor, TPacked>, Int32, Int32)
+  fullName: ImageSharp.PixelAccessor<TColor, TPacked>.CopyToZYXW(ImageSharp.PixelRow<TColor, TPacked>, System.Int32, System.Int32)
+  type: Method
+  source:
+    id: CopyToZYXW
+    path: ''
+    startLine: 19481
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCopies to a row in <xref href=\"ImageSharp.ComponentOrder.ZYXW\" data-throw-if-not-resolved=\"false\"></xref> format.\n"
+  example: []
+  syntax:
+    content: protected virtual void CopyToZYXW(PixelRow<TColor, TPacked> row, int sourceY, int width)
+    content.vb: Protected Overridable Sub CopyToZYXW(row As PixelRow(Of TColor, TPacked), sourceY As Integer, width As Integer)
+    parameters:
+    - id: row
+      type: ImageSharp.PixelRow{{TColor},{TPacked}}
+      description: The row.
+    - id: sourceY
+      type: System.Int32
+      description: The target row index.
+    - id: width
+      type: System.Int32
+      description: The width.
+  nameWithType.vb: PixelAccessor(Of TColor, TPacked).CopyToZYXW(PixelRow(Of TColor, TPacked), Int32, Int32)
+  modifiers.csharp:
+  - protected
+  - virtual
+  modifiers.vb:
+  - Protected
+  - Overridable
+  fullName.vb: ImageSharp.PixelAccessor(Of TColor, TPacked).CopyToZYXW(ImageSharp.PixelRow(Of TColor, TPacked), System.Int32, System.Int32)
+  name.vb: CopyToZYXW(PixelRow(Of TColor, TPacked), Int32, Int32)
+- uid: ImageSharp.PixelAccessor`2.CopyToXYZ(ImageSharp.PixelRow{`0,`1},System.Int32,System.Int32)
+  commentId: M:ImageSharp.PixelAccessor`2.CopyToXYZ(ImageSharp.PixelRow{`0,`1},System.Int32,System.Int32)
+  id: CopyToXYZ(ImageSharp.PixelRow{`0,`1},System.Int32,System.Int32)
+  parent: ImageSharp.PixelAccessor`2
+  langs:
+  - csharp
+  - vb
+  name: CopyToXYZ(PixelRow<TColor, TPacked>, Int32, Int32)
+  nameWithType: PixelAccessor<TColor, TPacked>.CopyToXYZ(PixelRow<TColor, TPacked>, Int32, Int32)
+  fullName: ImageSharp.PixelAccessor<TColor, TPacked>.CopyToXYZ(ImageSharp.PixelRow<TColor, TPacked>, System.Int32, System.Int32)
+  type: Method
+  source:
+    id: CopyToXYZ
+    path: ''
+    startLine: 19497
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCopies to a row in <xref href=\"ImageSharp.ComponentOrder.XYZ\" data-throw-if-not-resolved=\"false\"></xref> format.\n"
+  example: []
+  syntax:
+    content: protected virtual void CopyToXYZ(PixelRow<TColor, TPacked> row, int sourceY, int width)
+    content.vb: Protected Overridable Sub CopyToXYZ(row As PixelRow(Of TColor, TPacked), sourceY As Integer, width As Integer)
+    parameters:
+    - id: row
+      type: ImageSharp.PixelRow{{TColor},{TPacked}}
+      description: The row.
+    - id: sourceY
+      type: System.Int32
+      description: The target row index.
+    - id: width
+      type: System.Int32
+      description: The width.
+  nameWithType.vb: PixelAccessor(Of TColor, TPacked).CopyToXYZ(PixelRow(Of TColor, TPacked), Int32, Int32)
+  modifiers.csharp:
+  - protected
+  - virtual
+  modifiers.vb:
+  - Protected
+  - Overridable
+  fullName.vb: ImageSharp.PixelAccessor(Of TColor, TPacked).CopyToXYZ(ImageSharp.PixelRow(Of TColor, TPacked), System.Int32, System.Int32)
+  name.vb: CopyToXYZ(PixelRow(Of TColor, TPacked), Int32, Int32)
+- uid: ImageSharp.PixelAccessor`2.CopyToXYZW(ImageSharp.PixelRow{`0,`1},System.Int32,System.Int32)
+  commentId: M:ImageSharp.PixelAccessor`2.CopyToXYZW(ImageSharp.PixelRow{`0,`1},System.Int32,System.Int32)
+  id: CopyToXYZW(ImageSharp.PixelRow{`0,`1},System.Int32,System.Int32)
+  parent: ImageSharp.PixelAccessor`2
+  langs:
+  - csharp
+  - vb
+  name: CopyToXYZW(PixelRow<TColor, TPacked>, Int32, Int32)
+  nameWithType: PixelAccessor<TColor, TPacked>.CopyToXYZW(PixelRow<TColor, TPacked>, Int32, Int32)
+  fullName: ImageSharp.PixelAccessor<TColor, TPacked>.CopyToXYZW(ImageSharp.PixelRow<TColor, TPacked>, System.Int32, System.Int32)
+  type: Method
+  source:
+    id: CopyToXYZW
+    path: ''
+    startLine: 19513
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nCopies to a row in <xref href=\"ImageSharp.ComponentOrder.XYZW\" data-throw-if-not-resolved=\"false\"></xref> format.\n"
+  example: []
+  syntax:
+    content: protected virtual void CopyToXYZW(PixelRow<TColor, TPacked> row, int sourceY, int width)
+    content.vb: Protected Overridable Sub CopyToXYZW(row As PixelRow(Of TColor, TPacked), sourceY As Integer, width As Integer)
+    parameters:
+    - id: row
+      type: ImageSharp.PixelRow{{TColor},{TPacked}}
+      description: The row.
+    - id: sourceY
+      type: System.Int32
+      description: The target row index.
+    - id: width
+      type: System.Int32
+      description: The width.
+  nameWithType.vb: PixelAccessor(Of TColor, TPacked).CopyToXYZW(PixelRow(Of TColor, TPacked), Int32, Int32)
+  modifiers.csharp:
+  - protected
+  - virtual
+  modifiers.vb:
+  - Protected
+  - Overridable
+  fullName.vb: ImageSharp.PixelAccessor(Of TColor, TPacked).CopyToXYZW(ImageSharp.PixelRow(Of TColor, TPacked), System.Int32, System.Int32)
+  name.vb: CopyToXYZW(PixelRow(Of TColor, TPacked), Int32, Int32)
+- uid: ImageSharp.PixelAccessor`2.GetRowPointer(System.Int32)
+  commentId: M:ImageSharp.PixelAccessor`2.GetRowPointer(System.Int32)
+  id: GetRowPointer(System.Int32)
+  parent: ImageSharp.PixelAccessor`2
+  langs:
+  - csharp
+  - vb
+  name: GetRowPointer(Int32)
+  nameWithType: PixelAccessor<TColor, TPacked>.GetRowPointer(Int32)
+  fullName: ImageSharp.PixelAccessor<TColor, TPacked>.GetRowPointer(System.Int32)
+  type: Method
+  source:
+    id: GetRowPointer
+    path: ''
+    startLine: 19530
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp
+  summary: "\nGets the pointer at the specified row.\n"
+  example: []
+  syntax:
+    content: protected byte *GetRowPointer(int targetY)
+    content.vb: Protected Function GetRowPointer(targetY As Integer) As Byte
+    parameters:
+    - id: targetY
+      type: System.Int32
+      description: The target row index.
+    return:
+      type: System.Byte*
+      description: "\nThe <xref href=\"byte*\" data-throw-if-not-resolved=\"false\"></xref>.\n"
+  nameWithType.vb: PixelAccessor(Of TColor, TPacked).GetRowPointer(Int32)
+  modifiers.csharp:
+  - protected
+  modifiers.vb:
+  - Protected
+  fullName.vb: ImageSharp.PixelAccessor(Of TColor, TPacked).GetRowPointer(System.Int32)
+references:
+- uid: ImageSharp.Image`2
+  commentId: T:ImageSharp.Image`2
+  parent: ImageSharp
+  isExternal: false
+  name: Image<TColor, TPacked>
+  nameWithType: Image<TColor, TPacked>
+  fullName: ImageSharp.Image<TColor, TPacked>
+  nameWithType.vb: Image(Of TColor, TPacked)
+  fullname.vb: ImageSharp.Image(Of TColor, TPacked)
+  name.vb: Image(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.Image`2
+    name: Image
+    nameWithType: Image
+    fullName: ImageSharp.Image
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.Image`2
+    name: Image
+    nameWithType: Image
+    fullName: ImageSharp.Image
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp
+  commentId: N:ImageSharp
+  isExternal: false
+  name: ImageSharp
+  nameWithType: ImageSharp
+  fullName: ImageSharp
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  name: Object
+  nameWithType: Object
+  fullName: System.Object
+- uid: System.IDisposable
+  commentId: T:System.IDisposable
+  parent: System
+  isExternal: true
+  name: IDisposable
+  nameWithType: IDisposable
+  fullName: System.IDisposable
+- uid: System.Object.ToString
+  commentId: M:System.Object.ToString
+  parent: System.Object
+  isExternal: true
+  name: ToString()
+  nameWithType: Object.ToString()
+  fullName: System.Object.ToString()
+  spec.csharp:
+  - uid: System.Object.ToString
+    name: ToString
+    nameWithType: Object.ToString
+    fullName: System.Object.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ToString
+    name: ToString
+    nameWithType: Object.ToString
+    fullName: System.Object.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object)
+  commentId: M:System.Object.Equals(System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object)
+  nameWithType: Object.Equals(Object)
+  fullName: System.Object.Equals(System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object, Object)
+  nameWithType: Object.Equals(Object, Object)
+  fullName: System.Object.Equals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: ReferenceEquals(Object, Object)
+  nameWithType: Object.ReferenceEquals(Object, Object)
+  fullName: System.Object.ReferenceEquals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetHashCode
+  commentId: M:System.Object.GetHashCode
+  parent: System.Object
+  isExternal: true
+  name: GetHashCode()
+  nameWithType: Object.GetHashCode()
+  fullName: System.Object.GetHashCode()
+  spec.csharp:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    nameWithType: Object.GetHashCode
+    fullName: System.Object.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    nameWithType: Object.GetHashCode
+    fullName: System.Object.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  name: GetType()
+  nameWithType: Object.GetType()
+  fullName: System.Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.MemberwiseClone
+  commentId: M:System.Object.MemberwiseClone
+  parent: System.Object
+  isExternal: true
+  name: MemberwiseClone()
+  nameWithType: Object.MemberwiseClone()
+  fullName: System.Object.MemberwiseClone()
+  spec.csharp:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    nameWithType: Object.MemberwiseClone
+    fullName: System.Object.MemberwiseClone
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    nameWithType: Object.MemberwiseClone
+    fullName: System.Object.MemberwiseClone
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System
+  commentId: N:System
+  isExternal: false
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: ImageSharp.PixelAccessor`2
+  commentId: T:ImageSharp.PixelAccessor`2
+  parent: ImageSharp
+  isExternal: false
+  name: PixelAccessor<TColor, TPacked>
+  nameWithType: PixelAccessor<TColor, TPacked>
+  fullName: ImageSharp.PixelAccessor<TColor, TPacked>
+  nameWithType.vb: PixelAccessor(Of TColor, TPacked)
+  fullname.vb: ImageSharp.PixelAccessor(Of TColor, TPacked)
+  name.vb: PixelAccessor(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.PixelAccessor`2
+    name: PixelAccessor
+    nameWithType: PixelAccessor
+    fullName: ImageSharp.PixelAccessor
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.PixelAccessor`2
+    name: PixelAccessor
+    nameWithType: PixelAccessor
+    fullName: ImageSharp.PixelAccessor
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.ImageBase{{TColor},{TPacked}}
+  commentId: T:ImageSharp.ImageBase{``0,``1}
+  parent: ImageSharp
+  definition: ImageSharp.ImageBase`2
+  name: ImageBase<TColor, TPacked>
+  nameWithType: ImageBase<TColor, TPacked>
+  fullName: ImageSharp.ImageBase<TColor, TPacked>
+  nameWithType.vb: ImageBase(Of TColor, TPacked)
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked)
+  name.vb: ImageBase(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.ImageBase`2
+  commentId: T:ImageSharp.ImageBase`2
+  parent: ImageSharp
+  isExternal: false
+  name: ImageBase<TColor, TPacked>
+  nameWithType: ImageBase<TColor, TPacked>
+  fullName: ImageSharp.ImageBase<TColor, TPacked>
+  nameWithType.vb: ImageBase(Of TColor, TPacked)
+  fullname.vb: ImageSharp.ImageBase(Of TColor, TPacked)
+  name.vb: ImageBase(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.ImageBase`2
+    name: ImageBase
+    nameWithType: ImageBase
+    fullName: ImageSharp.ImageBase
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.IntPtr
+  commentId: T:System.IntPtr
+  parent: System
+  isExternal: true
+  name: IntPtr
+  nameWithType: IntPtr
+  fullName: System.IntPtr
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  name: Int32
+  nameWithType: Int32
+  fullName: System.Int32
+- uid: '{TColor}'
+  commentId: '!:TColor'
+  definition: TColor
+  name: TColor
+  nameWithType: TColor
+  fullName: TColor
+- uid: TColor
+  isExternal: false
+  name: TColor
+  nameWithType: TColor
+  fullName: TColor
+- uid: System.NotSupportedException
+  commentId: T:System.NotSupportedException
+- uid: ImageSharp.PixelRow{{TColor},{TPacked}}
+  commentId: T:ImageSharp.PixelRow{`0,`1}
+  parent: ImageSharp
+  definition: ImageSharp.PixelRow`2
+  name: PixelRow<TColor, TPacked>
+  nameWithType: PixelRow<TColor, TPacked>
+  fullName: ImageSharp.PixelRow<TColor, TPacked>
+  nameWithType.vb: PixelRow(Of TColor, TPacked)
+  fullname.vb: ImageSharp.PixelRow(Of TColor, TPacked)
+  name.vb: PixelRow(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.PixelRow`2
+    name: PixelRow
+    nameWithType: PixelRow
+    fullName: ImageSharp.PixelRow
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.PixelRow`2
+    name: PixelRow
+    nameWithType: PixelRow
+    fullName: ImageSharp.PixelRow
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.PixelRow`2
+  commentId: T:ImageSharp.PixelRow`2
+  isExternal: false
+  name: PixelRow<TColor, TPacked>
+  nameWithType: PixelRow<TColor, TPacked>
+  fullName: ImageSharp.PixelRow<TColor, TPacked>
+  nameWithType.vb: PixelRow(Of TColor, TPacked)
+  fullname.vb: ImageSharp.PixelRow(Of TColor, TPacked)
+  name.vb: PixelRow(Of TColor, TPacked)
+  spec.csharp:
+  - uid: ImageSharp.PixelRow`2
+    name: PixelRow
+    nameWithType: PixelRow
+    fullName: ImageSharp.PixelRow
+  - name: <
+    nameWithType: <
+    fullName: <
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: '>'
+    nameWithType: '>'
+    fullName: '>'
+  spec.vb:
+  - uid: ImageSharp.PixelRow`2
+    name: PixelRow
+    nameWithType: PixelRow
+    fullName: ImageSharp.PixelRow
+  - name: '(Of '
+    nameWithType: '(Of '
+    fullName: '(Of '
+  - name: TColor
+    nameWithType: TColor
+    fullName: TColor
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - name: TPacked
+    nameWithType: TPacked
+    fullName: TPacked
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.IDisposable.Dispose
+  commentId: M:System.IDisposable.Dispose
+  parent: System.IDisposable
+  isExternal: true
+  name: Dispose()
+  nameWithType: IDisposable.Dispose()
+  fullName: System.IDisposable.Dispose()
+  spec.csharp:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    nameWithType: IDisposable.Dispose
+    fullName: System.IDisposable.Dispose
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.IDisposable.Dispose
+    name: Dispose
+    nameWithType: IDisposable.Dispose
+    fullName: System.IDisposable.Dispose
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: ImageSharp.ComponentOrder.ZYX
+  commentId: F:ImageSharp.ComponentOrder.ZYX
+- uid: ImageSharp.ComponentOrder.ZYXW
+  commentId: F:ImageSharp.ComponentOrder.ZYXW
+- uid: ImageSharp.ComponentOrder.XYZ
+  commentId: F:ImageSharp.ComponentOrder.XYZ
+- uid: ImageSharp.ComponentOrder.XYZW
+  commentId: F:ImageSharp.ComponentOrder.XYZW
+- uid: byte*
+  commentId: T:byte*
+- uid: System.Byte*
+  name: Byte*
+  nameWithType: Byte*
+  fullName: System.Byte*
+  spec.csharp:
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: '*'
+    nameWithType: '*'
+    fullName: '*'
+  spec.vb:
+  - uid: System.Byte
+    name: Byte
+    nameWithType: Byte
+    fullName: System.Byte
+    isExternal: true
+  - name: '*'
+    nameWithType: '*'
+    fullName: '*'

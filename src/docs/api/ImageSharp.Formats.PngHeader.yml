@@ -1,0 +1,588 @@
+### YamlMime:ManagedReference
+items:
+- uid: ImageSharp.Formats.PngHeader
+  commentId: T:ImageSharp.Formats.PngHeader
+  id: PngHeader
+  parent: ImageSharp.Formats
+  children:
+  - ImageSharp.Formats.PngHeader.BitDepth
+  - ImageSharp.Formats.PngHeader.ColorType
+  - ImageSharp.Formats.PngHeader.CompressionMethod
+  - ImageSharp.Formats.PngHeader.FilterMethod
+  - ImageSharp.Formats.PngHeader.Height
+  - ImageSharp.Formats.PngHeader.InterlaceMethod
+  - ImageSharp.Formats.PngHeader.Width
+  langs:
+  - csharp
+  - vb
+  name: PngHeader
+  nameWithType: PngHeader
+  fullName: ImageSharp.Formats.PngHeader
+  type: Class
+  source:
+    id: PngHeader
+    path: ''
+    startLine: 16680
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nRepresents the png header chunk.\n"
+  example: []
+  syntax:
+    content: public sealed class PngHeader
+    content.vb: Public NotInheritable Class PngHeader
+  inheritance:
+  - System.Object
+  inheritedMembers:
+  - System.Object.ToString
+  - System.Object.Equals(System.Object)
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.GetHashCode
+  - System.Object.GetType
+  - System.Object.MemberwiseClone
+  modifiers.csharp:
+  - public
+  - sealed
+  - class
+  modifiers.vb:
+  - Public
+  - NotInheritable
+  - Class
+- uid: ImageSharp.Formats.PngHeader.Width
+  commentId: P:ImageSharp.Formats.PngHeader.Width
+  id: Width
+  parent: ImageSharp.Formats.PngHeader
+  langs:
+  - csharp
+  - vb
+  name: Width
+  nameWithType: PngHeader.Width
+  fullName: ImageSharp.Formats.PngHeader.Width
+  type: Property
+  source:
+    id: Width
+    path: ''
+    startLine: 16685
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nGets or sets the dimension in x-direction of the image in pixels.\n"
+  example: []
+  syntax:
+    content: public int Width { get; set; }
+    content.vb: Public Property Width As Integer
+    parameters: []
+    return:
+      type: System.Int32
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Formats.PngHeader.Height
+  commentId: P:ImageSharp.Formats.PngHeader.Height
+  id: Height
+  parent: ImageSharp.Formats.PngHeader
+  langs:
+  - csharp
+  - vb
+  name: Height
+  nameWithType: PngHeader.Height
+  fullName: ImageSharp.Formats.PngHeader.Height
+  type: Property
+  source:
+    id: Height
+    path: ''
+    startLine: 16690
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nGets or sets the dimension in y-direction of the image in pixels.\n"
+  example: []
+  syntax:
+    content: public int Height { get; set; }
+    content.vb: Public Property Height As Integer
+    parameters: []
+    return:
+      type: System.Int32
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Formats.PngHeader.BitDepth
+  commentId: P:ImageSharp.Formats.PngHeader.BitDepth
+  id: BitDepth
+  parent: ImageSharp.Formats.PngHeader
+  langs:
+  - csharp
+  - vb
+  name: BitDepth
+  nameWithType: PngHeader.BitDepth
+  fullName: ImageSharp.Formats.PngHeader.BitDepth
+  type: Property
+  source:
+    id: BitDepth
+    path: ''
+    startLine: 16698
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nGets or sets the bit depth.\nBit depth is a single-byte integer giving the number of bits per sample\nor per palette index (not per pixel). Valid values are 1, 2, 4, 8, and 16,\nalthough not all values are allowed for all color types.\n"
+  example: []
+  syntax:
+    content: public byte BitDepth { get; set; }
+    content.vb: Public Property BitDepth As Byte
+    parameters: []
+    return:
+      type: System.Byte
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Formats.PngHeader.ColorType
+  commentId: P:ImageSharp.Formats.PngHeader.ColorType
+  id: ColorType
+  parent: ImageSharp.Formats.PngHeader
+  langs:
+  - csharp
+  - vb
+  name: ColorType
+  nameWithType: PngHeader.ColorType
+  fullName: ImageSharp.Formats.PngHeader.ColorType
+  type: Property
+  source:
+    id: ColorType
+    path: ''
+    startLine: 16706
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nGets or sets the color type.\nColor type is a integer that describes the interpretation of the\nimage data. Color type codes represent sums of the following values:\n1 (palette used), 2 (color used), and 4 (alpha channel used).\n"
+  example: []
+  syntax:
+    content: public byte ColorType { get; set; }
+    content.vb: Public Property ColorType As Byte
+    parameters: []
+    return:
+      type: System.Byte
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Formats.PngHeader.CompressionMethod
+  commentId: P:ImageSharp.Formats.PngHeader.CompressionMethod
+  id: CompressionMethod
+  parent: ImageSharp.Formats.PngHeader
+  langs:
+  - csharp
+  - vb
+  name: CompressionMethod
+  nameWithType: PngHeader.CompressionMethod
+  fullName: ImageSharp.Formats.PngHeader.CompressionMethod
+  type: Property
+  source:
+    id: CompressionMethod
+    path: ''
+    startLine: 16714
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nGets or sets the compression method.\nIndicates the method used to compress the image data. At present,\nonly compression method 0 (deflate/inflate compression with a sliding\nwindow of at most 32768 bytes) is defined.\n"
+  example: []
+  syntax:
+    content: public byte CompressionMethod { get; set; }
+    content.vb: Public Property CompressionMethod As Byte
+    parameters: []
+    return:
+      type: System.Byte
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Formats.PngHeader.FilterMethod
+  commentId: P:ImageSharp.Formats.PngHeader.FilterMethod
+  id: FilterMethod
+  parent: ImageSharp.Formats.PngHeader
+  langs:
+  - csharp
+  - vb
+  name: FilterMethod
+  nameWithType: PngHeader.FilterMethod
+  fullName: ImageSharp.Formats.PngHeader.FilterMethod
+  type: Property
+  source:
+    id: FilterMethod
+    path: ''
+    startLine: 16722
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nGets or sets the preprocessing method.\nIndicates the preprocessing method applied to the image\ndata before compression. At present, only filter method 0\n(adaptive filtering with five basic filter types) is defined.\n"
+  example: []
+  syntax:
+    content: public byte FilterMethod { get; set; }
+    content.vb: Public Property FilterMethod As Byte
+    parameters: []
+    return:
+      type: System.Byte
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+- uid: ImageSharp.Formats.PngHeader.InterlaceMethod
+  commentId: P:ImageSharp.Formats.PngHeader.InterlaceMethod
+  id: InterlaceMethod
+  parent: ImageSharp.Formats.PngHeader
+  langs:
+  - csharp
+  - vb
+  name: InterlaceMethod
+  nameWithType: PngHeader.InterlaceMethod
+  fullName: ImageSharp.Formats.PngHeader.InterlaceMethod
+  type: Property
+  source:
+    id: InterlaceMethod
+    path: ''
+    startLine: 16729
+  assemblies:
+  - cs.temp.dll
+  namespace: ImageSharp.Formats
+  summary: "\nGets or sets the  transmission order.\nIndicates the transmission order of the image data.\nTwo values are currently defined: 0 (no interlace) or 1 (Adam7 interlace).\n"
+  example: []
+  syntax:
+    content: public byte InterlaceMethod { get; set; }
+    content.vb: Public Property InterlaceMethod As Byte
+    parameters: []
+    return:
+      type: System.Byte
+  modifiers.csharp:
+  - public
+  - get
+  - set
+  modifiers.vb:
+  - Public
+references:
+- uid: ImageSharp.Formats
+  commentId: N:ImageSharp.Formats
+  isExternal: false
+  name: ImageSharp.Formats
+  nameWithType: ImageSharp.Formats
+  fullName: ImageSharp.Formats
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  name: Object
+  nameWithType: Object
+  fullName: System.Object
+- uid: System.Object.ToString
+  commentId: M:System.Object.ToString
+  parent: System.Object
+  isExternal: true
+  name: ToString()
+  nameWithType: Object.ToString()
+  fullName: System.Object.ToString()
+  spec.csharp:
+  - uid: System.Object.ToString
+    name: ToString
+    nameWithType: Object.ToString
+    fullName: System.Object.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ToString
+    name: ToString
+    nameWithType: Object.ToString
+    fullName: System.Object.ToString
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object)
+  commentId: M:System.Object.Equals(System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object)
+  nameWithType: Object.Equals(Object)
+  fullName: System.Object.Equals(System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: Equals(Object, Object)
+  nameWithType: Object.Equals(Object, Object)
+  fullName: System.Object.Equals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    nameWithType: Object.Equals
+    fullName: System.Object.Equals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  name: ReferenceEquals(Object, Object)
+  nameWithType: Object.ReferenceEquals(Object, Object)
+  fullName: System.Object.ReferenceEquals(System.Object, System.Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    nameWithType: Object.ReferenceEquals
+    fullName: System.Object.ReferenceEquals
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: ', '
+    nameWithType: ', '
+    fullName: ', '
+  - uid: System.Object
+    name: Object
+    nameWithType: Object
+    fullName: System.Object
+    isExternal: true
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetHashCode
+  commentId: M:System.Object.GetHashCode
+  parent: System.Object
+  isExternal: true
+  name: GetHashCode()
+  nameWithType: Object.GetHashCode()
+  fullName: System.Object.GetHashCode()
+  spec.csharp:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    nameWithType: Object.GetHashCode
+    fullName: System.Object.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    nameWithType: Object.GetHashCode
+    fullName: System.Object.GetHashCode
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  name: GetType()
+  nameWithType: Object.GetType()
+  fullName: System.Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    nameWithType: Object.GetType
+    fullName: System.Object.GetType
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System.Object.MemberwiseClone
+  commentId: M:System.Object.MemberwiseClone
+  parent: System.Object
+  isExternal: true
+  name: MemberwiseClone()
+  nameWithType: Object.MemberwiseClone()
+  fullName: System.Object.MemberwiseClone()
+  spec.csharp:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    nameWithType: Object.MemberwiseClone
+    fullName: System.Object.MemberwiseClone
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+  spec.vb:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    nameWithType: Object.MemberwiseClone
+    fullName: System.Object.MemberwiseClone
+    isExternal: true
+  - name: (
+    nameWithType: (
+    fullName: (
+  - name: )
+    nameWithType: )
+    fullName: )
+- uid: System
+  commentId: N:System
+  isExternal: false
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  name: Int32
+  nameWithType: Int32
+  fullName: System.Int32
+- uid: System.Byte
+  commentId: T:System.Byte
+  parent: System
+  isExternal: true
+  name: Byte
+  nameWithType: Byte
+  fullName: System.Byte

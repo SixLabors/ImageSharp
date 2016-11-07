@@ -612,9 +612,6 @@ namespace ImageSharp.Formats
         /// Identifies the chunk type from the chunk.
         /// </summary>
         /// <param name="chunk">The chunk.</param>
-        /// <returns>
-        /// The <see cref="T:byte[]"/> containing identifying information.
-        /// </returns>
         /// <exception cref="ImageFormatException">
         /// Thrown if the input stream is not valid.
         /// </exception>

@@ -38,7 +38,7 @@ namespace ImageSharp
         public string Name { get; }
 
         /// <summary>
-        /// The value of this <see cref="ImageProperty"/>.
+        /// Gets the value of this <see cref="ImageProperty"/>.
         /// </summary>
         public string Value { get; }
 

@@ -28,6 +28,28 @@ namespace ImageSharp
         GPSIFDOffset = 0x8825,
 
         /// <summary>
+        /// SubfileType
+        /// </summary>
+        [ExifTagDescription((uint)0, "Full-resolution Image")]
+        [ExifTagDescription((uint)1, "Reduced-resolution image")]
+        [ExifTagDescription((uint)2, "Single page of multi-page image")]
+        [ExifTagDescription((uint)3, "Single page of multi-page reduced-resolution image")]
+        [ExifTagDescription((uint)4, "Transparency mask")]
+        [ExifTagDescription((uint)5, "Transparency mask of reduced-resolution image")]
+        [ExifTagDescription((uint)6, "Transparency mask of multi-page image")]
+        [ExifTagDescription((uint)7, "Transparency mask of reduced-resolution multi-page image")]
+        [ExifTagDescription((uint)0x10001, "Alternate reduced-resolution image ")]
+        SubfileType = 0x00FE,
+
+        /// <summary>
+        /// OldSubfileType
+        /// </summary>
+        [ExifTagDescription((ushort)1, "Full-resolution Image")]
+        [ExifTagDescription((ushort)2, "Reduced-resolution image")]
+        [ExifTagDescription((ushort)3, "Single page of multi-page image")]
+        OldSubfileType = 0x00FF,
+
+        /// <summary>
         /// ImageWidth
         /// </summary>
         ImageWidth = 0x0100,
@@ -280,6 +302,11 @@ namespace ImageSharp
         PageNumber = 0x0129,
 
         /// <summary>
+        /// ColorResponseUnit
+        /// </summary>
+        ColorResponseUnit = 0x012C,
+
+        /// <summary>
         /// TransferFunction
         /// </summary>
         TransferFunction = 0x012D,
@@ -397,6 +424,9 @@ namespace ImageSharp
         /// <summary>
         /// ExtraSamples
         /// </summary>
+        [ExifTagDescription((ushort)0, "Unspecified")]
+        [ExifTagDescription((ushort)1, "Associated Alpha")]
+        [ExifTagDescription((ushort)2, "Unassociated Alpha")]
         ExtraSamples = 0x0152,
 
         /// <summary>
@@ -513,6 +543,11 @@ namespace ImageSharp
         DefaultImageColor = 0x01B2,
 
         /// <summary>
+        /// T82ptions
+        /// </summary>
+        T82ptions = 0x01B3,
+
+        /// <summary>
         /// JPEGProc
         /// </summary>
         [ExifTagDescription((ushort)1, "Baseline")]
@@ -592,9 +627,34 @@ namespace ImageSharp
         XMP = 0x02BC,
 
         /// <summary>
+        /// Rating
+        /// </summary>
+        Rating = 0x4746,
+
+        /// <summary>
+        /// RatingPercent
+        /// </summary>
+        RatingPercent = 0x4749,
+
+        /// <summary>
         /// ImageID
         /// </summary>
         ImageID = 0x800D,
+
+        /// <summary>
+        /// CFARepeatPatternDim
+        /// </summary>
+        CFARepeatPatternDim = 0x828D,
+
+        /// <summary>
+        /// CFAPattern2
+        /// </summary>
+        CFAPattern2 = 0x828E,
+
+        /// <summary>
+        /// BatteryLevel
+        /// </summary>
+        BatteryLevel = 0x828F,
 
         /// <summary>
         /// Copyright
@@ -610,6 +670,76 @@ namespace ImageSharp
         /// FNumber
         /// </summary>
         FNumber = 0x829D,
+
+        /// <summary>
+        /// MDFileTag
+        /// </summary>
+        MDFileTag = 0x82A5,
+
+        /// <summary>
+        /// MDScalePixel
+        /// </summary>
+        MDScalePixel = 0x82A6,
+
+        /// <summary>
+        /// MDLabName
+        /// </summary>
+        MDLabName = 0x82A8,
+
+        /// <summary>
+        /// MDSampleInfo
+        /// </summary>
+        MDSampleInfo = 0x82A9,
+
+        /// <summary>
+        /// MDPrepDate
+        /// </summary>
+        MDPrepDate = 0x82AA,
+
+        /// <summary>
+        /// MDPrepTime
+        /// </summary>
+        MDPrepTime = 0x82AB,
+
+        /// <summary>
+        /// MDFileUnits
+        /// </summary>
+        MDFileUnits = 0x82AC,
+
+        /// <summary>
+        /// PixelScale
+        /// </summary>
+        PixelScale = 0x830E,
+
+        /// <summary>
+        /// IntergraphPacketData
+        /// </summary>
+        IntergraphPacketData = 0x847E,
+
+        /// <summary>
+        /// IntergraphRegisters
+        /// </summary>
+        IntergraphRegisters = 0x847F,
+
+        /// <summary>
+        /// IntergraphMatrix
+        /// </summary>
+        IntergraphMatrix = 0x8480,
+
+        /// <summary>
+        /// ModelTiePoint
+        /// </summary>
+        ModelTiePoint = 0x8482,
+
+        /// <summary>
+        /// SEMInfo
+        /// </summary>
+        SEMInfo = 0x8546,
+
+        /// <summary>
+        /// ModelTransform
+        /// </summary>
+        ModelTransform = 0x85D8,
 
         /// <summary>
         /// ImageLayer
@@ -647,6 +777,74 @@ namespace ImageSharp
         OECF = 0x8828,
 
         /// <summary>
+        /// Interlace
+        /// </summary>
+        Interlace = 0x8829,
+
+        /// <summary>
+        /// TimeZoneOffset
+        /// </summary>
+        TimeZoneOffset = 0x882A,
+
+        /// <summary>
+        /// SelfTimerMode
+        /// </summary>
+        SelfTimerMode = 0x882B,
+
+        /// <summary>
+        /// SensitivityType
+        /// </summary>
+        [ExifTagDescription((ushort)0, "Unknown")]
+        [ExifTagDescription((ushort)1, "Standard Output Sensitivity")]
+        [ExifTagDescription((ushort)2, "Recommended Exposure Index")]
+        [ExifTagDescription((ushort)3, "ISO Speed")]
+        [ExifTagDescription((ushort)4, "Standard Output Sensitivity and Recommended Exposure Index")]
+        [ExifTagDescription((ushort)5, "Standard Output Sensitivity and ISO Speed")]
+        [ExifTagDescription((ushort)6, "Recommended Exposure Index and ISO Speed")]
+        [ExifTagDescription((ushort)7, "Standard Output Sensitivity, Recommended Exposure Index and ISO Speed")]
+        SensitivityType = 0x8830,
+
+        /// <summary>
+        /// StandardOutputSensitivity
+        /// </summary>
+        StandardOutputSensitivity = 0x8831,
+
+        /// <summary>
+        /// RecommendedExposureIndex
+        /// </summary>
+        RecommendedExposureIndex = 0x8832,
+
+        /// <summary>
+        /// ISOSpeed
+        /// </summary>
+        ISOSpeed = 0x8833,
+
+        /// <summary>
+        /// ISOSpeedLatitudeyyy
+        /// </summary>
+        ISOSpeedLatitudeyyy = 0x8834,
+
+        /// <summary>
+        /// ISOSpeedLatitudezzz
+        /// </summary>
+        ISOSpeedLatitudezzz = 0x8835,
+
+        /// <summary>
+        /// FaxRecvParams
+        /// </summary>
+        FaxRecvParams = 0x885C,
+
+        /// <summary>
+        /// FaxSubaddress
+        /// </summary>
+        FaxSubaddress = 0x885D,
+
+        /// <summary>
+        /// FaxRecvTime
+        /// </summary>
+        FaxRecvTime = 0x885E,
+
+        /// <summary>
         /// ExifVersion
         /// </summary>
         ExifVersion = 0x9000,
@@ -660,6 +858,21 @@ namespace ImageSharp
         /// DateTimeDigitized
         /// </summary>
         DateTimeDigitized = 0x9004,
+
+        /// <summary>
+        /// OffsetTime
+        /// </summary>
+        OffsetTime = 0x9010,
+
+        /// <summary>
+        /// OffsetTimeOriginal
+        /// </summary>
+        OffsetTimeOriginal = 0x9011,
+
+        /// <summary>
+        /// OffsetTimeDigitized
+        /// </summary>
+        OffsetTimeDigitized = 0x9012,
 
         /// <summary>
         /// ComponentsConfiguration
@@ -779,9 +992,86 @@ namespace ImageSharp
         FocalLength = 0x920A,
 
         /// <summary>
+        /// FlashEnergy2
+        /// </summary>
+        FlashEnergy2 = 0x920B,
+
+        /// <summary>
+        /// SpatialFrequencyResponse2
+        /// </summary>
+        SpatialFrequencyResponse2 = 0x920C,
+
+        /// <summary>
+        /// Noise
+        /// </summary>
+        Noise = 0x920D,
+
+        /// <summary>
+        /// FocalPlaneXResolution2
+        /// </summary>
+        FocalPlaneXResolution2 = 0x920E,
+
+        /// <summary>
+        /// FocalPlaneYResolution2
+        /// </summary>
+        FocalPlaneYResolution2 = 0x920F,
+
+        /// <summary>
+        /// FocalPlaneResolutionUnit2
+        /// </summary>
+        [ExifTagDescription((ushort)1, "None")]
+        [ExifTagDescription((ushort)2, "Inches")]
+        [ExifTagDescription((ushort)3, "Centimeter")]
+        [ExifTagDescription((ushort)4, "Millimeter")]
+        [ExifTagDescription((ushort)5, "Micrometer")]
+        FocalPlaneResolutionUnit2 = 0x9210,
+
+        /// <summary>
+        /// ImageNumber
+        /// </summary>
+        ImageNumber = 0x9211,
+
+        /// <summary>
+        /// SecurityClassification
+        /// </summary>
+        [ExifTagDescription("C", "Confidential")]
+        [ExifTagDescription("R", "Restricted")]
+        [ExifTagDescription("S", "Secret")]
+        [ExifTagDescription("T", "Top Secret")]
+        [ExifTagDescription("U", "Unclassified")]
+        SecurityClassification = 0x9212,
+
+        /// <summary>
+        /// ImageHistory
+        /// </summary>
+        ImageHistory = 0x9213,
+
+        /// <summary>
         /// SubjectArea
         /// </summary>
         SubjectArea = 0x9214,
+
+        /// <summary>
+        /// ExposureIndex2
+        /// </summary>
+        ExposureIndex2 = 0x9215,
+
+        /// <summary>
+        /// TIFFEPStandardID
+        /// </summary>
+        TIFFEPStandardID = 0x9216,
+
+        /// <summary>
+        /// SensingMethod
+        /// </summary>
+        [ExifTagDescription((ushort)1, "Not defined")]
+        [ExifTagDescription((ushort)2, "One-chip color area")]
+        [ExifTagDescription((ushort)3, "Two-chip color area")]
+        [ExifTagDescription((ushort)4, "Three-chip color area")]
+        [ExifTagDescription((ushort)5, "Color sequential area")]
+        [ExifTagDescription((ushort)7, "Trilinear")]
+        [ExifTagDescription((ushort)8, "Color sequential linear")]
+        SensingMethod2 = 0x9217,
 
         /// <summary>
         /// MakerNote
@@ -807,6 +1097,66 @@ namespace ImageSharp
         /// SubsecTimeDigitized
         /// </summary>
         SubsecTimeDigitized = 0x9292,
+
+        /// <summary>
+        /// ImageSourceData
+        /// </summary>
+        ImageSourceData = 0x935C,
+
+        /// <summary>
+        /// AmbientTemperature
+        /// </summary>
+        AmbientTemperature = 0x9400,
+
+        /// <summary>
+        /// Humidity
+        /// </summary>
+        Humidity = 0x9401,
+
+        /// <summary>
+        /// Pressure
+        /// </summary>
+        Pressure = 0x9402,
+
+        /// <summary>
+        /// WaterDepth
+        /// </summary>
+        WaterDepth = 0x9403,
+
+        /// <summary>
+        /// Acceleration
+        /// </summary>
+        Acceleration = 0x9404,
+
+        /// <summary>
+        /// CameraElevationAngle
+        /// </summary>
+        CameraElevationAngle = 0x9405,
+
+        /// <summary>
+        /// XPTitle
+        /// </summary>
+        XPTitle = 0x9C9B,
+
+        /// <summary>
+        /// XPComment
+        /// </summary>
+        XPComment = 0x9C9C,
+
+        /// <summary>
+        /// XPAuthor
+        /// </summary>
+        XPAuthor = 0x9C9D,
+
+        /// <summary>
+        /// XPKeywords
+        /// </summary>
+        XPKeywords = 0x9C9E,
+
+        /// <summary>
+        /// XPSubject
+        /// </summary>
+        XPSubject = 0x9C9F,
 
         /// <summary>
         /// FlashpixVersion
@@ -998,6 +1348,46 @@ namespace ImageSharp
         /// ImageUniqueID
         /// </summary>
         ImageUniqueID = 0xA420,
+
+        /// <summary>
+        /// OwnerName
+        /// </summary>
+        OwnerName = 0xA430,
+
+        /// <summary>
+        /// SerialNumber
+        /// </summary>
+        SerialNumber = 0xA431,
+
+        /// <summary>
+        /// LensInfo
+        /// </summary>
+        LensInfo = 0xA432,
+
+        /// <summary>
+        /// LensMake
+        /// </summary>
+        LensMake = 0xA433,
+
+        /// <summary>
+        /// LensModel
+        /// </summary>
+        LensModel = 0xA434,
+
+        /// <summary>
+        /// LensSerialNumber
+        /// </summary>
+        LensSerialNumber = 0xA435,
+
+        /// <summary>
+        /// GDALMetadata
+        /// </summary>
+        GDALMetadata = 0xA480,
+
+        /// <summary>
+        /// GDALNoData
+        /// </summary>
+        GDALNoData = 0xA481,
 
         /// <summary>
         /// GPSVersionID

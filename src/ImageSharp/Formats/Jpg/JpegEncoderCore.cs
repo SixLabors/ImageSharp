@@ -11,7 +11,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Image encoder for writing an image to a stream as a jpeg.
     /// </summary>
-    internal class JpegEncoderCore
+    internal unsafe class JpegEncoderCore
     {
         /// <summary>
         /// The number of quantization tables.
@@ -102,7 +102,7 @@ namespace ImageSharp.Formats
                     0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9, 0xca,
                     0xd2, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7, 0xd8, 0xd9, 0xda,
                     0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9, 0xea,
-                    0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9, 0xfa,
+                    0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9, 0xfa
                 })
         };
 
@@ -158,6 +158,16 @@ namespace ImageSharp.Formats
         /// A scratch buffer to reduce allocations.
         /// </summary>
         private readonly byte[] buffer = new byte[16];
+
+        /// <summary>
+        /// A buffer for reducing the number of stream writes when emitting Huffman tables. 64 seems to be enough.
+        /// </summary>
+        private readonly byte[] emitBuffer = new byte[64];
+
+        /// <summary>
+        /// A buffer for reducing the number of stream writes when emitting Huffman tables. Max combined table lengths + identifier.
+        /// </summary>
+        private readonly byte[] huffmanBuffer = new byte[179];
 
         /// <summary>
         /// The scaled quantization tables, in zig-zag order.
@@ -386,17 +396,6 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Writes the given byte to the stream.
-        /// </summary>
-        /// <param name="b">The byte to write.</param>
-        private void WriteByte(byte b)
-        {
-            byte[] data = new byte[1];
-            data[0] = b;
-            this.outputStream.Write(data, 0, 1);
-        }
-
-        /// <summary>
         /// Emits the least significant count of bits of bits to the bit-stream.
         /// The precondition is bits <example>&lt; 1&lt;&lt;nBits &amp;&amp; nBits &lt;= 16</example>.
         /// </summary>
@@ -404,21 +403,32 @@ namespace ImageSharp.Formats
         /// <param name="count">The number of bits</param>
         private void Emit(uint bits, uint count)
         {
-            // TODO: This requires optimization. We have far too many writes to the underlying stream going on.
             count += this.bitCount;
             bits <<= (int)(32 - count);
             bits |= this.accumulatedBits;
-            while (count >= 8)
+
+            // Only write if more than 8 bits.
+            if (count >= 8)
             {
-                byte b = (byte)(bits >> 24);
-                this.WriteByte(b);
-                if (b == 0xff)
+                // Track length
+                int len = 0;
+                while (count >= 8)
                 {
-                    this.WriteByte(0x00);
+                    byte b = (byte)(bits >> 24);
+                    this.emitBuffer[len++] = b;
+                    if (b == 0xff)
+                    {
+                        this.emitBuffer[len++] = 0x00;
+                    }
+
+                    bits <<= 8;
+                    count -= 8;
                 }
 
-                bits <<= 8;
-                count -= 8;
+                if (len > 0)
+                {
+                    this.outputStream.Write(this.emitBuffer, 0, len);
+                }
             }
 
             this.accumulatedBits = bits;
@@ -553,7 +563,7 @@ namespace ImageSharp.Formats
                     byte yy = (byte)((0.299F * r) + (0.587F * g) + (0.114F * b));
                     byte cb = (byte)(128 + ((-0.168736F * r) - (0.331264F * g) + (0.5F * b)));
                     byte cr = (byte)(128 + ((0.5F * r) - (0.418688F * g) - (0.081312F * b)));
-                    
+
                     int index = (8 * j) + i;
                     yBlock[index] = yy;
                     cbBlock[index] = cb;
@@ -776,11 +786,29 @@ namespace ImageSharp.Formats
             for (int i = 0; i < specs.Length; i++)
             {
                 HuffmanSpec spec = specs[i];
+                int len = 0;
+                fixed (byte* huffman = this.huffmanBuffer)
+                {
+                    fixed (byte* count = spec.Count)
+                    {
+                        fixed (byte* values = spec.Values)
+                        {
+                            huffman[len++] = headers[i];
 
-                // TODO: Investigate optimizing this. It might be better to create a single array.
-                this.WriteByte(headers[i]);
-                this.outputStream.Write(spec.Count, 0, spec.Count.Length);
-                this.outputStream.Write(spec.Values, 0, spec.Values.Length);
+                            for (int c = 0; c < spec.Count.Length; c++)
+                            {
+                                huffman[len++] = count[c];
+                            }
+
+                            for (int v = 0; v < spec.Values.Length; v++)
+                            {
+                                huffman[len++] = values[v];
+                            }
+                        }
+                    }
+                }
+
+                this.outputStream.Write(this.huffmanBuffer, 0, len);
             }
         }
 

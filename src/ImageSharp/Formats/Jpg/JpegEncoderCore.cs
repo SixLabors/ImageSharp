@@ -559,7 +559,7 @@ namespace ImageSharp.Formats
                     byte g = color[1];
                     byte b = color[2];
 
-                    // Convert returned bytes into the YCbCr color space. Assume RGBA 
+                    // Convert returned bytes into the YCbCr color space. Assume RGBA
                     byte yy = (byte)((0.299F * r) + (0.587F * g) + (0.114F * b));
                     byte cb = (byte)(128 + ((-0.168736F * r) - (0.331264F * g) + (0.5F * b)));
                     byte cr = (byte)(128 + ((0.5F * r) - (0.418688F * g) - (0.081312F * b)));
@@ -681,7 +681,7 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Writes the Define Quantization Marker and tables. 
+        /// Writes the Define Quantization Marker and tables.
         /// </summary>
         private void WriteDefineQuantizationTables()
         {
@@ -766,7 +766,7 @@ namespace ImageSharp.Formats
         /// <param name="componentCount">The number of components to write.</param>
         private void WriteDefineHuffmanTables(int componentCount)
         {
-            // Table identifiers. 
+            // Table identifiers.
             byte[] headers = { 0x00, 0x10, 0x01, 0x11 };
             int markerlen = 2;
             HuffmanSpec[] specs = TheHuffmanSpecs;

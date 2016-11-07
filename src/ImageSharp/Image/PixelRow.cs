@@ -68,7 +68,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Finalizes an instance of the <see cref="PixelRow{TColor,TPacked}"/> class. 
+        /// Finalizes an instance of the <see cref="PixelRow{TColor,TPacked}"/> class.
         /// </summary>
         ~PixelRow()
         {

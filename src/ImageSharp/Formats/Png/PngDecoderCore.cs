@@ -21,6 +21,26 @@ namespace ImageSharp.Formats
         private static readonly Dictionary<int, byte[]> ColorTypes = new Dictionary<int, byte[]>();
 
         /// <summary>
+        /// Reusable buffer for reading chunk types.
+        /// </summary>
+        private readonly byte[] chunkTypeBuffer = new byte[4];
+
+        /// <summary>
+        /// Reusable buffer for reading chunk lengths.
+        /// </summary>
+        private readonly byte[] chunkLengthBuffer = new byte[4];
+
+        /// <summary>
+        /// Reusable buffer for reading crc values.
+        /// </summary>
+        private readonly byte[] crcBuffer = new byte[4];
+
+        /// <summary>
+        /// Reusable buffer for reading char arrays.
+        /// </summary>
+        private readonly char[] chars = new char[4];
+
+        /// <summary>
         /// The stream to decode from.
         /// </summary>
         private Stream currentStream;
@@ -148,9 +168,12 @@ namespace ImageSharp.Formats
                         + $"max allowed size '{image.MaxWidth}x{image.MaxHeight}'");
                 }
 
-                TColor[] pixels = new TColor[this.header.Width * this.header.Height];
-                this.ReadScanlines<TColor, TPacked>(dataStream, pixels);
-                image.SetPixels(this.header.Width, this.header.Height, pixels);
+                image.InitPixels(this.header.Width, this.header.Height);
+
+                using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
+                {
+                    this.ReadScanlines(dataStream, pixels);
+                }
             }
         }
 
@@ -165,8 +188,8 @@ namespace ImageSharp.Formats
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
-            Array.Reverse(data, 0, 4);
-            Array.Reverse(data, 4, 4);
+            this.ReverseBytes(data, 0, 4);
+            this.ReverseBytes(data, 4, 4);
 
             // 39.3700787 = inches in a meter.
             image.HorizontalResolution = BitConverter.ToInt32(data, 0) / 39.3700787d;
@@ -194,8 +217,7 @@ namespace ImageSharp.Formats
                     return 3;
 
                 // PngColorType.RgbWithAlpha
-                // TODO: Maybe figure out a way to detect if there are any transparent
-                // pixels and encode RGB if none.
+                // TODO: Maybe figure out a way to detect if there are any transparent pixels and encode RGB if none.
                 default:
                     return 4;
             }
@@ -225,7 +247,7 @@ namespace ImageSharp.Formats
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="dataStream">The <see cref="MemoryStream"/> containing data.</param>
         /// <param name="pixels"> The pixel data.</param>
-        private void ReadScanlines<TColor, TPacked>(MemoryStream dataStream, TColor[] pixels)
+        private void ReadScanlines<TColor, TPacked>(MemoryStream dataStream, PixelAccessor<TColor, TPacked> pixels)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
@@ -244,10 +266,14 @@ namespace ImageSharp.Formats
                 {
                     compressedStream.CopyTo(decompressedStream);
                     decompressedStream.Flush();
-
-                    byte[] decompressedBytes = decompressedStream.ToArray();
-                    this.DecodePixelData<TColor, TPacked>(decompressedBytes, pixels);
+                    decompressedStream.Position = 0;
+                    this.DecodePixelData(decompressedStream, pixels);
+                    //byte[] decompressedBytes = decompressedStream.ToArray();
+                    //this.DecodePixelData(decompressedBytes, pixels);
                 }
+
+                //byte[] decompressedBytes = compressedStream.ToArray();
+                //this.DecodePixelData(decompressedBytes, pixels);
             }
         }
 
@@ -258,16 +284,17 @@ namespace ImageSharp.Formats
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="pixelData">The pixel data.</param>
         /// <param name="pixels">The image pixels.</param>
-        private void DecodePixelData<TColor, TPacked>(byte[] pixelData, TColor[] pixels)
+        private void DecodePixelData<TColor, TPacked>(Stream pixelData, PixelAccessor<TColor, TPacked> pixels)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
+            // TODO: ArrayPool<byte>.Shared.Rent(this.bytesPerScanline)
             byte[] previousScanline = new byte[this.bytesPerScanline];
-
+            byte[] scanline = new byte[this.bytesPerScanline];
             for (int y = 0; y < this.header.Height; y++)
             {
-                byte[] scanline = new byte[this.bytesPerScanline];
-                Array.Copy(pixelData, y * this.bytesPerScanline, scanline, 0, this.bytesPerScanline);
+                pixelData.Read(scanline, 0, this.bytesPerScanline);
+
                 FilterType filterType = (FilterType)scanline[0];
                 byte[] defilteredScanline;
 
@@ -308,7 +335,7 @@ namespace ImageSharp.Formats
                 }
 
                 previousScanline = defilteredScanline;
-                this.ProcessDefilteredScanline<TColor, TPacked>(defilteredScanline, y, pixels);
+                this.ProcessDefilteredScanline(defilteredScanline, y, pixels);
             }
         }
 
@@ -320,10 +347,11 @@ namespace ImageSharp.Formats
         /// <param name="defilteredScanline">The de-filtered scanline</param>
         /// <param name="row">The current image row.</param>
         /// <param name="pixels">The image pixels</param>
-        private void ProcessDefilteredScanline<TColor, TPacked>(byte[] defilteredScanline, int row, TColor[] pixels)
+        private void ProcessDefilteredScanline<TColor, TPacked>(byte[] defilteredScanline, int row, PixelAccessor<TColor, TPacked> pixels)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
+            TColor color = default(TColor);
             switch (this.PngColorType)
             {
                 case PngColorType.Grayscale:
@@ -333,10 +361,8 @@ namespace ImageSharp.Formats
                         int offset = 1 + (x * this.bytesPerPixel);
 
                         byte intensity = defilteredScanline[offset];
-
-                        TColor color = default(TColor);
                         color.PackFromBytes(intensity, intensity, intensity, 255);
-                        pixels[(row * this.header.Width) + x] = color;
+                        pixels[x, row] = color;
                     }
 
                     break;
@@ -350,9 +376,8 @@ namespace ImageSharp.Formats
                         byte intensity = defilteredScanline[offset];
                         byte alpha = defilteredScanline[offset + this.bytesPerSample];
 
-                        TColor color = default(TColor);
                         color.PackFromBytes(intensity, intensity, intensity, alpha);
-                        pixels[(row * this.header.Width) + x] = color;
+                        pixels[x, row] = color;
                     }
 
                     break;
@@ -365,14 +390,13 @@ namespace ImageSharp.Formats
                     {
                         // If the alpha palette is not null and has one or more entries, this means, that the image contains an alpha
                         // channel and we should try to read it.
-                        for (int i = 0; i < this.header.Width; i++)
+                        for (int x = 0; x < this.header.Width; x++)
                         {
-                            int index = newScanline[i];
-                            int offset = (row * this.header.Width) + i;
+                            int index = newScanline[x];
                             int pixelOffset = index * 3;
 
                             byte a = this.paletteAlpha.Length > index ? this.paletteAlpha[index] : (byte)255;
-                            TColor color = default(TColor);
+
                             if (a > 0)
                             {
                                 byte r = this.palette[pixelOffset];
@@ -381,24 +405,22 @@ namespace ImageSharp.Formats
                                 color.PackFromBytes(r, g, b, a);
                             }
 
-                            pixels[offset] = color;
+                            pixels[x, row] = color;
                         }
                     }
                     else
                     {
-                        for (int i = 0; i < this.header.Width; i++)
+                        for (int x = 0; x < this.header.Width; x++)
                         {
-                            int index = newScanline[i];
-                            int offset = (row * this.header.Width) + i;
+                            int index = newScanline[x];
                             int pixelOffset = index * 3;
 
                             byte r = this.palette[pixelOffset];
                             byte g = this.palette[pixelOffset + 1];
                             byte b = this.palette[pixelOffset + 2];
 
-                            TColor color = default(TColor);
                             color.PackFromBytes(r, g, b, 255);
-                            pixels[offset] = color;
+                            pixels[x, row] = color;
                         }
                     }
 
@@ -414,9 +436,8 @@ namespace ImageSharp.Formats
                         byte g = defilteredScanline[offset + this.bytesPerSample];
                         byte b = defilteredScanline[offset + (2 * this.bytesPerSample)];
 
-                        TColor color = default(TColor);
                         color.PackFromBytes(r, g, b, 255);
-                        pixels[(row * this.header.Width) + x] = color;
+                        pixels[x, row] = color;
                     }
 
                     break;
@@ -432,9 +453,8 @@ namespace ImageSharp.Formats
                         byte b = defilteredScanline[offset + (2 * this.bytesPerSample)];
                         byte a = defilteredScanline[offset + (3 * this.bytesPerSample)];
 
-                        TColor color = default(TColor);
                         color.PackFromBytes(r, g, b, a);
-                        pixels[(row * this.header.Width) + x] = color;
+                        pixels[x, row] = color;
                     }
 
                     break;
@@ -477,17 +497,17 @@ namespace ImageSharp.Formats
         {
             this.header = new PngHeader();
 
-            Array.Reverse(data, 0, 4);
-            Array.Reverse(data, 4, 4);
+            this.ReverseBytes(data, 0, 4);
+            this.ReverseBytes(data, 4, 4);
 
             this.header.Width = BitConverter.ToInt32(data, 0);
             this.header.Height = BitConverter.ToInt32(data, 4);
 
             this.header.BitDepth = data[8];
             this.header.ColorType = data[9];
+            this.header.CompressionMethod = data[10];
             this.header.FilterMethod = data[11];
             this.header.InterlaceMethod = data[12];
-            this.header.CompressionMethod = data[10];
         }
 
         /// <summary>
@@ -542,10 +562,9 @@ namespace ImageSharp.Formats
                 return null;
             }
 
-            byte[] typeBuffer = this.ReadChunkType(chunk);
-
+            this.ReadChunkType(chunk);
             this.ReadChunkData(chunk);
-            this.ReadChunkCrc(chunk, typeBuffer);
+            this.ReadChunkCrc(chunk);
 
             return chunk;
         }
@@ -554,26 +573,23 @@ namespace ImageSharp.Formats
         /// Reads the cycle redundancy chunk from the data.
         /// </summary>
         /// <param name="chunk">The chunk.</param>
-        /// <param name="typeBuffer">The type buffer.</param>
         /// <exception cref="ImageFormatException">
         /// Thrown if the input stream is not valid or corrupt.
         /// </exception>
-        private void ReadChunkCrc(PngChunk chunk, byte[] typeBuffer)
+        private void ReadChunkCrc(PngChunk chunk)
         {
-            byte[] crcBuffer = new byte[4];
-
-            int numBytes = this.currentStream.Read(crcBuffer, 0, 4);
+            int numBytes = this.currentStream.Read(this.crcBuffer, 0, 4);
             if (numBytes >= 1 && numBytes <= 3)
             {
                 throw new ImageFormatException("Image stream is not valid!");
             }
 
-            Array.Reverse(crcBuffer);
+            this.ReverseBytes(this.crcBuffer);
 
-            chunk.Crc = BitConverter.ToUInt32(crcBuffer, 0);
+            chunk.Crc = BitConverter.ToUInt32(this.crcBuffer, 0);
 
             Crc32 crc = new Crc32();
-            crc.Update(typeBuffer);
+            crc.Update(this.chunkTypeBuffer);
             crc.Update(chunk.Data);
 
             if (crc.Value != chunk.Crc)
@@ -602,25 +618,20 @@ namespace ImageSharp.Formats
         /// <exception cref="ImageFormatException">
         /// Thrown if the input stream is not valid.
         /// </exception>
-        private byte[] ReadChunkType(PngChunk chunk)
+        private void ReadChunkType(PngChunk chunk)
         {
-            byte[] typeBuffer = new byte[4];
-
-            int numBytes = this.currentStream.Read(typeBuffer, 0, 4);
+            int numBytes = this.currentStream.Read(this.chunkTypeBuffer, 0, 4);
             if (numBytes >= 1 && numBytes <= 3)
             {
                 throw new ImageFormatException("Image stream is not valid!");
             }
 
-            char[] chars = new char[4];
-            chars[0] = (char)typeBuffer[0];
-            chars[1] = (char)typeBuffer[1];
-            chars[2] = (char)typeBuffer[2];
-            chars[3] = (char)typeBuffer[3];
+            this.chars[0] = (char)this.chunkTypeBuffer[0];
+            this.chars[1] = (char)this.chunkTypeBuffer[1];
+            this.chars[2] = (char)this.chunkTypeBuffer[2];
+            this.chars[3] = (char)this.chunkTypeBuffer[3];
 
-            chunk.Type = new string(chars);
-
-            return typeBuffer;
+            chunk.Type = new string(this.chars);
         }
 
         /// <summary>
@@ -635,19 +646,46 @@ namespace ImageSharp.Formats
         /// </exception>
         private int ReadChunkLength(PngChunk chunk)
         {
-            byte[] lengthBuffer = new byte[4];
-
-            int numBytes = this.currentStream.Read(lengthBuffer, 0, 4);
+            int numBytes = this.currentStream.Read(this.chunkLengthBuffer, 0, 4);
             if (numBytes >= 1 && numBytes <= 3)
             {
                 throw new ImageFormatException("Image stream is not valid!");
             }
 
-            Array.Reverse(lengthBuffer);
+            this.ReverseBytes(this.chunkLengthBuffer);
 
-            chunk.Length = BitConverter.ToInt32(lengthBuffer, 0);
+            chunk.Length = BitConverter.ToInt32(this.chunkLengthBuffer, 0);
 
             return numBytes;
+        }
+
+        /// <summary>
+        /// Optimized <see cref="T:byte[]"/> reversal algorithm.
+        /// </summary>
+        /// <param name="source">The byte array.</param>
+        private void ReverseBytes(byte[] source)
+        {
+            this.ReverseBytes(source, 0, source.Length);
+        }
+
+        /// <summary>
+        /// Optimized <see cref="T:byte[]"/> reversal algorithm.
+        /// </summary>
+        /// <param name="source">The byte array.</param>
+        /// <param name="index">The index.</param>
+        /// <param name="length">The length.</param>
+        private void ReverseBytes(byte[] source, int index, int length)
+        {
+            int i = index;
+            int j = index + length - 1;
+            while (i < j)
+            {
+                byte temp = source[i];
+                source[i] = source[j];
+                source[j] = temp;
+                i++;
+                j--;
+            }
         }
     }
 }

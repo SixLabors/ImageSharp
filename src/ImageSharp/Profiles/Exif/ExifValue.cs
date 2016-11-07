@@ -268,14 +268,32 @@ namespace ImageSharp
                 case ExifTag.InkNames:
                 case ExifTag.TargetPrinter:
                 case ExifTag.ImageID:
+                case ExifTag.MDLabName:
+                case ExifTag.MDSampleInfo:
+                case ExifTag.MDPrepDate:
+                case ExifTag.MDPrepTime:
+                case ExifTag.MDFileUnits:
+                case ExifTag.SEMInfo:
                 case ExifTag.SpectralSensitivity:
                 case ExifTag.DateTimeOriginal:
                 case ExifTag.DateTimeDigitized:
                 case ExifTag.SubsecTime:
                 case ExifTag.SubsecTimeOriginal:
                 case ExifTag.SubsecTimeDigitized:
-                case ExifTag.RelatedSoundFile:
+                case ExifTag.FaxSubaddress:
+                case ExifTag.OffsetTime:
+                case ExifTag.OffsetTimeOriginal:
+                case ExifTag.OffsetTimeDigitized:
+                case ExifTag.SecurityClassification:
+                case ExifTag.ImageHistory:
                 case ExifTag.ImageUniqueID:
+                case ExifTag.OwnerName:
+                case ExifTag.SerialNumber:
+                case ExifTag.LensMake:
+                case ExifTag.LensModel:
+                case ExifTag.LensSerialNumber:
+                case ExifTag.GDALMetadata:
+                case ExifTag.GDALNoData:
                 case ExifTag.GPSLatitudeRef:
                 case ExifTag.GPSLongitudeRef:
                 case ExifTag.GPSSatellites:
@@ -296,6 +314,13 @@ namespace ImageSharp
                 case ExifTag.ClipPath:
                 case ExifTag.VersionYear:
                 case ExifTag.XMP:
+                case ExifTag.CFAPattern2:
+                case ExifTag.TIFFEPStandardID:
+                case ExifTag.XPTitle:
+                case ExifTag.XPComment:
+                case ExifTag.XPAuthor:
+                case ExifTag.XPKeywords:
+                case ExifTag.XPSubject:
                 case ExifTag.GPSVersionID:
                     exifValue = new ExifValue(tag, ExifDataType.Byte, true);
                     break;
@@ -307,6 +332,7 @@ namespace ImageSharp
 
                 case ExifTag.FreeOffsets:
                 case ExifTag.FreeByteCounts:
+                case ExifTag.ColorResponseUnit:
                 case ExifTag.TileOffsets:
                 case ExifTag.SMinSampleValue:
                 case ExifTag.SMaxSampleValue:
@@ -314,8 +340,11 @@ namespace ImageSharp
                 case ExifTag.JPEGDCTables:
                 case ExifTag.JPEGACTables:
                 case ExifTag.StripRowCounts:
+                case ExifTag.IntergraphRegisters:
+                case ExifTag.TimeZoneOffset:
                     exifValue = new ExifValue(tag, ExifDataType.Long, true);
                     break;
+                case ExifTag.SubfileType:
                 case ExifTag.SubIFDOffset:
                 case ExifTag.GPSIFDOffset:
                 case ExifTag.T4Options:
@@ -324,8 +353,18 @@ namespace ImageSharp
                 case ExifTag.YClipPathUnits:
                 case ExifTag.ProfileType:
                 case ExifTag.CodingMethods:
+                case ExifTag.T82ptions:
                 case ExifTag.JPEGInterchangeFormat:
                 case ExifTag.JPEGInterchangeFormatLength:
+                case ExifTag.MDFileTag:
+                case ExifTag.StandardOutputSensitivity:
+                case ExifTag.RecommendedExposureIndex:
+                case ExifTag.ISOSpeed:
+                case ExifTag.ISOSpeedLatitudeyyy:
+                case ExifTag.ISOSpeedLatitudezzz:
+                case ExifTag.FaxRecvParams:
+                case ExifTag.FaxRecvTime:
+                case ExifTag.ImageNumber:
                     exifValue = new ExifValue(tag, ExifDataType.Long, false);
                     break;
 
@@ -333,6 +372,10 @@ namespace ImageSharp
                 case ExifTag.PrimaryChromaticities:
                 case ExifTag.YCbCrCoefficients:
                 case ExifTag.ReferenceBlackWhite:
+                case ExifTag.PixelScale:
+                case ExifTag.IntergraphMatrix:
+                case ExifTag.ModelTiePoint:
+                case ExifTag.ModelTransform:
                 case ExifTag.GPSLatitude:
                 case ExifTag.GPSLongitude:
                 case ExifTag.GPSTimestamp:
@@ -344,18 +387,28 @@ namespace ImageSharp
                 case ExifTag.YPosition:
                 case ExifTag.XResolution:
                 case ExifTag.YResolution:
+                case ExifTag.BatteryLevel:
                 case ExifTag.ExposureTime:
                 case ExifTag.FNumber:
+                case ExifTag.MDScalePixel:
                 case ExifTag.CompressedBitsPerPixel:
                 case ExifTag.ApertureValue:
                 case ExifTag.MaxApertureValue:
                 case ExifTag.SubjectDistance:
                 case ExifTag.FocalLength:
+                case ExifTag.FlashEnergy2:
+                case ExifTag.FocalPlaneXResolution2:
+                case ExifTag.FocalPlaneYResolution2:
+                case ExifTag.ExposureIndex2:
+                case ExifTag.Humidity:
+                case ExifTag.Pressure:
+                case ExifTag.Acceleration:
                 case ExifTag.FlashEnergy:
                 case ExifTag.FocalPlaneXResolution:
                 case ExifTag.FocalPlaneYResolution:
                 case ExifTag.ExposureIndex:
                 case ExifTag.DigitalZoomRatio:
+                case ExifTag.LensInfo:
                 case ExifTag.GPSAltitude:
                 case ExifTag.GPSDOP:
                 case ExifTag.GPSSpeed:
@@ -382,11 +435,14 @@ namespace ImageSharp
                 case ExifTag.JPEGLosslessPredictors:
                 case ExifTag.JPEGPointTransforms:
                 case ExifTag.YCbCrSubsampling:
+                case ExifTag.CFARepeatPatternDim:
+                case ExifTag.IntergraphPacketData:
                 case ExifTag.ISOSpeedRatings:
                 case ExifTag.SubjectArea:
                 case ExifTag.SubjectLocation:
                     exifValue = new ExifValue(tag, ExifDataType.Short, true);
                     break;
+                case ExifTag.OldSubfileType:
                 case ExifTag.Compression:
                 case ExifTag.PhotometricInterpretation:
                 case ExifTag.Thresholding:
@@ -407,9 +463,16 @@ namespace ImageSharp
                 case ExifTag.JPEGProc:
                 case ExifTag.JPEGRestartInterval:
                 case ExifTag.YCbCrPositioning:
+                case ExifTag.Rating:
+                case ExifTag.RatingPercent:
                 case ExifTag.ExposureProgram:
+                case ExifTag.Interlace:
+                case ExifTag.SelfTimerMode:
+                case ExifTag.SensitivityType:
                 case ExifTag.MeteringMode:
                 case ExifTag.LightSource:
+                case ExifTag.FocalPlaneResolutionUnit2:
+                case ExifTag.SensingMethod2:
                 case ExifTag.Flash:
                 case ExifTag.ColorSpace:
                 case ExifTag.FocalPlaneResolutionUnit:
@@ -434,6 +497,9 @@ namespace ImageSharp
                 case ExifTag.ShutterSpeedValue:
                 case ExifTag.BrightnessValue:
                 case ExifTag.ExposureBiasValue:
+                case ExifTag.AmbientTemperature:
+                case ExifTag.WaterDepth:
+                case ExifTag.CameraElevationAngle:
                     exifValue = new ExifValue(tag, ExifDataType.SignedRational, false);
                     break;
 
@@ -445,8 +511,11 @@ namespace ImageSharp
                 case ExifTag.UserComment:
                 case ExifTag.FlashpixVersion:
                 case ExifTag.SpatialFrequencyResponse:
+                case ExifTag.SpatialFrequencyResponse2:
+                case ExifTag.Noise:
                 case ExifTag.CFAPattern:
                 case ExifTag.DeviceSettingDescription:
+                case ExifTag.ImageSourceData:
                 case ExifTag.GPSProcessingMethod:
                 case ExifTag.GPSAreaInformation:
                     exifValue = new ExifValue(tag, ExifDataType.Undefined, true);

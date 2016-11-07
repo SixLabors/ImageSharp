@@ -133,6 +133,11 @@ namespace ImageSharp
         FillOrder = 0x010A,
 
         /// <summary>
+        /// DocumentName
+        /// </summary>
+        DocumentName = 0x010D,
+
+        /// <summary>
         /// ImageDescription
         /// </summary>
         ImageDescription = 0x010E,
@@ -208,6 +213,21 @@ namespace ImageSharp
         PlanarConfiguration = 0x011C,
 
         /// <summary>
+        /// PageName
+        /// </summary>
+        PageName = 0x011D,
+
+        /// <summary>
+        /// XPosition
+        /// </summary>
+        XPosition = 0x011E,
+
+        /// <summary>
+        /// YPosition
+        /// </summary>
+        YPosition = 0x011F,
+
+        /// <summary>
         /// FreeOffsets
         /// </summary>
         FreeOffsets = 0x0120,
@@ -233,12 +253,36 @@ namespace ImageSharp
         GrayResponseCurve = 0x0123,
 
         /// <summary>
+        /// T4Options
+        /// </summary>
+        [ExifTagDescription((uint)0, "2-Dimensional encoding")]
+        [ExifTagDescription((uint)1, "Uncompressed")]
+        [ExifTagDescription((uint)2, "Fill bits added")]
+        T4Options = 0x0124,
+
+        /// <summary>
+        /// T6Options
+        /// </summary>
+        [ExifTagDescription((uint)1, "Uncompressed")]
+        T6Options = 0x0125,
+
+        /// <summary>
         /// ResolutionUnit
         /// </summary>
         [ExifTagDescription((ushort)1, "None")]
         [ExifTagDescription((ushort)2, "Inches")]
         [ExifTagDescription((ushort)3, "Centimeter")]
         ResolutionUnit = 0x0128,
+
+        /// <summary>
+        /// PageNumber
+        /// </summary>
+        PageNumber = 0x0129,
+
+        /// <summary>
+        /// TransferFunction
+        /// </summary>
+        TransferFunction = 0x012D,
 
         /// <summary>
         /// Software
@@ -261,65 +305,6 @@ namespace ImageSharp
         HostComputer = 0x013C,
 
         /// <summary>
-        /// ColorMap
-        /// </summary>
-        ColorMap = 0x0140,
-
-        /// <summary>
-        /// ExtraSamples
-        /// </summary>
-        ExtraSamples = 0x0152,
-
-        /// <summary>
-        /// Copyright
-        /// </summary>
-        Copyright = 0x8298,
-
-        /// <summary>
-        /// DocumentName
-        /// </summary>
-        DocumentName = 0x010D,
-
-        /// <summary>
-        /// PageName
-        /// </summary>
-        PageName = 0x011D,
-
-        /// <summary>
-        /// XPosition
-        /// </summary>
-        XPosition = 0x011E,
-
-        /// <summary>
-        /// YPosition
-        /// </summary>
-        YPosition = 0x011F,
-
-        /// <summary>
-        /// T4Options
-        /// </summary>
-        [ExifTagDescription((uint)0, "2-Dimensional encoding")]
-        [ExifTagDescription((uint)1, "Uncompressed")]
-        [ExifTagDescription((uint)2, "Fill bits added")]
-        T4Options = 0x0124,
-
-        /// <summary>
-        /// T6Options
-        /// </summary>
-        [ExifTagDescription((uint)1, "Uncompressed")]
-        T6Options = 0x0125,
-
-        /// <summary>
-        /// PageNumber
-        /// </summary>
-        PageNumber = 0x0129,
-
-        /// <summary>
-        /// TransferFunction
-        /// </summary>
-        TransferFunction = 0x012D,
-
-        /// <summary>
         /// Predictor
         /// </summary>
         Predictor = 0x013D,
@@ -333,6 +318,11 @@ namespace ImageSharp
         /// PrimaryChromaticities
         /// </summary>
         PrimaryChromaticities = 0x013F,
+
+        /// <summary>
+        /// ColorMap
+        /// </summary>
+        ColorMap = 0x0140,
 
         /// <summary>
         /// HalftoneHints
@@ -403,6 +393,11 @@ namespace ImageSharp
         /// TargetPrinter
         /// </summary>
         TargetPrinter = 0x0151,
+
+        /// <summary>
+        /// ExtraSamples
+        /// </summary>
+        ExtraSamples = 0x0152,
 
         /// <summary>
         /// SampleFormat
@@ -602,9 +597,9 @@ namespace ImageSharp
         ImageID = 0x800D,
 
         /// <summary>
-        /// ImageLayer
+        /// Copyright
         /// </summary>
-        ImageLayer = 0x87AC,
+        Copyright = 0x8298,
 
         /// <summary>
         /// ExposureTime
@@ -615,6 +610,11 @@ namespace ImageSharp
         /// FNumber
         /// </summary>
         FNumber = 0x829D,
+
+        /// <summary>
+        /// ImageLayer
+        /// </summary>
+        ImageLayer = 0x87AC,
 
         /// <summary>
         /// ExposureProgram

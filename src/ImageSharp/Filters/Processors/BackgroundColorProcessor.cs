@@ -26,7 +26,7 @@ namespace ImageSharp.Processors
         /// <summary>
         /// Initializes a new instance of the <see cref="BackgroundColorProcessor{TColor, TPacked}"/> class.
         /// </summary>
-        /// <param name="color">The <see cref="TColor"/> to set the background color to.</param>
+        /// <param name="color">The <typeparamref name="TColor"/> to set the background color to.</param>
         public BackgroundColorProcessor(TColor color)
         {
             this.Value = color;

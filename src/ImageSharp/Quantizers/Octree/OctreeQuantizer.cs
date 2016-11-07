@@ -171,7 +171,7 @@ namespace ImageSharp.Quantizers
             /// Add a given color value to the Octree
             /// </summary>
             /// <param name="pixel">
-            /// The <see cref="TColor"/>containing color information to add.
+            /// The <typeparamref name="TColor"/> containing color information to add.
             /// </param>
             public void AddColor(TColor pixel)
             {
@@ -226,7 +226,7 @@ namespace ImageSharp.Quantizers
             /// <summary>
             /// Get the palette index for the passed color
             /// </summary>
-            /// <param name="pixel">The <see cref="TColor"/> containing the pixel data.</param>
+            /// <param name="pixel">The <typeparamref name="TColor"/> containing the pixel data.</param>
             /// <returns>
             /// The index of the given structure.
             /// </returns>
@@ -466,7 +466,7 @@ namespace ImageSharp.Quantizers
                 /// <summary>
                 /// Return the palette index for the passed color
                 /// </summary>
-                /// <param name="pixel">The <see cref="TColor"/> representing the pixel.</param>
+                /// <param name="pixel">The <typeparamref name="TColor"/> representing the pixel.</param>
                 /// <param name="level">The level.</param>
                 /// <returns>
                 /// The <see cref="int"/> representing the index of the pixel in the palette.

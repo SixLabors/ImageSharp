@@ -212,8 +212,7 @@ namespace ImageSharp.Formats
                 case PngColorType.Rgb:
                     return 3;
 
-                // PngColorType.RgbWithAlpha
-                // TODO: Maybe figure out a way to detect if there are any transparent pixels and encode RGB if none.
+                // PngColorType.RgbWithAlpha:
                 default:
                     return 4;
             }

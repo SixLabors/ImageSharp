@@ -590,6 +590,7 @@ namespace ImageSharp.Formats
 
         /// <summary>
         /// Writes the pixel information to the stream.
+        /// TODO: This is WHACK! We should be able to do this without creating yet another array. 
         /// </summary>
         /// <param name="stream">The stream.</param>
         private void WriteDataChunks(Stream stream)

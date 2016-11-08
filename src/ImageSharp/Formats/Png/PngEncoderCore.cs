@@ -322,29 +322,28 @@ namespace ImageSharp.Formats
         private byte[] EncodePixelData()
         {
             // TODO: Use pointers
-            List<byte[]> filteredScanlines = new List<byte[]>();
-
+            byte[][] filteredScanlines = new byte[this.height][];
             byte[] previousScanline = new byte[this.width * this.bytesPerPixel];
-
+            int length = 0;
             for (int y = 0; y < this.height; y++)
             {
                 byte[] rawScanline = this.GetRawScanline(y);
                 byte[] filteredScanline = this.GetOptimalFilteredScanline(rawScanline, previousScanline, this.bytesPerPixel);
-
-                filteredScanlines.Add(filteredScanline);
+                length += filteredScanline.Length;
+                filteredScanlines[y] = filteredScanline;
 
                 previousScanline = rawScanline;
             }
 
-            // TODO: We should be able to use a byte array when not using interlaced encoding.
-            List<byte> result = new List<byte>();
-
-            foreach (byte[] encodedScanline in filteredScanlines)
+            // Flatten the jagged array
+            byte[] result = new byte[length];
+            for (int i = 0; i < this.height; i++)
             {
-                result.AddRange(encodedScanline);
+                int len = filteredScanlines[i].Length;
+                Buffer.BlockCopy(filteredScanlines[i], 0, result, i * len, len);
             }
 
-            return result.ToArray();
+            return result;
         }
 
         /// <summary>
@@ -357,32 +356,24 @@ namespace ImageSharp.Formats
         /// <returns>The <see cref="T:byte[]"/></returns>
         private byte[] GetOptimalFilteredScanline(byte[] rawScanline, byte[] previousScanline, int byteCount)
         {
-            List<Tuple<byte[], int>> candidates = new List<Tuple<byte[], int>>();
+            Tuple<byte[], int>[] candidates = new Tuple<byte[], int>[4];
 
-            if (this.PngColorType == PngColorType.Palette)
-            {
-                byte[] none = NoneFilter.Encode(rawScanline);
-                candidates.Add(new Tuple<byte[], int>(none, this.CalculateTotalVariation(none)));
-            }
-            else
-            {
-                byte[] sub = SubFilter.Encode(rawScanline, byteCount);
-                candidates.Add(new Tuple<byte[], int>(sub, this.CalculateTotalVariation(sub)));
+            byte[] sub = SubFilter.Encode(rawScanline, byteCount);
+            candidates[0] = new Tuple<byte[], int>(sub, this.CalculateTotalVariation(sub));
 
-                byte[] up = UpFilter.Encode(rawScanline, previousScanline);
-                candidates.Add(new Tuple<byte[], int>(up, this.CalculateTotalVariation(up)));
+            byte[] up = UpFilter.Encode(rawScanline, previousScanline);
+            candidates[1] = new Tuple<byte[], int>(up, this.CalculateTotalVariation(up));
 
-                byte[] average = AverageFilter.Encode(rawScanline, previousScanline, byteCount);
-                candidates.Add(new Tuple<byte[], int>(average, this.CalculateTotalVariation(average)));
+            byte[] average = AverageFilter.Encode(rawScanline, previousScanline, byteCount);
+            candidates[2] = new Tuple<byte[], int>(average, this.CalculateTotalVariation(average));
 
-                byte[] paeth = PaethFilter.Encode(rawScanline, previousScanline, byteCount);
-                candidates.Add(new Tuple<byte[], int>(paeth, this.CalculateTotalVariation(paeth)));
-            }
+            byte[] paeth = PaethFilter.Encode(rawScanline, previousScanline, byteCount);
+            candidates[3] = new Tuple<byte[], int>(paeth, this.CalculateTotalVariation(paeth));
 
             int lowestTotalVariation = int.MaxValue;
             int lowestTotalVariationIndex = 0;
 
-            for (int i = 0; i < candidates.Count; i++)
+            for (int i = 0; i < 4; i++)
             {
                 if (candidates[i].Item2 < lowestTotalVariation)
                 {

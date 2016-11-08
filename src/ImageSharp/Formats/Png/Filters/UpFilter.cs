@@ -37,15 +37,16 @@ namespace ImageSharp.Formats
         /// Encodes the scanline
         /// </summary>
         /// <param name="scanline">The scanline to encode</param>
+        /// <param name="bytesPerScanline">The number of bytes per scanline</param>
         /// <param name="previousScanline">The previous scanline.</param>
         /// <returns>The <see cref="T:byte[]"/></returns>
-        public static byte[] Encode(byte[] scanline, byte[] previousScanline)
+        public static byte[] Encode(byte[] scanline, int bytesPerScanline, byte[] previousScanline)
         {
             // Up(x) = Raw(x) - Prior(x)
-            byte[] encodedScanline = new byte[scanline.Length + 1];
+            byte[] encodedScanline = new byte[bytesPerScanline + 1];
             encodedScanline[0] = (byte)FilterType.Up;
 
-            for (int x = 0; x < scanline.Length; x++)
+            for (int x = 0; x < bytesPerScanline; x++)
             {
                 byte above = previousScanline[x];
 

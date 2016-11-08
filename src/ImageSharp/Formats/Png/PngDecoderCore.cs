@@ -266,9 +266,9 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-        /// <param name="pixelData">The pixel data.</param>
-        /// <param name="pixels">The image pixels.</param>
-        private void DecodePixelData<TColor, TPacked>(Stream pixelData, PixelAccessor<TColor, TPacked> pixels)
+        /// <param name="compressedStream">The compressed pixel data stream.</param>
+        /// <param name="pixels">The image pixel accessor.</param>
+        private void DecodePixelData<TColor, TPacked>(Stream compressedStream, PixelAccessor<TColor, TPacked> pixels)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
@@ -277,7 +277,7 @@ namespace ImageSharp.Formats
             byte[] scanline = new byte[this.bytesPerScanline];
             for (int y = 0; y < this.header.Height; y++)
             {
-                pixelData.Read(scanline, 0, this.bytesPerScanline);
+                compressedStream.Read(scanline, 0, this.bytesPerScanline);
 
                 FilterType filterType = (FilterType)scanline[0];
                 byte[] defilteredScanline;

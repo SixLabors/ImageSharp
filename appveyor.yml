@@ -18,6 +18,7 @@ install:
 - "SET PATH=C:\\Program Files\\dotnet\\bin;%PATH%"
 
 - ps: .\build\appveyor-semver.ps1
+- ps: Update-AppveyorBuild -Version "v$Env:appveyor_version"
 
 assembly_info:
   patch: true

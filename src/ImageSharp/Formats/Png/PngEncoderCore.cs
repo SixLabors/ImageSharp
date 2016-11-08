@@ -174,6 +174,7 @@ namespace ImageSharp.Formats
             this.WriteHeaderChunk(stream, header);
 
             // Collect the pixel data
+            // TODO: Avoid doing this all at once and try row by row.
             if (this.PngColorType == PngColorType.Palette)
             {
                 this.CollectIndexedBytes(image, stream, header);
@@ -328,38 +329,17 @@ namespace ImageSharp.Formats
         /// Encodes the pixel data line by line.
         /// Each scanline is encoded in the most optimal manner to improve compression.
         /// </summary>
+        /// <param name="row">The row.</param>
+        /// <param name="previousScanline">The previous scanline.</param>
+        /// <param name="rawScanline">The raw scanline.</param>
+        /// <param name="bytesPerScanline">The number of bytes per scanline.</param>
         /// <returns>The <see cref="T:byte[]"/></returns>
-        private byte[] EncodePixelData()
+        private byte[] EncodePixelRow(int row, byte[] previousScanline, byte[] rawScanline, int bytesPerScanline)
         {
-            byte[][] filteredScanlines = new byte[this.height][];
-            int bytesPerScanline = this.width * this.bytesPerPixel;
-            int length = 0;
+            Buffer.BlockCopy(this.pixelData, row * bytesPerScanline, rawScanline, 0, bytesPerScanline);
+            byte[] filteredScanline = this.GetOptimalFilteredScanline(rawScanline, previousScanline, bytesPerScanline, this.bytesPerPixel);
 
-            byte[] previousScanline = new byte[bytesPerScanline];
-            byte[] rawScanline = new byte[bytesPerScanline];
-
-            for (int y = 0; y < this.height; y++)
-            {
-                Buffer.BlockCopy(this.pixelData, y * bytesPerScanline, rawScanline, 0, bytesPerScanline);
-                byte[] filteredScanline = this.GetOptimalFilteredScanline(rawScanline, previousScanline, bytesPerScanline, this.bytesPerPixel);
-                length += filteredScanline.Length;
-                filteredScanlines[y] = filteredScanline;
-
-                // Do a bit of shuffling;
-                byte[] tmp = rawScanline;
-                rawScanline = previousScanline;
-                previousScanline = tmp;
-            }
-
-            // Flatten the jagged array
-            byte[] result = new byte[length];
-            for (int i = 0; i < this.height; i++)
-            {
-                int len = filteredScanlines[i].Length;
-                Buffer.BlockCopy(filteredScanlines[i], 0, result, i * len, len);
-            }
-
-            return result;
+            return filteredScanline;
         }
 
         /// <summary>
@@ -590,28 +570,39 @@ namespace ImageSharp.Formats
 
         /// <summary>
         /// Writes the pixel information to the stream.
-        /// TODO: This is WHACK! We should be able to do this without creating yet another array. 
         /// </summary>
         /// <param name="stream">The stream.</param>
         private void WriteDataChunks(Stream stream)
         {
-            byte[] data = this.EncodePixelData();
+            int bytesPerScanline = this.width * this.bytesPerPixel;
+
+            // TODO: These could be rented
+            byte[] previousScanline = new byte[bytesPerScanline];
+            byte[] rawScanline = new byte[bytesPerScanline];
 
             byte[] buffer;
             int bufferLength;
-
             MemoryStream memoryStream = null;
             try
             {
                 memoryStream = new MemoryStream();
-
                 using (ZlibDeflateStream deflateStream = new ZlibDeflateStream(memoryStream, this.CompressionLevel))
                 {
-                    deflateStream.Write(data, 0, data.Length);
-                }
+                    for (int y = 0; y < this.height; y++)
+                    {
+                        byte[] data = this.EncodePixelRow(y, previousScanline, rawScanline, bytesPerScanline);
+                        deflateStream.Write(data, 0, data.Length);
+                        deflateStream.Flush();
 
-                bufferLength = (int)memoryStream.Length;
-                buffer = memoryStream.ToArray();
+                        // Do a bit of shuffling;
+                        byte[] tmp = rawScanline;
+                        rawScanline = previousScanline;
+                        previousScanline = tmp;
+                    }
+
+                    bufferLength = (int)memoryStream.Length;
+                    buffer = memoryStream.ToArray();
+                }
             }
             finally
             {

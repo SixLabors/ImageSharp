@@ -331,18 +331,24 @@ namespace ImageSharp.Formats
         /// <returns>The <see cref="T:byte[]"/></returns>
         private byte[] EncodePixelData()
         {
-            // TODO: Use pointers
             byte[][] filteredScanlines = new byte[this.height][];
-            byte[] previousScanline = new byte[this.width * this.bytesPerPixel];
+            int bytesPerScanline = this.width * this.bytesPerPixel;
             int length = 0;
+
+            byte[] previousScanline = new byte[bytesPerScanline];
+            byte[] rawScanline = new byte[bytesPerScanline];
+
             for (int y = 0; y < this.height; y++)
             {
-                byte[] rawScanline = this.GetRawScanline(y);
-                byte[] filteredScanline = this.GetOptimalFilteredScanline(rawScanline, previousScanline, this.bytesPerPixel);
+                Buffer.BlockCopy(this.pixelData, y * bytesPerScanline, rawScanline, 0, bytesPerScanline);
+                byte[] filteredScanline = this.GetOptimalFilteredScanline(rawScanline, previousScanline, bytesPerScanline, this.bytesPerPixel);
                 length += filteredScanline.Length;
                 filteredScanlines[y] = filteredScanline;
 
-                previousScanline = rawScanline;
+                // Do a bit of shuffling;
+                byte[] tmp = rawScanline;
+                rawScanline = previousScanline;
+                previousScanline = tmp;
             }
 
             // Flatten the jagged array
@@ -362,22 +368,23 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="rawScanline">The raw scanline</param>
         /// <param name="previousScanline">The previous scanline</param>
-        /// <param name="byteCount">The number of bytes per pixel</param>
+        /// <param name="bytesPerScanline">The number of bytes per scanline</param>
+        /// <param name="bytesPerPixel">The number of bytes per pixel</param>
         /// <returns>The <see cref="T:byte[]"/></returns>
-        private byte[] GetOptimalFilteredScanline(byte[] rawScanline, byte[] previousScanline, int byteCount)
+        private byte[] GetOptimalFilteredScanline(byte[] rawScanline, byte[] previousScanline, int bytesPerScanline, int bytesPerPixel)
         {
             Tuple<byte[], int>[] candidates = new Tuple<byte[], int>[4];
 
-            byte[] sub = SubFilter.Encode(rawScanline, byteCount);
+            byte[] sub = SubFilter.Encode(rawScanline, bytesPerPixel, bytesPerScanline);
             candidates[0] = new Tuple<byte[], int>(sub, this.CalculateTotalVariation(sub));
 
-            byte[] up = UpFilter.Encode(rawScanline, previousScanline);
+            byte[] up = UpFilter.Encode(rawScanline, bytesPerScanline, previousScanline);
             candidates[1] = new Tuple<byte[], int>(up, this.CalculateTotalVariation(up));
 
-            byte[] average = AverageFilter.Encode(rawScanline, previousScanline, byteCount);
+            byte[] average = AverageFilter.Encode(rawScanline, previousScanline, bytesPerPixel, bytesPerScanline);
             candidates[2] = new Tuple<byte[], int>(average, this.CalculateTotalVariation(average));
 
-            byte[] paeth = PaethFilter.Encode(rawScanline, previousScanline, byteCount);
+            byte[] paeth = PaethFilter.Encode(rawScanline, previousScanline, bytesPerPixel, bytesPerScanline);
             candidates[3] = new Tuple<byte[], int>(paeth, this.CalculateTotalVariation(paeth));
 
             int lowestTotalVariation = int.MaxValue;
@@ -411,19 +418,6 @@ namespace ImageSharp.Formats
             }
 
             return totalVariation;
-        }
-
-        /// <summary>
-        /// Get the raw scanline data from the pixel data
-        /// </summary>
-        /// <param name="y">The row number</param>
-        /// <returns>The <see cref="T:byte[]"/></returns>
-        private byte[] GetRawScanline(int y)
-        {
-            int stride = this.bytesPerPixel * this.width;
-            byte[] rawScanline = new byte[stride];
-            Buffer.BlockCopy(this.pixelData, y * stride, rawScanline, 0, stride);
-            return rawScanline;
         }
 
         /// <summary>

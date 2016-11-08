@@ -59,7 +59,7 @@ namespace ImageSharp.Formats
             this.currentStream = stream;
 
             // Skip the identifier
-            this.currentStream.Seek(6, SeekOrigin.Current);
+            this.currentStream.Skip(6);
             this.ReadLogicalScreenDescriptor();
 
             if (this.logicalScreenDescriptor.GlobalColorTableFlag)
@@ -192,13 +192,13 @@ namespace ImageSharp.Formats
         /// <param name="length">The number of bytes to skip.</param>
         private void Skip(int length)
         {
-            this.currentStream.Seek(length, SeekOrigin.Current);
+            this.currentStream.Skip(length);
 
             int flag;
 
             while ((flag = this.currentStream.ReadByte()) != 0)
             {
-                this.currentStream.Seek(flag, SeekOrigin.Current);
+                this.currentStream.Skip(flag);
             }
         }
 

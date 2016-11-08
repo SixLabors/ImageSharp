@@ -2,6 +2,7 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
+
 namespace ImageSharp.Formats
 {
     using System;
@@ -203,7 +204,7 @@ namespace ImageSharp.Formats
         {
             byte[] buffer = BitConverter.GetBytes(value);
 
-            Array.Reverse(buffer);
+            buffer.ReverseBytes();
             Buffer.BlockCopy(buffer, 0, data, offset, 4);
         }
 
@@ -216,8 +217,7 @@ namespace ImageSharp.Formats
         {
             byte[] buffer = BitConverter.GetBytes(value);
 
-            Array.Reverse(buffer);
-
+            buffer.ReverseBytes();
             stream.Write(buffer, 0, 4);
         }
 
@@ -230,8 +230,7 @@ namespace ImageSharp.Formats
         {
             byte[] buffer = BitConverter.GetBytes(value);
 
-            Array.Reverse(buffer);
-
+            buffer.ReverseBytes();
             stream.Write(buffer, 0, 4);
         }
 

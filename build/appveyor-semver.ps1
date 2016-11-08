@@ -10,6 +10,7 @@ $appveyor_version = $mssemver
 $Env:semver = $semver
 $Env:mssemver = $mssemver
 $Env:appveyor_version = $appveyor_version
+$Env:ms_file_version = $version.ToString()
 
 "Envrionment variable 'semver' set:" + $Env:semver
 "Envrionment variable 'mssemver' set:" + $Env:mssemver

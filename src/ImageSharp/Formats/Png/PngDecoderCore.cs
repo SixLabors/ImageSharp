@@ -116,7 +116,7 @@ namespace ImageSharp.Formats
         {
             Image<TColor, TPacked> currentImage = image;
             this.currentStream = stream;
-            this.currentStream.Seek(8, SeekOrigin.Current);
+            this.currentStream.Skip(8);
 
             bool isEndChunkReached = false;
 

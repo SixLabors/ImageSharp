@@ -24,6 +24,17 @@ namespace ImageSharp.Formats
         private const int MaxBlockSize = 65535;
 
         /// <summary>
+        /// Reusable buffer for writing chunk types.
+        /// </summary>
+        private readonly byte[] chunkTypeBuffer = new byte[4];
+
+        /// <summary>
+        /// Reusable buffer for writing chunk data.
+        /// </summary>
+        private readonly byte[] chunkDataBuffer = new byte[16];
+
+
+        /// <summary>
         /// Contains the raw pixel data from the image.
         /// </summary>
         private byte[] pixelData;
@@ -193,7 +204,7 @@ namespace ImageSharp.Formats
             byte[] buffer = BitConverter.GetBytes(value);
 
             Array.Reverse(buffer);
-            Array.Copy(buffer, 0, data, offset, 4);
+            Buffer.BlockCopy(buffer, 0, data, offset, 4);
         }
 
         /// <summary>
@@ -412,7 +423,7 @@ namespace ImageSharp.Formats
         {
             int stride = this.bytesPerPixel * this.width;
             byte[] rawScanline = new byte[stride];
-            Array.Copy(this.pixelData, y * stride, rawScanline, 0, stride);
+            Buffer.BlockCopy(this.pixelData, y * stride, rawScanline, 0, stride);
             return rawScanline;
         }
 
@@ -451,18 +462,16 @@ namespace ImageSharp.Formats
         /// <param name="header">The <see cref="PngHeader"/>.</param>
         private void WriteHeaderChunk(Stream stream, PngHeader header)
         {
-            byte[] chunkData = new byte[13];
+            WriteInteger(this.chunkDataBuffer, 0, header.Width);
+            WriteInteger(this.chunkDataBuffer, 4, header.Height);
 
-            WriteInteger(chunkData, 0, header.Width);
-            WriteInteger(chunkData, 4, header.Height);
+            this.chunkDataBuffer[8] = header.BitDepth;
+            this.chunkDataBuffer[9] = header.ColorType;
+            this.chunkDataBuffer[10] = header.CompressionMethod;
+            this.chunkDataBuffer[11] = header.FilterMethod;
+            this.chunkDataBuffer[12] = header.InterlaceMethod;
 
-            chunkData[8] = header.BitDepth;
-            chunkData[9] = header.ColorType;
-            chunkData[10] = header.CompressionMethod;
-            chunkData[11] = header.FilterMethod;
-            chunkData[12] = header.InterlaceMethod;
-
-            this.WriteChunk(stream, PngChunkTypes.Header, chunkData);
+            this.WriteChunk(stream, PngChunkTypes.Header, this.chunkDataBuffer, 0, 13);
         }
 
         /// <summary>
@@ -556,14 +565,12 @@ namespace ImageSharp.Formats
                 int dpmX = (int)Math.Round(image.HorizontalResolution * 39.3700787D);
                 int dpmY = (int)Math.Round(image.VerticalResolution * 39.3700787D);
 
-                byte[] chunkData = new byte[9];
+                WriteInteger(this.chunkDataBuffer, 0, dpmX);
+                WriteInteger(this.chunkDataBuffer, 4, dpmY);
 
-                WriteInteger(chunkData, 0, dpmX);
-                WriteInteger(chunkData, 4, dpmY);
+                this.chunkDataBuffer[8] = 1;
 
-                chunkData[8] = 1;
-
-                this.WriteChunk(stream, PngChunkTypes.Physical, chunkData);
+                this.WriteChunk(stream, PngChunkTypes.Physical, this.chunkDataBuffer, 0, 9);
             }
         }
 
@@ -575,18 +582,16 @@ namespace ImageSharp.Formats
         {
             if (this.WriteGamma)
             {
-                int gammaValue = (int)(this.Gamma * 100000f);
-
-                byte[] fourByteData = new byte[4];
+                int gammaValue = (int)(this.Gamma * 100000F);
 
                 byte[] size = BitConverter.GetBytes(gammaValue);
 
-                fourByteData[0] = size[3];
-                fourByteData[1] = size[2];
-                fourByteData[2] = size[1];
-                fourByteData[3] = size[0];
+                this.chunkDataBuffer[0] = size[3];
+                this.chunkDataBuffer[1] = size[2];
+                this.chunkDataBuffer[2] = size[1];
+                this.chunkDataBuffer[3] = size[0];
 
-                this.WriteChunk(stream, PngChunkTypes.Gamma, fourByteData);
+                this.WriteChunk(stream, PngChunkTypes.Gamma, this.chunkDataBuffer, 0, 4);
             }
         }
 
@@ -660,7 +665,7 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Writes a chunk  of a specified length to the stream at the given offset.
+        /// Writes a chunk of a specified length to the stream at the given offset.
         /// </summary>
         /// <param name="stream">The <see cref="Stream"/> to write to.</param>
         /// <param name="type">The type of chunk to write.</param>
@@ -669,26 +674,24 @@ namespace ImageSharp.Formats
         /// <param name="length">The of the data to write.</param>
         private void WriteChunk(Stream stream, string type, byte[] data, int offset, int length)
         {
+            // Chunk length
             WriteInteger(stream, length);
 
-            byte[] typeArray = new byte[4];
-            typeArray[0] = (byte)type[0];
-            typeArray[1] = (byte)type[1];
-            typeArray[2] = (byte)type[2];
-            typeArray[3] = (byte)type[3];
+            // Chunk type
+            this.chunkTypeBuffer[0] = (byte)type[0];
+            this.chunkTypeBuffer[1] = (byte)type[1];
+            this.chunkTypeBuffer[2] = (byte)type[2];
+            this.chunkTypeBuffer[3] = (byte)type[3];
 
-            stream.Write(typeArray, 0, 4);
+            stream.Write(this.chunkTypeBuffer, 0, 4);
 
+            Crc32 crc32 = new Crc32();
+            crc32.Update(this.chunkTypeBuffer);
+
+            // Chunk data
             if (data != null)
             {
                 stream.Write(data, offset, length);
-            }
-
-            Crc32 crc32 = new Crc32();
-            crc32.Update(typeArray);
-
-            if (data != null)
-            {
                 crc32.Update(data, offset, length);
             }
 

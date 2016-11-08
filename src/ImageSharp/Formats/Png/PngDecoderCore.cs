@@ -184,8 +184,8 @@ namespace ImageSharp.Formats
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
-            this.ReverseBytes(data, 0, 4);
-            this.ReverseBytes(data, 4, 4);
+            data.ReverseBytes(0, 4);
+            data.ReverseBytes(4, 4);
 
             // 39.3700787 = inches in a meter.
             image.HorizontalResolution = BitConverter.ToInt32(data, 0) / 39.3700787d;
@@ -482,8 +482,8 @@ namespace ImageSharp.Formats
         {
             this.header = new PngHeader();
 
-            this.ReverseBytes(data, 0, 4);
-            this.ReverseBytes(data, 4, 4);
+            data.ReverseBytes(0, 4);
+            data.ReverseBytes(4, 4);
 
             this.header.Width = BitConverter.ToInt32(data, 0);
             this.header.Height = BitConverter.ToInt32(data, 4);
@@ -569,7 +569,7 @@ namespace ImageSharp.Formats
                 throw new ImageFormatException("Image stream is not valid!");
             }
 
-            this.ReverseBytes(this.crcBuffer);
+            this.crcBuffer.ReverseBytes();
 
             chunk.Crc = BitConverter.ToUInt32(this.crcBuffer, 0);
 
@@ -634,40 +634,11 @@ namespace ImageSharp.Formats
                 throw new ImageFormatException("Image stream is not valid!");
             }
 
-            this.ReverseBytes(this.chunkLengthBuffer);
+            this.chunkLengthBuffer.ReverseBytes();
 
             chunk.Length = BitConverter.ToInt32(this.chunkLengthBuffer, 0);
 
             return numBytes;
-        }
-
-        /// <summary>
-        /// Optimized <see cref="T:byte[]"/> reversal algorithm.
-        /// </summary>
-        /// <param name="source">The byte array.</param>
-        private void ReverseBytes(byte[] source)
-        {
-            this.ReverseBytes(source, 0, source.Length);
-        }
-
-        /// <summary>
-        /// Optimized <see cref="T:byte[]"/> reversal algorithm.
-        /// </summary>
-        /// <param name="source">The byte array.</param>
-        /// <param name="index">The index.</param>
-        /// <param name="length">The length.</param>
-        private void ReverseBytes(byte[] source, int index, int length)
-        {
-            int i = index;
-            int j = index + length - 1;
-            while (i < j)
-            {
-                byte temp = source[i];
-                source[i] = source[j];
-                source[j] = temp;
-                i++;
-                j--;
-            }
         }
     }
 }

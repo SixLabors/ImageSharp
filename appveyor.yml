@@ -23,8 +23,8 @@ install:
 assembly_info:
   patch: true
   file: '**\AssemblyInfo.*'
-  assembly_version: '$(appveyor_build_version)'
-  assembly_file_version: '$(appveyor_build_version)'
+  assembly_version: '$(appveyor_version)'
+  assembly_file_version: '$(appveyor_version)'
   assembly_informational_version: '$(mssemver)'
 
 before_build:

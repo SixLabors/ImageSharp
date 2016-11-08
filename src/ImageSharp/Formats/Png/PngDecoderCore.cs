@@ -129,35 +129,31 @@ namespace ImageSharp.Formats
                         throw new ImageFormatException("Image does not end with end chunk.");
                     }
 
-                    if (currentChunk.Type == PngChunkTypes.Header)
+                    switch (currentChunk.Type)
                     {
-                        this.ReadHeaderChunk(currentChunk.Data);
-                        this.ValidateHeader();
-                    }
-                    else if (currentChunk.Type == PngChunkTypes.Physical)
-                    {
-                        this.ReadPhysicalChunk(currentImage, currentChunk.Data);
-                    }
-                    else if (currentChunk.Type == PngChunkTypes.Data)
-                    {
-                        dataStream.Write(currentChunk.Data, 0, currentChunk.Data.Length);
-                    }
-                    else if (currentChunk.Type == PngChunkTypes.Palette)
-                    {
-                        this.palette = currentChunk.Data;
-                        image.Quality = this.palette.Length / 3;
-                    }
-                    else if (currentChunk.Type == PngChunkTypes.PaletteAlpha)
-                    {
-                        this.paletteAlpha = currentChunk.Data;
-                    }
-                    else if (currentChunk.Type == PngChunkTypes.Text)
-                    {
-                        this.ReadTextChunk(currentImage, currentChunk.Data);
-                    }
-                    else if (currentChunk.Type == PngChunkTypes.End)
-                    {
-                        isEndChunkReached = true;
+                        case PngChunkTypes.Header:
+                            this.ReadHeaderChunk(currentChunk.Data);
+                            this.ValidateHeader();
+                            break;
+                        case PngChunkTypes.Physical:
+                            this.ReadPhysicalChunk(currentImage, currentChunk.Data);
+                            break;
+                        case PngChunkTypes.Data:
+                            dataStream.Write(currentChunk.Data, 0, currentChunk.Data.Length);
+                            break;
+                        case PngChunkTypes.Palette:
+                            this.palette = currentChunk.Data;
+                            image.Quality = this.palette.Length / 3;
+                            break;
+                        case PngChunkTypes.PaletteAlpha:
+                            this.paletteAlpha = currentChunk.Data;
+                            break;
+                        case PngChunkTypes.Text:
+                            this.ReadTextChunk(currentImage, currentChunk.Data);
+                            break;
+                        case PngChunkTypes.End:
+                            isEndChunkReached = true;
+                            break;
                     }
                 }
 
@@ -262,18 +258,7 @@ namespace ImageSharp.Formats
             dataStream.Position = 0;
             using (ZlibInflateStream compressedStream = new ZlibInflateStream(dataStream))
             {
-                using (MemoryStream decompressedStream = new MemoryStream())
-                {
-                    compressedStream.CopyTo(decompressedStream);
-                    decompressedStream.Flush();
-                    decompressedStream.Position = 0;
-                    this.DecodePixelData(decompressedStream, pixels);
-                    //byte[] decompressedBytes = decompressedStream.ToArray();
-                    //this.DecodePixelData(decompressedBytes, pixels);
-                }
-
-                //byte[] decompressedBytes = compressedStream.ToArray();
-                //this.DecodePixelData(decompressedBytes, pixels);
+                this.DecodePixelData(compressedStream, pixels);
             }
         }
 
@@ -298,6 +283,7 @@ namespace ImageSharp.Formats
                 FilterType filterType = (FilterType)scanline[0];
                 byte[] defilteredScanline;
 
+                // TODO: It would be good if we can reduce the memory usage here. Each filter is creating a new row.
                 switch (filterType)
                 {
                     case FilterType.None:

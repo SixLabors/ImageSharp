@@ -11,6 +11,11 @@ namespace ImageSharp
     {
         public static void Skip(this Stream stream, int count)
         {
+            if (count < 1)
+            {
+                return;
+            }
+
             if (stream.CanSeek)
             {
                 stream.Position += count;

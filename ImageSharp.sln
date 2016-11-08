@@ -12,6 +12,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionItems", "{C317F1B1-D75E-4C6D-83EB-80367343E0D7}"
 	ProjectSection(SolutionItems) = preProject
 		build\appveyor-project-version-patch.js = build\appveyor-project-version-patch.js
+		build\appveyor-semver.ps1 = build\appveyor-semver.ps1
 		appveyor.yml = appveyor.yml
 		build\dotnet-latest.ps1 = build\dotnet-latest.ps1
 		global.json = global.json

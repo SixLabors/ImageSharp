@@ -3,7 +3,11 @@ os: Visual Studio 2015
 
 init:
   - ps: iex ((new-object net.webclient).DownloadString('https://gist.githubusercontent.com/PureKrome/0f79e25693d574807939/raw/8cf3160c9516ef1f4effc825c0a44acc918a0b5a/appveyor-build-info.ps'))
-  
+
+environment:
+  # Version Suffix
+  version_suffix: alpha
+
 install:
 # Use the install script to grab the latest dotnet install
 - ps: iex .\dotnet-latest.ps1
@@ -13,11 +17,14 @@ install:
 # the parent CMD process).
 - "SET PATH=C:\\Program Files\\dotnet\\bin;%PATH%"
 
+- ps: .\build\appveyor-semver.ps1
+
 assembly_info:
   patch: true
   file: '**\AssemblyInfo.*'
-  assembly_version: '1.0.0.{build}'
-  assembly_file_version: '1.0.0.{build}'
+  assembly_version: '$(appveyor_build_version)'
+  assembly_file_version: '$(appveyor_build_version)'
+  assembly_informational_version: '$(mssemver)'
 
 before_build:
 - cmd: >-

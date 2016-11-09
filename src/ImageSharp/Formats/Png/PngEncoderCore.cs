@@ -361,24 +361,36 @@ namespace ImageSharp.Formats
         /// <returns>The <see cref="T:byte[]"/></returns>
         private byte[] GetOptimalFilteredScanline(byte[] rawScanline, byte[] previousScanline, int bytesPerScanline, int bytesPerPixel)
         {
-            Tuple<byte[], int>[] candidates = new Tuple<byte[], int>[4];
+            Tuple<byte[], int>[] candidates;
 
-            byte[] sub = SubFilter.Encode(rawScanline, bytesPerPixel, bytesPerScanline);
-            candidates[0] = new Tuple<byte[], int>(sub, this.CalculateTotalVariation(sub));
+            if (this.PngColorType == PngColorType.Palette)
+            {
+                candidates = new Tuple<byte[], int>[4];
 
-            byte[] up = UpFilter.Encode(rawScanline, bytesPerScanline, previousScanline);
-            candidates[1] = new Tuple<byte[], int>(up, this.CalculateTotalVariation(up));
+                byte[] none = NoneFilter.Encode(rawScanline);
+                candidates[0] = new Tuple<byte[], int>(none, this.CalculateTotalVariation(none));
+            }
+            else
+            {
+                candidates = new Tuple<byte[], int>[4];
 
-            byte[] average = AverageFilter.Encode(rawScanline, previousScanline, bytesPerPixel, bytesPerScanline);
-            candidates[2] = new Tuple<byte[], int>(average, this.CalculateTotalVariation(average));
+                byte[] sub = SubFilter.Encode(rawScanline, bytesPerPixel, bytesPerScanline);
+                candidates[0] = new Tuple<byte[], int>(sub, this.CalculateTotalVariation(sub));
 
-            byte[] paeth = PaethFilter.Encode(rawScanline, previousScanline, bytesPerPixel, bytesPerScanline);
-            candidates[3] = new Tuple<byte[], int>(paeth, this.CalculateTotalVariation(paeth));
+                byte[] up = UpFilter.Encode(rawScanline, bytesPerScanline, previousScanline);
+                candidates[1] = new Tuple<byte[], int>(up, this.CalculateTotalVariation(up));
+
+                byte[] average = AverageFilter.Encode(rawScanline, previousScanline, bytesPerPixel, bytesPerScanline);
+                candidates[2] = new Tuple<byte[], int>(average, this.CalculateTotalVariation(average));
+
+                byte[] paeth = PaethFilter.Encode(rawScanline, previousScanline, bytesPerPixel, bytesPerScanline);
+                candidates[3] = new Tuple<byte[], int>(paeth, this.CalculateTotalVariation(paeth));
+            }
 
             int lowestTotalVariation = int.MaxValue;
             int lowestTotalVariationIndex = 0;
 
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < candidates.Length; i++)
             {
                 if (candidates[i].Item2 < lowestTotalVariation)
                 {

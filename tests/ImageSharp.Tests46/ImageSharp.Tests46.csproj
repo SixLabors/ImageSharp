@@ -1,0 +1,158 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{635E0A15-3893-4763-A7F6-FCCFF85BCCA4}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>ImageSharp.Tests46</RootNamespace>
+    <AssemblyName>ImageSharp.Tests46</AssemblyName>
+    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Numerics.Vectors" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+    <Reference Include="xunit.abstractions, Version=2.0.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\xunit.abstractions.2.0.0\lib\net35\xunit.abstractions.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="xunit.assert, Version=2.1.0.3179, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\xunit.assert.2.1.0\lib\dotnet\xunit.assert.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="xunit.core, Version=2.1.0.3179, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\xunit.extensibility.core.2.1.0\lib\dotnet\xunit.core.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="xunit.execution.desktop, Version=2.1.0.3179, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\xunit.extensibility.execution.2.1.0\lib\net45\xunit.execution.desktop.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Benchmark\DecodeJpeg.cs" />
+    <Compile Include="Colors\ColorConversionTests.cs" />
+    <Compile Include="Colors\ColorTests.cs" />
+    <Compile Include="FileTestBase.cs" />
+    <Compile Include="Formats\Bmp\BitmapTests.cs" />
+    <Compile Include="Formats\GeneralFormatTests.cs" />
+    <Compile Include="Formats\Png\PngTests.cs" />
+    <Compile Include="Helpers\GuardTests.cs" />
+    <Compile Include="Image\ImagePropertyTests.cs" />
+    <Compile Include="Image\PixelAccessorTests.cs" />
+    <Compile Include="Numerics\PointTests.cs" />
+    <Compile Include="Numerics\RationalTests.cs" />
+    <Compile Include="Numerics\RectangleTests.cs" />
+    <Compile Include="Numerics\SignedRationalTests.cs" />
+    <Compile Include="Numerics\SizeTests.cs" />
+    <Compile Include="Processors\Filters\AlphaTest.cs" />
+    <Compile Include="Processors\Filters\BackgroundColorTest.cs" />
+    <Compile Include="Processors\Filters\BinaryThreshold.cs" />
+    <Compile Include="Processors\Filters\BlackWhiteTest.cs" />
+    <Compile Include="Processors\Filters\BlendTest.cs" />
+    <Compile Include="Processors\Filters\BoxBlurTest.cs" />
+    <Compile Include="Processors\Filters\BrightnessTest.cs" />
+    <Compile Include="Processors\Filters\ColorBlindnessTest.cs" />
+    <Compile Include="Processors\Filters\ContrastTest.cs" />
+    <Compile Include="Processors\Filters\GlowTest.cs" />
+    <Compile Include="Processors\Filters\GrayscaleTest.cs" />
+    <Compile Include="Processors\Filters\HueTest.cs" />
+    <Compile Include="Processors\Filters\InvertTest.cs" />
+    <Compile Include="Processors\Filters\KodachromeTest.cs" />
+    <Compile Include="Processors\Filters\LomographTest.cs" />
+    <Compile Include="Processors\Filters\PolaroidTest.cs" />
+    <Compile Include="Processors\Filters\SaturationTest.cs" />
+    <Compile Include="Processors\Filters\SepiaTest.cs" />
+    <Compile Include="Processors\Filters\VignetteTest.cs" />
+    <Compile Include="Processors\Samplers\AutoOrientTests.cs" />
+    <Compile Include="Processors\Samplers\CropTest.cs" />
+    <Compile Include="Processors\Samplers\DetectEdgesTest.cs" />
+    <Compile Include="Processors\Samplers\EntropyCropTest.cs" />
+    <Compile Include="Processors\Samplers\FlipTests.cs" />
+    <Compile Include="Processors\Samplers\GuassianBlurTest.cs" />
+    <Compile Include="Processors\Samplers\GuassianSharpenTest.cs" />
+    <Compile Include="Processors\Samplers\OilPaintTest.cs" />
+    <Compile Include="Processors\Samplers\PadTest.cs" />
+    <Compile Include="Processors\Samplers\PixelateTest.cs" />
+    <Compile Include="Processors\Samplers\ResizeTests.cs" />
+    <Compile Include="Processors\Samplers\RotateFlipTest.cs" />
+    <Compile Include="Processors\Samplers\RotateTest.cs" />
+    <Compile Include="Processors\Samplers\SkewTest.cs" />
+    <Compile Include="Profiles\Exif\ExifProfileTests.cs" />
+    <Compile Include="Profiles\Exif\ExifTagDescriptionAttributeTests.cs" />
+    <Compile Include="Profiles\Exif\ExifValueTests.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TestFile.cs" />
+    <Compile Include="TestImages.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ImageSharp46\ImageSharp46.csproj">
+      <Project>{fba0b5f6-09c2-4317-8ef6-6adb9b20e6b1}</Project>
+      <Name>ImageSharp46</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="TestImages\Formats\Bmp\Car.bmp" />
+    <Content Include="TestImages\Formats\Bmp\F.bmp" />
+    <Content Include="TestImages\Formats\Bmp\neg_height.bmp" />
+    <Content Include="TestImages\Formats\Gif\giphy.gif" />
+    <Content Include="TestImages\Formats\Gif\rings.gif" />
+    <Content Include="TestImages\Formats\Jpg\Calliphora.jpg" />
+    <Content Include="TestImages\Formats\Jpg\cmyk.jpg" />
+    <Content Include="TestImages\Formats\Jpg\exif.jpg" />
+    <Content Include="TestImages\Formats\Jpg\fb.jpg" />
+    <Content Include="TestImages\Formats\Jpg\Floorplan.jpeg" />
+    <Content Include="TestImages\Formats\Jpg\gamma_dalai_lama_gray.jpg" />
+    <Content Include="TestImages\Formats\Jpg\progress.jpg" />
+    <Content Include="TestImages\Formats\Jpg\turtle.jpg" />
+    <Content Include="TestImages\Formats\Png\blur.png" />
+    <Content Include="TestImages\Formats\Png\indexed.png" />
+    <Content Include="TestImages\Formats\Png\pd.png" />
+    <Content Include="TestImages\Formats\Png\pl.png" />
+    <Content Include="TestImages\Formats\Png\splash.png" />
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

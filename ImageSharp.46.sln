@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageSharp46", "src\ImageSharp46\ImageSharp46.csproj", "{FBA0B5F6-09C2-4317-8EF6-6ADB9B20E6B1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageSharp.Tests46", "tests\ImageSharp.Tests46\ImageSharp.Tests46.csproj", "{635E0A15-3893-4763-A7F6-FCCFF85BCCA4}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FBA0B5F6-09C2-4317-8EF6-6ADB9B20E6B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FBA0B5F6-09C2-4317-8EF6-6ADB9B20E6B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FBA0B5F6-09C2-4317-8EF6-6ADB9B20E6B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FBA0B5F6-09C2-4317-8EF6-6ADB9B20E6B1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{635E0A15-3893-4763-A7F6-FCCFF85BCCA4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{635E0A15-3893-4763-A7F6-FCCFF85BCCA4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{635E0A15-3893-4763-A7F6-FCCFF85BCCA4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{635E0A15-3893-4763-A7F6-FCCFF85BCCA4}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

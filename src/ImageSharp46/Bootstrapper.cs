@@ -1,0 +1,69 @@
+﻿// <copyright file="Bootstrapper.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
+namespace ImageSharp
+{
+    using System;
+    using System.Collections.Generic;
+    using System.Collections.ObjectModel;
+    using System.Threading.Tasks;
+
+    using Formats;
+
+    /// <summary>
+    /// Provides initialization code which allows extending the library.
+    /// </summary>
+    public class Bootstrapper
+    {
+        /// <summary>
+        /// A new instance Initializes a new instance of the <see cref="Bootstrapper"/> class.
+        /// with lazy initialization.
+        /// </summary>
+        private static readonly Lazy<Bootstrapper> Lazy = new Lazy<Bootstrapper>(() => new Bootstrapper());
+
+        /// <summary>
+        /// The default list of supported <see cref="IImageFormat"/>
+        /// </summary>
+        private readonly List<IImageFormat> imageFormats;
+
+        /// <summary>
+        /// Prevents a default instance of the <see cref="Bootstrapper"/> class from being created.
+        /// </summary>
+        private Bootstrapper()
+        {
+            this.imageFormats = new List<IImageFormat>
+            {
+                new BmpFormat(),
+                new JpegFormat(),
+                new PngFormat(),
+                new GifFormat()
+            };
+        }
+
+        /// <summary>
+        /// Gets the current bootstrapper instance.
+        /// </summary>
+        public static Bootstrapper Instance => Lazy.Value;
+
+        /// <summary>
+        /// Gets the collection of supported <see cref="IImageFormat"/>
+        /// </summary>
+        public IReadOnlyCollection<IImageFormat> ImageFormats => new ReadOnlyCollection<IImageFormat>(this.imageFormats);
+
+        /// <summary>
+        /// Gets or sets the global parallel options for processing tasks in parallel.
+        /// </summary>
+        public ParallelOptions ParallelOptions { get; set; } = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount };
+
+        /// <summary>
+        /// Adds a new <see cref="IImageFormat"/> to the collection of supported image formats.
+        /// </summary>
+        /// <param name="format">The new format to add.</param>
+        public void AddImageFormat(IImageFormat format)
+        {
+            this.imageFormats.Add(format);
+        }
+    }
+}

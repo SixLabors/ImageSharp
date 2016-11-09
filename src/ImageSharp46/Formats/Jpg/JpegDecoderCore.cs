@@ -220,6 +220,7 @@ namespace ImageSharp.Formats
             }
         }
 
+
         /// <summary>
         /// Decodes the image from the specified this._stream and sets
         /// the data to image.

@@ -13,6 +13,8 @@ namespace ImageSharp.Tests
 
     public class PngTests : FileTestBase
     {
+
+
         [Fact]
         public void ImageCanSaveIndexedPng()
         {

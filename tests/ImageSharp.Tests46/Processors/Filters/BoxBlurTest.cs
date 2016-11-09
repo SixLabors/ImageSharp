@@ -9,6 +9,7 @@ namespace ImageSharp.Tests
 
     using Xunit;
 
+
     public class BoxBlurTest : FileTestBase
     {
         public static readonly TheoryData<int> BoxBlurValues

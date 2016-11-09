@@ -4,7 +4,6 @@
 // </copyright>
 
 using System.IO;
-using Xunit.Abstractions;
 
 namespace ImageSharp.Tests
 {

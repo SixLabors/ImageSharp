@@ -7,8 +7,8 @@
     <ProjectGuid>{635E0A15-3893-4763-A7F6-FCCFF85BCCA4}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>ImageSharp.Tests46</RootNamespace>
-    <AssemblyName>ImageSharp.Tests46</AssemblyName>
+    <RootNamespace>ImageSharp.Tests</RootNamespace>
+    <AssemblyName>ImageSharp.Tests</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
@@ -118,6 +118,7 @@
     <Compile Include="TestImages.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="app.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

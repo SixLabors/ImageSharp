@@ -36,9 +36,9 @@ namespace ImageSharp.Formats
 
 
         /// <summary>
-        /// Contains the raw pixel data from the image.
+        /// Contains the raw pixel data from an indexed image.
         /// </summary>
-        private byte[] pixelData;
+        private byte[] palettePixelData;
 
         /// <summary>
         /// The image width.
@@ -118,20 +118,16 @@ namespace ImageSharp.Formats
             this.height = image.Height;
 
             // Write the png header.
-            stream.Write(
-                new byte[]
-                    {
-                    0x89, // Set the high bit.
-                    0x50, // P
-                    0x4E, // N
-                    0x47, // G
-                    0x0D, // Line ending CRLF
-                    0x0A, // Line ending CRLF
-                    0x1A, // EOF
-                    0x0A  // LF
-                    },
-                0,
-                8);
+            this.chunkDataBuffer[0] = 0x89; // Set the high bit.
+            this.chunkDataBuffer[1] = 0x50; // P
+            this.chunkDataBuffer[2] = 0x4E; // N
+            this.chunkDataBuffer[3] = 0x47; // G
+            this.chunkDataBuffer[4] = 0x0D; // Line ending CRLF
+            this.chunkDataBuffer[5] = 0x0A; // Line ending CRLF
+            this.chunkDataBuffer[6] = 0x1A; // EOF
+            this.chunkDataBuffer[7] = 0x0A;  // LF
+
+            stream.Write(this.chunkDataBuffer, 0, 8);
 
             // Ensure that quality can be set but has a fallback.
             int quality = this.Quality > 0 ? this.Quality : image.Quality;
@@ -178,14 +174,6 @@ namespace ImageSharp.Formats
             if (this.PngColorType == PngColorType.Palette)
             {
                 this.CollectIndexedBytes(image, stream, header);
-            }
-            else if (this.PngColorType == PngColorType.Grayscale || this.PngColorType == PngColorType.GrayscaleWithAlpha)
-            {
-                //this.CollectGrayscaleBytes(image);
-            }
-            else
-            {
-                // this.CollectColorBytes(image);
             }
 
             this.WritePhysicalChunk(stream, image);
@@ -247,9 +235,10 @@ namespace ImageSharp.Formats
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
-            // Quatize the image and get the pixels
+            // Quatize the image and get the pixels.
+            // TODO: It might be an idea to add a pixel accessor to QuantizedImage to allow us to work by row.
             QuantizedImage<TColor, TPacked> quantized = this.WritePaletteChunk(stream, header, image);
-            this.pixelData = quantized.Pixels;
+            this.palettePixelData = quantized.Pixels;
         }
 
         /// <summary>
@@ -332,7 +321,7 @@ namespace ImageSharp.Formats
             switch (this.PngColorType)
             {
                 case PngColorType.Palette:
-                    Buffer.BlockCopy(this.pixelData, row * bytesPerScanline, rawScanline, 0, bytesPerScanline);
+                    Buffer.BlockCopy(this.palettePixelData, row * bytesPerScanline, rawScanline, 0, bytesPerScanline);
                     break;
                 case PngColorType.Grayscale:
                 case PngColorType.GrayscaleWithAlpha:

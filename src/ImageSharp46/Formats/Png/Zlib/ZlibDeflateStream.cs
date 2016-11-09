@@ -37,7 +37,9 @@ namespace ImageSharp.Formats
         /// </remarks>
         private bool isDisposed;
 
-        // The stream responsible for decompressing the input stream.
+        /// <summary>
+        /// The stream responsible for compressing the input stream.
+        /// </summary>
         private DeflateStream deflateStream;
 
         /// <summary>

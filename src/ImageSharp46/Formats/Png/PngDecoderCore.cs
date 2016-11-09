@@ -2,6 +2,7 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
+
 namespace ImageSharp.Formats
 {
     using System;
@@ -115,7 +116,7 @@ namespace ImageSharp.Formats
         {
             Image<TColor, TPacked> currentImage = image;
             this.currentStream = stream;
-            this.currentStream.Seek(8, SeekOrigin.Current);
+            this.currentStream.Skip(8);
 
             bool isEndChunkReached = false;
 
@@ -129,35 +130,31 @@ namespace ImageSharp.Formats
                         throw new ImageFormatException("Image does not end with end chunk.");
                     }
 
-                    if (currentChunk.Type == PngChunkTypes.Header)
+                    switch (currentChunk.Type)
                     {
-                        this.ReadHeaderChunk(currentChunk.Data);
-                        this.ValidateHeader();
-                    }
-                    else if (currentChunk.Type == PngChunkTypes.Physical)
-                    {
-                        this.ReadPhysicalChunk(currentImage, currentChunk.Data);
-                    }
-                    else if (currentChunk.Type == PngChunkTypes.Data)
-                    {
-                        dataStream.Write(currentChunk.Data, 0, currentChunk.Data.Length);
-                    }
-                    else if (currentChunk.Type == PngChunkTypes.Palette)
-                    {
-                        this.palette = currentChunk.Data;
-                        image.Quality = this.palette.Length / 3;
-                    }
-                    else if (currentChunk.Type == PngChunkTypes.PaletteAlpha)
-                    {
-                        this.paletteAlpha = currentChunk.Data;
-                    }
-                    else if (currentChunk.Type == PngChunkTypes.Text)
-                    {
-                        this.ReadTextChunk(currentImage, currentChunk.Data);
-                    }
-                    else if (currentChunk.Type == PngChunkTypes.End)
-                    {
-                        isEndChunkReached = true;
+                        case PngChunkTypes.Header:
+                            this.ReadHeaderChunk(currentChunk.Data);
+                            this.ValidateHeader();
+                            break;
+                        case PngChunkTypes.Physical:
+                            this.ReadPhysicalChunk(currentImage, currentChunk.Data);
+                            break;
+                        case PngChunkTypes.Data:
+                            dataStream.Write(currentChunk.Data, 0, currentChunk.Data.Length);
+                            break;
+                        case PngChunkTypes.Palette:
+                            this.palette = currentChunk.Data;
+                            image.Quality = this.palette.Length / 3;
+                            break;
+                        case PngChunkTypes.PaletteAlpha:
+                            this.paletteAlpha = currentChunk.Data;
+                            break;
+                        case PngChunkTypes.Text:
+                            this.ReadTextChunk(currentImage, currentChunk.Data);
+                            break;
+                        case PngChunkTypes.End:
+                            isEndChunkReached = true;
+                            break;
                     }
                 }
 
@@ -188,8 +185,8 @@ namespace ImageSharp.Formats
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
-            this.ReverseBytes(data, 0, 4);
-            this.ReverseBytes(data, 4, 4);
+            data.ReverseBytes(0, 4);
+            data.ReverseBytes(4, 4);
 
             // 39.3700787 = inches in a meter.
             image.HorizontalResolution = BitConverter.ToInt32(data, 0) / 39.3700787d;
@@ -216,8 +213,7 @@ namespace ImageSharp.Formats
                 case PngColorType.Rgb:
                     return 3;
 
-                // PngColorType.RgbWithAlpha
-                // TODO: Maybe figure out a way to detect if there are any transparent pixels and encode RGB if none.
+                // PngColorType.RgbWithAlpha:
                 default:
                     return 4;
             }
@@ -262,18 +258,7 @@ namespace ImageSharp.Formats
             dataStream.Position = 0;
             using (ZlibInflateStream compressedStream = new ZlibInflateStream(dataStream))
             {
-                using (MemoryStream decompressedStream = new MemoryStream())
-                {
-                    compressedStream.CopyTo(decompressedStream);
-                    decompressedStream.Flush();
-                    decompressedStream.Position = 0;
-                    this.DecodePixelData(decompressedStream, pixels);
-                    //byte[] decompressedBytes = decompressedStream.ToArray();
-                    //this.DecodePixelData(decompressedBytes, pixels);
-                }
-
-                //byte[] decompressedBytes = compressedStream.ToArray();
-                //this.DecodePixelData(decompressedBytes, pixels);
+                this.DecodePixelData(compressedStream, pixels);
             }
         }
 
@@ -282,9 +267,9 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-        /// <param name="pixelData">The pixel data.</param>
-        /// <param name="pixels">The image pixels.</param>
-        private void DecodePixelData<TColor, TPacked>(Stream pixelData, PixelAccessor<TColor, TPacked> pixels)
+        /// <param name="compressedStream">The compressed pixel data stream.</param>
+        /// <param name="pixels">The image pixel accessor.</param>
+        private void DecodePixelData<TColor, TPacked>(Stream compressedStream, PixelAccessor<TColor, TPacked> pixels)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
@@ -293,11 +278,12 @@ namespace ImageSharp.Formats
             byte[] scanline = new byte[this.bytesPerScanline];
             for (int y = 0; y < this.header.Height; y++)
             {
-                pixelData.Read(scanline, 0, this.bytesPerScanline);
+                compressedStream.Read(scanline, 0, this.bytesPerScanline);
 
                 FilterType filterType = (FilterType)scanline[0];
                 byte[] defilteredScanline;
 
+                // TODO: It would be good if we can reduce the memory usage here. Each filter is creating a new row.
                 switch (filterType)
                 {
                     case FilterType.None:
@@ -497,8 +483,8 @@ namespace ImageSharp.Formats
         {
             this.header = new PngHeader();
 
-            this.ReverseBytes(data, 0, 4);
-            this.ReverseBytes(data, 4, 4);
+            data.ReverseBytes(0, 4);
+            data.ReverseBytes(4, 4);
 
             this.header.Width = BitConverter.ToInt32(data, 0);
             this.header.Height = BitConverter.ToInt32(data, 4);
@@ -584,7 +570,7 @@ namespace ImageSharp.Formats
                 throw new ImageFormatException("Image stream is not valid!");
             }
 
-            this.ReverseBytes(this.crcBuffer);
+            this.crcBuffer.ReverseBytes();
 
             chunk.Crc = BitConverter.ToUInt32(this.crcBuffer, 0);
 
@@ -649,40 +635,11 @@ namespace ImageSharp.Formats
                 throw new ImageFormatException("Image stream is not valid!");
             }
 
-            this.ReverseBytes(this.chunkLengthBuffer);
+            this.chunkLengthBuffer.ReverseBytes();
 
             chunk.Length = BitConverter.ToInt32(this.chunkLengthBuffer, 0);
 
             return numBytes;
-        }
-
-        /// <summary>
-        /// Optimized <see cref="T:byte[]"/> reversal algorithm.
-        /// </summary>
-        /// <param name="source">The byte array.</param>
-        private void ReverseBytes(byte[] source)
-        {
-            this.ReverseBytes(source, 0, source.Length);
-        }
-
-        /// <summary>
-        /// Optimized <see cref="T:byte[]"/> reversal algorithm.
-        /// </summary>
-        /// <param name="source">The byte array.</param>
-        /// <param name="index">The index.</param>
-        /// <param name="length">The length.</param>
-        private void ReverseBytes(byte[] source, int index, int length)
-        {
-            int i = index;
-            int j = index + length - 1;
-            while (i < j)
-            {
-                byte temp = source[i];
-                source[i] = source[j];
-                source[j] = temp;
-                i++;
-                j--;
-            }
         }
     }
 }

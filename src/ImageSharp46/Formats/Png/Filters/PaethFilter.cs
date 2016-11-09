@@ -45,14 +45,15 @@ namespace ImageSharp.Formats
         /// <param name="scanline">The scanline to encode</param>
         /// <param name="previousScanline">The previous scanline.</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
+        /// <param name="bytesPerScanline">The number of bytes per scanline</param>
         /// <returns>The <see cref="T:byte[]"/></returns>
-        public static byte[] Encode(byte[] scanline, byte[] previousScanline, int bytesPerPixel)
+        public static byte[] Encode(byte[] scanline, byte[] previousScanline, int bytesPerPixel, int bytesPerScanline)
         {
             // Paeth(x) = Raw(x) - PaethPredictor(Raw(x-bpp), Prior(x), Prior(x - bpp))
-            byte[] encodedScanline = new byte[scanline.Length + 1];
+            byte[] encodedScanline = new byte[bytesPerScanline + 1];
             encodedScanline[0] = (byte)FilterType.Paeth;
 
-            for (int x = 0; x < scanline.Length; x++)
+            for (int x = 0; x < bytesPerScanline; x++)
             {
                 byte left = (x - bytesPerPixel < 0) ? (byte)0 : scanline[x - bytesPerPixel];
                 byte above = previousScanline[x];

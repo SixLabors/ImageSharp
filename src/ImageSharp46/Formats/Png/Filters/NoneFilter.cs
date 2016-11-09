@@ -5,6 +5,8 @@
 
 namespace ImageSharp.Formats
 {
+    using System;
+
     /// <summary>
     /// The None filter, the scanline is transmitted unmodified; it is only necessary to
     /// insert a filter type byte before the data.
@@ -27,13 +29,14 @@ namespace ImageSharp.Formats
         /// Encodes the scanline
         /// </summary>
         /// <param name="scanline">The scanline to encode</param>
+        /// <param name="bytesPerScanline">The number of bytes per scanline</param>
         /// <returns>The <see cref="T:byte[]"/></returns>
-        public static byte[] Encode(byte[] scanline)
+        public static byte[] Encode(byte[] scanline, int bytesPerScanline)
         {
             // Insert a byte before the data.
-            byte[] encodedScanline = new byte[scanline.Length + 1];
+            byte[] encodedScanline = new byte[bytesPerScanline + 1];
             encodedScanline[0] = (byte)FilterType.None;
-            scanline.CopyTo(encodedScanline, 1);
+            Buffer.BlockCopy(scanline, 0, encodedScanline, 1, bytesPerScanline);
 
             return encodedScanline;
         }

@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
+using ImageSharp.Tests;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -15,7 +16,7 @@ namespace ImageSharp.Tests46.Benchmark
 
     public class DecodeJpeg
     {
-        private static byte[] jpegBytes = File.ReadAllBytes("../../TestImages/Formats/Jpg/Calliphora.jpg");
+        private static byte[] jpegBytes = File.ReadAllBytes(TestImages.Jpeg.Calliphora);
 
         private ITestOutputHelper _output;
 
@@ -60,8 +61,9 @@ namespace ImageSharp.Tests46.Benchmark
         {
             DoBenchmark(times, memoryStream =>
             {
-                CoreImage image = new CoreImage(memoryStream); ;
+                CoreImage image = new CoreImage(memoryStream);
             });
         }
+
     }
 }

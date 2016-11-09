@@ -6,10 +6,10 @@
 namespace ImageSharp.Formats
 {
     using System;
+    using System.Buffers;
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
-    using System.Threading.Tasks;
 
     using Quantizers;
 
@@ -125,7 +125,7 @@ namespace ImageSharp.Formats
             this.chunkDataBuffer[4] = 0x0D; // Line ending CRLF
             this.chunkDataBuffer[5] = 0x0A; // Line ending CRLF
             this.chunkDataBuffer[6] = 0x1A; // EOF
-            this.chunkDataBuffer[7] = 0x0A;  // LF
+            this.chunkDataBuffer[7] = 0x0A; // LF
 
             stream.Write(this.chunkDataBuffer, 0, 8);
 
@@ -137,6 +137,11 @@ namespace ImageSharp.Formats
             if (this.Quality <= 256)
             {
                 this.PngColorType = PngColorType.Palette;
+            }
+
+            if (this.PngColorType == PngColorType.Palette && this.Quality > 256)
+            {
+                this.Quality = 256;
             }
 
             // Set correct bit depth.
@@ -169,8 +174,7 @@ namespace ImageSharp.Formats
 
             this.WriteHeaderChunk(stream, header);
 
-            // Collect the pixel data
-            // TODO: Avoid doing this all at once and try row by row.
+            // Collect the indexed pixel data
             if (this.PngColorType == PngColorType.Palette)
             {
                 this.CollectIndexedBytes(image, stream, header);
@@ -235,8 +239,7 @@ namespace ImageSharp.Formats
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
-            // Quatize the image and get the pixels.
-            // TODO: It might be an idea to add a pixel accessor to QuantizedImage to allow us to work by row.
+            // Quantize the image and get the pixels.
             QuantizedImage<TColor, TPacked> quantized = this.WritePaletteChunk(stream, header, image);
             this.palettePixelData = quantized.Pixels;
         }
@@ -254,7 +257,7 @@ namespace ImageSharp.Formats
             where TPacked : struct
         {
             // Copy the pixels across from the image.
-            byte[] bytes = new byte[4];
+            // Reuse the chunk type buffer.
             using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
             {
                 for (int x = 0; x < this.width; x++)
@@ -262,8 +265,8 @@ namespace ImageSharp.Formats
                     // Convert the color to YCbCr and store the luminance
                     // Optionally store the original color alpha.
                     int offset = x * this.bytesPerPixel;
-                    pixels[x, row].ToBytes(bytes, 0, ComponentOrder.XYZW);
-                    byte luminance = (byte)((0.299F * bytes[0]) + (0.587F * bytes[1]) + (0.114F * bytes[2]));
+                    pixels[x, row].ToBytes(this.chunkTypeBuffer, 0, ComponentOrder.XYZW);
+                    byte luminance = (byte)((0.299F * this.chunkTypeBuffer[0]) + (0.587F * this.chunkTypeBuffer[1]) + (0.114F * this.chunkTypeBuffer[2]));
 
                     for (int i = 0; i < this.bytesPerPixel; i++)
                     {
@@ -273,7 +276,7 @@ namespace ImageSharp.Formats
                         }
                         else
                         {
-                            rawScanline[offset + i] = bytes[3];
+                            rawScanline[offset + i] = this.chunkTypeBuffer[3];
                         }
                     }
                 }
@@ -355,7 +358,7 @@ namespace ImageSharp.Formats
             {
                 candidates = new Tuple<byte[], int>[1];
 
-                byte[] none = NoneFilter.Encode(rawScanline);
+                byte[] none = NoneFilter.Encode(rawScanline, bytesPerScanline);
                 candidates[0] = new Tuple<byte[], int>(none, this.CalculateTotalVariation(none));
             }
             else
@@ -488,36 +491,44 @@ namespace ImageSharp.Formats
 
             // Get max colors for bit depth.
             int colorTableLength = (int)Math.Pow(2, header.BitDepth) * 3;
-            byte[] colorTable = new byte[colorTableLength];
+            byte[] colorTable = ArrayPool<byte>.Shared.Rent(colorTableLength);
+            byte[] bytes = ArrayPool<byte>.Shared.Rent(4);
 
-            // TODO: Optimize this.
-            Parallel.For(
-                0,
-                pixelCount,
-                Bootstrapper.Instance.ParallelOptions,
-                i =>
+            try
+            {
+                for (int i = 0; i < pixelCount; i++)
                 {
                     int offset = i * 3;
-                    Color color = new Color(palette[i].ToVector4());
-                    int alpha = color.A;
+                    palette[i].ToBytes(bytes, 0, ComponentOrder.XYZW);
+
+                    int alpha = bytes[3];
 
                     // Premultiply the color. This helps prevent banding.
+                    // TODO: Vector<byte>?
                     if (alpha < 255 && alpha > this.Threshold)
                     {
-                        color = Color.Multiply(color, new Color(alpha, alpha, alpha, 255));
+                        bytes[0] = (byte)(bytes[0] * alpha).Clamp(0, 255);
+                        bytes[1] = (byte)(bytes[1] * alpha).Clamp(0, 255);
+                        bytes[2] = (byte)(bytes[2] * alpha).Clamp(0, 255);
                     }
 
-                    colorTable[offset] = color.R;
-                    colorTable[offset + 1] = color.G;
-                    colorTable[offset + 2] = color.B;
+                    colorTable[offset] = bytes[0];
+                    colorTable[offset + 1] = bytes[1];
+                    colorTable[offset + 2] = bytes[2];
 
                     if (alpha <= this.Threshold)
                     {
                         transparentPixels.Add((byte)offset);
                     }
-                });
+                }
 
-            this.WriteChunk(stream, PngChunkTypes.Palette, colorTable);
+                this.WriteChunk(stream, PngChunkTypes.Palette, colorTable, 0, colorTableLength);
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(colorTable);
+                ArrayPool<byte>.Shared.Return(bytes);
+            }
 
             // Write the transparency data
             if (transparentPixels.Any())
@@ -588,10 +599,8 @@ namespace ImageSharp.Formats
             where TPacked : struct
         {
             int bytesPerScanline = this.width * this.bytesPerPixel;
-
-            // TODO: These could be rented
-            byte[] previousScanline = new byte[bytesPerScanline];
-            byte[] rawScanline = new byte[bytesPerScanline];
+            byte[] previousScanline = ArrayPool<byte>.Shared.Rent(bytesPerScanline);
+            byte[] rawScanline = ArrayPool<byte>.Shared.Rent(bytesPerScanline);
 
             byte[] buffer;
             int bufferLength;
@@ -619,6 +628,8 @@ namespace ImageSharp.Formats
             }
             finally
             {
+                ArrayPool<byte>.Shared.Return(previousScanline);
+                ArrayPool<byte>.Shared.Return(rawScanline);
                 memoryStream?.Dispose();
             }
 

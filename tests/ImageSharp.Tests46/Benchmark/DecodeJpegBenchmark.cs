@@ -14,20 +14,20 @@ namespace ImageSharp.Tests46.Benchmark
     using CoreImage = ImageSharp.Image;
     using CoreSize = ImageSharp.Size;
 
-    public class DecodeJpeg
+    public class DecodeJpegBenchmark
     {
         private static byte[] jpegBytes = File.ReadAllBytes(TestImages.Jpeg.Calliphora);
 
         private ITestOutputHelper _output;
 
-        public DecodeJpeg(ITestOutputHelper output)
+        public DecodeJpegBenchmark(ITestOutputHelper output)
         {
             _output = output;
         }
 
         private void DoBenchmark(int times, Action<Stream> action, [CallerMemberName]string method = null)
         {
-            _output.WriteLine($"Starting {method}.. ");
+            _output.WriteLine($"{method} x {times} ... ");
             Stopwatch sw = Stopwatch.StartNew();
             for (int i = 0; i < times; i++)
             {

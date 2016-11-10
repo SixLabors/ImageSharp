@@ -34,7 +34,6 @@ namespace ImageSharp.Formats
         /// </summary>
         private readonly byte[] chunkDataBuffer = new byte[16];
 
-
         /// <summary>
         /// Contains the raw pixel data from an indexed image.
         /// </summary>
@@ -626,7 +625,7 @@ namespace ImageSharp.Formats
                 memoryStream?.Dispose();
             }
 
-            // Store the chunks in repeated 64k blocks. 
+            // Store the chunks in repeated 64k blocks.
             // This reduces the memory load for decoding the image for many decoders.
             int numChunks = bufferLength / MaxBlockSize;
 

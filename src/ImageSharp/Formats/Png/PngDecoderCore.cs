@@ -284,7 +284,7 @@ namespace ImageSharp.Formats
                 byte[] defilteredScanline;
 
                 // TODO: It would be good if we can reduce the memory usage here - Each filter is creating a new row.
-                // Every time I try to use the same approach as I have in the encoder though I keep messing up. 
+                // Every time I try to use the same approach as I have in the encoder though I keep messing up.
                 // Fingers crossed someone with a big brain and a kind heart will come along and finish optimizing this for me.
                 switch (filterType)
                 {
@@ -592,6 +592,7 @@ namespace ImageSharp.Formats
         /// <param name="chunk">The chunk.</param>
         private void ReadChunkData(PngChunk chunk)
         {
+            // TODO: It might be possible to rent this but that could also lead to issues assigning the data to various properties
             chunk.Data = new byte[chunk.Length];
             this.currentStream.Read(chunk.Data, 0, chunk.Length);
         }

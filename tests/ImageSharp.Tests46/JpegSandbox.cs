@@ -68,6 +68,9 @@ namespace ImageSharp.Tests
         {
             Vector<int> hej = new Vector<int>();
             
+            
+
+            Output.WriteLine(Vector<int>.Count.ToString());
         }
         
     }

@@ -591,7 +591,8 @@ namespace ImageSharp.Formats
             int bytesPerScanline = this.width * this.bytesPerPixel;
             byte[] previousScanline = ArrayPool<byte>.Shared.Rent(bytesPerScanline);
             byte[] rawScanline = ArrayPool<byte>.Shared.Rent(bytesPerScanline);
-            byte[] result = ArrayPool<byte>.Shared.Rent(bytesPerScanline + 1);
+            int resultLength = bytesPerScanline + 1;
+            byte[] result = ArrayPool<byte>.Shared.Rent(resultLength);
 
             byte[] buffer;
             int bufferLength;
@@ -604,8 +605,7 @@ namespace ImageSharp.Formats
                     for (int y = 0; y < this.height; y++)
                     {
                         this.EncodePixelRow(pixels, y, previousScanline, rawScanline, result, bytesPerScanline);
-                        deflateStream.Write(result, 0, bytesPerScanline + 1);
-                        deflateStream.Flush();
+                        deflateStream.Write(result, 0, resultLength);
 
                         // Do a bit of shuffling;
                         byte[] tmp = rawScanline;
@@ -613,6 +613,7 @@ namespace ImageSharp.Formats
                         previousScanline = tmp;
                     }
 
+                    deflateStream.Flush();
                     bufferLength = (int)memoryStream.Length;
                     buffer = memoryStream.ToArray();
                 }

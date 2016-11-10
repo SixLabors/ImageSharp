@@ -13,7 +13,7 @@ namespace ImageSharp.Formats
     /// </summary>
     internal struct Block : IDisposable
     {
-        private static ArrayPool<int> IntArrayPool => ArrayPool<int>.Shared; /*= ArrayPool<int>.Create(BlockSize, 50);*/
+        private static ArrayPool<int> IntArrayPool = ArrayPool<int>.Create(BlockSize, 50);
 
         /// <summary>
         /// Gets the size of the block.
@@ -88,5 +88,15 @@ namespace ImageSharp.Formats
                 blocks[i].Dispose();
             }
         }
+
+
+        public void Clear()
+        {
+            for (int i = 0; i < Data.Length; i++)
+            {
+                Data[i] = 0;
+            }
+        }
+
     }
 }

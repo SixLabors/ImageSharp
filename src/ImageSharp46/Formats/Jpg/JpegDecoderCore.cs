@@ -12,7 +12,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Performs the jpeg decoding operation.
     /// </summary>
-    internal class JpegDecoderCore
+    internal class JpegDecoderCore : IDisposable
     {
         /// <summary>
         /// The maximum (inclusive) number of bits in a Huffman code.
@@ -201,7 +201,7 @@ namespace ImageSharp.Formats
             //this.huffmanTrees = new Huffman[MaxTc + 1, MaxTh + 1];
             this.huffmanTrees = new Huffman[(MaxTc + 1)*(MaxTh + 1)];
 
-            this.quantizationTables = new Block[MaxTq + 1];
+            this.quantizationTables = Block.CreateArray(MaxTq + 1);
             this.temp = new byte[2 * Block.BlockSize];
             this.componentArray = new Component[MaxComponents];
             this.progCoeffs = new Block[MaxComponents][];
@@ -219,11 +219,11 @@ namespace ImageSharp.Formats
                 }
             }
 
-            for (int i = 0; i < this.quantizationTables.Length; i++)
-            {
-                //this.quantizationTables[i] = new Block();
-                this.quantizationTables[i].Init();
-            }
+            //for (int i = 0; i < this.quantizationTables.Length; i++)
+            //{
+            //    //this.quantizationTables[i] = new Block();
+            //    this.quantizationTables[i].Init();
+            //}
 
             //for (int i = 0; i < this.componentArray.Length; i++)
             //{
@@ -1576,7 +1576,7 @@ namespace ImageSharp.Formats
                     int compIndex = scan[i].Index;
                     if (this.progCoeffs[compIndex] == null)
                     {
-                        this.progCoeffs[compIndex] = new Block[mxx * myy * this.componentArray[compIndex].HorizontalFactor * this.componentArray[compIndex].VerticalFactor];
+                        this.progCoeffs[compIndex] = Block.CreateArray(mxx * myy * this.componentArray[compIndex].HorizontalFactor * this.componentArray[compIndex].VerticalFactor);
 
                         for (int j = 0; j < this.progCoeffs[compIndex].Length; j++)
                         {
@@ -1668,11 +1668,13 @@ namespace ImageSharp.Formats
                             }
                             else
                             {
-                                var b = new Block();
-                                b.Init();
+                                var b = Block.Create();
+                                
                                 ProcessBlockImpl(ah, ref b, scan, i, zigStart, zigEnd, al, dc, compIndex, @by, mxx, hi,
                                     bx, ref this.quantizationTables[qtIndex]
                                     );
+                                
+                                b.Dispose();
                             }
                         }
 
@@ -2251,6 +2253,19 @@ namespace ImageSharp.Formats
         /// </summary>
         private class EOFException : Exception
         {
+        }
+
+        public void Dispose()
+        {
+            Block.DisposeAll(this.quantizationTables);
+
+            foreach (Block[] blocks in progCoeffs)
+            {
+                if (blocks != null)
+                {
+                    Block.DisposeAll(blocks);
+                }
+            }
         }
     }
 }

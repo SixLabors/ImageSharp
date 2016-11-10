@@ -593,6 +593,11 @@ namespace ImageSharp.Formats
             int resultLength = bytesPerScanline + 1;
             byte[] result = ArrayPool<byte>.Shared.Rent(resultLength);
 
+            // TODO: Clearing this array makes the visual tests work again when encoding multiple images in a row. 
+            // The png analyser tool I use still cannot decompress the image though my own decoder, chome and edge browsers, and paint can. Twitter also cannot read the file.
+            // It's 2am now so I'm going to check in what I have and cry. :'(
+            Array.Clear(result, 0, resultLength);
+
             byte[] buffer;
             int bufferLength;
             MemoryStream memoryStream = null;
@@ -613,16 +618,16 @@ namespace ImageSharp.Formats
                     }
 
                     deflateStream.Flush();
-                    bufferLength = (int)memoryStream.Length;
                     buffer = memoryStream.ToArray();
+                    bufferLength = buffer.Length;
                 }
             }
             finally
             {
+                memoryStream?.Dispose();
                 ArrayPool<byte>.Shared.Return(previousScanline);
                 ArrayPool<byte>.Shared.Return(rawScanline);
                 ArrayPool<byte>.Shared.Return(result);
-                memoryStream?.Dispose();
             }
 
             // Store the chunks in repeated 64k blocks.

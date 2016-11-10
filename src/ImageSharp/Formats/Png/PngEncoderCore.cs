@@ -182,7 +182,11 @@ namespace ImageSharp.Formats
 
             this.WritePhysicalChunk(stream, image);
             this.WriteGammaChunk(stream);
-            this.WriteDataChunks(image, stream);
+            using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
+            {
+                this.WriteDataChunks(pixels, stream);
+            }
+
             this.WriteEndChunk(stream);
             stream.Flush();
         }
@@ -249,35 +253,32 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-        /// <param name="image">The image to encode.</param>
+        /// <param name="pixels">The image pixels accessor.</param>
         /// <param name="row">The row index.</param>
         /// <param name="rawScanline">The raw scanline.</param>
-        private void CollectGrayscaleBytes<TColor, TPacked>(ImageBase<TColor, TPacked> image, int row, byte[] rawScanline)
+        private void CollectGrayscaleBytes<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, int row, byte[] rawScanline)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             // Copy the pixels across from the image.
             // Reuse the chunk type buffer.
-            using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
+            for (int x = 0; x < this.width; x++)
             {
-                for (int x = 0; x < this.width; x++)
-                {
-                    // Convert the color to YCbCr and store the luminance
-                    // Optionally store the original color alpha.
-                    int offset = x * this.bytesPerPixel;
-                    pixels[x, row].ToBytes(this.chunkTypeBuffer, 0, ComponentOrder.XYZW);
-                    byte luminance = (byte)((0.299F * this.chunkTypeBuffer[0]) + (0.587F * this.chunkTypeBuffer[1]) + (0.114F * this.chunkTypeBuffer[2]));
+                // Convert the color to YCbCr and store the luminance
+                // Optionally store the original color alpha.
+                int offset = x * this.bytesPerPixel;
+                pixels[x, row].ToBytes(this.chunkTypeBuffer, 0, ComponentOrder.XYZW);
+                byte luminance = (byte)((0.299F * this.chunkTypeBuffer[0]) + (0.587F * this.chunkTypeBuffer[1]) + (0.114F * this.chunkTypeBuffer[2]));
 
-                    for (int i = 0; i < this.bytesPerPixel; i++)
+                for (int i = 0; i < this.bytesPerPixel; i++)
+                {
+                    if (i == 0)
                     {
-                        if (i == 0)
-                        {
-                            rawScanline[offset] = luminance;
-                        }
-                        else
-                        {
-                            rawScanline[offset + i] = this.chunkTypeBuffer[3];
-                        }
+                        rawScanline[offset] = luminance;
+                    }
+                    else
+                    {
+                        rawScanline[offset + i] = this.chunkTypeBuffer[3];
                     }
                 }
             }
@@ -288,20 +289,17 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-        /// <param name="image">The image to encode.</param>
+        /// <param name="pixels">The image pixel accessor.</param>
         /// <param name="row">The row index.</param>
         /// <param name="rawScanline">The raw scanline.</param>
-        private void CollectColorBytes<TColor, TPacked>(ImageBase<TColor, TPacked> image, int row, byte[] rawScanline)
+        private void CollectColorBytes<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, int row, byte[] rawScanline)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
-            using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
+            int bpp = this.bytesPerPixel;
+            for (int x = 0; x < this.width; x++)
             {
-                int bpp = this.bytesPerPixel;
-                for (int x = 0; x < this.width; x++)
-                {
-                    pixels[x, row].ToBytes(rawScanline, x * this.bytesPerPixel, bpp == 4 ? ComponentOrder.XYZW : ComponentOrder.XYZ);
-                }
+                pixels[x, row].ToBytes(rawScanline, x * this.bytesPerPixel, bpp == 4 ? ComponentOrder.XYZW : ComponentOrder.XYZ);
             }
         }
 
@@ -311,13 +309,13 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-        /// <param name="image">The image to encode.</param>
+        /// <param name="pixels">The image pixel accessor.</param>
         /// <param name="row">The row.</param>
         /// <param name="previousScanline">The previous scanline.</param>
         /// <param name="rawScanline">The raw scanline.</param>
         /// <param name="bytesPerScanline">The number of bytes per scanline.</param>
         /// <returns>The <see cref="T:byte[]"/></returns>
-        private byte[] EncodePixelRow<TColor, TPacked>(ImageBase<TColor, TPacked> image, int row, byte[] previousScanline, byte[] rawScanline, int bytesPerScanline)
+        private byte[] EncodePixelRow<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, int row, byte[] previousScanline, byte[] rawScanline, int bytesPerScanline)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
@@ -328,10 +326,10 @@ namespace ImageSharp.Formats
                     break;
                 case PngColorType.Grayscale:
                 case PngColorType.GrayscaleWithAlpha:
-                    this.CollectGrayscaleBytes(image, row, rawScanline);
+                    this.CollectGrayscaleBytes(pixels, row, rawScanline);
                     break;
                 default:
-                    this.CollectColorBytes(image, row, rawScanline);
+                    this.CollectColorBytes(pixels, row, rawScanline);
                     break;
             }
 
@@ -592,9 +590,9 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-        /// <param name="image">The image to encode.</param>
+        /// <param name="pixels">The pixel accessor.</param>
         /// <param name="stream">The stream.</param>
-        private void WriteDataChunks<TColor, TPacked>(ImageBase<TColor, TPacked> image, Stream stream)
+        private void WriteDataChunks<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, Stream stream)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
@@ -612,7 +610,7 @@ namespace ImageSharp.Formats
                 {
                     for (int y = 0; y < this.height; y++)
                     {
-                        byte[] data = this.EncodePixelRow(image, y, previousScanline, rawScanline, bytesPerScanline);
+                        byte[] data = this.EncodePixelRow(pixels, y, previousScanline, rawScanline, bytesPerScanline);
                         deflateStream.Write(data, 0, data.Length);
                         deflateStream.Flush();
 

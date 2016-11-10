@@ -10,7 +10,7 @@ namespace ImageSharp.Formats
     /// of the prior pixel.
     /// <see href="https://www.w3.org/TR/PNG-Filters.html"/>
     /// </summary>
-    internal static class SubFilter
+    internal static unsafe class SubFilter
     {
         /// <summary>
         /// Decodes the scanline
@@ -23,11 +23,15 @@ namespace ImageSharp.Formats
             // Sub(x) + Raw(x-bpp)
             byte[] result = new byte[scanline.Length];
 
-            for (int x = 1; x < scanline.Length; x++)
+            fixed (byte* scan = scanline)
+            fixed (byte* res = result)
             {
-                byte priorRawByte = (x - bytesPerPixel < 1) ? (byte)0 : result[x - bytesPerPixel];
+                for (int x = 1; x < scanline.Length; x++)
+                {
+                    byte priorRawByte = (x - bytesPerPixel < 1) ? (byte)0 : res[x - bytesPerPixel];
 
-                result[x] = (byte)((scanline[x] + priorRawByte) % 256);
+                    res[x] = (byte)((scan[x] + priorRawByte) % 256);
+                }
             }
 
             return result;
@@ -43,17 +47,22 @@ namespace ImageSharp.Formats
         public static byte[] Encode(byte[] scanline, int bytesPerPixel, int bytesPerScanline)
         {
             // Sub(x) = Raw(x) - Raw(x-bpp)
-            byte[] encodedScanline = new byte[bytesPerScanline + 1];
-            encodedScanline[0] = (byte)FilterType.Sub;
+            byte[] result = new byte[bytesPerScanline + 1];
 
-            for (int x = 0; x < bytesPerScanline; x++)
+            fixed (byte* scan = scanline)
+            fixed (byte* res = result)
             {
-                byte priorRawByte = (x - bytesPerPixel < 0) ? (byte)0 : scanline[x - bytesPerPixel];
+                res[0] = 1;
 
-                encodedScanline[x + 1] = (byte)((scanline[x] - priorRawByte) % 256);
+                for (int x = 0; x < bytesPerScanline; x++)
+                {
+                    byte priorRawByte = (x - bytesPerPixel < 0) ? (byte)0 : scan[x - bytesPerPixel];
+
+                    res[x + 1] = (byte)((scan[x] - priorRawByte) % 256);
+                }
             }
 
-            return encodedScanline;
+            return result;
         }
     }
 }

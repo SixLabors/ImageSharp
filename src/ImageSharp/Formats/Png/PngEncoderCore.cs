@@ -313,9 +313,9 @@ namespace ImageSharp.Formats
         /// <param name="row">The row.</param>
         /// <param name="previousScanline">The previous scanline.</param>
         /// <param name="rawScanline">The raw scanline.</param>
+        /// <param name="result">The resultant filtered scanline.</param>
         /// <param name="bytesPerScanline">The number of bytes per scanline.</param>
-        /// <returns>The <see cref="T:byte[]"/></returns>
-        private byte[] EncodePixelRow<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, int row, byte[] previousScanline, byte[] rawScanline, int bytesPerScanline)
+        private void EncodePixelRow<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, int row, byte[] previousScanline, byte[] rawScanline, byte[] result, int bytesPerScanline)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
@@ -333,9 +333,7 @@ namespace ImageSharp.Formats
                     break;
             }
 
-            byte[] filteredScanline = this.GetOptimalFilteredScanline(rawScanline, previousScanline, bytesPerScanline, this.bytesPerPixel);
-
-            return filteredScanline;
+            this.GetOptimalFilteredScanline(rawScanline, previousScanline, result, bytesPerScanline);
         }
 
         /// <summary>
@@ -344,37 +342,30 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="rawScanline">The raw scanline</param>
         /// <param name="previousScanline">The previous scanline</param>
+        /// <param name="result">The filtered scanline result</param>
         /// <param name="bytesPerScanline">The number of bytes per scanline</param>
-        /// <param name="bytesPerPixel">The number of bytes per pixel</param>
-        /// <returns>The <see cref="T:byte[]"/></returns>
-        private byte[] GetOptimalFilteredScanline(byte[] rawScanline, byte[] previousScanline, int bytesPerScanline, int bytesPerPixel)
+        private void GetOptimalFilteredScanline(byte[] rawScanline, byte[] previousScanline, byte[] result, int bytesPerScanline)
         {
-            Tuple<byte[], int>[] candidates;
-
             // Palette images don't compress well with adaptive filtering.
             if (this.PngColorType == PngColorType.Palette)
             {
-                candidates = new Tuple<byte[], int>[1];
-
-                byte[] none = NoneFilter.Encode(rawScanline, bytesPerScanline);
-                candidates[0] = new Tuple<byte[], int>(none, this.CalculateTotalVariation(none));
+                NoneFilter.Encode(rawScanline, result, bytesPerScanline);
+                return;
             }
-            else
-            {
-                candidates = new Tuple<byte[], int>[4];
 
-                byte[] sub = SubFilter.Encode(rawScanline, bytesPerPixel, bytesPerScanline);
-                candidates[0] = new Tuple<byte[], int>(sub, this.CalculateTotalVariation(sub));
+            Tuple<byte[], int>[] candidates = new Tuple<byte[], int>[4];
 
-                byte[] up = UpFilter.Encode(rawScanline, bytesPerScanline, previousScanline);
-                candidates[1] = new Tuple<byte[], int>(up, this.CalculateTotalVariation(up));
+            byte[] sub = SubFilter.Encode(rawScanline, this.bytesPerPixel, bytesPerScanline);
+            candidates[0] = new Tuple<byte[], int>(sub, this.CalculateTotalVariation(sub));
 
-                byte[] average = AverageFilter.Encode(rawScanline, previousScanline, bytesPerPixel, bytesPerScanline);
-                candidates[2] = new Tuple<byte[], int>(average, this.CalculateTotalVariation(average));
+            byte[] up = UpFilter.Encode(rawScanline, previousScanline, result, bytesPerScanline);
+            candidates[1] = new Tuple<byte[], int>(up, this.CalculateTotalVariation(up));
 
-                byte[] paeth = PaethFilter.Encode(rawScanline, previousScanline, bytesPerPixel, bytesPerScanline);
-                candidates[3] = new Tuple<byte[], int>(paeth, this.CalculateTotalVariation(paeth));
-            }
+            byte[] average = AverageFilter.Encode(rawScanline, previousScanline, result, this.bytesPerPixel, bytesPerScanline);
+            candidates[2] = new Tuple<byte[], int>(average, this.CalculateTotalVariation(average));
+
+            byte[] paeth = PaethFilter.Encode(rawScanline, previousScanline, result, this.bytesPerPixel, bytesPerScanline);
+            candidates[3] = new Tuple<byte[], int>(paeth, this.CalculateTotalVariation(paeth));
 
             int lowestTotalVariation = int.MaxValue;
             int lowestTotalVariationIndex = 0;
@@ -388,7 +379,8 @@ namespace ImageSharp.Formats
                 }
             }
 
-            return candidates[lowestTotalVariationIndex].Item1;
+            // ReSharper disable once RedundantAssignment
+            result = candidates[lowestTotalVariationIndex].Item1;
         }
 
         /// <summary>
@@ -599,6 +591,7 @@ namespace ImageSharp.Formats
             int bytesPerScanline = this.width * this.bytesPerPixel;
             byte[] previousScanline = ArrayPool<byte>.Shared.Rent(bytesPerScanline);
             byte[] rawScanline = ArrayPool<byte>.Shared.Rent(bytesPerScanline);
+            byte[] result = ArrayPool<byte>.Shared.Rent(bytesPerScanline + 1);
 
             byte[] buffer;
             int bufferLength;
@@ -610,8 +603,8 @@ namespace ImageSharp.Formats
                 {
                     for (int y = 0; y < this.height; y++)
                     {
-                        byte[] data = this.EncodePixelRow(pixels, y, previousScanline, rawScanline, bytesPerScanline);
-                        deflateStream.Write(data, 0, data.Length);
+                        this.EncodePixelRow(pixels, y, previousScanline, rawScanline, result, bytesPerScanline);
+                        deflateStream.Write(result, 0, bytesPerScanline + 1);
                         deflateStream.Flush();
 
                         // Do a bit of shuffling;
@@ -628,6 +621,7 @@ namespace ImageSharp.Formats
             {
                 ArrayPool<byte>.Shared.Return(previousScanline);
                 ArrayPool<byte>.Shared.Return(rawScanline);
+                ArrayPool<byte>.Shared.Return(result);
                 memoryStream?.Dispose();
             }
 

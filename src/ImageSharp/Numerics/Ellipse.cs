@@ -9,18 +9,27 @@ namespace ImageSharp
     using System.ComponentModel;
     using System.Numerics;
 
+    /// <summary>
+    /// Represents an ellipse.
+    /// </summary>
     public struct Ellipse : IEquatable<Ellipse>
     {
+        /// <summary>
+        /// Represents a <see cref="Ellipse"/> that has X and Y values set to zero.
+        /// </summary>
+        public static readonly Ellipse Empty = default(Ellipse);
+
         /// <summary>
         /// The center point.
         /// </summary>
         private Point center;
 
         /// <summary>
-        /// Represents a <see cref="Ellipse"/> that has X and Y values set to zero.
+        /// Initializes a new instance of the <see cref="Ellipse"/> struct.
         /// </summary>
-        public static readonly Ellipse Empty = default(Ellipse);
-
+        /// <param name="center">The center point.</param>
+        /// <param name="radiusX">The x-radius.</param>
+        /// <param name="radiusY">The y-radius.</param>
         public Ellipse(Point center, float radiusX, float radiusY)
         {
             this.center = center;

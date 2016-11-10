@@ -112,8 +112,16 @@ namespace ImageSharp
             return result;
         }
 
+        /// <summary>
+        /// Gets the invalid tags.
+        /// </summary>
         public IEnumerable<ExifTag> InvalidTags => this.invalidTags;
 
+        /// <summary>
+        /// Adds the collection of EXIF values to the reader.
+        /// </summary>
+        /// <param name="values">The values.</param>
+        /// <param name="index">The index.</param>
         private void AddValues(Collection<ExifValue> values, uint index)
         {
             this.currentIndex = this.startIndex + index;

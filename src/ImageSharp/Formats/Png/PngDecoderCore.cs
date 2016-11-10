@@ -283,7 +283,9 @@ namespace ImageSharp.Formats
                 FilterType filterType = (FilterType)scanline[0];
                 byte[] defilteredScanline;
 
-                // TODO: It would be good if we can reduce the memory usage here. Each filter is creating a new row.
+                // TODO: It would be good if we can reduce the memory usage here - Each filter is creating a new row.
+                // Every time I try to use the same approach as I have in the encoder though I keep messing up. 
+                // Fingers crossed someone with a big brain and a kind heart will come along and finish optimizing this for me.
                 switch (filterType)
                 {
                     case FilterType.None:

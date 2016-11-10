@@ -32,7 +32,7 @@ namespace ImageSharp.Benchmarks.Image
         }
 
         [Benchmark(Baseline = true, Description = "System.Drawing Gif")]
-        public void JpegSystemDrawing()
+        public void GifSystemDrawing()
         {
             using (MemoryStream memoryStream = new MemoryStream())
             {
@@ -41,7 +41,7 @@ namespace ImageSharp.Benchmarks.Image
         }
 
         [Benchmark(Description = "ImageSharp Gif")]
-        public void JpegCore()
+        public void GifCore()
         {
             using (MemoryStream memoryStream = new MemoryStream())
             {

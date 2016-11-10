@@ -488,9 +488,9 @@ namespace ImageSharp.Formats
         /// <param name="index">The quantization table index.</param>
         /// <param name="prevDC">The previous DC value.</param>
         /// <returns>The <see cref="int"/></returns>
-        private int WriteBlock(Block block, QuantIndex index, int prevDC)
+        private int WriteBlock(ref Block block, QuantIndex index, int prevDC)
         {
-            FDCT.Transform(block);
+            FDCT.Transform(ref block);
 
             // Emit the DC delta.
             int dc = Round(block[0], 8 * this.quant[(int)index][0]);
@@ -541,7 +541,8 @@ namespace ImageSharp.Formats
         /// <param name="cbBlock">The red chroma block.</param>
         /// <param name="crBlock">The blue chroma block.</param>
         // ReSharper disable StyleCop.SA1305
-        private void ToYCbCr<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, int x, int y, Block yBlock, Block cbBlock, Block crBlock)
+        private void ToYCbCr<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, int x, int y, 
+            ref Block yBlock, ref Block cbBlock, ref Block crBlock)
             // ReSharper restore StyleCop.SA1305
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
@@ -858,10 +859,10 @@ namespace ImageSharp.Formats
             {
                 for (int x = 0; x < pixels.Width; x += 8)
                 {
-                    this.ToYCbCr(pixels, x, y, b, cb, cr);
-                    prevDCY = this.WriteBlock(b, QuantIndex.Luminance, prevDCY);
-                    prevDCCb = this.WriteBlock(cb, QuantIndex.Chrominance, prevDCCb);
-                    prevDCCr = this.WriteBlock(cr, QuantIndex.Chrominance, prevDCCr);
+                    this.ToYCbCr(pixels, x, y, ref b, ref cb, ref cr);
+                    prevDCY = this.WriteBlock(ref b, QuantIndex.Luminance, prevDCY);
+                    prevDCCb = this.WriteBlock(ref cb, QuantIndex.Chrominance, prevDCCb);
+                    prevDCCr = this.WriteBlock(ref cr, QuantIndex.Chrominance, prevDCCr);
                 }
             }
         }
@@ -902,14 +903,14 @@ namespace ImageSharp.Formats
                         int xOff = (i & 1) * 8;
                         int yOff = (i & 2) * 4;
 
-                        this.ToYCbCr(pixels, x + xOff, y + yOff, b, cb[i], cr[i]);
-                        prevDCY = this.WriteBlock(b, QuantIndex.Luminance, prevDCY);
+                        this.ToYCbCr(pixels, x + xOff, y + yOff, ref b, ref cb[i], ref cr[i]);
+                        prevDCY = this.WriteBlock(ref b, QuantIndex.Luminance, prevDCY);
                     }
 
                     this.Scale16X16To8X8(b, cb);
-                    prevDCCb = this.WriteBlock(b, QuantIndex.Chrominance, prevDCCb);
+                    prevDCCb = this.WriteBlock(ref b, QuantIndex.Chrominance, prevDCCb);
                     this.Scale16X16To8X8(b, cr);
-                    prevDCCr = this.WriteBlock(b, QuantIndex.Chrominance, prevDCCr);
+                    prevDCCr = this.WriteBlock(ref b, QuantIndex.Chrominance, prevDCCr);
                 }
             }
         }

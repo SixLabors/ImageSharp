@@ -1,13 +1,25 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Numerics;
 using ImageSharp.Formats;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace ImageSharp.Tests
 {
     public class JpegSandbox
     {
+        
         public const string SandboxOutputDirectory = "_SandboxOutput";
+
+        private ITestOutputHelper Output { get; }
+
+        public JpegSandbox(ITestOutputHelper output)
+        {
+            Output = output;
+        }
 
         protected string CreateTestOutputFile(string fileName)
         {
@@ -27,18 +39,36 @@ namespace ImageSharp.Tests
         protected Stream CreateOutputStream(string fileName)
         {
             fileName = CreateTestOutputFile(fileName);
+            Output?.WriteLine("Opened for write: "+fileName);
             return File.OpenWrite(fileName);
         }
 
-        [Fact]
-        public void OpenJpeg_SaveBmp()
-        {
-            var image = new TestFile(TestImages.Jpeg.Calliphora).CreateImage();
+        //public static string[][] AllJpegFiles = new[]
+        //{
+        //    TestImages.Jpeg.All
+        //};
 
-            using (var stream = CreateOutputStream(nameof(OpenJpeg_SaveBmp)+".bmp"))
+        public static IEnumerable<object[]> AllJpegFiles => TestImages.Jpeg.All.Select(fn => new object[] {fn});
+
+        [Theory]
+        [MemberData(nameof(AllJpegFiles))]
+        public void OpenJpeg_SaveBmp(string jpegFileName)
+        {
+            var image = new TestFile(jpegFileName).CreateImage();
+            string bmpFileName = Path.GetFileNameWithoutExtension(jpegFileName) + ".bmp";
+
+            using (var stream = CreateOutputStream(bmpFileName))
             {
                 image.Save(stream, new BmpFormat());
             }
         }
+
+        [Fact]
+        public void Boo()
+        {
+            Vector<int> hej = new Vector<int>();
+            
+        }
+        
     }
 }

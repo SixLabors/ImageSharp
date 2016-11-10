@@ -52,10 +52,9 @@ namespace ImageSharp.Formats
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
         /// <param name="bytesPerScanline">The number of bytes per scanline</param>
         /// <returns>The <see cref="T:byte[]"/></returns>
-        public static byte[] Encode(byte[] scanline, byte[] previousScanline, int bytesPerPixel, int bytesPerScanline)
+        public static byte[] Encode(byte[] scanline, byte[] previousScanline, byte[] result, int bytesPerPixel, int bytesPerScanline)
         {
             // Average(x) = Raw(x) - floor((Raw(x-bpp)+Prior(x))/2)
-            byte[] result = new byte[bytesPerScanline + 1];
             fixed (byte* scan = scanline)
             fixed (byte* prev = previousScanline)
             fixed (byte* res = result)

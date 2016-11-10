@@ -41,10 +41,8 @@ namespace ImageSharp.Formats
         /// ASSP, Vol. ASSP- 32, pp. 803-816, Aug. 1984.
         /// </summary>
         /// <param name="src">The source block of coefficients</param>
-        public static void Transform(ref Block block)
+        public static void Transform(ref Block src)
         {
-            
-            var src = block.Data;
             // Horizontal 1-D IDCT.
             for (int y = 0; y < 8; y++)
             {

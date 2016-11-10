@@ -88,7 +88,7 @@ namespace ImageSharp.Processors
         /// </summary>
         /// <param name="target">The target image.</param>
         /// <param name="source">The source image.</param>
-        /// <returns></returns>
+        /// <returns>The <see cref="bool"/></returns>
         private bool OptimizedApply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source)
         {
             const float Epsilon = .0001F;

@@ -41,6 +41,7 @@ namespace ImageSharp.Formats
         /// Encodes the scanline
         /// </summary>
         /// <param name="scanline">The scanline to encode</param>
+        /// <param name="result">The encoded scanline.</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
         /// <param name="bytesPerScanline">The number of bytes per scanline</param>
         /// <returns>The <see cref="T:byte[]"/></returns>

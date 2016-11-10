@@ -8,26 +8,26 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Represents a single color component
     /// </summary>
-    internal class Component
+    internal struct Component
     {
         /// <summary>
         /// Gets or sets the horizontal sampling factor.
         /// </summary>
-        public int HorizontalFactor { get; set; }
+        public int HorizontalFactor;
 
         /// <summary>
         /// Gets or sets the vertical sampling factor.
         /// </summary>
-        public int VerticalFactor { get; set; }
+        public int VerticalFactor;
 
         /// <summary>
         /// Gets or sets the identifier
         /// </summary>
-        public byte Identifier { get; set; }
+        public byte Identifier;
 
         /// <summary>
         /// Gets or sets the quantization table destination selector.
         /// </summary>
-        public byte Selector { get; set; }
+        public byte Selector;
     }
 }

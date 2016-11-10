@@ -23,15 +23,20 @@ namespace ImageSharp.Tests
 
         public static class Jpeg
         {
-            private static readonly string folder = "../../TestImages/Formats/Jpg/";
-            public static string Cmyk => folder + "cmyk.jpg";
-            public static string Exif => folder + "exif.jpeg";
-            public static string Floorplan => folder + "Floorplan.jpeg";
-            public static string Calliphora => folder + "Calliphora.jpg";
-            public static string Turtle => folder + "turtle.jpg";
-            public static string Fb => folder + "fb.jpg";
-            public static string Progress => folder + "progress.jpg";
-            public static string GammaDalaiLamaGray => folder + "gamma_dalai_lama_gray.jpg";
+            private const string Folder = "../../TestImages/Formats/Jpg/";
+            public const string Cmyk = Folder + "cmyk.jpg";
+            public const string Exif = Folder + "exif.jpg";
+            public const string Floorplan = Folder + "Floorplan.jpeg";
+            public const string Calliphora = Folder + "Calliphora.jpg";
+            public const string Turtle = Folder + "turtle.jpg";
+            public const string Fb = Folder + "fb.jpg";
+            public const string Progress = Folder + "progress.jpg";
+            public const string GammaDalaiLamaGray = Folder + "gamma_dalai_lama_gray.jpg";
+
+            public static readonly string[] All = new[]
+            {
+                Cmyk, Exif, Floorplan, Calliphora, Turtle, Fb, Progress, GammaDalaiLamaGray
+            };
         }
 
         public static class Bmp

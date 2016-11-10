@@ -3,12 +3,14 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+using System.Buffers;
+
 namespace ImageSharp.Formats
 {
     /// <summary>
     /// Represents an 8x8 block of coefficients to transform and encode.
     /// </summary>
-    internal class Block
+    internal struct Block
     {
         /// <summary>
         /// Gets the size of the block.
@@ -18,15 +20,22 @@ namespace ImageSharp.Formats
         /// <summary>
         /// The array of block data.
         /// </summary>
-        private readonly int[] data;
+        public int[] Data;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Block"/> class.
         /// </summary>
-        public Block()
+        //public Block()
+        //{
+        //    this.data = new int[BlockSize];
+        //}
+
+        public void Init()
         {
-            this.data = new int[BlockSize];
+            this.Data = new int[BlockSize];
         }
+
+        public bool IsInitialized => this.Data != null;
 
         /// <summary>
         /// Gets the pixel data at the given block index.
@@ -37,8 +46,8 @@ namespace ImageSharp.Formats
         /// </returns>
         public int this[int index]
         {
-            get { return this.data[index]; }
-            set { this.data[index] = value; }
+            get { return this.Data[index]; }
+            set { this.Data[index] = value; }
         }
     }
 }

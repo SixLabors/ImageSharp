@@ -32,6 +32,7 @@
       <Value>Vol</Value>
       <Value>pp</Value>
       <Value>cmyk</Value>
+      <Value>Paeth</Value>
     </CollectionProperty>
   </GlobalSettings>
   <Analyzers>

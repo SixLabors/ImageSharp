@@ -34,11 +34,11 @@ namespace ImageSharp.Formats
         public static byte[] Encode(byte[] scanline, int bytesPerScanline)
         {
             // Insert a byte before the data.
-            byte[] encodedScanline = new byte[bytesPerScanline + 1];
-            encodedScanline[0] = (byte)FilterType.None;
-            Buffer.BlockCopy(scanline, 0, encodedScanline, 1, bytesPerScanline);
+            byte[] result = new byte[bytesPerScanline + 1];
+            result[0] = 0;
+            Buffer.BlockCopy(scanline, 0, result, 1, bytesPerScanline);
 
-            return encodedScanline;
+            return result;
         }
     }
 }

@@ -1469,6 +1469,8 @@ namespace ImageSharp.Formats
             }
         }
 
+        private Block scanWorkerBlock = Block.Create();
+
         /// <summary>
         /// Processes the SOS (Start of scan marker).
         /// </summary>
@@ -1668,13 +1670,14 @@ namespace ImageSharp.Formats
                             }
                             else
                             {
-                                var b = Block.Create();
+                                //var b = Block.Create();
+                                scanWorkerBlock.Clear();
                                 
-                                ProcessBlockImpl(ah, ref b, scan, i, zigStart, zigEnd, al, dc, compIndex, @by, mxx, hi,
+                                ProcessBlockImpl(ah, ref scanWorkerBlock, scan, i, zigStart, zigEnd, al, dc, compIndex, @by, mxx, hi,
                                     bx, ref this.quantizationTables[qtIndex]
                                     );
                                 
-                                b.Dispose();
+                                //b.Dispose();
                             }
                         }
 
@@ -1792,6 +1795,9 @@ namespace ImageSharp.Formats
                 if (zigEnd != Block.BlockSize - 1 || al != 0)
                 {
                     // We haven't completely decoded this 8x8 block. Save the coefficients.
+                    
+                    // TODO: This should be broken when isProgressive == true
+
                     this.progCoeffs[compIndex][((@by*mxx)*hi) + bx] = b;
 
                     // At this point, we could execute the rest of the loop body to dequantize and
@@ -2257,6 +2263,7 @@ namespace ImageSharp.Formats
 
         public void Dispose()
         {
+            scanWorkerBlock.Dispose();
             Block.DisposeAll(this.quantizationTables);
 
             foreach (Block[] blocks in progCoeffs)

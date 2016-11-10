@@ -355,7 +355,7 @@ namespace ImageSharp.Formats
 
             Tuple<byte[], int>[] candidates = new Tuple<byte[], int>[4];
 
-            byte[] sub = SubFilter.Encode(rawScanline, this.bytesPerPixel, bytesPerScanline);
+            byte[] sub = SubFilter.Encode(rawScanline, result, this.bytesPerPixel, bytesPerScanline);
             candidates[0] = new Tuple<byte[], int>(sub, this.CalculateTotalVariation(sub));
 
             byte[] up = UpFilter.Encode(rawScanline, previousScanline, result, bytesPerScanline);

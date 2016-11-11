@@ -3,13 +3,19 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+using System;
+using System.Buffers;
+using System.Runtime.CompilerServices;
+
 namespace ImageSharp.Formats
 {
     /// <summary>
     /// Represents an 8x8 block of coefficients to transform and encode.
     /// </summary>
-    internal class Block
+    public struct Block : IDisposable
     {
+        private static ArrayPool<int> IntArrayPool = ArrayPool<int>.Create(BlockSize, 50);
+
         /// <summary>
         /// Gets the size of the block.
         /// </summary>
@@ -18,15 +24,40 @@ namespace ImageSharp.Formats
         /// <summary>
         /// The array of block data.
         /// </summary>
-        private readonly int[] data;
+        public int[] Data;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Block"/> class.
         /// </summary>
-        public Block()
+        //public Block()
+        //{
+        //    this.data = new int[BlockSize];
+        //}
+
+        public void Init()
         {
-            this.data = new int[BlockSize];
+            //this.Data = new int[BlockSize];
+            this.Data = IntArrayPool.Rent(BlockSize);
         }
+
+        public static Block Create()
+        {
+            var block = new Block();
+            block.Init();
+            return block;
+        }
+
+        public static Block[] CreateArray(int size)
+        {
+            Block[] result = new Block[size];
+            for (int i = 0; i < result.Length; i++)
+            {
+                result[i].Init();
+            }
+            return result;
+        }
+
+        public bool IsInitialized => this.Data != null;
 
         /// <summary>
         /// Gets the pixel data at the given block index.
@@ -37,8 +68,44 @@ namespace ImageSharp.Formats
         /// </returns>
         public int this[int index]
         {
-            get { return this.data[index]; }
-            set { this.data[index] = value; }
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get { return this.Data[index]; }
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            set { this.Data[index] = value; }
+        }
+
+        // TODO: Refactor Block.Dispose() callers to always use 'using' or 'finally' statement!
+        public void Dispose()
+        {
+            if (Data != null)
+            {
+                IntArrayPool.Return(Data, true);
+                Data = null;
+            }
+        }
+
+        public static void DisposeAll(Block[] blocks)
+        {
+            for (int i = 0; i < blocks.Length; i++)
+            {
+                blocks[i].Dispose();
+            }
+        }
+
+
+        public void Clear()
+        {
+            for (int i = 0; i < Data.Length; i++)
+            {
+                Data[i] = 0;
+            }
+        }
+
+        public Block Clone()
+        {
+            Block clone = Create();
+            Array.Copy(Data, clone.Data, BlockSize);
+            return clone;
         }
     }
 }

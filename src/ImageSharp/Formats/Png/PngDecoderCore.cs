@@ -539,13 +539,8 @@ namespace ImageSharp.Formats
         private PngChunk ReadChunk()
         {
             PngChunk chunk = new PngChunk();
-
-            if (this.ReadChunkLength(chunk) == 0)
-            {
-                return null;
-            }
-
-            if (chunk.Length <= 0)
+            this.ReadChunkLength(chunk);
+            if (chunk.Length < 0)
             {
                 return null;
             }
@@ -630,7 +625,7 @@ namespace ImageSharp.Formats
         /// <exception cref="ImageFormatException">
         /// Thrown if the input stream is not valid.
         /// </exception>
-        private int ReadChunkLength(PngChunk chunk)
+        private void ReadChunkLength(PngChunk chunk)
         {
             int numBytes = this.currentStream.Read(this.chunkLengthBuffer, 0, 4);
             if (numBytes >= 1 && numBytes <= 3)
@@ -638,11 +633,15 @@ namespace ImageSharp.Formats
                 throw new ImageFormatException("Image stream is not valid!");
             }
 
+            if (numBytes <= 0)
+            {
+                chunk.Length = -1;
+                return;
+            }
+
             this.chunkLengthBuffer.ReverseBytes();
 
             chunk.Length = BitConverter.ToInt32(this.chunkLengthBuffer, 0);
-
-            return numBytes;
         }
     }
 }

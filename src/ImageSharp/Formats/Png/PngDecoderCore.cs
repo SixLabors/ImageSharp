@@ -10,7 +10,7 @@ namespace ImageSharp.Formats
     using System.IO;
     using System.Linq;
     using System.Text;
-
+    
     /// <summary>
     /// Performs the png decoding operation.
     /// </summary>
@@ -276,45 +276,42 @@ namespace ImageSharp.Formats
             // TODO: ArrayPool<byte>.Shared.Rent(this.bytesPerScanline)
             byte[] previousScanline = new byte[this.bytesPerScanline];
             byte[] scanline = new byte[this.bytesPerScanline];
+          
             for (int y = 0; y < this.header.Height; y++)
             {
                 compressedStream.Read(scanline, 0, this.bytesPerScanline);
 
                 FilterType filterType = (FilterType)scanline[0];
-                byte[] defilteredScanline;
 
-                // TODO: It would be good if we can reduce the memory usage here - Each filter is creating a new row.
-                // Every time I try to use the same approach as I have in the encoder though I keep messing up.
-                // Fingers crossed someone with a big brain and a kind heart will come along and finish optimizing this for me.
                 switch (filterType)
                 {
                     case FilterType.None:
 
-                        defilteredScanline = NoneFilter.Decode(scanline);
+                        NoneFilter.Decode(scanline);
 
                         break;
 
                     case FilterType.Sub:
 
-                        defilteredScanline = SubFilter.Decode(scanline, this.bytesPerPixel);
+                        SubFilter.Decode(scanline, this.bytesPerPixel);
 
                         break;
 
                     case FilterType.Up:
 
-                        defilteredScanline = UpFilter.Decode(scanline, previousScanline);
+                         UpFilter.Decode(scanline, previousScanline);
 
                         break;
 
                     case FilterType.Average:
 
-                        defilteredScanline = AverageFilter.Decode(scanline, previousScanline, this.bytesPerPixel);
+                         AverageFilter.Decode(scanline, previousScanline, this.bytesPerPixel);
 
                         break;
 
                     case FilterType.Paeth:
 
-                        defilteredScanline = PaethFilter.Decode(scanline, previousScanline, this.bytesPerPixel);
+                         PaethFilter.Decode(scanline, previousScanline, this.bytesPerPixel);
 
                         break;
 
@@ -322,8 +319,11 @@ namespace ImageSharp.Formats
                         throw new ImageFormatException("Unknown filter type.");
                 }
 
-                previousScanline = defilteredScanline;
-                this.ProcessDefilteredScanline(defilteredScanline, y, pixels);
+                this.ProcessDefilteredScanline(scanline, y, pixels);
+
+                byte[] temp = previousScanline;
+                previousScanline = scanline;
+                scanline = temp;
             }
         }
 

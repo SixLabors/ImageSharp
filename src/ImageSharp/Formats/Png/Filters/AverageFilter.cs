@@ -12,7 +12,7 @@ namespace ImageSharp.Formats
     /// the value of a pixel.
     /// <see href="https://www.w3.org/TR/PNG-Filters.html"/>
     /// </summary>
-    internal static class AverageFilter
+    internal static unsafe class AverageFilter
     {
         /// <summary>
         /// Decodes the scanline
@@ -28,12 +28,17 @@ namespace ImageSharp.Formats
             // Average(x) + floor((Raw(x-bpp)+Prior(x))/2)
             byte[] result = new byte[scanline.Length];
 
-            for (int x = 1; x < scanline.Length; x++)
+            fixed (byte* scan = scanline)
+            fixed (byte* prev = previousScanline)
+            fixed (byte* res = result)
             {
-                byte left = (x - bytesPerPixel < 1) ? (byte)0 : result[x - bytesPerPixel];
-                byte above = previousScanline[x];
+                for (int x = 1; x < scanline.Length; x++)
+                {
+                    byte left = (x - bytesPerPixel < 1) ? (byte)0 : res[x - bytesPerPixel];
+                    byte above = prev[x];
 
-                result[x] = (byte)((scanline[x] + Average(left, above)) % 256);
+                    res[x] = (byte)((scan[x] + Average(left, above)) % 256);
+                }
             }
 
             return result;
@@ -44,25 +49,29 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="scanline">The scanline to encode</param>
         /// <param name="previousScanline">The previous scanline.</param>
+        /// <param name="result">The encoded scanline.</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
         /// <param name="bytesPerScanline">The number of bytes per scanline</param>
         /// <returns>The <see cref="T:byte[]"/></returns>
-        public static byte[] Encode(byte[] scanline, byte[] previousScanline, int bytesPerPixel, int bytesPerScanline)
+        public static byte[] Encode(byte[] scanline, byte[] previousScanline, byte[] result, int bytesPerPixel, int bytesPerScanline)
         {
             // Average(x) = Raw(x) - floor((Raw(x-bpp)+Prior(x))/2)
-            byte[] encodedScanline = new byte[bytesPerScanline + 1];
-
-            encodedScanline[0] = (byte)FilterType.Average;
-
-            for (int x = 0; x < bytesPerScanline; x++)
+            fixed (byte* scan = scanline)
+            fixed (byte* prev = previousScanline)
+            fixed (byte* res = result)
             {
-                byte left = (x - bytesPerPixel < 0) ? (byte)0 : scanline[x - bytesPerPixel];
-                byte above = previousScanline[x];
+                res[0] = 3;
 
-                encodedScanline[x + 1] = (byte)((scanline[x] - Average(left, above)) % 256);
+                for (int x = 0; x < bytesPerScanline; x++)
+                {
+                    byte left = (x - bytesPerPixel < 0) ? (byte)0 : scan[x - bytesPerPixel];
+                    byte above = prev[x];
+
+                    res[x + 1] = (byte)((scan[x] - Average(left, above)) % 256);
+                }
             }
 
-            return encodedScanline;
+            return result;
         }
 
         /// <summary>
@@ -73,7 +82,7 @@ namespace ImageSharp.Formats
         /// <returns>The <see cref="int"/></returns>
         private static int Average(byte left, byte above)
         {
-            return Convert.ToInt32(Math.Floor((left + above) / 2.0D));
+            return (left + above) >> 1;
         }
     }
 }

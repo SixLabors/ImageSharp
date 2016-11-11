@@ -16,8 +16,7 @@ namespace ImageSharp
     public class Image : Image<Color, uint>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="Image"/> class
-        /// with the height and the width of the image.
+        /// Initializes a new instance of the <see cref="Image"/> class.
         /// </summary>
         public Image()
         {

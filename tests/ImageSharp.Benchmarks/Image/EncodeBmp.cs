@@ -32,7 +32,7 @@ namespace ImageSharp.Benchmarks.Image
         }
 
         [Benchmark(Baseline = true, Description = "System.Drawing Bmp")]
-        public void JpegSystemDrawing()
+        public void BmpSystemDrawing()
         {
             using (MemoryStream memoryStream = new MemoryStream())
             {
@@ -41,7 +41,7 @@ namespace ImageSharp.Benchmarks.Image
         }
 
         [Benchmark(Description = "ImageSharp Bmp")]
-        public void JpegCore()
+        public void BmpCore()
         {
             using (MemoryStream memoryStream = new MemoryStream())
             {

@@ -10,7 +10,7 @@ namespace ImageSharp.Formats
     /// rather than just to its left, is used as the predictor.
     /// <see href="https://www.w3.org/TR/PNG-Filters.html"/>
     /// </summary>
-    internal static class UpFilter
+    internal static unsafe class UpFilter
     {
         /// <summary>
         /// Decodes the scanline
@@ -23,11 +23,16 @@ namespace ImageSharp.Formats
             // Up(x) + Prior(x)
             byte[] result = new byte[scanline.Length];
 
-            for (int x = 1; x < scanline.Length; x++)
+            fixed (byte* scan = scanline)
+            fixed (byte* prev = previousScanline)
+            fixed (byte* res = result)
             {
-                byte above = previousScanline[x];
+                for (int x = 1; x < scanline.Length; x++)
+                {
+                    byte above = prev[x];
 
-                result[x] = (byte)((scanline[x] + above) % 256);
+                    res[x] = (byte)((scan[x] + above) % 256);
+                }
             }
 
             return result;
@@ -37,23 +42,28 @@ namespace ImageSharp.Formats
         /// Encodes the scanline
         /// </summary>
         /// <param name="scanline">The scanline to encode</param>
-        /// <param name="bytesPerScanline">The number of bytes per scanline</param>
         /// <param name="previousScanline">The previous scanline.</param>
+        /// <param name="result">The encoded scanline.</param>
+        /// <param name="bytesPerScanline">The number of bytes per scanline</param>
         /// <returns>The <see cref="T:byte[]"/></returns>
-        public static byte[] Encode(byte[] scanline, int bytesPerScanline, byte[] previousScanline)
+        public static byte[] Encode(byte[] scanline, byte[] previousScanline, byte[] result, int bytesPerScanline)
         {
             // Up(x) = Raw(x) - Prior(x)
-            byte[] encodedScanline = new byte[bytesPerScanline + 1];
-            encodedScanline[0] = (byte)FilterType.Up;
-
-            for (int x = 0; x < bytesPerScanline; x++)
+            fixed (byte* scan = scanline)
+            fixed (byte* prev = previousScanline)
+            fixed (byte* res = result)
             {
-                byte above = previousScanline[x];
+                res[0] = 2;
 
-                encodedScanline[x + 1] = (byte)((scanline[x] - above) % 256);
+                for (int x = 0; x < bytesPerScanline; x++)
+                {
+                    byte above = prev[x];
+
+                    res[x + 1] = (byte)((scan[x] - above) % 256);
+                }
             }
 
-            return encodedScanline;
+            return result;
         }
     }
 }

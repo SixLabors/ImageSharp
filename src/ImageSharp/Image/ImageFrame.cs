@@ -24,11 +24,11 @@ namespace ImageSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrame{TColor, TPacked}"/> class.
         /// </summary>
-        /// <param name="frame">
-        /// The frame to create the frame from.
+        /// <param name="image">
+        /// The image to create the frame from.
         /// </param>
-        public ImageFrame(ImageFrame<TColor, TPacked> frame)
-            : base(frame)
+        public ImageFrame(ImageBase<TColor, TPacked> image)
+            : base(image)
         {
         }
 

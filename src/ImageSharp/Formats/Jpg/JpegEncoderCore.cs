@@ -246,6 +246,7 @@ namespace ImageSharp.Formats
             /// <summary>
             /// The AC luminance huffman table index
             /// </summary>
+
             LuminanceAC = 1,
             // ReSharper restore UnusedMember.Local
 
@@ -487,9 +488,9 @@ namespace ImageSharp.Formats
         /// <param name="index">The quantization table index.</param>
         /// <param name="prevDC">The previous DC value.</param>
         /// <returns>The <see cref="int"/></returns>
-        private int WriteBlock(Block block, QuantIndex index, int prevDC)
+        private int WriteBlock(ref Block block, QuantIndex index, int prevDC)
         {
-            FDCT.Transform(block);
+            FDCT.Transform(ref block);
 
             // Emit the DC delta.
             int dc = Round(block[0], 8 * this.quant[(int)index][0]);
@@ -540,7 +541,8 @@ namespace ImageSharp.Formats
         /// <param name="cbBlock">The red chroma block.</param>
         /// <param name="crBlock">The blue chroma block.</param>
         // ReSharper disable StyleCop.SA1305
-        private void ToYCbCr<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, int x, int y, Block yBlock, Block cbBlock, Block crBlock)
+        private void ToYCbCr<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, int x, int y, 
+            ref Block yBlock, ref Block cbBlock, ref Block crBlock)
             // ReSharper restore StyleCop.SA1305
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
@@ -577,7 +579,7 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="destination">The destination block array</param>
         /// <param name="source">The source block array.</param>
-        private void Scale16X16To8X8(Block destination, Block[] source)
+        private void Scale16X16To8X8(ref Block destination, Block[] source)
         {
             for (int i = 0; i < 4; i++)
             {
@@ -847,10 +849,9 @@ namespace ImageSharp.Formats
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
-            Block b = new Block();
-            Block cb = new Block();
-            Block cr = new Block();
-            
+            Block b = Block.Create();
+            Block cb = Block.Create();
+            Block cr = Block.Create();
             // ReSharper disable once InconsistentNaming
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
 
@@ -858,12 +859,15 @@ namespace ImageSharp.Formats
             {
                 for (int x = 0; x < pixels.Width; x += 8)
                 {
-                    this.ToYCbCr(pixels, x, y, b, cb, cr);
-                    prevDCY = this.WriteBlock(b, QuantIndex.Luminance, prevDCY);
-                    prevDCCb = this.WriteBlock(cb, QuantIndex.Chrominance, prevDCCb);
-                    prevDCCr = this.WriteBlock(cr, QuantIndex.Chrominance, prevDCCr);
+                    this.ToYCbCr(pixels, x, y, ref b, ref cb, ref cr);
+                    prevDCY = this.WriteBlock(ref b, QuantIndex.Luminance, prevDCY);
+                    prevDCCb = this.WriteBlock(ref cb, QuantIndex.Chrominance, prevDCCb);
+                    prevDCCr = this.WriteBlock(ref cr, QuantIndex.Chrominance, prevDCCr);
                 }
             }
+            b.Dispose();
+            cb.Dispose();
+            cr.Dispose();
         }
 
         /// <summary>
@@ -877,23 +881,12 @@ namespace ImageSharp.Formats
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
-            Block b = new Block();
-            Block[] cb = new Block[4];
-            Block[] cr = new Block[4];
-            
+            Block b = Block.Create();
+            Block[] cb = Block.CreateArray(4);
+            Block[] cr = Block.CreateArray(4);
             // ReSharper disable once InconsistentNaming
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
-
-            for (int i = 0; i < 4; i++)
-            {
-                cb[i] = new Block();
-            }
-
-            for (int i = 0; i < 4; i++)
-            {
-                cr[i] = new Block();
-            }
-
+            
             for (int y = 0; y < pixels.Height; y += 16)
             {
                 for (int x = 0; x < pixels.Width; x += 16)
@@ -903,16 +896,20 @@ namespace ImageSharp.Formats
                         int xOff = (i & 1) * 8;
                         int yOff = (i & 2) * 4;
 
-                        this.ToYCbCr(pixels, x + xOff, y + yOff, b, cb[i], cr[i]);
-                        prevDCY = this.WriteBlock(b, QuantIndex.Luminance, prevDCY);
+                        this.ToYCbCr(pixels, x + xOff, y + yOff, ref b, ref cb[i], ref cr[i]);
+                        prevDCY = this.WriteBlock(ref b, QuantIndex.Luminance, prevDCY);
                     }
 
-                    this.Scale16X16To8X8(b, cb);
-                    prevDCCb = this.WriteBlock(b, QuantIndex.Chrominance, prevDCCb);
-                    this.Scale16X16To8X8(b, cr);
-                    prevDCCr = this.WriteBlock(b, QuantIndex.Chrominance, prevDCCr);
+                    this.Scale16X16To8X8(ref b, cb);
+                    prevDCCb = this.WriteBlock(ref b, QuantIndex.Chrominance, prevDCCb);
+                    this.Scale16X16To8X8(ref b, cr);
+                    prevDCCr = this.WriteBlock(ref b, QuantIndex.Chrominance, prevDCCr);
                 }
             }
+
+            b.Dispose();
+            Block.DisposeAll(cb);
+            Block.DisposeAll(cr);
         }
 
         /// <summary>

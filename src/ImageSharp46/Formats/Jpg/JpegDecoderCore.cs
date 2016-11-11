@@ -3,6 +3,8 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+using System.Runtime.CompilerServices;
+
 namespace ImageSharp.Formats
 {
     using System;
@@ -17,17 +19,17 @@ namespace ImageSharp.Formats
         /// <summary>
         /// The maximum (inclusive) number of bits in a Huffman code.
         /// </summary>
-        private const int MaxCodeLength = 16;
+        internal const int MaxCodeLength = 16;
 
         /// <summary>
         /// The maximum (inclusive) number of codes in a Huffman tree.
         /// </summary>
-        private const int MaxNCodes = 256;
+        internal const int MaxNCodes = 256;
 
         /// <summary>
         /// The log-2 size of the Huffman decoder's look-up table.
         /// </summary>
-        private const int LutSize = 8;
+        internal const int LutSize = 8;
 
         /// <summary>
         /// The maximum number of color components
@@ -1401,7 +1403,7 @@ namespace ImageSharp.Formats
                             byte cr = this.ycbcrImage.CrChannel[co + (x / scale)];
 
                             TColor packed = default(TColor);
-                            this.PackYcbCr<TColor, TPacked>(ref packed, yy, cb, cr);
+                            PackYcbCr<TColor, TPacked>(ref packed, yy, cb, cr);
                             pixels[x, y] = packed;
                         }
                     });
@@ -1497,8 +1499,8 @@ namespace ImageSharp.Formats
             this.ReadFull(this.temp, 0, remaining);
             byte scanComponentCount = this.temp[0];
 
-            int scanComponentCountBy2 = 2 * scanComponentCount;
-            if (remaining != 4 + scanComponentCountBy2)
+            int scanComponentCountX2 = 2 * scanComponentCount;
+            if (remaining != 4 + scanComponentCountX2)
             {
                 throw new ImageFormatException("SOS length inconsistent with number of components");
             }
@@ -1539,10 +1541,10 @@ namespace ImageSharp.Formats
 
             if (this.isProgressive)
             {
-                zigStart = this.temp[1 + scanComponentCountBy2];
-                zigEnd = this.temp[2 + scanComponentCountBy2];
-                ah = this.temp[3 + scanComponentCountBy2] >> 4;
-                al = this.temp[3 + scanComponentCountBy2] & 0x0f;
+                zigStart = this.temp[1 + scanComponentCountX2];
+                zigEnd = this.temp[2 + scanComponentCountX2];
+                ah = this.temp[3 + scanComponentCountX2] >> 4;
+                al = this.temp[3 + scanComponentCountX2] & 0x0f;
 
                 if ((zigStart == 0 && zigEnd != 0) || zigStart > zigEnd || Block.BlockSize <= zigEnd)
                 {
@@ -1655,11 +1657,7 @@ namespace ImageSharp.Formats
 
                             var qtIndex = this.componentArray[compIndex].Selector;
                             
-                            // Load the previous partially decoded coefficients, if applicable.
-                            
-                            //b = this.isProgressive ? this.progCoeffs[compIndex][blockIndex] : new Block();
-
-                            if (this.isProgressive)
+                            if (this.isProgressive) // Load the previous partially decoded coefficients, if applicable.
                             {
                                 blockIndex = ((@by * mxx) * hi) + bx;
                                 ProcessBlockImpl(ah, 
@@ -1796,9 +1794,7 @@ namespace ImageSharp.Formats
                 {
                     // We haven't completely decoded this 8x8 block. Save the coefficients.
                     
-                    // TODO: This should be broken when isProgressive == true
-
-                    this.progCoeffs[compIndex][((@by*mxx)*hi) + bx] = b;
+                    this.progCoeffs[compIndex][((@by*mxx)*hi) + bx] = b.Clone();
 
                     // At this point, we could execute the rest of the loop body to dequantize and
                     // perform the inverse DCT, to save early stages of a progressive image to the
@@ -1815,7 +1811,9 @@ namespace ImageSharp.Formats
                 b[Unzig[zig]] *= qt[zig];
             }
 
-            IDCT.Transform(ref b);
+            //IDCT.Transform(ref b);
+            //FloatIDCT.Transform(ref b);
+            MagicDCT.IDCT(ref b);
 
             byte[] dst;
             int offset;
@@ -2168,7 +2166,8 @@ namespace ImageSharp.Formats
         /// <param name="y">The y luminance component.</param>
         /// <param name="cb">The cb chroma component.</param>
         /// <param name="cr">The cr chroma component.</param>
-        private void PackYcbCr<TColor, TPacked>(ref TColor packed, byte y, byte cb, byte cr)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void PackYcbCr<TColor, TPacked>(ref TColor packed, byte y, byte cb, byte cr)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
@@ -2272,6 +2271,11 @@ namespace ImageSharp.Formats
                 {
                     Block.DisposeAll(blocks);
                 }
+            }
+
+            for (int i = 0; i < huffmanTrees.Length; i++)
+            {
+                huffmanTrees[i].Dispose();
             }
         }
     }

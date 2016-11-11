@@ -3,36 +3,41 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+using System;
+using System.Buffers;
+
 namespace ImageSharp.Formats
 {
     /// <summary>
     /// Represents a Huffman tree
     /// </summary>
-    internal struct Huffman
+    internal struct Huffman : IDisposable
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Huffman"/> class.
-        /// </summary>
-        /// <param name="lutSize">The log-2 size of the Huffman decoder's look-up table.</param>
-        /// <param name="maxNCodes">The maximum (inclusive) number of codes in a Huffman tree.</param>
-        /// <param name="maxCodeLength">The maximum (inclusive) number of bits in a Huffman code.</param>
-        //public Huffman(int lutSize, int maxNCodes, int maxCodeLength)
-        //{
-        //    this.Lut = new ushort[1 << lutSize];
-        //    this.Values = new byte[maxNCodes];
-        //    this.MinCodes = new int[maxCodeLength];
-        //    this.MaxCodes = new int[maxCodeLength];
-        //    this.Indices = new int[maxCodeLength];
-        //    this.Length = 0;
-        //}
+        private static ArrayPool<ushort> UshortBuffer =
+            //ArrayPool<ushort>.Shared;
+            ArrayPool<ushort>.Create(1 << JpegDecoderCore.LutSize, 50);
+
+        private static ArrayPool<byte> ByteBuffer = 
+            //ArrayPool<byte>.Shared;
+            ArrayPool<byte>.Create(JpegDecoderCore.MaxNCodes, 50);
+
+        private static readonly ArrayPool<int> IntBuffer =
+            //ArrayPool<int>.Shared;
+            ArrayPool<int>.Create(JpegDecoderCore.MaxCodeLength, 50);
 
         public void Init(int lutSize, int maxNCodes, int maxCodeLength)
         {
-            this.Lut = new ushort[1 << lutSize];
-            this.Values = new byte[maxNCodes];
-            this.MinCodes = new int[maxCodeLength];
-            this.MaxCodes = new int[maxCodeLength];
-            this.Indices = new int[maxCodeLength];
+            //this.Lut = new ushort[1 << lutSize];
+            //this.Values = new byte[maxNCodes];
+            //this.MinCodes = new int[maxCodeLength];
+            //this.MaxCodes = new int[maxCodeLength];
+            //this.Indices = new int[maxCodeLength];
+
+            this.Lut = UshortBuffer.Rent(1 << lutSize);
+            this.Values = ByteBuffer.Rent(maxNCodes);
+            this.MinCodes = IntBuffer.Rent(maxCodeLength);
+            this.MaxCodes = IntBuffer.Rent(maxCodeLength); ;
+            this.Indices = IntBuffer.Rent(maxCodeLength); ;
         }
 
         /// <summary>
@@ -69,6 +74,15 @@ namespace ImageSharp.Formats
         /// Gets the array of indices. Indices[i] is the index into Values of MinCodes[i].
         /// </summary>
         public int[] Indices;
+
+        public void Dispose()
+        {
+            UshortBuffer.Return(Lut, true);
+            ByteBuffer.Return(Values, true);
+            IntBuffer.Return(MinCodes, true);
+            IntBuffer.Return(MaxCodes, true);
+            IntBuffer.Return(Indices, true);
+        }
     }
 
     

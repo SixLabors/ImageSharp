@@ -141,24 +141,25 @@ namespace ImageSharp
         /// </summary>
         /// <param name="row">The row.</param>
         /// <param name="targetY">The target row index.</param>
+        /// <param name="targetX">The target column index.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown when an unsupported component order value is passed.
         /// </exception>
-        public void CopyFrom(PixelRow<TColor, TPacked> row, int targetY)
+        public void CopyFrom(PixelRow<TColor, TPacked> row, int targetY, int targetX = 0)
         {
             switch (row.ComponentOrder)
             {
                 case ComponentOrder.ZYX:
-                    this.CopyFromZYX(row, targetY, Math.Min(row.Width, this.Width));
+                    this.CopyFromZYX(row, targetY, targetX, Math.Min(row.Width, this.Width));
                     break;
                 case ComponentOrder.ZYXW:
-                    this.CopyFromZYXW(row, targetY, Math.Min(row.Width, this.Width));
+                    this.CopyFromZYXW(row, targetY, targetX, Math.Min(row.Width, this.Width));
                     break;
                 case ComponentOrder.XYZ:
-                    this.CopyFromXYZ(row, targetY, Math.Min(row.Width, this.Width));
+                    this.CopyFromXYZ(row, targetY, targetX, Math.Min(row.Width, this.Width));
                     break;
                 case ComponentOrder.XYZW:
-                    this.CopyFromXYZW(row, targetY, Math.Min(row.Width, this.Width));
+                    this.CopyFromXYZW(row, targetY, targetX, Math.Min(row.Width, this.Width));
                     break;
                 default:
                     throw new NotSupportedException();
@@ -228,11 +229,12 @@ namespace ImageSharp
         /// </summary>
         /// <param name="row">The row.</param>
         /// <param name="targetY">The target row index.</param>
+        /// <param name="targetX">The target column index.</param>
         /// <param name="width">The width.</param>
-        protected virtual void CopyFromZYX(PixelRow<TColor, TPacked> row, int targetY, int width)
+        protected virtual void CopyFromZYX(PixelRow<TColor, TPacked> row, int targetY, int targetX, int width)
         {
             byte* source = row.PixelBase;
-            byte* destination = this.GetRowPointer(targetY);
+            byte* destination = this.GetRowPointer(targetY) + targetX;
 
             TColor packed = default(TColor);
             int size = Unsafe.SizeOf<TColor>();
@@ -252,11 +254,12 @@ namespace ImageSharp
         /// </summary>
         /// <param name="row">The row.</param>
         /// <param name="targetY">The target row index.</param>
+        /// <param name="targetX">The target column index.</param>
         /// <param name="width">The width.</param>
-        protected virtual void CopyFromZYXW(PixelRow<TColor, TPacked> row, int targetY, int width)
+        protected virtual void CopyFromZYXW(PixelRow<TColor, TPacked> row, int targetY, int targetX, int width)
         {
             byte* source = row.PixelBase;
-            byte* destination = this.GetRowPointer(targetY);
+            byte* destination = this.GetRowPointer(targetY) + targetX;
 
             TColor packed = default(TColor);
             int size = Unsafe.SizeOf<TColor>();
@@ -276,11 +279,12 @@ namespace ImageSharp
         /// </summary>
         /// <param name="row">The row.</param>
         /// <param name="targetY">The target row index.</param>
+        /// <param name="targetX">The target column index.</param>
         /// <param name="width">The width.</param>
-        protected virtual void CopyFromXYZ(PixelRow<TColor, TPacked> row, int targetY, int width)
+        protected virtual void CopyFromXYZ(PixelRow<TColor, TPacked> row, int targetY, int targetX, int width)
         {
             byte* source = row.PixelBase;
-            byte* destination = this.GetRowPointer(targetY);
+            byte* destination = this.GetRowPointer(targetY) + targetX;
 
             TColor packed = default(TColor);
             int size = Unsafe.SizeOf<TColor>();
@@ -300,11 +304,12 @@ namespace ImageSharp
         /// </summary>
         /// <param name="row">The row.</param>
         /// <param name="targetY">The target row index.</param>
+        /// <param name="targetX">The target column index.</param>
         /// <param name="width">The width.</param>
-        protected virtual void CopyFromXYZW(PixelRow<TColor, TPacked> row, int targetY, int width)
+        protected virtual void CopyFromXYZW(PixelRow<TColor, TPacked> row, int targetY, int targetX, int width)
         {
             byte* source = row.PixelBase;
-            byte* destination = this.GetRowPointer(targetY);
+            byte* destination = this.GetRowPointer(targetY) + targetX;
 
             TColor packed = default(TColor);
             int size = Unsafe.SizeOf<TColor>();

@@ -21,21 +21,19 @@ namespace ImageSharp.Formats
         public static byte[] Decode(byte[] scanline, byte[] previousScanline)
         {
             // Up(x) + Prior(x)
-            byte[] result = new byte[scanline.Length];
 
             fixed (byte* scan = scanline)
             fixed (byte* prev = previousScanline)
-            fixed (byte* res = result)
             {
                 for (int x = 1; x < scanline.Length; x++)
                 {
                     byte above = prev[x];
 
-                    res[x] = (byte)((scan[x] + above) % 256);
+                    scan[x] = (byte)((scan[x] + above) % 256);
                 }
             }
 
-            return result;
+            return scanline;
         }
 
         /// <summary>

@@ -26,22 +26,20 @@ namespace ImageSharp.Formats
         public static byte[] Decode(byte[] scanline, byte[] previousScanline, int bytesPerPixel)
         {
             // Average(x) + floor((Raw(x-bpp)+Prior(x))/2)
-            byte[] result = new byte[scanline.Length];
 
             fixed (byte* scan = scanline)
             fixed (byte* prev = previousScanline)
-            fixed (byte* res = result)
             {
                 for (int x = 1; x < scanline.Length; x++)
                 {
-                    byte left = (x - bytesPerPixel < 1) ? (byte)0 : res[x - bytesPerPixel];
+                    byte left = (x - bytesPerPixel < 1) ? (byte)0 : scan[x - bytesPerPixel];
                     byte above = prev[x];
 
-                    res[x] = (byte)((scan[x] + Average(left, above)) % 256);
+                    scan[x] = (byte)((scan[x] + Average(left, above)) % 256);
                 }
             }
 
-            return result;
+            return scanline;
         }
 
         /// <summary>

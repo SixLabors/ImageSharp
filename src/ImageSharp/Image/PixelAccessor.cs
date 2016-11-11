@@ -399,5 +399,13 @@ namespace ImageSharp
         {
             return this.pixelsBase + ((targetY * this.Width) * Unsafe.SizeOf<TColor>());
         }
+
+        /// <summary>
+        /// Resets all the pixels to it's initial value.
+        /// </summary>
+        internal void Reset()
+        {
+            Unsafe.InitBlock(this.pixelsBase, 0, (uint)(this.RowStride * this.Height));
+        }
     }
 }

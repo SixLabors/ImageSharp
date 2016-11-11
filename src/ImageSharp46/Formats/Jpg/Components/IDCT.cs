@@ -167,5 +167,6 @@ namespace ImageSharp.Formats
                 src[56 + x] = (y7 - y1) >> 14;
             }
         }
+
     }
 }

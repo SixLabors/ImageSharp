@@ -5,13 +5,14 @@
 
 using System;
 using System.Buffers;
+using System.Runtime.CompilerServices;
 
 namespace ImageSharp.Formats
 {
     /// <summary>
     /// Represents an 8x8 block of coefficients to transform and encode.
     /// </summary>
-    internal struct Block : IDisposable
+    public struct Block : IDisposable
     {
         private static ArrayPool<int> IntArrayPool = ArrayPool<int>.Create(BlockSize, 50);
 
@@ -67,7 +68,9 @@ namespace ImageSharp.Formats
         /// </returns>
         public int this[int index]
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get { return this.Data[index]; }
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set { this.Data[index] = value; }
         }
 
@@ -98,5 +101,11 @@ namespace ImageSharp.Formats
             }
         }
 
+        public Block Clone()
+        {
+            Block clone = Create();
+            Array.Copy(Data, clone.Data, BlockSize);
+            return clone;
+        }
     }
 }

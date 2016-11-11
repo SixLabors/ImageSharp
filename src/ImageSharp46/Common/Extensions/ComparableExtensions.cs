@@ -3,6 +3,8 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+using System.Runtime.CompilerServices;
+
 namespace ImageSharp
 {
     using System;
@@ -94,6 +96,8 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="float"/> representing the clamped value.
         /// </returns>
+        /// 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Clamp(this float value, float min, float max)
         {
             if (value > max)

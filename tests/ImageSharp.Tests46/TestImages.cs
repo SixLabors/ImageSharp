@@ -3,6 +3,8 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+using System.Diagnostics.PerformanceData;
+
 namespace ImageSharp.Tests
 {
     /// <summary>
@@ -33,9 +35,11 @@ namespace ImageSharp.Tests
             public const string Progress = Folder + "progress.jpg";
             public const string GammaDalaiLamaGray = Folder + "gamma_dalai_lama_gray.jpg";
 
+            public const string Geneserath = Folder + "geneserath.jpg";
+
             public static readonly string[] All = new[]
             {
-                Cmyk, Exif, Floorplan, Calliphora, Turtle, Fb, Progress, GammaDalaiLamaGray
+                Cmyk, Exif, Floorplan, Calliphora, Turtle, Fb, Progress, GammaDalaiLamaGray, Geneserath
             };
         }
 
@@ -44,10 +48,10 @@ namespace ImageSharp.Tests
             private static readonly string folder = "../../TestImages/Formats/Bmp/";
 
             public static string Car => folder + "Car.bmp";
-
             public static string F => folder + "F.bmp";
-
             public static string NegHeight => folder + "neg_height.bmp";
+
+            public static string[] All => new[] {Car, F, NegHeight};
         }
 
         public static class Gif

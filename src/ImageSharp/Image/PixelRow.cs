@@ -7,6 +7,7 @@ namespace ImageSharp
 {
     using System;
     using System.IO;
+    using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
 
     /// <summary>
@@ -200,6 +201,14 @@ namespace ImageSharp
             }
 
             throw new NotSupportedException();
+        }
+
+        /// <summary>
+        /// Resets the bytes of the array to it's initial value.
+        /// </summary>
+        internal void Reset()
+        {
+            Unsafe.InitBlock(this.PixelBase, 0, (uint)this.Bytes.Length);
         }
     }
 }

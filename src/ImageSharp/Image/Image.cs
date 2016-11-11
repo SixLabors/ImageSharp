@@ -191,6 +191,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="stream">The stream to save the image to.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
+        /// <returns>The <see cref="Image{TColor,TPacked}"/></returns>
         public Image<TColor, TPacked> Save(Stream stream)
         {
             Guard.NotNull(stream, nameof(stream));
@@ -204,6 +205,7 @@ namespace ImageSharp
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="format">The format to save the image as.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
+        /// <returns>The <see cref="Image{TColor,TPacked}"/></returns>
         public Image<TColor, TPacked> Save(Stream stream, IImageFormat format)
         {
             Guard.NotNull(stream, nameof(stream));

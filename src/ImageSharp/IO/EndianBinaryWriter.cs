@@ -347,6 +347,19 @@ namespace ImageSharp.IO
         }
 
         /// <summary>
+        /// Disposes of the underlying stream.
+        /// </summary>
+        public void Dispose()
+        {
+            if (!this.disposed)
+            {
+                this.Flush();
+                this.disposed = true;
+                ((IDisposable)this.BaseStream).Dispose();
+            }
+        }
+
+        /// <summary>
         /// Checks whether or not the writer has been disposed, throwing an exception if so.
         /// </summary>
         private void CheckDisposed()
@@ -367,19 +380,6 @@ namespace ImageSharp.IO
         {
             this.CheckDisposed();
             this.BaseStream.Write(bytes, 0, length);
-        }
-
-        /// <summary>
-        /// Disposes of the underlying stream.
-        /// </summary>
-        public void Dispose()
-        {
-            if (!this.disposed)
-            {
-                this.Flush();
-                this.disposed = true;
-                ((IDisposable)this.BaseStream).Dispose();
-            }
         }
     }
 }

@@ -19,7 +19,7 @@ namespace ImageSharp.Processors
         where TPacked : struct
     {
         /// <summary>
-        /// The tranform matrix to apply.
+        /// The transform matrix to apply.
         /// </summary>
         private Matrix3x2 processMatrix;
 
@@ -37,16 +37,6 @@ namespace ImageSharp.Processors
         /// Gets or sets a value indicating whether to expand the canvas to fit the skewed image.
         /// </summary>
         public bool Expand { get; set; } = true;
-
-        /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle)
-        {
-            this.processMatrix = Point.CreateSkew(new Point(0, 0), -this.AngleX, -this.AngleY);
-            if (this.Expand)
-            {
-                CreateNewTarget(target, sourceRectangle, this.processMatrix);
-            }
-        }
 
         /// <inheritdoc/>
         public override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
@@ -73,6 +63,16 @@ namespace ImageSharp.Processors
                                 }
                             }
                         });
+            }
+        }
+
+        /// <inheritdoc/>
+        protected override void OnApply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle)
+        {
+            this.processMatrix = Point.CreateSkew(new Point(0, 0), -this.AngleX, -this.AngleY);
+            if (this.Expand)
+            {
+                CreateNewTarget(target, sourceRectangle, this.processMatrix);
             }
         }
     }

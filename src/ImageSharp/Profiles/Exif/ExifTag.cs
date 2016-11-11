@@ -3,12 +3,11 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-// Descriptions from: http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/EXIF.html
-
 namespace ImageSharp
 {
     /// <summary>
     /// All exif tags from the Exif standard 2.2
+    /// Descriptions from: <see href="http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/EXIF.html"/>
     /// </summary>
     public enum ExifTag
     {

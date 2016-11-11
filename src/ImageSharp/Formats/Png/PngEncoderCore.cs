@@ -34,7 +34,6 @@ namespace ImageSharp.Formats
         /// </summary>
         private readonly byte[] chunkDataBuffer = new byte[16];
 
-
         /// <summary>
         /// Contains the raw pixel data from an indexed image.
         /// </summary>
@@ -182,7 +181,11 @@ namespace ImageSharp.Formats
 
             this.WritePhysicalChunk(stream, image);
             this.WriteGammaChunk(stream);
-            this.WriteDataChunks(image, stream);
+            using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
+            {
+                this.WriteDataChunks(pixels, stream);
+            }
+
             this.WriteEndChunk(stream);
             stream.Flush();
         }
@@ -249,35 +252,32 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-        /// <param name="image">The image to encode.</param>
+        /// <param name="pixels">The image pixels accessor.</param>
         /// <param name="row">The row index.</param>
         /// <param name="rawScanline">The raw scanline.</param>
-        private void CollectGrayscaleBytes<TColor, TPacked>(ImageBase<TColor, TPacked> image, int row, byte[] rawScanline)
+        private void CollectGrayscaleBytes<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, int row, byte[] rawScanline)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             // Copy the pixels across from the image.
             // Reuse the chunk type buffer.
-            using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
+            for (int x = 0; x < this.width; x++)
             {
-                for (int x = 0; x < this.width; x++)
-                {
-                    // Convert the color to YCbCr and store the luminance
-                    // Optionally store the original color alpha.
-                    int offset = x * this.bytesPerPixel;
-                    pixels[x, row].ToBytes(this.chunkTypeBuffer, 0, ComponentOrder.XYZW);
-                    byte luminance = (byte)((0.299F * this.chunkTypeBuffer[0]) + (0.587F * this.chunkTypeBuffer[1]) + (0.114F * this.chunkTypeBuffer[2]));
+                // Convert the color to YCbCr and store the luminance
+                // Optionally store the original color alpha.
+                int offset = x * this.bytesPerPixel;
+                pixels[x, row].ToBytes(this.chunkTypeBuffer, 0, ComponentOrder.XYZW);
+                byte luminance = (byte)((0.299F * this.chunkTypeBuffer[0]) + (0.587F * this.chunkTypeBuffer[1]) + (0.114F * this.chunkTypeBuffer[2]));
 
-                    for (int i = 0; i < this.bytesPerPixel; i++)
+                for (int i = 0; i < this.bytesPerPixel; i++)
+                {
+                    if (i == 0)
                     {
-                        if (i == 0)
-                        {
-                            rawScanline[offset] = luminance;
-                        }
-                        else
-                        {
-                            rawScanline[offset + i] = this.chunkTypeBuffer[3];
-                        }
+                        rawScanline[offset] = luminance;
+                    }
+                    else
+                    {
+                        rawScanline[offset + i] = this.chunkTypeBuffer[3];
                     }
                 }
             }
@@ -288,20 +288,17 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-        /// <param name="image">The image to encode.</param>
+        /// <param name="pixels">The image pixel accessor.</param>
         /// <param name="row">The row index.</param>
         /// <param name="rawScanline">The raw scanline.</param>
-        private void CollectColorBytes<TColor, TPacked>(ImageBase<TColor, TPacked> image, int row, byte[] rawScanline)
+        private void CollectColorBytes<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, int row, byte[] rawScanline)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
-            using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
+            int bpp = this.bytesPerPixel;
+            for (int x = 0; x < this.width; x++)
             {
-                int bpp = this.bytesPerPixel;
-                for (int x = 0; x < this.width; x++)
-                {
-                    pixels[x, row].ToBytes(rawScanline, x * this.bytesPerPixel, bpp == 4 ? ComponentOrder.XYZW : ComponentOrder.XYZ);
-                }
+                pixels[x, row].ToBytes(rawScanline, x * this.bytesPerPixel, bpp == 4 ? ComponentOrder.XYZW : ComponentOrder.XYZ);
             }
         }
 
@@ -311,13 +308,13 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-        /// <param name="image">The image to encode.</param>
+        /// <param name="pixels">The image pixel accessor.</param>
         /// <param name="row">The row.</param>
         /// <param name="previousScanline">The previous scanline.</param>
         /// <param name="rawScanline">The raw scanline.</param>
+        /// <param name="result">The resultant filtered scanline.</param>
         /// <param name="bytesPerScanline">The number of bytes per scanline.</param>
-        /// <returns>The <see cref="T:byte[]"/></returns>
-        private byte[] EncodePixelRow<TColor, TPacked>(ImageBase<TColor, TPacked> image, int row, byte[] previousScanline, byte[] rawScanline, int bytesPerScanline)
+        private void EncodePixelRow<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, int row, byte[] previousScanline, byte[] rawScanline, byte[] result, int bytesPerScanline)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
@@ -328,16 +325,14 @@ namespace ImageSharp.Formats
                     break;
                 case PngColorType.Grayscale:
                 case PngColorType.GrayscaleWithAlpha:
-                    this.CollectGrayscaleBytes(image, row, rawScanline);
+                    this.CollectGrayscaleBytes(pixels, row, rawScanline);
                     break;
                 default:
-                    this.CollectColorBytes(image, row, rawScanline);
+                    this.CollectColorBytes(pixels, row, rawScanline);
                     break;
             }
 
-            byte[] filteredScanline = this.GetOptimalFilteredScanline(rawScanline, previousScanline, bytesPerScanline, this.bytesPerPixel);
-
-            return filteredScanline;
+            this.GetOptimalFilteredScanline(rawScanline, previousScanline, result, bytesPerScanline);
         }
 
         /// <summary>
@@ -346,37 +341,30 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="rawScanline">The raw scanline</param>
         /// <param name="previousScanline">The previous scanline</param>
+        /// <param name="result">The filtered scanline result</param>
         /// <param name="bytesPerScanline">The number of bytes per scanline</param>
-        /// <param name="bytesPerPixel">The number of bytes per pixel</param>
-        /// <returns>The <see cref="T:byte[]"/></returns>
-        private byte[] GetOptimalFilteredScanline(byte[] rawScanline, byte[] previousScanline, int bytesPerScanline, int bytesPerPixel)
+        private void GetOptimalFilteredScanline(byte[] rawScanline, byte[] previousScanline, byte[] result, int bytesPerScanline)
         {
-            Tuple<byte[], int>[] candidates;
-
             // Palette images don't compress well with adaptive filtering.
             if (this.PngColorType == PngColorType.Palette)
             {
-                candidates = new Tuple<byte[], int>[1];
-
-                byte[] none = NoneFilter.Encode(rawScanline, bytesPerScanline);
-                candidates[0] = new Tuple<byte[], int>(none, this.CalculateTotalVariation(none));
+                NoneFilter.Encode(rawScanline, result, bytesPerScanline);
+                return;
             }
-            else
-            {
-                candidates = new Tuple<byte[], int>[4];
 
-                byte[] sub = SubFilter.Encode(rawScanline, bytesPerPixel, bytesPerScanline);
-                candidates[0] = new Tuple<byte[], int>(sub, this.CalculateTotalVariation(sub));
+            Tuple<byte[], int>[] candidates = new Tuple<byte[], int>[4];
 
-                byte[] up = UpFilter.Encode(rawScanline, bytesPerScanline, previousScanline);
-                candidates[1] = new Tuple<byte[], int>(up, this.CalculateTotalVariation(up));
+            byte[] sub = SubFilter.Encode(rawScanline, result, this.bytesPerPixel, bytesPerScanline);
+            candidates[0] = new Tuple<byte[], int>(sub, this.CalculateTotalVariation(sub));
 
-                byte[] average = AverageFilter.Encode(rawScanline, previousScanline, bytesPerPixel, bytesPerScanline);
-                candidates[2] = new Tuple<byte[], int>(average, this.CalculateTotalVariation(average));
+            byte[] up = UpFilter.Encode(rawScanline, previousScanline, result, bytesPerScanline);
+            candidates[1] = new Tuple<byte[], int>(up, this.CalculateTotalVariation(up));
 
-                byte[] paeth = PaethFilter.Encode(rawScanline, previousScanline, bytesPerPixel, bytesPerScanline);
-                candidates[3] = new Tuple<byte[], int>(paeth, this.CalculateTotalVariation(paeth));
-            }
+            byte[] average = AverageFilter.Encode(rawScanline, previousScanline, result, this.bytesPerPixel, bytesPerScanline);
+            candidates[2] = new Tuple<byte[], int>(average, this.CalculateTotalVariation(average));
+
+            byte[] paeth = PaethFilter.Encode(rawScanline, previousScanline, result, this.bytesPerPixel, bytesPerScanline);
+            candidates[3] = new Tuple<byte[], int>(paeth, this.CalculateTotalVariation(paeth));
 
             int lowestTotalVariation = int.MaxValue;
             int lowestTotalVariationIndex = 0;
@@ -390,7 +378,8 @@ namespace ImageSharp.Formats
                 }
             }
 
-            return candidates[lowestTotalVariationIndex].Item1;
+            // ReSharper disable once RedundantAssignment
+            result = candidates[lowestTotalVariationIndex].Item1;
         }
 
         /// <summary>
@@ -592,15 +581,22 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-        /// <param name="image">The image to encode.</param>
+        /// <param name="pixels">The pixel accessor.</param>
         /// <param name="stream">The stream.</param>
-        private void WriteDataChunks<TColor, TPacked>(ImageBase<TColor, TPacked> image, Stream stream)
+        private void WriteDataChunks<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, Stream stream)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             int bytesPerScanline = this.width * this.bytesPerPixel;
             byte[] previousScanline = ArrayPool<byte>.Shared.Rent(bytesPerScanline);
             byte[] rawScanline = ArrayPool<byte>.Shared.Rent(bytesPerScanline);
+            int resultLength = bytesPerScanline + 1;
+            byte[] result = ArrayPool<byte>.Shared.Rent(resultLength);
+
+            // TODO: Clearing this array makes the visual tests work again when encoding multiple images in a row. 
+            // The png analyser tool I use still cannot decompress the image though my own decoder, chome and edge browsers, and paint can. Twitter also cannot read the file.
+            // It's 2am now so I'm going to check in what I have and cry. :'(
+            Array.Clear(result, 0, resultLength);
 
             byte[] buffer;
             int bufferLength;
@@ -612,9 +608,8 @@ namespace ImageSharp.Formats
                 {
                     for (int y = 0; y < this.height; y++)
                     {
-                        byte[] data = this.EncodePixelRow(image, y, previousScanline, rawScanline, bytesPerScanline);
-                        deflateStream.Write(data, 0, data.Length);
-                        deflateStream.Flush();
+                        this.EncodePixelRow(pixels, y, previousScanline, rawScanline, result, bytesPerScanline);
+                        deflateStream.Write(result, 0, resultLength);
 
                         // Do a bit of shuffling;
                         byte[] tmp = rawScanline;
@@ -622,18 +617,20 @@ namespace ImageSharp.Formats
                         previousScanline = tmp;
                     }
 
-                    bufferLength = (int)memoryStream.Length;
+                    deflateStream.Flush();
                     buffer = memoryStream.ToArray();
+                    bufferLength = buffer.Length;
                 }
             }
             finally
             {
+                memoryStream?.Dispose();
                 ArrayPool<byte>.Shared.Return(previousScanline);
                 ArrayPool<byte>.Shared.Return(rawScanline);
-                memoryStream?.Dispose();
+                ArrayPool<byte>.Shared.Return(result);
             }
 
-            // Store the chunks in repeated 64k blocks. 
+            // Store the chunks in repeated 64k blocks.
             // This reduces the memory load for decoding the image for many decoders.
             int numChunks = bufferLength / MaxBlockSize;
 

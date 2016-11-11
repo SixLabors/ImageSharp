@@ -5,7 +5,6 @@
 
 namespace ImageSharp
 {
-    using System;
     using System.Runtime.CompilerServices;
 
     /// <summary>
@@ -20,6 +19,30 @@ namespace ImageSharp
         public PixelAccessor(ImageBase<Color, uint> image)
           : base(image)
         {
+        }
+
+        /// <inheritdoc />
+        protected override void CopyFromXYZW(PixelRow<Color, uint> row, int targetY, int targetX, int width)
+        {
+            byte* source = row.PixelBase;
+            byte* destination = this.GetRowPointer(targetY) + targetX;
+
+            Unsafe.CopyBlock(destination, source, (uint) width * 4);
+        }
+
+        /// <inheritdoc />
+        protected override void CopyFromXYZ(PixelRow<Color, uint> row, int targetY, int targetX, int width)
+        {
+            byte* source = row.PixelBase;
+            byte* destination = this.GetRowPointer(targetY) + targetX;
+
+            for (int x = 0; x < width; x++)
+            {
+                Unsafe.Write(destination, (uint)(*(source) << 0 | *(source + 1) << 8 | *(source + 2) << 16 | 255 << 24));
+
+                source += 3;
+                destination += 4;
+            }
         }
 
         /// <inheritdoc />

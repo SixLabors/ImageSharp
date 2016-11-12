@@ -4,27 +4,32 @@ using System.Runtime.CompilerServices;
 
 namespace ImageSharp.Formats
 {
-    public struct Buffer64
+    // ReSharper disable once InconsistentNaming
+    public struct Buffer8x8
     {
-        public Vector4 V00;
-        public Vector4 V01;
-        public Vector4 V02;
-        public Vector4 V03;
+        public Vector4 V0L;
+        public Vector4 V0R;
 
-        public Vector4 V10;
-        public Vector4 V11;
-        public Vector4 V12;
-        public Vector4 V13;
+        public Vector4 V1L;
+        public Vector4 V1R;
 
-        public Vector4 V20;
-        public Vector4 V21;
-        public Vector4 V22;
-        public Vector4 V23;
+        public Vector4 V2L;
+        public Vector4 V2R;
 
-        public Vector4 V30;
-        public Vector4 V31;
-        public Vector4 V32;
-        public Vector4 V33;
+        public Vector4 V3L;
+        public Vector4 V3R;
+
+        public Vector4 V4L;
+        public Vector4 V4R;
+
+        public Vector4 V5L;
+        public Vector4 V5R;
+
+        public Vector4 V6L;
+        public Vector4 V6R;
+
+        public Vector4 V7L;
+        public Vector4 V7R;
 
 
         public const int VectorCount = 16;
@@ -32,7 +37,7 @@ namespace ImageSharp.Formats
 
         public unsafe void LoadFrom(Span<float> source)
         {
-            fixed (Vector4* ptr = &V00)
+            fixed (Vector4* ptr = &V0L)
             {
                 float* fp = (float*)ptr;
                 for (int i = 0; i < ScalarCount; i++)
@@ -44,7 +49,7 @@ namespace ImageSharp.Formats
 
         public unsafe void CopyTo(Span<float> dest)
         {
-            fixed (Vector4* ptr = &V00)
+            fixed (Vector4* ptr = &V0L)
             {
                 float* fp = (float*)ptr;
                 for (int i = 0; i < ScalarCount; i++)
@@ -56,7 +61,7 @@ namespace ImageSharp.Formats
 
         internal unsafe void LoadFrom(Span<int> source)
         {
-            fixed (Vector4* ptr = &V00)
+            fixed (Vector4* ptr = &V0L)
             {
                 float* fp = (float*)ptr;
                 for (int i = 0; i < ScalarCount; i++)
@@ -68,7 +73,7 @@ namespace ImageSharp.Formats
 
         internal unsafe void CopyTo(Span<int> dest)
         {
-            fixed (Vector4* ptr = &V00)
+            fixed (Vector4* ptr = &V0L)
             {
                 float* fp = (float*)ptr;
                 for (int i = 0; i < ScalarCount; i++)
@@ -80,7 +85,7 @@ namespace ImageSharp.Formats
 
         public unsafe void TransposeInplace()
         {
-            fixed (Vector4* ptr = &V00)
+            fixed (Vector4* ptr = &V0L)
             {
                 float* data = (float*) ptr;
 
@@ -98,13 +103,13 @@ namespace ImageSharp.Formats
            
         }
 
-        public unsafe void TranposeInto(ref Buffer64 destination)
+        public unsafe void TranposeInto(ref Buffer8x8 destination)
         {
-            fixed (Vector4* sPtr = &V00)
+            fixed (Vector4* sPtr = &V0L)
             {
                 float* src = (float*)sPtr;
 
-                fixed (Vector4* dPtr = &destination.V00)
+                fixed (Vector4* dPtr = &destination.V0L)
                 {
                     float* dest = (float*) dPtr;
 
@@ -120,21 +125,26 @@ namespace ImageSharp.Formats
             }
         }
 
-        //public struct Matrix
-        //{
-        //    public Matrix4x4 A, B, C, D;
-
-        //    public void LoadFrom(ref Buffer64 b)
-        //    {
-        //        fixed (Vector4*)
-        //    }
-        //}
-
-        public void TransposeIntoSafe(ref Buffer64 destination)
+        public void TransposeIntoSafe(ref Buffer8x8 d)
         {
-            Matrix4x4 a;
             
+        }
 
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe void PinnedTransposeInto(Buffer8x8* sourcePtr, Buffer8x8* destPtr)
+        {
+            float* src = (float*)sourcePtr;
+            float* dest = (float*) destPtr;
+
+            for (int i = 0; i < 8; i++)
+            {
+                int i8 = i * 8;
+                for (int j = 0; j < 8; j++)
+                {
+                    dest[j * 8 + i] = src[i8 + j];
+                }
+            }
         }
 
         private static readonly Vector4 _c = new Vector4(0.1250f);
@@ -142,14 +152,14 @@ namespace ImageSharp.Formats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void MultiplyAllInplace(Vector4 s)
         {
-            V00 *= s; V01 *= s; V02 *= s; V03 *= s;
-            V10 *= s; V11 *= s; V12 *= s; V13 *= s;
-            V20 *= s; V21 *= s; V22 *= s; V23 *= s;
-            V30 *= s; V31 *= s; V32 *= s; V33 *= s;
+            V0L *= s; V0R *= s; V1L *= s; V1R *= s;
+            V2L *= s; V2R *= s; V3L *= s; V3R *= s;
+            V4L *= s; V4R *= s; V5L *= s; V5R *= s;
+            V6L *= s; V6R *= s; V7L *= s; V7R *= s;
         }
 
         // ReSharper disable once InconsistentNaming
-        public void TransformIDCTInto(ref Buffer64 dest, ref Buffer64 temp)
+        public void TransformIDCTInto(ref Buffer8x8 dest, ref Buffer8x8 temp)
         {
             TranposeInto(ref temp);
             temp.iDCT2D8x4_LeftPart(ref dest);
@@ -176,7 +186,7 @@ namespace ImageSharp.Formats
         private static readonly Vector4 _1_847759 = new Vector4(-1.847759f);
         private static readonly Vector4 _0_765367 = new Vector4(0.765367f);
 
-        internal void iDCT2D8x4_LeftPart(ref Buffer64 d)
+        internal void iDCT2D8x4_LeftPart(ref Buffer8x8 d)
         {
             /*
 	        float a0,a1,a2,a3,b0,b1,b2,b3; float z0,z1,z2,z3,z4; float r[8]; int i;
@@ -193,13 +203,13 @@ namespace ImageSharp.Formats
 	        7: 0.275899
 	        */
             
-            Vector4 my1 = V02;
-            Vector4 my7 = V32;
+            Vector4 my1 = V1L;
+            Vector4 my7 = V7L;
             Vector4 mz0 = my1 + my7;
 
-            Vector4 my3 = V12;
+            Vector4 my3 = V3L;
             Vector4 mz2 = my3 + my7;
-            Vector4 my5 = V22;
+            Vector4 my5 = V5L;
             Vector4 mz1 = my3 + my5;
             Vector4 mz3 = my1 + my5;
 
@@ -239,11 +249,11 @@ namespace ImageSharp.Formats
             b0 = y[1] * ( r[1] + r[3] - r[5] - r[7]) + z0 + z3;
             */
 
-            Vector4 my2 = V10;
-            Vector4 my6 = V30;
+            Vector4 my2 = V2L;
+            Vector4 my6 = V6L;
             mz4 = (my2 + my6) * _0_541196;
-            Vector4 my0 = V00;
-            Vector4 my4 = V20;
+            Vector4 my0 = V0L;
+            Vector4 my4 = V4L;
             mz0 = my0 + my4;
             mz1 = my0 - my4;
 
@@ -265,14 +275,14 @@ namespace ImageSharp.Formats
 	        a1 = z1 + z2; a2 = z1 - z2;
 	        */
             
-            d.V00 = my0 + mb0;
-            d.V32 = my0 - mb0;
-            d.V02 = my1 + mb1;
-            d.V30 = my1 - mb1;
-            d.V10 = my2 + mb2;
-            d.V22 = my2 - mb2;
-            d.V12 = my3 + mb3;
-            d.V20 = my3 - mb3;
+            d.V0L = my0 + mb0;
+            d.V7L = my0 - mb0;
+            d.V1L = my1 + mb1;
+            d.V6L = my1 - mb1;
+            d.V2L = my2 + mb2;
+            d.V5L = my2 - mb2;
+            d.V3L = my3 + mb3;
+            d.V4L = my3 - mb3;
             /*
             x[0] = a0 + b0; x[7] = a0 - b0;
             x[1] = a1 + b1; x[6] = a1 - b1;
@@ -283,7 +293,7 @@ namespace ImageSharp.Formats
         }
 
 
-        internal void iDCT2D8x4_RightPart(ref Buffer64 d)
+        internal void iDCT2D8x4_RightPart(ref Buffer8x8 d)
         {
             /*
 	        float a0,a1,a2,a3,b0,b1,b2,b3; float z0,z1,z2,z3,z4; float r[8]; int i;
@@ -300,13 +310,13 @@ namespace ImageSharp.Formats
 	        7: 0.275899
 	        */
 
-            Vector4 my1 = V03;
-            Vector4 my7 = V33;
+            Vector4 my1 = V1R;
+            Vector4 my7 = V7R;
             Vector4 mz0 = my1 + my7;
 
-            Vector4 my3 = V13;
+            Vector4 my3 = V3R;
             Vector4 mz2 = my3 + my7;
-            Vector4 my5 = V23;
+            Vector4 my5 = V5R;
             Vector4 mz1 = my3 + my5;
             Vector4 mz3 = my1 + my5;
 
@@ -346,11 +356,11 @@ namespace ImageSharp.Formats
             b0 = y[1] * ( r[1] + r[3] - r[5] - r[7]) + z0 + z3;
             */
 
-            Vector4 my2 = V11;
-            Vector4 my6 = V31;
+            Vector4 my2 = V2R;
+            Vector4 my6 = V6R;
             mz4 = (my2 + my6) * _0_541196;
-            Vector4 my0 = V01;
-            Vector4 my4 = V21;
+            Vector4 my0 = V0R;
+            Vector4 my4 = V4R;
             mz0 = my0 + my4;
             mz1 = my0 - my4;
 
@@ -372,14 +382,14 @@ namespace ImageSharp.Formats
 	        a1 = z1 + z2; a2 = z1 - z2;
 	        */
 
-            d.V01 = my0 + mb0;
-            d.V33 = my0 - mb0;
-            d.V03 = my1 + mb1;
-            d.V31 = my1 - mb1;
-            d.V11 = my2 + mb2;
-            d.V23 = my2 - mb2;
-            d.V13 = my3 + mb3;
-            d.V21 = my3 - mb3;
+            d.V0R = my0 + mb0;
+            d.V7R = my0 - mb0;
+            d.V1R = my1 + mb1;
+            d.V6R = my1 - mb1;
+            d.V2R = my2 + mb2;
+            d.V5R = my2 - mb2;
+            d.V3R = my3 + mb3;
+            d.V4R = my3 - mb3;
             /*
             x[0] = a0 + b0; x[7] = a0 - b0;
             x[1] = a1 + b1; x[6] = a1 - b1;
@@ -391,11 +401,11 @@ namespace ImageSharp.Formats
 
         public static void SuchIDCT(ref Block block)
         {
-            Buffer64 source = new Buffer64();
+            Buffer8x8 source = new Buffer8x8();
             source.LoadFrom(block.Data);
 
-            Buffer64 dest = new Buffer64();
-            Buffer64 temp = new Buffer64();
+            Buffer8x8 dest = new Buffer8x8();
+            Buffer8x8 temp = new Buffer8x8();
             
             source.TransformIDCTInto(ref dest, ref temp);
             dest.CopyTo(block.Data);

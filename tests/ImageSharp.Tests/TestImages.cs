@@ -19,6 +19,15 @@ namespace ImageSharp.Tests
             public static string Blur => folder + "blur.png";
             public static string Indexed => folder + "indexed.png";
             public static string Splash => folder + "splash.png";
+
+            // filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
+            public static string Filter0 => folder + "filter0.png";
+            public static string Filter1 => folder + "filter1.png";
+            public static string Filter2 => folder + "filter2.png";
+            public static string Filter3 => folder + "filter3.png";
+            public static string Filter4 => folder + "filter4.png";
+            // filter changing per scanline     
+            public static string FilterVar => folder + "filterVar.png";
         }
 
         public static class Jpeg

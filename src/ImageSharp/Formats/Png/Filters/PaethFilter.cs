@@ -25,23 +25,21 @@ namespace ImageSharp.Formats
         public static byte[] Decode(byte[] scanline, byte[] previousScanline, int bytesPerPixel)
         {
             // Paeth(x) + PaethPredictor(Raw(x-bpp), Prior(x), Prior(x-bpp))
-            byte[] result = new byte[scanline.Length];
 
             fixed (byte* scan = scanline)
             fixed (byte* prev = previousScanline)
-            fixed (byte* res = result)
             {
                 for (int x = 1; x < scanline.Length; x++)
                 {
-                    byte left = (x - bytesPerPixel < 1) ? (byte)0 : res[x - bytesPerPixel];
+                    byte left = (x - bytesPerPixel < 1) ? (byte)0 : scan[x - bytesPerPixel];
                     byte above = prev[x];
                     byte upperLeft = (x - bytesPerPixel < 1) ? (byte)0 : prev[x - bytesPerPixel];
 
-                    res[x] = (byte)((scan[x] + PaethPredicator(left, above, upperLeft)) % 256);
+                    scan[x] = (byte)((scan[x] + PaethPredicator(left, above, upperLeft)) % 256);
                 }
             }
 
-            return result;
+            return scanline;
         }
 
         /// <summary>

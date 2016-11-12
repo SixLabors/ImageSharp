@@ -5,59 +5,13 @@ using System.Runtime.CompilerServices;
 
 namespace ImageSharp.Formats
 {
-    public struct Span<T>
-        where T : struct
-    {
-        public T[] Data;
-        public int Offset;
-
-        public Span(int size, int offset = 0)
-        {
-            Data = new T[size];
-            Offset = offset;
-        }
-
-        public Span(T[] data, int offset = 0)
-        {
-            Data = data;
-            Offset = offset;
-        }
-
-        public T this[int idx]
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)] get { return Data[idx + Offset]; }
-            [MethodImpl(MethodImplOptions.AggressiveInlining)] set { Data[idx + Offset] = value; }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Span<T> Slice(int offset)
-        {
-            return new Span<T>(Data, Offset + offset);
-        }
-
-        public static implicit operator Span<T>(T[] data) => new Span<T>(data, 0);
-
-        private static readonly ArrayPool<T> Pool = ArrayPool<T>.Create(128, 10);
-
-        public static Span<T> RentFromPool(int size, int offset = 0)
-        {
-            return new Span<T>(Pool.Rent(size), offset);
-        }
-
-        public void ReturnToPool()
-        {
-            Pool.Return(Data, true);
-            Data = null;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void AddOffset(int offset)
-        {
-            Offset += offset;
-        }
-    }
-
-    public static class MagicDCT
+    /// <summary>
+    /// Ported from https://github.com/norishigefukushima/dct_simd
+    /// In this form, its Slow in C#
+    /// Used as a reference implementation in test cases!
+    /// </summary>
+    // ReSharper disable once InconsistentNaming
+    public static class ReferenceDCT
     {
         private static readonly ArrayPool<float> FloatArrayPool = ArrayPool<float>.Create(Block.BlockSize, 50);
        
@@ -425,6 +379,7 @@ namespace ImageSharp.Formats
 	        6: 
 	        7: 0.275899
 	        */
+            
             Vector4 my1 = _mm_load_ps(y, 8);
             Vector4 my7 = _mm_load_ps(y, 56);
             Vector4 mz0 = my1 + my7;

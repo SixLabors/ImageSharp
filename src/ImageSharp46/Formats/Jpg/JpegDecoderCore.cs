@@ -1813,7 +1813,8 @@ namespace ImageSharp.Formats
 
             //IDCT.Transform(ref b);
             //FloatIDCT.Transform(ref b);
-            MagicDCT.IDCT(ref b);
+            //ReferenceDCT.IDCT(ref b);
+            Buffer64.SuchIDCT(ref b);
 
             byte[] dst;
             int offset;

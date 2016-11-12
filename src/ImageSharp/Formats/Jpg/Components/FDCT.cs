@@ -45,7 +45,7 @@ namespace ImageSharp.Formats
         /// Performs a forward DCT on an 8x8 block of coefficients, including a level shift.
         /// </summary>
         /// <param name="block">The block of coefficients.</param>
-        public static void Transform(Block block)
+        public static void Transform(ref Block block)
         {
             // Pass 1: process rows.
             for (int y = 0; y < 8; y++)

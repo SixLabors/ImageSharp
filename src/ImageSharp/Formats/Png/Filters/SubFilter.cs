@@ -41,13 +41,13 @@ namespace ImageSharp.Formats
         /// Encodes the scanline
         /// </summary>
         /// <param name="scanline">The scanline to encode</param>
-        /// <param name="result">The encoded scanline.</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
         /// <param name="bytesPerScanline">The number of bytes per scanline</param>
         /// <returns>The <see cref="T:byte[]"/></returns>
-        public static byte[] Encode(byte[] scanline, byte[] result, int bytesPerPixel, int bytesPerScanline)
+        public static byte[] Encode(byte[] scanline, int bytesPerPixel, int bytesPerScanline)
         {
             // Sub(x) = Raw(x) - Raw(x-bpp)
+            byte[] result = new byte[bytesPerScanline + 1];
             fixed (byte* scan = scanline)
             fixed (byte* res = result)
             {

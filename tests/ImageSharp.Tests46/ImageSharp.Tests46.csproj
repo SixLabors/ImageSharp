@@ -71,11 +71,13 @@
     <Compile Include="Benchmark\DecodeJpegBenchmark.cs" />
     <Compile Include="Colors\ColorConversionTests.cs" />
     <Compile Include="Colors\ColorTests.cs" />
-    <Compile Include="DctSandbox.cs" />
     <Compile Include="FileTestBase.cs" />
     <Compile Include="Formats\Bmp\BitmapTests.cs" />
     <Compile Include="Formats\GeneralFormatTests.cs" />
+    <Compile Include="Formats\Jpg\Buffer64Tests.cs" />
+    <Compile Include="Formats\Jpg\DctTests.cs" />
     <Compile Include="Formats\Jpg\JpegTests.cs" />
+    <Compile Include="Formats\Jpg\UtilityTestClassBase.cs" />
     <Compile Include="Formats\Png\PngTests.cs" />
     <Compile Include="Helpers\GuardTests.cs" />
     <Compile Include="Image\ImagePropertyTests.cs" />

@@ -227,7 +227,7 @@
     <Compile Include="Formats\IImageFormat.cs" />
     <Compile Include="Formats\Jpg\Components\Bits.cs" />
     <Compile Include="Formats\Jpg\Components\Block.cs" />
-    <Compile Include="Formats\Jpg\Components\Buffer64.cs" />
+    <Compile Include="Formats\Jpg\Components\Buffer8x8.cs" />
     <Compile Include="Formats\Jpg\Components\Bytes.cs" />
     <Compile Include="Formats\Jpg\Components\Component.cs" />
     <Compile Include="Formats\Jpg\Components\FDCT.cs" />

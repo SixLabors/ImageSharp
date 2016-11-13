@@ -24,7 +24,7 @@ namespace ImageSharp
         public static byte[] ToArrayByBitsLength(this byte[] source, int bits)
         {
             Guard.NotNull(source, nameof(source));
-            Guard.MustBeGreaterThan(bits, 0, "bits");
+            Guard.MustBeGreaterThan(bits, 0, nameof(bits));
 
             byte[] result;
 

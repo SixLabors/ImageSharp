@@ -85,7 +85,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Saved state between progressive-mode scans.
         /// </summary>
-        private readonly Block8x8[][] progCoeffs;
+        private readonly Block8x8F[][] progCoeffs;
 
         /// <summary>
         /// The huffman trees
@@ -97,7 +97,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Quantization tables, in zigzag order.
         /// </summary>
-        private readonly Block8x8[] quantizationTables;
+        private readonly Block8x8F[] quantizationTables;
 
         /// <summary>
         /// A temporary buffer for holding pixels
@@ -204,10 +204,10 @@ namespace ImageSharp.Formats
             //this.huffmanTrees = new Huffman[MaxTc + 1, MaxTh + 1];
             this.huffmanTrees = new Huffman[(MaxTc + 1) * (MaxTh + 1)];
 
-            this.quantizationTables = new Block8x8[MaxTq + 1];
+            this.quantizationTables = new Block8x8F[MaxTq + 1];
             this.temp = new byte[2 * BlockF.BlockSize];
             this.componentArray = new Component[MaxComponents];
-            this.progCoeffs = new Block8x8[MaxComponents][];
+            this.progCoeffs = new Block8x8F[MaxComponents][];
             this.bits = new Bits();
             this.bytes = new Bytes();
 
@@ -1571,7 +1571,7 @@ namespace ImageSharp.Formats
                     {
                         var size = mxx * myy * this.componentArray[compIndex].HorizontalFactor * this.componentArray[compIndex].VerticalFactor;
 
-                        this.progCoeffs[compIndex] = new Block8x8[size];
+                        this.progCoeffs[compIndex] = new Block8x8F[size];
                     }
                 }
             }
@@ -1589,9 +1589,9 @@ namespace ImageSharp.Formats
             // blocks: the third block in the first row has (bx, by) = (2, 0).
             int bx, by, blockCount = 0;
 
-            Block8x8 b = new Block8x8();
-            Block8x8 temp1 = new Block8x8();
-            Block8x8 temp2 = new Block8x8();
+            Block8x8F b = new Block8x8F();
+            Block8x8F temp1 = new Block8x8F();
+            Block8x8F temp2 = new Block8x8F();
 
             for (int my = 0; my < myy; my++)
             {
@@ -1648,13 +1648,13 @@ namespace ImageSharp.Formats
                             var qtIndex = this.componentArray[compIndex].Selector;
 
                             // TODO: Find a way to clean up this mess
-                            fixed (Block8x8* qtp = &this.quantizationTables[qtIndex])
+                            fixed (Block8x8F* qtp = &this.quantizationTables[qtIndex])
                             {
                                 if (this.isProgressive) // Load the previous partially decoded coefficients, if applicable.
                                 {
                                     blockIndex = ((@by * mxx) * hi) + bx;
 
-                                    fixed (Block8x8* bp = &this.progCoeffs[compIndex][blockIndex])
+                                    fixed (Block8x8F* bp = &this.progCoeffs[compIndex][blockIndex])
                                     {
                                         ProcessBlockImpl(ah,
                                             bp,
@@ -1722,13 +1722,13 @@ namespace ImageSharp.Formats
 
         private void ProcessBlockImpl(
             int ah, 
-            Block8x8* b, 
-            Block8x8* temp1,
-            Block8x8* temp2,
+            Block8x8F* b, 
+            Block8x8F* temp1,
+            Block8x8F* temp2,
             Scan[] scan, 
             int i, int zigStart, int zigEnd, int al,
             int[] dc, int compIndex, int @by, int mxx, int hi, int bx, 
-            Block8x8* qt)
+            Block8x8F* qt)
         {
             if (ah != 0)
             {
@@ -1752,7 +1752,7 @@ namespace ImageSharp.Formats
                     dc[compIndex] += deltaDC;
 
                     //b[0] = dc[compIndex] << al;
-                    Block8x8.SetScalarAt(b, 0, dc[compIndex] << al);
+                    Block8x8F.SetScalarAt(b, 0, dc[compIndex] << al);
                 }
 
                 if (zig <= zigEnd && this.eobRun > 0)
@@ -1779,7 +1779,7 @@ namespace ImageSharp.Formats
                             int ac = this.ReceiveExtend(val1);
 
                             //b[Unzig[zig]] = ac << al;
-                            Block8x8.SetScalarAt(b, Unzig[zig], ac << al);
+                            Block8x8F.SetScalarAt(b, Unzig[zig], ac << al);
                         }
                         else
                         {
@@ -1828,15 +1828,15 @@ namespace ImageSharp.Formats
                 //b[Unzig[zig]] *= qt[zig];
                 
                 int unzigIdx = Unzig[zig];
-                float value = Block8x8.GetScalarAt(b, unzigIdx);
-                value *= Block8x8.GetScalarAt(qt, zig);
-                Block8x8.SetScalarAt(b, unzigIdx, value);
+                float value = Block8x8F.GetScalarAt(b, unzigIdx);
+                value *= Block8x8F.GetScalarAt(qt, zig);
+                Block8x8F.SetScalarAt(b, unzigIdx, value);
             }
 
             //IDCT.Transform(ref b);
             //FloatIDCT.Transform(ref b);
             //ReferenceDCT.IDCT(ref b);
-            //Block8x8.SuchIDCT(ref b);
+            //Block8x8F.SuchIDCT(ref b);
             //b->IDCTInplace();
             b->IDCTInto(ref *temp1, ref *temp2);
 
@@ -1885,35 +1885,10 @@ namespace ImageSharp.Formats
             }
 
             // Level shift by +128, clip to [0, 255], and write to dst.
-            for (int y = 0; y < 8; y++)
-            {
-                int y8 = y * 8;
-                int yStride = y * stride;
 
-                for (int x = 0; x < 8; x++)
-                {
-                    //float c = b[y8 + x];
-                    //float c = Block8x8.GetScalarAt(b, y8 + x);
-                    float c = Block8x8.GetScalarAt(temp1, y8 + x);
-
-                    if (c < -128)
-                    {
-                        c = 0;
-                    }
-                    else if (c > 127)
-                    {
-                        c = 255;
-                    }
-                    else
-                    {
-                        c += 128;
-                    }
-
-                    dst[yStride + x + offset] = (byte)c;
-                }
-            }
+            temp1->CopyColorsTo(new Span<byte>(dst, offset), stride);
         }
-
+        
         private void ProcessScanImpl(int i, ref Scan currentScan, Scan[] scan, ref int totalHv)
         {
             // Component selector.
@@ -1977,7 +1952,7 @@ namespace ImageSharp.Formats
         /// <param name="zigStart">The zig-zag start index</param>
         /// <param name="zigEnd">The zig-zag end index</param>
         /// <param name="delta">The low transform offset</param>
-        private void Refine(Block8x8* b, ref Huffman h, int zigStart, int zigEnd, int delta)
+        private void Refine(Block8x8F* b, ref Huffman h, int zigStart, int zigEnd, int delta)
         {
             // Refining a DC component is trivial.
             if (zigStart == 0)
@@ -1990,12 +1965,12 @@ namespace ImageSharp.Formats
                 bool bit = this.DecodeBit();
                 if (bit)
                 {
-                    int stuff = (int) Block8x8.GetScalarAt(b, 0);
+                    int stuff = (int) Block8x8F.GetScalarAt(b, 0);
 
                     //int stuff = (int)b[0];
                     stuff |= delta;
                     //b[0] = stuff;
-                    Block8x8.SetScalarAt(b, 0, stuff);
+                    Block8x8F.SetScalarAt(b, 0, stuff);
                 }
 
                 return;
@@ -2057,7 +2032,7 @@ namespace ImageSharp.Formats
                     if (z != 0)
                     {
                         //b[Unzig[zig]] = z;
-                        Block8x8.SetScalarAt(b, Unzig[zig], z);
+                        Block8x8F.SetScalarAt(b, Unzig[zig], z);
                     }
                 }
             }
@@ -2079,12 +2054,12 @@ namespace ImageSharp.Formats
         /// <param name="nz">The non-zero entry</param>
         /// <param name="delta">The low transform offset</param>
         /// <returns>The <see cref="int"/></returns>
-        private int RefineNonZeroes(Block8x8* b, int zig, int zigEnd, int nz, int delta)
+        private int RefineNonZeroes(Block8x8F* b, int zig, int zigEnd, int nz, int delta)
         {
             for (; zig <= zigEnd; zig++)
             {
                 int u = Unzig[zig];
-                float bu = Block8x8.GetScalarAt(b, u);
+                float bu = Block8x8F.GetScalarAt(b, u);
 
                 // TODO: Are the equality comparsions OK with floating point values? Isn't an epsilon value necessary?
                 if (bu == 0)
@@ -2107,12 +2082,12 @@ namespace ImageSharp.Formats
                 if (bu >= 0)
                 {
                     //b[u] += delta;
-                    Block8x8.SetScalarAt(b, u, bu + delta);
+                    Block8x8F.SetScalarAt(b, u, bu + delta);
                 }
                 else
                 {
                     //b[u] -= delta;
-                    Block8x8.SetScalarAt(b, u, bu - delta);
+                    Block8x8F.SetScalarAt(b, u, bu - delta);
                 }
             }
 

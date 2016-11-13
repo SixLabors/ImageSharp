@@ -11,10 +11,10 @@ using System.Runtime.CompilerServices;
 
 namespace ImageSharp.Formats
 {
-	public partial struct Block8x8
+	internal partial struct Block8x8F
     {
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void TransposeInto(ref Block8x8 d)
+        public void TransposeInto(ref Block8x8F d)
         {
             <#
 			char[] coordz = new[] {'X', 'Y', 'Z', 'W'};

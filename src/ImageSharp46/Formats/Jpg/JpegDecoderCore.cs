@@ -1814,7 +1814,7 @@ namespace ImageSharp.Formats
             //IDCT.Transform(ref b);
             //FloatIDCT.Transform(ref b);
             //ReferenceDCT.IDCT(ref b);
-            Buffer8x8.SuchIDCT(ref b);
+            Block8x8.SuchIDCT(ref b);
 
             byte[] dst;
             int offset;
@@ -2014,7 +2014,7 @@ namespace ImageSharp.Formats
                         break;
                     }
 
-                    zig = this.RefineNonZeroes(b, zig, zigEnd, val0, delta);
+                    zig = this.RefineNonZeroes(ref b, zig, zigEnd, val0, delta);
                     if (zig > zigEnd)
                     {
                         throw new ImageFormatException($"Too many coefficients {zig} > {zigEnd}");
@@ -2030,7 +2030,7 @@ namespace ImageSharp.Formats
             if (this.eobRun > 0)
             {
                 this.eobRun--;
-                this.RefineNonZeroes(b, zig, zigEnd, -1, delta);
+                this.RefineNonZeroes(ref b, zig, zigEnd, -1, delta);
             }
         }
 
@@ -2044,7 +2044,7 @@ namespace ImageSharp.Formats
         /// <param name="nz">The non-zero entry</param>
         /// <param name="delta">The low transform offset</param>
         /// <returns>The <see cref="int"/></returns>
-        private int RefineNonZeroes(Block b, int zig, int zigEnd, int nz, int delta)
+        private int RefineNonZeroes(ref Block b, int zig, int zigEnd, int nz, int delta)
         {
             for (; zig <= zigEnd; zig++)
             {

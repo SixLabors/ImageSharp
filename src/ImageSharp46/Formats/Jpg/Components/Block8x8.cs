@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+// ReSharper disable InconsistentNaming
 
 namespace ImageSharp.Formats
 {
-    // ReSharper disable once InconsistentNaming
-    public struct Buffer8x8
+    public partial struct Block8x8
     {
         public Vector4 V0L;
         public Vector4 V0R;
@@ -103,7 +103,10 @@ namespace ImageSharp.Formats
            
         }
 
-        public unsafe void TranposeInto(ref Buffer8x8 destination)
+        /// <summary>
+        /// Used as a reference implementation for benchmarking
+        /// </summary>
+        internal unsafe void TransposeInto_PinningImpl(ref Block8x8 destination)
         {
             fixed (Vector4* sPtr = &V0L)
             {
@@ -125,14 +128,10 @@ namespace ImageSharp.Formats
             }
         }
 
-        public void TransposeIntoSafe(ref Buffer8x8 d)
-        {
-            
-        }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void PinnedTransposeInto(Buffer8x8* sourcePtr, Buffer8x8* destPtr)
+        public static unsafe void TransposeInto(Block8x8* sourcePtr, Block8x8* destPtr)
         {
             float* src = (float*)sourcePtr;
             float* dest = (float*) destPtr;
@@ -147,7 +146,7 @@ namespace ImageSharp.Formats
             }
         }
 
-        private static readonly Vector4 _c = new Vector4(0.1250f);
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void MultiplyAllInplace(Vector4 s)
@@ -159,18 +158,18 @@ namespace ImageSharp.Formats
         }
 
         // ReSharper disable once InconsistentNaming
-        public void TransformIDCTInto(ref Buffer8x8 dest, ref Buffer8x8 temp)
+        public void IDCTInto(ref Block8x8 dest, ref Block8x8 temp)
         {
-            TranposeInto(ref temp);
+            TransposeInto(ref temp);
             temp.iDCT2D8x4_LeftPart(ref dest);
             temp.iDCT2D8x4_RightPart(ref dest);
             
-            dest.TranposeInto(ref temp);
+            dest.TransposeInto(ref temp);
             
             temp.iDCT2D8x4_LeftPart(ref dest);
             temp.iDCT2D8x4_RightPart(ref dest);
 
-            dest.MultiplyAllInplace(new Vector4(0.1250f));
+            dest.MultiplyAllInplace(_0_125);
         }
 
         private static readonly Vector4 _1_175876 = new Vector4(1.175876f);
@@ -185,8 +184,10 @@ namespace ImageSharp.Formats
         private static readonly Vector4 _0_541196 = new Vector4(0.541196f);
         private static readonly Vector4 _1_847759 = new Vector4(-1.847759f);
         private static readonly Vector4 _0_765367 = new Vector4(0.765367f);
+        private static readonly Vector4 _0_125 = new Vector4(0.1250f);
 
-        internal void iDCT2D8x4_LeftPart(ref Buffer8x8 d)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void iDCT2D8x4_LeftPart(ref Block8x8 d)
         {
             /*
 	        float a0,a1,a2,a3,b0,b1,b2,b3; float z0,z1,z2,z3,z4; float r[8]; int i;
@@ -292,8 +293,8 @@ namespace ImageSharp.Formats
             */
         }
 
-
-        internal void iDCT2D8x4_RightPart(ref Buffer8x8 d)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void iDCT2D8x4_RightPart(ref Block8x8 d)
         {
             /*
 	        float a0,a1,a2,a3,b0,b1,b2,b3; float z0,z1,z2,z3,z4; float r[8]; int i;
@@ -401,13 +402,13 @@ namespace ImageSharp.Formats
 
         public static void SuchIDCT(ref Block block)
         {
-            Buffer8x8 source = new Buffer8x8();
+            Block8x8 source = new Block8x8();
             source.LoadFrom(block.Data);
 
-            Buffer8x8 dest = new Buffer8x8();
-            Buffer8x8 temp = new Buffer8x8();
+            Block8x8 dest = new Block8x8();
+            Block8x8 temp = new Block8x8();
             
-            source.TransformIDCTInto(ref dest, ref temp);
+            source.IDCTInto(ref dest, ref temp);
             dest.CopyTo(block.Data);
         }
     }

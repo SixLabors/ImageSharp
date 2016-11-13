@@ -1589,6 +1589,10 @@ namespace ImageSharp.Formats
             // blocks: the third block in the first row has (bx, by) = (2, 0).
             int bx, by, blockCount = 0;
 
+            Block8x8 b = new Block8x8();
+            Block8x8 temp1 = new Block8x8();
+            Block8x8 temp2 = new Block8x8();
+
             for (int my = 0; my < myy; my++)
             {
                 for (int mx = 0; mx < mxx; mx++)
@@ -1643,6 +1647,7 @@ namespace ImageSharp.Formats
 
                             var qtIndex = this.componentArray[compIndex].Selector;
 
+                            // TODO: Find a way to clean up this mess
                             fixed (Block8x8* qtp = &this.quantizationTables[qtIndex])
                             {
                                 if (this.isProgressive) // Load the previous partially decoded coefficients, if applicable.
@@ -1653,6 +1658,8 @@ namespace ImageSharp.Formats
                                     {
                                         ProcessBlockImpl(ah,
                                             bp,
+                                            &temp1,
+                                            &temp2,
                                             scan, i, zigStart, zigEnd, al, dc, compIndex, @by, mxx, hi, bx,
                                             qtp
                                         );
@@ -1660,9 +1667,12 @@ namespace ImageSharp.Formats
                                 }
                                 else
                                 {
-                                    Block8x8 tempBlock = new Block8x8();
-
-                                    ProcessBlockImpl(ah, &tempBlock, scan, i, zigStart, zigEnd, al, dc, compIndex, @by, mxx, hi,
+                                    b.Clear();
+                                    ProcessBlockImpl(ah, 
+                                        &b, 
+                                        &temp1,
+                                        &temp2,
+                                        scan, i, zigStart, zigEnd, al, dc, compIndex, @by, mxx, hi,
                                         bx, qtp
                                         );
                                 }
@@ -1710,9 +1720,15 @@ namespace ImageSharp.Formats
             // for my
         }
 
-
-        private void ProcessBlockImpl(int ah, Block8x8* b, Scan[] scan, int i, int zigStart, int zigEnd, int al,
-            int[] dc, int compIndex, int @by, int mxx, int hi, int bx, Block8x8* qt)
+        private void ProcessBlockImpl(
+            int ah, 
+            Block8x8* b, 
+            Block8x8* temp1,
+            Block8x8* temp2,
+            Scan[] scan, 
+            int i, int zigStart, int zigEnd, int al,
+            int[] dc, int compIndex, int @by, int mxx, int hi, int bx, 
+            Block8x8* qt)
         {
             if (ah != 0)
             {
@@ -1821,7 +1837,8 @@ namespace ImageSharp.Formats
             //FloatIDCT.Transform(ref b);
             //ReferenceDCT.IDCT(ref b);
             //Block8x8.SuchIDCT(ref b);
-            b->IDCTInplace();
+            //b->IDCTInplace();
+            b->IDCTInto(ref *temp1, ref *temp2);
 
             byte[] dst;
             int offset;
@@ -1876,7 +1893,8 @@ namespace ImageSharp.Formats
                 for (int x = 0; x < 8; x++)
                 {
                     //float c = b[y8 + x];
-                    float c = Block8x8.GetScalarAt(b, y8 + x);
+                    //float c = Block8x8.GetScalarAt(b, y8 + x);
+                    float c = Block8x8.GetScalarAt(temp1, y8 + x);
 
                     if (c < -128)
                     {

@@ -486,6 +486,12 @@ namespace ImageSharp.Formats
             fp[idx] = value;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void Clear()
+        {
+            this = new Block8x8(); // LOL C# Plz!
+        }
+
         internal void LoadFrom(ref BlockF legacyBlock)
         {
             LoadFrom(legacyBlock.Data);

@@ -485,5 +485,15 @@ namespace ImageSharp.Formats
             float* fp = (float*)blockPtr;
             fp[idx] = value;
         }
+
+        internal void LoadFrom(ref BlockF legacyBlock)
+        {
+            LoadFrom(legacyBlock.Data);
+        }
+
+        internal void CopyTo(ref BlockF legacyBlock)
+        {
+            CopyTo(legacyBlock.Data);
+        }
     }
 }

@@ -189,6 +189,15 @@ namespace ImageSharp.Formats
             dest.MultiplyAllInplace(_0_125);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void IDCTInplace()
+        {
+            Block8x8 result = new Block8x8();
+            Block8x8 temp = new Block8x8();
+            IDCTInto(ref result, ref temp);
+            this = result;
+        }
+
         private static readonly Vector4 _1_175876 = new Vector4(1.175876f);
         private static readonly Vector4 _1_961571 = new Vector4(-1.961571f);
         private static readonly Vector4 _0_390181 = new Vector4(-0.390181f);
@@ -416,8 +425,8 @@ namespace ImageSharp.Formats
             for(i = 0;i < 8;i++){ x[i] *= 0.353554f; }
             */
         }
-
-        public static void SuchIDCT(ref Block block)
+        
+        internal static void SuchIDCT(ref Block block)
         {
             Block8x8 source = new Block8x8();
             source.LoadFrom(block.Data);
@@ -425,6 +434,18 @@ namespace ImageSharp.Formats
             Block8x8 dest = new Block8x8();
             Block8x8 temp = new Block8x8();
             
+            source.IDCTInto(ref dest, ref temp);
+            dest.CopyTo(block.Data);
+        }
+
+        internal static void SuchIDCT(ref BlockF block)
+        {
+            Block8x8 source = new Block8x8();
+            source.LoadFrom(block.Data);
+
+            Block8x8 dest = new Block8x8();
+            Block8x8 temp = new Block8x8();
+
             source.IDCTInto(ref dest, ref temp);
             dest.CopyTo(block.Data);
         }

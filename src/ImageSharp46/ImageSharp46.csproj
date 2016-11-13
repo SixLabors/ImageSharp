@@ -227,11 +227,11 @@
     <Compile Include="Formats\IImageFormat.cs" />
     <Compile Include="Formats\Jpg\Components\Bits.cs" />
     <Compile Include="Formats\Jpg\Components\Block.cs" />
-    <Compile Include="Formats\Jpg\Components\Block8x8.cs" />
-    <Compile Include="Formats\Jpg\Components\Block8x8.Generated.cs">
+    <Compile Include="Formats\Jpg\Components\Block8x8F.cs" />
+    <Compile Include="Formats\Jpg\Components\Block8x8F.Generated.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
-      <DependentUpon>Block8x8.Generated.tt</DependentUpon>
+      <DependentUpon>Block8x8F.Generated.tt</DependentUpon>
     </Compile>
     <Compile Include="Formats\Jpg\Components\Bytes.cs" />
     <Compile Include="Formats\Jpg\Components\Component.cs" />
@@ -240,7 +240,6 @@
     <Compile Include="Formats\Jpg\Components\GrayImage.cs" />
     <Compile Include="Formats\Jpg\Components\Huffman.cs" />
     <Compile Include="Formats\Jpg\Components\IDCT.cs" />
-    <Compile Include="Formats\Jpg\Components\ReferenceDCT.cs" />
     <Compile Include="Formats\Jpg\Components\Span.cs" />
     <Compile Include="Formats\Jpg\Components\YCbCrImage.cs" />
     <Compile Include="Formats\Jpg\JpegConstants.cs" />
@@ -400,9 +399,9 @@
     <None Include="Profiles\Exif\README.md" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Formats\Jpg\Components\Block8x8.Generated.tt">
+    <Content Include="Formats\Jpg\Components\Block8x8F.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>Block8x8.Generated.cs</LastGenOutput>
+      <LastGenOutput>Block8x8F.Generated.cs</LastGenOutput>
     </Content>
   </ItemGroup>
   <ItemGroup>

@@ -215,7 +215,7 @@ namespace ImageSharp.Formats
             }
         }
 
-        public static void IDCT(ref Block block)
+        internal static void IDCT(ref Block block)
         {
             Span<float> src = Span<float>.RentFromPool(64);
 

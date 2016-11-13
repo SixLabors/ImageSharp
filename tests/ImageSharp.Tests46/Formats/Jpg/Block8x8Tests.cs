@@ -32,14 +32,14 @@ namespace ImageSharp.Tests.Formats.Jpg
             float sum = 0;
             Measure(Times, () =>
             {
-                Block8x8 block = new Block8x8();
+                Block8x8F block = new Block8x8F();
 
-                for (int i = 0; i < Block8x8.ScalarCount; i++)
+                for (int i = 0; i < Block8x8F.ScalarCount; i++)
                 {
                     block[i] = i;
                 }
                 sum = 0;
-                for (int i = 0; i < Block8x8.ScalarCount; i++)
+                for (int i = 0; i < Block8x8F.ScalarCount; i++)
                 {
                     sum += block[i];
                 }
@@ -53,16 +53,16 @@ namespace ImageSharp.Tests.Formats.Jpg
             float sum = 0;
             Measure(Times, () =>
             {
-                Block8x8 block = new Block8x8();
+                Block8x8F block = new Block8x8F();
 
-                for (int i = 0; i < Block8x8.ScalarCount; i++)
+                for (int i = 0; i < Block8x8F.ScalarCount; i++)
                 {
-                    Block8x8.SetScalarAt(&block, i, i);
+                    Block8x8F.SetScalarAt(&block, i, i);
                 }
                 sum = 0;
-                for (int i = 0; i < Block8x8.ScalarCount; i++)
+                for (int i = 0; i < Block8x8F.ScalarCount; i++)
                 {
-                    sum += Block8x8.GetScalarAt(&block, i);
+                    sum += Block8x8F.GetScalarAt(&block, i);
                 }
             });
             Assert.Equal(sum, 64f * 63f * 0.5f);
@@ -76,14 +76,14 @@ namespace ImageSharp.Tests.Formats.Jpg
             
             Measure(Times, () =>
             {
-                //Block8x8 block = new Block8x8();
+                //Block8x8F block = new Block8x8F();
                 float[] block = new float[64];
-                for (int i = 0; i < Block8x8.ScalarCount; i++)
+                for (int i = 0; i < Block8x8F.ScalarCount; i++)
                 {
                     block[i] = i;
                 }
                 sum = 0;
-                for (int i = 0; i < Block8x8.ScalarCount; i++)
+                for (int i = 0; i < Block8x8F.ScalarCount; i++)
                 {
                     sum += block[i];
                 }
@@ -94,16 +94,16 @@ namespace ImageSharp.Tests.Formats.Jpg
         [Fact]
         public void Load_Store_FloatArray()
         {
-            float[] data = new float[Block8x8.ScalarCount];
-            float[] mirror = new float[Block8x8.ScalarCount];
+            float[] data = new float[Block8x8F.ScalarCount];
+            float[] mirror = new float[Block8x8F.ScalarCount];
 
-            for (int i = 0; i < Block8x8.ScalarCount; i++)
+            for (int i = 0; i < Block8x8F.ScalarCount; i++)
             {
                 data[i] = i;
             }
             Measure(Times, () =>
             {
-                Block8x8 b = new Block8x8();
+                Block8x8F b = new Block8x8F();
                 b.LoadFrom(data);
                 b.CopyTo(mirror);
             });
@@ -115,18 +115,18 @@ namespace ImageSharp.Tests.Formats.Jpg
         [Fact]
         public unsafe void Load_Store_FloatArray_Ptr()
         {
-            float[] data = new float[Block8x8.ScalarCount];
-            float[] mirror = new float[Block8x8.ScalarCount];
+            float[] data = new float[Block8x8F.ScalarCount];
+            float[] mirror = new float[Block8x8F.ScalarCount];
 
-            for (int i = 0; i < Block8x8.ScalarCount; i++)
+            for (int i = 0; i < Block8x8F.ScalarCount; i++)
             {
                 data[i] = i;
             }
             Measure(Times, () =>
             {
-                Block8x8 b = new Block8x8();
-                Block8x8.LoadFrom(&b, data);
-                Block8x8.CopyTo(&b, mirror);
+                Block8x8F b = new Block8x8F();
+                Block8x8F.LoadFrom(&b, data);
+                Block8x8F.CopyTo(&b, mirror);
             });
 
             Assert.Equal(data, mirror);
@@ -136,16 +136,16 @@ namespace ImageSharp.Tests.Formats.Jpg
         [Fact]
         public void Load_Store_IntArray()
         {
-            int[] data = new int[Block8x8.ScalarCount];
-            int[] mirror = new int[Block8x8.ScalarCount];
+            int[] data = new int[Block8x8F.ScalarCount];
+            int[] mirror = new int[Block8x8F.ScalarCount];
 
-            for (int i = 0; i < Block8x8.ScalarCount; i++)
+            for (int i = 0; i < Block8x8F.ScalarCount; i++)
             {
                 data[i] = i;
             }
             Measure(Times, () =>
             {
-                Block8x8 v = new Block8x8();
+                Block8x8F v = new Block8x8F();
                 v.LoadFrom(data);
                 v.CopyTo(mirror);
             });
@@ -160,7 +160,7 @@ namespace ImageSharp.Tests.Formats.Jpg
             float[] expected = Create8x8FloatData();
             ReferenceDCT.Transpose8x8(expected);
 
-            Block8x8 buffer = new Block8x8();
+            Block8x8F buffer = new Block8x8F();
             buffer.LoadFrom(Create8x8FloatData());
             
             buffer.TransposeInplace();
@@ -177,10 +177,10 @@ namespace ImageSharp.Tests.Formats.Jpg
             float[] expected = Create8x8FloatData();
             ReferenceDCT.Transpose8x8(expected);
 
-            Block8x8 source = new Block8x8();
+            Block8x8F source = new Block8x8F();
             source.LoadFrom(Create8x8FloatData());
 
-            Block8x8 dest = new Block8x8();
+            Block8x8F dest = new Block8x8F();
             source.TransposeInto_PinningImpl(ref dest);
 
             float[] actual = new float[64];
@@ -195,10 +195,10 @@ namespace ImageSharp.Tests.Formats.Jpg
             float[] expected = Create8x8FloatData();
             ReferenceDCT.Transpose8x8(expected);
 
-            Block8x8 source = new Block8x8();
+            Block8x8F source = new Block8x8F();
             source.LoadFrom(Create8x8FloatData());
 
-            Block8x8 dest = new Block8x8();
+            Block8x8F dest = new Block8x8F();
             source.TransposeInto(ref dest);
 
             float[] actual = new float[64];
@@ -239,15 +239,15 @@ namespace ImageSharp.Tests.Formats.Jpg
             float[] expected = Create8x8FloatData();
             ReferenceDCT.Transpose8x8(expected);
 
-            Block8x8 source = new Block8x8();
+            Block8x8F source = new Block8x8F();
             source.LoadFrom(Create8x8FloatData());
 
-            Block8x8 dest = new Block8x8();
+            Block8x8F dest = new Block8x8F();
 
-            Block8x8* sPtr = &source;
-            Block8x8* dPtr = &dest;
+            Block8x8F* sPtr = &source;
+            Block8x8F* dPtr = &dest;
 
-            Block8x8.TransposeInto(sPtr, dPtr);
+            Block8x8F.TransposeInto(sPtr, dPtr);
 
             float[] actual = new float[64];
             dest.CopyTo(actual);
@@ -257,7 +257,7 @@ namespace ImageSharp.Tests.Formats.Jpg
 
         private class BufferHolder
         {
-            public Block8x8 Buffer;
+            public Block8x8F Buffer;
         }
 
         [Fact]
@@ -306,16 +306,16 @@ namespace ImageSharp.Tests.Formats.Jpg
             source.Buffer.LoadFrom(Create8x8FloatData());
             BufferHolder dest = new BufferHolder();
 
-            fixed (Block8x8* sPtr = &source.Buffer)
+            fixed (Block8x8F* sPtr = &source.Buffer)
             {
-                fixed (Block8x8* dPtr = &dest.Buffer)
+                fixed (Block8x8F* dPtr = &dest.Buffer)
                 {
                     Output.WriteLine($"TransposeInto_WithPointers_Benchmark X {Times} ...");
                     Stopwatch sw = Stopwatch.StartNew();
 
                     for (int i = 0; i < Times; i++)
                     {
-                        Block8x8.TransposeInto(sPtr, dPtr);
+                        Block8x8F.TransposeInto(sPtr, dPtr);
                     }
 
                     sw.Stop();
@@ -334,10 +334,10 @@ namespace ImageSharp.Tests.Formats.Jpg
             
             ReferenceDCT.iDCT2D8x4_32f(sourceArray, expectedDestArray);
             
-            Block8x8 source = new Block8x8();
+            Block8x8F source = new Block8x8F();
             source.LoadFrom(sourceArray);
 
-            Block8x8 dest = new Block8x8();
+            Block8x8F dest = new Block8x8F();
 
             source.iDCT2D8x4_LeftPart(ref dest);
 
@@ -359,10 +359,10 @@ namespace ImageSharp.Tests.Formats.Jpg
 
             ReferenceDCT.iDCT2D8x4_32f(sourceArray.Slice(4), expectedDestArray.Slice(4));
             
-            Block8x8 source = new Block8x8();
+            Block8x8F source = new Block8x8F();
             source.LoadFrom(sourceArray);
 
-            Block8x8 dest = new Block8x8();
+            Block8x8F dest = new Block8x8F();
 
             source.iDCT2D8x4_RightPart(ref dest);
 
@@ -377,7 +377,7 @@ namespace ImageSharp.Tests.Formats.Jpg
         }
 
         [Fact]
-        public void IDCT()
+        public void IDCTInto()
         {
             float[] sourceArray = Create8x8FloatData();
             float[] expectedDestArray = new float[64];
@@ -385,11 +385,11 @@ namespace ImageSharp.Tests.Formats.Jpg
 
             ReferenceDCT.iDCT8x8_llm_sse(sourceArray, expectedDestArray, tempArray);
             
-            Block8x8 source = new Block8x8();
+            Block8x8F source = new Block8x8F();
             source.LoadFrom(sourceArray);
 
-            Block8x8 dest = new Block8x8();
-            Block8x8 tempBuffer = new Block8x8();
+            Block8x8F dest = new Block8x8F();
+            Block8x8F tempBuffer = new Block8x8F();
 
             source.IDCTInto(ref dest, ref tempBuffer);
 
@@ -401,6 +401,50 @@ namespace ImageSharp.Tests.Formats.Jpg
             Print8x8Data(actualDestArray);
             Assert.Equal(expectedDestArray, actualDestArray);
         }
-        
+
+        private unsafe void CopyColorsTo_ReferenceImpl(ref Block8x8F block, Span<byte> buffer, int stride)
+        {
+            fixed (Block8x8F* p = &block)
+            {
+                float* b = (float*)p;
+
+                for (int y = 0; y < 8; y++)
+                {
+                    int y8 = y * 8;
+                    int yStride = y * stride;
+
+                    for (int x = 0; x < 8; x++)
+                    {
+                        float c = b[y8 + x];
+
+                        if (c < -128)
+                        {
+                            c = 0;
+                        }
+                        else if (c > 127)
+                        {
+                            c = 255;
+                        }
+                        else
+                        {
+                            c += 128;
+                        }
+
+                        buffer[yStride + x] = (byte)c;
+                    }
+                }
+            }
+
+
+        }
+
+        [Fact]
+        public void CopyColorsTo()
+        {
+            var data = Create8x8FloatData();
+            Block8x8F block = new Block8x8F();
+            block.LoadFrom(data);
+
+        }
     }
 }

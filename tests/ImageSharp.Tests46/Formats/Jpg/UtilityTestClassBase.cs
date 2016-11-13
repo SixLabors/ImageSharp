@@ -44,9 +44,9 @@ namespace ImageSharp.Tests.Formats.Jpg
             return result;
         }
 
-        protected void Print8x8Data<T>(Span<T> data) => Print8x8Data(data.Data);
+        internal void Print8x8Data<T>(Span<T> data) => Print8x8Data(data.Data);
 
-        protected void Print8x8Data<T>(T[] data)
+        internal void Print8x8Data<T>(T[] data)
         {
             StringBuilder bld = new StringBuilder();
             for (int i = 0; i < 8; i++)
@@ -61,7 +61,7 @@ namespace ImageSharp.Tests.Formats.Jpg
             Output.WriteLine(bld.ToString());
         }
 
-        protected void PrintLinearData<T>(Span<T> data, int count = -1)
+        internal void PrintLinearData<T>(Span<T> data, int count = -1)
         {
             if (count < 0) count = data.TotalCount;
 

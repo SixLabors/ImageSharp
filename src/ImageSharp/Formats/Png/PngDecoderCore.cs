@@ -12,6 +12,8 @@ namespace ImageSharp.Formats
     using System.Linq;
     using System.Text;
 
+    using static ComparableExtensions;
+
     /// <summary>
     /// Performs the png decoding operation.
     /// </summary>
@@ -319,9 +321,7 @@ namespace ImageSharp.Formats
 
                     this.ProcessDefilteredScanline(scanline, y, pixels);
 
-                    byte[] temp = previousScanline;
-                    previousScanline = scanline;
-                    scanline = temp;
+                    Swap(ref scanline, ref previousScanline);
                 }
             }
             finally

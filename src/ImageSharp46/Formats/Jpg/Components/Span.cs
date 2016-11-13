@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace ImageSharp.Formats
 {
-    public struct Span<T>
+    internal struct Span<T>
     {
         public T[] Data;
         public int Offset;
@@ -57,7 +57,7 @@ namespace ImageSharp.Formats
         }
     }
 
-    public static class SpanExtensions
+    internal static class SpanExtensions
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void SaveTo(this Span<float> data, ref Vector4 v)

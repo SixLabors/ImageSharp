@@ -3,6 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace ImageSharp.Formats
@@ -84,7 +85,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Saved state between progressive-mode scans.
         /// </summary>
-        private readonly BlockF[][] progCoeffs;
+        private readonly Block8x8[][] progCoeffs;
 
         /// <summary>
         /// The huffman trees
@@ -96,7 +97,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Quantization tables, in zigzag order.
         /// </summary>
-        private readonly BlockF[] quantizationTables;
+        private readonly Block8x8[] quantizationTables;
 
         /// <summary>
         /// A temporary buffer for holding pixels
@@ -203,10 +204,10 @@ namespace ImageSharp.Formats
             //this.huffmanTrees = new Huffman[MaxTc + 1, MaxTh + 1];
             this.huffmanTrees = new Huffman[(MaxTc + 1) * (MaxTh + 1)];
 
-            this.quantizationTables = BlockF.CreateArray(MaxTq + 1);
+            this.quantizationTables = new Block8x8[MaxTq + 1];
             this.temp = new byte[2 * BlockF.BlockSize];
             this.componentArray = new Component[MaxComponents];
-            this.progCoeffs = new BlockF[MaxComponents][];
+            this.progCoeffs = new Block8x8[MaxComponents][];
             this.bits = new Bits();
             this.bytes = new Bytes();
 
@@ -216,21 +217,9 @@ namespace ImageSharp.Formats
             {
                 for (int j = 0; j < MaxTh + 1; j++)
                 {
-                    //this.huffmanTrees[i, j].Init(LutSize, MaxNCodes, MaxCodeLength);
                     this.huffmanTrees[i * ThRowSize + j].Init(LutSize, MaxNCodes, MaxCodeLength);
                 }
             }
-
-            //for (int i = 0; i < this.quantizationTables.Length; i++)
-            //{
-            //    //this.quantizationTables[i] = new Block();
-            //    this.quantizationTables[i].Init();
-            //}
-
-            //for (int i = 0; i < this.componentArray.Length; i++)
-            //{
-            //    this.componentArray[i] = new Component();
-            //}
         }
 
 
@@ -1580,12 +1569,9 @@ namespace ImageSharp.Formats
                     int compIndex = scan[i].Index;
                     if (this.progCoeffs[compIndex] == null)
                     {
-                        this.progCoeffs[compIndex] = BlockF.CreateArray(mxx * myy * this.componentArray[compIndex].HorizontalFactor * this.componentArray[compIndex].VerticalFactor);
+                        var size = mxx * myy * this.componentArray[compIndex].HorizontalFactor * this.componentArray[compIndex].VerticalFactor;
 
-                        for (int j = 0; j < this.progCoeffs[compIndex].Length; j++)
-                        {
-                            this.progCoeffs[compIndex][j].Init();
-                        }
+                        this.progCoeffs[compIndex] = new Block8x8[size];
                     }
                 }
             }
@@ -1657,26 +1643,32 @@ namespace ImageSharp.Formats
 
                             var qtIndex = this.componentArray[compIndex].Selector;
 
-                            if (this.isProgressive) // Load the previous partially decoded coefficients, if applicable.
+                            fixed (Block8x8* qtp = &this.quantizationTables[qtIndex])
                             {
-                                blockIndex = ((@by * mxx) * hi) + bx;
-                                ProcessBlockImpl(ah,
-                                    ref this.progCoeffs[compIndex][blockIndex],
-                                    scan, i, zigStart, zigEnd, al, dc, compIndex, @by, mxx, hi, bx,
-                                    ref this.quantizationTables[qtIndex]
-                                    );
-                            }
-                            else
-                            {
-                                //var b = Block.Create();
-                                scanWorkerBlock.Clear();
+                                if (this.isProgressive) // Load the previous partially decoded coefficients, if applicable.
+                                {
+                                    blockIndex = ((@by * mxx) * hi) + bx;
 
-                                ProcessBlockImpl(ah, ref scanWorkerBlock, scan, i, zigStart, zigEnd, al, dc, compIndex, @by, mxx, hi,
-                                    bx, ref this.quantizationTables[qtIndex]
-                                    );
+                                    fixed (Block8x8* bp = &this.progCoeffs[compIndex][blockIndex])
+                                    {
+                                        ProcessBlockImpl(ah,
+                                            bp,
+                                            scan, i, zigStart, zigEnd, al, dc, compIndex, @by, mxx, hi, bx,
+                                            qtp
+                                        );
+                                    }
+                                }
+                                else
+                                {
+                                    Block8x8 tempBlock = new Block8x8();
 
-                                //b.Dispose();
+                                    ProcessBlockImpl(ah, &tempBlock, scan, i, zigStart, zigEnd, al, dc, compIndex, @by, mxx, hi,
+                                        bx, qtp
+                                        );
+                                }
                             }
+
+                           
                         }
 
                         // for j
@@ -1716,22 +1708,6 @@ namespace ImageSharp.Formats
             }
 
             // for my
-        }
-
-
-
-        private void ProcessBlockImpl(int ah, ref BlockF b, Scan[] scan, int i, int zigStart, int zigEnd, int al,
-            int[] dc, int compIndex, int @by, int mxx, int hi, int bx, ref BlockF qt)
-        {
-            Block8x8 b2 = new Block8x8();
-            Block8x8 qt2 = new Block8x8();
-            b2.LoadFrom(ref b);
-            qt2.LoadFrom(ref qt);
-
-            ProcessBlockImpl(ah, &b2, scan, i, zigStart, zigEnd, al, dc, compIndex, by, mxx, hi, bx, &qt2);
-
-            b2.CopyTo(ref b);
-            qt2.CopyTo(ref qt);
         }
 
 
@@ -1816,8 +1792,9 @@ namespace ImageSharp.Formats
                     // We haven't completely decoded this 8x8 block. Save the coefficients.
 
                     // TODO!!!
-                    throw new NotImplementedException();
+                    //throw new NotImplementedException();
                     //this.progCoeffs[compIndex][((@by * mxx) * hi) + bx] = b.Clone();
+                    this.progCoeffs[compIndex][((@by * mxx) * hi) + bx] = *b;
 
                     // At this point, we could execute the rest of the loop body to dequantize and
                     // perform the inverse DCT, to save early stages of a progressive image to the
@@ -2051,6 +2028,8 @@ namespace ImageSharp.Formats
                         break;
                     }
 
+                    int blah = zig;
+
                     zig = this.RefineNonZeroes(b, zig, zigEnd, val0, delta);
                     if (zig > zigEnd)
                     {
@@ -2087,8 +2066,9 @@ namespace ImageSharp.Formats
             for (; zig <= zigEnd; zig++)
             {
                 int u = Unzig[zig];
-                float bu = Block8x8.GetScalarAt(b, 0);
+                float bu = Block8x8.GetScalarAt(b, u);
 
+                // TODO: Are the equality comparsions OK with floating point values? Isn't an epsilon value necessary?
                 if (bu == 0)
                 {
                     if (nz == 0)
@@ -2306,15 +2286,6 @@ namespace ImageSharp.Formats
         public void Dispose()
         {
             scanWorkerBlock.Dispose();
-            BlockF.DisposeAll(this.quantizationTables);
-
-            foreach (BlockF[] blocks in progCoeffs)
-            {
-                if (blocks != null)
-                {
-                    BlockF.DisposeAll(blocks);
-                }
-            }
 
             for (int i = 0; i < huffmanTrees.Length; i++)
             {

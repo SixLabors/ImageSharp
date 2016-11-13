@@ -227,7 +227,12 @@
     <Compile Include="Formats\IImageFormat.cs" />
     <Compile Include="Formats\Jpg\Components\Bits.cs" />
     <Compile Include="Formats\Jpg\Components\Block.cs" />
-    <Compile Include="Formats\Jpg\Components\Buffer8x8.cs" />
+    <Compile Include="Formats\Jpg\Components\Block8x8.cs" />
+    <Compile Include="Formats\Jpg\Components\Block8x8.Generated.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Block8x8.Generated.tt</DependentUpon>
+    </Compile>
     <Compile Include="Formats\Jpg\Components\Bytes.cs" />
     <Compile Include="Formats\Jpg\Components\Component.cs" />
     <Compile Include="Formats\Jpg\Components\FDCT.cs" />
@@ -393,6 +398,15 @@
     <None Include="Formats\Png\Zlib\README.md" />
     <None Include="packages.config" />
     <None Include="Profiles\Exif\README.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Formats\Jpg\Components\Block8x8.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Block8x8.Generated.cs</LastGenOutput>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

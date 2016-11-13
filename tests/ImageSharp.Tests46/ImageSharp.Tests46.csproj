@@ -74,7 +74,7 @@
     <Compile Include="FileTestBase.cs" />
     <Compile Include="Formats\Bmp\BitmapTests.cs" />
     <Compile Include="Formats\GeneralFormatTests.cs" />
-    <Compile Include="Formats\Jpg\Buffer8x8Tests.cs" />
+    <Compile Include="Formats\Jpg\Block8x8Tests.cs" />
     <Compile Include="Formats\Jpg\DctTests.cs" />
     <Compile Include="Formats\Jpg\JpegTests.cs" />
     <Compile Include="Formats\Jpg\UtilityTestClassBase.cs" />

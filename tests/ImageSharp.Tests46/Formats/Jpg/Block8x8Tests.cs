@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Text;
 using ImageSharp.Formats;
 using Xunit;
 using Xunit.Abstractions;
@@ -9,9 +10,9 @@ using Xunit.Abstractions;
 namespace ImageSharp.Tests.Formats.Jpg
 {
     // ReSharper disable once InconsistentNaming
-    public class Buffer8x8Tests : UtilityTestClassBase
+    public class Block8x8Tests : UtilityTestClassBase
     {
-        public Buffer8x8Tests(ITestOutputHelper output) : base(output)
+        public Block8x8Tests(ITestOutputHelper output) : base(output)
         {
         }
         
@@ -22,16 +23,16 @@ namespace ImageSharp.Tests.Formats.Jpg
         {
 
 
-            float[] data = new float[Buffer8x8.ScalarCount];
-            float[] mirror = new float[Buffer8x8.ScalarCount];
+            float[] data = new float[Block8x8.ScalarCount];
+            float[] mirror = new float[Block8x8.ScalarCount];
 
-            for (int i = 0; i < Buffer8x8.ScalarCount; i++)
+            for (int i = 0; i < Block8x8.ScalarCount; i++)
             {
                 data[i] = i;
             }
             Measure(times, () =>
             {
-                Buffer8x8 v = new Buffer8x8();
+                Block8x8 v = new Block8x8();
                 v.LoadFrom(data);
                 v.CopyTo(mirror);
             });
@@ -47,16 +48,16 @@ namespace ImageSharp.Tests.Formats.Jpg
         {
 
 
-            int[] data = new int[Buffer8x8.ScalarCount];
-            int[] mirror = new int[Buffer8x8.ScalarCount];
+            int[] data = new int[Block8x8.ScalarCount];
+            int[] mirror = new int[Block8x8.ScalarCount];
 
-            for (int i = 0; i < Buffer8x8.ScalarCount; i++)
+            for (int i = 0; i < Block8x8.ScalarCount; i++)
             {
                 data[i] = i;
             }
             Measure(times, () =>
             {
-                Buffer8x8 v = new Buffer8x8();
+                Block8x8 v = new Block8x8();
                 v.LoadFrom(data);
                 v.CopyTo(mirror);
             });
@@ -71,7 +72,7 @@ namespace ImageSharp.Tests.Formats.Jpg
             float[] expected = Create8x8FloatData();
             ReferenceDCT.Transpose8x8(expected);
 
-            Buffer8x8 buffer = new Buffer8x8();
+            Block8x8 buffer = new Block8x8();
             buffer.LoadFrom(Create8x8FloatData());
             
             buffer.TransposeInplace();
@@ -83,16 +84,16 @@ namespace ImageSharp.Tests.Formats.Jpg
         }
 
         [Fact]
-        public void TransposeInto()
+        public void TranposeInto_PinningImpl()
         {
             float[] expected = Create8x8FloatData();
             ReferenceDCT.Transpose8x8(expected);
 
-            Buffer8x8 source = new Buffer8x8();
+            Block8x8 source = new Block8x8();
             source.LoadFrom(Create8x8FloatData());
 
-            Buffer8x8 dest = new Buffer8x8();
-            source.TranposeInto(ref dest);
+            Block8x8 dest = new Block8x8();
+            source.TransposeInto_PinningImpl(ref dest);
 
             float[] actual = new float[64];
             dest.CopyTo(actual);
@@ -101,16 +102,16 @@ namespace ImageSharp.Tests.Formats.Jpg
         }
 
         [Fact]
-        public void TransposeIntoSafe()
+        public void TransposeInto()
         {
             float[] expected = Create8x8FloatData();
             ReferenceDCT.Transpose8x8(expected);
 
-            Buffer8x8 source = new Buffer8x8();
+            Block8x8 source = new Block8x8();
             source.LoadFrom(Create8x8FloatData());
 
-            Buffer8x8 dest = new Buffer8x8();
-            source.TransposeIntoSafe(ref dest);
+            Block8x8 dest = new Block8x8();
+            source.TransposeInto(ref dest);
 
             float[] actual = new float[64];
             dest.CopyTo(actual);
@@ -119,20 +120,46 @@ namespace ImageSharp.Tests.Formats.Jpg
         }
 
         [Fact]
-        public unsafe void PinnedTransposeInto()
+        public void Buffer8x8_TransposeInto_GeneratorTest()
+        {
+            char[] coordz = new[] {'X', 'Y', 'Z', 'W'};
+            StringBuilder bld = new StringBuilder();
+
+            for (int i = 0; i < 8; i++)
+            {
+                char destCoord = coordz[i % 4];
+                char destSide = (i / 4) % 2 == 0 ? 'L' : 'R';
+
+                for (int j = 0; j < 8; j++)
+                {
+                    char srcCoord = coordz[j % 4];
+                    char srcSide = (j / 4) % 2 == 0 ? 'L' : 'R';
+                    
+                    string expression = $"d.V{j}{destSide}.{destCoord} = V{i}{srcSide}.{srcCoord}; ";
+                    bld.Append(expression);
+                }
+                bld.AppendLine();
+            }
+
+            Output.WriteLine(bld.ToString());
+        }
+
+
+        [Fact]
+        public unsafe void TransposeInto_WithPointers()
         {
             float[] expected = Create8x8FloatData();
             ReferenceDCT.Transpose8x8(expected);
 
-            Buffer8x8 source = new Buffer8x8();
+            Block8x8 source = new Block8x8();
             source.LoadFrom(Create8x8FloatData());
 
-            Buffer8x8 dest = new Buffer8x8();
+            Block8x8 dest = new Block8x8();
 
-            Buffer8x8* sPtr = &source;
-            Buffer8x8* dPtr = &dest;
+            Block8x8* sPtr = &source;
+            Block8x8* dPtr = &dest;
 
-            Buffer8x8.PinnedTransposeInto(sPtr, dPtr);
+            Block8x8.TransposeInto(sPtr, dPtr);
 
             float[] actual = new float[64];
             dest.CopyTo(actual);
@@ -142,53 +169,74 @@ namespace ImageSharp.Tests.Formats.Jpg
 
         private class BufferHolder
         {
-            public Buffer8x8 Buffer;
+            public Block8x8 Buffer;
         }
 
         [Theory]
         [InlineData(1)]
         [InlineData(10000000)]
-        public void TransposeInto_Benchmark(int times)
+        public void TranposeInto_Benchmark(int times)
         {
             BufferHolder source = new BufferHolder();
             source.Buffer.LoadFrom(Create8x8FloatData());
             BufferHolder dest = new BufferHolder();
 
-            Output.WriteLine($"TransposeInto_Benchmark X {times} ...");
+            Output.WriteLine($"TranposeInto_PinningImpl_Benchmark X {times} ...");
             Stopwatch sw = Stopwatch.StartNew();
 
             for (int i = 0; i < times; i++)
             {
-                source.Buffer.TranposeInto(ref dest.Buffer);
+                source.Buffer.TransposeInto(ref dest.Buffer);
             }
 
             sw.Stop();
-            Output.WriteLine($"TransposeInto_Benchmark finished in {sw.ElapsedMilliseconds} ms");
+            Output.WriteLine($"TranposeInto_PinningImpl_Benchmark finished in {sw.ElapsedMilliseconds} ms");
         }
 
         [Theory]
         [InlineData(1)]
         [InlineData(10000000)]
-        public unsafe void PinnedTransposeInto_Benchmark(int times)
+        public void TranposeInto_PinningImpl_Benchmark(int times)
         {
             BufferHolder source = new BufferHolder();
             source.Buffer.LoadFrom(Create8x8FloatData());
             BufferHolder dest = new BufferHolder();
 
-            fixed (Buffer8x8* sPtr = &source.Buffer)
+            Output.WriteLine($"TranposeInto_PinningImpl_Benchmark X {times} ...");
+            Stopwatch sw = Stopwatch.StartNew();
+
+            for (int i = 0; i < times; i++)
             {
-                fixed (Buffer8x8* dPtr = &dest.Buffer)
+                source.Buffer.TransposeInto_PinningImpl(ref dest.Buffer);
+            }
+
+            sw.Stop();
+            Output.WriteLine($"TranposeInto_PinningImpl_Benchmark finished in {sw.ElapsedMilliseconds} ms");
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(10000000)]
+        public unsafe void TransposeInto_WithPointers_Benchmark(int times)
+        {
+            BufferHolder source = new BufferHolder();
+            source.Buffer.LoadFrom(Create8x8FloatData());
+            BufferHolder dest = new BufferHolder();
+
+            fixed (Block8x8* sPtr = &source.Buffer)
+            {
+                fixed (Block8x8* dPtr = &dest.Buffer)
                 {
-                    Output.WriteLine($"PinnedTransposeInto_Benchmark X {times} ...");
+                    Output.WriteLine($"TransposeInto_WithPointers_Benchmark X {times} ...");
                     Stopwatch sw = Stopwatch.StartNew();
 
                     for (int i = 0; i < times; i++)
                     {
-                        Buffer8x8.PinnedTransposeInto(sPtr, dPtr);
+                        Block8x8.TransposeInto(sPtr, dPtr);
                     }
 
                     sw.Stop();
-                    Output.WriteLine($"PinnedTransposeInto_Benchmark finished in {sw.ElapsedMilliseconds} ms");
+                    Output.WriteLine($"TransposeInto_WithPointers_Benchmark finished in {sw.ElapsedMilliseconds} ms");
                 }
             }
             
@@ -203,10 +251,10 @@ namespace ImageSharp.Tests.Formats.Jpg
             
             ReferenceDCT.iDCT2D8x4_32f(sourceArray, expectedDestArray);
             
-            Buffer8x8 source = new Buffer8x8();
+            Block8x8 source = new Block8x8();
             source.LoadFrom(sourceArray);
 
-            Buffer8x8 dest = new Buffer8x8();
+            Block8x8 dest = new Block8x8();
 
             source.iDCT2D8x4_LeftPart(ref dest);
 
@@ -228,10 +276,10 @@ namespace ImageSharp.Tests.Formats.Jpg
 
             ReferenceDCT.iDCT2D8x4_32f(sourceArray.Slice(4), expectedDestArray.Slice(4));
             
-            Buffer8x8 source = new Buffer8x8();
+            Block8x8 source = new Block8x8();
             source.LoadFrom(sourceArray);
 
-            Buffer8x8 dest = new Buffer8x8();
+            Block8x8 dest = new Block8x8();
 
             source.iDCT2D8x4_RightPart(ref dest);
 
@@ -254,13 +302,13 @@ namespace ImageSharp.Tests.Formats.Jpg
 
             ReferenceDCT.iDCT8x8_llm_sse(sourceArray, expectedDestArray, tempArray);
             
-            Buffer8x8 source = new Buffer8x8();
+            Block8x8 source = new Block8x8();
             source.LoadFrom(sourceArray);
 
-            Buffer8x8 dest = new Buffer8x8();
-            Buffer8x8 tempBuffer = new Buffer8x8();
+            Block8x8 dest = new Block8x8();
+            Block8x8 tempBuffer = new Block8x8();
 
-            source.TransformIDCTInto(ref dest, ref tempBuffer);
+            source.IDCTInto(ref dest, ref tempBuffer);
 
             float[] actualDestArray = new float[64];
             dest.CopyTo(actualDestArray);

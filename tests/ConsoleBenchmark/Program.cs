@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using ImageSharp.Tests;
@@ -26,6 +27,7 @@ namespace ConsoleBenchmark
 
         static void Main(string[] args)
         {
+            Console.WriteLine("HW ACC: "+ Vector.IsHardwareAccelerated);
             DecodeJpegBenchmark benchmark = new DecodeJpegBenchmark(new Output());
             benchmark.JpegCore(100);
             //JpegSandbox test = new JpegSandbox(null);

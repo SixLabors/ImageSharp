@@ -26,20 +26,7 @@ namespace ImageSharp.Tests.Formats.Jpg
 
             Print8x8Data(data);
         }
-
-        [Fact]
-        public void Load_Store()
-        {
-            var data = Create8x8FloatData();
-
-            var m = ReferenceDCT.Load(data, 1, 1);
-            m = Matrix4x4.Transpose(m);
-
-            ReferenceDCT.Store(m, data, 4, 4);
-
-            Print8x8Data(data);
-        }
-
+        
         [Fact]
         public void Transpose8x8()
         {

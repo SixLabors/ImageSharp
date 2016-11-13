@@ -15,92 +15,8 @@ namespace ImageSharp.Formats
     {
         private static readonly ArrayPool<float> FloatArrayPool = ArrayPool<float>.Create(Block.BlockSize, 50);
        
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Matrix4x4 Load(Span<float> src, int x, int y)
-        {
-            int b0 = y*8 + x;
-            y++;
-            int b1 = y*8 + x;
-            y++;
-            int b2 = y*8 + x;
-            y++;
-            int b3 = y*8 + x;
-
-            return new Matrix4x4(
-                src[b0], src[b0 + 1], src[b0 + 2], src[b0 + 3],
-                src[b1], src[b1 + 1], src[b1 + 2], src[b1 + 3],
-                src[b2], src[b2 + 1], src[b2 + 2], src[b2 + 3],
-                src[b3], src[b3 + 1], src[b3 + 2], src[b3 + 3]
-            );
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Store(Matrix4x4 s, Span<float> d, int x, int y)
-        {
-            int b0 = y*8 + x;
-            y++;
-            int b1 = y*8 + x;
-            y++;
-            int b2 = y*8 + x;
-            y++;
-            int b3 = y*8 + x;
-
-            d[b0] = s.M11;
-            d[b0 + 1] = s.M12;
-            d[b0 + 2] = s.M13;
-            d[b0 + 3] = s.M14;
-            d[b1] = s.M21;
-            d[b1 + 1] = s.M22;
-            d[b1 + 2] = s.M23;
-            d[b1 + 3] = s.M24;
-            d[b2] = s.M31;
-            d[b2 + 1] = s.M32;
-            d[b2 + 2] = s.M33;
-            d[b2 + 3] = s.M34;
-            d[b3] = s.M41;
-            d[b3 + 1] = s.M42;
-            d[b3 + 2] = s.M43;
-            d[b3 + 3] = s.M44;
-        }
-
-        public static void Transpose8x8_SSE_Slow(Span<float> data)
-        {
-            Matrix4x4 a11 = Load(data, 0, 0);
-            Matrix4x4 a12 = Load(data, 4, 0);
-            Matrix4x4 a21 = Load(data, 0, 4);
-            Matrix4x4 a22 = Load(data, 4, 4);
-
-            a11 = Matrix4x4.Transpose(a11);
-            a12 = Matrix4x4.Transpose(a12);
-            a21 = Matrix4x4.Transpose(a21);
-            a22 = Matrix4x4.Transpose(a22);
-
-            Store(a11, data, 0, 0);
-            Store(a21, data, 4, 0);
-            Store(a12, data, 0, 4);
-            Store(a22, data, 4, 4);
-        }
-
-        public static void Transpose8x8_SSE_Slow(Span<float> src, Span<float> dest)
-        {
-            Matrix4x4 a11 = Load(src, 0, 0);
-            Matrix4x4 a12 = Load(src, 4, 0);
-            Matrix4x4 a21 = Load(src, 0, 4);
-            Matrix4x4 a22 = Load(src, 4, 4);
-
-            a11 = Matrix4x4.Transpose(a11);
-            a12 = Matrix4x4.Transpose(a12);
-            a21 = Matrix4x4.Transpose(a21);
-            a22 = Matrix4x4.Transpose(a22);
-
-            Store(a11, dest, 0, 0);
-            Store(a21, dest, 4, 0);
-            Store(a12, dest, 0, 4);
-            Store(a22, dest, 4, 4);
-        }
-
-        public static void Transpose8x8(Span<float> data)
+        
+        internal static void Transpose8x8(Span<float> data)
         {
             for (int i = 1; i < 8; i++)
             {
@@ -114,7 +30,7 @@ namespace ImageSharp.Formats
             }
         }
 
-        public static void Transpose8x8(Span<float> src, Span<float> dest)
+        internal static void Transpose8x8(Span<float> src, Span<float> dest)
         {
             for (int i = 0; i < 8; i++)
             {
@@ -141,7 +57,7 @@ namespace ImageSharp.Formats
             //Store(a22, dest, 4, 4);
         }
 
-        public static void iDCT1Dllm_32f(Span<float> y, Span<float> x)
+        internal static void iDCT1Dllm_32f(Span<float> y, Span<float> x)
         {
             float a0, a1, a2, a3, b0, b1, b2, b3;
             float z0, z1, z2, z3, z4;
@@ -191,7 +107,7 @@ namespace ImageSharp.Formats
             x[4] = a3 - b3;
         }
 
-        public static void iDCT2D_llm(Span<float> s, Span<float> d, Span<float> temp)
+        internal static void iDCT2D_llm(Span<float> s, Span<float> d, Span<float> temp)
         {
             int j;
 
@@ -241,7 +157,7 @@ namespace ImageSharp.Formats
             temp.ReturnToPool();
         }
 
-        public static void iDCT8x8GT(Span<float> s, Span<float> d)
+        internal static void iDCT8x8GT(Span<float> s, Span<float> d)
         {
             idct81d_sse_GT(s, d);
 
@@ -285,7 +201,7 @@ namespace ImageSharp.Formats
         }
 
 
-        public static void idct81d_sse_GT(Span<float> src, Span<float> dst)
+        internal static void idct81d_sse_GT(Span<float> src, Span<float> dst)
         {
             Vector4 c1414 = new Vector4(1.4142135623731f);
             Vector4 c0250 = new Vector4(0.25f);
@@ -363,7 +279,7 @@ namespace ImageSharp.Formats
         private static readonly Vector4 _1_847759 = new Vector4(-1.847759f);
         private static readonly Vector4 _0_765367 = new Vector4(0.765367f);
 
-        public static void iDCT2D8x4_32f(Span<float> y, Span<float> x)
+        internal static void iDCT2D8x4_32f(Span<float> y, Span<float> x)
         {
             /*
 	        float a0,a1,a2,a3,b0,b1,b2,b3; float z0,z1,z2,z3,z4; float r[8]; int i;
@@ -476,7 +392,7 @@ namespace ImageSharp.Formats
             */
         }
 
-        public static void iDCT8x8_llm_sse(Span<float> s, Span<float> d, Span<float> temp)
+        internal static void iDCT8x8_llm_sse(Span<float> s, Span<float> d, Span<float> temp)
         {
             Transpose8x8(s, temp);
             iDCT2D8x4_32f(temp, d);

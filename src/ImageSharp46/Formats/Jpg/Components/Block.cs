@@ -109,6 +109,12 @@ namespace ImageSharp.Formats
         }
     }
 
+    /// <summary>
+    /// Temporal class to make refactoring easier.
+    /// 1. Refactor Block -> BlockF
+    /// 2. Test
+    /// 3. Refactor BlockF -> Block8x8F
+    /// </summary>
     internal struct BlockF : IDisposable
     {
         private static readonly ArrayPool<float> ArrayPool = ArrayPool<float>.Create(BlockSize, 50);

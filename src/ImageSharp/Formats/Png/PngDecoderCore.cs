@@ -132,39 +132,49 @@ namespace ImageSharp.Formats
                         throw new ImageFormatException("Image does not end with end chunk.");
                     }
 
-                    switch (currentChunk.Type)
+                    try
                     {
-                        case PngChunkTypes.Header:
-                            this.ReadHeaderChunk(currentChunk.Data);
-                            this.ValidateHeader();
-                            break;
-                        case PngChunkTypes.Physical:
-                            this.ReadPhysicalChunk(currentImage, currentChunk.Data);
-                            break;
-                        case PngChunkTypes.Data:
-                            dataStream.Write(currentChunk.Data, 0, currentChunk.Data.Length);
-                            break;
-                        case PngChunkTypes.Palette:
-                            this.palette = currentChunk.Data;
-                            image.Quality = this.palette.Length / 3;
-                            break;
-                        case PngChunkTypes.PaletteAlpha:
-                            this.paletteAlpha = currentChunk.Data;
-                            break;
-                        case PngChunkTypes.Text:
-                            this.ReadTextChunk(currentImage, currentChunk.Data);
-                            break;
-                        case PngChunkTypes.End:
-                            isEndChunkReached = true;
-                            break;
+                        switch (currentChunk.Type)
+                        {
+                            case PngChunkTypes.Header:
+                                this.ReadHeaderChunk(currentChunk.Data);
+                                this.ValidateHeader();
+                                break;
+                            case PngChunkTypes.Physical:
+                                this.ReadPhysicalChunk(currentImage, currentChunk.Data);
+                                break;
+                            case PngChunkTypes.Data:
+                                dataStream.Write(currentChunk.Data, 0, currentChunk.Length);
+                                break;
+                            case PngChunkTypes.Palette:
+                                byte[] pal = new byte[currentChunk.Length];
+                                Buffer.BlockCopy(currentChunk.Data, 0, pal, 0, currentChunk.Length);
+                                this.palette = pal;
+                                image.Quality = pal.Length / 3;
+                                break;
+                            case PngChunkTypes.PaletteAlpha:
+                                byte[] alpha = new byte[currentChunk.Length];
+                                Buffer.BlockCopy(currentChunk.Data, 0, alpha, 0, currentChunk.Length);
+                                this.paletteAlpha = alpha;
+                                break;
+                            case PngChunkTypes.Text:
+                                this.ReadTextChunk(currentImage, currentChunk.Data, currentChunk.Length);
+                                break;
+                            case PngChunkTypes.End:
+                                isEndChunkReached = true;
+                                break;
+                        }
+                    }
+                    finally
+                    {
+                        // Data is rented in ReadChunkData()
+                        ArrayPool<byte>.Shared.Return(currentChunk.Data);
                     }
                 }
 
                 if (this.header.Width > image.MaxWidth || this.header.Height > image.MaxHeight)
                 {
-                    throw new ArgumentOutOfRangeException(
-                              $"The input png '{this.header.Width}x{this.header.Height}' is bigger than the "
-                              + $"max allowed size '{image.MaxWidth}x{image.MaxHeight}'");
+                    throw new ArgumentOutOfRangeException($"The input png '{this.header.Width}x{this.header.Height}' is bigger than the max allowed size '{image.MaxWidth}x{image.MaxHeight}'");
                 }
 
                 image.InitPixels(this.header.Width, this.header.Height);
@@ -396,6 +406,10 @@ namespace ImageSharp.Formats
                                 byte b = this.palette[pixelOffset + 2];
                                 color.PackFromBytes(r, g, b, a);
                             }
+                            else
+                            {
+                                color.PackFromBytes(0, 0, 0, 0);
+                            }
 
                             pixels[x, row] = color;
                         }
@@ -460,13 +474,14 @@ namespace ImageSharp.Formats
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="image">The image to decode to.</param>
         /// <param name="data">The <see cref="T:byte[]"/> containing  data.</param>
-        private void ReadTextChunk<TColor, TPacked>(Image<TColor, TPacked> image, byte[] data)
+        /// <param name="length">The maximum length to read.</param>
+        private void ReadTextChunk<TColor, TPacked>(Image<TColor, TPacked> image, byte[] data, int length)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             int zeroIndex = 0;
 
-            for (int i = 0; i < data.Length; i++)
+            for (int i = 0; i < length; i++)
             {
                 if (data[i] == 0)
                 {
@@ -476,7 +491,7 @@ namespace ImageSharp.Formats
             }
 
             string name = Encoding.Unicode.GetString(data, 0, zeroIndex);
-            string value = Encoding.Unicode.GetString(data, zeroIndex + 1, data.Length - zeroIndex - 1);
+            string value = Encoding.Unicode.GetString(data, zeroIndex + 1, length - zeroIndex - 1);
 
             image.Properties.Add(new ImageProperty(name, value));
         }
@@ -577,7 +592,7 @@ namespace ImageSharp.Formats
 
             Crc32 crc = new Crc32();
             crc.Update(this.chunkTypeBuffer);
-            crc.Update(chunk.Data);
+            crc.Update(chunk.Data, 0, chunk.Length);
 
             if (crc.Value != chunk.Crc)
             {
@@ -591,8 +606,8 @@ namespace ImageSharp.Formats
         /// <param name="chunk">The chunk.</param>
         private void ReadChunkData(PngChunk chunk)
         {
-            // TODO: It might be possible to rent this but that could also lead to issues assigning the data to various properties
-            chunk.Data = new byte[chunk.Length];
+            // We rent the buffer here to return it afterwards in Decode()
+            chunk.Data = ArrayPool<byte>.Shared.Rent(chunk.Length);
             this.currentStream.Read(chunk.Data, 0, chunk.Length);
         }
 

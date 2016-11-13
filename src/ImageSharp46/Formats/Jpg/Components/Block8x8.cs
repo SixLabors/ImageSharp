@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
 // ReSharper disable InconsistentNaming
 
 namespace ImageSharp.Formats
@@ -35,29 +37,46 @@ namespace ImageSharp.Formats
         public const int VectorCount = 16;
         public const int ScalarCount = VectorCount * 4;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void LoadFrom(Span<float> source)
         {
             fixed (Vector4* ptr = &V0L)
             {
-                float* fp = (float*)ptr;
-                for (int i = 0; i < ScalarCount; i++)
-                {
-                    fp[i] = source[i];
-                }
+                Marshal.Copy(source.Data, source.Offset, (IntPtr)ptr, ScalarCount);
+                //float* fp = (float*)ptr;
+                //for (int i = 0; i < ScalarCount; i++)
+                //{
+                //    fp[i] = source[i];
+                //}
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void CopyTo(Span<float> dest)
         {
             fixed (Vector4* ptr = &V0L)
             {
-                float* fp = (float*)ptr;
-                for (int i = 0; i < ScalarCount; i++)
-                {
-                    dest[i] = fp[i];
-                }
+                Marshal.Copy((IntPtr)ptr, dest.Data, dest.Offset, ScalarCount);
+                //float* fp = (float*)ptr;
+                //for (int i = 0; i < ScalarCount; i++)
+                //{
+                //    dest[i] = fp[i];
+                //}
             }
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe void LoadFrom(Block8x8* blockPtr, Span<float> source)
+        {
+            Marshal.Copy(source.Data, source.Offset, (IntPtr)blockPtr, ScalarCount);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe void CopyTo(Block8x8* blockPtr, Span<float> dest)
+        {
+            Marshal.Copy((IntPtr)blockPtr, dest.Data, dest.Offset, ScalarCount);
+        }
+
 
         internal unsafe void LoadFrom(Span<int> source)
         {
@@ -104,7 +123,7 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Used as a reference implementation for benchmarking
+        /// Reference implementation we can benchmark against
         /// </summary>
         internal unsafe void TransposeInto_PinningImpl(ref Block8x8 destination)
         {
@@ -145,9 +164,7 @@ namespace ImageSharp.Formats
                 }
             }
         }
-
         
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void MultiplyAllInplace(Vector4 s)
         {
@@ -410,6 +427,42 @@ namespace ImageSharp.Formats
             
             source.IDCTInto(ref dest, ref temp);
             dest.CopyTo(block.Data);
+        }
+
+        public unsafe float this[int idx]
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                fixed (Block8x8* p = &this)
+                {
+                    float* fp = (float*) p;
+                    return fp[idx];
+                }
+            }
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            set
+            {
+                fixed (Block8x8* p = &this)
+                {
+                    float* fp = (float*)p;
+                    fp[idx] = value;
+                }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static unsafe float GetScalarAt(Block8x8* blockPtr, int idx)
+        {
+            float* fp = (float*) blockPtr;
+            return fp[idx];
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static unsafe void SetScalarAt(Block8x8* blockPtr, int idx, float value)
+        {
+            float* fp = (float*)blockPtr;
+            fp[idx] = value;
         }
     }
 }

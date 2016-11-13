@@ -73,11 +73,11 @@ namespace ImageSharp.Tests.Formats.Jpg
         {
             float sum = 0;
 
-            float[] block = new float[64];
+            
             Measure(Times, () =>
             {
                 //Block8x8 block = new Block8x8();
-                
+                float[] block = new float[64];
                 for (int i = 0; i < Block8x8.ScalarCount; i++)
                 {
                     block[i] = i;

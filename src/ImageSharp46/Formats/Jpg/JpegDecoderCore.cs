@@ -84,7 +84,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Saved state between progressive-mode scans.
         /// </summary>
-        private readonly Block[][] progCoeffs;
+        private readonly BlockF[][] progCoeffs;
 
         /// <summary>
         /// The huffman trees
@@ -96,7 +96,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Quantization tables, in zigzag order.
         /// </summary>
-        private readonly Block[] quantizationTables;
+        private readonly BlockF[] quantizationTables;
 
         /// <summary>
         /// A temporary buffer for holding pixels
@@ -201,12 +201,12 @@ namespace ImageSharp.Formats
         public JpegDecoderCore()
         {
             //this.huffmanTrees = new Huffman[MaxTc + 1, MaxTh + 1];
-            this.huffmanTrees = new Huffman[(MaxTc + 1)*(MaxTh + 1)];
+            this.huffmanTrees = new Huffman[(MaxTc + 1) * (MaxTh + 1)];
 
-            this.quantizationTables = Block.CreateArray(MaxTq + 1);
-            this.temp = new byte[2 * Block.BlockSize];
+            this.quantizationTables = BlockF.CreateArray(MaxTq + 1);
+            this.temp = new byte[2 * BlockF.BlockSize];
             this.componentArray = new Component[MaxComponents];
-            this.progCoeffs = new Block[MaxComponents][];
+            this.progCoeffs = new BlockF[MaxComponents][];
             this.bits = new Bits();
             this.bytes = new Bytes();
 
@@ -217,7 +217,7 @@ namespace ImageSharp.Formats
                 for (int j = 0; j < MaxTh + 1; j++)
                 {
                     //this.huffmanTrees[i, j].Init(LutSize, MaxNCodes, MaxCodeLength);
-                    this.huffmanTrees[i* ThRowSize + j].Init(LutSize, MaxNCodes, MaxCodeLength);
+                    this.huffmanTrees[i * ThRowSize + j].Init(LutSize, MaxNCodes, MaxCodeLength);
                 }
             }
 
@@ -515,7 +515,7 @@ namespace ImageSharp.Formats
                     throw new ImageFormatException("Bad Th value");
                 }
 
-                ProcessDefineHuffmanTablesMarkerLoop(ref this.huffmanTrees[tc* ThRowSize + th], ref remaining);
+                ProcessDefineHuffmanTablesMarkerLoop(ref this.huffmanTrees[tc * ThRowSize + th], ref remaining);
             }
         }
 
@@ -571,8 +571,8 @@ namespace ImageSharp.Formats
                     // whose codeLength's high bits matches code.
                     // The high 8 bits of lutValue are the encoded value.
                     // The low 8 bits are 1 plus the codeLength.
-                    byte base2 = (byte) (code << (7 - i));
-                    ushort lutValue = (ushort) ((huffman.Values[x] << 8) | (2 + i));
+                    byte base2 = (byte)(code << (7 - i));
+                    ushort lutValue = (ushort)((huffman.Values[x] << 8) | (2 + i));
 
                     for (int k = 0; k < 1 << (7 - i); k++)
                     {
@@ -1117,32 +1117,32 @@ namespace ImageSharp.Formats
                 switch (x >> 4)
                 {
                     case 0:
-                        if (remaining < Block.BlockSize)
+                        if (remaining < BlockF.BlockSize)
                         {
                             done = true;
                             break;
                         }
 
-                        remaining -= Block.BlockSize;
-                        this.ReadFull(this.temp, 0, Block.BlockSize);
+                        remaining -= BlockF.BlockSize;
+                        this.ReadFull(this.temp, 0, BlockF.BlockSize);
 
-                        for (int i = 0; i < Block.BlockSize; i++)
+                        for (int i = 0; i < BlockF.BlockSize; i++)
                         {
                             this.quantizationTables[tq][i] = this.temp[i];
                         }
 
                         break;
                     case 1:
-                        if (remaining < 2 * Block.BlockSize)
+                        if (remaining < 2 * BlockF.BlockSize)
                         {
                             done = true;
                             break;
                         }
 
-                        remaining -= 2 * Block.BlockSize;
-                        this.ReadFull(this.temp, 0, 2 * Block.BlockSize);
+                        remaining -= 2 * BlockF.BlockSize;
+                        this.ReadFull(this.temp, 0, 2 * BlockF.BlockSize);
 
-                        for (int i = 0; i < Block.BlockSize; i++)
+                        for (int i = 0; i < BlockF.BlockSize; i++)
                         {
                             this.quantizationTables[tq][i] = (this.temp[2 * i] << 8) | this.temp[(2 * i) + 1];
                         }
@@ -1471,7 +1471,7 @@ namespace ImageSharp.Formats
             }
         }
 
-        private Block scanWorkerBlock = Block.Create();
+        private BlockF scanWorkerBlock = BlockF.Create();
 
         /// <summary>
         /// Processes the SOS (Start of scan marker).
@@ -1535,7 +1535,7 @@ namespace ImageSharp.Formats
             // significant bit.
             // For baseline JPEGs, these parameters are hard-coded to 0/63/0/0.
             int zigStart = 0;
-            int zigEnd = Block.BlockSize - 1;
+            int zigEnd = BlockF.BlockSize - 1;
             int ah = 0;
             int al = 0;
 
@@ -1546,7 +1546,7 @@ namespace ImageSharp.Formats
                 ah = this.temp[3 + scanComponentCountX2] >> 4;
                 al = this.temp[3 + scanComponentCountX2] & 0x0f;
 
-                if ((zigStart == 0 && zigEnd != 0) || zigStart > zigEnd || Block.BlockSize <= zigEnd)
+                if ((zigStart == 0 && zigEnd != 0) || zigStart > zigEnd || BlockF.BlockSize <= zigEnd)
                 {
                     throw new ImageFormatException("Bad spectral selection bounds");
                 }
@@ -1580,7 +1580,7 @@ namespace ImageSharp.Formats
                     int compIndex = scan[i].Index;
                     if (this.progCoeffs[compIndex] == null)
                     {
-                        this.progCoeffs[compIndex] = Block.CreateArray(mxx * myy * this.componentArray[compIndex].HorizontalFactor * this.componentArray[compIndex].VerticalFactor);
+                        this.progCoeffs[compIndex] = BlockF.CreateArray(mxx * myy * this.componentArray[compIndex].HorizontalFactor * this.componentArray[compIndex].VerticalFactor);
 
                         for (int j = 0; j < this.progCoeffs[compIndex].Length; j++)
                         {
@@ -1612,7 +1612,7 @@ namespace ImageSharp.Formats
                         int compIndex = scan[i].Index;
                         int hi = this.componentArray[compIndex].HorizontalFactor;
                         int vi = this.componentArray[compIndex].VerticalFactor;
-                        
+
 
                         for (int j = 0; j < hi * vi; j++)
                         {
@@ -1656,12 +1656,12 @@ namespace ImageSharp.Formats
                             }
 
                             var qtIndex = this.componentArray[compIndex].Selector;
-                            
+
                             if (this.isProgressive) // Load the previous partially decoded coefficients, if applicable.
                             {
                                 blockIndex = ((@by * mxx) * hi) + bx;
-                                ProcessBlockImpl(ah, 
-                                    ref this.progCoeffs[compIndex][blockIndex], 
+                                ProcessBlockImpl(ah,
+                                    ref this.progCoeffs[compIndex][blockIndex],
                                     scan, i, zigStart, zigEnd, al, dc, compIndex, @by, mxx, hi, bx,
                                     ref this.quantizationTables[qtIndex]
                                     );
@@ -1670,11 +1670,11 @@ namespace ImageSharp.Formats
                             {
                                 //var b = Block.Create();
                                 scanWorkerBlock.Clear();
-                                
+
                                 ProcessBlockImpl(ah, ref scanWorkerBlock, scan, i, zigStart, zigEnd, al, dc, compIndex, @by, mxx, hi,
                                     bx, ref this.quantizationTables[qtIndex]
                                     );
-                                
+
                                 //b.Dispose();
                             }
                         }
@@ -1718,8 +1718,8 @@ namespace ImageSharp.Formats
             // for my
         }
 
-        private void ProcessBlockImpl(int ah, ref Block b, Scan[] scan, int i, int zigStart, int zigEnd, int al,
-            int[] dc, int compIndex, int @by, int mxx, int hi, int bx, ref Block qt)
+        private void ProcessBlockImpl(int ah, ref BlockF b, Scan[] scan, int i, int zigStart, int zigEnd, int al,
+            int[] dc, int compIndex, int @by, int mxx, int hi, int bx, ref BlockF qt)
         {
             if (ah != 0)
             {
@@ -1755,8 +1755,8 @@ namespace ImageSharp.Formats
                     for (; zig <= zigEnd; zig++)
                     {
                         byte value = this.DecodeHuffman(ref this.huffmanTrees[AcTable * ThRowSize + scan[i].AcTableSelector]);
-                        byte val0 = (byte) (value >> 4);
-                        byte val1 = (byte) (value & 0x0f);
+                        byte val0 = (byte)(value >> 4);
+                        byte val1 = (byte)(value & 0x0f);
                         if (val1 != 0)
                         {
                             zig += val0;
@@ -1772,10 +1772,10 @@ namespace ImageSharp.Formats
                         {
                             if (val0 != 0x0f)
                             {
-                                this.eobRun = (ushort) (1 << val0);
+                                this.eobRun = (ushort)(1 << val0);
                                 if (val0 != 0)
                                 {
-                                    this.eobRun |= (ushort) this.DecodeBits(val0);
+                                    this.eobRun |= (ushort)this.DecodeBits(val0);
                                 }
 
                                 this.eobRun--;
@@ -1790,11 +1790,11 @@ namespace ImageSharp.Formats
 
             if (this.isProgressive)
             {
-                if (zigEnd != Block.BlockSize - 1 || al != 0)
+                if (zigEnd != BlockF.BlockSize - 1 || al != 0)
                 {
                     // We haven't completely decoded this 8x8 block. Save the coefficients.
-                    
-                    this.progCoeffs[compIndex][((@by*mxx)*hi) + bx] = b.Clone();
+
+                    this.progCoeffs[compIndex][((@by * mxx) * hi) + bx] = b.Clone();
 
                     // At this point, we could execute the rest of the loop body to dequantize and
                     // perform the inverse DCT, to save early stages of a progressive image to the
@@ -1806,7 +1806,7 @@ namespace ImageSharp.Formats
             }
 
             // Dequantize, perform the inverse DCT and store the block to the image.
-            for (int zig = 0; zig < Block.BlockSize; zig++)
+            for (int zig = 0; zig < BlockF.BlockSize; zig++)
             {
                 b[Unzig[zig]] *= qt[zig];
             }
@@ -1824,7 +1824,7 @@ namespace ImageSharp.Formats
             {
                 dst = this.grayImage.Pixels;
                 stride = this.grayImage.Stride;
-                offset = this.grayImage.Offset + (8*((@by*this.grayImage.Stride) + bx));
+                offset = this.grayImage.Offset + (8 * ((@by * this.grayImage.Stride) + bx));
             }
             else
             {
@@ -1833,26 +1833,26 @@ namespace ImageSharp.Formats
                     case 0:
                         dst = this.ycbcrImage.YChannel;
                         stride = this.ycbcrImage.YStride;
-                        offset = this.ycbcrImage.YOffset + (8*((@by*this.ycbcrImage.YStride) + bx));
+                        offset = this.ycbcrImage.YOffset + (8 * ((@by * this.ycbcrImage.YStride) + bx));
                         break;
 
                     case 1:
                         dst = this.ycbcrImage.CbChannel;
                         stride = this.ycbcrImage.CStride;
-                        offset = this.ycbcrImage.COffset + (8*((@by*this.ycbcrImage.CStride) + bx));
+                        offset = this.ycbcrImage.COffset + (8 * ((@by * this.ycbcrImage.CStride) + bx));
                         break;
 
                     case 2:
                         dst = this.ycbcrImage.CrChannel;
                         stride = this.ycbcrImage.CStride;
-                        offset = this.ycbcrImage.COffset + (8*((@by*this.ycbcrImage.CStride) + bx));
+                        offset = this.ycbcrImage.COffset + (8 * ((@by * this.ycbcrImage.CStride) + bx));
                         break;
 
                     case 3:
 
                         dst = this.blackPixels;
                         stride = this.blackStride;
-                        offset = 8*((@by*this.blackStride) + bx);
+                        offset = 8 * ((@by * this.blackStride) + bx);
                         break;
 
                     default:
@@ -1863,12 +1863,12 @@ namespace ImageSharp.Formats
             // Level shift by +128, clip to [0, 255], and write to dst.
             for (int y = 0; y < 8; y++)
             {
-                int y8 = y*8;
-                int yStride = y*stride;
+                int y8 = y * 8;
+                int yStride = y * stride;
 
                 for (int x = 0; x < 8; x++)
                 {
-                    int c = b[y8 + x];
+                    float c = b[y8 + x];
                     if (c < -128)
                     {
                         c = 0;
@@ -1882,7 +1882,7 @@ namespace ImageSharp.Formats
                         c += 128;
                     }
 
-                    dst[yStride + x + offset] = (byte) c;
+                    dst[yStride + x + offset] = (byte)c;
                 }
             }
         }
@@ -1927,15 +1927,15 @@ namespace ImageSharp.Formats
             }
 
 
-            totalHv += currentComponent.HorizontalFactor*currentComponent.VerticalFactor;
+            totalHv += currentComponent.HorizontalFactor * currentComponent.VerticalFactor;
 
-            currentScan.DcTableSelector = (byte) (this.temp[2 + (2*i)] >> 4);
+            currentScan.DcTableSelector = (byte)(this.temp[2 + (2 * i)] >> 4);
             if (currentScan.DcTableSelector > MaxTh)
             {
                 throw new ImageFormatException("Bad DC table selector value");
             }
 
-            currentScan.AcTableSelector = (byte) (this.temp[2 + (2*i)] & 0x0f);
+            currentScan.AcTableSelector = (byte)(this.temp[2 + (2 * i)] & 0x0f);
             if (currentScan.AcTableSelector > MaxTh)
             {
                 throw new ImageFormatException("Bad AC table selector  value");
@@ -1950,7 +1950,7 @@ namespace ImageSharp.Formats
         /// <param name="zigStart">The zig-zag start index</param>
         /// <param name="zigEnd">The zig-zag end index</param>
         /// <param name="delta">The low transform offset</param>
-        private void Refine(ref Block b, ref Huffman h, int zigStart, int zigEnd, int delta)
+        private void Refine(ref BlockF b, ref Huffman h, int zigStart, int zigEnd, int delta)
         {
             // Refining a DC component is trivial.
             if (zigStart == 0)
@@ -1963,7 +1963,9 @@ namespace ImageSharp.Formats
                 bool bit = this.DecodeBit();
                 if (bit)
                 {
-                    b[0] |= delta;
+                    int stuff = (int)b[0];
+                    stuff |= delta;
+                    b[0] = stuff;
                 }
 
                 return;
@@ -2044,7 +2046,7 @@ namespace ImageSharp.Formats
         /// <param name="nz">The non-zero entry</param>
         /// <param name="delta">The low transform offset</param>
         /// <returns>The <see cref="int"/></returns>
-        private int RefineNonZeroes(ref Block b, int zig, int zigEnd, int nz, int delta)
+        private int RefineNonZeroes(ref BlockF b, int zig, int zigEnd, int nz, int delta)
         {
             for (; zig <= zigEnd; zig++)
             {
@@ -2264,13 +2266,13 @@ namespace ImageSharp.Formats
         public void Dispose()
         {
             scanWorkerBlock.Dispose();
-            Block.DisposeAll(this.quantizationTables);
+            BlockF.DisposeAll(this.quantizationTables);
 
-            foreach (Block[] blocks in progCoeffs)
+            foreach (BlockF[] blocks in progCoeffs)
             {
                 if (blocks != null)
                 {
-                    Block.DisposeAll(blocks);
+                    BlockF.DisposeAll(blocks);
                 }
             }
 

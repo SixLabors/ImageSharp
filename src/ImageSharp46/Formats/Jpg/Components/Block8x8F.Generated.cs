@@ -5,10 +5,10 @@ using System.Runtime.CompilerServices;
 
 namespace ImageSharp.Formats
 {
-	public partial struct Block8x8
+	internal partial struct Block8x8F
     {
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void TransposeInto(ref Block8x8 d)
+        public void TransposeInto(ref Block8x8F d)
         {
             d.V0L.X = V0L.X; d.V1L.X = V0L.Y; d.V2L.X = V0L.Z; d.V3L.X = V0L.W; d.V4L.X = V0R.X; d.V5L.X = V0R.Y; d.V6L.X = V0R.Z; d.V7L.X = V0R.W; 
             d.V0L.Y = V1L.X; d.V1L.Y = V1L.Y; d.V2L.Y = V1L.Z; d.V3L.Y = V1L.W; d.V4L.Y = V1R.X; d.V5L.Y = V1R.Y; d.V6L.Y = V1R.Z; d.V7L.Y = V1R.W; 

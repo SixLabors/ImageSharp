@@ -14,7 +14,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Performs the jpeg decoding operation.
     /// </summary>
-    internal class JpegDecoderCore : IDisposable
+    internal unsafe class JpegDecoderCore : IDisposable
     {
         /// <summary>
         /// The maximum (inclusive) number of bits in a Huffman code.
@@ -1718,12 +1718,29 @@ namespace ImageSharp.Formats
             // for my
         }
 
+
+
         private void ProcessBlockImpl(int ah, ref BlockF b, Scan[] scan, int i, int zigStart, int zigEnd, int al,
             int[] dc, int compIndex, int @by, int mxx, int hi, int bx, ref BlockF qt)
         {
+            Block8x8 b2 = new Block8x8();
+            Block8x8 qt2 = new Block8x8();
+            b2.LoadFrom(ref b);
+            qt2.LoadFrom(ref qt);
+
+            ProcessBlockImpl(ah, &b2, scan, i, zigStart, zigEnd, al, dc, compIndex, by, mxx, hi, bx, &qt2);
+
+            b2.CopyTo(ref b);
+            qt2.CopyTo(ref qt);
+        }
+
+
+        private void ProcessBlockImpl(int ah, Block8x8* b, Scan[] scan, int i, int zigStart, int zigEnd, int al,
+            int[] dc, int compIndex, int @by, int mxx, int hi, int bx, Block8x8* qt)
+        {
             if (ah != 0)
             {
-                this.Refine(ref b, ref this.huffmanTrees[AcTable * ThRowSize + scan[i].AcTableSelector], zigStart, zigEnd, 1 << al);
+                this.Refine(b, ref this.huffmanTrees[AcTable * ThRowSize + scan[i].AcTableSelector], zigStart, zigEnd, 1 << al);
             }
             else
             {
@@ -1741,7 +1758,9 @@ namespace ImageSharp.Formats
 
                     int deltaDC = this.ReceiveExtend(value);
                     dc[compIndex] += deltaDC;
-                    b[0] = dc[compIndex] << al;
+
+                    //b[0] = dc[compIndex] << al;
+                    Block8x8.SetScalarAt(b, 0, dc[compIndex] << al);
                 }
 
                 if (zig <= zigEnd && this.eobRun > 0)
@@ -1766,7 +1785,9 @@ namespace ImageSharp.Formats
                             }
 
                             int ac = this.ReceiveExtend(val1);
-                            b[Unzig[zig]] = ac << al;
+
+                            //b[Unzig[zig]] = ac << al;
+                            Block8x8.SetScalarAt(b, Unzig[zig], ac << al);
                         }
                         else
                         {
@@ -1794,7 +1815,9 @@ namespace ImageSharp.Formats
                 {
                     // We haven't completely decoded this 8x8 block. Save the coefficients.
 
-                    this.progCoeffs[compIndex][((@by * mxx) * hi) + bx] = b.Clone();
+                    // TODO!!!
+                    throw new NotImplementedException();
+                    //this.progCoeffs[compIndex][((@by * mxx) * hi) + bx] = b.Clone();
 
                     // At this point, we could execute the rest of the loop body to dequantize and
                     // perform the inverse DCT, to save early stages of a progressive image to the
@@ -1808,13 +1831,20 @@ namespace ImageSharp.Formats
             // Dequantize, perform the inverse DCT and store the block to the image.
             for (int zig = 0; zig < BlockF.BlockSize; zig++)
             {
-                b[Unzig[zig]] *= qt[zig];
+                // TODO: We really need the fancy new corefxlab Span<float> here ...
+                //b[Unzig[zig]] *= qt[zig];
+                
+                int unzigIdx = Unzig[zig];
+                float value = Block8x8.GetScalarAt(b, unzigIdx);
+                value *= Block8x8.GetScalarAt(qt, zig);
+                Block8x8.SetScalarAt(b, unzigIdx, value);
             }
 
             //IDCT.Transform(ref b);
             //FloatIDCT.Transform(ref b);
             //ReferenceDCT.IDCT(ref b);
-            Block8x8.SuchIDCT(ref b);
+            //Block8x8.SuchIDCT(ref b);
+            b->IDCTInplace();
 
             byte[] dst;
             int offset;
@@ -1868,7 +1898,9 @@ namespace ImageSharp.Formats
 
                 for (int x = 0; x < 8; x++)
                 {
-                    float c = b[y8 + x];
+                    //float c = b[y8 + x];
+                    float c = Block8x8.GetScalarAt(b, y8 + x);
+
                     if (c < -128)
                     {
                         c = 0;
@@ -1950,7 +1982,7 @@ namespace ImageSharp.Formats
         /// <param name="zigStart">The zig-zag start index</param>
         /// <param name="zigEnd">The zig-zag end index</param>
         /// <param name="delta">The low transform offset</param>
-        private void Refine(ref BlockF b, ref Huffman h, int zigStart, int zigEnd, int delta)
+        private void Refine(Block8x8* b, ref Huffman h, int zigStart, int zigEnd, int delta)
         {
             // Refining a DC component is trivial.
             if (zigStart == 0)
@@ -1963,9 +1995,12 @@ namespace ImageSharp.Formats
                 bool bit = this.DecodeBit();
                 if (bit)
                 {
-                    int stuff = (int)b[0];
+                    int stuff = (int) Block8x8.GetScalarAt(b, 0);
+
+                    //int stuff = (int)b[0];
                     stuff |= delta;
-                    b[0] = stuff;
+                    //b[0] = stuff;
+                    Block8x8.SetScalarAt(b, 0, stuff);
                 }
 
                 return;
@@ -2016,7 +2051,7 @@ namespace ImageSharp.Formats
                         break;
                     }
 
-                    zig = this.RefineNonZeroes(ref b, zig, zigEnd, val0, delta);
+                    zig = this.RefineNonZeroes(b, zig, zigEnd, val0, delta);
                     if (zig > zigEnd)
                     {
                         throw new ImageFormatException($"Too many coefficients {zig} > {zigEnd}");
@@ -2024,7 +2059,8 @@ namespace ImageSharp.Formats
 
                     if (z != 0)
                     {
-                        b[Unzig[zig]] = z;
+                        //b[Unzig[zig]] = z;
+                        Block8x8.SetScalarAt(b, Unzig[zig], z);
                     }
                 }
             }
@@ -2032,7 +2068,7 @@ namespace ImageSharp.Formats
             if (this.eobRun > 0)
             {
                 this.eobRun--;
-                this.RefineNonZeroes(ref b, zig, zigEnd, -1, delta);
+                this.RefineNonZeroes(b, zig, zigEnd, -1, delta);
             }
         }
 
@@ -2046,12 +2082,14 @@ namespace ImageSharp.Formats
         /// <param name="nz">The non-zero entry</param>
         /// <param name="delta">The low transform offset</param>
         /// <returns>The <see cref="int"/></returns>
-        private int RefineNonZeroes(ref BlockF b, int zig, int zigEnd, int nz, int delta)
+        private int RefineNonZeroes(Block8x8* b, int zig, int zigEnd, int nz, int delta)
         {
             for (; zig <= zigEnd; zig++)
             {
                 int u = Unzig[zig];
-                if (b[u] == 0)
+                float bu = Block8x8.GetScalarAt(b, 0);
+
+                if (bu == 0)
                 {
                     if (nz == 0)
                     {
@@ -2068,13 +2106,15 @@ namespace ImageSharp.Formats
                     continue;
                 }
 
-                if (b[u] >= 0)
+                if (bu >= 0)
                 {
-                    b[u] += delta;
+                    //b[u] += delta;
+                    Block8x8.SetScalarAt(b, u, bu + delta);
                 }
                 else
                 {
-                    b[u] -= delta;
+                    //b[u] -= delta;
+                    Block8x8.SetScalarAt(b, u, bu - delta);
                 }
             }
 

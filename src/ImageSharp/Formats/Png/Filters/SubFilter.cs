@@ -21,7 +21,6 @@ namespace ImageSharp.Formats
         public static byte[] Decode(byte[] scanline, int bytesPerPixel)
         {
             // Sub(x) + Raw(x-bpp)
-
             fixed (byte* scan = scanline)
             {
                 for (int x = 1; x < scanline.Length; x++)
@@ -38,13 +37,12 @@ namespace ImageSharp.Formats
         /// Encodes the scanline
         /// </summary>
         /// <param name="scanline">The scanline to encode</param>
+        /// <param name="result">The filtered scanline result.</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
         /// <param name="bytesPerScanline">The number of bytes per scanline</param>
-        /// <returns>The <see cref="T:byte[]"/></returns>
-        public static byte[] Encode(byte[] scanline, int bytesPerPixel, int bytesPerScanline)
+        public static void Encode(byte[] scanline, byte[] result, int bytesPerPixel, int bytesPerScanline)
         {
             // Sub(x) = Raw(x) - Raw(x-bpp)
-            byte[] result = new byte[bytesPerScanline + 1];
             fixed (byte* scan = scanline)
             fixed (byte* res = result)
             {
@@ -57,8 +55,6 @@ namespace ImageSharp.Formats
                     res[x + 1] = (byte)((scan[x] - priorRawByte) % 256);
                 }
             }
-
-            return result;
         }
     }
 }

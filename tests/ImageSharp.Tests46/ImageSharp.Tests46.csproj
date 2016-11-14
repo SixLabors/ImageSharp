@@ -78,10 +78,10 @@
     <Compile Include="FileTestBase.cs" />
     <Compile Include="Formats\Bmp\BitmapTests.cs" />
     <Compile Include="Formats\GeneralFormatTests.cs" />
-    <Compile Include="Formats\Jpg\Block8x8Tests.cs" />
+    <Compile Include="Formats\Jpg\Block8x8FTests.cs" />
     <Compile Include="Formats\Jpg\DctTests.cs" />
     <Compile Include="Formats\Jpg\JpegTests.cs" />
-    <Compile Include="Formats\Jpg\ReferenceDCT.cs" />
+    <Compile Include="Formats\Jpg\ReferenceImplementations.cs" />
     <Compile Include="Formats\Jpg\UtilityTestClassBase.cs" />
     <Compile Include="Formats\Png\PngTests.cs" />
     <Compile Include="Helpers\GuardTests.cs" />

@@ -32,9 +32,9 @@ namespace ImageSharp.Tests.Formats.Jpg
         {
             var data = Create8x8FloatData();
 
-            Span<float> result = new Span<float>(64);
+            MutableSpan<float> result = new MutableSpan<float>(64);
 
-            ReferenceDCT.Transpose8x8(data, result);
+            ReferenceImplementations.Transpose8x8(data, result);
 
             Print8x8Data(result.Data);
         }
@@ -44,7 +44,7 @@ namespace ImageSharp.Tests.Formats.Jpg
         {
             var data = Create8x8FloatData();
 
-            ReferenceDCT.Transpose8x8(data);
+            ReferenceImplementations.Transpose8x8(data);
 
             Print8x8Data(data);
         }

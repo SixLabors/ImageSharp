@@ -9,6 +9,10 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
+<#
+char[] coordz = new[] {'X', 'Y', 'Z', 'W'};
+#>
+
 namespace ImageSharp.Formats
 {
 	internal partial struct Block8x8F
@@ -17,8 +21,6 @@ namespace ImageSharp.Formats
         public void TransposeInto(ref Block8x8F d)
         {
             <#
-			char[] coordz = new[] {'X', 'Y', 'Z', 'W'};
-            //StringBuilder bld = new StringBuilder();
 			PushIndent("            "); 
 
             for (int i = 0; i < 8; i++)
@@ -42,5 +44,51 @@ namespace ImageSharp.Formats
 			//Write(bld.ToString());
 			#>
         }
+
+		
+		public void CropInto(float min, float max, ref Block8x8F d)
+        {
+            Vector4 minVec = new Vector4(min);
+            Vector4 maxVec = new Vector4(max);
+
+            <#
+
+			PushIndent("            "); 
+
+            for (int i = 0; i < 8; i++)
+            {
+                for (int j = 0; j < 2; j++)
+                {
+					char side = j == 0 ? 'L' : 'R';
+					Write($"d.V{i}{side} = Vector4.Max(Vector4.Min(V{i}{side}, maxVec), minVec);");
+                }
+				WriteLine("");
+            }
+			PopIndent();
+			#>
+        }
+
+		internal void ColorifyInto(ref Block8x8F d)
+        {
+            
+
+            <#
+
+			PushIndent("            "); 
+
+            for (int i = 0; i < 8; i++)
+            {
+                for (int j = 0; j < 2; j++)
+                {
+					char side = j == 0 ? 'L' : 'R';
+					Write($"d.V{i}{side} = Vector4.Max(Vector4.Min(V{i}{side}, CMax4), CMin4) + COff4;");
+                }
+				WriteLine("");
+            }
+			PopIndent();
+			#>
+        }
+
+
 	}
 }

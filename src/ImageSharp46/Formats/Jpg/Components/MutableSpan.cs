@@ -4,20 +4,26 @@ using System.Runtime.CompilerServices;
 
 namespace ImageSharp.Formats
 {
-    internal struct Span<T>
+    /// <summary>
+    /// Like corefxlab Span, but with an AddOffset() method for efficiency.
+    /// TODO: When Span will be official, consider replacing this class!
+    /// </summary>
+    /// <see cref="https://github.com/dotnet/corefxlab/blob/master/src/System.Slices/System/Span.cs"/>
+    /// <typeparam name="T"></typeparam>
+    internal struct MutableSpan<T>
     {
         public T[] Data;
         public int Offset;
 
         public int TotalCount => Data.Length - Offset;
 
-        public Span(int size, int offset = 0)
+        public MutableSpan(int size, int offset = 0)
         {
             Data = new T[size];
             Offset = offset;
         }
 
-        public Span(T[] data, int offset = 0)
+        public MutableSpan(T[] data, int offset = 0)
         {
             Data = data;
             Offset = offset;
@@ -30,26 +36,13 @@ namespace ImageSharp.Formats
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Span<T> Slice(int offset)
+        public MutableSpan<T> Slice(int offset)
         {
-            return new Span<T>(Data, Offset + offset);
+            return new MutableSpan<T>(Data, Offset + offset);
         }
 
-        public static implicit operator Span<T>(T[] data) => new Span<T>(data, 0);
-
-        private static readonly ArrayPool<T> Pool = ArrayPool<T>.Create(128, 10);
-
-        public static Span<T> RentFromPool(int size, int offset = 0)
-        {
-            return new Span<T>(Pool.Rent(size), offset);
-        }
-
-        public void ReturnToPool()
-        {
-            Pool.Return(Data, true);
-            Data = null;
-        }
-
+        public static implicit operator MutableSpan<T>(T[] data) => new MutableSpan<T>(data, 0);
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AddOffset(int offset)
         {
@@ -57,10 +50,12 @@ namespace ImageSharp.Formats
         }
     }
 
-    internal static class SpanExtensions
+    internal static class MutableSpanExtensions
     {
+        public static MutableSpan<T> Slice<T>(this T[] array, int offset) => new MutableSpan<T>(array, offset);
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void SaveTo(this Span<float> data, ref Vector4 v)
+        public static void SaveTo(this MutableSpan<float> data, ref Vector4 v)
         {
             v.X = data[0];
             v.Y = data[1];
@@ -69,7 +64,7 @@ namespace ImageSharp.Formats
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void SaveTo(this Span<int> data, ref Vector4 v)
+        public static void SaveTo(this MutableSpan<int> data, ref Vector4 v)
         {
             v.X = data[0];
             v.Y = data[1];
@@ -78,7 +73,7 @@ namespace ImageSharp.Formats
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void LoadFrom(this Span<float> data, ref Vector4 v)
+        public static void LoadFrom(this MutableSpan<float> data, ref Vector4 v)
         {
             data[0] = v.X;
             data[1] = v.Y;
@@ -87,7 +82,7 @@ namespace ImageSharp.Formats
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void LoadFrom(this Span<int> data, ref Vector4 v)
+        public static void LoadFrom(this MutableSpan<int> data, ref Vector4 v)
         {
             data[0] = (int)v.X;
             data[1] = (int)v.Y;

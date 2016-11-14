@@ -2,21 +2,19 @@
 using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using ImageSharp.Formats;
 
-namespace ImageSharp.Formats
+// ReSharper disable InconsistentNaming
+
+namespace ImageSharp.Tests.Formats.Jpg
 {
     /// <summary>
-    /// Ported from https://github.com/norishigefukushima/dct_simd
-    /// In this form, its Slow in C#
-    /// Used as a reference implementation in test cases!
+    /// This class contains simplified (unefficient) reference implementations so we can verify actual ones in unit tests
+    /// DCT code Ported from https://github.com/norishigefukushima/dct_simd
     /// </summary>
-    // ReSharper disable once InconsistentNaming
-    public static class ReferenceDCT
+    public static class ReferenceImplementations
     {
-        private static readonly ArrayPool<float> FloatArrayPool = ArrayPool<float>.Create(Block.BlockSize, 50);
-       
-        
-        internal static void Transpose8x8(Span<float> data)
+        internal static void Transpose8x8(MutableSpan<float> data)
         {
             for (int i = 1; i < 8; i++)
             {
@@ -30,7 +28,7 @@ namespace ImageSharp.Formats
             }
         }
 
-        internal static void Transpose8x8(Span<float> src, Span<float> dest)
+        internal static void Transpose8x8(MutableSpan<float> src, MutableSpan<float> dest)
         {
             for (int i = 0; i < 8; i++)
             {
@@ -40,24 +38,9 @@ namespace ImageSharp.Formats
                     dest[j*8 + i] = src[i8 + j];
                 }
             }
-
-            //Matrix4x4 a11 = Load(src, 0, 0);
-            //Matrix4x4 a12 = Load(src, 4, 0);
-            //Matrix4x4 a21 = Load(src, 0, 4);
-            //Matrix4x4 a22 = Load(src, 4, 4);
-
-            //a11 = Matrix4x4.Transpose(a11);
-            //a12 = Matrix4x4.Transpose(a12);
-            //a21 = Matrix4x4.Transpose(a21);
-            //a22 = Matrix4x4.Transpose(a22);
-
-            //Store(a11, dest, 0, 0);
-            //Store(a21, dest, 4, 0);
-            //Store(a12, dest, 0, 4);
-            //Store(a22, dest, 4, 4);
         }
 
-        internal static void iDCT1Dllm_32f(Span<float> y, Span<float> x)
+        internal static void iDCT1Dllm_32f(MutableSpan<float> y, MutableSpan<float> x)
         {
             float a0, a1, a2, a3, b0, b1, b2, b3;
             float z0, z1, z2, z3, z4;
@@ -107,7 +90,7 @@ namespace ImageSharp.Formats
             x[4] = a3 - b3;
         }
 
-        internal static void iDCT2D_llm(Span<float> s, Span<float> d, Span<float> temp)
+        internal static void iDCT2D_llm(MutableSpan<float> s, MutableSpan<float> d, MutableSpan<float> temp)
         {
             int j;
 
@@ -130,59 +113,24 @@ namespace ImageSharp.Formats
                 d[j] *= 0.125f;
             }
         }
+        
 
-        internal static void IDCT(ref Block block)
-        {
-            Span<float> src = Span<float>.RentFromPool(64);
-
-            for (int i = 0; i < 64; i++)
-            {
-                src[i] = block[i];
-            }
-
-            Span<float> dest = Span<float>.RentFromPool(64);
-            Span<float> temp  = Span<float>.RentFromPool(64);
-            
-            //iDCT2D_llm(src, dest, temp);
-            //iDCT8x8GT(src, dest);
-            iDCT8x8_llm_sse(src, dest, temp);
-
-            for (int i = 0; i < 64; i++)
-            {
-                block[i] = (int) (dest[i] + 0.5f);
-            }
-
-            src.ReturnToPool();
-            dest.ReturnToPool();
-            temp.ReturnToPool();
-        }
-
-        internal static void iDCT8x8GT(Span<float> s, Span<float> d)
-        {
-            idct81d_sse_GT(s, d);
-
-            Transpose8x8(d);
-
-            idct81d_sse_GT(d, d);
-
-            Transpose8x8(d);
-        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector4 _mm_load_ps(Span<float> src, int offset)
+        private static Vector4 _mm_load_ps(MutableSpan<float> src, int offset)
         {
             src = src.Slice(offset);
             return new Vector4(src[0], src[1], src[2], src[3]);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector4 _mm_load_ps(Span<float> src)
+        private static Vector4 _mm_load_ps(MutableSpan<float> src)
         {
             return new Vector4(src[0], src[1], src[2], src[3]);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void _mm_store_ps(Span<float> dest, int offset, Vector4 src)
+        private static void _mm_store_ps(MutableSpan<float> dest, int offset, Vector4 src)
         {
             dest = dest.Slice(offset);
             dest[0] = src.X;
@@ -192,79 +140,14 @@ namespace ImageSharp.Formats
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void _mm_store_ps(Span<float> dest, Vector4 src)
+        private static void _mm_store_ps(MutableSpan<float> dest, Vector4 src)
         {
             dest[0] = src.X;
             dest[1] = src.Y;
             dest[2] = src.Z;
             dest[3] = src.W;
         }
-
-
-        internal static void idct81d_sse_GT(Span<float> src, Span<float> dst)
-        {
-            Vector4 c1414 = new Vector4(1.4142135623731f);
-            Vector4 c0250 = new Vector4(0.25f);
-            Vector4 c0353 = new Vector4(0.353553390593274f);
-            Vector4 c0707 = new Vector4(0.707106781186547f);
-
-            for (int i = 0; i < 2; i++)
-            {
-                Vector4 ms0 = _mm_load_ps(src, 0);
-                Vector4 ms1 = _mm_load_ps(src, 8);
-                Vector4 ms2 = _mm_load_ps(src, 16);
-                Vector4 ms3 = _mm_load_ps(src, 24);
-                Vector4 ms4 = _mm_load_ps(src, 32);
-                Vector4 ms5 = _mm_load_ps(src, 40);
-                Vector4 ms6 = _mm_load_ps(src, 48);
-                Vector4 ms7 = _mm_load_ps(src, 56);
-
-                Vector4 mx00 = (c1414*ms0);
-
-                Vector4 mx01 = ((new Vector4(1.38703984532215f)*ms1) + (new Vector4(0.275899379282943f)*ms7));
-                Vector4 mx02 = ((new Vector4(1.30656296487638f)*ms2) + (new Vector4(0.541196100146197f)*ms6));
-                Vector4 mx03 = ((new Vector4(1.17587560241936f)*ms3) + (new Vector4(0.785694958387102f)*ms5));
-
-                Vector4 mx04 = (c1414*ms4);
-
-                Vector4 mx05 = ((new Vector4(-0.785694958387102f)*ms3) + (new Vector4(+1.17587560241936f)*ms5));
-                Vector4 mx06 = ((new Vector4(0.541196100146197f)*ms2) + (new Vector4(-1.30656296487638f)*ms6));
-                Vector4 mx07 = ((new Vector4(-0.275899379282943f)*ms1) + (new Vector4(1.38703984532215f)*ms7));
-                Vector4 mx09 = (mx00 + mx04);
-                Vector4 mx0a = (mx01 + mx03);
-
-                Vector4 mx0b = (c1414*mx02);
-
-                Vector4 mx0c = (mx00 - mx04);
-                Vector4 mx0d = (mx01 - mx03);
-
-                Vector4 mx0e = (c0353*(mx09 - mx0b));
-                Vector4 mx0f = (c0353*(mx0c - mx0d));
-                Vector4 mx10 = (c0353*(mx0c - mx0d));
-                Vector4 mx11 = (c1414*mx06);
-
-                Vector4 mx12 = (mx05 + mx07);
-
-                Vector4 mx13 = (mx05 - mx07);
-
-                Vector4 mx14 = (c0353*(mx11 + mx12));
-                Vector4 mx15 = (c0353*(mx11 - mx12));
-                Vector4 mx16 = (new Vector4(0.5f)*mx13);
-
-                _mm_store_ps(dst, 0, ((c0250 + (mx09 + mx0b))*(c0353*mx0a)));
-                _mm_store_ps(dst, 8, (c0707*(mx0f + mx15)));
-                _mm_store_ps(dst, 16, (c0707*(mx0f - mx15)));
-                _mm_store_ps(dst, 24, (c0707*(mx0e + mx16)));
-                _mm_store_ps(dst, 32, (c0707*(mx0e - mx16)));
-                _mm_store_ps(dst, 40, (c0707*(mx10 - mx14)));
-                _mm_store_ps(dst, 48, (c0707*(mx10 + mx14)));
-
-                _mm_store_ps(dst, 56, ((c0250*(mx09 + mx0b)) - (c0353*mx0a)));
-
-                dst = dst.Slice(4);
-                src = src.Slice(4);
-            }
-        }
+        
 
         private static readonly Vector4 _1_175876 = new Vector4(1.175876f);
         private static readonly Vector4 _1_961571 = new Vector4(-1.961571f);
@@ -279,7 +162,7 @@ namespace ImageSharp.Formats
         private static readonly Vector4 _1_847759 = new Vector4(-1.847759f);
         private static readonly Vector4 _0_765367 = new Vector4(0.765367f);
 
-        internal static void iDCT2D8x4_32f(Span<float> y, Span<float> x)
+        internal static void iDCT2D8x4_32f(MutableSpan<float> y, MutableSpan<float> x)
         {
             /*
 	        float a0,a1,a2,a3,b0,b1,b2,b3; float z0,z1,z2,z3,z4; float r[8]; int i;
@@ -392,7 +275,7 @@ namespace ImageSharp.Formats
             */
         }
 
-        internal static void iDCT8x8_llm_sse(Span<float> s, Span<float> d, Span<float> temp)
+        internal static void iDCT8x8_llm_sse(MutableSpan<float> s, MutableSpan<float> d, MutableSpan<float> temp)
         {
             Transpose8x8(s, temp);
             iDCT2D8x4_32f(temp, d);
@@ -439,5 +322,43 @@ namespace ImageSharp.Formats
 
             _mm_store_ps(d, (_mm_load_ps(d)*c));d.AddOffset(4);//15
         }
-}
+
+
+        internal static unsafe void CopyColorsTo(ref Block8x8F block, MutableSpan<byte> buffer, int stride)
+        {
+            fixed (Block8x8F* p = &block)
+            {
+                float* b = (float*)p;
+
+                for (int y = 0; y < 8; y++)
+                {
+                    int y8 = y * 8;
+                    int yStride = y * stride;
+
+                    for (int x = 0; x < 8; x++)
+                    {
+                        float c = b[y8 + x];
+
+                        if (c < -128)
+                        {
+                            c = 0;
+                        }
+                        else if (c > 127)
+                        {
+                            c = 255;
+                        }
+                        else
+                        {
+                            c += 128;
+                        }
+
+                        buffer[yStride + x] = (byte)c;
+                    }
+                }
+            }
+
+
+        }
+
+    }
 }

@@ -68,10 +68,9 @@ namespace ImageSharp.Formats
 			#>
         }
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal void ColorifyInto(ref Block8x8F d)
         {
-            
-
             <#
 
 			PushIndent("            "); 

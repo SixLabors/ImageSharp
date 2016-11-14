@@ -61,6 +61,26 @@ namespace ImageSharp.Formats
         private int bytesPerPixel;
 
         /// <summary>
+        /// The buffer for the sub filter
+        /// </summary>
+        private byte[] sub;
+
+        /// <summary>
+        /// The buffer for the up filter
+        /// </summary>
+        private byte[] up;
+
+        /// <summary>
+        /// The buffer for the average filter
+        /// </summary>
+        private byte[] average;
+
+        /// <summary>
+        /// The buffer for the paeth filter
+        /// </summary>
+        private byte[] paeth;
+
+        /// <summary>
         /// Gets or sets the quality of output for images.
         /// </summary>
         public int Quality { get; set; }
@@ -356,54 +376,39 @@ namespace ImageSharp.Formats
                 return result;
             }
 
-            byte[] sub = ArrayPool<byte>.Shared.Rent(bytesPerScanline + 1);
-            byte[] up = ArrayPool<byte>.Shared.Rent(bytesPerScanline + 1);
-            byte[] average = ArrayPool<byte>.Shared.Rent(bytesPerScanline + 1);
-            byte[] paeth = ArrayPool<byte>.Shared.Rent(bytesPerScanline + 1);
+            SubFilter.Encode(rawScanline, this.sub, this.bytesPerPixel, bytesPerScanline);
+            int currentTotalVariation = this.CalculateTotalVariation(this.sub, bytesPerScanline);
+            int lowestTotalVariation = currentTotalVariation;
 
-            try
+            result = this.sub;
+
+            UpFilter.Encode(rawScanline, previousScanline, this.up, bytesPerScanline);
+            currentTotalVariation = this.CalculateTotalVariation(this.up, bytesPerScanline);
+
+            if (currentTotalVariation < lowestTotalVariation)
             {
-                SubFilter.Encode(rawScanline, sub, this.bytesPerPixel, bytesPerScanline);
-                int currentTotalVariation = this.CalculateTotalVariation(sub, bytesPerScanline);
-                int lowestTotalVariation = currentTotalVariation;
-
-                result = sub;
-
-                UpFilter.Encode(rawScanline, previousScanline, up, bytesPerScanline);
-                currentTotalVariation = this.CalculateTotalVariation(up, bytesPerScanline);
-
-                if (currentTotalVariation < lowestTotalVariation)
-                {
-                    lowestTotalVariation = currentTotalVariation;
-                    result = up;
-                }
-
-                AverageFilter.Encode(rawScanline, previousScanline, average, this.bytesPerPixel, bytesPerScanline);
-                currentTotalVariation = this.CalculateTotalVariation(average, bytesPerScanline);
-
-                if (currentTotalVariation < lowestTotalVariation)
-                {
-                    lowestTotalVariation = currentTotalVariation;
-                    result = average;
-                }
-
-                PaethFilter.Encode(rawScanline, previousScanline, paeth, this.bytesPerPixel, bytesPerScanline);
-                currentTotalVariation = this.CalculateTotalVariation(paeth, bytesPerScanline);
-
-                if (currentTotalVariation < lowestTotalVariation)
-                {
-                    result = paeth;
-                }
-
-                return result;
+                lowestTotalVariation = currentTotalVariation;
+                result = this.up;
             }
-            finally
+
+            AverageFilter.Encode(rawScanline, previousScanline, this.average, this.bytesPerPixel, bytesPerScanline);
+            currentTotalVariation = this.CalculateTotalVariation(this.average, bytesPerScanline);
+
+            if (currentTotalVariation < lowestTotalVariation)
             {
-                ArrayPool<byte>.Shared.Return(sub);
-                ArrayPool<byte>.Shared.Return(up);
-                ArrayPool<byte>.Shared.Return(average);
-                ArrayPool<byte>.Shared.Return(paeth);
+                lowestTotalVariation = currentTotalVariation;
+                result = this.average;
             }
+
+            PaethFilter.Encode(rawScanline, previousScanline, this.paeth, this.bytesPerPixel, bytesPerScanline);
+            currentTotalVariation = this.CalculateTotalVariation(this.paeth, bytesPerScanline);
+
+            if (currentTotalVariation < lowestTotalVariation)
+            {
+                result = this.paeth;
+            }
+
+            return result;
         }
 
         /// <summary>
@@ -618,6 +623,14 @@ namespace ImageSharp.Formats
             int resultLength = bytesPerScanline + 1;
             byte[] result = ArrayPool<byte>.Shared.Rent(resultLength);
 
+            if (this.PngColorType != PngColorType.Palette)
+            {
+                this.sub = ArrayPool<byte>.Shared.Rent(resultLength);
+                this.up = ArrayPool<byte>.Shared.Rent(resultLength);
+                this.average = ArrayPool<byte>.Shared.Rent(resultLength);
+                this.paeth = ArrayPool<byte>.Shared.Rent(resultLength);
+            }
+
             byte[] buffer;
             int bufferLength;
             MemoryStream memoryStream = null;
@@ -643,6 +656,14 @@ namespace ImageSharp.Formats
                 ArrayPool<byte>.Shared.Return(previousScanline);
                 ArrayPool<byte>.Shared.Return(rawScanline);
                 ArrayPool<byte>.Shared.Return(result);
+
+                if (this.PngColorType != PngColorType.Palette)
+                {
+                    ArrayPool<byte>.Shared.Return(this.sub);
+                    ArrayPool<byte>.Shared.Return(this.up);
+                    ArrayPool<byte>.Shared.Return(this.average);
+                    ArrayPool<byte>.Shared.Return(this.paeth);
+                }
             }
 
             // Store the chunks in repeated 64k blocks.

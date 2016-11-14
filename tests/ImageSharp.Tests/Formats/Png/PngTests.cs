@@ -8,6 +8,7 @@ using ImageSharp.Formats;
 namespace ImageSharp.Tests
 {
     using System.IO;
+    using System.Threading.Tasks;
 
     using Formats;
 
@@ -30,6 +31,24 @@ namespace ImageSharp.Tests
                     image.Save(output, new PngFormat());
                 }
             }
+        }
+
+        [Fact]
+        public void ImageCanSavePngInParallel()
+        {
+            string path = this.CreateOutputDirectory("Png");
+
+            Parallel.ForEach(
+                Files,
+                file =>
+                    {
+                        Image image = file.CreateImage();
+
+                        using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.png"))
+                        {
+                            image.Save(output, new PngFormat());
+                        }
+                    });
         }
     }
 }

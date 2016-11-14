@@ -20,13 +20,9 @@ namespace ImageSharp.Formats
         /// <param name="scanline">The scanline to decode</param>
         /// <param name="previousScanline">The previous scanline.</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
-        /// <returns>
-        /// The <see cref="T:byte[]"/>
-        /// </returns>
-        public static byte[] Decode(byte[] scanline, byte[] previousScanline, int bytesPerPixel)
+        public static void Decode(byte[] scanline, byte[] previousScanline, int bytesPerPixel)
         {
             // Average(x) + floor((Raw(x-bpp)+Prior(x))/2)
-
             fixed (byte* scan = scanline)
             fixed (byte* prev = previousScanline)
             {
@@ -38,8 +34,6 @@ namespace ImageSharp.Formats
                     scan[x] = (byte)((scan[x] + Average(left, above)) % 256);
                 }
             }
-
-            return scanline;
         }
 
         /// <summary>
@@ -47,13 +41,12 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="scanline">The scanline to encode</param>
         /// <param name="previousScanline">The previous scanline.</param>
+        /// <param name="result">The filtered scanline result.</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
         /// <param name="bytesPerScanline">The number of bytes per scanline</param>
-        /// <returns>The <see cref="T:byte[]"/></returns>
-        public static byte[] Encode(byte[] scanline, byte[] previousScanline, int bytesPerPixel, int bytesPerScanline)
+        public static void Encode(byte[] scanline, byte[] previousScanline, byte[] result, int bytesPerPixel, int bytesPerScanline)
         {
             // Average(x) = Raw(x) - floor((Raw(x-bpp)+Prior(x))/2)
-            byte[] result = new byte[bytesPerScanline + 1];
             fixed (byte* scan = scanline)
             fixed (byte* prev = previousScanline)
             fixed (byte* res = result)
@@ -68,8 +61,6 @@ namespace ImageSharp.Formats
                     res[x + 1] = (byte)((scan[x] - Average(left, above)) % 256);
                 }
             }
-
-            return result;
         }
 
         /// <summary>

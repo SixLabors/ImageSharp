@@ -214,6 +214,16 @@ namespace ImageSharp
         }
 
         /// <summary>
+        /// Returns the center point of the given <see cref="Rectangle"/>
+        /// </summary>
+        /// <param name="rectangle">The rectangle</param>
+        /// <returns><see cref="Point"/></returns>
+        public static Point Center(Rectangle rectangle)
+        {
+            return new Point(rectangle.Left + (rectangle.Width / 2), rectangle.Top + (rectangle.Height / 2));
+        }
+
+        /// <summary>
         /// Determines if the specfied point is contained within the rectangular region defined by
         /// this <see cref="Rectangle"/>.
         /// </summary>
@@ -227,16 +237,6 @@ namespace ImageSharp
                    && x < this.Right
                    && this.Y <= y
                    && y < this.Bottom;
-        }
-
-        /// <summary>
-        /// Returns the center point of the given <see cref="Rectangle"/>
-        /// </summary>
-        /// <param name="rectangle">The rectangle</param>
-        /// <returns><see cref="Point"/></returns>
-        public static Point Center(Rectangle rectangle)
-        {
-            return new Point(rectangle.Left + (rectangle.Width / 2), rectangle.Top + (rectangle.Height / 2));
         }
 
         /// <inheritdoc/>

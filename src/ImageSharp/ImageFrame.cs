@@ -38,7 +38,7 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
-        internal override ImageFrame<Color, uint> ToFrame()
+        internal override ImageFrame<Color, uint> Clone()
         {
             return new ImageFrame(this);
         }

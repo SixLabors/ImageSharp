@@ -37,5 +37,10 @@ namespace ImageSharp
         {
             return $"ImageFrame: {this.Width}x{this.Height}";
         }
+
+        internal virtual ImageFrame<TColor, TPacked> Clone()
+        {
+            return new ImageFrame<TColor, TPacked>(this);
+        }
     }
 }

@@ -35,7 +35,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// The next frame.
         /// </summary>
-        private ImageBase<TColor, TPacked> nextFrame;
+        private ImageFrame<TColor, TPacked> nextFrame;
 
         /// <summary>
         /// The area to restore.
@@ -295,18 +295,20 @@ namespace ImageSharp.Formats
             int imageWidth = this.logicalScreenDescriptor.Width;
             int imageHeight = this.logicalScreenDescriptor.Height;
 
-            ImageBase<TColor, TPacked> previousFrame = null;
+            ImageFrame<TColor, TPacked> previousFrame = null;
 
-            ImageBase<TColor, TPacked> currentFrame;
+            ImageFrame<TColor, TPacked> currentFrame = null;
+
+            ImageBase<TColor, TPacked> image;
 
             if (this.nextFrame == null)
             {
-                currentFrame = this.decodedImage;
+                image = this.decodedImage;
 
-                currentFrame.Quality = colorTable.Length / 3;
+                image.Quality = colorTable.Length / 3;
 
                 // This initializes the image to become fully transparent because the alpha channel is zero.
-                currentFrame.InitPixels(imageWidth, imageHeight);
+                image.InitPixels(imageWidth, imageHeight);
             }
             else
             {
@@ -316,18 +318,18 @@ namespace ImageSharp.Formats
                     previousFrame = this.nextFrame;
                 }
 
-                ImageFrame<TColor, TPacked> frame = this.nextFrame.ToFrame();
+                currentFrame = this.nextFrame.Clone();
 
-                currentFrame = frame;
+                image = currentFrame;
 
-                RestoreToBackground(currentFrame);
+                RestoreToBackground(image);
 
-                this.decodedImage.Frames.Add(frame);
+                this.decodedImage.Frames.Add(currentFrame);
             }
 
             if (this.graphicsControlExtension != null && this.graphicsControlExtension.DelayTime > 0)
             {
-                currentFrame.FrameDelay = this.graphicsControlExtension.DelayTime;
+                image.FrameDelay = this.graphicsControlExtension.DelayTime;
             }
 
             int i = 0;
@@ -335,7 +337,7 @@ namespace ImageSharp.Formats
             int interlaceIncrement = 8; // The interlacing line increment
             int interlaceY = 0; // The current interlaced line
 
-            using (PixelAccessor<TColor, TPacked> pixelAccessor = currentFrame.Lock())
+            using (PixelAccessor<TColor, TPacked> pixelAccessor = image.Lock())
             {
                 using (PixelRow<TColor, TPacked> pixelRow = new PixelRow<TColor, TPacked>(imageWidth, ComponentOrder.XYZW))
                 {
@@ -409,7 +411,14 @@ namespace ImageSharp.Formats
                 return;
             }
 
-            this.nextFrame = currentFrame;
+            if (currentFrame == null)
+            {
+                this.nextFrame = this.decodedImage.ToFrame();
+            }
+            else
+            {
+                this.nextFrame = currentFrame.Clone();
+            }
 
             if (this.graphicsControlExtension != null &&
                 this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToBackground)

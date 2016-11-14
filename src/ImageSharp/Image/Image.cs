@@ -278,6 +278,11 @@ namespace ImageSharp
             }
         }
 
+        internal virtual ImageFrame<TColor, TPacked> ToFrame()
+        {
+            return new ImageFrame<TColor, TPacked>(this);
+        }
+
         /// <summary>
         /// Loads the image from the given stream.
         /// </summary>

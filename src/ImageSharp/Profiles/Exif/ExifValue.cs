@@ -574,6 +574,26 @@ namespace ImageSharp
             }
         }
 
+        private static ExifValue CreateNumber(ExifTag tag, Type type, bool isArray)
+        {
+            if (type == null || type == typeof(ushort))
+            {
+                return new ExifValue(tag, ExifDataType.Short, isArray);
+            }
+
+            if (type == typeof(short))
+            {
+                return new ExifValue(tag, ExifDataType.SignedShort, isArray);
+            }
+
+            if (type == typeof(uint))
+            {
+                return new ExifValue(tag, ExifDataType.Long, isArray);
+            }
+
+            return new ExifValue(tag, ExifDataType.SignedLong, isArray);
+        }
+
         private void CheckValue(object value)
         {
             if (value == null)
@@ -637,26 +657,6 @@ namespace ImageSharp
                 default:
                     throw new NotSupportedException();
             }
-        }
-
-        private static ExifValue CreateNumber(ExifTag tag, Type type, bool isArray)
-        {
-            if (type == null || type == typeof(ushort))
-            {
-                return new ExifValue(tag, ExifDataType.Short, isArray);
-            }
-
-            if (type == typeof(short))
-            {
-                return new ExifValue(tag, ExifDataType.SignedShort, isArray);
-            }
-
-            if (type == typeof(uint))
-            {
-                return new ExifValue(tag, ExifDataType.Long, isArray);
-            }
-
-            return new ExifValue(tag, ExifDataType.SignedLong, isArray);
         }
 
         private string ToString(object value)

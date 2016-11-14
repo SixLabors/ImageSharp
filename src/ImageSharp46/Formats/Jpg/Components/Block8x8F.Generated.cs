@@ -37,10 +37,9 @@ namespace ImageSharp.Formats
             d.V7L = Vector4.Max(Vector4.Min(V7L, maxVec), minVec);d.V7R = Vector4.Max(Vector4.Min(V7R, maxVec), minVec);
         }
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal void ColorifyInto(ref Block8x8F d)
         {
-            
-
             d.V0L = Vector4.Max(Vector4.Min(V0L, CMax4), CMin4) + COff4;d.V0R = Vector4.Max(Vector4.Min(V0R, CMax4), CMin4) + COff4;
             d.V1L = Vector4.Max(Vector4.Min(V1L, CMax4), CMin4) + COff4;d.V1R = Vector4.Max(Vector4.Min(V1R, CMax4), CMin4) + COff4;
             d.V2L = Vector4.Max(Vector4.Min(V2L, CMax4), CMin4) + COff4;d.V2R = Vector4.Max(Vector4.Min(V2R, CMax4), CMin4) + COff4;

@@ -1,0 +1,93 @@
+﻿<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+
+using System;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+
+<#
+char[] coordz = new[] {'X', 'Y', 'Z', 'W'};
+#>
+
+namespace ImageSharp.Formats
+{
+	internal partial struct Block8x8F
+    {
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void TransposeInto(ref Block8x8F d)
+        {
+            <#
+			PushIndent("            "); 
+
+            for (int i = 0; i < 8; i++)
+            {
+                char destCoord = coordz[i % 4];
+                char destSide = (i / 4) % 2 == 0 ? 'L' : 'R';
+
+                for (int j = 0; j < 8; j++)
+                {
+                    char srcCoord = coordz[j % 4];
+                    char srcSide = (j / 4) % 2 == 0 ? 'L' : 'R';
+                    
+                    string expression = $"d.V{j}{destSide}.{destCoord} = V{i}{srcSide}.{srcCoord}; ";
+                    //bld.Append(expression);
+					Write(expression);
+                }
+                //bld.AppendLine();
+				WriteLine("");
+            }
+			PopIndent();
+			//Write(bld.ToString());
+			#>
+        }
+
+		
+		public void CropInto(float min, float max, ref Block8x8F d)
+        {
+            Vector4 minVec = new Vector4(min);
+            Vector4 maxVec = new Vector4(max);
+
+            <#
+
+			PushIndent("            "); 
+
+            for (int i = 0; i < 8; i++)
+            {
+                for (int j = 0; j < 2; j++)
+                {
+					char side = j == 0 ? 'L' : 'R';
+					Write($"d.V{i}{side} = Vector4.Max(Vector4.Min(V{i}{side}, maxVec), minVec);");
+                }
+				WriteLine("");
+            }
+			PopIndent();
+			#>
+        }
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal void ColorifyInto(ref Block8x8F d)
+        {
+            <#
+
+			PushIndent("            "); 
+
+            for (int i = 0; i < 8; i++)
+            {
+                for (int j = 0; j < 2; j++)
+                {
+					char side = j == 0 ? 'L' : 'R';
+					Write($"d.V{i}{side} = Vector4.Max(Vector4.Min(V{i}{side}, CMax4), CMin4) + COff4;");
+                }
+				WriteLine("");
+            }
+			PopIndent();
+			#>
+        }
+
+
+	}
+}

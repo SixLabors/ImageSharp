@@ -12,6 +12,8 @@ namespace ImageSharp
 
     internal sealed class ExifWriter
     {
+        private const int StartIndex = 6;
+
         private static readonly ExifTag[] IfdTags = new ExifTag[127]
         {
             ExifTag.SubfileType,
@@ -273,8 +275,6 @@ namespace ImageSharp
             ExifTag.GPSDateStamp,
             ExifTag.GPSDifferential
         };
-
-        private const int StartIndex = 6;
 
         private ExifParts allowedParts;
         private Collection<ExifValue> values;

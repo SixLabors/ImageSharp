@@ -12,9 +12,9 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Represents an 8x8 block of coefficients to transform and encode.
     /// </summary>
-    public struct Block : IDisposable
+    internal struct Block : IDisposable
     {
-        private static ArrayPool<int> IntArrayPool = ArrayPool<int>.Create(BlockSize, 50);
+        private static readonly ArrayPool<int> ArrayPool = ArrayPool<int>.Create(BlockSize, 50);
 
         /// <summary>
         /// Gets the size of the block.
@@ -37,7 +37,7 @@ namespace ImageSharp.Formats
         public void Init()
         {
             //this.Data = new int[BlockSize];
-            this.Data = IntArrayPool.Rent(BlockSize);
+            this.Data = ArrayPool.Rent(BlockSize);
         }
 
         public static Block Create()
@@ -79,7 +79,7 @@ namespace ImageSharp.Formats
         {
             if (Data != null)
             {
-                IntArrayPool.Return(Data, true);
+                ArrayPool.Return(Data, true);
                 Data = null;
             }
         }
@@ -108,4 +108,109 @@ namespace ImageSharp.Formats
             return clone;
         }
     }
+
+    /// <summary>
+    /// Temporal class to make refactoring easier.
+    /// 1. Refactor Block -> BlockF
+    /// 2. Test
+    /// 3. Refactor BlockF -> Block8x8F
+    /// </summary>
+    internal struct BlockF : IDisposable
+    {
+        private static readonly ArrayPool<float> ArrayPool = ArrayPool<float>.Create(BlockSize, 50);
+
+        /// <summary>
+        /// Gets the size of the block.
+        /// </summary>
+        public const int BlockSize = 64;
+
+        /// <summary>
+        /// The array of block data.
+        /// </summary>
+        public float[] Data;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Block"/> class.
+        /// </summary>
+        //public Block()
+        //{
+        //    this.data = new int[BlockSize];
+        //}
+
+        public void Init()
+        {
+            //this.Data = new int[BlockSize];
+            this.Data = ArrayPool.Rent(BlockSize);
+        }
+
+        public static BlockF Create()
+        {
+            var block = new BlockF();
+            block.Init();
+            return block;
+        }
+
+        public static BlockF[] CreateArray(int size)
+        {
+            BlockF[] result = new BlockF[size];
+            for (int i = 0; i < result.Length; i++)
+            {
+                result[i].Init();
+            }
+            return result;
+        }
+
+        public bool IsInitialized => this.Data != null;
+
+        /// <summary>
+        /// Gets the pixel data at the given block index.
+        /// </summary>
+        /// <param name="index">The index of the data to return.</param>
+        /// <returns>
+        /// The <see cref="int"/>.
+        /// </returns>
+        public float this[int index]
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get { return this.Data[index]; }
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            set { this.Data[index] = value; }
+        }
+
+        // TODO: Refactor Block.Dispose() callers to always use 'using' or 'finally' statement!
+        public void Dispose()
+        {
+            if (Data != null)
+            {
+                ArrayPool.Return(Data, true);
+                Data = null;
+            }
+        }
+
+        public static void DisposeAll(BlockF[] blocks)
+        {
+            for (int i = 0; i < blocks.Length; i++)
+            {
+                blocks[i].Dispose();
+            }
+        }
+
+
+        public void Clear()
+        {
+            for (int i = 0; i < Data.Length; i++)
+            {
+                Data[i] = 0;
+            }
+        }
+
+        public BlockF Clone()
+        {
+            BlockF clone = Create();
+            Array.Copy(Data, clone.Data, BlockSize);
+            return clone;
+        }
+    }
+
+
 }

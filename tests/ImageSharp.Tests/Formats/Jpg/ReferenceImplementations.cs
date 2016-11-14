@@ -9,10 +9,10 @@ using ImageSharp.Formats;
 namespace ImageSharp.Tests.Formats.Jpg
 {
     /// <summary>
-    /// This class contains simplified (unefficient) reference implementations so we can verify actual ones in unit tests
+    /// This class contains simplified (unefficient) reference implementations to produce verification data for unit tests
     /// DCT code Ported from https://github.com/norishigefukushima/dct_simd
     /// </summary>
-    public static class ReferenceImplementations
+    internal static class ReferenceImplementations
     {
         internal static void Transpose8x8(MutableSpan<float> data)
         {

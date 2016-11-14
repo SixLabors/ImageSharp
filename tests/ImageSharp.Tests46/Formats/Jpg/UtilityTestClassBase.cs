@@ -30,6 +30,9 @@ namespace ImageSharp.Tests.Formats.Jpg
             return result;
         }
 
+      
+
+
         // ReSharper disable once InconsistentNaming
         public static int[] Create8x8IntData()
         {
@@ -44,7 +47,7 @@ namespace ImageSharp.Tests.Formats.Jpg
             return result;
         }
 
-        internal void Print8x8Data<T>(Span<T> data) => Print8x8Data(data.Data);
+        internal void Print8x8Data<T>(MutableSpan<T> data) => Print8x8Data(data.Data);
 
         internal void Print8x8Data<T>(T[] data)
         {
@@ -61,7 +64,9 @@ namespace ImageSharp.Tests.Formats.Jpg
             Output.WriteLine(bld.ToString());
         }
 
-        internal void PrintLinearData<T>(Span<T> data, int count = -1)
+        internal void PrintLinearData<T>(T[] data) => PrintLinearData(new MutableSpan<T>(data), data.Length);
+
+        internal void PrintLinearData<T>(MutableSpan<T> data, int count = -1)
         {
             if (count < 0) count = data.TotalCount;
 

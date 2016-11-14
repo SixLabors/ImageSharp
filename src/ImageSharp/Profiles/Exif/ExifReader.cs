@@ -117,6 +117,41 @@ namespace ImageSharp
             return result;
         }
 
+        private static TDataType[] ToArray<TDataType>(ExifDataType dataType, byte[] data, ConverterMethod<TDataType> converter)
+        {
+            int dataTypeSize = (int)ExifValue.GetSize(dataType);
+            int length = data.Length / dataTypeSize;
+
+            TDataType[] result = new TDataType[length];
+            byte[] buffer = new byte[dataTypeSize];
+
+            for (int i = 0; i < length; i++)
+            {
+                Array.Copy(data, i * dataTypeSize, buffer, 0, dataTypeSize);
+
+                result.SetValue(converter(buffer), i);
+            }
+
+            return result;
+        }
+
+        private static byte ToByte(byte[] data)
+        {
+            return data[0];
+        }
+
+        private static string ToString(byte[] data)
+        {
+            string result = Encoding.UTF8.GetString(data, 0, data.Length);
+            int nullCharIndex = result.IndexOf('\0');
+            if (nullCharIndex != -1)
+            {
+                result = result.Substring(0, nullCharIndex);
+            }
+
+            return result;
+        }
+
         /// <summary>
         /// Adds the collection of EXIF values to the reader.
         /// </summary>
@@ -369,29 +404,6 @@ namespace ImageSharp
             }
         }
 
-        private static TDataType[] ToArray<TDataType>(ExifDataType dataType, byte[] data, ConverterMethod<TDataType> converter)
-        {
-            int dataTypeSize = (int)ExifValue.GetSize(dataType);
-            int length = data.Length / dataTypeSize;
-
-            TDataType[] result = new TDataType[length];
-            byte[] buffer = new byte[dataTypeSize];
-
-            for (int i = 0; i < length; i++)
-            {
-                Array.Copy(data, i * dataTypeSize, buffer, 0, dataTypeSize);
-
-                result.SetValue(converter(buffer), i);
-            }
-
-            return result;
-        }
-
-        private static byte ToByte(byte[] data)
-        {
-            return data[0];
-        }
-
         private double ToDouble(byte[] data)
         {
             if (!this.ValidateArray(data, 8))
@@ -430,18 +442,6 @@ namespace ImageSharp
             }
 
             return BitConverter.ToSingle(data, 0);
-        }
-
-        private static string ToString(byte[] data)
-        {
-            string result = Encoding.UTF8.GetString(data, 0, data.Length);
-            int nullCharIndex = result.IndexOf('\0');
-            if (nullCharIndex != -1)
-            {
-                result = result.Substring(0, nullCharIndex);
-            }
-
-            return result;
         }
 
         private Rational ToRational(byte[] data)

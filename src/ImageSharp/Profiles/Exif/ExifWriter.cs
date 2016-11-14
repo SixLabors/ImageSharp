@@ -12,6 +12,8 @@ namespace ImageSharp
 
     internal sealed class ExifWriter
     {
+        private const int StartIndex = 6;
+
         private static readonly ExifTag[] IfdTags = new ExifTag[127]
         {
             ExifTag.SubfileType,
@@ -274,8 +276,6 @@ namespace ImageSharp
             ExifTag.GPSDifferential
         };
 
-        private const int StartIndex = 6;
-
         private ExifParts allowedParts;
         private Collection<ExifValue> values;
         private Collection<int> dataOffsets;
@@ -379,6 +379,13 @@ namespace ImageSharp
             return result;
         }
 
+        private static int Write(byte[] source, byte[] destination, int offset)
+        {
+            Buffer.BlockCopy(source, 0, destination, offset, source.Length);
+
+            return offset + source.Length;
+        }
+
         private int GetIndex(Collection<int> indexes, ExifTag tag)
         {
             foreach (int index in indexes)
@@ -441,13 +448,6 @@ namespace ImageSharp
             }
 
             return length;
-        }
-
-        private static int Write(byte[] source, byte[] destination, int offset)
-        {
-            Buffer.BlockCopy(source, 0, destination, offset, source.Length);
-
-            return offset + source.Length;
         }
 
         private int WriteArray(ExifValue value, byte[] destination, int offset)

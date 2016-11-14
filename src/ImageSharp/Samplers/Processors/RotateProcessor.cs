@@ -34,23 +34,6 @@ namespace ImageSharp.Processors
         public bool Expand { get; set; } = true;
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle)
-        {
-            const float Epsilon = .0001F;
-
-            if (Math.Abs(this.Angle) < Epsilon || Math.Abs(this.Angle - 90) < Epsilon || Math.Abs(this.Angle - 180) < Epsilon || Math.Abs(this.Angle - 270) < Epsilon)
-            {
-                return;
-            }
-
-            this.processMatrix = Point.CreateRotation(new Point(0, 0), -this.Angle);
-            if (this.Expand)
-            {
-                CreateNewTarget(target, sourceRectangle, this.processMatrix);
-            }
-        }
-
-        /// <inheritdoc/>
         public override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
             if (this.OptimizedApply(target, source))
@@ -80,6 +63,23 @@ namespace ImageSharp.Processors
                             }
                         }
                     });
+            }
+        }
+
+        /// <inheritdoc/>
+        protected override void OnApply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle)
+        {
+            const float Epsilon = .0001F;
+
+            if (Math.Abs(this.Angle) < Epsilon || Math.Abs(this.Angle - 90) < Epsilon || Math.Abs(this.Angle - 180) < Epsilon || Math.Abs(this.Angle - 270) < Epsilon)
+            {
+                return;
+            }
+
+            this.processMatrix = Point.CreateRotation(new Point(0, 0), -this.Angle);
+            if (this.Expand)
+            {
+                CreateNewTarget(target, sourceRectangle, this.processMatrix);
             }
         }
 

@@ -41,6 +41,24 @@ namespace ImageSharp
             }
         }
 
+        internal ExifValue(ExifTag tag, ExifDataType dataType, bool isArray)
+        {
+            this.Tag = tag;
+            this.DataType = dataType;
+            this.IsArray = isArray;
+
+            if (dataType == ExifDataType.Ascii)
+            {
+                this.IsArray = false;
+            }
+        }
+
+        internal ExifValue(ExifTag tag, ExifDataType dataType, object value, bool isArray)
+          : this(tag, dataType, isArray)
+        {
+            this.exifValue = value;
+        }
+
         /// <summary>
         /// Gets the data type of the exif value.
         /// </summary>
@@ -78,6 +96,57 @@ namespace ImageSharp
             {
                 this.CheckValue(value);
                 this.exifValue = value;
+            }
+        }
+
+        internal bool HasValue
+        {
+            get
+            {
+                if (this.exifValue == null)
+                {
+                    return false;
+                }
+
+                if (this.DataType == ExifDataType.Ascii)
+                {
+                    return ((string)this.exifValue).Length > 0;
+                }
+
+                return true;
+            }
+        }
+
+        internal int Length
+        {
+            get
+            {
+                if (this.exifValue == null)
+                {
+                    return 4;
+                }
+
+                int size = (int)(GetSize(this.DataType) * this.NumberOfComponents);
+
+                return size < 4 ? 4 : size;
+            }
+        }
+
+        internal int NumberOfComponents
+        {
+            get
+            {
+                if (this.DataType == ExifDataType.Ascii)
+                {
+                    return Encoding.UTF8.GetBytes((string)this.exifValue).Length;
+                }
+
+                if (this.IsArray)
+                {
+                    return ((Array)this.exifValue).Length;
+                }
+
+                return 1;
             }
         }
 
@@ -171,75 +240,6 @@ namespace ImageSharp
             }
 
             return sb.ToString();
-        }
-
-        internal bool HasValue
-        {
-            get
-            {
-                if (this.exifValue == null)
-                {
-                    return false;
-                }
-
-                if (this.DataType == ExifDataType.Ascii)
-                {
-                    return ((string)this.exifValue).Length > 0;
-                }
-
-                return true;
-            }
-        }
-
-        internal int Length
-        {
-            get
-            {
-                if (this.exifValue == null)
-                {
-                    return 4;
-                }
-
-                int size = (int)(GetSize(this.DataType) * this.NumberOfComponents);
-
-                return size < 4 ? 4 : size;
-            }
-        }
-
-        internal int NumberOfComponents
-        {
-            get
-            {
-                if (this.DataType == ExifDataType.Ascii)
-                {
-                    return Encoding.UTF8.GetBytes((string)this.exifValue).Length;
-                }
-
-                if (this.IsArray)
-                {
-                    return ((Array)this.exifValue).Length;
-                }
-
-                return 1;
-            }
-        }
-
-        internal ExifValue(ExifTag tag, ExifDataType dataType, bool isArray)
-        {
-            this.Tag = tag;
-            this.DataType = dataType;
-            this.IsArray = isArray;
-
-            if (dataType == ExifDataType.Ascii)
-            {
-                this.IsArray = false;
-            }
-        }
-
-        internal ExifValue(ExifTag tag, ExifDataType dataType, object value, bool isArray)
-          : this(tag, dataType, isArray)
-        {
-            this.exifValue = value;
         }
 
         internal static ExifValue Create(ExifTag tag, object value)

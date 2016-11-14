@@ -15,8 +15,6 @@ namespace ImageSharp
     /// </summary>
     internal sealed class ExifReader
     {
-        private delegate TDataType ConverterMethod<TDataType>(byte[] data);
-
         private readonly Collection<ExifTag> invalidTags = new Collection<ExifTag>();
         private byte[] exifData;
         private uint currentIndex;
@@ -24,6 +22,13 @@ namespace ImageSharp
         private uint exifOffset;
         private uint gpsOffset;
         private uint startIndex;
+
+        private delegate TDataType ConverterMethod<TDataType>(byte[] data);
+
+        /// <summary>
+        /// Gets the invalid tags.
+        /// </summary>
+        public IEnumerable<ExifTag> InvalidTags => this.invalidTags;
 
         /// <summary>
         /// Gets the thumbnail length in the byte stream
@@ -111,11 +116,6 @@ namespace ImageSharp
 
             return result;
         }
-
-        /// <summary>
-        /// Gets the invalid tags.
-        /// </summary>
-        public IEnumerable<ExifTag> InvalidTags => this.invalidTags;
 
         /// <summary>
         /// Adds the collection of EXIF values to the reader.

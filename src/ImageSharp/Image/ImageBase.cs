@@ -162,10 +162,5 @@ namespace ImageSharp
             this.Quality = other.Quality;
             this.FrameDelay = other.FrameDelay;
         }
-
-        internal virtual ImageFrame<TColor, TPacked> ToFrame()
-        {
-            return new ImageFrame<TColor, TPacked>(this);
-        }
     }
 }

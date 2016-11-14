@@ -496,6 +496,20 @@ namespace ImageSharp.Formats
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static unsafe void UnZig(Block8x8F* block, Block8x8F* qt, int* unzigPtr)
+        {
+            float* b = (float*) block;
+            float* qtp = (float*) qt;
+            for (int zig = 0; zig < BlockF.BlockSize; zig++)
+            {
+                float* unzigPos = b + unzigPtr[zig];
+                float val = *unzigPos;
+                val *= qtp[zig];
+                *unzigPos = val;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static unsafe float GetScalarAt(Block8x8F* blockPtr, int idx)
         {
             float* fp = (float*) blockPtr;

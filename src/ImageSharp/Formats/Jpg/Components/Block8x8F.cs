@@ -66,6 +66,7 @@ namespace ImageSharp.Formats
             }
         }
 
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void CopyTo(float[] dest)
         {

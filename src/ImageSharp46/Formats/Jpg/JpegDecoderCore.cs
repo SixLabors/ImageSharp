@@ -1886,7 +1886,9 @@ namespace ImageSharp.Formats
 
             // Level shift by +128, clip to [0, 255], and write to dst.
 
-            temp1->CopyColorsTo(new Span<byte>(dst, offset), stride);
+
+            //temp1->CopyColorsPlz(new MutableSpan<byte>(dst, offset), stride);
+            temp1->CopyColorsTo(new MutableSpan<byte>(dst, offset), stride, temp2);
         }
         
         private void ProcessScanImpl(int i, ref Scan currentScan, Scan[] scan, ref int totalHv)

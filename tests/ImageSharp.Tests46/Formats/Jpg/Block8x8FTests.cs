@@ -1,7 +1,8 @@
 ﻿// Uncomment this to turn unit tests into benchmarks:
-#define BENCHMARKING
+//#define BENCHMARKING
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -10,11 +11,11 @@ using System.Text;
 using ImageSharp.Formats;
 using Xunit;
 using Xunit.Abstractions;
+// ReSharper disable InconsistentNaming
 
 namespace ImageSharp.Tests.Formats.Jpg
 {
-    // ReSharper disable once InconsistentNaming
-    public class Block8x8Tests : UtilityTestClassBase
+    public class Block8x8FTests : UtilityTestClassBase
     {
 #if BENCHMARKING
         public const int Times = 1000000;
@@ -22,7 +23,7 @@ namespace ImageSharp.Tests.Formats.Jpg
         public const int Times = 1;
 #endif
 
-        public Block8x8Tests(ITestOutputHelper output) : base(output)
+        public Block8x8FTests(ITestOutputHelper output) : base(output)
         {
         }
 
@@ -65,7 +66,7 @@ namespace ImageSharp.Tests.Formats.Jpg
                     sum += Block8x8F.GetScalarAt(&block, i);
                 }
             });
-            Assert.Equal(sum, 64f * 63f * 0.5f);
+            Assert.Equal(sum, 64f*63f*0.5f);
         }
 
         [Fact]
@@ -73,7 +74,7 @@ namespace ImageSharp.Tests.Formats.Jpg
         {
             float sum = 0;
 
-            
+
             Measure(Times, () =>
             {
                 //Block8x8F block = new Block8x8F();
@@ -88,7 +89,7 @@ namespace ImageSharp.Tests.Formats.Jpg
                     sum += block[i];
                 }
             });
-            Assert.Equal(sum, 64f * 63f * 0.5f);
+            Assert.Equal(sum, 64f*63f*0.5f);
         }
 
         [Fact]
@@ -109,7 +110,7 @@ namespace ImageSharp.Tests.Formats.Jpg
             });
 
             Assert.Equal(data, mirror);
-            //PrintLinearData((Span<float>)mirror);
+            //PrintLinearData((MutableSpan<float>)mirror);
         }
 
         [Fact]
@@ -130,7 +131,7 @@ namespace ImageSharp.Tests.Formats.Jpg
             });
 
             Assert.Equal(data, mirror);
-            //PrintLinearData((Span<float>)mirror);
+            //PrintLinearData((MutableSpan<float>)mirror);
         }
 
         [Fact]
@@ -151,18 +152,18 @@ namespace ImageSharp.Tests.Formats.Jpg
             });
 
             Assert.Equal(data, mirror);
-            //PrintLinearData((Span<int>)mirror);
+            //PrintLinearData((MutableSpan<int>)mirror);
         }
 
         [Fact]
         public void TransposeInplace()
         {
             float[] expected = Create8x8FloatData();
-            ReferenceDCT.Transpose8x8(expected);
+            ReferenceImplementations.Transpose8x8(expected);
 
             Block8x8F buffer = new Block8x8F();
             buffer.LoadFrom(Create8x8FloatData());
-            
+
             buffer.TransposeInplace();
 
             float[] actual = new float[64];
@@ -175,7 +176,7 @@ namespace ImageSharp.Tests.Formats.Jpg
         public void TranposeInto_PinningImpl()
         {
             float[] expected = Create8x8FloatData();
-            ReferenceDCT.Transpose8x8(expected);
+            ReferenceImplementations.Transpose8x8(expected);
 
             Block8x8F source = new Block8x8F();
             source.LoadFrom(Create8x8FloatData());
@@ -186,14 +187,14 @@ namespace ImageSharp.Tests.Formats.Jpg
             float[] actual = new float[64];
             dest.CopyTo(actual);
 
-            Assert.Equal(expected, actual);    
+            Assert.Equal(expected, actual);
         }
 
         [Fact]
         public void TransposeInto()
         {
             float[] expected = Create8x8FloatData();
-            ReferenceDCT.Transpose8x8(expected);
+            ReferenceImplementations.Transpose8x8(expected);
 
             Block8x8F source = new Block8x8F();
             source.LoadFrom(Create8x8FloatData());
@@ -208,21 +209,21 @@ namespace ImageSharp.Tests.Formats.Jpg
         }
 
         [Fact]
-        public void Buffer8x8_TransposeInto_GeneratorTest()
+        public void TransposeInto_CodeGeneratorTest()
         {
             char[] coordz = new[] {'X', 'Y', 'Z', 'W'};
             StringBuilder bld = new StringBuilder();
 
             for (int i = 0; i < 8; i++)
             {
-                char destCoord = coordz[i % 4];
-                char destSide = (i / 4) % 2 == 0 ? 'L' : 'R';
+                char destCoord = coordz[i%4];
+                char destSide = (i/4)%2 == 0 ? 'L' : 'R';
 
                 for (int j = 0; j < 8; j++)
                 {
-                    char srcCoord = coordz[j % 4];
-                    char srcSide = (j / 4) % 2 == 0 ? 'L' : 'R';
-                    
+                    char srcCoord = coordz[j%4];
+                    char srcSide = (j/4)%2 == 0 ? 'L' : 'R';
+
                     string expression = $"d.V{j}{destSide}.{destCoord} = V{i}{srcSide}.{srcCoord}; ";
                     bld.Append(expression);
                 }
@@ -237,7 +238,7 @@ namespace ImageSharp.Tests.Formats.Jpg
         public unsafe void TransposeInto_WithPointers()
         {
             float[] expected = Create8x8FloatData();
-            ReferenceDCT.Transpose8x8(expected);
+            ReferenceImplementations.Transpose8x8(expected);
 
             Block8x8F source = new Block8x8F();
             source.LoadFrom(Create8x8FloatData());
@@ -322,7 +323,7 @@ namespace ImageSharp.Tests.Formats.Jpg
                     Output.WriteLine($"TransposeInto_WithPointers_Benchmark finished in {sw.ElapsedMilliseconds} ms");
                 }
             }
-            
+
         }
 
 
@@ -331,9 +332,9 @@ namespace ImageSharp.Tests.Formats.Jpg
         {
             float[] sourceArray = Create8x8FloatData();
             float[] expectedDestArray = new float[64];
-            
-            ReferenceDCT.iDCT2D8x4_32f(sourceArray, expectedDestArray);
-            
+
+            ReferenceImplementations.iDCT2D8x4_32f(sourceArray, expectedDestArray);
+
             Block8x8F source = new Block8x8F();
             source.LoadFrom(sourceArray);
 
@@ -354,11 +355,11 @@ namespace ImageSharp.Tests.Formats.Jpg
         [Fact]
         public void iDCT2D8x4_RightPart()
         {
-            Span<float> sourceArray = Create8x8FloatData();
-            Span<float> expectedDestArray = new float[64];
+            MutableSpan<float> sourceArray = Create8x8FloatData();
+            MutableSpan<float> expectedDestArray = new float[64];
 
-            ReferenceDCT.iDCT2D8x4_32f(sourceArray.Slice(4), expectedDestArray.Slice(4));
-            
+            ReferenceImplementations.iDCT2D8x4_32f(sourceArray.Slice(4), expectedDestArray.Slice(4));
+
             Block8x8F source = new Block8x8F();
             source.LoadFrom(sourceArray);
 
@@ -376,6 +377,23 @@ namespace ImageSharp.Tests.Formats.Jpg
             Assert.Equal(expectedDestArray.Data, actualDestArray);
         }
 
+        private struct ApproximateFloatComparer : IEqualityComparer<float>
+        {
+            private const float Eps = 0.0001f;
+
+            public bool Equals(float x, float y)
+            {
+                float d = x - y;
+
+                return d > -Eps && d < Eps;
+            }
+
+            public int GetHashCode(float obj)
+            {
+                throw new InvalidOperationException();
+            }
+        }
+
         [Fact]
         public void IDCTInto()
         {
@@ -383,8 +401,10 @@ namespace ImageSharp.Tests.Formats.Jpg
             float[] expectedDestArray = new float[64];
             float[] tempArray = new float[64];
 
-            ReferenceDCT.iDCT8x8_llm_sse(sourceArray, expectedDestArray, tempArray);
-            
+            ReferenceImplementations.iDCT2D_llm(sourceArray, expectedDestArray, tempArray);
+
+            //ReferenceImplementations.iDCT8x8_llm_sse(sourceArray, expectedDestArray, tempArray);
+
             Block8x8F source = new Block8x8F();
             source.LoadFrom(sourceArray);
 
@@ -399,52 +419,93 @@ namespace ImageSharp.Tests.Formats.Jpg
             Print8x8Data(expectedDestArray);
             Output.WriteLine("**************");
             Print8x8Data(actualDestArray);
-            Assert.Equal(expectedDestArray, actualDestArray);
+            Assert.Equal(expectedDestArray, actualDestArray, new ApproximateFloatComparer());
+            Assert.Equal(expectedDestArray, actualDestArray, new ApproximateFloatComparer());
         }
 
-        private unsafe void CopyColorsTo_ReferenceImpl(ref Block8x8F block, Span<byte> buffer, int stride)
-        {
-            fixed (Block8x8F* p = &block)
-            {
-                float* b = (float*)p;
-
-                for (int y = 0; y < 8; y++)
-                {
-                    int y8 = y * 8;
-                    int yStride = y * stride;
-
-                    for (int x = 0; x < 8; x++)
-                    {
-                        float c = b[y8 + x];
-
-                        if (c < -128)
-                        {
-                            c = 0;
-                        }
-                        else if (c > 127)
-                        {
-                            c = 255;
-                        }
-                        else
-                        {
-                            c += 128;
-                        }
-
-                        buffer[yStride + x] = (byte)c;
-                    }
-                }
-            }
-
-
-        }
 
         [Fact]
-        public void CopyColorsTo()
+        public unsafe void CopyColorsTo()
         {
             var data = Create8x8FloatData();
             Block8x8F block = new Block8x8F();
             block.LoadFrom(data);
+            block.MultiplyAllInplace(new Vector4(5, 5, 5, 5));
+
+            int stride = 256;
+            int height = 42;
+            int offset = height*10 + 20;
+
+            byte[] colorsExpected = new byte[stride*height];
+            byte[] colorsActual = new byte[stride*height];
+
+            Block8x8F temp = new Block8x8F();
+            
+            ReferenceImplementations.CopyColorsTo(ref block, new MutableSpan<byte>(colorsExpected, offset), stride);
+
+            block.CopyColorsTo(new MutableSpan<byte>(colorsActual, offset), stride, &temp);
+
+            //Output.WriteLine("******* EXPECTED: *********");
+            //PrintLinearData(colorsExpected);
+            //Output.WriteLine("******** ACTUAL: **********");
+
+            Assert.Equal(colorsExpected, colorsActual);
+        }
+
+        [Fact]
+        public void CropInto()
+        {
+            Block8x8F block = new Block8x8F();
+            block.LoadFrom(Create8x8FloatData());
+
+            Block8x8F dest = new Block8x8F();
+            block.CropInto(10, 20, ref dest);
+
+            float[] array = new float[64];
+            dest.CopyTo(array);
+            PrintLinearData(array);
+            foreach (float val in array)
+            {
+                Assert.InRange(val, 10, 20);
+            }
 
         }
+
+        private static float[] Create8x8ColorCropTestData()
+        {
+            float[] result = new float[64];
+            for (int i = 0; i < 8; i++)
+            {
+                for (int j = 0; j < 8; j++)
+                {
+                    result[i * 8 + j] = -300 + i * 100 + j * 10;
+                }
+            }
+            return result;
+        }
+
+        [Fact]
+        public void ColorifyInto()
+        {
+            Block8x8F block = new Block8x8F();
+            var input = Create8x8ColorCropTestData();
+            block.LoadFrom(input);
+            Output.WriteLine("Input:");
+            PrintLinearData(input);
+            
+
+            Block8x8F dest = new Block8x8F();
+            block.ColorifyInto(ref dest);
+
+            float[] array = new float[64];
+            dest.CopyTo(array);
+            Output.WriteLine("Result:");
+            PrintLinearData(array);
+            foreach (float val in array)
+            {
+                Assert.InRange(val, 0, 255);
+            }
+        }
+
     }
 }

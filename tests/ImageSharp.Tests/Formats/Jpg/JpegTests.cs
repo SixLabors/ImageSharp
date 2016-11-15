@@ -63,7 +63,7 @@ namespace ImageSharp.Tests.Formats.Jpg
         }
 
         public static IEnumerable<object[]> AllBmpFiles
-            => TestImages.Jpeg.All.Select(fn => new object[] {fn});
+            => TestImages.Bmp.All.Select(fn => new object[] {fn});
 
         [Theory]
         [MemberData(nameof(AllBmpFiles))]

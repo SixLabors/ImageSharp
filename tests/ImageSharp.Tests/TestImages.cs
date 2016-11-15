@@ -43,8 +43,7 @@ namespace ImageSharp.Tests
             public static string GammaDalaiLamaGray => folder + "gamma_dalai_lama_gray.jpg";
 
 
-            public static readonly string[] All = new[]
-            {
+            public static readonly string[] All = {
                 Cmyk, Exif, Floorplan, Calliphora, Turtle, Fb, Progress, GammaDalaiLamaGray
             };
         }
@@ -58,6 +57,10 @@ namespace ImageSharp.Tests
             public static string F => folder + "F.bmp";
 
             public static string NegHeight => folder + "neg_height.bmp";
+
+            public static readonly string[] All = {
+                Car, F, NegHeight
+            };
         }
 
         public static class Gif

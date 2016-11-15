@@ -316,11 +316,11 @@ namespace ImageSharp.Formats
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
-            // TODO: This should be possible one row at a time
+            // We can use the optimized PixelAccessor here and copy the bytes in unmanaged memory.
             int bpp = this.bytesPerPixel;
-            for (int x = 0; x < this.width; x++)
+            using (PixelRow<TColor, TPacked> pixelRow = new PixelRow<TColor, TPacked>(this.width, rawScanline, bpp == 4 ? ComponentOrder.XYZW : ComponentOrder.XYZ))
             {
-                pixels[x, row].ToBytes(rawScanline, x * this.bytesPerPixel, bpp == 4 ? ComponentOrder.XYZW : ComponentOrder.XYZ);
+                pixels.CopyTo(pixelRow, row);
             }
         }
 
@@ -335,16 +335,15 @@ namespace ImageSharp.Formats
         /// <param name="previousScanline">The previous scanline.</param>
         /// <param name="rawScanline">The raw scanline.</param>
         /// <param name="result">The filtered scanline result.</param>
-        /// <param name="bytesPerScanline">The number of bytes per scanline.</param>
         /// <returns>The <see cref="T:byte[]"/></returns>
-        private byte[] EncodePixelRow<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, int row, byte[] previousScanline, byte[] rawScanline, byte[] result, int bytesPerScanline)
+        private byte[] EncodePixelRow<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, int row, byte[] previousScanline, byte[] rawScanline, byte[] result)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             switch (this.PngColorType)
             {
                 case PngColorType.Palette:
-                    Buffer.BlockCopy(this.palettePixelData, row * bytesPerScanline, rawScanline, 0, bytesPerScanline);
+                    Buffer.BlockCopy(this.palettePixelData, row * rawScanline.Length, rawScanline, 0, rawScanline.Length);
                     break;
                 case PngColorType.Grayscale:
                 case PngColorType.GrayscaleWithAlpha:
@@ -355,7 +354,7 @@ namespace ImageSharp.Formats
                     break;
             }
 
-            return this.GetOptimalFilteredScanline(rawScanline, previousScanline, result, bytesPerScanline);
+            return this.GetOptimalFilteredScanline(rawScanline, previousScanline, result);
         }
 
         /// <summary>
@@ -365,25 +364,24 @@ namespace ImageSharp.Formats
         /// <param name="rawScanline">The raw scanline</param>
         /// <param name="previousScanline">The previous scanline</param>
         /// <param name="result">The filtered scanline result.</param>
-        /// <param name="bytesPerScanline">The number of bytes per scanline</param>
         /// <returns>The <see cref="T:byte[]"/></returns>
-        private byte[] GetOptimalFilteredScanline(byte[] rawScanline, byte[] previousScanline, byte[] result, int bytesPerScanline)
+        private byte[] GetOptimalFilteredScanline(byte[] rawScanline, byte[] previousScanline, byte[] result)
         {
             // Palette images don't compress well with adaptive filtering.
             if (this.PngColorType == PngColorType.Palette)
             {
-                NoneFilter.Encode(rawScanline, result, bytesPerScanline);
+                NoneFilter.Encode(rawScanline, result);
                 return result;
             }
 
-            SubFilter.Encode(rawScanline, this.sub, this.bytesPerPixel, bytesPerScanline);
-            int currentTotalVariation = this.CalculateTotalVariation(this.sub, bytesPerScanline);
+            SubFilter.Encode(rawScanline, this.sub, this.bytesPerPixel);
+            int currentTotalVariation = this.CalculateTotalVariation(this.sub);
             int lowestTotalVariation = currentTotalVariation;
 
             result = this.sub;
 
-            UpFilter.Encode(rawScanline, previousScanline, this.up, bytesPerScanline);
-            currentTotalVariation = this.CalculateTotalVariation(this.up, bytesPerScanline);
+            UpFilter.Encode(rawScanline, previousScanline, this.up);
+            currentTotalVariation = this.CalculateTotalVariation(this.up);
 
             if (currentTotalVariation < lowestTotalVariation)
             {
@@ -391,8 +389,8 @@ namespace ImageSharp.Formats
                 result = this.up;
             }
 
-            AverageFilter.Encode(rawScanline, previousScanline, this.average, this.bytesPerPixel, bytesPerScanline);
-            currentTotalVariation = this.CalculateTotalVariation(this.average, bytesPerScanline);
+            AverageFilter.Encode(rawScanline, previousScanline, this.average, this.bytesPerPixel);
+            currentTotalVariation = this.CalculateTotalVariation(this.average);
 
             if (currentTotalVariation < lowestTotalVariation)
             {
@@ -400,8 +398,8 @@ namespace ImageSharp.Formats
                 result = this.average;
             }
 
-            PaethFilter.Encode(rawScanline, previousScanline, this.paeth, this.bytesPerPixel, bytesPerScanline);
-            currentTotalVariation = this.CalculateTotalVariation(this.paeth, bytesPerScanline);
+            PaethFilter.Encode(rawScanline, previousScanline, this.paeth, this.bytesPerPixel);
+            currentTotalVariation = this.CalculateTotalVariation(this.paeth);
 
             if (currentTotalVariation < lowestTotalVariation)
             {
@@ -415,16 +413,15 @@ namespace ImageSharp.Formats
         /// Calculates the total variation of given byte array. Total variation is the sum of the absolute values of
         /// neighbor differences.
         /// </summary>
-        /// <param name="input">The scanline bytes</param>
-        /// <param name="bytesPerScanline">The number of bytes per scanline</param>
+        /// <param name="scanline">The scanline bytes</param>
         /// <returns>The <see cref="int"/></returns>
-        private int CalculateTotalVariation(byte[] input, int bytesPerScanline)
+        private int CalculateTotalVariation(byte[] scanline)
         {
             int totalVariation = 0;
 
-            for (int i = 1; i < bytesPerScanline; i++)
+            for (int i = 1; i < scanline.Length; i++)
             {
-                totalVariation += Math.Abs(input[i] - input[i - 1]);
+                totalVariation += Math.Abs(scanline[i] - scanline[i - 1]);
             }
 
             return totalVariation;
@@ -618,17 +615,17 @@ namespace ImageSharp.Formats
             where TPacked : struct
         {
             int bytesPerScanline = this.width * this.bytesPerPixel;
-            byte[] previousScanline = ArrayPool<byte>.Shared.Rent(bytesPerScanline);
-            byte[] rawScanline = ArrayPool<byte>.Shared.Rent(bytesPerScanline);
+            byte[] previousScanline = new byte[bytesPerScanline];
+            byte[] rawScanline = new byte[bytesPerScanline];
             int resultLength = bytesPerScanline + 1;
-            byte[] result = ArrayPool<byte>.Shared.Rent(resultLength);
+            byte[] result = new byte[resultLength];
 
             if (this.PngColorType != PngColorType.Palette)
             {
-                this.sub = ArrayPool<byte>.Shared.Rent(resultLength);
-                this.up = ArrayPool<byte>.Shared.Rent(resultLength);
-                this.average = ArrayPool<byte>.Shared.Rent(resultLength);
-                this.paeth = ArrayPool<byte>.Shared.Rent(resultLength);
+                this.sub = new byte[resultLength];
+                this.up = new byte[resultLength];
+                this.average = new byte[resultLength];
+                this.paeth = new byte[resultLength];
             }
 
             byte[] buffer;
@@ -641,7 +638,7 @@ namespace ImageSharp.Formats
                 {
                     for (int y = 0; y < this.height; y++)
                     {
-                        deflateStream.Write(this.EncodePixelRow(pixels, y, previousScanline, rawScanline, result, bytesPerScanline), 0, resultLength);
+                        deflateStream.Write(this.EncodePixelRow(pixels, y, previousScanline, rawScanline, result), 0, resultLength);
 
                         Swap(ref rawScanline, ref previousScanline);
                     }
@@ -653,17 +650,6 @@ namespace ImageSharp.Formats
             finally
             {
                 memoryStream?.Dispose();
-                ArrayPool<byte>.Shared.Return(previousScanline);
-                ArrayPool<byte>.Shared.Return(rawScanline);
-                ArrayPool<byte>.Shared.Return(result);
-
-                if (this.PngColorType != PngColorType.Palette)
-                {
-                    ArrayPool<byte>.Shared.Return(this.sub);
-                    ArrayPool<byte>.Shared.Return(this.up);
-                    ArrayPool<byte>.Shared.Return(this.average);
-                    ArrayPool<byte>.Shared.Return(this.paeth);
-                }
             }
 
             // Store the chunks in repeated 64k blocks.

@@ -42,6 +42,32 @@ namespace ImageSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="PixelRow{TColor,TPacked}"/> class.
         /// </summary>
+        /// <param name="width">The width.</param>
+        /// <param name="bytes">The bytes.</param>
+        /// <param name="componentOrder">The component order.</param>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown if <paramref name="bytes"></paramref> is the incorrect length.
+        /// </exception>
+        public PixelRow(int width, byte[] bytes, ComponentOrder componentOrder)
+        {
+            if (bytes.Length != width * GetComponentCount(componentOrder))
+            {
+                throw new ArgumentOutOfRangeException($"Invalid byte array length. Length {bytes.Length}; Should be {width * GetComponentCount(componentOrder)}.");
+            }
+
+            this.Width = width;
+            this.ComponentOrder = componentOrder;
+            this.Bytes = bytes;
+            this.pixelsHandle = GCHandle.Alloc(this.Bytes, GCHandleType.Pinned);
+
+            // TODO: Why is Resharper warning us about an impure method call?
+            this.dataPointer = this.pixelsHandle.AddrOfPinnedObject();
+            this.PixelBase = (byte*)this.dataPointer.ToPointer();
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PixelRow{TColor,TPacked}"/> class.
+        /// </summary>
         /// <param name="width">The width. </param>
         /// <param name="componentOrder">The component order.</param>
         public PixelRow(int width, ComponentOrder componentOrder)

@@ -44,7 +44,7 @@ namespace ImageSharp.Tests
 
                         using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.png"))
                         {
-                            image.Save(output, new PngFormat());
+                            image.SaveAsPng(output);
                         }
                     });
         }

@@ -30,12 +30,11 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="scanline">The scanline to encode</param>
         /// <param name="result">The filtered scanline result.</param>
-        /// <param name="bytesPerScanline">The number of bytes per scanline</param>
-        public static void Encode(byte[] scanline, byte[] result, int bytesPerScanline)
+        public static void Encode(byte[] scanline, byte[] result)
         {
             // Insert a byte before the data.
             result[0] = 0;
-            Buffer.BlockCopy(scanline, 0, result, 1, bytesPerScanline);
+            Buffer.BlockCopy(scanline, 0, result, 1, scanline.Length);
         }
     }
 }

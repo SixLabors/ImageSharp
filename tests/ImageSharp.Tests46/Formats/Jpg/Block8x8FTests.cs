@@ -171,24 +171,7 @@ namespace ImageSharp.Tests.Formats.Jpg
 
             Assert.Equal(expected, actual);
         }
-
-        [Fact]
-        public void TranposeInto_PinningImpl()
-        {
-            float[] expected = Create8x8FloatData();
-            ReferenceImplementations.Transpose8x8(expected);
-
-            Block8x8F source = new Block8x8F();
-            source.LoadFrom(Create8x8FloatData());
-
-            Block8x8F dest = new Block8x8F();
-            source.TransposeInto_PinningImpl(ref dest);
-
-            float[] actual = new float[64];
-            dest.CopyTo(actual);
-
-            Assert.Equal(expected, actual);
-        }
+        
 
         [Fact]
         public void TransposeInto()
@@ -209,27 +192,6 @@ namespace ImageSharp.Tests.Formats.Jpg
         }
         
 
-        [Fact]
-        public unsafe void TransposeInto_WithPointers()
-        {
-            float[] expected = Create8x8FloatData();
-            ReferenceImplementations.Transpose8x8(expected);
-
-            Block8x8F source = new Block8x8F();
-            source.LoadFrom(Create8x8FloatData());
-
-            Block8x8F dest = new Block8x8F();
-
-            Block8x8F* sPtr = &source;
-            Block8x8F* dPtr = &dest;
-
-            Block8x8F.TransposeInto(sPtr, dPtr);
-
-            float[] actual = new float[64];
-            dest.CopyTo(actual);
-
-            Assert.Equal(expected, actual);
-        }
 
         private class BufferHolder
         {
@@ -255,53 +217,7 @@ namespace ImageSharp.Tests.Formats.Jpg
             Output.WriteLine($"TranposeInto_PinningImpl_Benchmark finished in {sw.ElapsedMilliseconds} ms");
 
         }
-
-        [Fact]
-        public void TranposeInto_PinningImpl_Benchmark()
-        {
-            BufferHolder source = new BufferHolder();
-            source.Buffer.LoadFrom(Create8x8FloatData());
-            BufferHolder dest = new BufferHolder();
-
-            Output.WriteLine($"TranposeInto_PinningImpl_Benchmark X {Times} ...");
-            Stopwatch sw = Stopwatch.StartNew();
-
-            for (int i = 0; i < Times; i++)
-            {
-                source.Buffer.TransposeInto_PinningImpl(ref dest.Buffer);
-            }
-
-            sw.Stop();
-            Output.WriteLine($"TranposeInto_PinningImpl_Benchmark finished in {sw.ElapsedMilliseconds} ms");
-        }
-
-        [Fact]
-        public unsafe void TransposeInto_WithPointers_Benchmark()
-        {
-            BufferHolder source = new BufferHolder();
-            source.Buffer.LoadFrom(Create8x8FloatData());
-            BufferHolder dest = new BufferHolder();
-
-            fixed (Block8x8F* sPtr = &source.Buffer)
-            {
-                fixed (Block8x8F* dPtr = &dest.Buffer)
-                {
-                    Output.WriteLine($"TransposeInto_WithPointers_Benchmark X {Times} ...");
-                    Stopwatch sw = Stopwatch.StartNew();
-
-                    for (int i = 0; i < Times; i++)
-                    {
-                        Block8x8F.TransposeInto(sPtr, dPtr);
-                    }
-
-                    sw.Stop();
-                    Output.WriteLine($"TransposeInto_WithPointers_Benchmark finished in {sw.ElapsedMilliseconds} ms");
-                }
-            }
-
-        }
-
-
+        
         [Fact]
         public void iDCT2D8x4_LeftPart()
         {

@@ -42,11 +42,10 @@ namespace ImageSharp.Tests
             public static string Progress => folder + "progress.jpg";
             public static string GammaDalaiLamaGray => folder + "gamma_dalai_lama_gray.jpg";
 
-            public static string Geneserath => folder + "geneserath.jpg";
 
             public static readonly string[] All = new[]
             {
-                Cmyk, Exif, Floorplan, Calliphora, Turtle, Fb, Progress, GammaDalaiLamaGray, Geneserath
+                Cmyk, Exif, Floorplan, Calliphora, Turtle, Fb, Progress, GammaDalaiLamaGray
             };
         }
 

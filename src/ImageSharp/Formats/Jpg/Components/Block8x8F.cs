@@ -133,50 +133,7 @@ namespace ImageSharp.Formats
             }
 
         }
-
-        /// <summary>
-        /// Reference implementation we can benchmark against
-        /// </summary>
-        internal unsafe void TransposeInto_PinningImpl(ref Block8x8F destination)
-        {
-            fixed (Vector4* sPtr = &V0L)
-            {
-                float* src = (float*) sPtr;
-
-                fixed (Vector4* dPtr = &destination.V0L)
-                {
-                    float* dest = (float*) dPtr;
-
-                    for (int i = 0; i < 8; i++)
-                    {
-                        int i8 = i*8;
-                        for (int j = 0; j < 8; j++)
-                        {
-                            dest[j*8 + i] = src[i8 + j];
-                        }
-                    }
-                }
-            }
-        }
-
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void TransposeInto(Block8x8F* sourcePtr, Block8x8F* destPtr)
-        {
-            float* src = (float*) sourcePtr;
-            float* dest = (float*) destPtr;
-
-            for (int i = 0; i < 8; i++)
-            {
-                int i8 = i*8;
-                for (int j = 0; j < 8; j++)
-                {
-                    dest[j*8 + i] = src[i8 + j];
-                }
-            }
-        }
-
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void MultiplyAllInplace(Vector4 s)
         {
@@ -449,30 +406,7 @@ namespace ImageSharp.Formats
             for(i = 0;i < 8;i++){ x[i] *= 0.353554f; }
             */
         }
-
-        internal static void SuchIDCT(ref Block block)
-        {
-            Block8x8F source = new Block8x8F();
-            source.LoadFrom(block.Data);
-
-            Block8x8F dest = new Block8x8F();
-            Block8x8F temp = new Block8x8F();
-
-            source.IDCTInto(ref dest, ref temp);
-            dest.CopyTo(block.Data);
-        }
-
-        internal static void SuchIDCT(ref BlockF block)
-        {
-            Block8x8F source = new Block8x8F();
-            source.LoadFrom(block.Data);
-
-            Block8x8F dest = new Block8x8F();
-            Block8x8F temp = new Block8x8F();
-
-            source.IDCTInto(ref dest, ref temp);
-            dest.CopyTo(block.Data);
-        }
+        
 
         public unsafe float this[int idx]
         {
@@ -524,62 +458,6 @@ namespace ImageSharp.Formats
         internal void CopyTo(ref BlockF legacyBlock)
         {
             CopyTo(legacyBlock.Data);
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static byte ToColorByte(float c)
-        {
-            if (c < -128)
-            {
-                return 0;
-            }
-            else if (c > 127)
-            {
-                return 255;
-            }
-            else
-            {
-                c += 128;
-                return (byte) c;
-            }
-        }
-
-
-
-        internal unsafe void CopyColorsTo(MutableSpan<byte> buffer, int stride)
-        {
-            fixed (Block8x8F* p = &this)
-            {
-                float* b = (float*) p;
-
-                for (int y = 0; y < 8; y++)
-                {
-                    int y8 = y*8;
-                    int yStride = y*stride;
-
-                    for (int x = 0; x < 8; x++)
-                    {
-                        float c = b[y8 + x];
-
-                        if (c < -128)
-                        {
-                            c = 0;
-                        }
-                        else if (c > 127)
-                        {
-                            c = 255;
-                        }
-                        else
-                        {
-                            c += 128;
-                        }
-
-                        buffer[yStride + x] = (byte) c;
-                    }
-                }
-            }
-
         }
         
         private static readonly Vector4 CMin4 = new Vector4(-128f);

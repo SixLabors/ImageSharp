@@ -207,32 +207,7 @@ namespace ImageSharp.Tests.Formats.Jpg
 
             Assert.Equal(expected, actual);
         }
-
-        [Fact]
-        public void TransposeInto_CodeGeneratorTest()
-        {
-            char[] coordz = new[] {'X', 'Y', 'Z', 'W'};
-            StringBuilder bld = new StringBuilder();
-
-            for (int i = 0; i < 8; i++)
-            {
-                char destCoord = coordz[i%4];
-                char destSide = (i/4)%2 == 0 ? 'L' : 'R';
-
-                for (int j = 0; j < 8; j++)
-                {
-                    char srcCoord = coordz[j%4];
-                    char srcSide = (j/4)%2 == 0 ? 'L' : 'R';
-
-                    string expression = $"d.V{j}{destSide}.{destCoord} = V{i}{srcSide}.{srcCoord}; ";
-                    bld.Append(expression);
-                }
-                bld.AppendLine();
-            }
-
-            Output.WriteLine(bld.ToString());
-        }
-
+        
 
         [Fact]
         public unsafe void TransposeInto_WithPointers()

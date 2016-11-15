@@ -246,6 +246,7 @@ namespace ImageSharp.Formats
             /// <summary>
             /// The AC luminance huffman table index
             /// </summary>
+
             LuminanceAC = 1,
             // ReSharper restore UnusedMember.Local
 
@@ -851,7 +852,6 @@ namespace ImageSharp.Formats
             Block b = Block.Create();
             Block cb = Block.Create();
             Block cr = Block.Create();
-            
             // ReSharper disable once InconsistentNaming
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
 
@@ -884,7 +884,6 @@ namespace ImageSharp.Formats
             Block b = Block.Create();
             Block[] cb = Block.CreateArray(4);
             Block[] cr = Block.CreateArray(4);
-            
             // ReSharper disable once InconsistentNaming
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
             

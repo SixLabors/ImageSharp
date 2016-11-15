@@ -45,6 +45,11 @@ namespace ImageSharp.Formats
         private readonly char[] chars = new char[4];
 
         /// <summary>
+        /// Reusable crc for validating chunks.
+        /// </summary>
+        private readonly Crc32 crc = new Crc32();
+
+        /// <summary>
         /// The stream to decode from.
         /// </summary>
         private Stream currentStream;
@@ -594,11 +599,11 @@ namespace ImageSharp.Formats
 
             chunk.Crc = BitConverter.ToUInt32(this.crcBuffer, 0);
 
-            Crc32 crc = new Crc32();
-            crc.Update(this.chunkTypeBuffer);
-            crc.Update(chunk.Data, 0, chunk.Length);
+            this.crc.Reset();
+            this.crc.Update(this.chunkTypeBuffer);
+            this.crc.Update(chunk.Data, 0, chunk.Length);
 
-            if (crc.Value != chunk.Crc)
+            if (this.crc.Value != chunk.Crc)
             {
                 throw new ImageFormatException("CRC Error. PNG Image chunk is corrupt!");
             }

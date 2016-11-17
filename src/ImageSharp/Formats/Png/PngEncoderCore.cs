@@ -36,6 +36,11 @@ namespace ImageSharp.Formats
         private readonly byte[] chunkDataBuffer = new byte[16];
 
         /// <summary>
+        /// Reusable crc for validating chunks.
+        /// </summary>
+        private readonly Crc32 crc = new Crc32();
+
+        /// <summary>
         /// Contains the raw pixel data from an indexed image.
         /// </summary>
         private byte[] palettePixelData;
@@ -717,15 +722,15 @@ namespace ImageSharp.Formats
                 stream.Write(data, offset, length);
             }
 
-            Crc32 crc32 = new Crc32();
-            crc32.Update(this.chunkTypeBuffer);
+            this.crc.Reset();
+            this.crc.Update(this.chunkTypeBuffer);
 
             if (data != null && length > 0)
             {
-                crc32.Update(data, offset, length);
+                this.crc.Update(data, offset, length);
             }
 
-            WriteInteger(stream, (uint)crc32.Value);
+            WriteInteger(stream, (uint)this.crc.Value);
         }
     }
 }

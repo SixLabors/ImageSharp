@@ -193,6 +193,50 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
+        /// Converts a byte array to a new array where each value in the original array is represented
+        /// by a the specified number of bits.
+        /// </summary>
+        /// <param name="source">The bytes to convert from. Cannot be null.</param>
+        /// <param name="bits">The number of bits per value.</param>
+        /// <returns>The resulting <see cref="T:byte[]"/> array. Is never null.</returns>
+        /// <exception cref="System.ArgumentNullException"><paramref name="source"/> is null.</exception>
+        /// <exception cref="System.ArgumentException"><paramref name="bits"/> is less than or equals than zero.</exception>
+        private static byte[] ToArrayByBitsLength(byte[] source, int bits)
+        {
+            Guard.NotNull(source, nameof(source));
+            Guard.MustBeGreaterThan(bits, 0, nameof(bits));
+
+            byte[] result;
+
+            if (bits < 8)
+            {
+                result = new byte[source.Length * 8 / bits];
+                int mask = 0xFF >> (8 - bits);
+                int resultOffset = 0;
+
+                // ReSharper disable once ForCanBeConvertedToForeach
+                for (int i = 0; i < source.Length; i++)
+                {
+                    byte b = source[i];
+                    for (int shift = 0; shift < 8; shift += bits)
+                    {
+                        int colorIndex = (b >> (8 - bits - shift)) & mask;
+
+                        result[resultOffset] = (byte)colorIndex;
+
+                        resultOffset++;
+                    }
+                }
+            }
+            else
+            {
+                result = source;
+            }
+
+            return result;
+        }
+
+        /// <summary>
         /// Reads the data chunk containing physical dimension data.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
@@ -366,12 +410,12 @@ namespace ImageSharp.Formats
             switch (this.PngColorType)
             {
                 case PngColorType.Grayscale:
-
+                    int factor = 255 / ((int)Math.Pow(2, this.header.BitDepth) - 1);
+                    byte[] newScanline1 = ToArrayByBitsLength(defilteredScanline, this.header.BitDepth);
                     for (int x = 0; x < this.header.Width; x++)
                     {
-                        int offset = 1 + (x * this.bytesPerPixel);
-
-                        byte intensity = defilteredScanline[offset];
+                        int offset = 1 + ((x + 1) * this.bytesPerPixel);
+                        byte intensity = (byte)(newScanline1[offset] * factor);
                         color.PackFromBytes(intensity, intensity, intensity, 255);
                         pixels[x, row] = color;
                     }
@@ -395,7 +439,7 @@ namespace ImageSharp.Formats
 
                 case PngColorType.Palette:
 
-                    byte[] newScanline = defilteredScanline.ToArrayByBitsLength(this.header.BitDepth);
+                    byte[] newScanline = ToArrayByBitsLength(defilteredScanline, this.header.BitDepth);
 
                     if (this.paletteAlpha != null && this.paletteAlpha.Length > 0)
                     {

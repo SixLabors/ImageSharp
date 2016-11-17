@@ -6,6 +6,7 @@
   },
 
   "dependencies": {
+    "CoreCompat.System.Drawing": "1.0.0-beta006",
     "ImageSharp": "1.0.0-*",
     "Microsoft.NETCore.App": {
       "type": "platform",

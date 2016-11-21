@@ -3,11 +3,11 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-using System.Numerics;
-
 namespace ImageSharp.Tests
 {
     using System;
+    using System.Numerics;
+
     using Xunit;
 
     /// <summary>

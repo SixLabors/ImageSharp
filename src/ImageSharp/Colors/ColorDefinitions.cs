@@ -581,7 +581,7 @@ namespace ImageSharp
         public static readonly Color Purple = new Color(128, 0, 128, 255);
 
         /// <summary>
-        /// Represents a <see cref="Color"/> matching the W3C definition that has an hex value of #0.
+        /// Represents a <see cref="Color"/> matching the W3C definition that has an hex value of #663399.
         /// </summary>
         public static readonly Color RebeccaPurple = new Color(102, 51, 153, 255);
 

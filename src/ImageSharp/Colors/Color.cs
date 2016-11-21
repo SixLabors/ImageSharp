@@ -108,6 +108,17 @@ namespace ImageSharp
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="Color"/> struct.
+        /// </summary>
+        /// <param name="packed">
+        /// The packed value.
+        /// </param>
+        public Color(uint packed)
+        {
+            this.packedValue = packed;
+        }
+
+        /// <summary>
         /// Gets or sets the red component.
         /// </summary>
         public byte R

@@ -1,1 +1,1 @@
-# [API Documentation](api/)
+# [API Documentation](/api)

@@ -6,7 +6,7 @@
           "files": [
             "**/*.cs"
           ],
-          "cwd": ".",
+          "src": ".",
           "exclude": [
             "**/obj/**",
             "**/bin/**",
@@ -23,7 +23,7 @@
         "files": [
           "api/**.yml"
         ],
-        "cwd": "."
+        "src": "."
       },
       {
         "files": [
@@ -61,7 +61,8 @@
     ],
     "dest": "../../docs",
     "template": [
-      "default"
+      "default",
+      "./ImageSharpTheme"
     ]
   }
 }

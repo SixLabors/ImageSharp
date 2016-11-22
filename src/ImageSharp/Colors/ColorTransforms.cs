@@ -2,6 +2,7 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
+
 namespace ImageSharp
 {
     using System.Numerics;
@@ -122,21 +123,10 @@ namespace ImageSharp
         /// </returns>
         public static Color HardLight(Color backdrop, Color source)
         {
-            // TODO: Why is this giving me nonsense?
-            // https://www.w3.org/TR/compositing-1/#blendinghardlight
-            // if(Cs <= 0.5)
-            //    B(Cb, Cs) = Multiply(Cb, 2 x Cs)
-            // else
-            //    B(Cb, Cs) = Screen(Cb, 2 x Cs -1)  
+            Vector4 vb = backdrop.ToVector4();
             Vector4 vs = source.ToVector4();
-            Vector4 blend = 2F * vs;
-            if (vs.X <= 0.5F && vs.Y <= 0.5F && vs.Z <= 0.5F)
-            {
-                return Multiply(backdrop, new Color(Pack(ref blend)));
-            }
-
-            blend = (2F * vs) - Vector4.One;
-            return Screen(backdrop, new Color(Pack(ref blend)));
+            Vector4 result = new Vector4(BlendOverlay(vs.X, vb.X), BlendOverlay(vs.Y, vb.Y), BlendOverlay(vs.Z, vb.Z), vb.W);
+            return new Color(Pack(ref result));
         }
 
         /// <summary>
@@ -154,7 +144,10 @@ namespace ImageSharp
         /// </returns>
         public static Color Overlay(Color backdrop, Color source)
         {
-            return HardLight(source, backdrop);
+            Vector4 vb = backdrop.ToVector4();
+            Vector4 vs = source.ToVector4();
+            Vector4 result = new Vector4(BlendOverlay(vb.X, vs.X), BlendOverlay(vb.Y, vs.Y), BlendOverlay(vb.Z, vs.Z), vb.W);
+            return new Color(Pack(ref result));
         }
 
         /// <summary>
@@ -172,6 +165,19 @@ namespace ImageSharp
         public static Color Lerp(Color from, Color to, float amount)
         {
             return new Color(Vector4.Lerp(from.ToVector4(), to.ToVector4(), amount));
+        }
+
+        /// <summary>
+        /// Multiplies or screens the color component, depending on the component value.
+        /// </summary>
+        /// <param name="b">The backdrop component.</param>
+        /// <param name="s">The source component.</param>
+        /// <returns>
+        /// The <see cref="float"/>.
+        /// </returns>
+        private static float BlendOverlay(float b, float s)
+        {
+            return b <= .5F ? (2F * b * s) : (1F - (2F * (1F - b) * (1F - s)));
         }
     }
 }

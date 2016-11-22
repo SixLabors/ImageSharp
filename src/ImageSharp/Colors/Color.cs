@@ -32,7 +32,7 @@ namespace ImageSharp
         /// <summary>
         /// The half vector value.
         /// </summary>
-        private static readonly Vector4 Half = new Vector4(0.5f);
+        private static readonly Vector4 Half = new Vector4(0.5F);
 
         /// <summary>
         /// The packed value.

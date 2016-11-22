@@ -107,7 +107,7 @@ namespace ImageSharp
             Vector4 vb = backdrop.ToVector4();
             Vector4 vs = source.ToVector4();
 
-            Vector4 subtract = Vector4.Clamp(vb + vs - (vb * vs), Vector4.Zero, Vector4.One);
+            Vector4 subtract = vb + vs - (vb * vs);
             subtract.W = vb.W;
             return new Color(Pack(ref subtract));
         }

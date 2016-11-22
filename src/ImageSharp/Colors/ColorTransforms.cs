@@ -151,6 +151,42 @@ namespace ImageSharp
         }
 
         /// <summary>
+        /// Selects the darker of the backdrop and source colors. 
+        /// The backdrop is replaced with the source where the source is darker; otherwise, it is left unchanged.
+        /// </summary>
+        /// <param name="backdrop">The backdrop color.</param>
+        /// <param name="source">The source color.</param>
+        /// <returns>
+        /// The <see cref="Color"/>.
+        /// </returns>
+        public static Color Darken(Color backdrop, Color source)
+        {
+            Vector4 vb = backdrop.ToVector4();
+            Vector4 vs = source.ToVector4();
+            Vector4 result = Vector4.Min(vb, vs);
+            result.W = vb.W;
+            return new Color(Pack(ref result));
+        }
+
+        /// <summary>
+        /// Selects the lighter of the backdrop and source colors. 
+        /// The backdrop is replaced with the source where the source is lighter; otherwise, it is left unchanged.
+        /// </summary>
+        /// <param name="backdrop">The backdrop color.</param>
+        /// <param name="source">The source color.</param>
+        /// <returns>
+        /// The <see cref="Color"/>.
+        /// </returns>
+        public static Color Lighten(Color backdrop, Color source)
+        {
+            Vector4 vb = backdrop.ToVector4();
+            Vector4 vs = source.ToVector4();
+            Vector4 result = Vector4.Max(vb, vs);
+            result.W = vb.W;
+            return new Color(Pack(ref result));
+        }
+
+        /// <summary>
         /// Linearly interpolates from one color to another based on the given weighting.
         /// </summary>
         /// <param name="from">The first color value.</param>

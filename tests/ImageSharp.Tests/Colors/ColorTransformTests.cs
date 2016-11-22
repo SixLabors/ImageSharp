@@ -56,5 +56,19 @@ namespace ImageSharp.Tests.Colors
             Color overlay = Color.Overlay(Backdrop, Source);
             Assert.True(overlay == new Color(153, 82, 0));
         }
+
+        [Fact]
+        public void Darken()
+        {
+            Color darken = Color.Darken(Backdrop, Source);
+            Assert.True(darken == new Color(0, 102, 0));
+        }
+
+        [Fact]
+        public void Lighten()
+        {
+            Color lighten = Color.Lighten(Backdrop, Source);
+            Assert.True(lighten == new Color(204, 102, 153));
+        }
     }
 }

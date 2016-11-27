@@ -46,6 +46,20 @@ namespace ImageSharp
         }
 
         /// <summary>
+        /// The blending formula simply selects the source color.
+        /// </summary>
+        /// <param name="backdrop">The backdrop color.</param>
+        /// <param name="source">The source color.</param>
+        /// <returns>
+        /// The <see cref="Color"/>.
+        /// </returns>
+        public static Color Normal(Color backdrop, Color source)
+        {
+            Vector4 normal = Vector4BlendTransforms.Normal(backdrop.ToVector4(), source.ToVector4());
+            return new Color(Pack(ref normal));
+        }
+
+        /// <summary>
         /// Blends two colors by multiplication.
         /// <remarks>
         /// The source color is multiplied by the destination color and replaces the destination.
@@ -61,21 +75,7 @@ namespace ImageSharp
         /// </returns>
         public static Color Multiply(Color backdrop, Color source)
         {
-            if (source == Black)
-            {
-                return Black;
-            }
-
-            if (source == White)
-            {
-                return backdrop;
-            }
-
-            Vector4 vb = backdrop.ToVector4();
-            Vector4 vs = source.ToVector4();
-
-            Vector4 multiply = vb * vs;
-            multiply.W = vb.W;
+            Vector4 multiply = Vector4BlendTransforms.Multiply(backdrop.ToVector4(), source.ToVector4());
             return new Color(Pack(ref multiply));
         }
 
@@ -94,21 +94,7 @@ namespace ImageSharp
         /// </returns>
         public static Color Screen(Color backdrop, Color source)
         {
-            if (source == Black)
-            {
-                return backdrop;
-            }
-
-            if (source == White)
-            {
-                return White;
-            }
-
-            Vector4 vb = backdrop.ToVector4();
-            Vector4 vs = source.ToVector4();
-
-            Vector4 subtract = vb + vs - (vb * vs);
-            subtract.W = vb.W;
+            Vector4 subtract = Vector4BlendTransforms.Screen(backdrop.ToVector4(), source.ToVector4());
             return new Color(Pack(ref subtract));
         }
 
@@ -123,10 +109,8 @@ namespace ImageSharp
         /// </returns>
         public static Color HardLight(Color backdrop, Color source)
         {
-            Vector4 vb = backdrop.ToVector4();
-            Vector4 vs = source.ToVector4();
-            Vector4 result = new Vector4(BlendOverlay(vs.X, vb.X), BlendOverlay(vs.Y, vb.Y), BlendOverlay(vs.Z, vb.Z), vb.W);
-            return new Color(Pack(ref result));
+            Vector4 hardlight = Vector4BlendTransforms.HardLight(backdrop.ToVector4(), source.ToVector4());
+            return new Color(Pack(ref hardlight));
         }
 
         /// <summary>
@@ -144,10 +128,8 @@ namespace ImageSharp
         /// </returns>
         public static Color Overlay(Color backdrop, Color source)
         {
-            Vector4 vb = backdrop.ToVector4();
-            Vector4 vs = source.ToVector4();
-            Vector4 result = new Vector4(BlendOverlay(vb.X, vs.X), BlendOverlay(vb.Y, vs.Y), BlendOverlay(vb.Z, vs.Z), vb.W);
-            return new Color(Pack(ref result));
+            Vector4 overlay = Vector4BlendTransforms.Overlay(backdrop.ToVector4(), source.ToVector4());
+            return new Color(Pack(ref overlay));
         }
 
         /// <summary>
@@ -161,11 +143,8 @@ namespace ImageSharp
         /// </returns>
         public static Color Darken(Color backdrop, Color source)
         {
-            Vector4 vb = backdrop.ToVector4();
-            Vector4 vs = source.ToVector4();
-            Vector4 result = Vector4.Min(vb, vs);
-            result.W = vb.W;
-            return new Color(Pack(ref result));
+            Vector4 darken = Vector4BlendTransforms.Darken(backdrop.ToVector4(), source.ToVector4());
+            return new Color(Pack(ref darken));
         }
 
         /// <summary>
@@ -179,11 +158,81 @@ namespace ImageSharp
         /// </returns>
         public static Color Lighten(Color backdrop, Color source)
         {
-            Vector4 vb = backdrop.ToVector4();
-            Vector4 vs = source.ToVector4();
-            Vector4 result = Vector4.Max(vb, vs);
-            result.W = vb.W;
-            return new Color(Pack(ref result));
+            Vector4 lighten = Vector4BlendTransforms.Lighten(backdrop.ToVector4(), source.ToVector4());
+            return new Color(Pack(ref lighten));
+        }
+
+        /// <summary>
+        /// Darkens or lightens the colors, depending on the source color value. The effect is similar to shining
+        /// a diffused spotlight on the backdrop.
+        /// </summary>
+        /// <param name="backdrop">The backdrop color.</param>
+        /// <param name="source">The source color.</param>
+        /// <returns>
+        /// The <see cref="Color"/>.
+        /// </returns>
+        public static Color SoftLight(Color backdrop, Color source)
+        {
+            Vector4 softlight = Vector4BlendTransforms.SoftLight(backdrop.ToVector4(), source.ToVector4());
+            return new Color(Pack(ref softlight));
+        }
+
+        /// <summary>
+        /// Brightens the backdrop color to reflect the source color. Painting with black produces no changes.
+        /// </summary>
+        /// <param name="backdrop">The backdrop color.</param>
+        /// <param name="source">The source color.</param>
+        /// <returns>
+        /// The <see cref="Color"/>.
+        /// </returns>
+        public static Color ColorDodge(Color backdrop, Color source)
+        {
+            Vector4 dodge = Vector4BlendTransforms.Dodge(backdrop.ToVector4(), source.ToVector4());
+            return new Color(Pack(ref dodge));
+        }
+
+        /// <summary>
+        /// Darkens the backdrop color to reflect the source color. Painting with white produces no change.
+        /// </summary>
+        /// <param name="backdrop">The backdrop color.</param>
+        /// <param name="source">The source color.</param>
+        /// <returns>
+        /// The <see cref="Color"/>.
+        /// </returns>
+        public static Color ColorBurn(Color backdrop, Color source)
+        {
+            Vector4 burn = Vector4BlendTransforms.Burn(backdrop.ToVector4(), source.ToVector4());
+            return new Color(Pack(ref burn));
+        }
+
+        /// <summary>
+        /// Subtracts the darker of the two constituent colors from the lighter color.
+        /// Painting with white inverts the backdrop color; painting with black produces no change.
+        /// </summary>
+        /// <param name="backdrop">The backdrop color.</param>
+        /// <param name="source">The source color.</param>
+        /// <returns>
+        /// The <see cref="Color"/>.
+        /// </returns>
+        public static Color Difference(Color backdrop, Color source)
+        {
+            Vector4 difference = Vector4BlendTransforms.Difference(backdrop.ToVector4(), source.ToVector4());
+            return new Color(Pack(ref difference));
+        }
+
+        /// <summary>
+        /// Produces an effect similar to that of the <see cref="Difference"/> mode but lower in contrast. Painting with white 
+        /// inverts the backdrop color; painting with black produces no change
+        /// </summary>
+        /// <param name="backdrop">The backdrop color.</param>
+        /// <param name="source">The source color.</param>
+        /// <returns>
+        /// The <see cref="Color"/>.
+        /// </returns>
+        public static Color Exclusion(Color backdrop, Color source)
+        {
+            Vector4 exclusion = Vector4BlendTransforms.Exclusion(backdrop.ToVector4(), source.ToVector4());
+            return new Color(Pack(ref exclusion));
         }
 
         /// <summary>
@@ -201,19 +250,6 @@ namespace ImageSharp
         public static Color Lerp(Color from, Color to, float amount)
         {
             return new Color(Vector4.Lerp(from.ToVector4(), to.ToVector4(), amount));
-        }
-
-        /// <summary>
-        /// Multiplies or screens the color component, depending on the component value.
-        /// </summary>
-        /// <param name="b">The backdrop component.</param>
-        /// <param name="s">The source component.</param>
-        /// <returns>
-        /// The <see cref="float"/>.
-        /// </returns>
-        private static float BlendOverlay(float b, float s)
-        {
-            return b <= .5F ? (2F * b * s) : (1F - (2F * (1F - b) * (1F - s)));
         }
     }
 }

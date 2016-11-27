@@ -32,7 +32,7 @@ namespace ImageSharp
         /// <summary>
         /// The half vector value.
         /// </summary>
-        private static readonly Vector4 Half = new Vector4(0.5f);
+        private static readonly Vector4 Half = new Vector4(0.5F);
 
         /// <summary>
         /// The packed value.
@@ -105,6 +105,17 @@ namespace ImageSharp
         public Color(Vector4 vector)
         {
             this.packedValue = Pack(ref vector);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Color"/> struct.
+        /// </summary>
+        /// <param name="packed">
+        /// The packed value.
+        /// </param>
+        public Color(uint packed)
+        {
+            this.packedValue = packed;
         }
 
         /// <summary>

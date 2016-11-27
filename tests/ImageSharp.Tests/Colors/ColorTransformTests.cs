@@ -8,7 +8,7 @@ namespace ImageSharp.Tests.Colors
     using Xunit;
 
     /// <summary>
-    /// Tests the color transform algorithms.
+    /// Tests the color transform algorithms. Test results match the output of CSS equivalents.
     /// <see href="https://jsfiddle.net/jamessouth/L1v8r6kh/"/>
     /// </summary>
     public class ColorTransformTests
@@ -22,6 +22,13 @@ namespace ImageSharp.Tests.Colors
         /// Blue source
         /// </summary>
         private static readonly Color Source = new Color(0, 102, 153);
+
+        [Fact]
+        public void Normal()
+        {
+            Color normal = Color.Normal(Backdrop, Source);
+            Assert.True(normal == Source);
+        }
 
         [Fact]
         public void Multiply()
@@ -69,6 +76,41 @@ namespace ImageSharp.Tests.Colors
         {
             Color lighten = Color.Lighten(Backdrop, Source);
             Assert.True(lighten == new Color(204, 102, 153));
+        }
+
+        [Fact]
+        public void SoftLight()
+        {
+            Color softLight = Color.SoftLight(Backdrop, Source);
+            Assert.True(softLight == new Color(163, 90, 0));
+        }
+
+        [Fact]
+        public void ColorDodge()
+        {
+            Color colorDodge = Color.ColorDodge(Backdrop, Source);
+            Assert.True(colorDodge == new Color(204, 170, 0));
+        }
+
+        [Fact]
+        public void ColorBurn()
+        {
+            Color colorBurn = Color.ColorBurn(Backdrop, Source);
+            Assert.True(colorBurn == new Color(0, 0, 0));
+        }
+
+        [Fact]
+        public void Difference()
+        {
+            Color difference = Color.Difference(Backdrop, Source);
+            Assert.True(difference == new Color(204, 0, 153));
+        }
+
+        [Fact]
+        public void Exclusion()
+        {
+            Color exclusion = Color.Exclusion(Backdrop, Source);
+            Assert.True(exclusion == new Color(204, 122, 153));
         }
     }
 }

@@ -219,7 +219,7 @@ namespace ImageSharp
         /// <param name="left">The <see cref="Color"/> on the left side of the operand.</param>
         /// <param name="right">The <see cref="Color"/> on the right side of the operand.</param>
         /// <returns>
-        /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
+        /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         public static bool operator !=(Color left, Color right)
         {

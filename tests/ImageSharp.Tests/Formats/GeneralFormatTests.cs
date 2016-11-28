@@ -52,6 +52,7 @@ namespace ImageSharp.Tests
             foreach (TestFile file in Files)
             {
                 Image image = file.CreateImage();
+                // Image<Bgr565, ushort> image = file.CreateImage().To<Bgr565, ushort>();
 
                 using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                 {

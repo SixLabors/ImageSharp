@@ -5,6 +5,8 @@
 
 namespace ImageSharp
 {
+    using System.Threading.Tasks;
+
     /// <summary>
     /// Represents a single frame in a animation.
     /// </summary>
@@ -24,9 +26,7 @@ namespace ImageSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrame{TColor, TPacked}"/> class.
         /// </summary>
-        /// <param name="image">
-        /// The image to create the frame from.
-        /// </param>
+        /// <param name="image">The image to create the frame from.</param>
         public ImageFrame(ImageBase<TColor, TPacked> image)
             : base(image)
         {
@@ -38,6 +38,49 @@ namespace ImageSharp
             return $"ImageFrame: {this.Width}x{this.Height}";
         }
 
+        /// <summary>
+        /// Returns a copy of the image frame in the given pixel format.
+        /// </summary>
+        /// <typeparam name="TColor2">The pixel format.</typeparam>
+        /// <typeparam name="TPacked2">The packed format. <example>uint, long, float.</example></typeparam>
+        /// <returns>The <see cref="ImageFrame{TColor2, TPacked2}"/></returns>
+        public ImageFrame<TColor2, TPacked2> To<TColor2, TPacked2>()
+            where TColor2 : struct, IPackedPixel<TPacked2>
+            where TPacked2 : struct
+        {
+            ImageFrame<TColor2, TPacked2> target = new ImageFrame<TColor2, TPacked2>
+            {
+                Quality = this.Quality,
+                FrameDelay = this.FrameDelay
+            };
+
+            target.InitPixels(this.Width, this.Height);
+
+            using (PixelAccessor<TColor, TPacked> pixels = this.Lock())
+            using (PixelAccessor<TColor2, TPacked2> targetPixels = target.Lock())
+            {
+                Parallel.For(
+                    0,
+                    target.Height,
+                    Bootstrapper.Instance.ParallelOptions,
+                    y =>
+                    {
+                        for (int x = 0; x < target.Width; x++)
+                        {
+                            TColor2 color = default(TColor2);
+                            color.PackFromVector4(pixels[x, y].ToVector4());
+                            targetPixels[x, y] = color;
+                        }
+                    });
+            }
+
+            return target;
+        }
+
+        /// <summary>
+        /// Clones the current instance.
+        /// </summary>
+        /// <returns>The <see cref="ImageFrame{TColor, TPacked}"/></returns>
         internal virtual ImageFrame<TColor, TPacked> Clone()
         {
             return new ImageFrame<TColor, TPacked>(this);

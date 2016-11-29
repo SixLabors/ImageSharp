@@ -10,7 +10,7 @@ namespace ImageSharp
     using System.Numerics;
 
     /// <summary>
-    /// Packed vector type containing four 8-bit unsigned normalized values ranging from 0 to 255.
+    /// Packed pixel type containing four 8-bit unsigned normalized values ranging from 0 to 255.
     /// The color components are stored in red, green, blue, and alpha order.
     /// </summary>
     /// <remarks>
@@ -19,9 +19,24 @@ namespace ImageSharp
     /// </remarks>
     public partial struct Color : IPackedPixel<uint>, IEquatable<Color>
     {
+        /// <summary>
+        /// The shift count for the red component
+        /// </summary>
         private const int RedShift = 0;
+
+        /// <summary>
+        /// The shift count for the green component
+        /// </summary>
         private const int GreenShift = 8;
+
+        /// <summary>
+        /// The shift count for the blue component
+        /// </summary>
         private const int BlueShift = 16;
+
+        /// <summary>
+        /// The shift count for the alpha component
+        /// </summary>
         private const int AlphaShift = 24;
 
         /// <summary>

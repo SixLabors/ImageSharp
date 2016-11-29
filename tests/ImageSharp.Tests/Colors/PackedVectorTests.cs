@@ -84,6 +84,8 @@ namespace ImageSharp.Tests.Colors
             float z = 0.5F;
             Assert.Equal(6160, new Bgr565(x, y, z).PackedValue);
 
+
+            // Test ordering
             byte[] rgb = new byte[3];
             byte[] rgba = new byte[4];
             byte[] bgr = new byte[3];
@@ -100,6 +102,56 @@ namespace ImageSharp.Tests.Colors
 
             new Bgr565(x, y, z).ToBytes(bgra, 0, ComponentOrder.ZYXW);
             Assert.Equal(bgra, new byte[] { 131, 0, 24, 255 });
+        }
+
+        [Fact]
+        public void Bgra4444()
+        {
+            // Test the limits.
+            Assert.Equal(0x0, new Bgra4444(Vector4.Zero).PackedValue);
+            Assert.Equal(0xFFFF, new Bgra4444(Vector4.One).PackedValue);
+
+            // Test ToVector4.
+            Assert.True(Equal(Vector4.One, new Bgra4444(Vector4.One).ToVector4()));
+            Assert.True(Equal(Vector4.Zero, new Bgra4444(Vector4.Zero).ToVector4()));
+            Assert.True(Equal(Vector4.UnitX, new Bgra4444(Vector4.UnitX).ToVector4()));
+            Assert.True(Equal(Vector4.UnitY, new Bgra4444(Vector4.UnitY).ToVector4()));
+            Assert.True(Equal(Vector4.UnitZ, new Bgra4444(Vector4.UnitZ).ToVector4()));
+            Assert.True(Equal(Vector4.UnitW, new Bgra4444(Vector4.UnitW).ToVector4()));
+
+            // Test clamping.
+            Assert.True(Equal(Vector4.Zero, new Bgra4444(Vector4.One * -1234.0f).ToVector4()));
+            Assert.True(Equal(Vector4.One, new Bgra4444(Vector4.One * 1234.0f).ToVector4()));
+
+            // Make sure the swizzle is correct.
+            Assert.Equal(0x0F00, new Bgra4444(Vector4.UnitX).PackedValue);
+            Assert.Equal(0x00F0, new Bgra4444(Vector4.UnitY).PackedValue);
+            Assert.Equal(0x000F, new Bgra4444(Vector4.UnitZ).PackedValue);
+            Assert.Equal(0xF000, new Bgra4444(Vector4.UnitW).PackedValue);
+
+            float x = 0.1f;
+            float y = -0.3f;
+            float z = 0.5f;
+            float w = -0.7f;
+            Assert.Equal(520, new Bgra4444(x, y, z, w).PackedValue);
+
+            // Test ordering
+            byte[] rgb = new byte[3];
+            byte[] rgba = new byte[4];
+            byte[] bgr = new byte[3];
+            byte[] bgra = new byte[4];
+
+            new Bgra4444(x, y, z, w).ToBytes(rgb, 0, ComponentOrder.XYZ);
+            Assert.Equal(rgb, new byte[] { 34, 0, 136 });
+
+            new Bgra4444(x, y, z, w).ToBytes(rgba, 0, ComponentOrder.XYZW);
+            Assert.Equal(rgba, new byte[] { 34, 0, 136, 0 });
+
+            new Bgra4444(x, y, z, w).ToBytes(bgr, 0, ComponentOrder.ZYX);
+            Assert.Equal(bgr, new byte[] { 136, 0, 34 });
+
+            new Bgra4444(x, y, z, w).ToBytes(bgra, 0, ComponentOrder.ZYXW);
+            Assert.Equal(bgra, new byte[] { 136, 0, 34, 0 });
         }
 
         // Comparison helpers with small tolerance to allow for floating point rounding during computations.

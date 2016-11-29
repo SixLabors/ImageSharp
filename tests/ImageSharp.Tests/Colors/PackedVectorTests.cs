@@ -154,6 +154,52 @@ namespace ImageSharp.Tests.Colors
             Assert.Equal(bgra, new byte[] { 136, 0, 34, 0 });
         }
 
+        [Fact]
+        public void Bgra5551()
+        {
+            // Test the limits.
+            Assert.Equal(0x0, new Bgra5551(Vector4.Zero).PackedValue);
+            Assert.Equal(0xFFFF, new Bgra5551(Vector4.One).PackedValue);
+
+            // Test ToVector4
+            Assert.True(Equal(Vector4.Zero, new Bgra5551(Vector4.Zero).ToVector4()));
+            Assert.True(Equal(Vector4.One, new Bgra5551(Vector4.One).ToVector4()));
+
+            // Test clamping.
+            Assert.Equal(Vector4.Zero, new Bgra5551(Vector4.One * -1234.0f).ToVector4());
+            Assert.Equal(Vector4.One, new Bgra5551(Vector4.One * 1234.0f).ToVector4());
+
+            // Test Ordering
+            float x = 0x1a;
+            float y = 0x16;
+            float z = 0xd;
+            float w = 0x1;
+            Assert.Equal(0xeacd, new Bgra5551(x / 0x1f, y / 0x1f, z / 0x1f, w).PackedValue);
+            x = 0.1f;
+            y = -0.3f;
+            z = 0.5f;
+            w = -0.7f;
+            Assert.Equal(3088, new Bgra5551(x, y, z, w).PackedValue);
+
+            // Test ordering
+            byte[] rgb = new byte[3];
+            byte[] rgba = new byte[4];
+            byte[] bgr = new byte[3];
+            byte[] bgra = new byte[4];
+
+            new Bgra5551(x, y, z, w).ToBytes(rgb, 0, ComponentOrder.XYZ);
+            Assert.Equal(rgb, new byte[] { 24, 0, 131 });
+
+            new Bgra5551(x, y, z, w).ToBytes(rgba, 0, ComponentOrder.XYZW);
+            Assert.Equal(rgba, new byte[] { 24, 0, 131, 0 });
+
+            new Bgra5551(x, y, z, w).ToBytes(bgr, 0, ComponentOrder.ZYX);
+            Assert.Equal(bgr, new byte[] { 131, 0, 24 });
+
+            new Bgra5551(x, y, z, w).ToBytes(bgra, 0, ComponentOrder.ZYXW);
+            Assert.Equal(bgra, new byte[] { 131, 0, 24, 0 });
+        }
+
         // Comparison helpers with small tolerance to allow for floating point rounding during computations.
         public static bool Equal(float a, float b)
         {

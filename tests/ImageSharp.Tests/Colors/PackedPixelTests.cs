@@ -285,6 +285,43 @@ namespace ImageSharp.Tests.Colors
             Assert.Equal(bgra, new byte[] { 0, 0, 128, 255 });
         }
 
+        [Fact]
+        public void HalfVector2()
+        {
+            // Test PackedValue
+            Assert.Equal(0u, new HalfVector2(Vector2.Zero).PackedValue);
+            Assert.Equal(1006648320u, new HalfVector2(Vector2.One).PackedValue);
+            Assert.Equal(3033345638u, new HalfVector2(0.1f, -0.3f).PackedValue);
+
+            // Test ToVector2
+            Assert.True(Equal(Vector2.Zero, new HalfVector2(Vector2.Zero).ToVector2()));
+            Assert.True(Equal(Vector2.One, new HalfVector2(Vector2.One).ToVector2()));
+            Assert.True(Equal(Vector2.UnitX, new HalfVector2(Vector2.UnitX).ToVector2()));
+            Assert.True(Equal(Vector2.UnitY, new HalfVector2(Vector2.UnitY).ToVector2()));
+
+            // Test ordering
+            float x = .5F;
+            float y = .25F;
+            Assert.True(Equal(new Vector4(x, y, 0, 1), new HalfVector2(x, y).ToVector4()));
+
+            byte[] rgb = new byte[3];
+            byte[] rgba = new byte[4];
+            byte[] bgr = new byte[3];
+            byte[] bgra = new byte[4];
+
+            new HalfVector2(x, y).ToBytes(rgb, 0, ComponentOrder.XYZ);
+            Assert.Equal(rgb, new byte[] { 128, 64, 0 });
+
+            new HalfVector2(x, y).ToBytes(rgba, 0, ComponentOrder.XYZW);
+            Assert.Equal(rgba, new byte[] { 128, 64, 0, 255 });
+
+            new HalfVector2(x, y).ToBytes(bgr, 0, ComponentOrder.ZYX);
+            Assert.Equal(bgr, new byte[] { 0, 64, 128 });
+
+            new HalfVector2(x, y).ToBytes(bgra, 0, ComponentOrder.ZYXW);
+            Assert.Equal(bgra, new byte[] { 0, 64, 128, 255 });
+        }
+
         // Comparison helpers with small tolerance to allow for floating point rounding during computations.
         public static bool Equal(float a, float b)
         {

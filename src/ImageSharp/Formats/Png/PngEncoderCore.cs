@@ -523,15 +523,6 @@ namespace ImageSharp.Formats
 
                     int alpha = bytes[3];
 
-                    // Premultiply the color. This helps prevent banding.
-                    // TODO: Vector<byte>?
-                    if (alpha < 255 && alpha > this.Threshold)
-                    {
-                        bytes[0] = (byte)(bytes[0] * alpha).Clamp(0, 255);
-                        bytes[1] = (byte)(bytes[1] * alpha).Clamp(0, 255);
-                        bytes[2] = (byte)(bytes[2] * alpha).Clamp(0, 255);
-                    }
-
                     colorTable[offset] = bytes[0];
                     colorTable[offset + 1] = bytes[1];
                     colorTable[offset + 2] = bytes[2];

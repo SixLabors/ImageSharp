@@ -3,7 +3,6 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-
 namespace ImageSharp
 {
     using System;
@@ -12,7 +11,7 @@ namespace ImageSharp
     /// <summary>
     /// Packed pixel type containing four 8-bit unsigned integer values, ranging from 0 to 255.
     /// </summary>
-    public struct Byte4 : IPackedPixel<uint>, IEquatable<Byte4>, IPackedVector
+    public struct Byte4 : IPackedPixel<uint>, IEquatable<Byte4>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Byte4"/> struct. 

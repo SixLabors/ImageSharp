@@ -383,7 +383,7 @@ namespace ImageSharp.Tests.Colors
             Assert.True(Equal(Vector2.One, new NormalizedByte2(Vector2.One * 1234.0f).ToVector2()));
             Assert.True(Equal(-Vector2.One, new NormalizedByte2(Vector2.One * -1234.0f).ToVector2()));
 
-            // Test ToVector2
+            // Test ToVector4
             Assert.True(Equal(new Vector4(1, 1, 0, 1), new NormalizedByte2(Vector2.One).ToVector4()));
             Assert.True(Equal(new Vector4(0, 0, 0, 1), new NormalizedByte2(Vector2.Zero).ToVector4()));
 
@@ -391,6 +391,9 @@ namespace ImageSharp.Tests.Colors
             float x = 0.1f;
             float y = -0.3f;
             Assert.Equal(0xda0d, new NormalizedByte2(x, y).PackedValue);
+            NormalizedByte2 n = new NormalizedByte2();
+            n.PackFromBytes(141, 90, 0, 0);
+            Assert.Equal(0xda0d, n.PackedValue);
 
             byte[] rgb = new byte[3];
             byte[] rgba = new byte[4];
@@ -398,16 +401,71 @@ namespace ImageSharp.Tests.Colors
             byte[] bgra = new byte[4];
 
             new NormalizedByte2(x, y).ToBytes(rgb, 0, ComponentOrder.XYZ);
-            Assert.Equal(rgb, new byte[] { 26, 0, 0 });
+            Assert.Equal(rgb, new byte[] { 141, 90, 0 });
 
             new NormalizedByte2(x, y).ToBytes(rgba, 0, ComponentOrder.XYZW);
-            Assert.Equal(rgba, new byte[] { 26, 0, 0, 255 });
+            Assert.Equal(rgba, new byte[] { 141, 90, 0, 255 });
 
             new NormalizedByte2(x, y).ToBytes(bgr, 0, ComponentOrder.ZYX);
-            Assert.Equal(bgr, new byte[] { 0, 0, 26 });
+            Assert.Equal(bgr, new byte[] { 0, 90, 141 });
 
             new NormalizedByte2(x, y).ToBytes(bgra, 0, ComponentOrder.ZYXW);
-            Assert.Equal(bgra, new byte[] { 0, 0, 26, 255 });
+            Assert.Equal(bgra, new byte[] { 0, 90, 141, 255 });
+        }
+
+        [Fact]
+        public void NormalizedByte4()
+        {
+            // Test PackedValue
+            Assert.Equal((uint)0x0, new NormalizedByte4(Vector4.Zero).PackedValue);
+            Assert.Equal((uint)0x7F7F7F7F, new NormalizedByte4(Vector4.One).PackedValue);
+            Assert.Equal(0x81818181, new NormalizedByte4(-Vector4.One).PackedValue);
+
+            // Test ToVector4
+            Assert.True(Equal(Vector4.One, new NormalizedByte4(Vector4.One).ToVector4()));
+            Assert.True(Equal(Vector4.Zero, new NormalizedByte4(Vector4.Zero).ToVector4()));
+            Assert.True(Equal(-Vector4.One, new NormalizedByte4(-Vector4.One).ToVector4()));
+            Assert.True(Equal(Vector4.One, new NormalizedByte4(Vector4.One * 1234.0f).ToVector4()));
+            Assert.True(Equal(-Vector4.One, new NormalizedByte4(Vector4.One * -1234.0f).ToVector4()));
+
+            // Test Ordering
+            float x = 0.1f;
+            float y = -0.3f;
+            float z = 0.5f;
+            float w = -0.7f;
+            Assert.Equal(0xA740DA0D, new NormalizedByte4(x, y, z, w).PackedValue);
+            NormalizedByte4 n = new NormalizedByte4();
+            n.PackFromBytes(141, 90, 192, 39);
+            Assert.Equal(0xA740DA0D, n.PackedValue);
+
+            Assert.Equal((uint)958796544, new NormalizedByte4(0.0008f, 0.15f, 0.30f, 0.45f).PackedValue);
+
+            byte[] rgb = new byte[3];
+            byte[] rgba = new byte[4];
+            byte[] bgr = new byte[3];
+            byte[] bgra = new byte[4];
+
+            new NormalizedByte4(x, y, z, w).ToBytes(rgb, 0, ComponentOrder.XYZ);
+            Assert.Equal(rgb, new byte[] { 141, 90, 192 });
+
+            new NormalizedByte4(x, y, z, w).ToBytes(rgba, 0, ComponentOrder.XYZW);
+            Assert.Equal(rgba, new byte[] { 141, 90, 192, 39 });
+
+            new NormalizedByte4(x, y, z, w).ToBytes(bgr, 0, ComponentOrder.ZYX);
+            Assert.Equal(bgr, new byte[] { 192, 90, 141 });
+
+            new NormalizedByte4(x, y, z, w).ToBytes(bgra, 0, ComponentOrder.ZYXW);
+            Assert.Equal(bgra, new byte[] { 192, 90, 141, 39 });
+
+            // http://community.monogame.net/t/normalizedbyte4-texture2d-gives-different-results-from-xna/8012/8
+            NormalizedByte4 r = new NormalizedByte4();
+            r.PackFromBytes(9, 115, 202, 127);
+            r.ToBytes(rgba, 0, ComponentOrder.XYZW);
+            Assert.Equal(rgba, new byte[] { 9, 115, 202, 127 });
+
+            r.PackedValue = 0x7FCA7309;
+            r.ToBytes(rgba, 0, ComponentOrder.XYZW);
+            Assert.Equal(rgba, new byte[] { 9, 115, 202, 127 });
         }
 
         // Comparison helpers with small tolerance to allow for floating point rounding during computations.

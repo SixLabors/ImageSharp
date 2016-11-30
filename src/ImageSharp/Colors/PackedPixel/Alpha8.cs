@@ -16,9 +16,7 @@ namespace ImageSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="Alpha8"/> struct. 
         /// </summary>
-        /// <param name="alpha">
-        /// The alpha component
-        /// </param>
+        /// <param name="alpha">The alpha component</param>
         public Alpha8(float alpha)
         {
             this.PackedValue = Pack(alpha);

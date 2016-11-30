@@ -1,4 +1,4 @@
-﻿// <copyright file="PackedVectorTests.cs" company="James Jackson-South">
+﻿// <copyright file="PackedPixelTests.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -11,9 +11,9 @@ namespace ImageSharp.Tests.Colors
     using Xunit;
 
     /// <summary>
-    /// The packed vector tests.
+    /// The packed pixel tests.
     /// </summary>
-    public class PackedVectorTests
+    public class PackedPixelTests
     {
         [Fact]
         public void Alpha8()
@@ -249,6 +249,40 @@ namespace ImageSharp.Tests.Colors
 
             new Byte4(x, y, z, w).ToBytes(bgra, 0, ComponentOrder.ZYXW);
             Assert.Equal(bgra, new byte[] { 0, 0, 128, 0 });
+        }
+
+        [Fact]
+        public void HalfSingle()
+        {
+            // Test limits
+            Assert.Equal(15360, new HalfSingle(1F).PackedValue);
+            Assert.Equal(0, new HalfSingle(0F).PackedValue);
+            Assert.Equal(48128, new HalfSingle(-1F).PackedValue);
+
+            // Test values
+            Assert.Equal(11878, new HalfSingle(0.1F).PackedValue);
+            Assert.Equal(46285, new HalfSingle(-0.3F).PackedValue);
+
+            // Test ordering
+            float x = .5F;
+            Assert.True(Equal(new Vector4(x, 0, 0, 1), new HalfSingle(x).ToVector4()));
+
+            byte[] rgb = new byte[3];
+            byte[] rgba = new byte[4];
+            byte[] bgr = new byte[3];
+            byte[] bgra = new byte[4];
+
+            new HalfSingle(x).ToBytes(rgb, 0, ComponentOrder.XYZ);
+            Assert.Equal(rgb, new byte[] { 128, 0, 0 });
+
+            new HalfSingle(x).ToBytes(rgba, 0, ComponentOrder.XYZW);
+            Assert.Equal(rgba, new byte[] { 128, 0, 0, 255 });
+
+            new HalfSingle(x).ToBytes(bgr, 0, ComponentOrder.ZYX);
+            Assert.Equal(bgr, new byte[] { 0, 0, 128 });
+
+            new HalfSingle(x).ToBytes(bgra, 0, ComponentOrder.ZYXW);
+            Assert.Equal(bgra, new byte[] { 0, 0, 128, 255 });
         }
 
         // Comparison helpers with small tolerance to allow for floating point rounding during computations.

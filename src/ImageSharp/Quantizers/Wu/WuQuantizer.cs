@@ -6,7 +6,7 @@
 namespace ImageSharp.Quantizers
 {
     using System;
-    using System.Collections.Generic;
+    using System.Buffers;
     using System.Numerics;
     using System.Threading.Tasks;
 
@@ -24,10 +24,8 @@ namespace ImageSharp.Quantizers
     /// <see href="https://github.com/JeremyAnsel/JeremyAnsel.ColorQuant"/>
     /// </para>
     /// <para>
-    /// Algorithm: Greedy orthogonal bipartition of RGB space for variance
-    /// minimization aided by inclusion-exclusion tricks.
-    /// For speed no nearest neighbor search is done. Slightly
-    /// better performance can be expected by more sophisticated
+    /// Algorithm: Greedy orthogonal bipartition of RGB space for variance minimization aided by inclusion-exclusion tricks.
+    /// For speed no nearest neighbor search is done. Slightly better performance can be expected by more sophisticated
     /// but more expensive versions.
     /// </para>
     /// </remarks>
@@ -40,7 +38,7 @@ namespace ImageSharp.Quantizers
         /// <summary>
         /// The epsilon for comparing floating point numbers.
         /// </summary>
-        private const float Epsilon = 0.001f;
+        private const float Epsilon = 1e-5F;
 
         /// <summary>
         /// The index bits.
@@ -325,17 +323,18 @@ namespace ImageSharp.Quantizers
         /// <param name="pixels">The pixel accessor.</param>
         private void Build3DHistogram(PixelAccessor<TColor, TPacked> pixels)
         {
+            byte[] rgba = new byte[4];
             for (int y = 0; y < pixels.Height; y++)
             {
                 for (int x = 0; x < pixels.Width; x++)
                 {
                     // Colors are expected in r->g->b->a format
-                    Color color = new Color(pixels[x, y].ToVector4());
+                    pixels[x, y].ToBytes(rgba, 0, ComponentOrder.XYZW);
 
-                    byte r = color.R;
-                    byte g = color.G;
-                    byte b = color.B;
-                    byte a = color.A;
+                    byte r = rgba[0];
+                    byte g = rgba[1];
+                    byte b = rgba[2];
+                    byte a = rgba[3];
 
                     int inr = r >> (8 - IndexBits);
                     int ing = g >> (8 - IndexBits);
@@ -723,7 +722,7 @@ namespace ImageSharp.Quantizers
         /// <returns>The result.</returns>
         private QuantizedImage<TColor, TPacked> GenerateResult(PixelAccessor<TColor, TPacked> imagePixels, int colorCount, Box[] cube)
         {
-            List<TColor> pallette = new List<TColor>();
+            TColor[] pallette = new TColor[colorCount];
             byte[] pixels = new byte[imagePixels.Width * imagePixels.Height];
             int width = imagePixels.Width;
             int height = imagePixels.Height;
@@ -743,11 +742,7 @@ namespace ImageSharp.Quantizers
 
                     TColor color = default(TColor);
                     color.PackFromVector4(new Vector4(r, g, b, a) / 255F);
-                    pallette.Add(color);
-                }
-                else
-                {
-                    pallette.Add(default(TColor));
+                    pallette[k] = color;
                 }
             }
 
@@ -757,21 +752,25 @@ namespace ImageSharp.Quantizers
                 Bootstrapper.Instance.ParallelOptions,
                 y =>
                     {
+                        byte[] rgba = ArrayPool<byte>.Shared.Rent(4);
                         for (int x = 0; x < width; x++)
                         {
                             // Expected order r->g->b->a
-                            Color color = new Color(imagePixels[x, y].ToVector4());
-                            int r = color.R >> (8 - IndexBits);
-                            int g = color.G >> (8 - IndexBits);
-                            int b = color.B >> (8 - IndexBits);
-                            int a = color.A >> (8 - IndexAlphaBits);
+                            imagePixels[x, y].ToBytes(rgba, 0, ComponentOrder.XYZW);
+
+                            int r = rgba[0] >> (8 - IndexBits);
+                            int g = rgba[1] >> (8 - IndexBits);
+                            int b = rgba[2] >> (8 - IndexBits);
+                            int a = rgba[3] >> (8 - IndexAlphaBits);
 
                             int ind = GetPaletteIndex(r + 1, g + 1, b + 1, a + 1);
                             pixels[(y * width) + x] = this.tag[ind];
                         }
+
+                        ArrayPool<byte>.Shared.Return(rgba);
                     });
 
-            return new QuantizedImage<TColor, TPacked>(width, height, pallette.ToArray(), pixels);
+            return new QuantizedImage<TColor, TPacked>(width, height, pallette, pixels);
         }
     }
 }

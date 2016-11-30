@@ -57,6 +57,8 @@ namespace ImageSharp.Tests
                 // Image<Bgra5551, ushort> image = file.CreateImage().To<Bgra5551, ushort>();
                 // Image<Byte4, uint> image = file.CreateImage().To<Byte4, uint>();
                 // Image<HalfSingle, ushort> image = file.CreateImage().To<HalfSingle, ushort>();
+                // Image<HalfVector2, uint> image = file.CreateImage().To<HalfVector2, uint>();
+                // Image<HalfVector4, ulong> image = file.CreateImage().To<HalfVector4, ulong>();
 
                 using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                 {

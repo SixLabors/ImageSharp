@@ -1,4 +1,4 @@
-﻿// <copyright file="NormalizedByte2.cs" company="James Jackson-South">
+﻿// <copyright file="NormalizedByte4.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -9,9 +9,9 @@ namespace ImageSharp
     using System.Numerics;
 
     /// <summary>
-    /// Packed packed pixel type containing two 8-bit signed normalized values, ranging from −1 to 1.
+    /// Packed pixel type containing four 8-bit signed normalized values, ranging from −1 to 1.
     /// </summary>
-    public struct NormalizedByte2 : IPackedPixel<ushort>, IEquatable<NormalizedByte2>
+    public struct NormalizedByte4 : IPackedPixel<uint>, IEquatable<NormalizedByte4>
     {
         /// <summary>
         /// The maximum byte value.
@@ -29,83 +29,77 @@ namespace ImageSharp
         private static readonly Vector4 Round = new Vector4(.5F);
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="NormalizedByte2"/> struct.
+        /// Initializes a new instance of the <see cref="NormalizedByte4"/> struct.
         /// </summary>
         /// <param name="vector">The vector containing the component values.</param>
-        public NormalizedByte2(Vector2 vector)
+        public NormalizedByte4(Vector4 vector)
         {
-            this.PackedValue = Pack(vector.X, vector.Y);
+            this.PackedValue = Pack(vector.X, vector.Y, vector.Z, vector.W);
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="NormalizedByte2"/> struct.
+        /// Initializes a new instance of the <see cref="NormalizedByte4"/> struct.
         /// </summary>
         /// <param name="x">The x-component.</param>
         /// <param name="y">The y-component.</param>
-        public NormalizedByte2(float x, float y)
+        /// <param name="z">The z-component.</param>
+        /// <param name="w">The w-component.</param>
+        public NormalizedByte4(float x, float y, float z, float w)
         {
-            this.PackedValue = Pack(x, y);
+            this.PackedValue = Pack(x, y, z, w);
         }
 
         /// <inheritdoc />
-        public ushort PackedValue { get; set; }
+        public uint PackedValue { get; set; }
 
         /// <summary>
-        /// Compares two <see cref="NormalizedByte2"/> objects for equality.
+        /// Compares two <see cref="NormalizedByte4"/> objects for equality.
         /// </summary>
         /// <param name="left">
-        /// The <see cref="NormalizedByte2"/> on the left side of the operand.
+        /// The <see cref="NormalizedByte4"/> on the left side of the operand.
         /// </param>
         /// <param name="right">
-        /// The <see cref="NormalizedByte2"/> on the right side of the operand.
+        /// The <see cref="NormalizedByte4"/> on the right side of the operand.
         /// </param>
         /// <returns>
         /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        public static bool operator ==(NormalizedByte2 left, NormalizedByte2 right)
+        public static bool operator ==(NormalizedByte4 left, NormalizedByte4 right)
         {
             return left.PackedValue == right.PackedValue;
         }
 
         /// <summary>
-        /// Compares two <see cref="NormalizedByte2"/> objects for equality.
+        /// Compares two <see cref="NormalizedByte4"/> objects for equality.
         /// </summary>
         /// <param name="left">
-        /// The <see cref="NormalizedByte2"/> on the left side of the operand.
+        /// The <see cref="NormalizedByte4"/> on the left side of the operand.
         /// </param>
         /// <param name="right">
-        /// The <see cref="NormalizedByte2"/> on the right side of the operand.
+        /// The <see cref="NormalizedByte4"/> on the right side of the operand.
         /// </param>
         /// <returns>
         /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        public static bool operator !=(NormalizedByte2 left, NormalizedByte2 right)
+        public static bool operator !=(NormalizedByte4 left, NormalizedByte4 right)
         {
             return left.PackedValue != right.PackedValue;
-        }
-
-        /// <summary>
-        /// Expands the packed representation into a <see cref="Vector2"/>.
-        /// The vector components are typically expanded in least to greatest significance order.
-        /// </summary>
-        /// <returns>The <see cref="Vector2"/>.</returns>
-        public Vector2 ToVector2()
-        {
-            return new Vector2(
-                ((sbyte)((this.PackedValue >> 0) & 0xFF)) / 127F,
-                ((sbyte)((this.PackedValue >> 8) & 0xFF)) / 127F);
         }
 
         /// <inheritdoc />
         public void PackFromVector4(Vector4 vector)
         {
-            this.PackedValue = Pack(vector.X, vector.Y);
+            this.PackedValue = Pack(vector.X, vector.Y, vector.Z, vector.W);
         }
 
         /// <inheritdoc />
         public Vector4 ToVector4()
         {
-            return new Vector4(this.ToVector2(), 0F, 1F);
+            return new Vector4(
+                (sbyte)((this.PackedValue >> 0) & 0xFF) / 127F,
+                (sbyte)((this.PackedValue >> 8) & 0xFF) / 127F,
+                (sbyte)((this.PackedValue >> 16) & 0xFF) / 127F,
+                (sbyte)((this.PackedValue >> 24) & 0xFF) / 127F);
         }
 
         /// <inheritdoc />
@@ -132,26 +126,26 @@ namespace ImageSharp
             switch (componentOrder)
             {
                 case ComponentOrder.ZYX:
-                    bytes[startIndex] = 0;
+                    bytes[startIndex] = (byte)vector.Z;
                     bytes[startIndex + 1] = (byte)vector.Y;
                     bytes[startIndex + 2] = (byte)vector.X;
                     break;
                 case ComponentOrder.ZYXW:
-                    bytes[startIndex] = 0;
+                    bytes[startIndex] = (byte)vector.Z;
                     bytes[startIndex + 1] = (byte)vector.Y;
                     bytes[startIndex + 2] = (byte)vector.X;
-                    bytes[startIndex + 3] = 255;
+                    bytes[startIndex + 3] = (byte)vector.W;
                     break;
                 case ComponentOrder.XYZ:
                     bytes[startIndex] = (byte)vector.X;
                     bytes[startIndex + 1] = (byte)vector.Y;
-                    bytes[startIndex + 2] = 0;
+                    bytes[startIndex + 2] = (byte)vector.Z;
                     break;
                 case ComponentOrder.XYZW:
                     bytes[startIndex] = (byte)vector.X;
                     bytes[startIndex + 1] = (byte)vector.Y;
-                    bytes[startIndex + 2] = 0;
-                    bytes[startIndex + 3] = 255;
+                    bytes[startIndex + 2] = (byte)vector.Z;
+                    bytes[startIndex + 3] = (byte)vector.W;
                     break;
                 default:
                     throw new NotSupportedException();
@@ -161,11 +155,11 @@ namespace ImageSharp
         /// <inheritdoc />
         public override bool Equals(object obj)
         {
-            return (obj is NormalizedByte2) && this.Equals((NormalizedByte2)obj);
+            return (obj is NormalizedByte4) && this.Equals((NormalizedByte4)obj);
         }
 
         /// <inheritdoc />
-        public bool Equals(NormalizedByte2 other)
+        public bool Equals(NormalizedByte4 other)
         {
             return this.PackedValue == other.PackedValue;
         }
@@ -183,17 +177,21 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Packs the <see cref="float"/> components into a <see cref="ushort"/>.
+        /// Packs the <see cref="float"/> components into a <see cref="uint"/>.
         /// </summary>
         /// <param name="x">The x-component</param>
         /// <param name="y">The y-component</param>
-        /// <returns>The <see cref="ushort"/> containing the packed values.</returns>
-        private static ushort Pack(float x, float y)
+        /// <param name="z">The z-component</param>
+        /// <param name="w">The w-component</param>
+        /// <returns>The <see cref="uint"/> containing the packed values.</returns>
+        private static uint Pack(float x, float y, float z, float w)
         {
-            int byte2 = ((ushort)Math.Round(x.Clamp(-1F, 1F) * 127F) & 0xFF) << 0;
-            int byte1 = ((ushort)Math.Round(y.Clamp(-1F, 1F) * 127F) & 0xFF) << 8;
+            uint byte4 = ((uint)Math.Round(x.Clamp(-1F, 1F) * 127F) & 0xFF) << 0;
+            uint byte3 = ((uint)Math.Round(y.Clamp(-1F, 1F) * 127F) & 0xFF) << 8;
+            uint byte2 = ((uint)Math.Round(z.Clamp(-1F, 1F) * 127F) & 0xFF) << 16;
+            uint byte1 = ((uint)Math.Round(w.Clamp(-1F, 1F) * 127F) & 0xFF) << 24;
 
-            return (ushort)(byte2 | byte1);
+            return byte4 | byte3 | byte2 | byte1;
         }
     }
 }

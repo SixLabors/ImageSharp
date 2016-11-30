@@ -52,6 +52,7 @@ namespace ImageSharp.Tests
             foreach (TestFile file in Files)
             {
                 Image image = file.CreateImage();
+
                 // Image<Bgr565, ushort> image = file.CreateImage().To<Bgr565, ushort>();
                 // Image<Bgra4444, ushort> image = file.CreateImage().To<Bgra4444, ushort>();
                 // Image<Bgra5551, ushort> image = file.CreateImage().To<Bgra5551, ushort>();
@@ -60,6 +61,8 @@ namespace ImageSharp.Tests
                 // Image<HalfVector2, uint> image = file.CreateImage().To<HalfVector2, uint>();
                 // Image<HalfVector4, ulong> image = file.CreateImage().To<HalfVector4, ulong>();
                 // Image<NormalizedByte2, ushort> image = file.CreateImage().To<NormalizedByte2, ushort>();
+
+                // TODO: Conversion between types who's vector ranges are different are not possible.
                 // Image<NormalizedByte4, uint> image = file.CreateImage().To<NormalizedByte4, uint>();
 
                 using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))

@@ -91,13 +91,13 @@ namespace ImageSharp
         /// <inheritdoc />
         public void PackFromBytes(byte x, byte y, byte z, byte w)
         {
-            this.PackFromVector4(new Vector4(x, y, z, w) / 255F);
+            this.PackFromVector4(new Vector4(x, y, z, w));
         }
 
         /// <inheritdoc />
         public void ToBytes(byte[] bytes, int startIndex, ComponentOrder componentOrder)
         {
-            Vector4 vector = this.ToVector4() * 255F;
+            Vector4 vector = this.ToVector4();
 
             switch (componentOrder)
             {

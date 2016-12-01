@@ -54,6 +54,23 @@ namespace ImageSharp.Tests
             {
                 Image image = file.CreateImage();
 
+                //var image = file.CreateImage()
+                //    .To<Bgr565, ushort>()
+                //    .To<Bgra4444, ushort>()
+                //    .To<Bgra5551, ushort>()
+                //    .To<Byte4, uint>()
+                //    .To<HalfSingle, ushort>()
+                //    .To<HalfVector2, uint>()
+                //    .To<HalfVector4, ulong>()
+                //    .To<Rg32, uint>()
+                //    .To<Rgba1010102, uint>()
+                //    .To<NormalizedByte2, ushort>()
+                //    .To<NormalizedByte4, uint>()
+                //    .To<NormalizedShort2, uint>()
+                //    .To<NormalizedShort4, ulong>()
+                //    .To<Short2, uint>()
+                //    .To<Short4, ulong>();
+
                 // Image<Bgr565, ushort> image = file.CreateImage().To<Bgr565, ushort>();
                 // Image<Bgra4444, ushort> image = file.CreateImage().To<Bgra4444, ushort>();
                 // Image<Bgra5551, ushort> image = file.CreateImage().To<Bgra5551, ushort>();

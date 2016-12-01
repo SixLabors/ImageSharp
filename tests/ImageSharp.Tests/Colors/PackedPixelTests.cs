@@ -705,6 +705,55 @@ namespace ImageSharp.Tests.Colors
             Assert.Equal(rgba, new byte[] { 20, 38, 76, 115 });
         }
 
+        [Fact]
+        public void Short2()
+        {
+            // Test the limits.
+            Assert.Equal((uint)0x0, new Short2(Vector2.Zero).PackedValue);
+            Assert.Equal((uint)0x7FFF7FFF, new Short2(Vector2.One * 0x7FFF).PackedValue);
+            Assert.Equal(0x80008000, new Short2(Vector2.One * -0x8000).PackedValue);
+
+            // Test ToVector2.
+            Assert.True(Equal(Vector2.One * 0x7FFF, new Short2(Vector2.One * 0x7FFF).ToVector2()));
+            Assert.True(Equal(Vector2.Zero, new Short2(Vector2.Zero).ToVector2()));
+            Assert.True(Equal(Vector2.One * -0x8000, new Short2(Vector2.One * -0x8000).ToVector2()));
+            Assert.True(Equal(Vector2.UnitX * 0x7FFF, new Short2(Vector2.UnitX * 0x7FFF).ToVector2()));
+            Assert.True(Equal(Vector2.UnitY * 0x7FFF, new Short2(Vector2.UnitY * 0x7FFF).ToVector2()));
+
+            // Test clamping.
+            Assert.True(Equal(Vector2.One * 0x7FFF, new Short2(Vector2.One * 1234567.0f).ToVector2()));
+            Assert.True(Equal(Vector2.One * -0x8000, new Short2(Vector2.One * -1234567.0f).ToVector2()));
+
+            // Test ToVector4.
+            Assert.True(Equal(new Vector4(0x7FFF, 0x7FFF, 0, 1), (new Short2(Vector2.One * 0x7FFF)).ToVector4()));
+            Assert.True(Equal(new Vector4(0, 0, 0, 1), (new Short2(Vector2.Zero)).ToVector4()));
+            Assert.True(Equal(new Vector4(-0x8000, -0x8000, 0, 1), (new Short2(Vector2.One * -0x8000)).ToVector4()));
+
+            // Test ordering
+            float x = 0x2db1;
+            float y = 0x361d;
+            Assert.Equal((uint)0x361d2db1, new Short2(x, y).PackedValue);
+            x = 127.5f;
+            y = -5.3f;
+            Assert.Equal(4294639744, new Short2(x, y).PackedValue);
+
+            byte[] rgb = new byte[3];
+            byte[] rgba = new byte[4];
+            byte[] bgr = new byte[3];
+            byte[] bgra = new byte[4];
+
+            new Short2(x, y).ToBytes(rgb, 0, ComponentOrder.XYZ);
+
+            new Short2(x, y).ToBytes(rgba, 0, ComponentOrder.XYZW);
+
+            new Short2(x, y).ToBytes(bgr, 0, ComponentOrder.ZYX);
+
+            new Short2(x, y).ToBytes(bgra, 0, ComponentOrder.ZYXW);
+
+            Short2 r = new Short2();
+            r.ToBytes(rgba, 0, ComponentOrder.XYZW);
+        }
+
         // Comparison helpers with small tolerance to allow for floating point rounding during computations.
         public static bool Equal(float a, float b)
         {

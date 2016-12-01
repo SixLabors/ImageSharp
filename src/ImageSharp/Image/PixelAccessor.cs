@@ -106,7 +106,7 @@ namespace ImageSharp
         {
             get
             {
-#if DEBUG  
+#if DEBUG
                 if (x < 0 || x >= this.Width)
                 {
                     throw new ArgumentOutOfRangeException(nameof(x), x, $"{x} is outwith the image bounds.");
@@ -122,7 +122,7 @@ namespace ImageSharp
 
             set
             {
-#if DEBUG  
+#if DEBUG
                 if (x < 0 || x >= this.Width)
                 {
                     throw new ArgumentOutOfRangeException(nameof(x), x, $"{x} is outwith the image bounds.");

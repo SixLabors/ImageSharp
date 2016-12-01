@@ -86,7 +86,7 @@ namespace ImageSharp
 
             // Now to LAB
             x /= 0.95047F;
-           
+          
             // y /= 1F;
             z /= 1.08883F;
 

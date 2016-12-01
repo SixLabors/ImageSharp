@@ -10,7 +10,9 @@ namespace ImageSharp
     using System.Diagnostics;
     using System.IO;
     using System.Linq;
+    using System.Numerics;
     using System.Text;
+    using System.Threading.Tasks;
 
     using Formats;
 
@@ -245,7 +247,7 @@ namespace ImageSharp
         /// <summary>
         /// Returns a Base64 encoded string from the given image.
         /// </summary>
-        /// <example>data:image/gif;base64,R0lGODlhAQABAIABAEdJRgAAACwAAAAAAQABAAACAkQBAA==</example>
+        /// <example><see href="data:image/gif;base64,R0lGODlhAQABAIABAEdJRgAAACwAAAAAAQABAAACAkQBAA=="/></example>
         /// <returns>The <see cref="string"/></returns>
         public string ToBase64String()
         {
@@ -255,6 +257,60 @@ namespace ImageSharp
                 stream.Flush();
                 return $"data:{this.CurrentImageFormat.Encoder.MimeType};base64,{Convert.ToBase64String(stream.ToArray())}";
             }
+        }
+
+        /// <summary>
+        /// Returns a copy of the image in the given pixel format.
+        /// </summary>
+        /// <param name="scaleFunc">A function that allows for the correction of vector scaling between unknown color formats.</param>
+        /// <typeparam name="TColor2">The pixel format.</typeparam>
+        /// <typeparam name="TPacked2">The packed format. <example>uint, long, float.</example></typeparam>
+        /// <returns>The <see cref="Image{TColor2, TPacked2}"/></returns>
+        public Image<TColor2, TPacked2> To<TColor2, TPacked2>(Func<Vector4, Vector4> scaleFunc = null)
+            where TColor2 : struct, IPackedPixel<TPacked2>
+            where TPacked2 : struct
+        {
+            scaleFunc = PackedPixelConverterHelper.ComputeScaleFunction<TColor, TColor2>(scaleFunc);
+
+            Image<TColor2, TPacked2> target = new Image<TColor2, TPacked2>(this.Width, this.Height)
+            {
+                Quality = this.Quality,
+                FrameDelay = this.FrameDelay,
+                HorizontalResolution = this.HorizontalResolution,
+                VerticalResolution = this.VerticalResolution,
+                CurrentImageFormat = this.CurrentImageFormat,
+                RepeatCount = this.RepeatCount
+            };
+
+            using (PixelAccessor<TColor, TPacked> pixels = this.Lock())
+            using (PixelAccessor<TColor2, TPacked2> targetPixels = target.Lock())
+            {
+                Parallel.For(
+                    0,
+                    target.Height,
+                    Bootstrapper.Instance.ParallelOptions,
+                    y =>
+                        {
+                            for (int x = 0; x < target.Width; x++)
+                            {
+                                TColor2 color = default(TColor2);
+                                color.PackFromVector4(scaleFunc(pixels[x, y].ToVector4()));
+                                targetPixels[x, y] = color;
+                            }
+                        });
+            }
+
+            if (this.ExifProfile != null)
+            {
+                target.ExifProfile = new ExifProfile(this.ExifProfile);
+            }
+
+            foreach (ImageFrame<TColor, TPacked> frame in this.Frames)
+            {
+                target.Frames.Add(frame.To<TColor2, TPacked2>());
+            }
+
+            return target;
         }
 
         /// <summary>
@@ -278,6 +334,10 @@ namespace ImageSharp
             }
         }
 
+        /// <summary>
+        /// Creates a new <see cref="ImageFrame{TColor,TPacked}"/> from this instance
+        /// </summary>
+        /// <returns>The <see cref="ImageFrame{TColor,TPacked}"/></returns>
         internal virtual ImageFrame<TColor, TPacked> ToFrame()
         {
             return new ImageFrame<TColor, TPacked>(this);

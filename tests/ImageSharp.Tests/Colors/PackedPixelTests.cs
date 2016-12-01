@@ -743,15 +743,21 @@ namespace ImageSharp.Tests.Colors
             byte[] bgra = new byte[4];
 
             new Short2(x, y).ToBytes(rgb, 0, ComponentOrder.XYZ);
+            Assert.Equal(rgb, new byte[] { 128, 127, 0 });
 
             new Short2(x, y).ToBytes(rgba, 0, ComponentOrder.XYZW);
+            Assert.Equal(rgba, new byte[] { 128, 127, 0, 255 });
 
             new Short2(x, y).ToBytes(bgr, 0, ComponentOrder.ZYX);
+            Assert.Equal(bgr, new byte[] { 0, 127, 128 });
 
             new Short2(x, y).ToBytes(bgra, 0, ComponentOrder.ZYXW);
+            Assert.Equal(bgra, new byte[] { 0, 127, 128, 255 });
 
             Short2 r = new Short2();
+            r.PackFromBytes(20, 38, 0, 255);
             r.ToBytes(rgba, 0, ComponentOrder.XYZW);
+            Assert.Equal(rgba, new byte[] { 20, 38, 0, 255 });
         }
 
         // Comparison helpers with small tolerance to allow for floating point rounding during computations.

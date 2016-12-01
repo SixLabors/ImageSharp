@@ -17,13 +17,14 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="scanline">The scanline to decode</param>
         /// <param name="previousScanline">The previous scanline.</param>
-        public static void Decode(byte[] scanline, byte[] previousScanline)
+        /// <param name="bytesPerScanline">The number of bytes per scanline</param>
+        public static void Decode(byte[] scanline, byte[] previousScanline, int bytesPerScanline)
         {
             // Up(x) + Prior(x)
             fixed (byte* scan = scanline)
             fixed (byte* prev = previousScanline)
             {
-                for (int x = 1; x < scanline.Length; x++)
+                for (int x = 1; x < bytesPerScanline; x++)
                 {
                     byte above = prev[x];
 

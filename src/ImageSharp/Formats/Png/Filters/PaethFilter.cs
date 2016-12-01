@@ -20,14 +20,15 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="scanline">The scanline to decode</param>
         /// <param name="previousScanline">The previous scanline.</param>
+        /// <param name="bytesPerScanline">The number of bytes per scanline</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
-        public static void Decode(byte[] scanline, byte[] previousScanline, int bytesPerPixel)
+        public static void Decode(byte[] scanline, byte[] previousScanline, int bytesPerScanline, int bytesPerPixel)
         {
             // Paeth(x) + PaethPredictor(Raw(x-bpp), Prior(x), Prior(x-bpp))
             fixed (byte* scan = scanline)
             fixed (byte* prev = previousScanline)
             {
-                for (int x = 1; x < scanline.Length; x++)
+                for (int x = 1; x < bytesPerScanline; x++)
                 {
                     byte left = (x - bytesPerPixel < 1) ? (byte)0 : scan[x - bytesPerPixel];
                     byte above = prev[x];

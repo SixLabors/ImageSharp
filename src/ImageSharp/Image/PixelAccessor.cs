@@ -104,8 +104,38 @@ namespace ImageSharp
         /// <returns>The <see typeparam="TColor"/> at the specified position.</returns>
         public TColor this[int x, int y]
         {
-            get { return Unsafe.Read<TColor>(this.pixelsBase + (((y * this.Width) + x) * Unsafe.SizeOf<TColor>())); }
-            set { Unsafe.Write(this.pixelsBase + (((y * this.Width) + x) * Unsafe.SizeOf<TColor>()), value); }
+            get
+            {
+#if DEBUG   
+                if (x < 0 || x >= this.Width)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(x), x, $"{x} is outwith the image bounds.");
+                }
+
+                if (y < 0 || y >= this.Height)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(y), y, $"{y} is outwith the image bounds.");
+                }
+#endif
+                return Unsafe.Read<TColor>(this.pixelsBase + (((y * this.Width) + x) * Unsafe.SizeOf<TColor>()));
+            }
+
+            set
+            {
+#if DEBUG   
+                if (x < 0 || x >= this.Width)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(x), x, $"{x} is outwith the image bounds.");
+                }
+
+                if (y < 0 || y >= this.Height)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(y), y, $"{y} is outwith the image bounds.");
+                }
+#endif
+
+                Unsafe.Write(this.pixelsBase + (((y * this.Width) + x) * Unsafe.SizeOf<TColor>()), value);
+            }
         }
 
         /// <summary>

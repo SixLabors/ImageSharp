@@ -16,7 +16,7 @@ namespace ImageSharp
         /// <summary>
         /// The maximum byte value.
         /// </summary>
-        private static readonly Vector4 MaxBytes = new Vector4(255);
+        private static readonly Vector2 MaxBytes = new Vector2(255);
 
         /// <summary>
         /// The half the maximum byte value.
@@ -113,6 +113,7 @@ namespace ImageSharp
             vector *= 255;
             vector += Half;
             vector += Round;
+            vector = Vector2.Clamp(vector, Vector2.Zero, MaxBytes);
 
             switch (componentOrder)
             {

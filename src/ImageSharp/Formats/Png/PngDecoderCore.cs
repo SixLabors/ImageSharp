@@ -341,7 +341,7 @@ namespace ImageSharp.Formats
 
             // Zero out the previousScanline, because the bytes that are rented from the arraypool may not be zero.
             Array.Clear(previousScanline, 0, this.bytesPerScanline);
-            
+
             try
             {
                 for (int y = 0; y < this.header.Height; y++)

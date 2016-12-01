@@ -340,10 +340,7 @@ namespace ImageSharp.Formats
             byte[] scanline = ArrayPool<byte>.Shared.Rent(this.bytesPerScanline);
 
             // Zero out the previousScanline, because the bytes that are rented from the arraypool may not be zero.
-            for (var i = 0; i < bytesPerScanline; i++)
-            {
-                previousScanline[i] = 0x00;
-            }
+            Array.Clear(previousScanline, 0, this.bytesPerScanline);
             
             try
             {

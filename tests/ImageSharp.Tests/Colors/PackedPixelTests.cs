@@ -468,6 +468,56 @@ namespace ImageSharp.Tests.Colors
             Assert.Equal(rgba, new byte[] { 9, 115, 202, 127 });
         }
 
+        [Fact]
+        public void NormalizedShort2()
+        {
+            Assert.Equal((uint)0x0, new NormalizedShort2(Vector2.Zero).PackedValue);
+            Assert.Equal((uint)0x7FFF7FFF, new NormalizedShort2(Vector2.One).PackedValue);
+            Assert.Equal(0x80018001, new NormalizedShort2(-Vector2.One).PackedValue);
+
+            Assert.True(Equal(Vector2.One, new NormalizedShort2(Vector2.One).ToVector2()));
+            Assert.True(Equal(Vector2.Zero, new NormalizedShort2(Vector2.Zero).ToVector2()));
+            Assert.True(Equal(-Vector2.One, new NormalizedShort2(-Vector2.One).ToVector2()));
+            Assert.True(Equal(Vector2.One, new NormalizedShort2(Vector2.One * 1234.0f).ToVector2()));
+            Assert.True(Equal(-Vector2.One, new NormalizedShort2(Vector2.One * -1234.0f).ToVector2()));
+
+            Assert.True(Equal(new Vector4(1, 1, 0, 1), (new NormalizedShort2(Vector2.One)).ToVector4()));
+            Assert.True(Equal(new Vector4(0, 0, 0, 1), (new NormalizedShort2(Vector2.Zero)).ToVector4()));
+
+            // Test Ordering
+            float x = 0.35f;
+            float y = -0.2f;
+            Assert.Equal(0xE6672CCC, new NormalizedShort2(x, y).PackedValue);
+            x = 0.1f;
+            y = -0.3f;
+            Assert.Equal(3650751693, new NormalizedShort2(x, y).PackedValue);
+
+            byte[] rgb = new byte[3];
+            byte[] rgba = new byte[4];
+            byte[] bgr = new byte[3];
+            byte[] bgra = new byte[4];
+
+            NormalizedShort2 n = new NormalizedShort2();
+            n.PackFromBytes(141, 90, 0, 0);
+            n.ToBytes(rgb, 0, ComponentOrder.XYZ);
+            Assert.Equal(rgb, new byte[] { 141, 90, 0 });
+
+            // TODO: I don't think this can ever pass since the bytes are already truncated.
+            // Assert.Equal(3650751693, n.PackedValue);
+
+            new NormalizedShort2(x, y).ToBytes(rgb, 0, ComponentOrder.XYZ);
+            Assert.Equal(rgb, new byte[] { 141, 90, 0 });
+
+            new NormalizedShort2(x, y).ToBytes(rgba, 0, ComponentOrder.XYZW);
+            Assert.Equal(rgba, new byte[] { 141, 90, 0, 255 });
+
+            new NormalizedShort2(x, y).ToBytes(bgr, 0, ComponentOrder.ZYX);
+            Assert.Equal(bgr, new byte[] { 0, 90, 141 });
+
+            new NormalizedShort2(x, y).ToBytes(bgra, 0, ComponentOrder.ZYXW);
+            Assert.Equal(bgra, new byte[] { 0, 90, 141, 255 });
+        }
+
         // Comparison helpers with small tolerance to allow for floating point rounding during computations.
         public static bool Equal(float a, float b)
         {

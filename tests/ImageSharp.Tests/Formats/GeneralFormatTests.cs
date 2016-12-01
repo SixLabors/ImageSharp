@@ -7,6 +7,7 @@ namespace ImageSharp.Tests
 {
     using System;
     using System.IO;
+    using System.Numerics;
 
     using Xunit;
 
@@ -62,8 +63,8 @@ namespace ImageSharp.Tests
                 // Image<HalfVector4, ulong> image = file.CreateImage().To<HalfVector4, ulong>();
                 // Image<NormalizedByte2, ushort> image = file.CreateImage().To<NormalizedByte2, ushort>();
 
-                // TODO: Conversion between types who's vector ranges are different are not possible.
-                // Image<NormalizedByte4, uint> image = file.CreateImage().To<NormalizedByte4, uint>();
+                // TODO: Conversion between types who's vector ranges are different are not possible without scaling function, Make static version of known ones.
+                // Image<NormalizedByte4, uint> image = file.CreateImage().To<NormalizedByte4, uint>(v => (2F * v) - Vector4.One);
 
                 using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                 {

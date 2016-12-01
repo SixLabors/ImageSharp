@@ -82,8 +82,8 @@ namespace ImageSharp
         /// <summary>
         /// Multiplies the complements of the backdrop and source color values, then complements the result.
         /// <remarks>
-        /// The result color is always at least as light as either of the two constituent colors. Screening any 
-        /// color with white produces white; screening with black leaves the original color unchanged. 
+        /// The result color is always at least as light as either of the two constituent colors. Screening any
+        /// color with white produces white; screening with black leaves the original color unchanged.
         /// The effect is similar to projecting multiple photographic slides simultaneously onto a single screen.
         /// </remarks>
         /// </summary>
@@ -99,7 +99,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Multiplies or screens the colors, depending on the source color value. The effect is similar to 
+        /// Multiplies or screens the colors, depending on the source color value. The effect is similar to
         /// shining a harsh spotlight on the backdrop.
         /// </summary>
         /// <param name="backdrop">The backdrop color.</param>
@@ -116,7 +116,7 @@ namespace ImageSharp
         /// <summary>
         /// Multiplies or screens the colors, depending on the backdrop color value.
         /// <remarks>
-        /// Source colors overlay the backdrop while preserving its highlights and shadows. 
+        /// Source colors overlay the backdrop while preserving its highlights and shadows.
         /// The backdrop color is not replaced but is mixed with the source color to reflect the lightness or darkness
         /// of the backdrop.
         /// </remarks>
@@ -133,7 +133,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Selects the darker of the backdrop and source colors. 
+        /// Selects the darker of the backdrop and source colors.
         /// The backdrop is replaced with the source where the source is darker; otherwise, it is left unchanged.
         /// </summary>
         /// <param name="backdrop">The backdrop color.</param>
@@ -148,7 +148,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Selects the lighter of the backdrop and source colors. 
+        /// Selects the lighter of the backdrop and source colors.
         /// The backdrop is replaced with the source where the source is lighter; otherwise, it is left unchanged.
         /// </summary>
         /// <param name="backdrop">The backdrop color.</param>
@@ -221,7 +221,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Produces an effect similar to that of the <see cref="Difference"/> mode but lower in contrast. Painting with white 
+        /// Produces an effect similar to that of the <see cref="Difference"/> mode but lower in contrast. Painting with white
         /// inverts the backdrop color; painting with black produces no change
         /// </summary>
         /// <param name="backdrop">The backdrop color.</param>

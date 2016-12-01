@@ -14,7 +14,7 @@ namespace ImageSharp
     public struct Bgra5551 : IPackedPixel<ushort>, IEquatable<Bgra5551>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="Bgra5551"/> struct. 
+        /// Initializes a new instance of the <see cref="Bgra5551"/> struct.
         /// </summary>
         /// <param name="x">The x-component</param>
         /// <param name="y">The y-component</param>

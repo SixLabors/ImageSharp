@@ -27,7 +27,7 @@ namespace ImageSharp
             byte* source = row.PixelBase;
             byte* destination = this.GetRowPointer(targetY) + targetX;
 
-            Unsafe.CopyBlock(destination, source, (uint) width * 4);
+            Unsafe.CopyBlock(destination, source, (uint)width * 4);
         }
 
         /// <inheritdoc />
@@ -38,7 +38,7 @@ namespace ImageSharp
 
             for (int x = 0; x < width; x++)
             {
-                Unsafe.Write(destination, (uint)(*(source) << 0 | *(source + 1) << 8 | *(source + 2) << 16 | 255 << 24));
+                Unsafe.Write(destination, (uint)(*source << 0 | *(source + 1) << 8 | *(source + 2) << 16 | 255 << 24));
 
                 source += 3;
                 destination += 4;

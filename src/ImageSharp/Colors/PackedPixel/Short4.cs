@@ -29,7 +29,7 @@ namespace ImageSharp
         private static readonly Vector4 Round = new Vector4(.5F);
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Short4"/> struct. 
+        /// Initializes a new instance of the <see cref="Short4"/> struct.
         /// </summary>
         /// <param name="vector">A vector containing the initial values for the components.</param>
         public Short4(Vector4 vector)
@@ -38,7 +38,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Short4"/> struct. 
+        /// Initializes a new instance of the <see cref="Short4"/> struct.
         /// </summary>
         /// <param name="x">The x-component.</param>
         /// <param name="y">The y-component.</param>

@@ -89,7 +89,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Selects the minimum of the backdrop and source vectors. 
+        /// Selects the minimum of the backdrop and source vectors.
         /// </summary>
         /// <param name="backdrop">The backdrop vector.</param>
         /// <param name="source">The source vector.</param>
@@ -104,7 +104,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Selects the max of the backdrop and source vector. 
+        /// Selects the max of the backdrop and source vector.
         /// </summary>
         /// <param name="backdrop">The backdrop vector.</param>
         /// <param name="source">The source vector.</param>

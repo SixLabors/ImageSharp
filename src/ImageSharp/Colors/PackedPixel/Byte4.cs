@@ -14,7 +14,7 @@ namespace ImageSharp
     public struct Byte4 : IPackedPixel<uint>, IEquatable<Byte4>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="Byte4"/> struct. 
+        /// Initializes a new instance of the <see cref="Byte4"/> struct.
         /// </summary>
         /// <param name="vector">
         /// A vector containing the initial values for the components of the Byte4 structure.
@@ -25,7 +25,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Byte4"/> struct. 
+        /// Initializes a new instance of the <see cref="Byte4"/> struct.
         /// </summary>
         /// <param name="x">The x-component</param>
         /// <param name="y">The y-component</param>

@@ -63,6 +63,7 @@ namespace ImageSharp.Tests
                 // Image<HalfVector4, ulong> image = file.CreateImage().To<HalfVector4, ulong>();
                 // Image<Rg32, uint> image = file.CreateImage().To<Rg32, uint>();
                 // Image<Rgba1010102, uint> image = file.CreateImage().To<Rgba1010102, uint>();
+                // Image<Rgba64, ulong> image = file.CreateImage().To<Rgba64, ulong>();
 
                 // TODO: Conversion between types who's vector ranges are different are not possible without scaling function, Make static version of known ones.
                 // Image<NormalizedByte2, ushort> image = file.CreateImage().To<NormalizedByte2, ushort>(v => (2F * v) - Vector4.One);

@@ -657,6 +657,54 @@ namespace ImageSharp.Tests.Colors
             Assert.Equal(rgba, new byte[] { 25, 0, 128, 0 });
         }
 
+        [Fact]
+        public void Rgba64()
+        {
+            // Test the limits.
+            Assert.Equal((ulong)0x0, new Rgba64(Vector4.Zero).PackedValue);
+            Assert.Equal(0xFFFFFFFFFFFFFFFF, new Rgba64(Vector4.One).PackedValue);
+
+            // Test ToVector4
+            Assert.True(Equal(Vector4.Zero, new Rgba64(Vector4.Zero).ToVector4()));
+            Assert.True(Equal(Vector4.One, new Rgba64(Vector4.One).ToVector4()));
+
+            // Test clamping.
+            Assert.True(Equal(Vector4.Zero, new Rgba64(Vector4.One * -1234.0f).ToVector4()));
+            Assert.True(Equal(Vector4.One, new Rgba64(Vector4.One * 1234.0f).ToVector4()));
+
+            // Test data ordering
+            Assert.Equal(0xC7AD8F5C570A1EB8, new Rgba64(((float)0x1EB8) / 0xffff, ((float)0x570A) / 0xffff, ((float)0x8F5C) / 0xffff, ((float)0xC7AD) / 0xffff).PackedValue);
+            Assert.Equal(0xC7AD8F5C570A1EB8, new Rgba64(0.12f, 0.34f, 0.56f, 0.78f).PackedValue);
+
+            float x = 0.08f;
+            float y = 0.15f;
+            float z = 0.30f;
+            float w = 0.45f;
+            Assert.Equal((ulong)0x73334CCC2666147B, new Rgba64(x, y, z, w).PackedValue);
+
+            byte[] rgb = new byte[3];
+            byte[] rgba = new byte[4];
+            byte[] bgr = new byte[3];
+            byte[] bgra = new byte[4];
+
+            new Rgba64(x, y, z, w).ToBytes(rgb, 0, ComponentOrder.XYZ);
+            Assert.Equal(rgb, new byte[] { 20, 38, 76 });
+
+            new Rgba64(x, y, z, w).ToBytes(rgba, 0, ComponentOrder.XYZW);
+            Assert.Equal(rgba, new byte[] { 20, 38, 76, 115 });
+
+            new Rgba64(x, y, z, w).ToBytes(bgr, 0, ComponentOrder.ZYX);
+            Assert.Equal(bgr, new byte[] { 76, 38, 20 });
+
+            new Rgba64(x, y, z, w).ToBytes(bgra, 0, ComponentOrder.ZYXW);
+            Assert.Equal(bgra, new byte[] { 76, 38, 20, 115 });
+
+            Rgba64 r = new Rgba64();
+            r.PackFromBytes(20, 38, 76, 115);
+            r.ToBytes(rgba, 0, ComponentOrder.XYZW);
+            Assert.Equal(rgba, new byte[] { 20, 38, 76, 115 });
+        }
+
         // Comparison helpers with small tolerance to allow for floating point rounding during computations.
         public static bool Equal(float a, float b)
         {

@@ -64,14 +64,12 @@ namespace ImageSharp.Tests
                 // Image<Rg32, uint> image = file.CreateImage().To<Rg32, uint>();
                 // Image<Rgba1010102, uint> image = file.CreateImage().To<Rgba1010102, uint>();
                 // Image<Rgba64, ulong> image = file.CreateImage().To<Rgba64, ulong>();
-
-                // TODO: Conversion between types who's vector ranges are different are not possible without scaling function, Make static version of known ones.
-                // Image<NormalizedByte2, ushort> image = file.CreateImage().To<NormalizedByte2, ushort>(v => (2F * v) - Vector4.One);
-                // Image<NormalizedByte4, uint> image = file.CreateImage().To<NormalizedByte4, uint>(v => (2F * v) - Vector4.One);
-                // Image<NormalizedShort2, uint> image = file.CreateImage().To<NormalizedShort2, uint>(v => (2F * v) - Vector4.One);
-                // Image<NormalizedShort4, ulong> image = file.CreateImage().To<NormalizedShort4, ulong>(v => (2F * v) - Vector4.One);
-                // Image<Short2, uint> image = file.CreateImage().To<Short2, uint>(v => (65534 * v) - new Vector4(32767));
-
+                // Image<NormalizedByte2, ushort> image = file.CreateImage().To<NormalizedByte2, ushort>();
+                // Image<NormalizedByte4, uint> image = file.CreateImage().To<NormalizedByte4, uint>();
+                // Image<NormalizedShort2, uint> image = file.CreateImage().To<NormalizedShort2, uint>();
+                // Image<NormalizedShort4, ulong> image = file.CreateImage().To<NormalizedShort4, ulong>();
+                // Image<Short2, uint> image = file.CreateImage().To<Short2, uint>();
+                // Image<Short4, ulong> image = file.CreateImage().To<Short4, ulong>();
                 using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                 {
                     image.Save(output);

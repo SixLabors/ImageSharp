@@ -14,7 +14,7 @@ namespace ImageSharp
     public struct Alpha8 : IPackedPixel<byte>, IEquatable<Alpha8>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="Alpha8"/> struct. 
+        /// Initializes a new instance of the <see cref="Alpha8"/> struct.
         /// </summary>
         /// <param name="alpha">The alpha component</param>
         public Alpha8(float alpha)

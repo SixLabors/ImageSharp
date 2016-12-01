@@ -99,6 +99,7 @@ namespace ImageSharp
                         exponent--;
                         mantissa = mantissa << 1;
                     }
+
                     mantissa &= 0xfffffbff;
                     result = ((uint)((((uint)value & 0x8000) << 16) | ((exponent + 127) << 23))) | (mantissa << 13);
                 }

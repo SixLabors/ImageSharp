@@ -106,7 +106,7 @@ namespace ImageSharp
         {
             get
             {
-#if DEBUG   
+#if DEBUG  
                 if (x < 0 || x >= this.Width)
                 {
                     throw new ArgumentOutOfRangeException(nameof(x), x, $"{x} is outwith the image bounds.");
@@ -122,7 +122,7 @@ namespace ImageSharp
 
             set
             {
-#if DEBUG   
+#if DEBUG  
                 if (x < 0 || x >= this.Width)
                 {
                     throw new ArgumentOutOfRangeException(nameof(x), x, $"{x} is outwith the image bounds.");
@@ -252,6 +252,14 @@ namespace ImageSharp
             // and prevent finalization code for this object
             // from executing a second time.
             GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Resets all the pixels to it's initial value.
+        /// </summary>
+        internal void Reset()
+        {
+            Unsafe.InitBlock(this.pixelsBase, 0, (uint)(this.RowStride * this.Height));
         }
 
         /// <summary>
@@ -428,14 +436,6 @@ namespace ImageSharp
         protected byte* GetRowPointer(int targetY)
         {
             return this.pixelsBase + ((targetY * this.Width) * Unsafe.SizeOf<TColor>());
-        }
-
-        /// <summary>
-        /// Resets all the pixels to it's initial value.
-        /// </summary>
-        internal void Reset()
-        {
-            Unsafe.InitBlock(this.pixelsBase, 0, (uint)(this.RowStride * this.Height));
         }
     }
 }

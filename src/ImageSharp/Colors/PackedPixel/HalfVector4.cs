@@ -32,8 +32,8 @@ namespace ImageSharp
         /// <param name="w">The w-component.</param>
         public HalfVector4(float x, float y, float z, float w)
         {
-            var vector = new Vector4(x, y, z, w);
-            this.PackedValue = PackHelper(ref vector);
+            Vector4 vector = new Vector4(x, y, z, w);
+            this.PackedValue = Pack(ref vector);
         }
 
         /// <summary>
@@ -42,7 +42,7 @@ namespace ImageSharp
         /// <param name="vector">A vector containing the initial values for the components</param>
         public HalfVector4(Vector4 vector)
         {
-            this.PackedValue = PackHelper(ref vector);
+            this.PackedValue = Pack(ref vector);
         }
 
         /// <inheritdoc />
@@ -85,7 +85,7 @@ namespace ImageSharp
         /// <inheritdoc />
         public void PackFromVector4(Vector4 vector)
         {
-            this.PackedValue = PackHelper(ref vector);
+            this.PackedValue = Pack(ref vector);
         }
 
         /// <inheritdoc />
@@ -170,7 +170,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="vector">The vector containing the values to pack.</param>
         /// <returns>The <see cref="ulong"/> containing the packed values.</returns>
-        private static ulong PackHelper(ref Vector4 vector)
+        private static ulong Pack(ref Vector4 vector)
         {
             ulong num4 = HalfTypeHelper.Pack(vector.X);
             ulong num3 = (ulong)HalfTypeHelper.Pack(vector.Y) << 0x10;

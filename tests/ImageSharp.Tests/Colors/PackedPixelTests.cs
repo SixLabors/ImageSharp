@@ -249,6 +249,11 @@ namespace ImageSharp.Tests.Colors
 
             new Byte4(x, y, z, w).ToBytes(bgra, 0, ComponentOrder.ZYXW);
             Assert.Equal(bgra, new byte[] { 0, 0, 128, 0 });
+
+            Byte4 r = new Byte4();
+            r.PackFromBytes(20, 38, 0, 255);
+            r.ToBytes(rgba, 0, ComponentOrder.XYZW);
+            Assert.Equal(rgba, new byte[] { 20, 38, 0, 255 });
         }
 
         [Fact]

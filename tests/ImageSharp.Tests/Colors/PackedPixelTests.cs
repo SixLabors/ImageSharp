@@ -92,16 +92,16 @@ namespace ImageSharp.Tests.Colors
             byte[] bgra = new byte[4];
 
             new Bgr565(x, y, z).ToBytes(rgb, 0, ComponentOrder.XYZ);
-            Assert.Equal(rgb, new byte[] { 24, 0, 131 });
+            Assert.Equal(rgb, new byte[] { 25, 0, 132 });
 
             new Bgr565(x, y, z).ToBytes(rgba, 0, ComponentOrder.XYZW);
-            Assert.Equal(rgba, new byte[] { 24, 0, 131, 255 });
+            Assert.Equal(rgba, new byte[] { 25, 0, 132, 255 });
 
             new Bgr565(x, y, z).ToBytes(bgr, 0, ComponentOrder.ZYX);
-            Assert.Equal(bgr, new byte[] { 131, 0, 24 });
+            Assert.Equal(bgr, new byte[] { 132, 0, 25 });
 
             new Bgr565(x, y, z).ToBytes(bgra, 0, ComponentOrder.ZYXW);
-            Assert.Equal(bgra, new byte[] { 131, 0, 24, 255 });
+            Assert.Equal(bgra, new byte[] { 132, 0, 25, 255 });
         }
 
         [Fact]
@@ -604,6 +604,57 @@ namespace ImageSharp.Tests.Colors
 
             new Rg32(x, y).ToBytes(bgra, 0, ComponentOrder.ZYXW);
             Assert.Equal(bgra, new byte[] { 0, 0, 25, 255 });
+        }
+
+        [Fact]
+        public void Rgba1010102()
+        {
+            // Test the limits.
+            Assert.Equal((uint)0x0, new Rgba1010102(Vector4.Zero).PackedValue);
+            Assert.Equal(0xFFFFFFFF, new Rgba1010102(Vector4.One).PackedValue);
+
+            // Test ToVector4
+            Assert.True(Equal(Vector4.Zero, new Rgba1010102(Vector4.Zero).ToVector4()));
+            Assert.True(Equal(Vector4.One, new Rgba1010102(Vector4.One).ToVector4()));
+
+            // Test clamping.
+            Assert.True(Equal(Vector4.Zero, new Rgba1010102(Vector4.One * -1234.0f).ToVector4()));
+            Assert.True(Equal(Vector4.One, new Rgba1010102(Vector4.One * 1234.0f).ToVector4()));
+
+            // Test Ordering
+            float x = 0x2db;
+            float y = 0x36d;
+            float z = 0x3b7;
+            float w = 0x1;
+            Assert.Equal((uint)0x7B7DB6DB, new Rgba1010102(x / 0x3ff, y / 0x3ff, z / 0x3ff, w / 3).PackedValue);
+            x = 0.1f;
+            y = -0.3f;
+            z = 0.5f;
+            w = -0.7f;
+            Assert.Equal((uint)536871014, new Rgba1010102(x, y, z, w).PackedValue);
+
+            byte[] rgb = new byte[3];
+            byte[] rgba = new byte[4];
+            byte[] bgr = new byte[3];
+            byte[] bgra = new byte[4];
+
+            new Rgba1010102(x, y, z, w).ToBytes(rgb, 0, ComponentOrder.XYZ);
+            Assert.Equal(rgb, new byte[] { 25, 0, 128 });
+
+            new Rgba1010102(x, y, z, w).ToBytes(rgba, 0, ComponentOrder.XYZW);
+            Assert.Equal(rgba, new byte[] { 25, 0, 128, 0 });
+
+            new Rgba1010102(x, y, z, w).ToBytes(bgr, 0, ComponentOrder.ZYX);
+            Assert.Equal(bgr, new byte[] { 128, 0, 25 });
+
+            new Rgba1010102(x, y, z, w).ToBytes(bgra, 0, ComponentOrder.ZYXW);
+            Assert.Equal(bgra, new byte[] { 128, 0, 25, 0 });
+
+            // Alpha component accuracy will be awful.
+            Rgba1010102 r = new Rgba1010102();
+            r.PackFromBytes(25, 0, 128, 0);
+            r.ToBytes(rgba, 0, ComponentOrder.XYZW);
+            Assert.Equal(rgba, new byte[] { 25, 0, 128, 0 });
         }
 
         // Comparison helpers with small tolerance to allow for floating point rounding during computations.

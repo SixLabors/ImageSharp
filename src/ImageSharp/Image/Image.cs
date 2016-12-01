@@ -261,13 +261,8 @@ namespace ImageSharp
 
         /// <summary>
         /// Returns a copy of the image in the given pixel format.
-        /// <remarks>
-        /// Most color formats when converted to vectors have a range of <value>0</value> to <value>1</value>. Some however, <see cref="NormalizedByte4"/>, for example scale between
-        /// <value>-1</value> to <value>1</value>. This requires additional computation to convert between the formats. 
-        /// For example, if I wanted to convert from <see cref="Color"/> to <see cref="NormalizedByte4"/> the following function would be required. <example>v => (2F * v) - Vector4.One</example>
-        /// </remarks>
         /// </summary>
-        /// <param name="scaleFunc">A function that allows for the correction of vector scaling between color formats.</param>
+        /// <param name="scaleFunc">A function that allows for the correction of vector scaling between unknown color formats.</param>
         /// <typeparam name="TColor2">The pixel format.</typeparam>
         /// <typeparam name="TPacked2">The packed format. <example>uint, long, float.</example></typeparam>
         /// <returns>The <see cref="Image{TColor2, TPacked2}"/></returns>
@@ -275,10 +270,7 @@ namespace ImageSharp
             where TColor2 : struct, IPackedPixel<TPacked2>
             where TPacked2 : struct
         {
-            if (scaleFunc == null)
-            {
-                scaleFunc = v => v;
-            }
+            scaleFunc = PackedPixelConverterHelper.ComputeScaleFunction<TColor, TColor2>(scaleFunc);
 
             Image<TColor2, TPacked2> target = new Image<TColor2, TPacked2>(this.Width, this.Height)
             {

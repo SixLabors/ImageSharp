@@ -14,7 +14,7 @@ namespace ImageSharp
     public struct Bgra4444 : IPackedPixel<ushort>, IEquatable<Bgra4444>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="Bgra4444"/> struct. 
+        /// Initializes a new instance of the <see cref="Bgra4444"/> struct.
         /// </summary>
         /// <param name="x">The x-component</param>
         /// <param name="y">The y-component</param>
@@ -26,7 +26,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Bgra4444"/> struct. 
+        /// Initializes a new instance of the <see cref="Bgra4444"/> struct.
         /// </summary>
         /// <param name="vector">The vector containing the components for the packed vector.</param>
         public Bgra4444(Vector4 vector)

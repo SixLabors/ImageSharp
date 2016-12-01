@@ -179,6 +179,14 @@ namespace ImageSharp
         }
 
         /// <summary>
+        /// Resets the bytes of the array to it's initial value.
+        /// </summary>
+        internal void Reset()
+        {
+            Unsafe.InitBlock(this.PixelBase, 0, (uint)this.Bytes.Length);
+        }
+
+        /// <summary>
         /// Gets component count for the given order.
         /// </summary>
         /// <param name="componentOrder">The component order.</param>
@@ -201,14 +209,6 @@ namespace ImageSharp
             }
 
             throw new NotSupportedException();
-        }
-
-        /// <summary>
-        /// Resets the bytes of the array to it's initial value.
-        /// </summary>
-        internal void Reset()
-        {
-            Unsafe.InitBlock(this.PixelBase, 0, (uint)this.Bytes.Length);
         }
     }
 }

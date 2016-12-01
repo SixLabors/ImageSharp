@@ -14,7 +14,7 @@ namespace ImageSharp
     public struct Bgr565 : IPackedPixel<ushort>, IEquatable<Bgr565>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="Bgr565"/> struct. 
+        /// Initializes a new instance of the <see cref="Bgr565"/> struct.
         /// </summary>
         /// <param name="x">The x-component</param>
         /// <param name="y">The y-component</param>
@@ -25,7 +25,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Bgr565"/> struct. 
+        /// Initializes a new instance of the <see cref="Bgr565"/> struct.
         /// </summary>
         /// <param name="vector">
         /// The vector containing the components for the packed value.

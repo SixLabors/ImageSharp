@@ -86,7 +86,8 @@ namespace ImageSharp
 
             // Now to LAB
             x /= 0.95047F;
-            //y /= 1F;
+           
+            // y /= 1F;
             z /= 1.08883F;
 
             x = x > 0.008856F ? (float)Math.Pow(x, 0.3333333F) : ((903.3F * x) + 16F) / 116F;

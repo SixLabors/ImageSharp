@@ -48,25 +48,25 @@ namespace ImageSharp
                 return FromStandardType(target);
             }
 
-            // Normalized offsets. All four components. 
+            // Normalized offsets. All four components.
             if (IsOffsetNormalizedType(source))
             {
                 return FromOffsetNormalizedType(target);
             }
 
-            // Offset. All four components. 
+            // Offset. All four components.
             if (IsOffsetType(source))
             {
                 return FromOffsetType(target);
             }
 
-            // Normalized offsets. First component pair only. 
+            // Normalized offsets. First component pair only.
             if (IsOffsetTwoComponentNormalizedType(source))
             {
                 return FromOffsetTwoComponentNormalizedType(target);
             }
 
-            // Offsets. First component pair only. 
+            // Offsets. First component pair only.
             if (IsOffsetTwoComponentType(source))
             {
                 return FromOffsetTwoComponentType(target);
@@ -200,7 +200,7 @@ namespace ImageSharp
             {
                 return vector4 =>
                 {
-                    // Compress the range then offset the center up for first pair. 
+                    // Compress the range then offset the center up for first pair.
                     Vector4 v = (vector4 / 2F) + new Vector4(.5F);
                     return new Vector4(v.X, v.Y, 0F, 1F);
                 };
@@ -210,7 +210,7 @@ namespace ImageSharp
             {
                 return vector4 =>
                 {
-                    // Compress the range, multiply, then offset the center up for first pair. 
+                    // Compress the range, multiply, then offset the center up for first pair.
                     Vector4 v = ((vector4 / 2F) * 255F) + new Vector4(127.5F);
                     return new Vector4(v.X, v.Y, 0F, 255F);
                 };

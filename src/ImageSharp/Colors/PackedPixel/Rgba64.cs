@@ -14,7 +14,7 @@ namespace ImageSharp
     public struct Rgba64 : IPackedPixel<ulong>, IEquatable<Rgba64>, IPackedVector
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="Rgba64"/> struct. 
+        /// Initializes a new instance of the <see cref="Rgba64"/> struct.
         /// </summary>
         /// <param name="x">The x-component</param>
         /// <param name="y">The y-component</param>
@@ -26,7 +26,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Rgba64"/> struct. 
+        /// Initializes a new instance of the <see cref="Rgba64"/> struct.
         /// </summary>
         /// <param name="vector">The vector containing the components values.</param>
         public Rgba64(Vector4 vector)

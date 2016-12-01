@@ -518,6 +518,52 @@ namespace ImageSharp.Tests.Colors
             Assert.Equal(bgra, new byte[] { 0, 90, 141, 255 });
         }
 
+        [Fact]
+        public void NormalizedShort4()
+        {
+            // Test PackedValue
+            Assert.Equal((ulong)0x0, new NormalizedShort4(Vector4.Zero).PackedValue);
+            Assert.Equal((ulong)0x7FFF7FFF7FFF7FFF, new NormalizedShort4(Vector4.One).PackedValue);
+            Assert.Equal(0x8001800180018001, new NormalizedShort4(-Vector4.One).PackedValue);
+
+            // Test ToVector4
+            Assert.True(Equal(Vector4.One, new NormalizedShort4(Vector4.One).ToVector4()));
+            Assert.True(Equal(Vector4.Zero, new NormalizedShort4(Vector4.Zero).ToVector4()));
+            Assert.True(Equal(-Vector4.One, new NormalizedShort4(-Vector4.One).ToVector4()));
+            Assert.True(Equal(Vector4.One, new NormalizedShort4(Vector4.One * 1234.0f).ToVector4()));
+            Assert.True(Equal(-Vector4.One, new NormalizedShort4(Vector4.One * -1234.0f).ToVector4()));
+
+            // Test Ordering
+            float x = 0.1f;
+            float y = -0.3f;
+            float z = 0.5f;
+            float w = -0.7f;
+            Assert.Equal(0xa6674000d99a0ccd, new NormalizedShort4(x, y, z, w).PackedValue);
+            Assert.Equal((ulong)4150390751449251866, new NormalizedShort4(0.0008f, 0.15f, 0.30f, 0.45f).PackedValue);
+
+            byte[] rgb = new byte[3];
+            byte[] rgba = new byte[4];
+            byte[] bgr = new byte[3];
+            byte[] bgra = new byte[4];
+
+            new NormalizedShort4(x, y, z, w).ToBytes(rgb, 0, ComponentOrder.XYZ);
+            Assert.Equal(rgb, new byte[] { 141, 90, 192 });
+
+            new NormalizedShort4(x, y, z, w).ToBytes(rgba, 0, ComponentOrder.XYZW);
+            Assert.Equal(rgba, new byte[] { 141, 90, 192, 39 });
+
+            new NormalizedShort4(x, y, z, w).ToBytes(bgr, 0, ComponentOrder.ZYX);
+            Assert.Equal(bgr, new byte[] { 192, 90, 141 });
+
+            new NormalizedShort4(x, y, z, w).ToBytes(bgra, 0, ComponentOrder.ZYXW);
+            Assert.Equal(bgra, new byte[] { 192, 90, 141, 39 });
+
+            NormalizedShort4 r = new NormalizedShort4();
+            r.PackFromBytes(9, 115, 202, 127);
+            r.ToBytes(rgba, 0, ComponentOrder.XYZW);
+            Assert.Equal(rgba, new byte[] { 9, 115, 202, 127 });
+        }
+
         // Comparison helpers with small tolerance to allow for floating point rounding during computations.
         public static bool Equal(float a, float b)
         {

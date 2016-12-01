@@ -66,6 +66,7 @@ namespace ImageSharp.Tests
                 // Image<NormalizedByte2, ushort> image = file.CreateImage().To<NormalizedByte2, ushort>(v => (2F * v) - Vector4.One);
                 // Image<NormalizedByte4, uint> image = file.CreateImage().To<NormalizedByte4, uint>(v => (2F * v) - Vector4.One);
                 // Image<NormalizedShort2, uint> image = file.CreateImage().To<NormalizedShort2, uint>(v => (2F * v) - Vector4.One);
+                // Image<NormalizedShort4, ulong> image = file.CreateImage().To<NormalizedShort4, ulong>(v => (2F * v) - Vector4.One);
                 using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                 {
                     image.Save(output);

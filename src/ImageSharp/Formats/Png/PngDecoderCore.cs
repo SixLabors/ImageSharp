@@ -197,11 +197,12 @@ namespace ImageSharp.Formats
         /// by a the specified number of bits.
         /// </summary>
         /// <param name="source">The bytes to convert from. Cannot be null.</param>
+        /// <param name="bytesPerScanline">The number of bytes per scanline</param>
         /// <param name="bits">The number of bits per value.</param>
         /// <returns>The resulting <see cref="T:byte[]"/> array. Is never null.</returns>
         /// <exception cref="System.ArgumentNullException"><paramref name="source"/> is null.</exception>
         /// <exception cref="System.ArgumentException"><paramref name="bits"/> is less than or equals than zero.</exception>
-        private static byte[] ToArrayByBitsLength(byte[] source, int bits)
+        private static byte[] ToArrayByBitsLength(byte[] source, int bytesPerScanline, int bits)
         {
             Guard.NotNull(source, nameof(source));
             Guard.MustBeGreaterThan(bits, 0, nameof(bits));
@@ -210,12 +211,12 @@ namespace ImageSharp.Formats
 
             if (bits < 8)
             {
-                result = new byte[source.Length * 8 / bits];
+                result = new byte[bytesPerScanline * 8 / bits];
                 int mask = 0xFF >> (8 - bits);
                 int resultOffset = 0;
 
                 // ReSharper disable once ForCanBeConvertedToForeach
-                for (int i = 0; i < source.Length; i++)
+                for (int i = 0; i < bytesPerScanline; i++)
                 {
                     byte b = source[i];
                     for (int shift = 0; shift < 8; shift += bits)
@@ -338,6 +339,9 @@ namespace ImageSharp.Formats
             byte[] previousScanline = ArrayPool<byte>.Shared.Rent(this.bytesPerScanline);
             byte[] scanline = ArrayPool<byte>.Shared.Rent(this.bytesPerScanline);
 
+            // Zero out the previousScanline, because the bytes that are rented from the arraypool may not be zero.
+            Array.Clear(previousScanline, 0, this.bytesPerScanline);
+            
             try
             {
                 for (int y = 0; y < this.header.Height; y++)
@@ -356,25 +360,25 @@ namespace ImageSharp.Formats
 
                         case FilterType.Sub:
 
-                            SubFilter.Decode(scanline, this.bytesPerPixel);
+                            SubFilter.Decode(scanline, this.bytesPerScanline, this.bytesPerPixel);
 
                             break;
 
                         case FilterType.Up:
 
-                            UpFilter.Decode(scanline, previousScanline);
+                            UpFilter.Decode(scanline, previousScanline, this.bytesPerScanline);
 
                             break;
 
                         case FilterType.Average:
 
-                            AverageFilter.Decode(scanline, previousScanline, this.bytesPerPixel);
+                            AverageFilter.Decode(scanline, previousScanline, this.bytesPerScanline, this.bytesPerPixel);
 
                             break;
 
                         case FilterType.Paeth:
 
-                            PaethFilter.Decode(scanline, previousScanline, this.bytesPerPixel);
+                            PaethFilter.Decode(scanline, previousScanline, this.bytesPerScanline, this.bytesPerPixel);
 
                             break;
 
@@ -411,7 +415,7 @@ namespace ImageSharp.Formats
             {
                 case PngColorType.Grayscale:
                     int factor = 255 / ((int)Math.Pow(2, this.header.BitDepth) - 1);
-                    byte[] newScanline1 = ToArrayByBitsLength(defilteredScanline, this.header.BitDepth);
+                    byte[] newScanline1 = ToArrayByBitsLength(defilteredScanline, this.bytesPerScanline, this.header.BitDepth);
                     for (int x = 0; x < this.header.Width; x++)
                     {
                         int offset = 1 + ((x + 1) * this.bytesPerPixel);
@@ -439,7 +443,7 @@ namespace ImageSharp.Formats
 
                 case PngColorType.Palette:
 
-                    byte[] newScanline = ToArrayByBitsLength(defilteredScanline, this.header.BitDepth);
+                    byte[] newScanline = ToArrayByBitsLength(defilteredScanline, this.bytesPerScanline, this.header.BitDepth);
 
                     if (this.paletteAlpha != null && this.paletteAlpha.Length > 0)
                     {

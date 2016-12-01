@@ -208,7 +208,7 @@ namespace ImageSharp
         /// </returns>
         private static float BlendSoftLight(float b, float s)
         {
-            return s <= .5F ? (2F * b * s + b * b * (1F - 2F * s)) : (float)(Math.Sqrt(b) * (2F * s - 1F) + 2F * b * (1F - s));
+            return s <= .5F ? ((2F * b * s) + (b * b * (1F - (2F * s)))) : (float)((Math.Sqrt(b) * ((2F * s) - 1F)) + (2F * b * (1F - s)));
         }
 
         /// <summary>
@@ -247,7 +247,7 @@ namespace ImageSharp
         /// </returns>
         private static float BlendExclusion(float b, float s)
         {
-            return b + s - 2F * b * s;
+            return b + s - (2F * b * s);
         }
     }
 }

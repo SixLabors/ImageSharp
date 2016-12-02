@@ -193,8 +193,7 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Converts a byte array to a new array where each value in the original array is represented
-        /// by a the specified number of bits.
+        /// Converts a byte array to a new array where each value in the original array is represented by the specified number of bits.
         /// </summary>
         /// <param name="source">The bytes to convert from. Cannot be null.</param>
         /// <param name="bytesPerScanline">The number of bytes per scanline</param>
@@ -216,7 +215,8 @@ namespace ImageSharp.Formats
                 int resultOffset = 0;
 
                 // ReSharper disable once ForCanBeConvertedToForeach
-                for (int i = 0; i < bytesPerScanline; i++)
+                // First byte is the marker so skip.
+                for (int i = 1; i < bytesPerScanline; i++)
                 {
                     byte b = source[i];
                     for (int shift = 0; shift < 8; shift += bits)
@@ -418,8 +418,7 @@ namespace ImageSharp.Formats
                     byte[] newScanline1 = ToArrayByBitsLength(defilteredScanline, this.bytesPerScanline, this.header.BitDepth);
                     for (int x = 0; x < this.header.Width; x++)
                     {
-                        int offset = 1 + ((x + 1) * this.bytesPerPixel);
-                        byte intensity = (byte)(newScanline1[offset] * factor);
+                        byte intensity = (byte)(newScanline1[x] * factor);
                         color.PackFromBytes(intensity, intensity, intensity, 255);
                         pixels[x, row] = color;
                     }

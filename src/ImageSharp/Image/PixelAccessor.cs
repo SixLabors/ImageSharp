@@ -6,6 +6,7 @@
 namespace ImageSharp
 {
     using System;
+    using System.Diagnostics;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
 
@@ -106,35 +107,30 @@ namespace ImageSharp
         {
             get
             {
-#if DEBUG
-                if (x < 0 || x >= this.Width)
-                {
-                    throw new ArgumentOutOfRangeException(nameof(x), x, $"{x} is outwith the image bounds.");
-                }
+                this.CheckCoordinates(x, y);
 
-                if (y < 0 || y >= this.Height)
-                {
-                    throw new ArgumentOutOfRangeException(nameof(y), y, $"{y} is outwith the image bounds.");
-                }
-#endif
                 return Unsafe.Read<TColor>(this.pixelsBase + (((y * this.Width) + x) * Unsafe.SizeOf<TColor>()));
             }
 
             set
             {
-#if DEBUG
-                if (x < 0 || x >= this.Width)
-                {
-                    throw new ArgumentOutOfRangeException(nameof(x), x, $"{x} is outwith the image bounds.");
-                }
-
-                if (y < 0 || y >= this.Height)
-                {
-                    throw new ArgumentOutOfRangeException(nameof(y), y, $"{y} is outwith the image bounds.");
-                }
-#endif
+                this.CheckCoordinates(x, y);
 
                 Unsafe.Write(this.pixelsBase + (((y * this.Width) + x) * Unsafe.SizeOf<TColor>()), value);
+            }
+        }
+
+        [Conditional("DEBUG")]
+        private void CheckCoordinates(int x, int y)
+        {
+            if (x < 0 || x >= this.Width)
+            {
+                throw new ArgumentOutOfRangeException(nameof(x), x, $"{x} is outwith the image bounds.");
+            }
+
+            if (y < 0 || y >= this.Height)
+            {
+                throw new ArgumentOutOfRangeException(nameof(y), y, $"{y} is outwith the image bounds.");
             }
         }
 

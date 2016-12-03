@@ -503,7 +503,7 @@ namespace ImageSharp.Formats
                                 throw new ImageFormatException("Unknown filter type.");
                         }
 
-                        this.ProcessDefilteredScanline(scanline, y, pixels, Adam7FirstColumn[pass], Adam7ColumnIncrement[pass]);
+                        this.ProcessInterlacedDefilteredScanline(scanline, y, pixels, Adam7FirstColumn[pass], Adam7ColumnIncrement[pass]);
 
                         Swap(ref scanline, ref previousScanline);
                     }
@@ -526,20 +526,17 @@ namespace ImageSharp.Formats
         /// <param name="defilteredScanline">The de-filtered scanline</param>
         /// <param name="row">The current image row.</param>
         /// <param name="pixels">The image pixels</param>
-        /// <param name="startIndex">The column start index. Always 0 for none interlaced images.</param>
-        /// <param name="increment">The column increment. Always 1 for none interlaced images.</param>
-        private void ProcessDefilteredScanline<TColor, TPacked>(byte[] defilteredScanline, int row, PixelAccessor<TColor, TPacked> pixels, int startIndex = 0, int increment = 1)
+        private void ProcessDefilteredScanline<TColor, TPacked>(byte[] defilteredScanline, int row, PixelAccessor<TColor, TPacked> pixels)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
             TColor color = default(TColor);
-
             switch (this.PngColorType)
             {
                 case PngColorType.Grayscale:
                     int factor = 255 / ((int)Math.Pow(2, this.header.BitDepth) - 1);
                     byte[] newScanline1 = ToArrayByBitsLength(defilteredScanline, this.bytesPerScanline, this.header.BitDepth);
-                    for (int x = startIndex; x < this.header.Width; x += increment)
+                    for (int x = 0; x < this.header.Width; x++)
                     {
                         byte intensity = (byte)(newScanline1[x] * factor);
                         color.PackFromBytes(intensity, intensity, intensity, 255);
@@ -550,7 +547,7 @@ namespace ImageSharp.Formats
 
                 case PngColorType.GrayscaleWithAlpha:
 
-                    for (int x = startIndex; x < this.header.Width; x += increment)
+                    for (int x = 0; x < this.header.Width; x++)
                     {
                         int offset = 1 + (x * this.bytesPerPixel);
 
@@ -571,7 +568,7 @@ namespace ImageSharp.Formats
                     {
                         // If the alpha palette is not null and has one or more entries, this means, that the image contains an alpha
                         // channel and we should try to read it.
-                        for (int x = startIndex; x < this.header.Width; x += increment)
+                        for (int x = 0; x < this.header.Width; x++)
                         {
                             int index = newScanline[x];
                             int pixelOffset = index * 3;
@@ -595,7 +592,7 @@ namespace ImageSharp.Formats
                     }
                     else
                     {
-                        for (int x = startIndex; x < this.header.Width; x += increment)
+                        for (int x = 0; x < this.header.Width; x++)
                         {
                             int index = newScanline[x];
                             int pixelOffset = index * 3;
@@ -613,7 +610,7 @@ namespace ImageSharp.Formats
 
                 case PngColorType.Rgb:
 
-                    for (int x = startIndex; x < this.header.Width; x += increment)
+                    for (int x = 0; x < this.header.Width; x++)
                     {
                         int offset = 1 + (x * this.bytesPerPixel);
 
@@ -629,7 +626,7 @@ namespace ImageSharp.Formats
 
                 case PngColorType.RgbWithAlpha:
 
-                    for (int x = startIndex; x < this.header.Width; x += increment)
+                    for (int x = 0; x < this.header.Width; x++)
                     {
                         int offset = 1 + (x * this.bytesPerPixel);
 
@@ -645,6 +642,129 @@ namespace ImageSharp.Formats
                     break;
             }
         }
+
+        /// <summary>
+        /// Processes the interlaced de-filtered scanline filling the image pixel data
+        /// </summary>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+        /// <param name="defilteredScanline">The de-filtered scanline</param>
+        /// <param name="row">The current image row.</param>
+        /// <param name="pixels">The image pixels</param>
+        /// <param name="pixelOffset">The column start index. Always 0 for none interlaced images.</param>
+        /// <param name="increment">The column increment. Always 1 for none interlaced images.</param>
+        private void ProcessInterlacedDefilteredScanline<TColor, TPacked>(byte[] defilteredScanline, int row, PixelAccessor<TColor, TPacked> pixels, int pixelOffset = 0, int increment = 1)
+            where TColor : struct, IPackedPixel<TPacked>
+            where TPacked : struct
+        {
+            TColor color = default(TColor);
+
+            switch (this.PngColorType)
+            {
+                case PngColorType.Grayscale:
+                    int factor = 255 / ((int)Math.Pow(2, this.header.BitDepth) - 1);
+                    byte[] newScanline1 = ToArrayByBitsLength(defilteredScanline, this.bytesPerScanline, this.header.BitDepth);
+                    for (int x = pixelOffset; x < this.header.Width; x += increment)
+                    {
+                        byte intensity = (byte)(newScanline1[x - pixelOffset] * factor);
+                        color.PackFromBytes(intensity, intensity, intensity, 255);
+                        pixels[x, row] = color;
+                    }
+
+                    break;
+
+                case PngColorType.GrayscaleWithAlpha:
+
+                    for (int x = pixelOffset, o = 1; x < this.header.Width; x += increment, o += this.bytesPerPixel)
+                    {
+                        byte intensity = defilteredScanline[o];
+                        byte alpha = defilteredScanline[o + this.bytesPerSample];
+
+                        color.PackFromBytes(intensity, intensity, intensity, alpha);
+                        pixels[x, row] = color;
+                    }
+
+                    break;
+
+                case PngColorType.Palette:
+
+                    byte[] newScanline = ToArrayByBitsLength(defilteredScanline, this.bytesPerScanline, this.header.BitDepth);
+
+                    if (this.paletteAlpha != null && this.paletteAlpha.Length > 0)
+                    {
+                        // If the alpha palette is not null and has one or more entries, this means, that the image contains an alpha
+                        // channel and we should try to read it.
+                        for (int x = pixelOffset; x < this.header.Width; x += increment)
+                        {
+                            int index = newScanline[x - pixelOffset];
+                            int offset = index * 3;
+
+                            byte a = this.paletteAlpha.Length > index ? this.paletteAlpha[index] : (byte)255;
+
+                            if (a > 0)
+                            {
+                                byte r = this.palette[offset];
+                                byte g = this.palette[offset + 1];
+                                byte b = this.palette[offset + 2];
+                                color.PackFromBytes(r, g, b, a);
+                            }
+                            else
+                            {
+                                color.PackFromBytes(0, 0, 0, 0);
+                            }
+
+                            pixels[x, row] = color;
+                        }
+                    }
+                    else
+                    {
+                        for (int x = pixelOffset; x < this.header.Width; x += increment)
+                        {
+                            int index = newScanline[x - pixelOffset];
+                            int offset = index * 3;
+
+                            byte r = this.palette[offset];
+                            byte g = this.palette[offset + 1];
+                            byte b = this.palette[offset + 2];
+
+                            color.PackFromBytes(r, g, b, 255);
+                            pixels[x, row] = color;
+                        }
+                    }
+
+                    break;
+
+                case PngColorType.Rgb:
+
+                    for (int x = pixelOffset, o = 1; x < this.header.Width; x += increment, o += this.bytesPerPixel)
+                    {
+                        byte r = defilteredScanline[o];
+                        byte g = defilteredScanline[o + this.bytesPerSample];
+                        byte b = defilteredScanline[o + (2 * this.bytesPerSample)];
+
+                        color.PackFromBytes(r, g, b, 255);
+                        pixels[x, row] = color;
+                    }
+
+                    break;
+
+                case PngColorType.RgbWithAlpha:
+
+                    for (int x = pixelOffset, o = 1; x < this.header.Width; x += increment, o += this.bytesPerPixel)
+                    {
+                        byte r = defilteredScanline[o];
+                        byte g = defilteredScanline[o + this.bytesPerSample];
+                        byte b = defilteredScanline[o + (2 * this.bytesPerSample)];
+                        byte a = defilteredScanline[o + (3 * this.bytesPerSample)];
+
+                        color.PackFromBytes(r, g, b, a);
+                        pixels[x, row] = color;
+                    }
+
+                    break;
+            }
+        }
+
 
         /// <summary>
         /// Reads a text chunk containing image properties from the data.
@@ -838,6 +958,11 @@ namespace ImageSharp.Formats
             chunk.Length = BitConverter.ToInt32(this.chunkLengthBuffer, 0);
         }
 
+        /// <summary>
+        /// Returns the correct number of columns for each interlaced pass.
+        /// </summary>
+        /// <param name="pass">Th current pass index</param>
+        /// <returns>The <see cref="int"/></returns>
         private int ComputeColumnsAdam7(int pass)
         {
             int width = this.header.Width;

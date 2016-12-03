@@ -31,7 +31,7 @@ namespace ImageSharp.Tests
             // new TestFile(TestImages.Bmp.Neg_height), // Perf: Enable for local testing only
             // new TestFile(TestImages.Png.Blur), // Perf: Enable for local testing only
             // new TestFile(TestImages.Png.Indexed), // Perf: Enable for local testing only
-            new TestFile(TestImages.Png.Splash),
+            //new TestFile(TestImages.Png.Splash),
             new TestFile(TestImages.Png.SplashInterlace),
             // new TestFile(TestImages.Png.Filter0), // Perf: Enable for local testing only
             // new TestFile(TestImages.Png.Filter1), // Perf: Enable for local testing only

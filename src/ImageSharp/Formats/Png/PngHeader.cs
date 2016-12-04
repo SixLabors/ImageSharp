@@ -57,6 +57,6 @@ namespace ImageSharp.Formats
         /// Indicates the transmission order of the image data.
         /// Two values are currently defined: 0 (no interlace) or 1 (Adam7 interlace).
         /// </summary>
-        public InterlaceMode InterlaceMethod { get; set; }
+        public PngInterlaceMode InterlaceMethod { get; set; }
     }
 }

@@ -443,13 +443,13 @@ namespace ImageSharp.Formats
             byte[] previousScanline = ArrayPool<byte>.Shared.Rent(this.bytesPerScanline);
             byte[] scanline = ArrayPool<byte>.Shared.Rent(this.bytesPerScanline);
 
-            // Zero out the previousScanline, because the bytes that are rented from the arraypool may not be zero.
-            Array.Clear(previousScanline, 0, this.bytesPerScanline);
-
             try
             {
                 for (int pass = 0; pass < 7; pass++)
                 {
+                    // Zero out the previousScanline, because the bytes that are rented from the arraypool may not be zero.
+                    Array.Clear(previousScanline, 0, this.bytesPerScanline);
+
                     int y = Adam7FirstRow[pass];
                     int numColumns = this.ComputeColumnsAdam7(pass);
 

@@ -344,7 +344,7 @@ namespace ImageSharp.Formats
             dataStream.Position = 0;
             using (ZlibInflateStream compressedStream = new ZlibInflateStream(dataStream))
             {
-                if (this.header.InterlaceMethod == InterlaceMode.Adam7)
+                if (this.header.InterlaceMethod == PngInterlaceMode.Adam7)
                 {
                     this.DecodeInterlacedPixelData(compressedStream, pixels);
                 }
@@ -506,7 +506,6 @@ namespace ImageSharp.Formats
                         this.ProcessInterlacedDefilteredScanline(scanline, y, pixels, Adam7FirstColumn[pass], Adam7ColumnIncrement[pass]);
 
                         Swap(ref scanline, ref previousScanline);
-
 
                         y += Adam7RowIncrement[pass];
                     }
@@ -813,7 +812,7 @@ namespace ImageSharp.Formats
             this.header.ColorType = data[9];
             this.header.CompressionMethod = data[10];
             this.header.FilterMethod = data[11];
-            this.header.InterlaceMethod = (InterlaceMode)data[12];
+            this.header.InterlaceMethod = (PngInterlaceMode)data[12];
         }
 
         /// <summary>
@@ -839,7 +838,7 @@ namespace ImageSharp.Formats
                 throw new NotSupportedException("The png specification only defines 0 as filter method.");
             }
 
-            if (this.header.InterlaceMethod != InterlaceMode.None && this.header.InterlaceMethod != InterlaceMode.Adam7)
+            if (this.header.InterlaceMethod != PngInterlaceMode.None && this.header.InterlaceMethod != PngInterlaceMode.Adam7)
             {
                 throw new NotSupportedException("The png specification only defines 'None' and 'Adam7' as interlaced methods.");
             }

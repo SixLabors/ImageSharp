@@ -473,7 +473,7 @@ namespace ImageSharp.Formats
             this.chunkDataBuffer[9] = header.ColorType;
             this.chunkDataBuffer[10] = header.CompressionMethod;
             this.chunkDataBuffer[11] = header.FilterMethod;
-            this.chunkDataBuffer[12] = header.InterlaceMethod;
+            this.chunkDataBuffer[12] = (byte)header.InterlaceMethod;
 
             this.WriteChunk(stream, PngChunkTypes.Header, this.chunkDataBuffer, 0, 13);
         }

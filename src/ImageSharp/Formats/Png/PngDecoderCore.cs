@@ -440,28 +440,28 @@ namespace ImageSharp.Formats
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
-            for (int pass = 0; pass < 7; pass++)
+            byte[] previousScanline = ArrayPool<byte>.Shared.Rent(this.bytesPerScanline);
+            byte[] scanline = ArrayPool<byte>.Shared.Rent(this.bytesPerScanline);
+
+            // Zero out the previousScanline, because the bytes that are rented from the arraypool may not be zero.
+            Array.Clear(previousScanline, 0, this.bytesPerScanline);
+
+            try
             {
-                int y = Adam7FirstRow[pass];
-                int numColumns = this.ComputeColumnsAdam7(pass);
-
-                if (numColumns == 0)
+                for (int pass = 0; pass < 7; pass++)
                 {
-                    // This pass contains no data; skip to next pass
-                    continue;
-                }
+                    int y = Adam7FirstRow[pass];
+                    int numColumns = this.ComputeColumnsAdam7(pass);
 
-                int bytesPerInterlaceScanline = this.CalculateScanlineLength(numColumns) + 1;
+                    if (numColumns == 0)
+                    {
+                        // This pass contains no data; skip to next pass
+                        continue;
+                    }
 
-                while (y < this.header.Height)
-                {
-                    byte[] previousScanline = ArrayPool<byte>.Shared.Rent(this.bytesPerScanline);
-                    byte[] scanline = ArrayPool<byte>.Shared.Rent(this.bytesPerScanline);
+                    int bytesPerInterlaceScanline = this.CalculateScanlineLength(numColumns) + 1;
 
-                    // Zero out the previousScanline, because the bytes that are rented from the arraypool may not be zero.
-                    Array.Clear(previousScanline, 0, this.bytesPerScanline);
-
-                    try
+                    while (y < this.header.Height)
                     {
                         compressedStream.Read(scanline, 0, bytesPerInterlaceScanline);
 
@@ -506,15 +506,16 @@ namespace ImageSharp.Formats
                         this.ProcessInterlacedDefilteredScanline(scanline, y, pixels, Adam7FirstColumn[pass], Adam7ColumnIncrement[pass]);
 
                         Swap(ref scanline, ref previousScanline);
-                    }
-                    finally
-                    {
-                        ArrayPool<byte>.Shared.Return(previousScanline);
-                        ArrayPool<byte>.Shared.Return(scanline);
-                    }
 
-                    y += Adam7RowIncrement[pass];
+
+                        y += Adam7RowIncrement[pass];
+                    }
                 }
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(previousScanline);
+                ArrayPool<byte>.Shared.Return(scanline);
             }
         }
 
@@ -764,7 +765,6 @@ namespace ImageSharp.Formats
                     break;
             }
         }
-
 
         /// <summary>
         /// Reads a text chunk containing image properties from the data.

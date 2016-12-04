@@ -49,10 +49,10 @@ namespace ImageSharp.Tests.Colors
             new Alpha8(.5F).ToBytes(rgba, 0, ComponentOrder.XYZW);
             Assert.Equal(rgba, new byte[] { 0, 0, 0, 128 });
 
-            new Alpha8(.5F).ToBytes(rgb, 0, ComponentOrder.ZYX);
+            new Alpha8(.5F).ToBytes(bgr, 0, ComponentOrder.ZYX);
             Assert.Equal(bgr, new byte[] { 0, 0, 0 });
 
-            new Alpha8(.5F).ToBytes(rgb, 0, ComponentOrder.ZYXW);
+            new Alpha8(.5F).ToBytes(bgra, 0, ComponentOrder.ZYXW);
             Assert.Equal(bgra, new byte[] { 0, 0, 0, 128 });
         }
 
@@ -468,7 +468,7 @@ namespace ImageSharp.Tests.Colors
             r.ToBytes(rgba, 0, ComponentOrder.XYZW);
             Assert.Equal(rgba, new byte[] { 9, 115, 202, 127 });
 
-            r.PackedValue = 0x7FCA7309;
+            r.PackedValue = 0xff4af389;
             r.ToBytes(rgba, 0, ComponentOrder.XYZW);
             Assert.Equal(rgba, new byte[] { 9, 115, 202, 127 });
         }

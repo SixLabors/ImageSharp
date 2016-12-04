@@ -20,7 +20,10 @@ namespace ImageSharp.Tests
             public static string Indexed => folder + "indexed.png";
             public static string Splash => folder + "splash.png";
 
-            public static string SplashInterlace => folder + "splash-interlaced.png";
+            public static string SplashInterlaced => folder + "splash-interlaced.png";
+
+            public static string Interlaced => folder + "interlaced.png";
+
             // filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
             public static string Filter0 => folder + "filter0.png";
             public static string Filter1 => folder + "filter1.png";

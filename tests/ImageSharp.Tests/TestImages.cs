@@ -38,13 +38,18 @@ namespace ImageSharp.Tests
         {
             private static readonly string folder = "TestImages/Formats/Jpg/";
             public static string Cmyk => folder + "cmyk.jpg";
-            public static string Exif => folder + "exif.jpeg";
+            public static string Exif => folder + "exif.jpg";
             public static string Floorplan => folder + "Floorplan.jpeg";
             public static string Calliphora => folder + "Calliphora.jpg";
             public static string Turtle => folder + "turtle.jpg";
             public static string Fb => folder + "fb.jpg";
             public static string Progress => folder + "progress.jpg";
             public static string GammaDalaiLamaGray => folder + "gamma_dalai_lama_gray.jpg";
+
+
+            public static readonly string[] All = {
+                Cmyk, Exif, Floorplan, Calliphora, Turtle, Fb, Progress, GammaDalaiLamaGray
+            };
         }
 
         public static class Bmp
@@ -56,6 +61,10 @@ namespace ImageSharp.Tests
             public static string F => folder + "F.bmp";
 
             public static string NegHeight => folder + "neg_height.bmp";
+
+            public static readonly string[] All = {
+                Car, F, NegHeight
+            };
         }
 
         public static class Gif

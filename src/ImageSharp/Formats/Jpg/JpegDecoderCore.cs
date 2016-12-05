@@ -7,27 +7,29 @@ namespace ImageSharp.Formats
 {
     using System;
     using System.IO;
+    using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
     using System.Threading.Tasks;
 
     /// <summary>
     /// Performs the jpeg decoding operation.
     /// </summary>
-    internal class JpegDecoderCore
+    internal unsafe class JpegDecoderCore : IDisposable
     {
         /// <summary>
         /// The maximum (inclusive) number of bits in a Huffman code.
         /// </summary>
-        private const int MaxCodeLength = 16;
+        internal const int MaxCodeLength = 16;
 
         /// <summary>
         /// The maximum (inclusive) number of codes in a Huffman tree.
         /// </summary>
-        private const int MaxNCodes = 256;
+        internal const int MaxNCodes = 256;
 
         /// <summary>
         /// The log-2 size of the Huffman decoder's look-up table.
         /// </summary>
-        private const int LutSize = 8;
+        internal const int LutSize = 8;
 
         /// <summary>
         /// The maximum number of color components
@@ -43,6 +45,8 @@ namespace ImageSharp.Formats
         /// The maximum number of Huffman table identifiers
         /// </summary>
         private const int MaxTh = 3;
+
+        private const int ThRowSize = MaxTh + 1;
 
         /// <summary>
         /// The maximum number of quantization tables
@@ -65,12 +69,12 @@ namespace ImageSharp.Formats
         /// value is 16, which means first column (16%8 == 0) and third row (16/8 == 2).
         /// </summary>
         private static readonly int[] Unzig =
-        {
-            0, 1, 8, 16, 9, 2, 3, 10, 17, 24, 32, 25, 18, 11, 4, 5, 12, 19, 26,
-            33, 40, 48, 41, 34, 27, 20, 13, 6, 7, 14, 21, 28, 35, 42, 49, 56, 57,
-            50, 43, 36, 29, 22, 15, 23, 30, 37, 44, 51, 58, 59, 52, 45, 38, 31,
-            39, 46, 53, 60, 61, 54, 47, 55, 62, 63,
-        };
+            {
+                0, 1, 8, 16, 9, 2, 3, 10, 17, 24, 32, 25, 18, 11, 4, 5, 12, 19, 26, 33,
+                40, 48, 41, 34, 27, 20, 13, 6, 7, 14, 21, 28, 35, 42, 49, 56, 57, 50,
+                43, 36, 29, 22, 15, 23, 30, 37, 44, 51, 58, 59, 52, 45, 38, 31, 39, 46,
+                53, 60, 61, 54, 47, 55, 62, 63,
+            };
 
         /// <summary>
         /// The component array
@@ -80,17 +84,18 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Saved state between progressive-mode scans.
         /// </summary>
-        private readonly Block[][] progCoeffs;
+        private readonly Block8x8F[][] progCoeffs;
 
         /// <summary>
         /// The huffman trees
         /// </summary>
-        private readonly Huffman[,] huffmanTrees;
+        //private readonly Huffman[,] huffmanTrees;
+        private readonly Huffman[] huffmanTrees;
 
         /// <summary>
         /// Quantization tables, in zigzag order.
         /// </summary>
-        private readonly Block[] quantizationTables;
+        private readonly Block8x8F[] quantizationTables;
 
         /// <summary>
         /// A temporary buffer for holding pixels
@@ -100,7 +105,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// The byte buffer.
         /// </summary>
-        private readonly Bytes bytes;
+        internal Bytes bytes;
 
         /// <summary>
         /// The image width
@@ -130,12 +135,12 @@ namespace ImageSharp.Formats
         /// <summary>
         /// The input stream.
         /// </summary>
-        private Stream inputStream;
+        internal Stream inputStream;
 
         /// <summary>
         /// Holds the unprocessed bits that have been taken from the byte-stream.
         /// </summary>
-        private Bits bits;
+        internal Bits bits;
 
         /// <summary>
         /// The array of keyline pixels in a CMYK image
@@ -187,36 +192,31 @@ namespace ImageSharp.Formats
         /// </summary>
         private short verticalResolution;
 
+        private int blockIndex;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegDecoderCore"/> class.
         /// </summary>
         public JpegDecoderCore()
         {
-            this.huffmanTrees = new Huffman[MaxTc + 1, MaxTh + 1];
-            this.quantizationTables = new Block[MaxTq + 1];
-            this.temp = new byte[2 * Block.BlockSize];
+            //this.huffmanTrees = new Huffman[MaxTc + 1, MaxTh + 1];
+            this.huffmanTrees = new Huffman[(MaxTc + 1) * (MaxTh + 1)];
+
+            this.quantizationTables = new Block8x8F[MaxTq + 1];
+            this.temp = new byte[2 * BlockF.BlockSize];
             this.componentArray = new Component[MaxComponents];
-            this.progCoeffs = new Block[MaxComponents][];
+            this.progCoeffs = new Block8x8F[MaxComponents][];
             this.bits = new Bits();
-            this.bytes = new Bytes();
+            this.bytes = Bytes.Create();
 
             // TODO: This looks like it could be static.
+
             for (int i = 0; i < MaxTc + 1; i++)
             {
                 for (int j = 0; j < MaxTh + 1; j++)
                 {
-                    this.huffmanTrees[i, j] = new Huffman(LutSize, MaxNCodes, MaxCodeLength);
+                    this.huffmanTrees[i * ThRowSize + j].Init(LutSize, MaxNCodes, MaxCodeLength);
                 }
-            }
-
-            for (int i = 0; i < this.quantizationTables.Length; i++)
-            {
-                this.quantizationTables[i] = new Block();
-            }
-
-            for (int i = 0; i < this.componentArray.Length; i++)
-            {
-                this.componentArray[i] = new Component();
             }
         }
 
@@ -230,8 +230,7 @@ namespace ImageSharp.Formats
         /// <param name="stream">The stream, where the image should be.</param>
         /// <param name="configOnly">Whether to decode metadata only.</param>
         public void Decode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream, bool configOnly)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TColor : struct, IPackedPixel<TPacked> where TPacked : struct
         {
             this.inputStream = stream;
 
@@ -369,7 +368,8 @@ namespace ImageSharp.Formats
                         this.ProcessApp14Marker(remaining);
                         break;
                     default:
-                        if ((JpegConstants.Markers.APP0 <= marker && marker <= JpegConstants.Markers.APP15) || marker == JpegConstants.Markers.COM)
+                        if ((JpegConstants.Markers.APP0 <= marker && marker <= JpegConstants.Markers.APP15)
+                            || marker == JpegConstants.Markers.COM)
                         {
                             this.Skip(remaining);
                         }
@@ -420,60 +420,6 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Reads bytes from the byte buffer to ensure that bits.UnreadBits is at
-        /// least n. For best performance (avoiding function calls inside hot loops),
-        /// the caller is the one responsible for first checking that bits.UnreadBits &lt; n.
-        /// </summary>
-        /// <param name="n">The number of bits to ensure.</param>
-        private void EnsureNBits(int n)
-        {
-            while (true)
-            {
-                byte c = this.ReadByteStuffedByte();
-                this.bits.Accumulator = (this.bits.Accumulator << 8) | c;
-                this.bits.UnreadBits += 8;
-                if (this.bits.Mask == 0)
-                {
-                    this.bits.Mask = 1 << 7;
-                }
-                else
-                {
-                    this.bits.Mask <<= 8;
-                }
-
-                if (this.bits.UnreadBits >= n)
-                {
-                    break;
-                }
-            }
-        }
-
-        /// <summary>
-        /// The composition of RECEIVE and EXTEND, specified in section F.2.2.1.
-        /// </summary>
-        /// <param name="t">The byte</param>
-        /// <returns>The <see cref="int"/></returns>
-        private int ReceiveExtend(byte t)
-        {
-            if (this.bits.UnreadBits < t)
-            {
-                this.EnsureNBits(t);
-            }
-
-            this.bits.UnreadBits -= t;
-            this.bits.Mask >>= t;
-            int s = 1 << t;
-            int x = (int)((this.bits.Accumulator >> this.bits.UnreadBits) & (s - 1));
-
-            if (x < (s >> 1))
-            {
-                x += ((-1) << t) + 1;
-            }
-
-            return x;
-        }
-
-        /// <summary>
         /// Processes a Define Huffman Table marker, and initializes a huffman
         /// struct from its contents. Specified in section B.2.4.2.
         /// </summary>
@@ -501,92 +447,95 @@ namespace ImageSharp.Formats
                     throw new ImageFormatException("Bad Th value");
                 }
 
-                Huffman huffman = this.huffmanTrees[tc, th];
+                this.ProcessDefineHuffmanTablesMarkerLoop(ref this.huffmanTrees[tc * ThRowSize + th], ref remaining);
+            }
+        }
 
-                // Read nCodes and huffman.Valuess (and derive h.Length).
-                // nCodes[i] is the number of codes with code length i.
-                // h.Length is the total number of codes.
-                huffman.Length = 0;
+        private void ProcessDefineHuffmanTablesMarkerLoop(ref Huffman huffman, ref int remaining)
+        {
+            // Read nCodes and huffman.Valuess (and derive h.Length).
+            // nCodes[i] is the number of codes with code length i.
+            // h.Length is the total number of codes.
+            huffman.Length = 0;
 
-                int[] ncodes = new int[MaxCodeLength];
-                for (int i = 0; i < ncodes.Length; i++)
+            int[] ncodes = new int[MaxCodeLength];
+            for (int i = 0; i < ncodes.Length; i++)
+            {
+                ncodes[i] = this.temp[i + 1];
+                huffman.Length += ncodes[i];
+            }
+
+            if (huffman.Length == 0)
+            {
+                throw new ImageFormatException("Huffman table has zero length");
+            }
+
+            if (huffman.Length > MaxNCodes)
+            {
+                throw new ImageFormatException("Huffman table has excessive length");
+            }
+
+            remaining -= huffman.Length + 17;
+            if (remaining < 0)
+            {
+                throw new ImageFormatException("DHT has wrong length");
+            }
+
+            this.ReadFull(huffman.Values, 0, huffman.Length);
+
+            // Derive the look-up table.
+            for (int i = 0; i < huffman.Lut.Length; i++)
+            {
+                huffman.Lut[i] = 0;
+            }
+
+            uint x = 0, code = 0;
+
+            for (int i = 0; i < LutSize; i++)
+            {
+                code <<= 1;
+
+                for (int j = 0; j < ncodes[i]; j++)
                 {
-                    ncodes[i] = this.temp[i + 1];
-                    huffman.Length += ncodes[i];
-                }
+                    // The codeLength is 1+i, so shift code by 8-(1+i) to
+                    // calculate the high bits for every 8-bit sequence
+                    // whose codeLength's high bits matches code.
+                    // The high 8 bits of lutValue are the encoded value.
+                    // The low 8 bits are 1 plus the codeLength.
+                    byte base2 = (byte)(code << (7 - i));
+                    ushort lutValue = (ushort)((huffman.Values[x] << 8) | (2 + i));
 
-                if (huffman.Length == 0)
-                {
-                    throw new ImageFormatException("Huffman table has zero length");
-                }
-
-                if (huffman.Length > MaxNCodes)
-                {
-                    throw new ImageFormatException("Huffman table has excessive length");
-                }
-
-                remaining -= huffman.Length + 17;
-                if (remaining < 0)
-                {
-                    throw new ImageFormatException("DHT has wrong length");
-                }
-
-                this.ReadFull(huffman.Values, 0, huffman.Length);
-
-                // Derive the look-up table.
-                for (int i = 0; i < huffman.Lut.Length; i++)
-                {
-                    huffman.Lut[i] = 0;
-                }
-
-                uint x = 0, code = 0;
-
-                for (int i = 0; i < LutSize; i++)
-                {
-                    code <<= 1;
-
-                    for (int j = 0; j < ncodes[i]; j++)
+                    for (int k = 0; k < 1 << (7 - i); k++)
                     {
-                        // The codeLength is 1+i, so shift code by 8-(1+i) to
-                        // calculate the high bits for every 8-bit sequence
-                        // whose codeLength's high bits matches code.
-                        // The high 8 bits of lutValue are the encoded value.
-                        // The low 8 bits are 1 plus the codeLength.
-                        byte base2 = (byte)(code << (7 - i));
-                        ushort lutValue = (ushort)((huffman.Values[x] << 8) | (2 + i));
-
-                        for (int k = 0; k < 1 << (7 - i); k++)
-                        {
-                            huffman.Lut[base2 | k] = lutValue;
-                        }
-
-                        code++;
-                        x++;
-                    }
-                }
-
-                // Derive minCodes, maxCodes, and indices.
-                int c = 0, index = 0;
-                for (int i = 0; i < ncodes.Length; i++)
-                {
-                    int nc = ncodes[i];
-                    if (nc == 0)
-                    {
-                        huffman.MinCodes[i] = -1;
-                        huffman.MaxCodes[i] = -1;
-                        huffman.Indices[i] = -1;
-                    }
-                    else
-                    {
-                        huffman.MinCodes[i] = c;
-                        huffman.MaxCodes[i] = c + nc - 1;
-                        huffman.Indices[i] = index;
-                        c += nc;
-                        index += nc;
+                        huffman.Lut[base2 | k] = lutValue;
                     }
 
-                    c <<= 1;
+                    code++;
+                    x++;
                 }
+            }
+
+            // Derive minCodes, maxCodes, and indices.
+            int c = 0, index = 0;
+            for (int i = 0; i < ncodes.Length; i++)
+            {
+                int nc = ncodes[i];
+                if (nc == 0)
+                {
+                    huffman.MinCodes[i] = -1;
+                    huffman.MaxCodes[i] = -1;
+                    huffman.Indices[i] = -1;
+                }
+                else
+                {
+                    huffman.MinCodes[i] = c;
+                    huffman.MaxCodes[i] = c + nc - 1;
+                    huffman.Indices[i] = index;
+                    c += nc;
+                    index += nc;
+                }
+
+                c <<= 1;
             }
         }
 
@@ -595,8 +544,10 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="huffman">The huffman value</param>
         /// <returns>The <see cref="byte"/></returns>
-        private byte DecodeHuffman(Huffman huffman)
+        private byte DecodeHuffman(ref Huffman huffman)
         {
+            // Copy stuff to the stack:
+
             if (huffman.Length == 0)
             {
                 throw new ImageFormatException("Uninitialized Huffman table");
@@ -604,10 +555,10 @@ namespace ImageSharp.Formats
 
             if (this.bits.UnreadBits < 8)
             {
-                try
-                {
-                    this.EnsureNBits(8);
+                var errorCode = this.bits.EnsureNBits(8, this);
 
+                if (errorCode == ErrorCodes.NoError)
+                {
                     ushort v = huffman.Lut[(this.bits.Accumulator >> (this.bits.UnreadBits - LutSize)) & 0xff];
 
                     if (v != 0)
@@ -618,19 +569,9 @@ namespace ImageSharp.Formats
                         return (byte)(v >> 8);
                     }
                 }
-                catch (MissingFF00Exception)
+                else
                 {
-                    if (this.bytes.UnreadableBytes != 0)
-                    {
-                        this.UnreadByteStuffedByte();
-                    }
-                }
-                catch (ShortHuffmanDataException)
-                {
-                    if (this.bytes.UnreadableBytes != 0)
-                    {
-                        this.UnreadByteStuffedByte();
-                    }
+                    this.UnreadByteStuffedByte();
                 }
             }
 
@@ -639,7 +580,11 @@ namespace ImageSharp.Formats
             {
                 if (this.bits.UnreadBits == 0)
                 {
-                    this.EnsureNBits(1);
+                    var errorCode = this.bits.EnsureNBits(1, this);
+                    if (errorCode != ErrorCodes.NoError)
+                    {
+                        throw new MissingFF00Exception();
+                    }
                 }
 
                 if ((this.bits.Accumulator & this.bits.Mask) != 0)
@@ -669,7 +614,11 @@ namespace ImageSharp.Formats
         {
             if (this.bits.UnreadBits == 0)
             {
-                this.EnsureNBits(1);
+                var errorCode = this.bits.EnsureNBits(1, this);
+                if (errorCode != ErrorCodes.NoError)
+                {
+                    throw new MissingFF00Exception();
+                }
             }
 
             bool ret = (this.bits.Accumulator & this.bits.Mask) != 0;
@@ -687,7 +636,11 @@ namespace ImageSharp.Formats
         {
             if (this.bits.UnreadBits < count)
             {
-                this.EnsureNBits(count);
+                var errorCode = this.bits.EnsureNBits(count, this);
+                if (errorCode != ErrorCodes.NoError)
+                {
+                    throw new MissingFF00Exception();
+                }
             }
 
             uint ret = this.bits.Accumulator >> (this.bits.UnreadBits - count);
@@ -695,37 +648,6 @@ namespace ImageSharp.Formats
             this.bits.UnreadBits -= count;
             this.bits.Mask >>= count;
             return ret;
-        }
-
-        /// <summary>
-        /// Fills up the bytes buffer from the underlying stream.
-        /// It should only be called when there are no unread bytes in bytes.
-        /// </summary>
-        private void Fill()
-        {
-            if (this.bytes.I != this.bytes.J)
-            {
-                throw new ImageFormatException("Fill called when unread bytes exist.");
-            }
-
-            // Move the last 2 bytes to the start of the buffer, in case we need
-            // to call UnreadByteStuffedByte.
-            if (this.bytes.J > 2)
-            {
-                this.bytes.Buffer[0] = this.bytes.Buffer[this.bytes.J - 2];
-                this.bytes.Buffer[1] = this.bytes.Buffer[this.bytes.J - 1];
-                this.bytes.I = 2;
-                this.bytes.J = 2;
-            }
-
-            // Fill in the rest of the buffer.
-            int n = this.inputStream.Read(this.bytes.Buffer, this.bytes.J, this.bytes.Buffer.Length - this.bytes.J);
-            if (n == 0)
-            {
-                throw new EOFException();
-            }
-
-            this.bytes.J += n;
         }
 
         /// <summary>
@@ -751,65 +673,10 @@ namespace ImageSharp.Formats
         /// Returns the next byte, whether buffered or not buffered. It does not care about byte stuffing.
         /// </summary>
         /// <returns>The <see cref="byte"/></returns>
-        private byte ReadByte()
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal byte ReadByte()
         {
-            while (this.bytes.I == this.bytes.J)
-            {
-                this.Fill();
-            }
-
-            byte x = this.bytes.Buffer[this.bytes.I];
-            this.bytes.I++;
-            this.bytes.UnreadableBytes = 0;
-            return x;
-        }
-
-        /// <summary>
-        /// ReadByteStuffedByte is like ReadByte but is for byte-stuffed Huffman data.
-        /// </summary>
-        /// <returns>The <see cref="byte"/></returns>
-        private byte ReadByteStuffedByte()
-        {
-            byte x;
-
-            // Take the fast path if bytes.buf contains at least two bytes.
-            if (this.bytes.I + 2 <= this.bytes.J)
-            {
-                x = this.bytes.Buffer[this.bytes.I];
-                this.bytes.I++;
-                this.bytes.UnreadableBytes = 1;
-                if (x != JpegConstants.Markers.XFF)
-                {
-                    return x;
-                }
-
-                if (this.bytes.Buffer[this.bytes.I] != 0x00)
-                {
-                    throw new MissingFF00Exception();
-                }
-
-                this.bytes.I++;
-                this.bytes.UnreadableBytes = 2;
-                return JpegConstants.Markers.XFF;
-            }
-
-            this.bytes.UnreadableBytes = 0;
-
-            x = this.ReadByte();
-            this.bytes.UnreadableBytes = 1;
-            if (x != JpegConstants.Markers.XFF)
-            {
-                return x;
-            }
-
-            x = this.ReadByte();
-            this.bytes.UnreadableBytes = 2;
-            if (x != 0x00)
-            {
-                throw new MissingFF00Exception();
-            }
-
-            return JpegConstants.Markers.XFF;
+            return this.bytes.ReadByte(this.inputStream);
         }
 
         /// <summary>
@@ -846,7 +713,7 @@ namespace ImageSharp.Formats
                     length -= this.bytes.J - this.bytes.I;
                     this.bytes.I += this.bytes.J - this.bytes.I;
 
-                    this.Fill();
+                    this.bytes.Fill(this.inputStream);
                 }
             }
         }
@@ -883,7 +750,7 @@ namespace ImageSharp.Formats
                     break;
                 }
 
-                this.Fill();
+                this.bytes.Fill(this.inputStream);
             }
         }
 
@@ -1008,7 +875,8 @@ namespace ImageSharp.Formats
                             case 1:
                                 {
                                     // Cb.
-                                    if (this.componentArray[0].HorizontalFactor % h != 0 || this.componentArray[0].VerticalFactor % v != 0)
+                                    if (this.componentArray[0].HorizontalFactor % h != 0
+                                        || this.componentArray[0].VerticalFactor % v != 0)
                                     {
                                         throw new ImageFormatException("Unsupported subsampling ratio");
                                     }
@@ -1019,7 +887,8 @@ namespace ImageSharp.Formats
                             case 2:
                                 {
                                     // Cr.
-                                    if (this.componentArray[1].HorizontalFactor != h || this.componentArray[1].VerticalFactor != v)
+                                    if (this.componentArray[1].HorizontalFactor != h
+                                        || this.componentArray[1].VerticalFactor != v)
                                     {
                                         throw new ImageFormatException("Unsupported subsampling ratio");
                                     }
@@ -1059,7 +928,8 @@ namespace ImageSharp.Formats
 
                                 break;
                             case 3:
-                                if (this.componentArray[0].HorizontalFactor != h || this.componentArray[0].VerticalFactor != v)
+                                if (this.componentArray[0].HorizontalFactor != h
+                                    || this.componentArray[0].VerticalFactor != v)
                                 {
                                     throw new ImageFormatException("Unsupported subsampling ratio");
                                 }
@@ -1099,32 +969,32 @@ namespace ImageSharp.Formats
                 switch (x >> 4)
                 {
                     case 0:
-                        if (remaining < Block.BlockSize)
+                        if (remaining < BlockF.BlockSize)
                         {
                             done = true;
                             break;
                         }
 
-                        remaining -= Block.BlockSize;
-                        this.ReadFull(this.temp, 0, Block.BlockSize);
+                        remaining -= BlockF.BlockSize;
+                        this.ReadFull(this.temp, 0, BlockF.BlockSize);
 
-                        for (int i = 0; i < Block.BlockSize; i++)
+                        for (int i = 0; i < BlockF.BlockSize; i++)
                         {
                             this.quantizationTables[tq][i] = this.temp[i];
                         }
 
                         break;
                     case 1:
-                        if (remaining < 2 * Block.BlockSize)
+                        if (remaining < 2 * BlockF.BlockSize)
                         {
                             done = true;
                             break;
                         }
 
-                        remaining -= 2 * Block.BlockSize;
-                        this.ReadFull(this.temp, 0, 2 * Block.BlockSize);
+                        remaining -= 2 * BlockF.BlockSize;
+                        this.ReadFull(this.temp, 0, 2 * BlockF.BlockSize);
 
-                        for (int i = 0; i < Block.BlockSize; i++)
+                        for (int i = 0; i < BlockF.BlockSize; i++)
                         {
                             this.quantizationTables[tq][i] = (this.temp[2 * i] << 8) | this.temp[(2 * i) + 1];
                         }
@@ -1177,11 +1047,8 @@ namespace ImageSharp.Formats
             remaining -= 13;
 
             // TODO: We should be using constants for this.
-            this.isJfif = this.temp[0] == 'J' &&
-                          this.temp[1] == 'F' &&
-                          this.temp[2] == 'I' &&
-                          this.temp[3] == 'F' &&
-                          this.temp[4] == '\x00';
+            this.isJfif = this.temp[0] == 'J' && this.temp[1] == 'F' && this.temp[2] == 'I' && this.temp[3] == 'F'
+                          && this.temp[4] == '\x00';
 
             if (this.isJfif)
             {
@@ -1203,8 +1070,7 @@ namespace ImageSharp.Formats
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         /// <param name="image">The image.</param>
         private void ProcessApp1Marker<TColor, TPacked>(int remaining, Image<TColor, TPacked> image)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TColor : struct, IPackedPixel<TPacked> where TPacked : struct
         {
             if (remaining < 6)
             {
@@ -1215,12 +1081,8 @@ namespace ImageSharp.Formats
             byte[] profile = new byte[remaining];
             this.ReadFull(profile, 0, remaining);
 
-            if (profile[0] == 'E' &&
-                profile[1] == 'x' &&
-                profile[2] == 'i' &&
-                profile[3] == 'f' &&
-                profile[4] == '\0' &&
-                profile[5] == '\0')
+            if (profile[0] == 'E' && profile[1] == 'x' && profile[2] == 'i' && profile[3] == 'f' && profile[4] == '\0'
+                && profile[5] == '\0')
             {
                 image.ExifProfile = new ExifProfile(profile);
             }
@@ -1243,11 +1105,8 @@ namespace ImageSharp.Formats
             this.ReadFull(this.temp, 0, 12);
             remaining -= 12;
 
-            if (this.temp[0] == 'A' &&
-                this.temp[1] == 'd' &&
-                this.temp[2] == 'o' &&
-                this.temp[3] == 'b' &&
-                this.temp[4] == 'e')
+            if (this.temp[0] == 'A' && this.temp[1] == 'd' && this.temp[2] == 'o' && this.temp[3] == 'b'
+                && this.temp[4] == 'e')
             {
                 this.adobeTransformValid = true;
                 this.adobeTransform = this.temp[11];
@@ -1268,12 +1127,12 @@ namespace ImageSharp.Formats
         /// <param name="height">The image height.</param>
         /// <param name="image">The image.</param>
         private void ConvertFromCmyk<TColor, TPacked>(int width, int height, Image<TColor, TPacked> image)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TColor : struct, IPackedPixel<TPacked> where TPacked : struct
         {
             if (!this.adobeTransformValid)
             {
-                throw new ImageFormatException("Unknown color model: 4-component JPEG doesn't have Adobe APP14 metadata");
+                throw new ImageFormatException(
+                          "Unknown color model: 4-component JPEG doesn't have Adobe APP14 metadata");
             }
 
             // If the 4-component JPEG image isn't explicitly marked as "Unknown (RGB
@@ -1294,21 +1153,21 @@ namespace ImageSharp.Formats
                         0,
                         height,
                         y =>
-                        {
-                            int yo = this.ycbcrImage.GetRowYOffset(y);
-                            int co = this.ycbcrImage.GetRowCOffset(y);
-
-                            for (int x = 0; x < width; x++)
                             {
-                                byte yy = this.ycbcrImage.YChannel[yo + x];
-                                byte cb = this.ycbcrImage.CbChannel[co + (x / scale)];
-                                byte cr = this.ycbcrImage.CrChannel[co + (x / scale)];
+                                int yo = this.ycbcrImage.GetRowYOffset(y);
+                                int co = this.ycbcrImage.GetRowCOffset(y);
 
-                                TColor packed = default(TColor);
-                                this.PackCmyk<TColor, TPacked>(ref packed, yy, cb, cr, x, y);
-                                pixels[x, y] = packed;
-                            }
-                        });
+                                for (int x = 0; x < width; x++)
+                                {
+                                    byte yy = this.ycbcrImage.YChannel[yo + x];
+                                    byte cb = this.ycbcrImage.CbChannel[co + (x / scale)];
+                                    byte cr = this.ycbcrImage.CrChannel[co + (x / scale)];
+
+                                    TColor packed = default(TColor);
+                                    this.PackCmyk<TColor, TPacked>(ref packed, yy, cb, cr, x, y);
+                                    pixels[x, y] = packed;
+                                }
+                            });
                 }
 
                 this.AssignResolution(image);
@@ -1324,8 +1183,7 @@ namespace ImageSharp.Formats
         /// <param name="height">The image height.</param>
         /// <param name="image">The image.</param>
         private void ConvertFromGrayScale<TColor, TPacked>(int width, int height, Image<TColor, TPacked> image)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TColor : struct, IPackedPixel<TPacked> where TPacked : struct
         {
             image.InitPixels(width, height);
 
@@ -1336,17 +1194,17 @@ namespace ImageSharp.Formats
                     height,
                     Bootstrapper.Instance.ParallelOptions,
                     y =>
-                    {
-                        int yoff = this.grayImage.GetRowOffset(y);
-                        for (int x = 0; x < width; x++)
                         {
-                            byte rgb = this.grayImage.Pixels[yoff + x];
+                            int yoff = this.grayImage.GetRowOffset(y);
+                            for (int x = 0; x < width; x++)
+                            {
+                                byte rgb = this.grayImage.Pixels[yoff + x];
 
-                            TColor packed = default(TColor);
-                            packed.PackFromBytes(rgb, rgb, rgb, 255);
-                            pixels[x, y] = packed;
-                        }
-                    });
+                                TColor packed = default(TColor);
+                                packed.PackFromBytes(rgb, rgb, rgb, 255);
+                                pixels[x, y] = packed;
+                            }
+                        });
             }
 
             this.AssignResolution(image);
@@ -1361,8 +1219,7 @@ namespace ImageSharp.Formats
         /// <param name="height">The image height.</param>
         /// <param name="image">The image.</param>
         private void ConvertFromYCbCr<TColor, TPacked>(int width, int height, Image<TColor, TPacked> image)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TColor : struct, IPackedPixel<TPacked> where TPacked : struct
         {
             int scale = this.componentArray[0].HorizontalFactor / this.componentArray[1].HorizontalFactor;
             image.InitPixels(width, height);
@@ -1374,21 +1231,21 @@ namespace ImageSharp.Formats
                     height,
                     Bootstrapper.Instance.ParallelOptions,
                     y =>
-                    {
-                        int yo = this.ycbcrImage.GetRowYOffset(y);
-                        int co = this.ycbcrImage.GetRowCOffset(y);
-
-                        for (int x = 0; x < width; x++)
                         {
-                            byte yy = this.ycbcrImage.YChannel[yo + x];
-                            byte cb = this.ycbcrImage.CbChannel[co + (x / scale)];
-                            byte cr = this.ycbcrImage.CrChannel[co + (x / scale)];
+                            int yo = this.ycbcrImage.GetRowYOffset(y);
+                            int co = this.ycbcrImage.GetRowCOffset(y);
 
-                            TColor packed = default(TColor);
-                            this.PackYcbCr<TColor, TPacked>(ref packed, yy, cb, cr);
-                            pixels[x, y] = packed;
-                        }
-                    });
+                            for (int x = 0; x < width; x++)
+                            {
+                                byte yy = this.ycbcrImage.YChannel[yo + x];
+                                byte cb = this.ycbcrImage.CbChannel[co + (x / scale)];
+                                byte cr = this.ycbcrImage.CrChannel[co + (x / scale)];
+
+                                TColor packed = default(TColor);
+                                PackYcbCr<TColor, TPacked>(ref packed, yy, cb, cr);
+                                pixels[x, y] = packed;
+                            }
+                        });
             }
 
             this.AssignResolution(image);
@@ -1403,8 +1260,7 @@ namespace ImageSharp.Formats
         /// <param name="height">The height.</param>
         /// <param name="image">The image.</param>
         private void ConvertFromRGB<TColor, TPacked>(int width, int height, Image<TColor, TPacked> image)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TColor : struct, IPackedPixel<TPacked> where TPacked : struct
         {
             int scale = this.componentArray[0].HorizontalFactor / this.componentArray[1].HorizontalFactor;
             image.InitPixels(width, height);
@@ -1416,21 +1272,21 @@ namespace ImageSharp.Formats
                     height,
                     Bootstrapper.Instance.ParallelOptions,
                     y =>
-                    {
-                        int yo = this.ycbcrImage.GetRowYOffset(y);
-                        int co = this.ycbcrImage.GetRowCOffset(y);
-
-                        for (int x = 0; x < width; x++)
                         {
-                            byte red = this.ycbcrImage.YChannel[yo + x];
-                            byte green = this.ycbcrImage.CbChannel[co + (x / scale)];
-                            byte blue = this.ycbcrImage.CrChannel[co + (x / scale)];
+                            int yo = this.ycbcrImage.GetRowYOffset(y);
+                            int co = this.ycbcrImage.GetRowCOffset(y);
 
-                            TColor packed = default(TColor);
-                            packed.PackFromBytes(red, green, blue, 255);
-                            pixels[x, y] = packed;
-                        }
-                    });
+                            for (int x = 0; x < width; x++)
+                            {
+                                byte red = this.ycbcrImage.YChannel[yo + x];
+                                byte green = this.ycbcrImage.CbChannel[co + (x / scale)];
+                                byte blue = this.ycbcrImage.CrChannel[co + (x / scale)];
+
+                                TColor packed = default(TColor);
+                                packed.PackFromBytes(red, green, blue, 255);
+                                pixels[x, y] = packed;
+                            }
+                        });
             }
 
             this.AssignResolution(image);
@@ -1443,14 +1299,18 @@ namespace ImageSharp.Formats
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="image">The image to assign the resolution to.</param>
         private void AssignResolution<TColor, TPacked>(Image<TColor, TPacked> image)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TColor : struct, IPackedPixel<TPacked> where TPacked : struct
         {
             if (this.isJfif && this.horizontalResolution > 0 && this.verticalResolution > 0)
             {
                 image.HorizontalResolution = this.horizontalResolution;
                 image.VerticalResolution = this.verticalResolution;
             }
+        }
+
+        struct StackallocUnzigData
+        {
+            internal fixed int Data [64];
         }
 
         /// <summary>
@@ -1479,7 +1339,8 @@ namespace ImageSharp.Formats
             this.ReadFull(this.temp, 0, remaining);
             byte scanComponentCount = this.temp[0];
 
-            if (remaining != 4 + (2 * scanComponentCount))
+            int scanComponentCountX2 = 2 * scanComponentCount;
+            if (remaining != 4 + scanComponentCountX2)
             {
                 throw new ImageFormatException("SOS length inconsistent with number of components");
             }
@@ -1489,51 +1350,7 @@ namespace ImageSharp.Formats
 
             for (int i = 0; i < scanComponentCount; i++)
             {
-                // Component selector.
-                int cs = this.temp[1 + (2 * i)];
-                int compIndex = -1;
-                for (int j = 0; j < this.componentCount; j++)
-                {
-                    Component compv = this.componentArray[j];
-                    if (cs == compv.Identifier)
-                    {
-                        compIndex = j;
-                    }
-                }
-
-                if (compIndex < 0)
-                {
-                    throw new ImageFormatException("Unknown component selector");
-                }
-
-                scan[i].Index = (byte)compIndex;
-
-                // Section B.2.3 states that "the value of Cs_j shall be different from
-                // the values of Cs_1 through Cs_(j-1)". Since we have previously
-                // verified that a frame's component identifiers (C_i values in section
-                // B.2.2) are unique, it suffices to check that the implicit indexes
-                // into comp are unique.
-                for (int j = 0; j < i; j++)
-                {
-                    if (scan[i].Index == scan[j].Index)
-                    {
-                        throw new ImageFormatException("Repeated component selector");
-                    }
-                }
-
-                totalHv += this.componentArray[compIndex].HorizontalFactor * this.componentArray[compIndex].VerticalFactor;
-
-                scan[i].DcTableSelector = (byte)(this.temp[2 + (2 * i)] >> 4);
-                if (scan[i].DcTableSelector > MaxTh)
-                {
-                    throw new ImageFormatException("Bad DC table selector value");
-                }
-
-                scan[i].AcTableSelector = (byte)(this.temp[2 + (2 * i)] & 0x0f);
-                if (scan[i].AcTableSelector > MaxTh)
-                {
-                    throw new ImageFormatException("Bad AC table selector  value");
-                }
+                this.ProcessScanImpl(i, ref scan[i], scan, ref totalHv);
             }
 
             // Section B.2.3 states that if there is more than one component then the
@@ -1558,18 +1375,18 @@ namespace ImageSharp.Formats
             // significant bit.
             // For baseline JPEGs, these parameters are hard-coded to 0/63/0/0.
             int zigStart = 0;
-            int zigEnd = Block.BlockSize - 1;
+            int zigEnd = BlockF.BlockSize - 1;
             int ah = 0;
             int al = 0;
 
             if (this.isProgressive)
             {
-                zigStart = this.temp[1 + (2 * scanComponentCount)];
-                zigEnd = this.temp[2 + (2 * scanComponentCount)];
-                ah = this.temp[3 + (2 * scanComponentCount)] >> 4;
-                al = this.temp[3 + (2 * scanComponentCount)] & 0x0f;
+                zigStart = this.temp[1 + scanComponentCountX2];
+                zigEnd = this.temp[2 + scanComponentCountX2];
+                ah = this.temp[3 + scanComponentCountX2] >> 4;
+                al = this.temp[3 + scanComponentCountX2] & 0x0f;
 
-                if ((zigStart == 0 && zigEnd != 0) || zigStart > zigEnd || Block.BlockSize <= zigEnd)
+                if ((zigStart == 0 && zigEnd != 0) || zigStart > zigEnd || BlockF.BlockSize <= zigEnd)
                 {
                     throw new ImageFormatException("Bad spectral selection bounds");
                 }
@@ -1603,12 +1420,10 @@ namespace ImageSharp.Formats
                     int compIndex = scan[i].Index;
                     if (this.progCoeffs[compIndex] == null)
                     {
-                        this.progCoeffs[compIndex] = new Block[mxx * myy * this.componentArray[compIndex].HorizontalFactor * this.componentArray[compIndex].VerticalFactor];
+                        var size = mxx * myy * this.componentArray[compIndex].HorizontalFactor
+                                   * this.componentArray[compIndex].VerticalFactor;
 
-                        for (int j = 0; j < this.progCoeffs[compIndex].Length; j++)
-                        {
-                            this.progCoeffs[compIndex][j] = new Block();
-                        }
+                        this.progCoeffs[compIndex] = new Block8x8F[size];
                     }
                 }
             }
@@ -1619,12 +1434,21 @@ namespace ImageSharp.Formats
             byte expectedRst = JpegConstants.Markers.RST0;
 
             // b is the decoded coefficients block, in natural (not zig-zag) order.
-            Block b;
+            //Block b;
             int[] dc = new int[MaxComponents];
 
             // bx and by are the location of the current block, in units of 8x8
             // blocks: the third block in the first row has (bx, by) = (2, 0).
             int bx, by, blockCount = 0;
+
+            Block8x8F b = new Block8x8F();
+            Block8x8F temp1 = new Block8x8F();
+            Block8x8F temp2 = new Block8x8F();
+
+            // Tricky way to copy contents of the Unzig static variable to the stack:
+            StackallocUnzigData unzigOnStack = new StackallocUnzigData();
+            int* unzigPtr = unzigOnStack.Data;
+            Marshal.Copy(Unzig, 0, (IntPtr)unzigPtr, 64);
 
             for (int my = 0; my < myy; my++)
             {
@@ -1635,7 +1459,6 @@ namespace ImageSharp.Formats
                         int compIndex = scan[i].Index;
                         int hi = this.componentArray[compIndex].HorizontalFactor;
                         int vi = this.componentArray[compIndex].VerticalFactor;
-                        Block qt = this.quantizationTables[this.componentArray[compIndex].Selector];
 
                         for (int j = 0; j < hi * vi; j++)
                         {
@@ -1678,167 +1501,60 @@ namespace ImageSharp.Formats
                                 }
                             }
 
-                            // Load the previous partially decoded coefficients, if applicable.
-                            b = this.isProgressive ? this.progCoeffs[compIndex][((@by * mxx) * hi) + bx] : new Block();
+                            var qtIndex = this.componentArray[compIndex].Selector;
 
-                            if (ah != 0)
+                            // TODO: Find a way to clean up this mess
+
+                            fixed (Block8x8F* qtp = &this.quantizationTables[qtIndex])
                             {
-                                this.Refine(b, this.huffmanTrees[AcTable, scan[i].AcTableSelector], zigStart, zigEnd, 1 << al);
-                            }
-                            else
-                            {
-                                int zig = zigStart;
-                                if (zig == 0)
+                                if (this.isProgressive)
+                                    // Load the previous partially decoded coefficients, if applicable.
                                 {
-                                    zig++;
+                                    this.blockIndex = ((@by * mxx) * hi) + bx;
 
-                                    // Decode the DC coefficient, as specified in section F.2.2.1.
-                                    byte value = this.DecodeHuffman(this.huffmanTrees[DcTable, scan[i].DcTableSelector]);
-                                    if (value > 16)
+                                    fixed (Block8x8F* bp = &this.progCoeffs[compIndex][this.blockIndex])
                                     {
-                                        throw new ImageFormatException("Excessive DC component");
+                                        this.ProcessBlockImpl(
+                                            ah,
+                                            bp,
+                                            &temp1,
+                                            &temp2,
+                                            unzigPtr,
+                                            scan,
+                                            i,
+                                            zigStart,
+                                            zigEnd,
+                                            al,
+                                            dc,
+                                            compIndex,
+                                            @by,
+                                            mxx,
+                                            hi,
+                                            bx,
+                                            qtp);
                                     }
-
-                                    int deltaDC = this.ReceiveExtend(value);
-                                    dc[compIndex] += deltaDC;
-                                    b[0] = dc[compIndex] << al;
-                                }
-
-                                if (zig <= zigEnd && this.eobRun > 0)
-                                {
-                                    this.eobRun--;
                                 }
                                 else
                                 {
-                                    // Decode the AC coefficients, as specified in section F.2.2.2.
-                                    Huffman huffv = this.huffmanTrees[AcTable, scan[i].AcTableSelector];
-                                    for (; zig <= zigEnd; zig++)
-                                    {
-                                        byte value = this.DecodeHuffman(huffv);
-                                        byte val0 = (byte)(value >> 4);
-                                        byte val1 = (byte)(value & 0x0f);
-                                        if (val1 != 0)
-                                        {
-                                            zig += val0;
-                                            if (zig > zigEnd)
-                                            {
-                                                break;
-                                            }
-
-                                            int ac = this.ReceiveExtend(val1);
-                                            b[Unzig[zig]] = ac << al;
-                                        }
-                                        else
-                                        {
-                                            if (val0 != 0x0f)
-                                            {
-                                                this.eobRun = (ushort)(1 << val0);
-                                                if (val0 != 0)
-                                                {
-                                                    this.eobRun |= (ushort)this.DecodeBits(val0);
-                                                }
-
-                                                this.eobRun--;
-                                                break;
-                                            }
-
-                                            zig += 0x0f;
-                                        }
-                                    }
-                                }
-                            }
-
-                            if (this.isProgressive)
-                            {
-                                if (zigEnd != Block.BlockSize - 1 || al != 0)
-                                {
-                                    // We haven't completely decoded this 8x8 block. Save the coefficients.
-                                    this.progCoeffs[compIndex][((by * mxx) * hi) + bx] = b;
-
-                                    // At this point, we could execute the rest of the loop body to dequantize and
-                                    // perform the inverse DCT, to save early stages of a progressive image to the
-                                    // *image.YCbCr buffers (the whole point of progressive encoding), but in Go,
-                                    // the jpeg.Decode function does not return until the entire image is decoded,
-                                    // so we "continue" here to avoid wasted computation.
-                                    continue;
-                                }
-                            }
-
-                            // Dequantize, perform the inverse DCT and store the block to the image.
-                            for (int zig = 0; zig < Block.BlockSize; zig++)
-                            {
-                                b[Unzig[zig]] *= qt[zig];
-                            }
-
-                            IDCT.Transform(b);
-
-                            byte[] dst;
-                            int offset;
-                            int stride;
-
-                            if (this.componentCount == 1)
-                            {
-                                dst = this.grayImage.Pixels;
-                                stride = this.grayImage.Stride;
-                                offset = this.grayImage.Offset + (8 * ((by * this.grayImage.Stride) + bx));
-                            }
-                            else
-                            {
-                                switch (compIndex)
-                                {
-                                    case 0:
-                                        dst = this.ycbcrImage.YChannel;
-                                        stride = this.ycbcrImage.YStride;
-                                        offset = this.ycbcrImage.YOffset + (8 * ((by * this.ycbcrImage.YStride) + bx));
-                                        break;
-
-                                    case 1:
-                                        dst = this.ycbcrImage.CbChannel;
-                                        stride = this.ycbcrImage.CStride;
-                                        offset = this.ycbcrImage.COffset + (8 * ((by * this.ycbcrImage.CStride) + bx));
-                                        break;
-
-                                    case 2:
-                                        dst = this.ycbcrImage.CrChannel;
-                                        stride = this.ycbcrImage.CStride;
-                                        offset = this.ycbcrImage.COffset + (8 * ((by * this.ycbcrImage.CStride) + bx));
-                                        break;
-
-                                    case 3:
-
-                                        dst = this.blackPixels;
-                                        stride = this.blackStride;
-                                        offset = 8 * ((by * this.blackStride) + bx);
-                                        break;
-
-                                    default:
-                                        throw new ImageFormatException("Too many components");
-                                }
-                            }
-
-                            // Level shift by +128, clip to [0, 255], and write to dst.
-                            for (int y = 0; y < 8; y++)
-                            {
-                                int y8 = y * 8;
-                                int yStride = y * stride;
-
-                                for (int x = 0; x < 8; x++)
-                                {
-                                    int c = b[y8 + x];
-                                    if (c < -128)
-                                    {
-                                        c = 0;
-                                    }
-                                    else if (c > 127)
-                                    {
-                                        c = 255;
-                                    }
-                                    else
-                                    {
-                                        c += 128;
-                                    }
-
-                                    dst[yStride + x + offset] = (byte)c;
+                                    b.Clear();
+                                    this.ProcessBlockImpl(
+                                        ah,
+                                        &b,
+                                        &temp1,
+                                        &temp2,
+                                        unzigPtr,
+                                        scan,
+                                        i,
+                                        zigStart,
+                                        zigEnd,
+                                        al,
+                                        dc,
+                                        compIndex,
+                                        @by,
+                                        mxx,
+                                        hi,
+                                        bx,
+                                        qtp);
                                 }
                             }
                         }
@@ -1882,15 +1598,241 @@ namespace ImageSharp.Formats
             // for my
         }
 
+        private void ProcessBlockImpl(
+            int ah,
+            Block8x8F* b,
+            Block8x8F* temp1,
+            Block8x8F* temp2,
+            int* unzigPtr,
+            Scan[] scan,
+            int i,
+            int zigStart,
+            int zigEnd,
+            int al,
+            int[] dc,
+            int compIndex,
+            int @by,
+            int mxx,
+            int hi,
+            int bx,
+            Block8x8F* qt)
+        {
+            var huffmannIdx = AcTable * ThRowSize + scan[i].AcTableSelector;
+            if (ah != 0)
+            {
+                this.Refine(b, ref this.huffmanTrees[huffmannIdx], unzigPtr, zigStart, zigEnd, 1 << al);
+            }
+            else
+            {
+                int zig = zigStart;
+                if (zig == 0)
+                {
+                    zig++;
+
+                    // Decode the DC coefficient, as specified in section F.2.2.1.
+                    byte value = this.DecodeHuffman(
+                        ref this.huffmanTrees[DcTable * ThRowSize + scan[i].DcTableSelector]);
+                    if (value > 16)
+                    {
+                        throw new ImageFormatException("Excessive DC component");
+                    }
+
+                    int deltaDC = this.bits.ReceiveExtend(value, this);
+                    dc[compIndex] += deltaDC;
+
+                    // b[0] = dc[compIndex] << al;
+                    Block8x8F.SetScalarAt(b, 0, dc[compIndex] << al);
+                }
+
+                if (zig <= zigEnd && this.eobRun > 0)
+                {
+                    this.eobRun--;
+                }
+                else
+                {
+                    // Decode the AC coefficients, as specified in section F.2.2.2.
+                    // Huffman huffv = ;
+                    for (; zig <= zigEnd; zig++)
+                    {
+                        byte value = this.DecodeHuffman(ref this.huffmanTrees[huffmannIdx]);
+                        byte val0 = (byte)(value >> 4);
+                        byte val1 = (byte)(value & 0x0f);
+                        if (val1 != 0)
+                        {
+                            zig += val0;
+                            if (zig > zigEnd)
+                            {
+                                break;
+                            }
+
+                            int ac = this.bits.ReceiveExtend(val1, this);
+
+                            // b[Unzig[zig]] = ac << al;
+                            Block8x8F.SetScalarAt(b, unzigPtr[zig], ac << al);
+                        }
+                        else
+                        {
+                            if (val0 != 0x0f)
+                            {
+                                this.eobRun = (ushort)(1 << val0);
+                                if (val0 != 0)
+                                {
+                                    this.eobRun |= (ushort)this.DecodeBits(val0);
+                                }
+
+                                this.eobRun--;
+                                break;
+                            }
+
+                            zig += 0x0f;
+                        }
+                    }
+                }
+            }
+
+            if (this.isProgressive)
+            {
+                if (zigEnd != BlockF.BlockSize - 1 || al != 0)
+                {
+                    // We haven't completely decoded this 8x8 block. Save the coefficients.
+
+                    // TODO!!!
+                    //throw new NotImplementedException();
+                    //this.progCoeffs[compIndex][((@by * mxx) * hi) + bx] = b.Clone();
+                    this.progCoeffs[compIndex][((@by * mxx) * hi) + bx] = *b;
+
+                    // At this point, we could execute the rest of the loop body to dequantize and
+                    // perform the inverse DCT, to save early stages of a progressive image to the
+                    // *image.YCbCr buffers (the whole point of progressive encoding), but in Go,
+                    // the jpeg.Decode function does not return until the entire image is decoded,
+                    // so we "continue" here to avoid wasted computation.
+                    return;
+                }
+            }
+
+            // Dequantize, perform the inverse DCT and store the block to the image.
+            Block8x8F.UnZig(b, qt, unzigPtr);
+
+            b->TransformIDCTInto(ref *temp1, ref *temp2);
+
+            byte[] dst;
+            int offset;
+            int stride;
+
+            if (this.componentCount == 1)
+            {
+                dst = this.grayImage.Pixels;
+                stride = this.grayImage.Stride;
+                offset = this.grayImage.Offset + (8 * ((@by * this.grayImage.Stride) + bx));
+            }
+            else
+            {
+                switch (compIndex)
+                {
+                    case 0:
+                        dst = this.ycbcrImage.YChannel;
+                        stride = this.ycbcrImage.YStride;
+                        offset = this.ycbcrImage.YOffset + (8 * ((@by * this.ycbcrImage.YStride) + bx));
+                        break;
+
+                    case 1:
+                        dst = this.ycbcrImage.CbChannel;
+                        stride = this.ycbcrImage.CStride;
+                        offset = this.ycbcrImage.COffset + (8 * ((@by * this.ycbcrImage.CStride) + bx));
+                        break;
+
+                    case 2:
+                        dst = this.ycbcrImage.CrChannel;
+                        stride = this.ycbcrImage.CStride;
+                        offset = this.ycbcrImage.COffset + (8 * ((@by * this.ycbcrImage.CStride) + bx));
+                        break;
+
+                    case 3:
+
+                        dst = this.blackPixels;
+                        stride = this.blackStride;
+                        offset = 8 * ((@by * this.blackStride) + bx);
+                        break;
+
+                    default:
+                        throw new ImageFormatException("Too many components");
+                }
+            }
+
+            // Level shift by +128, clip to [0, 255], and write to dst.
+
+            temp1->CopyColorsTo(new MutableSpan<byte>(dst, offset), stride, temp2);
+        }
+
+        private void ProcessScanImpl(int i, ref Scan currentScan, Scan[] scan, ref int totalHv)
+        {
+            // Component selector.
+            int cs = this.temp[1 + (2 * i)];
+            int compIndex = -1;
+            for (int j = 0; j < this.componentCount; j++)
+            {
+                //Component compv = ;
+                if (cs == this.componentArray[j].Identifier)
+                {
+                    compIndex = j;
+                }
+            }
+
+            if (compIndex < 0)
+            {
+                throw new ImageFormatException("Unknown component selector");
+            }
+
+            currentScan.Index = (byte)compIndex;
+
+            this.ProcessComponentImpl(i, ref currentScan, scan, ref totalHv, ref this.componentArray[compIndex]);
+        }
+
+        private void ProcessComponentImpl(
+            int i,
+            ref Scan currentScan,
+            Scan[] scan,
+            ref int totalHv,
+            ref Component currentComponent)
+        {
+            // Section B.2.3 states that "the value of Cs_j shall be different from
+            // the values of Cs_1 through Cs_(j-1)". Since we have previously
+            // verified that a frame's component identifiers (C_i values in section
+            // B.2.2) are unique, it suffices to check that the implicit indexes
+            // into comp are unique.
+            for (int j = 0; j < i; j++)
+            {
+                if (currentScan.Index == scan[j].Index)
+                {
+                    throw new ImageFormatException("Repeated component selector");
+                }
+            }
+
+            totalHv += currentComponent.HorizontalFactor * currentComponent.VerticalFactor;
+
+            currentScan.DcTableSelector = (byte)(this.temp[2 + (2 * i)] >> 4);
+            if (currentScan.DcTableSelector > MaxTh)
+            {
+                throw new ImageFormatException("Bad DC table selector value");
+            }
+
+            currentScan.AcTableSelector = (byte)(this.temp[2 + (2 * i)] & 0x0f);
+            if (currentScan.AcTableSelector > MaxTh)
+            {
+                throw new ImageFormatException("Bad AC table selector  value");
+            }
+        }
+
         /// <summary>
         /// Decodes a successive approximation refinement block, as specified in section G.1.2.
         /// </summary>
         /// <param name="b">The block of coefficients</param>
         /// <param name="h">The Huffman tree</param>
+        /// <param name="unzigPtr"></param>
         /// <param name="zigStart">The zig-zag start index</param>
         /// <param name="zigEnd">The zig-zag end index</param>
         /// <param name="delta">The low transform offset</param>
-        private void Refine(Block b, Huffman h, int zigStart, int zigEnd, int delta)
+        private void Refine(Block8x8F* b, ref Huffman h, int* unzigPtr, int zigStart, int zigEnd, int delta)
         {
             // Refining a DC component is trivial.
             if (zigStart == 0)
@@ -1903,7 +1845,12 @@ namespace ImageSharp.Formats
                 bool bit = this.DecodeBit();
                 if (bit)
                 {
-                    b[0] |= delta;
+                    int stuff = (int)Block8x8F.GetScalarAt(b, 0);
+
+                    // int stuff = (int)b[0];
+                    stuff |= delta;
+                    // b[0] = stuff;
+                    Block8x8F.SetScalarAt(b, 0, stuff);
                 }
 
                 return;
@@ -1917,7 +1864,7 @@ namespace ImageSharp.Formats
                 {
                     bool done = false;
                     int z = 0;
-                    byte val = this.DecodeHuffman(h);
+                    byte val = this.DecodeHuffman(ref h);
                     int val0 = val >> 4;
                     int val1 = val & 0x0f;
 
@@ -1954,6 +1901,8 @@ namespace ImageSharp.Formats
                         break;
                     }
 
+                    int blah = zig;
+
                     zig = this.RefineNonZeroes(b, zig, zigEnd, val0, delta);
                     if (zig > zigEnd)
                     {
@@ -1962,7 +1911,8 @@ namespace ImageSharp.Formats
 
                     if (z != 0)
                     {
-                        b[Unzig[zig]] = z;
+                        //b[Unzig[zig]] = z;
+                        Block8x8F.SetScalarAt(b, unzigPtr[zig], z);
                     }
                 }
             }
@@ -1984,12 +1934,15 @@ namespace ImageSharp.Formats
         /// <param name="nz">The non-zero entry</param>
         /// <param name="delta">The low transform offset</param>
         /// <returns>The <see cref="int"/></returns>
-        private int RefineNonZeroes(Block b, int zig, int zigEnd, int nz, int delta)
+        private int RefineNonZeroes(Block8x8F* b, int zig, int zigEnd, int nz, int delta)
         {
             for (; zig <= zigEnd; zig++)
             {
                 int u = Unzig[zig];
-                if (b[u] == 0)
+                float bu = Block8x8F.GetScalarAt(b, u);
+
+                // TODO: Are the equality comparsions OK with floating point values? Isn't an epsilon value necessary?
+                if (bu == 0)
                 {
                     if (nz == 0)
                     {
@@ -2006,13 +1959,15 @@ namespace ImageSharp.Formats
                     continue;
                 }
 
-                if (b[u] >= 0)
+                if (bu >= 0)
                 {
-                    b[u] += delta;
+                    //b[u] += delta;
+                    Block8x8F.SetScalarAt(b, u, bu + delta);
                 }
                 else
                 {
-                    b[u] -= delta;
+                    //b[u] -= delta;
+                    Block8x8F.SetScalarAt(b, u, bu - delta);
                 }
             }
 
@@ -2094,7 +2049,8 @@ namespace ImageSharp.Formats
                 return true;
             }
 
-            return this.componentArray[0].Identifier == 'R' && this.componentArray[1].Identifier == 'G' && this.componentArray[2].Identifier == 'B';
+            return this.componentArray[0].Identifier == 'R' && this.componentArray[1].Identifier == 'G'
+                   && this.componentArray[2].Identifier == 'B';
         }
 
         /// <summary>
@@ -2107,9 +2063,9 @@ namespace ImageSharp.Formats
         /// <param name="y">The y luminance component.</param>
         /// <param name="cb">The cb chroma component.</param>
         /// <param name="cr">The cr chroma component.</param>
-        private void PackYcbCr<TColor, TPacked>(ref TColor packed, byte y, byte cb, byte cr)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void PackYcbCr<TColor, TPacked>(ref TColor packed, byte y, byte cb, byte cr)
+            where TColor : struct, IPackedPixel<TPacked> where TPacked : struct
         {
             int ccb = cb - 128;
             int ccr = cr - 128;
@@ -2134,8 +2090,7 @@ namespace ImageSharp.Formats
         /// <param name="xx">The x-position within the image.</param>
         /// <param name="yy">The y-position within the image.</param>
         private void PackCmyk<TColor, TPacked>(ref TColor packed, byte y, byte cb, byte cr, int xx, int yy)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TColor : struct, IPackedPixel<TPacked> where TPacked : struct
         {
             // TODO: We can speed this up further with Vector4
             int ccb = cb - 128;
@@ -2179,9 +2134,20 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
+        /// ReadByteStuffedByte was throwing exceptions on normal execution path (very inefficent)
+        /// It's better tho have an error code for this!
+        /// </summary>
+        internal enum ErrorCodes
+        {
+            NoError,
+            // ReSharper disable once InconsistentNaming
+            MissingFF00
+        }
+
+        /// <summary>
         /// The missing ff00 exception.
         /// </summary>
-        private class MissingFF00Exception : Exception
+        internal class MissingFF00Exception : Exception
         {
         }
 
@@ -2196,8 +2162,17 @@ namespace ImageSharp.Formats
         /// The EOF (End of File exception).
         /// Thrown when the decoder encounters an EOF marker without a proceeding EOI (End Of Image) marker
         /// </summary>
-        private class EOFException : Exception
+        internal class EOFException : Exception
         {
+        }
+
+        public void Dispose()
+        {
+            for (int i = 0; i < this.huffmanTrees.Length; i++)
+            {
+                this.huffmanTrees[i].Dispose();
+            }
+            this.bytes.Dispose();
         }
     }
 }

@@ -2,25 +2,28 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
-
 namespace ImageSharp.Formats
 {
+    using System;
+    using System.Buffers;
+    using System.IO;
+    using System.Runtime.CompilerServices;
+
     /// <summary>
     /// Bytes is a byte buffer, similar to a stream, except that it
     /// has to be able to unread more than 1 byte, due to byte stuffing.
     /// Byte stuffing is specified in section F.1.2.3.
     /// </summary>
-    internal class Bytes
+    internal struct Bytes : IDisposable
     {
+        private static readonly ArrayPool<byte> ArrayPool = ArrayPool<byte>.Create(4096, 50);
+
         /// <summary>
-        /// Initializes a new instance of the <see cref="Bytes"/> class.
+        /// Creates a new instance of the <see cref="Bytes"/>, and initializes it's buffer.
         /// </summary>
-        public Bytes()
+        public static Bytes Create()
         {
-            this.Buffer = new byte[4096];
-            this.I = 0;
-            this.J = 0;
-            this.UnreadableBytes = 0;
+            return new Bytes { Buffer = ArrayPool.Rent(4096) };
         }
 
         /// <summary>
@@ -28,16 +31,128 @@ namespace ImageSharp.Formats
         /// buffer[i:j] are the buffered bytes read from the underlying
         /// stream that haven't yet been passed further on.
         /// </summary>
-        public byte[] Buffer { get; set; }
+        public byte[] Buffer;
 
-        public int I { get; set; }
+        public int I;
 
-        public int J { get; set; }
+        public int J;
 
         /// <summary>
         /// Gets or sets the unreadable bytes. The number of bytes to back up i after
         /// overshooting. It can be 0, 1 or 2.
         /// </summary>
-        public int UnreadableBytes { get; set; }
+        public int UnreadableBytes;
+
+        public void Dispose()
+        {
+            if (this.Buffer != null) ArrayPool.Return(this.Buffer);
+            this.Buffer = null;
+        }
+
+        /// <summary>
+        /// ReadByteStuffedByte is like ReadByte but is for byte-stuffed Huffman data.
+        /// </summary>
+        /// <returns>The <see cref="byte"/></returns>
+        internal byte ReadByteStuffedByte(Stream inputStream, out JpegDecoderCore.ErrorCodes errorCode)
+        {
+            byte x;
+
+            errorCode = JpegDecoderCore.ErrorCodes.NoError;
+
+            // Take the fast path if bytes.buf contains at least two bytes.
+            if (this.I + 2 <= this.J)
+            {
+                x = this.Buffer[this.I];
+                this.I++;
+                this.UnreadableBytes = 1;
+                if (x != JpegConstants.Markers.XFF)
+                {
+                    return x;
+                }
+
+                if (this.Buffer[this.I] != 0x00)
+                {
+                    errorCode = JpegDecoderCore.ErrorCodes.MissingFF00;
+                    return 0;
+
+                    // throw new MissingFF00Exception();
+                }
+
+                this.I++;
+                this.UnreadableBytes = 2;
+                return JpegConstants.Markers.XFF;
+            }
+
+            this.UnreadableBytes = 0;
+
+            x = this.ReadByte(inputStream);
+            this.UnreadableBytes = 1;
+            if (x != JpegConstants.Markers.XFF)
+            {
+                return x;
+            }
+
+            x = this.ReadByte(inputStream);
+            this.UnreadableBytes = 2;
+            if (x != 0x00)
+            {
+                errorCode = JpegDecoderCore.ErrorCodes.MissingFF00;
+                return 0;
+
+                // throw new MissingFF00Exception();
+            }
+
+            return JpegConstants.Markers.XFF;
+        }
+
+        /// <summary>
+        /// Returns the next byte, whether buffered or not buffered. It does not care about byte stuffing.
+        /// </summary>
+        /// <returns>The <see cref="byte"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal byte ReadByte(Stream inputStream)
+        {
+            while (this.I == this.J)
+            {
+                this.Fill(inputStream);
+            }
+
+            byte x = this.Buffer[this.I];
+            this.I++;
+            this.UnreadableBytes = 0;
+            return x;
+        }
+
+        /// <summary>
+        /// Fills up the bytes buffer from the underlying stream.
+        /// It should only be called when there are no unread bytes in bytes.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void Fill(Stream inputStream)
+        {
+            if (this.I != this.J)
+            {
+                throw new ImageFormatException("Fill called when unread bytes exist.");
+            }
+
+            // Move the last 2 bytes to the start of the buffer, in case we need
+            // to call UnreadByteStuffedByte.
+            if (this.J > 2)
+            {
+                this.Buffer[0] = this.Buffer[this.J - 2];
+                this.Buffer[1] = this.Buffer[this.J - 1];
+                this.I = 2;
+                this.J = 2;
+            }
+
+            // Fill in the rest of the buffer.
+            int n = inputStream.Read(this.Buffer, this.J, this.Buffer.Length - this.J);
+            if (n == 0)
+            {
+                throw new JpegDecoderCore.EOFException();
+            }
+
+            this.J += n;
+        }
     }
 }

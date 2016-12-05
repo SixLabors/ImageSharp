@@ -322,7 +322,7 @@ namespace ImageSharp.Formats
 
                 image = currentFrame;
 
-                RestoreToBackground(image);
+                this.RestoreToBackground(image);
 
                 this.decodedImage.Frames.Add(currentFrame);
             }

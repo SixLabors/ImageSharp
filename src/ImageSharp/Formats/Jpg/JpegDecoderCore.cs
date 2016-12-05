@@ -209,7 +209,6 @@ namespace ImageSharp.Formats
             this.bytes = Bytes.Create();
 
             // TODO: This looks like it could be static.
-
             for (int i = 0; i < MaxTc + 1; i++)
             {
                 for (int j = 0; j < MaxTh + 1; j++)
@@ -229,7 +228,8 @@ namespace ImageSharp.Formats
         /// <param name="stream">The stream, where the image should be.</param>
         /// <param name="configOnly">Whether to decode metadata only.</param>
         public void Decode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream, bool configOnly)
-            where TColor : struct, IPackedPixel<TPacked> where TPacked : struct
+            where TColor : struct, IPackedPixel<TPacked>
+            where TPacked : struct
         {
             this.inputStream = stream;
 
@@ -287,7 +287,7 @@ namespace ImageSharp.Formats
                     break;
                 }
 
-                if (JpegConstants.Markers.RST0 <= marker && marker <= JpegConstants.Markers.RST7)
+                if (marker >= JpegConstants.Markers.RST0 && marker <= JpegConstants.Markers.RST7)
                 {
                     // Figures B.2 and B.16 of the specification suggest that restart markers should
                     // only occur between Entropy Coded Segments and not after the final ECS.
@@ -336,7 +336,11 @@ namespace ImageSharp.Formats
                         {
                             this.Skip(remaining);
                         }
-                        else this.ProcessDqt(remaining);
+                        else
+                        {
+                            this.ProcessDqt(remaining);
+                        }
+
                         break;
                     case JpegConstants.Markers.SOS:
                         if (configOnly)

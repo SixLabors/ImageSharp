@@ -120,20 +120,6 @@ namespace ImageSharp
             }
         }
 
-        [Conditional("DEBUG")]
-        private void CheckCoordinates(int x, int y)
-        {
-            if (x < 0 || x >= this.Width)
-            {
-                throw new ArgumentOutOfRangeException(nameof(x), x, $"{x} is outwith the image bounds.");
-            }
-
-            if (y < 0 || y >= this.Height)
-            {
-                throw new ArgumentOutOfRangeException(nameof(y), y, $"{y} is outwith the image bounds.");
-            }
-        }
-
         /// <summary>
         /// Copies a block of pixels at the specified position.
         /// </summary>
@@ -432,6 +418,20 @@ namespace ImageSharp
         protected byte* GetRowPointer(int targetY)
         {
             return this.pixelsBase + ((targetY * this.Width) * Unsafe.SizeOf<TColor>());
+        }
+
+        [Conditional("DEBUG")]
+        private void CheckCoordinates(int x, int y)
+        {
+            if (x < 0 || x >= this.Width)
+            {
+                throw new ArgumentOutOfRangeException(nameof(x), x, $"{x} is outwith the image bounds.");
+            }
+
+            if (y < 0 || y >= this.Height)
+            {
+                throw new ArgumentOutOfRangeException(nameof(y), y, $"{y} is outwith the image bounds.");
+            }
         }
     }
 }

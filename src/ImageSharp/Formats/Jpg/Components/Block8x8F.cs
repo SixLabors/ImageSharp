@@ -40,7 +40,7 @@ namespace ImageSharp.Formats
         public Vector4 V7R;
 
         public const int VectorCount = 16;
-        public const int ScalarCount = VectorCount*4;
+        public const int ScalarCount = VectorCount * 4;
 
         /// <summary>
         /// Load raw 32bit floating point data from source

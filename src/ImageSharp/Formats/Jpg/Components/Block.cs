@@ -3,60 +3,35 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-using System;
-using System.Buffers;
-using System.Runtime.CompilerServices;
-
 namespace ImageSharp.Formats
 {
+    using System;
+    using System.Buffers;
+    using System.Runtime.CompilerServices;
+
     /// <summary>
     /// Represents an 8x8 block of coefficients to transform and encode.
     /// </summary>
     internal struct Block : IDisposable
     {
-        private static readonly ArrayPool<int> ArrayPool = ArrayPool<int>.Create(BlockSize, 50);
-
         /// <summary>
         /// Gets the size of the block.
         /// </summary>
         public const int BlockSize = 64;
 
         /// <summary>
-        /// The array of block data.
+        /// Gets the array of block data.
         /// </summary>
         public int[] Data;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Block"/> class.
+        /// A pool of reusable buffers.
         /// </summary>
-        //public Block()
-        //{
-        //    this.data = new int[BlockSize];
-        //}
+        private static readonly ArrayPool<int> ArrayPool = ArrayPool<int>.Create(BlockSize, 50);
 
-        public void Init()
-        {
-            //this.Data = new int[BlockSize];
-            this.Data = ArrayPool.Rent(BlockSize);
-        }
-
-        public static Block Create()
-        {
-            var block = new Block();
-            block.Init();
-            return block;
-        }
-
-        public static Block[] CreateArray(int size)
-        {
-            Block[] result = new Block[size];
-            for (int i = 0; i < result.Length; i++)
-            {
-                result[i].Init();
-            }
-            return result;
-        }
-
+        /// <summary>
+        /// Gets a value indicating whether the block is initialized
+        /// </summary>
         public bool IsInitialized => this.Data != null;
 
         /// <summary>
@@ -69,21 +44,49 @@ namespace ImageSharp.Formats
         public int this[int index]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get { return this.Data[index]; }
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set { this.Data[index] = value; }
-        }
-
-        // TODO: Refactor Block.Dispose() callers to always use 'using' or 'finally' statement!
-        public void Dispose()
-        {
-            if (Data != null)
+            get
             {
-                ArrayPool.Return(Data, true);
-                Data = null;
+                return this.Data[index];
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            set
+            {
+                this.Data[index] = value;
             }
         }
 
+        /// <summary>
+        /// Creates a new block
+        /// </summary>
+        /// <returns>The <see cref="Block"/></returns>
+        public static Block Create()
+        {
+            Block block = default(Block);
+            block.Init();
+            return block;
+        }
+
+        /// <summary>
+        /// Returns an array of blocks of the given length.
+        /// </summary>
+        /// <param name="count">The number to create.</param>
+        /// <returns>The <see cref="T:Block[]"/></returns>
+        public static Block[] CreateArray(int count)
+        {
+            Block[] result = new Block[count];
+            for (int i = 0; i < result.Length; i++)
+            {
+                result[i].Init();
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Disposes of the collection of blocks
+        /// </summary>
+        /// <param name="blocks">The blocks.</param>
         public static void DisposeAll(Block[] blocks)
         {
             for (int i = 0; i < blocks.Length; i++)
@@ -92,24 +95,50 @@ namespace ImageSharp.Formats
             }
         }
 
-
-        public void Clear()
+        /// <summary>
+        /// Initializes the new block.
+        /// </summary>
+        public void Init()
         {
-            for (int i = 0; i < Data.Length; i++)
+            this.Data = ArrayPool.Rent(BlockSize);
+        }
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            // TODO: Refactor Block.Dispose() callers to always use 'using' or 'finally' statement!
+            if (this.Data != null)
             {
-                Data[i] = 0;
+                ArrayPool.Return(this.Data, true);
+                this.Data = null;
             }
         }
 
+        /// <summary>
+        /// Clears the block data
+        /// </summary>
+        public void Clear()
+        {
+            for (int i = 0; i < this.Data.Length; i++)
+            {
+                this.Data[i] = 0;
+            }
+        }
+
+        /// <summary>
+        /// Clones the current block
+        /// </summary>
+        /// <returns>The <see cref="Block"/></returns>
         public Block Clone()
         {
             Block clone = Create();
-            Array.Copy(Data, clone.Data, BlockSize);
+            Array.Copy(this.Data, clone.Data, BlockSize);
             return clone;
         }
     }
 
     /// <summary>
+    /// TODO: Should be removed, when JpegEncoderCore is refactored to use Block8x8F
     /// Temporal class to make refactoring easier.
     /// 1. Refactor Block -> BlockF
     /// 2. Test
@@ -117,10 +146,8 @@ namespace ImageSharp.Formats
     /// </summary>
     internal struct BlockF : IDisposable
     {
-        private static readonly ArrayPool<float> ArrayPool = ArrayPool<float>.Create(BlockSize, 50);
-
         /// <summary>
-        /// Gets the size of the block.
+        /// Size of the block.
         /// </summary>
         public const int BlockSize = 64;
 
@@ -130,36 +157,13 @@ namespace ImageSharp.Formats
         public float[] Data;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Block"/> class.
+        /// A pool of reusable buffers.
         /// </summary>
-        //public Block()
-        //{
-        //    this.data = new int[BlockSize];
-        //}
+        private static readonly ArrayPool<float> ArrayPool = ArrayPool<float>.Create(BlockSize, 50);
 
-        public void Init()
-        {
-            //this.Data = new int[BlockSize];
-            this.Data = ArrayPool.Rent(BlockSize);
-        }
-
-        public static BlockF Create()
-        {
-            var block = new BlockF();
-            block.Init();
-            return block;
-        }
-
-        public static BlockF[] CreateArray(int size)
-        {
-            BlockF[] result = new BlockF[size];
-            for (int i = 0; i < result.Length; i++)
-            {
-                result[i].Init();
-            }
-            return result;
-        }
-
+        /// <summary>
+        /// Gets a value indicating whether the block is initialized
+        /// </summary>
         public bool IsInitialized => this.Data != null;
 
         /// <summary>
@@ -172,21 +176,49 @@ namespace ImageSharp.Formats
         public float this[int index]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get { return this.Data[index]; }
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set { this.Data[index] = value; }
-        }
-
-        // TODO: Refactor Block.Dispose() callers to always use 'using' or 'finally' statement!
-        public void Dispose()
-        {
-            if (Data != null)
+            get
             {
-                ArrayPool.Return(Data, true);
-                Data = null;
+                return this.Data[index];
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            set
+            {
+                this.Data[index] = value;
             }
         }
 
+        /// <summary>
+        /// Creates a new block
+        /// </summary>
+        /// <returns>The <see cref="BlockF"/></returns>
+        public static BlockF Create()
+        {
+            var block = default(BlockF);
+            block.Init();
+            return block;
+        }
+
+        /// <summary>
+        /// Returns an array of blocks of the given length.
+        /// </summary>
+        /// <param name="count">The number to create.</param>
+        /// <returns>The <see cref="T:BlockF[]"/></returns>
+        public static BlockF[] CreateArray(int count)
+        {
+            BlockF[] result = new BlockF[count];
+            for (int i = 0; i < result.Length; i++)
+            {
+                result[i].Init();
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Disposes of the collection of blocks
+        /// </summary>
+        /// <param name="blocks">The blocks.</param>
         public static void DisposeAll(BlockF[] blocks)
         {
             for (int i = 0; i < blocks.Length; i++)
@@ -195,22 +227,46 @@ namespace ImageSharp.Formats
             }
         }
 
-
+        /// <summary>
+        /// Clears the block data
+        /// </summary>
         public void Clear()
         {
-            for (int i = 0; i < Data.Length; i++)
+            for (int i = 0; i < this.Data.Length; i++)
             {
-                Data[i] = 0;
+                this.Data[i] = 0;
             }
         }
 
+        /// <summary>
+        /// Clones the current block
+        /// </summary>
+        /// <returns>The <see cref="Block"/></returns>
         public BlockF Clone()
         {
             BlockF clone = Create();
-            Array.Copy(Data, clone.Data, BlockSize);
+            Array.Copy(this.Data, clone.Data, BlockSize);
             return clone;
         }
+
+        /// <summary>
+        /// Initializes the new block.
+        /// </summary>
+        public void Init()
+        {
+            // this.Data = new int[BlockSize];
+            this.Data = ArrayPool.Rent(BlockSize);
+        }
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            // TODO: Refactor Block.Dispose() callers to always use 'using' or 'finally' statement!
+            if (this.Data != null)
+            {
+                ArrayPool.Return(this.Data, true);
+                this.Data = null;
+            }
+        }
     }
-
-
 }

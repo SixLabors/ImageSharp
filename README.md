@@ -5,8 +5,13 @@
 
 > **ImageSharp is still in early stages (alpha) but progress has been pretty quick. As such, please do not use on production environments until the library reaches release candidate status. Pre-release downloads are available from the [MyGet package repository](https://www.myget.org/gallery/imagesharp).**
 
+[![GitHub license](https://img.shields.io/badge/license-Apache%202-blue.svg)](https://raw.githubusercontent.com/JimBobSquarePants/ImageSharp/master/APACHE-2.0-LICENSE.txt)
 [![Build status](https://ci.appveyor.com/api/projects/status/hu6d1gdpxdw0q360/branch/master?svg=true)](https://ci.appveyor.com/project/JamesSouth/imagesharp/branch/master)
+[![GitHub issues](https://img.shields.io/github/issues/JimBobSquarePants/ImageSharp.svg)](https://github.com/JimBobSquarePants/ImageSharp/issues)
+[![GitHub stars](https://img.shields.io/github/stars/JimBobSquarePants/ImageSharp.svg)](https://github.com/JimBobSquarePants/ImageSharp/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/JimBobSquarePants/ImageSharp.svg)](https://github.com/JimBobSquarePants/ImageSharp/network)
 [![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/ImageSharp/General?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Twitter](https://img.shields.io/twitter/url/https/github.com/JimBobSquarePants/ImageSharp.svg?style=social)](https://twitter.com/intent/tweet?hashtags=imagesharp,dotnet,oss&text=ImageSharp.+A+new+cross-platform+2D+graphics+API+in+C%23&url=https%3a%2f%2fgithub.com%2fJimBobSquarePants%2fImageSharp&via=james_m_south)
 
 ### Installation
 At present the code is pre-release but when ready it will be available on [Nuget](http://www.nuget.org). 
@@ -28,7 +33,7 @@ To clone it locally click the "Clone in Windows" button above or run the followi
 git clone https://github.com/JimBobSquarePants/ImageSharp
 ```
 
-###What works so far/ What is planned?
+### What works so far/ What is planned?
 
 - Encoding/decoding of image formats (plugable).
  - [x] Jpeg (Includes Subsampling. Progressive writing required)
@@ -43,16 +48,34 @@ git clone https://github.com/JimBobSquarePants/ImageSharp
  - [x] Xiaolin Wu
  - [x] Palette
 - Basic color structs with implicit operators. 
- - [x] Color - 32bit color in RGBA order.
- - [x] BGRA32
+ - [x] Color - 32bit color in RGBA order (IPackedPixel\<TPacked\>).
+ - [x] Bgra32
  - [x] CIE Lab
  - [x] CIE XYZ
  - [x] CMYK
  - [x] HSV
  - [x] HSL
  - [x] YCbCr
-- Basic shape primitives (Vector backed)
- - [x] Rectangle (Doesn't contain all System.Drawing methods)
+- IPackedPixel\<TPacked\> representations of color models. Compatible with Microsoft XNA Game Studio and MonoGame.
+ - [x] Alpha8 
+ - [x] Bgr565 
+ - [x] Bgra444 
+ - [x] Bgra565 
+ - [x] Byte4 
+ - [x] HalfSingle 
+ - [x] HalfVector2 
+ - [x] HalfVector4 
+ - [x] NormalizedByte2 
+ - [x] NormalizedByte4 
+ - [x] NormalizedShort2 
+ - [x] NormalizedShort4 
+ - [x] Rg32 
+ - [x] Rgba1010102 
+ - [x] Rgba64 
+ - [x] Short2 
+ - [x] Short4 
+- Basic shape primitives.
+ - [x] Rectangle
  - [x] Size
  - [x] Point
  - [x] Ellipse
@@ -131,9 +154,9 @@ git clone https://github.com/JimBobSquarePants/ImageSharp
  - [x] Threshold
 - Drawing
  - [ ] Path brush (Need help) 
- - [ ] Pattern brush (Need help)
+ - [ ] Hatch brush (Need help)
  - [ ] Elliptical brush (Need help)
- - [ ] Gradient brush (vignette? Need help)
+ - [ ] Gradient brush (Need help)
 - Other stuff I haven't thought of.
  
 ### What might never happen

@@ -10,10 +10,13 @@ namespace ImageSharp
     using System.Text;
 
     /// <summary>
-    /// A value of the exif profile.
+    /// Represent the value of the EXIF profile.
     /// </summary>
     public sealed class ExifValue : IEquatable<ExifValue>
     {
+        /// <summary>
+        /// The exif value.
+        /// </summary>
         private object exifValue;
 
         /// <summary>
@@ -39,6 +42,37 @@ namespace ImageSharp
                 Array array = (Array)other.exifValue;
                 this.exifValue = array.Clone();
             }
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ExifValue"/> class.
+        /// </summary>
+        /// <param name="tag">The tag.</param>
+        /// <param name="dataType">The data type.</param>
+        /// <param name="isArray">Whether the value is an array.</param>
+        internal ExifValue(ExifTag tag, ExifDataType dataType, bool isArray)
+        {
+            this.Tag = tag;
+            this.DataType = dataType;
+            this.IsArray = isArray;
+
+            if (dataType == ExifDataType.Ascii)
+            {
+                this.IsArray = false;
+            }
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ExifValue"/> class.
+        /// </summary>
+        /// <param name="tag">The tag.</param>
+        /// <param name="dataType">The data type.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="isArray">Whether the value is an array.</param>
+        internal ExifValue(ExifTag tag, ExifDataType dataType, object value, bool isArray)
+          : this(tag, dataType, isArray)
+        {
+            this.exifValue = value;
         }
 
         /// <summary>
@@ -74,6 +108,7 @@ namespace ImageSharp
             {
                 return this.exifValue;
             }
+
             set
             {
                 this.CheckValue(value);
@@ -82,31 +117,100 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Determines whether the specified ExifValue instances are considered equal.
+        /// Gets a value indicating whether the EXIF value has a value.
         /// </summary>
-        /// <param name="left">The first ExifValue to compare.</param>
-        /// <param name="right"> The second ExifValue to compare.</param>
-        /// <returns></returns>
+        internal bool HasValue
+        {
+            get
+            {
+                if (this.exifValue == null)
+                {
+                    return false;
+                }
+
+                if (this.DataType == ExifDataType.Ascii)
+                {
+                    return ((string)this.exifValue).Length > 0;
+                }
+
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// Gets the length of the EXIF value
+        /// </summary>
+        internal int Length
+        {
+            get
+            {
+                if (this.exifValue == null)
+                {
+                    return 4;
+                }
+
+                int size = (int)(GetSize(this.DataType) * this.NumberOfComponents);
+
+                return size < 4 ? 4 : size;
+            }
+        }
+
+        /// <summary>
+        /// Gets the number of components.
+        /// </summary>
+        internal int NumberOfComponents
+        {
+            get
+            {
+                if (this.DataType == ExifDataType.Ascii)
+                {
+                    return Encoding.UTF8.GetBytes((string)this.exifValue).Length;
+                }
+
+                if (this.IsArray)
+                {
+                    return ((Array)this.exifValue).Length;
+                }
+
+                return 1;
+            }
+        }
+
+        /// <summary>
+        /// Compares two <see cref="ExifValue"/> objects for equality.
+        /// </summary>
+        /// <param name="left">
+        /// The <see cref="ExifValue"/> on the left side of the operand.
+        /// </param>
+        /// <param name="right">
+        /// The <see cref="ExifValue"/> on the right side of the operand.
+        /// </param>
+        /// <returns>
+        /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
+        /// </returns>
         public static bool operator ==(ExifValue left, ExifValue right)
         {
-            return Equals(left, right);
+            return ExifValue.Equals(left, right);
         }
 
         /// <summary>
-        /// Determines whether the specified ExifValue instances are not considered equal.
+        /// Compares two <see cref="ExifValue"/> objects for equality.
         /// </summary>
-        /// <param name="left">The first ExifValue to compare.</param>
-        /// <param name="right"> The second ExifValue to compare.</param>
-        /// <returns></returns>
+        /// <param name="left">
+        /// The <see cref="ExifValue"/> on the left side of the operand.
+        /// </param>
+        /// <param name="right">
+        /// The <see cref="ExifValue"/> on the right side of the operand.
+        /// </param>
+        /// <returns>
+        /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
+        /// </returns>
         public static bool operator !=(ExifValue left, ExifValue right)
         {
-            return !Equals(left, right);
+            return !ExifValue.Equals(left, right);
         }
 
-        /// <summary>
-        /// Determines whether the specified object is equal to the current exif value.
-        /// </summary>
-        /// <param name="obj">The object to compare this exif value with.</param>
+        /// <inheritdoc />
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(this, obj))
@@ -117,10 +221,7 @@ namespace ImageSharp
             return this.Equals(obj as ExifValue);
         }
 
-        /// <summary>
-        /// Determines whether the specified exif value is equal to the current exif value.
-        /// </summary>
-        /// <param name="other">The exif value to compare this exif value with.</param>
+        /// <inheritdoc />
         public bool Equals(ExifValue other)
         {
             if (ReferenceEquals(other, null))
@@ -136,7 +237,7 @@ namespace ImageSharp
             return
               this.Tag == other.Tag &&
               this.DataType == other.DataType &&
-              Equals(this.exifValue, other.exifValue);
+              object.Equals(this.exifValue, other.exifValue);
         }
 
         /// <inheritdoc/>
@@ -173,75 +274,17 @@ namespace ImageSharp
             return sb.ToString();
         }
 
-        internal bool HasValue
-        {
-            get
-            {
-                if (this.exifValue == null)
-                {
-                    return false;
-                }
-
-                if (this.DataType == ExifDataType.Ascii)
-                {
-                    return ((string)this.exifValue).Length > 0;
-                }
-
-                return true;
-            }
-        }
-
-        internal int Length
-        {
-            get
-            {
-                if (this.exifValue == null)
-                {
-                    return 4;
-                }
-
-                int size = (int)(GetSize(this.DataType) * this.NumberOfComponents);
-
-                return size < 4 ? 4 : size;
-            }
-        }
-
-        internal int NumberOfComponents
-        {
-            get
-            {
-                if (this.DataType == ExifDataType.Ascii)
-                {
-                    return Encoding.UTF8.GetBytes((string)this.exifValue).Length;
-                }
-
-                if (this.IsArray)
-                {
-                    return ((Array)this.exifValue).Length;
-                }
-
-                return 1;
-            }
-        }
-
-        internal ExifValue(ExifTag tag, ExifDataType dataType, bool isArray)
-        {
-            this.Tag = tag;
-            this.DataType = dataType;
-            this.IsArray = isArray;
-
-            if (dataType == ExifDataType.Ascii)
-            {
-                this.IsArray = false;
-            }
-        }
-
-        internal ExifValue(ExifTag tag, ExifDataType dataType, object value, bool isArray)
-          : this(tag, dataType, isArray)
-        {
-            this.exifValue = value;
-        }
-
+        /// <summary>
+        /// Creates a new <see cref="ExifValue"/>
+        /// </summary>
+        /// <param name="tag">The tag.</param>
+        /// <param name="value">The value.</param>
+        /// <returns>
+        /// The <see cref="ExifValue"/>.
+        /// </returns>
+        /// <exception cref="NotSupportedException">
+        /// Thrown if the tag is not supported.
+        /// </exception>
         internal static ExifValue Create(ExifTag tag, object value)
         {
             Guard.IsFalse(tag == ExifTag.Unknown, nameof(tag), "Invalid Tag");
@@ -549,6 +592,16 @@ namespace ImageSharp
             return exifValue;
         }
 
+        /// <summary>
+        /// Gets the size in bytes of the given data type.
+        /// </summary>
+        /// <param name="dataType">The data type.</param>
+        /// <returns>
+        /// The <see cref="uint"/>.
+        /// </returns>
+        /// <exception cref="NotSupportedException">
+        /// Thrown if the type is unsupported.
+        /// </exception>
         internal static uint GetSize(ExifDataType dataType)
         {
             switch (dataType)
@@ -574,6 +627,42 @@ namespace ImageSharp
             }
         }
 
+        /// <summary>
+        /// Returns an EXIF value with a numeric type for the given tag.
+        /// </summary>
+        /// <param name="tag">The tag.</param>
+        /// <param name="type">The numeric type.</param>
+        /// <param name="isArray">Whether the value is an array.</param>
+        /// <returns>
+        /// The <see cref="ExifValue"/>.
+        /// </returns>
+        private static ExifValue CreateNumber(ExifTag tag, Type type, bool isArray)
+        {
+            if (type == null || type == typeof(ushort))
+            {
+                return new ExifValue(tag, ExifDataType.Short, isArray);
+            }
+
+            if (type == typeof(short))
+            {
+                return new ExifValue(tag, ExifDataType.SignedShort, isArray);
+            }
+
+            if (type == typeof(uint))
+            {
+                return new ExifValue(tag, ExifDataType.Long, isArray);
+            }
+
+            return new ExifValue(tag, ExifDataType.SignedLong, isArray);
+        }
+
+        /// <summary>
+        /// Checks the value type of the given object.
+        /// </summary>
+        /// <param name="value">The value to check.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown if the object type is not supported.
+        /// </exception>
         private void CheckValue(object value)
         {
             if (value == null)
@@ -639,26 +728,11 @@ namespace ImageSharp
             }
         }
 
-        private static ExifValue CreateNumber(ExifTag tag, Type type, bool isArray)
-        {
-            if (type == null || type == typeof(ushort))
-            {
-                return new ExifValue(tag, ExifDataType.Short, isArray);
-            }
-
-            if (type == typeof(short))
-            {
-                return new ExifValue(tag, ExifDataType.SignedShort, isArray);
-            }
-
-            if (type == typeof(uint))
-            {
-                return new ExifValue(tag, ExifDataType.Long, isArray);
-            }
-
-            return new ExifValue(tag, ExifDataType.SignedLong, isArray);
-        }
-
+        /// <summary>
+        /// Converts the object value of this instance to its equivalent string representation
+        /// </summary>
+        /// <param name="value">The value</param>
+        /// <returns>The <see cref="string"/></returns>
         private string ToString(object value)
         {
             string description = ExifTagDescriptionAttribute.GetDescription(this.Tag, value);

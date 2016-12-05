@@ -17,25 +17,20 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="scanline">The scanline to decode</param>
         /// <param name="previousScanline">The previous scanline.</param>
-        /// <returns>The <see cref="T:byte[]"/></returns>
-        public static byte[] Decode(byte[] scanline, byte[] previousScanline)
+        /// <param name="bytesPerScanline">The number of bytes per scanline</param>
+        public static void Decode(byte[] scanline, byte[] previousScanline, int bytesPerScanline)
         {
             // Up(x) + Prior(x)
-            byte[] result = new byte[scanline.Length];
-
             fixed (byte* scan = scanline)
             fixed (byte* prev = previousScanline)
-            fixed (byte* res = result)
             {
-                for (int x = 1; x < scanline.Length; x++)
+                for (int x = 1; x < bytesPerScanline; x++)
                 {
                     byte above = prev[x];
 
-                    res[x] = (byte)((scan[x] + above) % 256);
+                    scan[x] = (byte)((scan[x] + above) % 256);
                 }
             }
-
-            return result;
         }
 
         /// <summary>
@@ -43,10 +38,8 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="scanline">The scanline to encode</param>
         /// <param name="previousScanline">The previous scanline.</param>
-        /// <param name="result">The encoded scanline.</param>
-        /// <param name="bytesPerScanline">The number of bytes per scanline</param>
-        /// <returns>The <see cref="T:byte[]"/></returns>
-        public static byte[] Encode(byte[] scanline, byte[] previousScanline, byte[] result, int bytesPerScanline)
+        /// <param name="result">The filtered scanline result.</param>
+        public static void Encode(byte[] scanline, byte[] previousScanline, byte[] result)
         {
             // Up(x) = Raw(x) - Prior(x)
             fixed (byte* scan = scanline)
@@ -55,15 +48,13 @@ namespace ImageSharp.Formats
             {
                 res[0] = 2;
 
-                for (int x = 0; x < bytesPerScanline; x++)
+                for (int x = 0; x < scanline.Length; x++)
                 {
                     byte above = prev[x];
 
                     res[x + 1] = (byte)((scan[x] - above) % 256);
                 }
             }
-
-            return result;
         }
     }
 }

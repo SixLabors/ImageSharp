@@ -20,9 +20,11 @@ namespace ImageSharp.IO
     [SuppressMessage("StyleCop.CSharp.OrderingRules", "SA1201:ElementsMustAppearInTheCorrectOrder", Justification = "Reviewed. Suppression is OK here. Better readability.")]
     [SuppressMessage("StyleCop.CSharp.OrderingRules", "SA1202:ElementsMustBeOrderedByAccess", Justification = "Reviewed. Suppression is OK here. Better readability.")]
     [SuppressMessage("StyleCop.CSharp.OrderingRules", "SA1204:StaticElementsMustAppearBeforeInstanceElements", Justification = "Reviewed. Suppression is OK here. Better readability.")]
+    [SuppressMessage("StyleCop.CSharp.ReadabilityRules", "SA1124:DoNotUseRegions", Justification = "Reviewed. Suppression is OK here. Better readability.")]
     internal abstract class EndianBitConverter
     {
         #region Endianness of this converter
+
         /// <summary>
         /// Indicates the byte order ("endianness") in which data is converted using this class.
         /// </summary>
@@ -41,6 +43,7 @@ namespace ImageSharp.IO
         #endregion
 
         #region Factory properties
+
         /// <summary>
         /// The little-endian bit converter.
         /// </summary>
@@ -65,6 +68,7 @@ namespace ImageSharp.IO
         #endregion
 
         #region Double/primitive conversions
+
         /// <summary>
         /// Converts the specified double-precision floating point number to a
         /// 64-bit signed integer. Note: the endianness of this converter does not
@@ -115,6 +119,7 @@ namespace ImageSharp.IO
         #endregion
 
         #region To(PrimitiveType) conversions
+
         /// <summary>
         /// Returns a Boolean value converted from one byte at a specified position in a byte array.
         /// </summary>
@@ -279,6 +284,7 @@ namespace ImageSharp.IO
         #endregion
 
         #region ToString conversions
+
         /// <summary>
         /// Returns a String converted from the elements of a byte array.
         /// </summary>
@@ -326,6 +332,7 @@ namespace ImageSharp.IO
         #endregion
 
         #region Decimal conversions
+
         /// <summary>
         /// Returns a decimal value converted from sixteen bytes
         /// at a specified position in a byte array.
@@ -382,6 +389,7 @@ namespace ImageSharp.IO
         #endregion
 
         #region GetBytes conversions
+
         /// <summary>
         /// Returns an array with the given number of bytes formed
         /// from the least significant bytes of the specified value.
@@ -508,6 +516,7 @@ namespace ImageSharp.IO
         #endregion
 
         #region CopyBytes conversions
+
         /// <summary>
         /// Copies the given number of bytes from the least-specific
         /// end of the specified value into the specified byte array, beginning
@@ -669,6 +678,7 @@ namespace ImageSharp.IO
         #endregion
 
         #region Private struct used for Single/Int32 conversions
+
         /// <summary>
         /// Union used solely for the equivalent of DoubleToInt64Bits and vice versa.
         /// </summary>

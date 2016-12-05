@@ -10,9 +10,20 @@ namespace ImageSharp
     using System.Collections.ObjectModel;
     using System.Text;
 
+    /// <summary>
+    /// Contains methods for writing EXIF metadata.
+    /// </summary>
     internal sealed class ExifWriter
     {
-        private static readonly ExifTag[] IfdTags = new ExifTag[127]
+        /// <summary>
+        /// The start index.
+        /// </summary>
+        private const int StartIndex = 6;
+
+        /// <summary>
+        /// The collection if Image File Directory tags
+        /// </summary>
+        private static readonly ExifTag[] IfdTags =
         {
             ExifTag.SubfileType,
             ExifTag.OldSubfileType,
@@ -143,7 +154,10 @@ namespace ImageSharp
             ExifTag.GDALNoData
         };
 
-        private static readonly ExifTag[] ExifTags = new ExifTag[92]
+        /// <summary>
+        /// The collection of Exif tags
+        /// </summary>
+        private static readonly ExifTag[] ExifTags =
         {
             ExifTag.ExposureTime,
             ExifTag.FNumber,
@@ -239,7 +253,10 @@ namespace ImageSharp
             ExifTag.LensSerialNumber
           };
 
-        private static readonly ExifTag[] GPSTags = new ExifTag[31]
+        /// <summary>
+        /// The collection of GPS tags
+        /// </summary>
+        private static readonly ExifTag[] GPSTags =
         {
             ExifTag.GPSVersionID,
             ExifTag.GPSLatitudeRef,
@@ -274,8 +291,9 @@ namespace ImageSharp
             ExifTag.GPSDifferential
         };
 
-        private const int StartIndex = 6;
-
+        /// <summary>
+        /// Which parts will be written.
+        /// </summary>
         private ExifParts allowedParts;
         private Collection<ExifValue> values;
         private Collection<int> dataOffsets;
@@ -283,6 +301,11 @@ namespace ImageSharp
         private Collection<int> exifIndexes;
         private Collection<int> gpsIndexes;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ExifWriter"/> class.
+        /// </summary>
+        /// <param name="values">The values.</param>
+        /// <param name="allowedParts">The allowed parts.</param>
         public ExifWriter(Collection<ExifValue> values, ExifParts allowedParts)
         {
             this.values = values;
@@ -292,9 +315,15 @@ namespace ImageSharp
             this.gpsIndexes = this.GetIndexes(ExifParts.GPSTags, GPSTags);
         }
 
+        /// <summary>
+        /// Returns the EXIF data.
+        /// </summary>
+        /// <returns>
+        /// The <see cref="T:byte[]"/>.
+        /// </returns>
         public byte[] GetData()
         {
-            uint length = 0;
+            uint length;
             int exifIndex = -1;
             int gpsIndex = -1;
 
@@ -379,6 +408,13 @@ namespace ImageSharp
             return result;
         }
 
+        private static int Write(byte[] source, byte[] destination, int offset)
+        {
+            Buffer.BlockCopy(source, 0, destination, offset, source.Length);
+
+            return offset + source.Length;
+        }
+
         private int GetIndex(Collection<int> indexes, ExifTag tag)
         {
             foreach (int index in indexes)
@@ -441,13 +477,6 @@ namespace ImageSharp
             }
 
             return length;
-        }
-
-        private static int Write(byte[] source, byte[] destination, int offset)
-        {
-            Buffer.BlockCopy(source, 0, destination, offset, source.Length);
-
-            return offset + source.Length;
         }
 
         private int WriteArray(ExifValue value, byte[] destination, int offset)

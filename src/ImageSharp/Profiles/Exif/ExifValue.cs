@@ -155,7 +155,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="left">The first ExifValue to compare.</param>
         /// <param name="right"> The second ExifValue to compare.</param>
-        /// <returns></returns>
+        /// <returns>The <see cref="bool"/></returns>
         public static bool operator ==(ExifValue left, ExifValue right)
         {
             return Equals(left, right);
@@ -172,10 +172,7 @@ namespace ImageSharp
             return !Equals(left, right);
         }
 
-        /// <summary>
-        /// Determines whether the specified object is equal to the current exif value.
-        /// </summary>
-        /// <param name="obj">The object to compare this exif value with.</param>
+        /// <inheritdoc />
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(this, obj))
@@ -186,10 +183,7 @@ namespace ImageSharp
             return this.Equals(obj as ExifValue);
         }
 
-        /// <summary>
-        /// Determines whether the specified exif value is equal to the current exif value.
-        /// </summary>
-        /// <param name="other">The exif value to compare this exif value with.</param>
+        /// <inheritdoc />
         public bool Equals(ExifValue other)
         {
             if (ReferenceEquals(other, null))
@@ -205,7 +199,7 @@ namespace ImageSharp
             return
               this.Tag == other.Tag &&
               this.DataType == other.DataType &&
-              Equals(this.exifValue, other.exifValue);
+              object.Equals(this.exifValue, other.exifValue);
         }
 
         /// <inheritdoc/>
@@ -549,6 +543,16 @@ namespace ImageSharp
             return exifValue;
         }
 
+        /// <summary>
+        /// Gets the size in bytes of the given data type.
+        /// </summary>
+        /// <param name="dataType">The data type.</param>
+        /// <returns>
+        /// The <see cref="uint"/>.
+        /// </returns>
+        /// <exception cref="NotSupportedException">
+        /// Thrown if the type is unsupported.
+        /// </exception>
         internal static uint GetSize(ExifDataType dataType)
         {
             switch (dataType)

@@ -2,14 +2,13 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
-
-using System;
-using System.Buffers;
-using System.IO;
-using System.Runtime.CompilerServices;
-
 namespace ImageSharp.Formats
 {
+    using System;
+    using System.Buffers;
+    using System.IO;
+    using System.Runtime.CompilerServices;
+
     /// <summary>
     /// Bytes is a byte buffer, similar to a stream, except that it
     /// has to be able to unread more than 1 byte, due to byte stuffing.
@@ -17,25 +16,14 @@ namespace ImageSharp.Formats
     /// </summary>
     internal struct Bytes : IDisposable
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Bytes"/> class.
-        /// </summary>
-        //public Bytes()
-        //{
-        //    this.Buffer = new byte[4096];
-        //    this.I = 0;
-        //    this.J = 0;
-        //    this.UnreadableBytes = 0;
-        //}
-
         private static readonly ArrayPool<byte> ArrayPool = ArrayPool<byte>.Create(4096, 50);
 
+        /// <summary>
+        /// Creates a new instance of the <see cref="Bytes"/>, and initializes it's buffer.
+        /// </summary>
         public static Bytes Create()
         {
-            return new Bytes
-            {
-                Buffer = ArrayPool.Rent(4096)
-            };
+            return new Bytes { Buffer = ArrayPool.Rent(4096) };
         }
 
         /// <summary>
@@ -57,15 +45,14 @@ namespace ImageSharp.Formats
 
         public void Dispose()
         {
-            if (Buffer!= null) ArrayPool.Return(Buffer);
-            Buffer = null;
+            if (this.Buffer != null) ArrayPool.Return(this.Buffer);
+            this.Buffer = null;
         }
 
         /// <summary>
         /// ReadByteStuffedByte is like ReadByte but is for byte-stuffed Huffman data.
         /// </summary>
         /// <returns>The <see cref="byte"/></returns>
-        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal byte ReadByteStuffedByte(Stream inputStream, out JpegDecoderCore.ErrorCodes errorCode)
         {
             byte x;
@@ -87,7 +74,8 @@ namespace ImageSharp.Formats
                 {
                     errorCode = JpegDecoderCore.ErrorCodes.MissingFF00;
                     return 0;
-                    //throw new MissingFF00Exception();
+
+                    // throw new MissingFF00Exception();
                 }
 
                 this.I++;
@@ -110,7 +98,8 @@ namespace ImageSharp.Formats
             {
                 errorCode = JpegDecoderCore.ErrorCodes.MissingFF00;
                 return 0;
-                //throw new MissingFF00Exception();
+
+                // throw new MissingFF00Exception();
             }
 
             return JpegConstants.Markers.XFF;
@@ -165,6 +154,5 @@ namespace ImageSharp.Formats
 
             this.J += n;
         }
-
     }
 }

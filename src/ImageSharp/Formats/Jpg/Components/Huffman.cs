@@ -2,42 +2,30 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
-
-using System;
-using System.Buffers;
-
 namespace ImageSharp.Formats
 {
+    using System;
+    using System.Buffers;
+
     /// <summary>
     /// Represents a Huffman tree
     /// </summary>
     internal struct Huffman : IDisposable
     {
-        private static ArrayPool<ushort> UshortBuffer =
-            //ArrayPool<ushort>.Shared;
-            ArrayPool<ushort>.Create(1 << JpegDecoderCore.LutSize, 50);
+        private static ArrayPool<ushort> UshortBuffer = ArrayPool<ushort>.Create(1 << JpegDecoderCore.LutSize, 50);
 
-        private static ArrayPool<byte> ByteBuffer = 
-            //ArrayPool<byte>.Shared;
-            ArrayPool<byte>.Create(JpegDecoderCore.MaxNCodes, 50);
+        private static ArrayPool<byte> ByteBuffer = ArrayPool<byte>.Create(JpegDecoderCore.MaxNCodes, 50);
 
-        private static readonly ArrayPool<int> IntBuffer =
-            //ArrayPool<int>.Shared;
-            ArrayPool<int>.Create(JpegDecoderCore.MaxCodeLength, 50);
+        private static readonly ArrayPool<int> IntBuffer = ArrayPool<int>.Create(JpegDecoderCore.MaxCodeLength, 50);
 
         public void Init(int lutSize, int maxNCodes, int maxCodeLength)
         {
-            //this.Lut = new ushort[1 << lutSize];
-            //this.Values = new byte[maxNCodes];
-            //this.MinCodes = new int[maxCodeLength];
-            //this.MaxCodes = new int[maxCodeLength];
-            //this.Indices = new int[maxCodeLength];
-
             this.Lut = UshortBuffer.Rent(1 << lutSize);
             this.Values = ByteBuffer.Rent(maxNCodes);
             this.MinCodes = IntBuffer.Rent(maxCodeLength);
-            this.MaxCodes = IntBuffer.Rent(maxCodeLength); ;
-            this.Indices = IntBuffer.Rent(maxCodeLength); ;
+            this.MaxCodes = IntBuffer.Rent(maxCodeLength);            
+            this.Indices = IntBuffer.Rent(maxCodeLength);
+            
         }
 
         /// <summary>
@@ -77,13 +65,11 @@ namespace ImageSharp.Formats
 
         public void Dispose()
         {
-            UshortBuffer.Return(Lut, true);
-            ByteBuffer.Return(Values, true);
-            IntBuffer.Return(MinCodes, true);
-            IntBuffer.Return(MaxCodes, true);
-            IntBuffer.Return(Indices, true);
+            UshortBuffer.Return(this.Lut, true);
+            ByteBuffer.Return(this.Values, true);
+            IntBuffer.Return(this.MinCodes, true);
+            IntBuffer.Return(this.MaxCodes, true);
+            IntBuffer.Return(this.Indices, true);
         }
     }
-
-    
 }

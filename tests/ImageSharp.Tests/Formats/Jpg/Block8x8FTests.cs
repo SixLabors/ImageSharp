@@ -31,7 +31,7 @@ namespace ImageSharp.Tests.Formats.Jpg
         public void Indexer()
         {
             float sum = 0;
-            Measure(Times, () =>
+            this.Measure(Times, () =>
             {
                 Block8x8F block = new Block8x8F();
 
@@ -44,8 +44,8 @@ namespace ImageSharp.Tests.Formats.Jpg
                 {
                     sum += block[i];
                 }
-            });
-            Assert.Equal(sum, 64f*63f*0.5f);
+                });
+            Assert.Equal(sum, 64f * 63f * 0.5f);
         }
 
         [Fact]
@@ -151,28 +151,12 @@ namespace ImageSharp.Tests.Formats.Jpg
                 v.CopyTo(mirror);
             });
 
+            
             Assert.Equal(data, mirror);
             //PrintLinearData((MutableSpan<int>)mirror);
         }
-
-        [Fact]
-        public void TransposeInplace()
-        {
-            float[] expected = Create8x8FloatData();
-            ReferenceImplementations.Transpose8x8(expected);
-
-            Block8x8F buffer = new Block8x8F();
-            buffer.LoadFrom(Create8x8FloatData());
-
-            buffer.TransposeInplace();
-
-            float[] actual = new float[64];
-            buffer.CopyTo(actual);
-
-            Assert.Equal(expected, actual);
-        }
         
-
+        
         [Fact]
         public void TransposeInto()
         {
@@ -231,7 +215,7 @@ namespace ImageSharp.Tests.Formats.Jpg
 
             Block8x8F dest = new Block8x8F();
 
-            source.iDCT2D8x4_LeftPart(ref dest);
+            source.IDCT8x4_LeftPart(ref dest);
 
             float[] actualDestArray = new float[64];
             dest.CopyTo(actualDestArray);
@@ -256,7 +240,7 @@ namespace ImageSharp.Tests.Formats.Jpg
 
             Block8x8F dest = new Block8x8F();
 
-            source.iDCT2D8x4_RightPart(ref dest);
+            source.IDCT8x4_RightPart(ref dest);
 
             float[] actualDestArray = new float[64];
             dest.CopyTo(actualDestArray);
@@ -302,7 +286,7 @@ namespace ImageSharp.Tests.Formats.Jpg
             Block8x8F dest = new Block8x8F();
             Block8x8F tempBuffer = new Block8x8F();
 
-            source.IDCTInto(ref dest, ref tempBuffer);
+            source.TransformIDCTInto(ref dest, ref tempBuffer);
 
             float[] actualDestArray = new float[64];
             dest.CopyTo(actualDestArray);
@@ -342,26 +326,7 @@ namespace ImageSharp.Tests.Formats.Jpg
 
             Assert.Equal(colorsExpected, colorsActual);
         }
-
-        [Fact]
-        public void CropInto()
-        {
-            Block8x8F block = new Block8x8F();
-            block.LoadFrom(Create8x8FloatData());
-
-            Block8x8F dest = new Block8x8F();
-            block.CropInto(10, 20, ref dest);
-
-            float[] array = new float[64];
-            dest.CopyTo(array);
-            PrintLinearData(array);
-            foreach (float val in array)
-            {
-                Assert.InRange(val, 10, 20);
-            }
-
-        }
-
+        
         private static float[] Create8x8ColorCropTestData()
         {
             float[] result = new float[64];
@@ -376,7 +341,7 @@ namespace ImageSharp.Tests.Formats.Jpg
         }
 
         [Fact]
-        public void ColorifyInto()
+        public void TransformByteConvetibleColorValuesInto()
         {
             Block8x8F block = new Block8x8F();
             var input = Create8x8ColorCropTestData();
@@ -386,7 +351,7 @@ namespace ImageSharp.Tests.Formats.Jpg
             
 
             Block8x8F dest = new Block8x8F();
-            block.ColorifyInto(ref dest);
+            block.TransformByteConvetibleColorValuesInto(ref dest);
 
             float[] array = new float[64];
             dest.CopyTo(array);

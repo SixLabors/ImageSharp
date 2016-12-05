@@ -3,10 +3,10 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-using System.Runtime.CompilerServices;
-
 namespace ImageSharp.Formats
 {
+    using System.Runtime.CompilerServices;
+
     /// <summary>
     /// Holds the unprocessed bits that have been taken from the byte-stream.
     /// The n least significant bits of a form the unread bits, to be read in MSB to
@@ -30,20 +30,20 @@ namespace ImageSharp.Formats
         /// </summary>
         public int UnreadBits;
 
-
         /// <summary>
         /// Reads bytes from the byte buffer to ensure that bits.UnreadBits is at
         /// least n. For best performance (avoiding function calls inside hot loops),
         /// the caller is the one responsible for first checking that bits.UnreadBits &lt; n.
         /// </summary>
         /// <param name="n">The number of bits to ensure.</param>
+        /// <param name="decoder"></param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal JpegDecoderCore.ErrorCodes EnsureNBits(int n, JpegDecoderCore decoder)
         {
             while (true)
             {
                 JpegDecoderCore.ErrorCodes errorCode;
-                
+
                 byte c = decoder.bytes.ReadByteStuffedByte(decoder.inputStream, out errorCode);
 
                 if (errorCode != JpegDecoderCore.ErrorCodes.NoError)
@@ -51,40 +51,39 @@ namespace ImageSharp.Formats
                     return errorCode;
                 }
 
-                Accumulator = (Accumulator << 8) | c;
-                UnreadBits += 8;
-                if (Mask == 0)
+                this.Accumulator = (this.Accumulator << 8) | c;
+                this.UnreadBits += 8;
+                if (this.Mask == 0)
                 {
-                    Mask = 1 << 7;
+                    this.Mask = 1 << 7;
                 }
                 else
                 {
-                    Mask <<= 8;
+                    this.Mask <<= 8;
                 }
 
-                if (UnreadBits >= n)
+                if (this.UnreadBits >= n)
                 {
                     return JpegDecoderCore.ErrorCodes.NoError;
-                    //break;
                 }
             }
         }
-        
+
         internal int ReceiveExtend(byte t, JpegDecoderCore decoder)
         {
-            if (UnreadBits < t)
+            if (this.UnreadBits < t)
             {
-                var errorCode = EnsureNBits(t, decoder);
+                var errorCode = this.EnsureNBits(t, decoder);
                 if (errorCode != JpegDecoderCore.ErrorCodes.NoError)
                 {
                     throw new JpegDecoderCore.MissingFF00Exception();
                 }
             }
 
-            UnreadBits -= t;
-            Mask >>= t;
+            this.UnreadBits -= t;
+            this.Mask >>= t;
             int s = 1 << t;
-            int x = (int)((Accumulator >> UnreadBits) & (s - 1));
+            int x = (int)((this.Accumulator >> this.UnreadBits) & (s - 1));
 
             if (x < (s >> 1))
             {
@@ -93,7 +92,5 @@ namespace ImageSharp.Formats
 
             return x;
         }
-
-
     }
 }

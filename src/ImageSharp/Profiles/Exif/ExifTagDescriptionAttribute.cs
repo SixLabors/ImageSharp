@@ -28,6 +28,14 @@ namespace ImageSharp
             this.description = description;
         }
 
+        /// <summary>
+        /// Gets the tag description from any custom attributes.
+        /// </summary>
+        /// <param name="tag">The tag.</param>
+        /// <param name="value">The value.</param>
+        /// <returns>
+        /// The <see cref="string"/>.
+        /// </returns>
         public static string GetDescription(ExifTag tag, object value)
         {
             FieldInfo field = tag.GetType().GetTypeInfo().GetDeclaredField(tag.ToString());
@@ -40,7 +48,7 @@ namespace ImageSharp
             {
                 object attributeValue = customAttribute.ConstructorArguments[0].Value;
 
-                if (Equals(attributeValue, value))
+                if (object.Equals(attributeValue, value))
                 {
                     return (string)customAttribute.ConstructorArguments[1].Value;
                 }

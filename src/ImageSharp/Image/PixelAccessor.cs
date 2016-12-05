@@ -420,6 +420,14 @@ namespace ImageSharp
             return this.pixelsBase + ((targetY * this.Width) * Unsafe.SizeOf<TColor>());
         }
 
+        /// <summary>
+        /// Checks the coordinates to ensure they are within bounds.
+        /// </summary>
+        /// <param name="x">The x-coordinate of the pixel. Must be greater than zero and smaller than the width of the pixel.</param>
+        /// <param name="y">The y-coordinate of the pixel. Must be greater than zero and smaller than the width of the pixel.</param>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown if the coordinates are not within the bounds of the image.
+        /// </exception>
         [Conditional("DEBUG")]
         private void CheckCoordinates(int x, int y)
         {

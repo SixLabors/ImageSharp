@@ -39,7 +39,7 @@ namespace ImageSharp.Formats
         /// ASSP, Vol. ASSP- 32, pp. 803-816, Aug. 1984.
         /// </summary>
         /// <param name="src">The source block of coefficients</param>
-        public static void Transform(Block src)
+        public static void Transform(ref Block src)
         {
             // Horizontal 1-D IDCT.
             for (int y = 0; y < 8; y++)
@@ -165,5 +165,6 @@ namespace ImageSharp.Formats
                 src[56 + x] = (y7 - y1) >> 14;
             }
         }
+
     }
 }

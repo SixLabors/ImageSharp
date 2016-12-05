@@ -2,13 +2,12 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
-
-using System;
-using System.Buffers;
-using System.Runtime.CompilerServices;
-
 namespace ImageSharp.Formats
 {
+    using System;
+    using System.Buffers;
+    using System.Runtime.CompilerServices;
+
     /// <summary>
     /// Represents an 8x8 block of coefficients to transform and encode.
     /// </summary>
@@ -26,17 +25,9 @@ namespace ImageSharp.Formats
         /// </summary>
         public int[] Data;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Block"/> class.
-        /// </summary>
-        //public Block()
-        //{
-        //    this.data = new int[BlockSize];
-        //}
-
         public void Init()
         {
-            //this.Data = new int[BlockSize];
+            // this.Data = new int[BlockSize];
             this.Data = ArrayPool.Rent(BlockSize);
         }
 
@@ -54,6 +45,7 @@ namespace ImageSharp.Formats
             {
                 result[i].Init();
             }
+
             return result;
         }
 
@@ -69,18 +61,25 @@ namespace ImageSharp.Formats
         public int this[int index]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get { return this.Data[index]; }
+            get
+            {
+                return this.Data[index];
+            }
+
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set { this.Data[index] = value; }
+            set
+            {
+                this.Data[index] = value;
+            }
         }
 
         // TODO: Refactor Block.Dispose() callers to always use 'using' or 'finally' statement!
         public void Dispose()
         {
-            if (Data != null)
+            if (this.Data != null)
             {
-                ArrayPool.Return(Data, true);
-                Data = null;
+                ArrayPool.Return(this.Data, true);
+                this.Data = null;
             }
         }
 
@@ -92,24 +91,24 @@ namespace ImageSharp.Formats
             }
         }
 
-
         public void Clear()
         {
-            for (int i = 0; i < Data.Length; i++)
+            for (int i = 0; i < this.Data.Length; i++)
             {
-                Data[i] = 0;
+                this.Data[i] = 0;
             }
         }
 
         public Block Clone()
         {
             Block clone = Create();
-            Array.Copy(Data, clone.Data, BlockSize);
+            Array.Copy(this.Data, clone.Data, BlockSize);
             return clone;
         }
     }
 
     /// <summary>
+    /// TODO: Should be removed, when JpegEncoderCore is refactored to use Block8x8F
     /// Temporal class to make refactoring easier.
     /// 1. Refactor Block -> BlockF
     /// 2. Test
@@ -120,7 +119,7 @@ namespace ImageSharp.Formats
         private static readonly ArrayPool<float> ArrayPool = ArrayPool<float>.Create(BlockSize, 50);
 
         /// <summary>
-        /// Gets the size of the block.
+        /// Size of the block.
         /// </summary>
         public const int BlockSize = 64;
 
@@ -129,17 +128,9 @@ namespace ImageSharp.Formats
         /// </summary>
         public float[] Data;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Block"/> class.
-        /// </summary>
-        //public Block()
-        //{
-        //    this.data = new int[BlockSize];
-        //}
-
         public void Init()
         {
-            //this.Data = new int[BlockSize];
+            // this.Data = new int[BlockSize];
             this.Data = ArrayPool.Rent(BlockSize);
         }
 
@@ -157,6 +148,7 @@ namespace ImageSharp.Formats
             {
                 result[i].Init();
             }
+
             return result;
         }
 
@@ -172,18 +164,25 @@ namespace ImageSharp.Formats
         public float this[int index]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get { return this.Data[index]; }
+            get
+            {
+                return this.Data[index];
+            }
+
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set { this.Data[index] = value; }
+            set
+            {
+                this.Data[index] = value;
+            }
         }
 
         // TODO: Refactor Block.Dispose() callers to always use 'using' or 'finally' statement!
         public void Dispose()
         {
-            if (Data != null)
+            if (this.Data != null)
             {
-                ArrayPool.Return(Data, true);
-                Data = null;
+                ArrayPool.Return(this.Data, true);
+                this.Data = null;
             }
         }
 
@@ -195,22 +194,19 @@ namespace ImageSharp.Formats
             }
         }
 
-
         public void Clear()
         {
-            for (int i = 0; i < Data.Length; i++)
+            for (int i = 0; i < this.Data.Length; i++)
             {
-                Data[i] = 0;
+                this.Data[i] = 0;
             }
         }
 
         public BlockF Clone()
         {
             BlockF clone = Create();
-            Array.Copy(Data, clone.Data, BlockSize);
+            Array.Copy(this.Data, clone.Data, BlockSize);
             return clone;
         }
     }
-
-
 }

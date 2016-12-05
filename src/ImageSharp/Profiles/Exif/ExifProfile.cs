@@ -117,6 +117,9 @@ namespace ImageSharp
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+        /// <returns>
+        /// The <see cref="Image{TColor,TPacked}"/>.
+        /// </returns>
         public Image<TColor, TPacked> CreateThumbnail<TColor, TPacked>()
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
@@ -143,6 +146,9 @@ namespace ImageSharp
         /// Returns the value with the specified tag.
         /// </summary>
         /// <param name="tag">The tag of the EXIF value.</param>
+        /// <returns>
+        /// The <see cref="ExifValue"/>.
+        /// </returns>
         public ExifValue GetValue(ExifTag tag)
         {
             foreach (ExifValue exifValue in this.Values)
@@ -160,6 +166,9 @@ namespace ImageSharp
         /// Removes the value with the specified tag.
         /// </summary>
         /// <param name="tag">The tag of the EXIF value.</param>
+        /// <returns>
+        /// The <see cref="bool"/>.
+        /// </returns>
         public bool RemoveValue(ExifTag tag)
         {
             this.InitializeValues();

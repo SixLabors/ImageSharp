@@ -24,6 +24,11 @@ namespace ImageSharp.Processors
             int sourceX = sourceRectangle.X;
             int sourceY = sourceRectangle.Y;
 
+            Guard.MustBeGreaterThanOrEqualTo(startX, sourceX, nameof(targetRectangle));
+            Guard.MustBeGreaterThanOrEqualTo(startY, sourceY, nameof(targetRectangle));
+            Guard.MustBeLessThanOrEqualTo(endX, sourceRectangle.Right, nameof(targetRectangle));
+            Guard.MustBeLessThanOrEqualTo(endY, sourceRectangle.Bottom, nameof(targetRectangle));
+
             using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
             using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock())
             {

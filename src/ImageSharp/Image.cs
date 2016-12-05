@@ -61,5 +61,11 @@ namespace ImageSharp
         {
             return new PixelAccessor(this);
         }
+
+        /// <inheritdoc />
+        internal override ImageFrame<Color, uint> ToFrame()
+        {
+            return new ImageFrame(this);
+        }
     }
 }

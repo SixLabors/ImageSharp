@@ -90,7 +90,7 @@ namespace ImageSharp.Formats
                 suffix[code] = (byte)code;
             }
 
-            byte[] buffer = null;
+            byte[] buffer = new byte[255];
             while (xyz < pixels.Length)
             {
                 if (top == 0)
@@ -101,8 +101,7 @@ namespace ImageSharp.Formats
                         if (count == 0)
                         {
                             // Read a new data block.
-                            buffer = this.ReadBlock();
-                            count = buffer.Length;
+                            count = this.ReadBlock(buffer);
                             if (count == 0)
                             {
                                 break;
@@ -111,10 +110,7 @@ namespace ImageSharp.Formats
                             bi = 0;
                         }
 
-                        if (buffer != null)
-                        {
-                            data += buffer[bi] << bits;
-                        }
+                        data += buffer[bi] << bits;
 
                         bits += 8;
                         bi++;
@@ -200,29 +196,20 @@ namespace ImageSharp.Formats
         /// Reads the next data block from the stream. A data block begins with a byte,
         /// which defines the size of the block, followed by the block itself.
         /// </summary>
+        /// <param name="buffer">The buffer to store the block in.</param>
         /// <returns>
         /// The <see cref="T:byte[]"/>.
         /// </returns>
-        private byte[] ReadBlock()
+        private int ReadBlock(byte[] buffer)
         {
-            int blockSize = this.stream.ReadByte();
-            return this.ReadBytes(blockSize);
-        }
+            int bufferSize = this.stream.ReadByte();
+            if (bufferSize < 1)
+            {
+                return 0;
+            }
 
-        /// <summary>
-        /// Reads the specified number of bytes from the data stream.
-        /// </summary>
-        /// <param name="length">
-        /// The number of bytes to read.
-        /// </param>
-        /// <returns>
-        /// The <see cref="T:byte[]"/>.
-        /// </returns>
-        private byte[] ReadBytes(int length)
-        {
-            byte[] buffer = new byte[length];
-            this.stream.Read(buffer, 0, length);
-            return buffer;
+            int count = this.stream.Read(buffer, 0, bufferSize);
+            return count != bufferSize ? 0 : bufferSize;
         }
     }
 }

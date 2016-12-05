@@ -10,7 +10,7 @@ namespace ImageSharp
     using System.Numerics;
 
     /// <summary>
-    /// Packed vector type containing four 8-bit unsigned normalized values ranging from 0 to 255.
+    /// Packed pixel type containing four 8-bit unsigned normalized values ranging from 0 to 255.
     /// The color components are stored in red, green, blue, and alpha order.
     /// </summary>
     /// <remarks>
@@ -19,9 +19,24 @@ namespace ImageSharp
     /// </remarks>
     public partial struct Color : IPackedPixel<uint>, IEquatable<Color>
     {
+        /// <summary>
+        /// The shift count for the red component
+        /// </summary>
         private const int RedShift = 0;
+
+        /// <summary>
+        /// The shift count for the green component
+        /// </summary>
         private const int GreenShift = 8;
+
+        /// <summary>
+        /// The shift count for the blue component
+        /// </summary>
         private const int BlueShift = 16;
+
+        /// <summary>
+        /// The shift count for the alpha component
+        /// </summary>
         private const int AlphaShift = 24;
 
         /// <summary>
@@ -32,7 +47,7 @@ namespace ImageSharp
         /// <summary>
         /// The half vector value.
         /// </summary>
-        private static readonly Vector4 Half = new Vector4(0.5f);
+        private static readonly Vector4 Half = new Vector4(0.5F);
 
         /// <summary>
         /// The packed value.
@@ -105,6 +120,17 @@ namespace ImageSharp
         public Color(Vector4 vector)
         {
             this.packedValue = Pack(ref vector);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Color"/> struct.
+        /// </summary>
+        /// <param name="packed">
+        /// The packed value.
+        /// </param>
+        public Color(uint packed)
+        {
+            this.packedValue = packed;
         }
 
         /// <summary>
@@ -208,7 +234,7 @@ namespace ImageSharp
         /// <param name="left">The <see cref="Color"/> on the left side of the operand.</param>
         /// <param name="right">The <see cref="Color"/> on the right side of the operand.</param>
         /// <returns>
-        /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
+        /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         public static bool operator !=(Color left, Color right)
         {

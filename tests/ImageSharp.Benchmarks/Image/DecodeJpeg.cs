@@ -26,17 +26,17 @@ namespace ImageSharp.Benchmarks.Image
             }
         }
 
-        //[Benchmark(Baseline = true, Description = "System.Drawing Jpeg")]
-        //public Size JpegSystemDrawing()
-        //{
-        //    using (MemoryStream memoryStream = new MemoryStream(this.jpegBytes))
-        //    {
-        //        using (Image image = Image.FromStream(memoryStream))
-        //        {
-        //            return image.Size;
-        //        }
-        //    }
-        //}
+        [Benchmark(Baseline = true, Description = "System.Drawing Jpeg")]
+        public Size JpegSystemDrawing()
+        {
+            using (MemoryStream memoryStream = new MemoryStream(this.jpegBytes))
+            {
+                using (Image image = Image.FromStream(memoryStream))
+                {
+                    return image.Size;
+                }
+            }
+        }
 
         [Benchmark(Description = "ImageSharp Jpeg")]
         public CoreSize JpegCore()

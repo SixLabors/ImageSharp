@@ -7,6 +7,7 @@ namespace ImageSharp
 {
     using System;
     using System.IO;
+    using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
 
     /// <summary>
@@ -38,6 +39,32 @@ namespace ImageSharp
         /// life in the Garbage Collector.
         /// </remarks>
         private bool isDisposed;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PixelRow{TColor,TPacked}"/> class.
+        /// </summary>
+        /// <param name="width">The width.</param>
+        /// <param name="bytes">The bytes.</param>
+        /// <param name="componentOrder">The component order.</param>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown if <paramref name="bytes"></paramref> is the incorrect length.
+        /// </exception>
+        public PixelRow(int width, byte[] bytes, ComponentOrder componentOrder)
+        {
+            if (bytes.Length != width * GetComponentCount(componentOrder))
+            {
+                throw new ArgumentOutOfRangeException($"Invalid byte array length. Length {bytes.Length}; Should be {width * GetComponentCount(componentOrder)}.");
+            }
+
+            this.Width = width;
+            this.ComponentOrder = componentOrder;
+            this.Bytes = bytes;
+            this.pixelsHandle = GCHandle.Alloc(this.Bytes, GCHandleType.Pinned);
+
+            // TODO: Why is Resharper warning us about an impure method call?
+            this.dataPointer = this.pixelsHandle.AddrOfPinnedObject();
+            this.PixelBase = (byte*)this.dataPointer.ToPointer();
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PixelRow{TColor,TPacked}"/> class.
@@ -149,6 +176,14 @@ namespace ImageSharp
             // and prevent finalization code for this object
             // from executing a second time.
             GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Resets the bytes of the array to it's initial value.
+        /// </summary>
+        internal void Reset()
+        {
+            Unsafe.InitBlock(this.PixelBase, 0, (uint)this.Bytes.Length);
         }
 
         /// <summary>

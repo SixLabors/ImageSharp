@@ -26,7 +26,7 @@ namespace ImageSharp
         /// <summary>
         /// Returns an array of web safe colors.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>The <see cref="T:Color[]"/></returns>
         private static Color[] GetWebSafeColors()
         {
             return new List<Color>

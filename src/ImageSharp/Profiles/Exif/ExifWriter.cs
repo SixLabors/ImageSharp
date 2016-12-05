@@ -283,6 +283,11 @@ namespace ImageSharp
         private Collection<int> exifIndexes;
         private Collection<int> gpsIndexes;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ExifWriter"/> class.
+        /// </summary>
+        /// <param name="values">The values.</param>
+        /// <param name="allowedParts">The allowed parts.</param>
         public ExifWriter(Collection<ExifValue> values, ExifParts allowedParts)
         {
             this.values = values;
@@ -292,9 +297,15 @@ namespace ImageSharp
             this.gpsIndexes = this.GetIndexes(ExifParts.GPSTags, GPSTags);
         }
 
+        /// <summary>
+        /// Returns the EXIF data.
+        /// </summary>
+        /// <returns>
+        /// The <see cref="T:byte[]"/>.
+        /// </returns>
         public byte[] GetData()
         {
-            uint length = 0;
+            uint length;
             int exifIndex = -1;
             int gpsIndex = -1;
 

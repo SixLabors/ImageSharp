@@ -10,11 +10,20 @@ namespace ImageSharp
     using System.Collections.ObjectModel;
     using System.Text;
 
+    /// <summary>
+    /// Contains methods for writing EXIF metadata.
+    /// </summary>
     internal sealed class ExifWriter
     {
+        /// <summary>
+        /// The start index.
+        /// </summary>
         private const int StartIndex = 6;
 
-        private static readonly ExifTag[] IfdTags = new ExifTag[127]
+        /// <summary>
+        /// The collection if Image File Directory tags
+        /// </summary>
+        private static readonly ExifTag[] IfdTags =
         {
             ExifTag.SubfileType,
             ExifTag.OldSubfileType,
@@ -145,7 +154,10 @@ namespace ImageSharp
             ExifTag.GDALNoData
         };
 
-        private static readonly ExifTag[] ExifTags = new ExifTag[92]
+        /// <summary>
+        /// The collection of Exif tags
+        /// </summary>
+        private static readonly ExifTag[] ExifTags =
         {
             ExifTag.ExposureTime,
             ExifTag.FNumber,
@@ -241,7 +253,10 @@ namespace ImageSharp
             ExifTag.LensSerialNumber
           };
 
-        private static readonly ExifTag[] GPSTags = new ExifTag[31]
+        /// <summary>
+        /// The collection of GPS tags
+        /// </summary>
+        private static readonly ExifTag[] GPSTags =
         {
             ExifTag.GPSVersionID,
             ExifTag.GPSLatitudeRef,
@@ -276,6 +291,9 @@ namespace ImageSharp
             ExifTag.GPSDifferential
         };
 
+        /// <summary>
+        /// Which parts will be written.
+        /// </summary>
         private ExifParts allowedParts;
         private Collection<ExifValue> values;
         private Collection<int> dataOffsets;

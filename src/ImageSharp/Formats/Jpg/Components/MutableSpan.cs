@@ -43,6 +43,7 @@ namespace ImageSharp.Formats
             {
                 return this.Data[idx + this.Offset];
             }
+
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {

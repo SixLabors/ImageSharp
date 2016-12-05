@@ -89,7 +89,6 @@ namespace ImageSharp.Formats
         /// <summary>
         /// The huffman trees
         /// </summary>
-        //private readonly Huffman[,] huffmanTrees;
         private readonly Huffman[] huffmanTrees;
 
         /// <summary>
@@ -1310,7 +1309,7 @@ namespace ImageSharp.Formats
 
         struct StackallocUnzigData
         {
-            internal fixed int Data [64];
+            internal fixed int Data[64];
         }
 
         /// <summary>
@@ -1508,7 +1507,7 @@ namespace ImageSharp.Formats
                             fixed (Block8x8F* qtp = &this.quantizationTables[qtIndex])
                             {
                                 if (this.isProgressive)
-                                    // Load the previous partially decoded coefficients, if applicable.
+                                // Load the previous partially decoded coefficients, if applicable.
                                 {
                                     this.blockIndex = ((@by * mxx) * hi) + bx;
 
@@ -2172,6 +2171,7 @@ namespace ImageSharp.Formats
             {
                 this.huffmanTrees[i].Dispose();
             }
+
             this.bytes.Dispose();
         }
     }

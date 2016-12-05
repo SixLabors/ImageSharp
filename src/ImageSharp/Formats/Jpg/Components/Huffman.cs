@@ -23,9 +23,8 @@ namespace ImageSharp.Formats
             this.Lut = UshortBuffer.Rent(1 << lutSize);
             this.Values = ByteBuffer.Rent(maxNCodes);
             this.MinCodes = IntBuffer.Rent(maxCodeLength);
-            this.MaxCodes = IntBuffer.Rent(maxCodeLength);            
+            this.MaxCodes = IntBuffer.Rent(maxCodeLength);
             this.Indices = IntBuffer.Rent(maxCodeLength);
-            
         }
 
         /// <summary>

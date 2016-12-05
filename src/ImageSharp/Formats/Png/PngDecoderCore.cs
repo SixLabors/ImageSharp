@@ -30,12 +30,12 @@ namespace ImageSharp.Formats
         private static readonly int[] Adam7ColumnIncrement = { 8, 8, 4, 4, 2, 2, 1 };
 
         /// <summary>
-        /// The index to start at when processing each column per scanline for each interlaced pass 
+        /// The index to start at when processing each column per scanline for each interlaced pass
         /// </summary>
         private static readonly int[] Adam7FirstColumn = { 0, 4, 0, 2, 0, 1, 0 };
 
         /// <summary>
-        /// The index to start at when processing each row per scanline for each interlaced pass 
+        /// The index to start at when processing each row per scanline for each interlaced pass
         /// </summary>
         private static readonly int[] Adam7FirstRow = { 0, 0, 4, 0, 2, 0, 1 };
 

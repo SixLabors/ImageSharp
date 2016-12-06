@@ -186,6 +186,28 @@ namespace ImageSharp
         }
 
         /// <summary>
+        /// Linearly interpolates from one vector to another based on the given weighting. 
+        /// The two vectors are premultiplied by their W component before operating.
+        /// </summary>
+        /// <param name="backdrop">The backdrop vector.</param>
+        /// <param name="source">The source vector.</param>
+        /// <param name="amount">
+        /// A value between 0 and 1 indicating the weight of the second source vector.
+        /// At amount = 0, "from" is returned, at amount = 1, "to" is returned.
+        /// </param>
+        /// <returns>
+        /// The <see cref="Vector4"/>
+        /// </returns>
+        public static Vector4 PremultipliedLerp(Vector4 backdrop, Vector4 source, float amount)
+        {
+            amount = amount.Clamp(0, 1);
+            backdrop = backdrop * new Vector4(backdrop.X, backdrop.Y, backdrop.Z, 1) * backdrop.W;
+            source = source * new Vector4(source.X, source.Y, source.Z, 1) * source.W;
+
+            return Vector4.Lerp(backdrop, source, amount) / new Vector4(source.W, source.W, source.W, 1);
+        }
+
+        /// <summary>
         /// Multiplies or screens the color component, depending on the component value.
         /// </summary>
         /// <param name="b">The backdrop component.</param>

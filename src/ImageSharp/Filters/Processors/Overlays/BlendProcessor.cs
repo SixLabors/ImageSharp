@@ -19,57 +19,59 @@ namespace ImageSharp.Processors
         where TPacked : struct
     {
         /// <summary>
-        /// The image to blend.
-        /// </summary>
-        private readonly ImageBase<TColor, TPacked> blend;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="BlendProcessor{TColor,TPacked}"/> class.
         /// </summary>
-        /// <param name="image">
-        /// The image to blend with the currently processing image.
-        /// Disposal of this image is the responsibility of the developer.
-        /// </param>
+        /// <param name="image">The image to blend with the currently processing image.</param>
+        /// <param name="size">The size to draw the blended image.</param>
+        /// <param name="location">The location to draw the blended image.</param>
         /// <param name="alpha">The opacity of the image to blend. Between 0 and 100.</param>
-        public BlendProcessor(ImageBase<TColor, TPacked> image, int alpha = 100)
+        public BlendProcessor(Image<TColor, TPacked> image, Size size, Point location, int alpha = 100)
         {
             Guard.MustBeBetweenOrEqualTo(alpha, 0, 100, nameof(alpha));
-            this.blend = image;
-            this.Value = alpha;
+            this.Image = image;
+            this.Size = size;
+            this.Alpha = alpha;
+            this.Location = location;
         }
+
+        /// <summary>
+        /// Gets the image to blend.
+        /// </summary>
+        public Image<TColor, TPacked> Image { get; private set; }
 
         /// <summary>
         /// Gets the alpha percentage value.
         /// </summary>
-        public int Value { get; }
+        public int Alpha { get; }
+
+        /// <summary>
+        /// Gets the size to draw the blended image.
+        /// </summary>
+        public Size Size { get; }
+
+        /// <summary>
+        /// Gets the location to draw the blended image.
+        /// </summary>
+        public Point Location { get; }
 
         /// <inheritdoc/>
         protected override void Apply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle, int startY, int endY)
         {
-            int startX = sourceRectangle.X;
-            int endX = sourceRectangle.Right;
-            Rectangle bounds = this.blend.Bounds;
+            if (this.Image.Bounds.Size != this.Size)
+            {
+                this.Image = this.Image.Resize(this.Size.Width, this.Size.Height);
+            }
 
             // Align start/end positions.
-            int minX = Math.Max(0, startX);
-            int maxX = Math.Min(source.Width, endX);
-            int minY = Math.Max(0, startY);
-            int maxY = Math.Min(source.Height, endY);
+            Rectangle bounds = this.Image.Bounds;
+            int minX = Math.Max(this.Location.X, sourceRectangle.X);
+            int maxX = Math.Min(this.Location.X + bounds.Width, sourceRectangle.Width);
+            int minY = Math.Max(this.Location.Y, startY);
+            int maxY = Math.Min(this.Location.Y + bounds.Height, endY);
 
-            // Reset offset if necessary.
-            if (minX > 0)
-            {
-                startX = 0;
-            }
+            float alpha = this.Alpha / 100F;
 
-            if (minY > 0)
-            {
-                startY = 0;
-            }
-
-            float alpha = this.Value / 100F;
-
-            using (PixelAccessor<TColor, TPacked> toBlendPixels = this.blend.Lock())
+            using (PixelAccessor<TColor, TPacked> toBlendPixels = this.Image.Lock())
             using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
             {
                 Parallel.For(
@@ -78,26 +80,20 @@ namespace ImageSharp.Processors
                     this.ParallelOptions,
                     y =>
                         {
-                            int offsetY = y - startY;
                             for (int x = minX; x < maxX; x++)
                             {
-                                int offsetX = x - startX;
-                                Vector4 color = sourcePixels[offsetX, offsetY].ToVector4();
+                                Vector4 color = sourcePixels[x, y].ToVector4();
+                                Vector4 blendedColor = toBlendPixels[x - minX, y - minY].ToVector4();
 
-                                if (bounds.Contains(offsetX, offsetY))
+                                if (blendedColor.W > 0)
                                 {
-                                    Vector4 blendedColor = toBlendPixels[offsetX, offsetY].ToVector4();
-
-                                    if (blendedColor.W > 0)
-                                    {
-                                        // Lerping colors is dependent on the alpha of the blended color
-                                        color = Vector4.Lerp(color, blendedColor, alpha > 0 ? alpha : blendedColor.W);
-                                    }
+                                    // Lerping colors is dependent on the alpha of the blended color
+                                    color = Vector4BlendTransforms.PremultipliedLerp(color, blendedColor, alpha);
                                 }
 
                                 TColor packed = default(TColor);
                                 packed.PackFromVector4(color);
-                                sourcePixels[offsetX, offsetY] = packed;
+                                sourcePixels[x, y] = packed;
                             }
                         });
             }

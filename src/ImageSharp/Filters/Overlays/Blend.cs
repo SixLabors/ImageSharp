@@ -21,11 +21,11 @@ namespace ImageSharp
         /// <param name="image">The image to blend with the currently processing image.</param>
         /// <param name="percent">The opacity of the image image to blend. Must be between 0 and 100.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> Blend<TColor, TPacked>(this Image<TColor, TPacked> source, ImageBase<TColor, TPacked> image, int percent = 50)
+        public static Image<TColor, TPacked> Blend<TColor, TPacked>(this Image<TColor, TPacked> source, Image<TColor, TPacked> image, int percent = 50)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
-            return Blend(source, image, percent, source.Bounds);
+            return Blend(source, image, percent, default(Size), default(Point));
         }
 
         /// <summary>
@@ -36,15 +36,24 @@ namespace ImageSharp
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="percent">The opacity of the image image to blend. Must be between 0 and 100.</param>
-        /// <param name="rectangle">
-        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
-        /// </param>
+        /// <param name="size">The size to draw the blended image.</param>
+        /// <param name="location">The location to draw the blended image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> Blend<TColor, TPacked>(this Image<TColor, TPacked> source, ImageBase<TColor, TPacked> image, int percent, Rectangle rectangle)
+        public static Image<TColor, TPacked> Blend<TColor, TPacked>(this Image<TColor, TPacked> source, Image<TColor, TPacked> image, int percent, Size size, Point location)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
-            return source.Process(rectangle, new BlendProcessor<TColor, TPacked>(image, percent));
+            if (size == default(Size))
+            {
+                size = new Size(image.Width, image.Height);
+            }
+
+            if (location == default(Point))
+            {
+                location = Point.Empty;
+            }
+
+            return source.Process(source.Bounds, new BlendProcessor<TColor, TPacked>(image, size, location, percent));
         }
     }
 }

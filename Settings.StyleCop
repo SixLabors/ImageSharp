@@ -35,6 +35,7 @@
       <Value>Paeth</Value>
       <Value>th</Value>
       <Value>desensitivity</Value>
+      <Value>premultiplied</Value>
     </CollectionProperty>
   </GlobalSettings>
   <Analyzers>

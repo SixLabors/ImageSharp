@@ -6,11 +6,11 @@
 namespace ImageSharp.Processors
 {
     /// <summary>
-    /// Applies a Box blur filter to the image.
+    /// Applies a Box blur sampler to the image.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class BoxBlurProcessor<TColor, TPacked> : ImageSampler<TColor, TPacked>
+    public class BoxBlurProcessor<TColor, TPacked> : ImageSamplingProcessor<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
         where TPacked : struct
     {
@@ -20,7 +20,7 @@ namespace ImageSharp.Processors
         private readonly int kernelSize;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="BoxBlurProcessor{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="BoxBlurProcessor{TColor,TPacked}"/> class.
         /// </summary>
         /// <param name="radius">
         /// The 'radius' value representing the size of the area to sample.
@@ -45,7 +45,7 @@ namespace ImageSharp.Processors
         /// <inheritdoc/>
         public override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-            new Convolution2PassFilter<TColor, TPacked>(this.KernelX, this.KernelY).Apply(target, source, targetRectangle, sourceRectangle, startY, endY);
+            new Convolution2PassProcessor<TColor, TPacked>(this.KernelX, this.KernelY).Apply(target, source, targetRectangle, sourceRectangle, startY, endY);
         }
 
         /// <summary>

@@ -31,8 +31,8 @@ namespace ImageSharp.Processors
             // Stop at -1 to prevent inversion.
             saturationFactor++;
 
-            // The matrix is set up to "shear" the colour space using the following set of values.
-            // Note that each colour component has an effective luminance which contributes to the
+            // The matrix is set up to "shear" the color space using the following set of values.
+            // Note that each color component has an effective luminance which contributes to the
             // overall brightness of the pixel.
             // See http://graficaobscura.com/matrix/index.html
             float saturationComplement = 1.0f - saturationFactor;

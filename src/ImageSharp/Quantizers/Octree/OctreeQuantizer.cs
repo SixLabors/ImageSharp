@@ -9,7 +9,7 @@ namespace ImageSharp.Quantizers
     using System.Collections.Generic;
 
     /// <summary>
-    /// Encapsulates methods to calculate the colour palette if an image using an Octree pattern.
+    /// Encapsulates methods to calculate the color palette if an image using an Octree pattern.
     /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>

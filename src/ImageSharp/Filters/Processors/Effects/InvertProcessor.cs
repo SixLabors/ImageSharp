@@ -1,4 +1,4 @@
-﻿// <copyright file="ColorMatrixFilter.cs" company="James Jackson-South">
+﻿// <copyright file="InvertProcessor.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -10,25 +10,20 @@ namespace ImageSharp.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// The color matrix filter. Inherit from this class to perform operation involving color matrices.
+    /// An <see cref="IImageFilteringProcessor{TColor,TPacked}"/> to invert the colors of an <see cref="Image{TColor, TPacked}"/>.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public abstract class ColorMatrixFilter<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>, IColorMatrixFilter<TColor, TPacked>
+    public class InvertProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
         where TPacked : struct
     {
-        /// <inheritdoc/>
-        public abstract Matrix4x4 Matrix { get; }
-
-        /// <inheritdoc/>
-        public override bool Compand { get; set; } = true;
-
         /// <inheritdoc/>
         protected override void Apply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle, int startY, int endY)
         {
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
+            Vector3 inverseVector = Vector3.One;
 
             // Align start/end positions.
             int minX = Math.Max(0, startX);
@@ -47,9 +42,6 @@ namespace ImageSharp.Processors
                 startY = 0;
             }
 
-            Matrix4x4 matrix = this.Matrix;
-            bool compand = this.Compand;
-
             using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
             {
                 Parallel.For(
@@ -62,35 +54,15 @@ namespace ImageSharp.Processors
                             for (int x = minX; x < maxX; x++)
                             {
                                 int offsetX = x - startX;
-                                sourcePixels[offsetX, offsetY] = this.ApplyMatrix(sourcePixels[offsetX, offsetY], matrix, compand);
+                                Vector4 color = sourcePixels[offsetX, offsetY].ToVector4();
+                                Vector3 vector = inverseVector - new Vector3(color.X, color.Y, color.Z);
+
+                                TColor packed = default(TColor);
+                                packed.PackFromVector4(new Vector4(vector, color.W));
+                                sourcePixels[offsetX, offsetY] = packed;
                             }
                         });
             }
-        }
-
-        /// <summary>
-        /// Applies the color matrix against the given color.
-        /// </summary>
-        /// <param name="color">The source color.</param>
-        /// <param name="matrix">The matrix.</param>
-        /// <param name="compand">Whether to compand the color during processing.</param>
-        /// <returns>
-        /// The <see cref="Color"/>.
-        /// </returns>
-        private TColor ApplyMatrix(TColor color, Matrix4x4 matrix, bool compand)
-        {
-            Vector4 vector = color.ToVector4();
-
-            if (compand)
-            {
-                vector = vector.Expand();
-            }
-
-            Vector3 transformed = Vector3.Transform(new Vector3(vector.X, vector.Y, vector.Z), matrix);
-            vector = new Vector4(transformed, vector.W);
-            TColor packed = default(TColor);
-            packed.PackFromVector4(compand ? vector.Compress() : vector);
-            return packed;
         }
     }
 }

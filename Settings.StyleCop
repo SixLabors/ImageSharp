@@ -34,6 +34,7 @@
       <Value>cmyk</Value>
       <Value>Paeth</Value>
       <Value>th</Value>
+      <Value>desensitivity</Value>
     </CollectionProperty>
   </GlobalSettings>
   <Analyzers>

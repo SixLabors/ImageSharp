@@ -86,7 +86,7 @@ namespace ImageSharp.Processors
                                 float distance = Vector2.Distance(centre, new Vector2(offsetX, offsetY));
                                 Vector4 sourceColor = sourcePixels[offsetX, offsetY].ToVector4();
                                 TColor packed = default(TColor);
-                                packed.PackFromVector4(Vector4.Lerp(vignetteColor.ToVector4(), sourceColor, 1 - (.9F * (distance / maxDistance))));
+                                packed.PackFromVector4(Vector4BlendTransforms.PremultipliedLerp(sourceColor, vignetteColor.ToVector4(), .9F * (distance / maxDistance)));
                                 sourcePixels[offsetX, offsetY] = packed;
                             }
                         });

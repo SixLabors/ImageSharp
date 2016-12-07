@@ -58,6 +58,7 @@ git clone https://github.com/JimBobSquarePants/ImageSharp
  - [x] YCbCr
 - IPackedPixel\<TPacked\> representations of color models. Compatible with Microsoft XNA Game Studio and MonoGame.
  - [x] Alpha8 
+ - [x] Argb 
  - [x] Bgr565 
  - [x] Bgra444 
  - [x] Bgra565 

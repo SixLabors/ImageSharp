@@ -82,17 +82,14 @@ namespace ImageSharp.Processors
                         {
                             for (int x = minX; x < maxX; x++)
                             {
-                                Vector4 color = sourcePixels[x, y].ToVector4();
-                                Vector4 blendedColor = toBlendPixels[x - minX, y - minY].ToVector4();
+                                Vector4 backgroundVector = sourcePixels[x, y].ToVector4();
+                                Vector4 sourceVector = toBlendPixels[x - minX, y - minY].ToVector4();
 
-                                if (blendedColor.W > 0)
-                                {
-                                    // Lerping colors is dependent on the alpha of the blended color
-                                    color = Vector4BlendTransforms.PremultipliedLerp(color, blendedColor, alpha);
-                                }
+                                // Lerping colors is dependent on the alpha of the blended color
+                                backgroundVector = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, alpha);
 
                                 TColor packed = default(TColor);
-                                packed.PackFromVector4(color);
+                                packed.PackFromVector4(backgroundVector);
                                 sourcePixels[x, y] = packed;
                             }
                         });

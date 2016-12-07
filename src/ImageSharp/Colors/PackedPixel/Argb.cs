@@ -11,16 +11,16 @@ namespace ImageSharp
     /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
     /// as it avoids the need to create new values for modification operations.
     /// </remarks>
-    public class Argb : IPackedPixel<uint>, IEquatable<Argb>
+    public struct Argb : IPackedPixel<uint>, IEquatable<Argb>
     {
-        const int  BlueShift  = 0;
-        const uint BlueMask   = 0xFFFFFF00;
-        const int  GreenShift = 8;
-        const uint GreenMask  = 0xFFFF00FF;
-        const int  RedShift   = 16;
-        const uint RedMask    = 0xFF00FFFF;
-        const int  AlphaShift = 24;
-        const uint AlphaMask  = 0x00FFFFFF;
+        const int BlueShift = 0;
+        const uint BlueMask = 0xFFFFFF00;
+        const int GreenShift = 8;
+        const uint GreenMask = 0xFFFF00FF;
+        const int RedShift = 16;
+        const uint RedMask = 0xFF00FFFF;
+        const int AlphaShift = 24;
+        const uint AlphaMask = 0x00FFFFFF;
 
         /// <summary>
         /// The maximum byte value.
@@ -257,11 +257,40 @@ namespace ImageSharp
             }
         }
 
-        /// <inheritdoc/>
-        public override bool Equals(object obj)
+        /// <summary>
+        /// Compares two <see cref="Color"/> objects for equality.
+        /// </summary>
+        /// <param name="left">
+        /// The <see cref="Color"/> on the left side of the operand.
+        /// </param>
+        /// <param name="right">
+        /// The <see cref="Color"/> on the right side of the operand.
+        /// </param>
+        /// <returns>
+        /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
+        /// </returns>
+        public static bool operator ==(Argb left, Argb right)
         {
-            var a = obj as Argb;
-            return (a != null) && Equals(a);
+            return left.PackedValue == right.PackedValue;
+        }
+
+        /// <summary>
+        /// Compares two <see cref="Color"/> objects for equality.
+        /// </summary>
+        /// <param name="left">The <see cref="Color"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="Color"/> on the right side of the operand.</param>
+        /// <returns>
+        /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
+        /// </returns>
+        public static bool operator !=(Argb left, Argb right)
+        {
+            return left.PackedValue != right.PackedValue;
+        }
+
+        /// <inheritdoc/>
+		public override bool Equals(object obj)
+        {
+            return obj is Argb && Equals((Argb)obj);
         }
 
         /// <inheritdoc/>

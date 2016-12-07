@@ -17,7 +17,7 @@ namespace ImageSharp
         /// <summary>
         /// The epsilon for comparing floating point numbers.
         /// </summary>
-        private const float Epsilon = 0.001F;
+        private const float Epsilon = 0.0001F;
 
         /// <summary>
         /// The blending formula simply selects the source vector.
@@ -187,7 +187,7 @@ namespace ImageSharp
 
         /// <summary>
         /// Linearly interpolates from one vector to another based on the given weighting. 
-        /// The two vectors are premultiplied by their W component before operating.
+        /// The two vectors are premultiplied before operating.
         /// </summary>
         /// <param name="backdrop">The backdrop vector.</param>
         /// <param name="source">The source vector.</param>
@@ -195,20 +195,43 @@ namespace ImageSharp
         /// A value between 0 and 1 indicating the weight of the second source vector.
         /// At amount = 0, "from" is returned, at amount = 1, "to" is returned.
         /// </param>
-        /// <returns>
+        /// <returns> 
         /// The <see cref="Vector4"/>
         /// </returns>
         public static Vector4 PremultipliedLerp(Vector4 backdrop, Vector4 source, float amount)
         {
             amount = amount.Clamp(0, 1);
-            backdrop = backdrop * new Vector4(backdrop.X, backdrop.Y, backdrop.Z, 1) * backdrop.W;
-            source = source * new Vector4(source.X, source.Y, source.Z, 1) * source.W;
 
-            return Vector4.Lerp(backdrop, source, amount) / new Vector4(source.W, source.W, source.W, 1);
+            // Santize on zero alpha
+            if (Math.Abs(backdrop.W) < Epsilon)
+            {
+                source.W *= amount;
+                return source;
+            }
+
+            if (Math.Abs(source.W) < Epsilon)
+            {
+                return backdrop;
+            }
+
+            // Premultiply the source vector.
+            // Oddly premultiplying the background vector creates dark outlines when pixels
+            // Have low alpha values. 
+            source = new Vector4(source.X, source.Y, source.Z, 1) * (source.W * amount);
+
+            // This should be implementing the following formula
+            // https://en.wikipedia.org/wiki/Alpha_compositing
+            // Vout =  Vs + Vb (1 - Vsa)
+            // Aout = Vsa + Vsb (1 - Vsa)
+            Vector3 inverseW = new Vector3(1 - source.W);
+            Vector3 xyzB = new Vector3(backdrop.X, backdrop.Y, backdrop.Z);
+            Vector3 xyzS = new Vector3(source.X, source.Y, source.Z);
+
+            return new Vector4(xyzS + (xyzB * inverseW), source.W + (backdrop.W * (1 - source.W)));
         }
 
         /// <summary>
-        /// Multiplies or screens the color component, depending on the component value.
+        /// Multiplies or screens the backdrop component, depending on the component value.
         /// </summary>
         /// <param name="b">The backdrop component.</param>
         /// <param name="s">The source component.</param>

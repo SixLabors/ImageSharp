@@ -77,15 +77,11 @@ namespace ImageSharp.Processors
                             for (int x = minX; x < maxX; x++)
                             {
                                 int offsetX = x - startX;
-                                if (ellipse.Contains(offsetX, offsetY))
-                                {
-                                    // TODO: Premultiply?
-                                    float distance = Vector2.Distance(centre, new Vector2(offsetX, offsetY));
-                                    Vector4 sourceColor = sourcePixels[offsetX, offsetY].ToVector4();
-                                    TColor packed = default(TColor);
-                                    packed.PackFromVector4(Vector4.Lerp(glowColor.ToVector4(), sourceColor, distance / maxDistance));
-                                    sourcePixels[offsetX, offsetY] = packed;
-                                }
+                                float distance = Vector2.Distance(centre, new Vector2(offsetX, offsetY));
+                                Vector4 sourceColor = sourcePixels[offsetX, offsetY].ToVector4();
+                                TColor packed = default(TColor);
+                                packed.PackFromVector4(Vector4BlendTransforms.PremultipliedLerp(sourceColor, glowColor.ToVector4(), 1 - (.95F * (distance / maxDistance))));
+                                sourcePixels[offsetX, offsetY] = packed;
                             }
                         });
             }

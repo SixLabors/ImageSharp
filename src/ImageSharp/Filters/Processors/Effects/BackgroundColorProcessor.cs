@@ -79,7 +79,7 @@ namespace ImageSharp.Processors
 
                             if (a < 1 && a > 0)
                             {
-                                color = Vector4.Lerp(color, backgroundColor, .5F);
+                                color = Vector4BlendTransforms.PremultipliedLerp(backgroundColor, color, .5F);
                             }
 
                             if (Math.Abs(a) < Epsilon)

@@ -57,6 +57,51 @@ namespace ImageSharp.Tests.Colors
         }
 
         [Fact]
+        public void Argb()
+        {
+            // Test the limits.
+            Assert.Equal((uint)0x0, new Argb(Vector4.Zero).PackedValue);
+            Assert.Equal(0xFFFFFFFF, new Argb(Vector4.One).PackedValue);
+
+            // Test ToVector4.
+            Assert.True(Equal(Vector4.One, new Argb(Vector4.One).ToVector4()));
+            Assert.True(Equal(Vector4.Zero, new Argb(Vector4.Zero).ToVector4()));
+            Assert.True(Equal(Vector4.UnitX, new Argb(Vector4.UnitX).ToVector4()));
+            Assert.True(Equal(Vector4.UnitY, new Argb(Vector4.UnitY).ToVector4()));
+            Assert.True(Equal(Vector4.UnitZ, new Argb(Vector4.UnitZ).ToVector4()));
+            Assert.True(Equal(Vector4.UnitW, new Argb(Vector4.UnitW).ToVector4()));
+
+            // Test clamping.
+            Assert.True(Equal(Vector4.Zero, new Argb(Vector4.One * -1234.0f).ToVector4()));
+            Assert.True(Equal(Vector4.One, new Argb(Vector4.One * +1234.0f).ToVector4()));
+
+            float x = +0.1f;
+            float y = -0.3f;
+            float z = +0.5f;
+            float w = -0.7f;
+            Argb argb = new Argb(x, y, z, w);
+            Assert.Equal(0x001a0080u, argb.PackedValue);
+
+            // Test ordering
+            byte[] rgb = new byte[3];
+            byte[] rgba = new byte[4];
+            byte[] bgr = new byte[3];
+            byte[] bgra = new byte[4];
+
+            argb.ToBytes(rgb, 0, ComponentOrder.XYZ);
+            Assert.Equal(rgb, new byte[] { 0x1a, 0, 0x80 });
+
+            argb.ToBytes(rgba, 0, ComponentOrder.XYZW);
+            Assert.Equal(rgba, new byte[] { 0x1a, 0, 0x80, 0 });
+
+            argb.ToBytes(bgr, 0, ComponentOrder.ZYX);
+            Assert.Equal(bgr, new byte[] { 0x80, 0, 0x1a });
+
+            argb.ToBytes(bgra, 0, ComponentOrder.ZYXW);
+            Assert.Equal(bgra, new byte[] { 0x80, 0, 0x1a, 0 });
+        }
+
+        [Fact]
         public void Bgr565()
         {
             // Test the limits.

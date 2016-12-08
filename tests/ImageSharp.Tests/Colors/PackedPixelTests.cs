@@ -64,8 +64,8 @@ namespace ImageSharp.Tests.Colors
             Assert.Equal(0xFFFFFFFF, new Argb(Vector4.One).PackedValue);
 
             // Test ToVector4.
-            Assert.True(Equal(Vector4.One,   new Argb(Vector4.One  ).ToVector4()));
-            Assert.True(Equal(Vector4.Zero,  new Argb(Vector4.Zero ).ToVector4()));
+            Assert.True(Equal(Vector4.One, new Argb(Vector4.One).ToVector4()));
+            Assert.True(Equal(Vector4.Zero, new Argb(Vector4.Zero).ToVector4()));
             Assert.True(Equal(Vector4.UnitX, new Argb(Vector4.UnitX).ToVector4()));
             Assert.True(Equal(Vector4.UnitY, new Argb(Vector4.UnitY).ToVector4()));
             Assert.True(Equal(Vector4.UnitZ, new Argb(Vector4.UnitZ).ToVector4()));
@@ -73,19 +73,19 @@ namespace ImageSharp.Tests.Colors
 
             // Test clamping.
             Assert.True(Equal(Vector4.Zero, new Argb(Vector4.One * -1234.0f).ToVector4()));
-            Assert.True(Equal(Vector4.One,  new Argb(Vector4.One * +1234.0f).ToVector4()));
+            Assert.True(Equal(Vector4.One, new Argb(Vector4.One * +1234.0f).ToVector4()));
 
-            var x    = +0.1f;
-            var y    = -0.3f;
-            var z    = +0.5f;
-            var w    = -0.7f;
-            var argb = new Argb(x, y, z, w);
+            float x = +0.1f;
+            float y = -0.3f;
+            float z = +0.5f;
+            float w = -0.7f;
+            Argb argb = new Argb(x, y, z, w);
             Assert.Equal(0x001a0080u, argb.PackedValue);
 
             // Test ordering
-            byte[] rgb  = new byte[3];
+            byte[] rgb = new byte[3];
             byte[] rgba = new byte[4];
-            byte[] bgr  = new byte[3];
+            byte[] bgr = new byte[3];
             byte[] bgra = new byte[4];
 
             argb.ToBytes(rgb, 0, ComponentOrder.XYZ);

@@ -1,8 +1,13 @@
-﻿using System;
-using System.Numerics;
+﻿// <copyright file="Argb.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
 
 namespace ImageSharp
 {
+    using System;
+    using System.Numerics;
+
     /// <summary>
     /// Packed pixel type containing four 8-bit unsigned normalized values ranging from 0 to 255.
     /// The color components are stored in alpha, red, green, and blue order.
@@ -13,27 +18,38 @@ namespace ImageSharp
     /// </remarks>
     public struct Argb : IPackedPixel<uint>, IEquatable<Argb>
     {
-        const int BlueShift = 0;
-        const uint BlueMask = 0xFFFFFF00;
-        const int GreenShift = 8;
-        const uint GreenMask = 0xFFFF00FF;
-        const int RedShift = 16;
-        const uint RedMask = 0xFF00FFFF;
-        const int AlphaShift = 24;
-        const uint AlphaMask = 0x00FFFFFF;
+        /// <summary>
+        /// The shift count for the blue component
+        /// </summary>
+        private const int BlueShift = 0;
+
+        /// <summary>
+        /// The shift count for the green component
+        /// </summary>
+        private const int GreenShift = 8;
+
+        /// <summary>
+        /// The shift count for the red component
+        /// </summary>
+        private const int RedShift = 16;
+
+        /// <summary>
+        /// The shift count for the alpha component
+        /// </summary>
+        private const int AlphaShift = 24;
 
         /// <summary>
         /// The maximum byte value.
         /// </summary>
-        readonly static Vector4 MaxBytes = new Vector4(255);
+        private static readonly Vector4 MaxBytes = new Vector4(255);
 
         /// <summary>
         /// The half vector value.
         /// </summary>
-        readonly static Vector4 Half = new Vector4(0.5F);
+        private static readonly Vector4 Half = new Vector4(0.5F);
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Color"/> struct.
+        /// Initializes a new instance of the <see cref="Argb"/> struct.
         /// </summary>
         /// <param name="r">The red component.</param>
         /// <param name="g">The green component.</param>
@@ -41,11 +57,11 @@ namespace ImageSharp
         /// <param name="a">The alpha component.</param>
         public Argb(byte r, byte g, byte b, byte a = 255)
         {
-            PackedValue = Pack(r, g, b, a);
+            this.PackedValue = Pack(r, g, b, a);
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Color"/> struct.
+        /// Initializes a new instance of the <see cref="Argb"/> struct.
         /// </summary>
         /// <param name="r">The red component.</param>
         /// <param name="g">The green component.</param>
@@ -53,41 +69,45 @@ namespace ImageSharp
         /// <param name="a">The alpha component.</param>
         public Argb(float r, float g, float b, float a = 1)
         {
-            PackedValue = Pack(r, g, b, a);
+            this.PackedValue = Pack(r, g, b, a);
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Color"/> struct.
+        /// Initializes a new instance of the <see cref="Argb"/> struct.
         /// </summary>
         /// <param name="vector">
         /// The vector containing the components for the packed vector.
         /// </param>
         public Argb(Vector3 vector)
         {
-            PackedValue = Pack(ref vector);
+            this.PackedValue = Pack(ref vector);
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Color"/> struct.
+        /// Initializes a new instance of the <see cref="Argb"/> struct.
         /// </summary>
         /// <param name="vector">
         /// The vector containing the components for the packed vector.
         /// </param>
         public Argb(Vector4 vector)
         {
-            PackedValue = Pack(ref vector);
+            this.PackedValue = Pack(ref vector);
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Color"/> struct.
+        /// Initializes a new instance of the <see cref="Argb"/> struct.
         /// </summary>
         /// <param name="packed">
         /// The packed value.
         /// </param>
         public Argb(uint packed = 0)
         {
-            PackedValue = packed;
+            this.PackedValue = packed;
         }
+
+        /// <inheritdoc/>
+        public uint PackedValue { get; set; }
+
         /// <summary>
         /// Gets or sets the red component.
         /// </summary>
@@ -95,12 +115,12 @@ namespace ImageSharp
         {
             get
             {
-                return (byte)(PackedValue >> RedShift);
+                return (byte)(this.PackedValue >> RedShift);
             }
 
             set
             {
-                PackedValue = PackedValue & RedMask | (uint)value << RedShift;
+                this.PackedValue = this.PackedValue & 0xFF00FFFF | (uint)value << RedShift;
             }
         }
 
@@ -111,12 +131,12 @@ namespace ImageSharp
         {
             get
             {
-                return (byte)(PackedValue >> GreenShift);
+                return (byte)(this.PackedValue >> GreenShift);
             }
 
             set
             {
-                PackedValue = PackedValue & GreenMask | (uint)value << GreenShift;
+                this.PackedValue = this.PackedValue & 0xFFFF00FF | (uint)value << GreenShift;
             }
         }
 
@@ -127,12 +147,12 @@ namespace ImageSharp
         {
             get
             {
-                return (byte)(PackedValue >> BlueShift);
+                return (byte)(this.PackedValue >> BlueShift);
             }
 
             set
             {
-                PackedValue = PackedValue & BlueMask | (uint)value << BlueShift;
+                this.PackedValue = this.PackedValue & 0xFFFFFF00 | (uint)value << BlueShift;
             }
         }
 
@@ -143,128 +163,23 @@ namespace ImageSharp
         {
             get
             {
-                return (byte)(PackedValue >> AlphaShift);
+                return (byte)(this.PackedValue >> AlphaShift);
             }
 
             set
             {
-                PackedValue = PackedValue & AlphaMask | (uint)value << AlphaShift;
-            }
-        }
-
-        /// <inheritdoc/>
-        public void PackFromVector4(Vector4 vector)
-        {
-            PackedValue = Pack(ref vector);
-        }
-
-        /// <inheritdoc/>
-        public Vector4 ToVector4()
-        {
-            return new Vector4(R, G, B, A) / MaxBytes;
-        }
-
-        /// <inheritdoc/>
-        public uint PackedValue { get; set; }
-
-        /// <inheritdoc/>
-        public void PackFromBytes(byte x, byte y, byte z, byte w)
-        {
-            PackedValue = Pack(x, y, z, w);
-        }
-
-        /// <summary>
-        /// Packs the four floats into a <see cref="uint"/>.
-        /// </summary>
-        /// <param name="x">The x-component</param>
-        /// <param name="y">The y-component</param>
-        /// <param name="z">The z-component</param>
-        /// <param name="w">The w-component</param>
-        /// <returns>The <see cref="uint"/></returns>
-        static uint Pack(float x, float y, float z, float w)
-        {
-            var value = new Vector4(x, y, z, w);
-            return Pack(ref value);
-        }
-        /// <summary>
-        /// Packs the four floats into a <see cref="uint"/>.
-        /// </summary>
-        /// <param name="x">The x-component</param>
-        /// <param name="y">The y-component</param>
-        /// <param name="z">The z-component</param>
-        /// <param name="w">The w-component</param>
-        /// <returns>The <see cref="uint"/></returns>
-        static uint Pack(byte x, byte y, byte z, byte w)
-        {
-            return (uint)(x << RedShift | y << GreenShift | z << BlueShift | w << AlphaShift);
-        }
-
-        /// <summary>
-        /// Packs a <see cref="Vector3"/> into a uint.
-        /// </summary>
-        /// <param name="vector">The vector containing the values to pack.</param>
-        /// <returns>The <see cref="uint"/> containing the packed values.</returns>
-        static uint Pack(ref Vector3 vector)
-        {
-            var value = new Vector4(vector, 1);
-            return Pack(ref value);
-        }
-
-        /// <summary>
-        /// Packs a <see cref="Vector4"/> into a uint.
-        /// </summary>
-        /// <param name="vector">The vector containing the values to pack.</param>
-        /// <returns>The <see cref="uint"/> containing the packed values.</returns>
-        static uint Pack(ref Vector4 vector)
-        {
-            vector = Vector4.Clamp(vector, Vector4.Zero, Vector4.One);
-            vector *= MaxBytes;
-            vector += Half;
-            return (uint)(((byte)vector.X << RedShift)
-                        | ((byte)vector.Y << GreenShift)
-                        | ((byte)vector.Z << BlueShift)
-                        | (byte)vector.W << AlphaShift);
-        }
-
-        /// <inheritdoc/>
-        public void ToBytes(byte[] bytes, int startIndex, ComponentOrder componentOrder)
-        {
-            switch(componentOrder) {
-            case ComponentOrder.ZYX:
-                bytes[startIndex] = B;
-                bytes[startIndex + 1] = G;
-                bytes[startIndex + 2] = R;
-                break;
-            case ComponentOrder.ZYXW:
-                bytes[startIndex] = B;
-                bytes[startIndex + 1] = G;
-                bytes[startIndex + 2] = R;
-                bytes[startIndex + 3] = A;
-                break;
-            case ComponentOrder.XYZ:
-                bytes[startIndex] = R;
-                bytes[startIndex + 1] = G;
-                bytes[startIndex + 2] = B;
-                break;
-            case ComponentOrder.XYZW:
-                bytes[startIndex] = R;
-                bytes[startIndex + 1] = G;
-                bytes[startIndex + 2] = B;
-                bytes[startIndex + 3] = A;
-                break;
-            default:
-                throw new NotSupportedException();
+                this.PackedValue = this.PackedValue & 0x00FFFFFF | (uint)value << AlphaShift;
             }
         }
 
         /// <summary>
-        /// Compares two <see cref="Color"/> objects for equality.
+        /// Compares two <see cref="Argb"/> objects for equality.
         /// </summary>
         /// <param name="left">
-        /// The <see cref="Color"/> on the left side of the operand.
+        /// The <see cref="Argb"/> on the left side of the operand.
         /// </param>
         /// <param name="right">
-        /// The <see cref="Color"/> on the right side of the operand.
+        /// The <see cref="Argb"/> on the right side of the operand.
         /// </param>
         /// <returns>
         /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
@@ -275,10 +190,10 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Compares two <see cref="Color"/> objects for equality.
+        /// Compares two <see cref="Argb"/> objects for equality.
         /// </summary>
-        /// <param name="left">The <see cref="Color"/> on the left side of the operand.</param>
-        /// <param name="right">The <see cref="Color"/> on the right side of the operand.</param>
+        /// <param name="left">The <see cref="Argb"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="Argb"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
@@ -288,22 +203,126 @@ namespace ImageSharp
         }
 
         /// <inheritdoc/>
-		public override bool Equals(object obj)
+        public void PackFromVector4(Vector4 vector)
         {
-            return obj is Argb && Equals((Argb)obj);
+            this.PackedValue = Pack(ref vector);
+        }
+
+        /// <inheritdoc/>
+        public Vector4 ToVector4()
+        {
+            return new Vector4(this.R, this.G, this.B, this.A) / MaxBytes;
+        }
+
+        /// <inheritdoc/>
+        public void PackFromBytes(byte x, byte y, byte z, byte w)
+        {
+            this.PackedValue = Pack(x, y, z, w);
+        }
+
+        /// <inheritdoc/>
+        public void ToBytes(byte[] bytes, int startIndex, ComponentOrder componentOrder)
+        {
+            switch (componentOrder)
+            {
+                case ComponentOrder.ZYX:
+                    bytes[startIndex] = this.B;
+                    bytes[startIndex + 1] = this.G;
+                    bytes[startIndex + 2] = this.R;
+                    break;
+                case ComponentOrder.ZYXW:
+                    bytes[startIndex] = this.B;
+                    bytes[startIndex + 1] = this.G;
+                    bytes[startIndex + 2] = this.R;
+                    bytes[startIndex + 3] = this.A;
+                    break;
+                case ComponentOrder.XYZ:
+                    bytes[startIndex] = this.R;
+                    bytes[startIndex + 1] = this.G;
+                    bytes[startIndex + 2] = this.B;
+                    break;
+                case ComponentOrder.XYZW:
+                    bytes[startIndex] = this.R;
+                    bytes[startIndex + 1] = this.G;
+                    bytes[startIndex + 2] = this.B;
+                    bytes[startIndex + 3] = this.A;
+                    break;
+                default:
+                    throw new NotSupportedException();
+            }
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            return obj is Argb && this.Equals((Argb)obj);
         }
 
         /// <inheritdoc/>
         public bool Equals(Argb other)
         {
-            return PackedValue == other.PackedValue;
+            return this.PackedValue == other.PackedValue;
         }
 
         /// <inheritdoc/>
         public override int GetHashCode()
         {
             // ReSharper disable once NonReadonlyMemberInGetHashCode
-            return PackedValue.GetHashCode();
+            return this.PackedValue.GetHashCode();
+        }
+
+        /// <summary>
+        /// Packs the four floats into a <see cref="uint"/>.
+        /// </summary>
+        /// <param name="x">The x-component</param>
+        /// <param name="y">The y-component</param>
+        /// <param name="z">The z-component</param>
+        /// <param name="w">The w-component</param>
+        /// <returns>The <see cref="uint"/></returns>
+        private static uint Pack(float x, float y, float z, float w)
+        {
+            var value = new Vector4(x, y, z, w);
+            return Pack(ref value);
+        }
+
+        /// <summary>
+        /// Packs the four floats into a <see cref="uint"/>.
+        /// </summary>
+        /// <param name="x">The x-component</param>
+        /// <param name="y">The y-component</param>
+        /// <param name="z">The z-component</param>
+        /// <param name="w">The w-component</param>
+        /// <returns>The <see cref="uint"/></returns>
+        private static uint Pack(byte x, byte y, byte z, byte w)
+        {
+            return (uint)(x << RedShift | y << GreenShift | z << BlueShift | w << AlphaShift);
+        }
+
+        /// <summary>
+        /// Packs a <see cref="Vector3"/> into a uint.
+        /// </summary>
+        /// <param name="vector">The vector containing the values to pack.</param>
+        /// <returns>The <see cref="uint"/> containing the packed values.</returns>
+        private static uint Pack(ref Vector3 vector)
+        {
+            var value = new Vector4(vector, 1);
+            return Pack(ref value);
+        }
+
+        /// <summary>
+        /// Packs a <see cref="Vector4"/> into a uint.
+        /// </summary>
+        /// <param name="vector">The vector containing the values to pack.</param>
+        /// <returns>The <see cref="uint"/> containing the packed values.</returns>
+        private static uint Pack(ref Vector4 vector)
+        {
+            vector = Vector4.Clamp(vector, Vector4.Zero, Vector4.One);
+            vector *= MaxBytes;
+            vector += Half;
+            return (uint)(((byte)vector.X << RedShift)
+                        | ((byte)vector.Y << GreenShift)
+                        | ((byte)vector.Z << BlueShift)
+                        | (byte)vector.W << AlphaShift);
         }
     }
 }

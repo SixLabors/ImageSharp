@@ -155,14 +155,14 @@ namespace ImageSharp
 
             if (compand)
             {
-                processor = new CompandingResizeProcessor<TColor, TPacked>(sampler);
+                processor = new CompandingResizeProcessor<TColor, TPacked>(sampler, width, height, targetRectangle);
             }
             else
             {
-                processor = new ResizeProcessor<TColor, TPacked>(sampler);
+                processor = new ResizeProcessor<TColor, TPacked>(sampler, width, height, targetRectangle);
             }
 
-            return source.Process(width, height, sourceRectangle, targetRectangle, processor);
+            return source.Process(sourceRectangle, processor);
         }
     }
 }

@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Tests
 {
+    using System;
     using System.IO;
 
     using Xunit;
@@ -248,7 +249,7 @@ namespace ImageSharp.Tests
                     ResizeOptions options = new ResizeOptions()
                     {
                         Sampler = sampler,
-                        Size = new Size(image.Width - 50, image.Height - 25),
+                        Size = new Size((int)Math.Round(image.Width * .75F), (int)Math.Round(image.Height * 95F)),
                         Mode = ResizeMode.Min
                     };
 
@@ -276,7 +277,7 @@ namespace ImageSharp.Tests
                     ResizeOptions options = new ResizeOptions()
                     {
                         Sampler = sampler,
-                        Size = new Size(image.Width - 200, image.Height),
+                        Size = new Size(image.Width / 2, image.Height),
                         Mode = ResizeMode.Stretch
                     };
 

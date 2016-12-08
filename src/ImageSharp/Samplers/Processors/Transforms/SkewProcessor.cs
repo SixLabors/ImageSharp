@@ -39,14 +39,15 @@ namespace ImageSharp.Processors
         public bool Expand { get; set; } = true;
 
         /// <inheritdoc/>
-        public override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle, int startY, int endY)
         {
-            int height = target.Height;
-            int width = target.Width;
-            Matrix3x2 matrix = GetCenteredMatrix(target, source, this.processMatrix);
+            int height = this.CanvasRectangle.Height;
+            int width = this.CanvasRectangle.Width;
+            Matrix3x2 matrix = this.GetCenteredMatrix(source, this.processMatrix);
+            TColor[] target = new TColor[width * height];
 
             using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
-            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock())
+            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock<TColor, TPacked>(width, height))
             {
                 Parallel.For(
                     0,
@@ -64,15 +65,17 @@ namespace ImageSharp.Processors
                             }
                         });
             }
+
+            source.SetPixels(width, height, target);
         }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
         {
             this.processMatrix = Point.CreateSkew(new Point(0, 0), -this.AngleX, -this.AngleY);
             if (this.Expand)
             {
-                CreateNewTarget(target, sourceRectangle, this.processMatrix);
+                this.CreateNewCanvas(sourceRectangle, this.processMatrix);
             }
         }
     }

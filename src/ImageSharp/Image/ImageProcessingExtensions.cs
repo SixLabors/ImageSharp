@@ -22,7 +22,7 @@ namespace ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="processor">The processor to apply to the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        internal static Image<TColor, TPacked> Process<TColor, TPacked>(this Image<TColor, TPacked> source, IImageFilter<TColor, TPacked> processor)
+        internal static Image<TColor, TPacked> Process<TColor, TPacked>(this Image<TColor, TPacked> source, IImageFilteringProcessor<TColor, TPacked> processor)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
@@ -41,7 +41,7 @@ namespace ImageSharp
         /// </param>
         /// <param name="processor">The processors to apply to the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        internal static Image<TColor, TPacked> Process<TColor, TPacked>(this Image<TColor, TPacked> source, Rectangle sourceRectangle, IImageFilter<TColor, TPacked> processor)
+        internal static Image<TColor, TPacked> Process<TColor, TPacked>(this Image<TColor, TPacked> source, Rectangle sourceRectangle, IImageFilteringProcessor<TColor, TPacked> processor)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
@@ -57,7 +57,7 @@ namespace ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="processor">The processor to apply to the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        internal static Image<TColor, TPacked> Process<TColor, TPacked>(this Image<TColor, TPacked> source, IImageSampler<TColor, TPacked> processor)
+        internal static Image<TColor, TPacked> Process<TColor, TPacked>(this Image<TColor, TPacked> source, IImageSamplingProcessor<TColor, TPacked> processor)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
@@ -76,7 +76,7 @@ namespace ImageSharp
         /// </param>
         /// <param name="processor">The processors to apply to the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        internal static Image<TColor, TPacked> Process<TColor, TPacked>(this Image<TColor, TPacked> source, Rectangle sourceRectangle, IImageSampler<TColor, TPacked> processor)
+        internal static Image<TColor, TPacked> Process<TColor, TPacked>(this Image<TColor, TPacked> source, Rectangle sourceRectangle, IImageSamplingProcessor<TColor, TPacked> processor)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
@@ -96,7 +96,7 @@ namespace ImageSharp
         /// <param name="height">The target image height.</param>
         /// <param name="sampler">The processor to apply to the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        internal static Image<TColor, TPacked> Process<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height, IImageSampler<TColor, TPacked> sampler)
+        internal static Image<TColor, TPacked> Process<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height, IImageSamplingProcessor<TColor, TPacked> sampler)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
@@ -123,7 +123,7 @@ namespace ImageSharp
         /// </param>
         /// <param name="sampler">The processor to apply to the image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        internal static Image<TColor, TPacked> Process<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height, Rectangle sourceRectangle, Rectangle targetRectangle, IImageSampler<TColor, TPacked> sampler)
+        internal static Image<TColor, TPacked> Process<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height, Rectangle sourceRectangle, Rectangle targetRectangle, IImageSamplingProcessor<TColor, TPacked> sampler)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {

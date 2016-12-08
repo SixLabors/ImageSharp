@@ -43,7 +43,7 @@ namespace ImageSharp
             where TPacked : struct
         {
             SkewProcessor<TColor, TPacked> processor = new SkewProcessor<TColor, TPacked> { AngleX = degreesX, AngleY = degreesY, Expand = expand };
-            return source.Process(source.Width, source.Height, source.Bounds, source.Bounds, processor);
+            return source.Process(source.Bounds, processor);
         }
     }
 }

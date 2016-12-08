@@ -13,27 +13,50 @@ namespace ImageSharp.Processors
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public abstract class ResamplingWeightedProcessor<TColor, TPacked> : ImageSamplingProcessor<TColor, TPacked>
+    public abstract class ResamplingWeightedProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
         where TPacked : struct
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ResamplingWeightedProcessor{TColor, TPacked}"/> class.
         /// </summary>
-        /// <param name="sampler">
-        /// The sampler to perform the resize operation.
+        /// <param name="sampler">The sampler to perform the resize operation.</param>
+        /// <param name="width">The target width.</param>
+        /// <param name="height">The target height.</param>
+        /// <param name="resizeRectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the target image object to draw to.
         /// </param>
-        protected ResamplingWeightedProcessor(IResampler sampler)
+        protected ResamplingWeightedProcessor(IResampler sampler, int width, int height, Rectangle resizeRectangle)
         {
             Guard.NotNull(sampler, nameof(sampler));
+            Guard.MustBeGreaterThan(width, 0, nameof(width));
+            Guard.MustBeGreaterThan(height, 0, nameof(height));
 
             this.Sampler = sampler;
+            this.Width = width;
+            this.Height = height;
+            this.ResizeRectangle = resizeRectangle;
         }
 
         /// <summary>
         /// Gets the sampler to perform the resize operation.
         /// </summary>
         public IResampler Sampler { get; }
+
+        /// <summary>
+        /// Gets the width.
+        /// </summary>
+        public int Width { get; }
+
+        /// <summary>
+        /// Gets the height.
+        /// </summary>
+        public int Height { get; }
+
+        /// <summary>
+        /// Gets the resize rectangle.
+        /// </summary>
+        public Rectangle ResizeRectangle { get; }
 
         /// <summary>
         /// Gets or sets the horizontal weights.
@@ -46,22 +69,12 @@ namespace ImageSharp.Processors
         protected Weights[] VerticalWeights { get; set; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
         {
             if (!(this.Sampler is NearestNeighborResampler))
             {
-                this.HorizontalWeights = this.PrecomputeWeights(targetRectangle.Width, sourceRectangle.Width);
-                this.VerticalWeights = this.PrecomputeWeights(targetRectangle.Height, sourceRectangle.Height);
-            }
-        }
-
-        /// <inheritdoc/>
-        protected override void AfterApply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle)
-        {
-            // Copy the pixels over.
-            if (source.Bounds == target.Bounds && sourceRectangle == targetRectangle)
-            {
-                target.ClonePixels(target.Width, target.Height, source.Pixels);
+                this.HorizontalWeights = this.PrecomputeWeights(this.ResizeRectangle.Width, sourceRectangle.Width);
+                this.VerticalWeights = this.PrecomputeWeights(this.ResizeRectangle.Height, sourceRectangle.Height);
             }
         }
 

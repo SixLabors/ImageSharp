@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Processors
 {
+    using System;
     using System.Threading.Tasks;
 
     /// <summary>
@@ -19,18 +20,16 @@ namespace ImageSharp.Processors
         /// <summary>
         /// Initializes a new instance of the <see cref="CropProcessor{TColor,TPacked}"/> class.
         /// </summary>
-        /// <param name="width">The target image width.</param>
-        /// <param name="height">The target image height.</param>
-        public CropProcessor(int width, int height)
+        /// <param name="cropRectangle">The target cropped rectangle.</param>
+        public CropProcessor(Rectangle cropRectangle)
         {
-            this.Width = width;
-            this.Height = height;
+            this.CropRectangle = cropRectangle;
         }
 
         /// <summary>
         /// Gets the width.
         /// </summary>
-        public int Width { get; }
+        public Rectangle CropRectangle { get; }
 
         /// <summary>
         /// Gets the height.
@@ -40,22 +39,20 @@ namespace ImageSharp.Processors
         /// <inheritdoc/>
         protected override void Apply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle, int startY, int endY)
         {
-            int minX = 0;
-            int maxX = this.Width;
-            int minY = 0;
-            int maxY = this.Height;
-            int sourceX = sourceRectangle.X;
-            int sourceY = sourceRectangle.Y;
+            if (this.CropRectangle == sourceRectangle)
+            {
+                return;
+            }
 
-            Guard.MustBeGreaterThanOrEqualTo(minX, sourceX, nameof(minX));
-            Guard.MustBeGreaterThanOrEqualTo(minY, startY, nameof(startY));
-            Guard.MustBeLessThanOrEqualTo(maxX, sourceRectangle.Right, nameof(maxX));
-            Guard.MustBeLessThanOrEqualTo(maxY, endY, nameof(maxY));
+            int minY = Math.Max(this.CropRectangle.Y, startY);
+            int maxY = Math.Min(this.CropRectangle.Bottom, endY);
+            int minX = Math.Max(this.CropRectangle.X, sourceRectangle.X);
+            int maxX = Math.Min(this.CropRectangle.Right, sourceRectangle.Right);
 
-            TColor[] target = new TColor[this.Width * this.Height];
+            TColor[] target = new TColor[this.CropRectangle.Width * this.CropRectangle.Height];
 
             using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
-            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock<TColor, TPacked>(this.Width, this.Height))
+            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock<TColor, TPacked>(this.CropRectangle.Width, this.CropRectangle.Height))
             {
                 Parallel.For(
                     minY,
@@ -65,12 +62,12 @@ namespace ImageSharp.Processors
                     {
                         for (int x = minX; x < maxX; x++)
                         {
-                            targetPixels[x, y] = sourcePixels[x + sourceX, y + sourceY];
+                            targetPixels[x - minX, y - minY] = sourcePixels[x, y];
                         }
                     });
             }
 
-            source.SetPixels(this.Width, this.Height, target);
+            source.SetPixels(this.CropRectangle.Width, this.CropRectangle.Height, target);
         }
     }
 }

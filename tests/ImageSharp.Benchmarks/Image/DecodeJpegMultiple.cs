@@ -98,13 +98,7 @@ namespace ImageSharp.Benchmarks.Image
         {
             if (this.fileNamesToBytes != null) return;
 
-            // Decoder does not work for these images (yet?):
-            string[] filterWords = { "testimgari", "corrupted", "gray", "longvertical" };
-
-            var allFiles =
-                Directory.EnumerateFiles(Folder, "*.jpg", SearchOption.AllDirectories)
-                    .Where(fn => !filterWords.Any(w => fn.ToLower().Contains(w)))
-                    .ToArray();
+            var allFiles = Directory.EnumerateFiles(Folder, "*.jpg", SearchOption.AllDirectories).ToArray();
 
             this.fileNamesToBytes = allFiles.ToDictionary(fn => fn, File.ReadAllBytes);
         }

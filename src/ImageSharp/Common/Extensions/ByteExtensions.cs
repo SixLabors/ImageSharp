@@ -5,8 +5,6 @@
 
 namespace ImageSharp
 {
-    using System;
-
     /// <summary>
     /// Extension methods for the <see cref="byte"/> struct.
     /// </summary>

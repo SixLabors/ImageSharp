@@ -58,8 +58,8 @@ namespace ImageSharp
                 source = source.Resize(sourceRectangle.Width, sourceRectangle.Height);
             }
 
-            CropProcessor<TColor, TPacked> processor = new CropProcessor<TColor, TPacked>();
-            return source.Process(width, height, sourceRectangle, new Rectangle(0, 0, width, height), processor);
+            CropProcessor<TColor, TPacked> processor = new CropProcessor<TColor, TPacked>(width, height);
+            return source.Process(sourceRectangle, processor);
         }
     }
 }

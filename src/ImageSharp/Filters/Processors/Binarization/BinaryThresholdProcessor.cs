@@ -9,12 +9,12 @@ namespace ImageSharp.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageFilter{TColor,TPacked}"/> to perform binary threshold filtering against an
+    /// An <see cref="IImageFilteringProcessor{TColor,TPacked}"/> to perform binary threshold filtering against an
     /// <see cref="Image"/>. The image will be converted to grayscale before thresholding occurs.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class BinaryThresholdProcessor<TColor, TPacked> : ImageFilter<TColor, TPacked>
+    public class BinaryThresholdProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
         where TPacked : struct
     {

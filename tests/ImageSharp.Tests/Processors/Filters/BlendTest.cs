@@ -6,6 +6,7 @@
 namespace ImageSharp.Tests
 {
     using System.IO;
+    using System.Linq;
 
     using Xunit;
 
@@ -16,7 +17,9 @@ namespace ImageSharp.Tests
         {
             string path = CreateOutputDirectory("Blend");
 
-            Image blend;
+            Image blend;// = new Image(400, 400);
+                        // blend.BackgroundColor(Color.RebeccaPurple);
+
             using (FileStream stream = File.OpenRead(TestImages.Bmp.Car))
             {
                 blend = new Image(stream);
@@ -28,8 +31,8 @@ namespace ImageSharp.Tests
 
                 using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                 {
-                    image.Blend(blend)
-                          .Save(output);
+                    image.Blend(blend, 75, new Size(image.Width / 2, image.Height / 2), new Point(image.Width / 4, image.Height / 4))
+                         .Save(output);
                 }
             }
         }

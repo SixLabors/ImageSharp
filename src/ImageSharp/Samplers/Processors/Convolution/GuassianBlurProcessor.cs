@@ -8,11 +8,11 @@ namespace ImageSharp.Processors
     using System;
 
     /// <summary>
-    /// Applies a Gaussian blur filter to the image.
+    /// Applies a Gaussian blur sampler to the image.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class GuassianBlurProcessor<TColor, TPacked> : ImageSampler<TColor, TPacked>
+    public class GuassianBlurProcessor<TColor, TPacked> : ImageSamplingProcessor<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
         where TPacked : struct
     {
@@ -83,7 +83,7 @@ namespace ImageSharp.Processors
         /// <inheritdoc/>
         public override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
         {
-            new Convolution2PassFilter<TColor, TPacked>(this.KernelX, this.KernelY).Apply(target, source, targetRectangle, sourceRectangle, startY, endY);
+            new Convolution2PassProcessor<TColor, TPacked>(this.KernelX, this.KernelY).Apply(target, source, targetRectangle, sourceRectangle, startY, endY);
         }
 
         /// <summary>

@@ -31,11 +31,6 @@ namespace ImageSharp.Processors
         /// </summary>
         public Rectangle CropRectangle { get; }
 
-        /// <summary>
-        /// Gets the height.
-        /// </summary>
-        public int Height { get; }
-
         /// <inheritdoc/>
         protected override void Apply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle, int startY, int endY)
         {

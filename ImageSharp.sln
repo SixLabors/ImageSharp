@@ -23,7 +23,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Source", "Source", "{815C06
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{56801022-D71A-4FBE-BC5B-CBA08E2284EC}"
 EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "JpegBenchmark", "tests\JpegBenchmark\JpegBenchmark.xproj", "{7C69F09A-3286-45A1-BED2-B9C628150FA9}"
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "ImageSharp.Benchmarks", "tests\ImageSharp.Benchmarks\ImageSharp.Benchmarks.xproj", "{299D8E18-102C-42DE-ADBF-79098EE706A8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,10 +39,10 @@ Global
 		{F836E8E6-B4D9-4208-8346-140C74678B91}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F836E8E6-B4D9-4208-8346-140C74678B91}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F836E8E6-B4D9-4208-8346-140C74678B91}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7C69F09A-3286-45A1-BED2-B9C628150FA9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7C69F09A-3286-45A1-BED2-B9C628150FA9}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7C69F09A-3286-45A1-BED2-B9C628150FA9}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7C69F09A-3286-45A1-BED2-B9C628150FA9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{299D8E18-102C-42DE-ADBF-79098EE706A8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{299D8E18-102C-42DE-ADBF-79098EE706A8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{299D8E18-102C-42DE-ADBF-79098EE706A8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{299D8E18-102C-42DE-ADBF-79098EE706A8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -50,6 +50,6 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{2AA31A1F-142C-43F4-8687-09ABCA4B3A26} = {815C0625-CD3D-440F-9F80-2D83856AB7AE}
 		{F836E8E6-B4D9-4208-8346-140C74678B91} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
-		{7C69F09A-3286-45A1-BED2-B9C628150FA9} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
+		{299D8E18-102C-42DE-ADBF-79098EE706A8} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
 	EndGlobalSection
 EndGlobal

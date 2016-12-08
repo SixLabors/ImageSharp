@@ -39,16 +39,26 @@ namespace ImageSharp.Tests
             private static readonly string folder = "TestImages/Formats/Jpg/";
             public static string Cmyk => folder + "cmyk.jpg";
             public static string Exif => folder + "exif.jpg";
-            public static string Floorplan => folder + "Floorplan.jpeg";
+            public static string Floorplan => folder + "Floorplan.jpg";
             public static string Calliphora => folder + "Calliphora.jpg";
             public static string Turtle => folder + "turtle.jpg";
             public static string Fb => folder + "fb.jpg";
             public static string Progress => folder + "progress.jpg";
             public static string GammaDalaiLamaGray => folder + "gamma_dalai_lama_gray.jpg";
 
+            public static string Festzug => folder + "Festzug.jpg";
+            public static string Hiyamugi => folder + "Hiyamugi.jpg";
+
+            public static string Jpeg400 => folder + "baseline/jpeg400jfif.jpg";
+            public static string Jpeg420 => folder + "baseline/jpeg420exif.jpg";
+            public static string Jpeg422 => folder + "baseline/jpeg422jfif.jpg";
+            public static string Jpeg444 => folder + "baseline/jpeg444.jpg";
+            
 
             public static readonly string[] All = {
-                Cmyk, Exif, Floorplan, Calliphora, Turtle, Fb, Progress, GammaDalaiLamaGray
+                Cmyk, Exif, Floorplan, Calliphora, Turtle, Fb, Progress, GammaDalaiLamaGray,
+                Festzug, Hiyamugi,
+                Jpeg400, Jpeg420, Jpeg444,
             };
         }
 

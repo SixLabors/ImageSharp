@@ -22,11 +22,25 @@ namespace ImageSharp.Processors
         /// <summary>
         /// Initializes a new instance of the <see cref="CompandingResizeProcessor{TColor,TPacked}"/> class.
         /// </summary>
-        /// <param name="sampler">
-        /// The sampler to perform the resize operation.
+        /// <param name="sampler">The sampler to perform the resize operation.</param>
+        /// <param name="width">The target width.</param>
+        /// <param name="height">The target height.</param>
+        public CompandingResizeProcessor(IResampler sampler, int width, int height)
+            : base(sampler, width, height, new Rectangle(0, 0, width, height))
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CompandingResizeProcessor{TColor,TPacked}"/> class.
+        /// </summary>
+        /// <param name="sampler">The sampler to perform the resize operation.</param>
+        /// <param name="width">The target width.</param>
+        /// <param name="height">The target height.</param>
+        /// <param name="resizeRectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the target image object to draw to.
         /// </param>
-        public CompandingResizeProcessor(IResampler sampler)
-            : base(sampler)
+        public CompandingResizeProcessor(IResampler sampler, int width, int height, Rectangle resizeRectangle)
+            : base(sampler, width, height, resizeRectangle)
         {
         }
 
@@ -34,37 +48,38 @@ namespace ImageSharp.Processors
         public override bool Compand { get; set; } = true;
 
         /// <inheritdoc/>
-        public override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle, int startY, int endY)
         {
             // Jump out, we'll deal with that later.
-            if (source.Bounds == target.Bounds && sourceRectangle == targetRectangle)
+            if (source.Width == this.Width && source.Height == this.Height && sourceRectangle == this.ResizeRectangle)
             {
                 return;
             }
 
-            int width = target.Width;
-            int height = target.Height;
-            int sourceHeight = sourceRectangle.Height;
-            int targetX = target.Bounds.X;
-            int targetY = target.Bounds.Y;
-            int targetRight = target.Bounds.Right;
-            int targetBottom = target.Bounds.Bottom;
-            int startX = targetRectangle.X;
-            int endX = targetRectangle.Right;
+            // Reset the values as the rectangle can be altered by ResizeRectangle.
+            startY = this.ResizeRectangle.Y;
+            endY = this.ResizeRectangle.Bottom;
 
-            int minX = Math.Max(targetX, startX);
-            int maxX = Math.Min(targetRight, endX);
-            int minY = Math.Max(targetY, startY);
-            int maxY = Math.Min(targetBottom, endY);
+            int width = this.Width;
+            int height = this.Height;
+            int startX = this.ResizeRectangle.X;
+            int endX = this.ResizeRectangle.Right;
+
+            int minX = Math.Max(0, startX);
+            int maxX = Math.Min(width, endX);
+            int minY = Math.Max(0, startY);
+            int maxY = Math.Min(height, endY);
+
+            TColor[] target = new TColor[width * height];
 
             if (this.Sampler is NearestNeighborResampler)
             {
                 // Scaling factors
-                float widthFactor = sourceRectangle.Width / (float)targetRectangle.Width;
-                float heightFactor = sourceRectangle.Height / (float)targetRectangle.Height;
+                float widthFactor = sourceRectangle.Width / (float)this.ResizeRectangle.Width;
+                float heightFactor = sourceRectangle.Height / (float)this.ResizeRectangle.Height;
 
                 using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
-                using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock())
+                using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock<TColor, TPacked>(width, height))
                 {
                     Parallel.For(
                         minY,
@@ -84,6 +99,7 @@ namespace ImageSharp.Processors
                 }
 
                 // Break out now.
+                source.SetPixels(width, height, target);
                 return;
             }
 
@@ -91,19 +107,14 @@ namespace ImageSharp.Processors
             // A 2-pass 1D algorithm appears to be faster than splitting a 1-pass 2D algorithm
             // First process the columns. Since we are not using multiple threads startY and endY
             // are the upper and lower bounds of the source rectangle.
-            Image<TColor, TPacked> firstPass = new Image<TColor, TPacked>(target.Width, source.Height);
+            TColor[] firstPass = new TColor[width * source.Height];
             using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
-            using (PixelAccessor<TColor, TPacked> firstPassPixels = firstPass.Lock())
-            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock())
+            using (PixelAccessor<TColor, TPacked> firstPassPixels = firstPass.Lock<TColor, TPacked>(width, source.Height))
+            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock<TColor, TPacked>(width, height))
             {
-                minX = Math.Max(0, startX);
-                maxX = Math.Min(width, endX);
-                minY = Math.Max(0, startY);
-                maxY = Math.Min(height, endY);
-
                 Parallel.For(
                     0,
-                    sourceHeight,
+                    sourceRectangle.Height,
                     this.ParallelOptions,
                     y =>
                     {
@@ -154,6 +165,8 @@ namespace ImageSharp.Processors
                         }
                     });
             }
+
+            source.SetPixels(width, height, target);
         }
     }
 }

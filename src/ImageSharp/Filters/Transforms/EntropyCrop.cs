@@ -25,7 +25,8 @@ namespace ImageSharp
             where TPacked : struct
         {
             EntropyCropProcessor<TColor, TPacked> processor = new EntropyCropProcessor<TColor, TPacked>(threshold);
-            return source.Process(source.Width, source.Height, source.Bounds, Rectangle.Empty, processor);
+            return source.Process(source.Bounds, processor);
+            // return source.Process(source.Width, source.Height, source.Bounds, Rectangle.Empty, processor);
         }
     }
 }

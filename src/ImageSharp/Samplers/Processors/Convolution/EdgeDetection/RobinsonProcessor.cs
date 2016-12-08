@@ -13,7 +13,7 @@ namespace ImageSharp.Processors
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     [SuppressMessage("ReSharper", "StaticMemberInGenericType", Justification = "We want to use only one instance of each array field for each generic type.")]
-    public class RobinsonProcessor<TColor, TPacked> : EdgeDetectorCompassFilter<TColor, TPacked>
+    public class RobinsonProcessor<TColor, TPacked> : EdgeDetectorCompassProcessor<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
         where TPacked : struct
     {

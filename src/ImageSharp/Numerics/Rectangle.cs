@@ -128,6 +128,11 @@ namespace ImageSharp
         }
 
         /// <summary>
+        /// Gets the size of this <see cref="Rectangle"/>.
+        /// </summary>
+        public Size Size => new Size(this.Width, this.Height);
+
+        /// <summary>
         /// Gets a value indicating whether this <see cref="Rectangle"/> is empty.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]

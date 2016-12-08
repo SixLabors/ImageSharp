@@ -56,7 +56,7 @@ namespace ImageSharp
             where TPacked : struct
         {
             RotateProcessor<TColor, TPacked> processor = new RotateProcessor<TColor, TPacked> { Angle = degrees, Expand = expand };
-            return source.Process(source.Width, source.Height, source.Bounds, source.Bounds, processor);
+            return source.Process(source.Bounds, processor);
         }
     }
 }

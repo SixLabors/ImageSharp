@@ -65,6 +65,32 @@ namespace ImageSharp
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="PixelAccessor{TColor,TPacked}"/> class.
+        /// </summary>
+        /// <param name="width">Gets the width of the image represented by the pixel buffer.</param>
+        /// <param name="height">The height of the image represented by the pixel buffer.</param>
+        /// <param name="pixels">The pixel buffer.</param>
+        public PixelAccessor(int width, int height, TColor[] pixels)
+        {
+            Guard.NotNull(pixels, nameof(pixels));
+            Guard.MustBeGreaterThan(width, 0, nameof(width));
+            Guard.MustBeGreaterThan(height, 0, nameof(height));
+
+            if (pixels.Length != width * height)
+            {
+                throw new ArgumentException("Pixel array must have the length of Width * Height.");
+            }
+
+            this.Width = width;
+            this.Height = height;
+            this.pixelsHandle = GCHandle.Alloc(pixels, GCHandleType.Pinned);
+            this.dataPointer = this.pixelsHandle.AddrOfPinnedObject();
+            this.pixelsBase = (byte*)this.dataPointer.ToPointer();
+            this.PixelSize = Unsafe.SizeOf<TPacked>();
+            this.RowStride = this.Width * this.PixelSize;
+        }
+
+        /// <summary>
         /// Finalizes an instance of the <see cref="PixelAccessor{TColor,TPacked}"/> class.
         /// </summary>
         ~PixelAccessor()

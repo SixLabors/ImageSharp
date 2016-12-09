@@ -49,7 +49,7 @@ namespace ImageSharp
                 throw new ArgumentOutOfRangeException(nameof(size));
             }
 
-            return source.Process(rectangle, new PixelateProcesso<TColor, TPacked>(size));
+            return source.Process(rectangle, new PixelateProcessor<TColor, TPacked>(size));
         }
     }
 }

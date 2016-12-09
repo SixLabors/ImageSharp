@@ -11,7 +11,7 @@ namespace ImageSharp
     public static partial class ImageExtensions
     {
         /// <summary>
-        /// Adjusts an image so that its orientation is suitable for viewing.
+        /// Adjusts an image so that its orientation is suitable for viewing. Adjustments are based on EXIF metadata embedded in the image.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>

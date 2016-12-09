@@ -13,7 +13,7 @@ namespace ImageSharp.Processors
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class FlipProcessor<TColor, TPacked> : ImageSamplingProcessor<TColor, TPacked>
+    public class FlipProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
         where TPacked : struct
     {
@@ -32,18 +32,16 @@ namespace ImageSharp.Processors
         public FlipType FlipType { get; }
 
         /// <inheritdoc/>
-        public override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle, int startY, int endY)
         {
-            target.ClonePixels(target.Width, target.Height, source.Pixels);
-
             switch (this.FlipType)
             {
                 // No default needed as we have already set the pixels.
                 case FlipType.Vertical:
-                    this.FlipX(target);
+                    this.FlipX(source);
                     break;
                 case FlipType.Horizontal:
-                    this.FlipY(target);
+                    this.FlipY(source);
                     break;
             }
         }
@@ -52,17 +50,17 @@ namespace ImageSharp.Processors
         /// Swaps the image at the X-axis, which goes horizontally through the middle
         /// at half the height of the image.
         /// </summary>
-        /// <param name="target">Target image to apply the process to.</param>
-        private void FlipX(ImageBase<TColor, TPacked> target)
+        /// <param name="source">The source image to apply the process to.</param>
+        private void FlipX(ImageBase<TColor, TPacked> source)
         {
-            int width = target.Width;
-            int height = target.Height;
-            int halfHeight = (int)Math.Ceiling(target.Height * .5F);
-            Image<TColor, TPacked> temp = new Image<TColor, TPacked>(width, height);
-            temp.ClonePixels(width, height, target.Pixels);
+            int width = source.Width;
+            int height = source.Height;
+            int halfHeight = (int)Math.Ceiling(source.Height * .5F);
 
-            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock())
-            using (PixelAccessor<TColor, TPacked> tempPixels = temp.Lock())
+            TColor[] target = new TColor[width * height];
+
+            using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
+            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock<TColor, TPacked>(width, height))
             {
                 Parallel.For(
                     0,
@@ -73,28 +71,30 @@ namespace ImageSharp.Processors
                             for (int x = 0; x < width; x++)
                             {
                                 int newY = height - y - 1;
-                                targetPixels[x, y] = tempPixels[x, newY];
-                                targetPixels[x, newY] = tempPixels[x, y];
+                                targetPixels[x, y] = sourcePixels[x, newY];
+                                targetPixels[x, newY] = sourcePixels[x, y];
                             }
                         });
             }
+
+            source.SetPixels(width, height, target);
         }
 
         /// <summary>
         /// Swaps the image at the Y-axis, which goes vertically through the middle
         /// at half of the width of the image.
         /// </summary>
-        /// <param name="target">Target image to apply the process to.</param>
-        private void FlipY(ImageBase<TColor, TPacked> target)
+        /// <param name="source">The source image to apply the process to.</param>
+        private void FlipY(ImageBase<TColor, TPacked> source)
         {
-            int width = target.Width;
-            int height = target.Height;
+            int width = source.Width;
+            int height = source.Height;
             int halfWidth = (int)Math.Ceiling(width * .5F);
-            Image<TColor, TPacked> temp = new Image<TColor, TPacked>(width, height);
-            temp.ClonePixels(width, height, target.Pixels);
 
-            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock())
-            using (PixelAccessor<TColor, TPacked> tempPixels = temp.Lock())
+            TColor[] target = new TColor[width * height];
+
+            using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
+            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock<TColor, TPacked>(width, height))
             {
                 Parallel.For(
                     0,
@@ -105,11 +105,13 @@ namespace ImageSharp.Processors
                             for (int x = 0; x < halfWidth; x++)
                             {
                                 int newX = width - x - 1;
-                                targetPixels[x, y] = tempPixels[newX, y];
-                                targetPixels[newX, y] = tempPixels[x, y];
+                                targetPixels[x, y] = sourcePixels[newX, y];
+                                targetPixels[newX, y] = sourcePixels[x, y];
                             }
                         });
             }
+
+            source.SetPixels(width, height, target);
         }
     }
 }

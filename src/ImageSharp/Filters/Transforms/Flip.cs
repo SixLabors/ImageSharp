@@ -25,7 +25,7 @@ namespace ImageSharp
             where TPacked : struct
         {
             FlipProcessor<TColor, TPacked> processor = new FlipProcessor<TColor, TPacked>(flipType);
-            return source.Process(source.Width, source.Height, source.Bounds, source.Bounds, processor);
+            return source.Process(source.Bounds, processor);
         }
     }
 }

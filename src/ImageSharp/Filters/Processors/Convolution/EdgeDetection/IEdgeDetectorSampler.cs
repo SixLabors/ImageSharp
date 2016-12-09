@@ -10,7 +10,7 @@ namespace ImageSharp.Processors
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public interface IEdgeDetectorProcessor<TColor, TPacked> : IImageSamplingProcessor<TColor, TPacked>, IEdgeDetectorProcessor
+    public interface IEdgeDetectorProcessor<TColor, TPacked> : IImageFilteringProcessor<TColor, TPacked>, IEdgeDetectorProcessor
         where TColor : struct, IPackedPixel<TPacked>
         where TPacked : struct
     {

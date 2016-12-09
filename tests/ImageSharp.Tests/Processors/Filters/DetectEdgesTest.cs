@@ -23,7 +23,7 @@ namespace ImageSharp.Tests
             EdgeDetection.RobertsCross,
             EdgeDetection.Robinson,
             EdgeDetection.Scharr,
-            EdgeDetection.Sobel,
+            EdgeDetection.Sobel
         };
 
         [Theory]
@@ -40,7 +40,7 @@ namespace ImageSharp.Tests
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
                     image.DetectEdges(detector)
-                          .Save(output);
+                         .Save(output);
                 }
             }
         }
@@ -59,7 +59,7 @@ namespace ImageSharp.Tests
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
                     image.DetectEdges(detector, new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2))
-                          .Save(output);
+                         .Save(output);
                 }
             }
         }

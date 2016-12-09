@@ -12,7 +12,7 @@ namespace ImageSharp.Processors
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class GaussianSharpenProcessor<TColor, TPacked> : ImageSamplingProcessor<TColor, TPacked>
+    public class GaussianSharpenProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
         where TPacked : struct
     {
@@ -83,9 +83,9 @@ namespace ImageSharp.Processors
         public float[][] KernelY { get; }
 
         /// <inheritdoc/>
-        public override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle, int startY, int endY)
         {
-            new Convolution2PassProcessor<TColor, TPacked>(this.KernelX, this.KernelY).Apply(target, source, targetRectangle, sourceRectangle, startY, endY);
+            new Convolution2PassProcessor<TColor, TPacked>(this.KernelX, this.KernelY).Apply(source, sourceRectangle);
         }
 
         /// <summary>

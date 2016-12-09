@@ -14,7 +14,7 @@ namespace ImageSharp.Processors
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public abstract class EdgeDetectorCompassProcessor<TColor, TPacked> : ImageSamplingProcessor<TColor, TPacked>, IEdgeDetectorProcessor<TColor, TPacked>
+    public abstract class EdgeDetectorCompassProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>, IEdgeDetectorProcessor<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
         where TPacked : struct
     {
@@ -62,7 +62,7 @@ namespace ImageSharp.Processors
         public bool Grayscale { get; set; }
 
         /// <inheritdoc />
-        public override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle, int startY, int endY)
         {
             float[][][] kernels = { this.North, this.NorthWest, this.West, this.SouthWest, this.South, this.SouthEast, this.East, this.NorthEast };
 
@@ -76,7 +76,9 @@ namespace ImageSharp.Processors
             int maxY = Math.Min(source.Height, endY);
 
             // First run.
-            new ConvolutionProcessor<TColor, TPacked>(kernels[0]).Apply(target, source, targetRectangle, sourceRectangle, startY, endY);
+            ImageBase<TColor, TPacked> target = new Image<TColor, TPacked>(source.Width, source.Height);
+            target.ClonePixels(source.Width, source.Height, source.Pixels);
+            new ConvolutionProcessor<TColor, TPacked>(kernels[0]).Apply(target, sourceRectangle);
 
             if (kernels.Length == 1)
             {
@@ -98,10 +100,14 @@ namespace ImageSharp.Processors
             }
 
             // Additional runs.
+            // ReSharper disable once ForCanBeConvertedToForeach
             for (int i = 1; i < kernels.Length; i++)
             {
+                // Create a clone for each pass and copy the offset pixels across.
                 ImageBase<TColor, TPacked> pass = new Image<TColor, TPacked>(source.Width, source.Height);
-                new ConvolutionProcessor<TColor, TPacked>(kernels[i]).Apply(pass, source, sourceRectangle, targetRectangle, startY, endY);
+                pass.ClonePixels(source.Width, source.Height, source.Pixels);
+
+                new ConvolutionProcessor<TColor, TPacked>(kernels[i]).Apply(pass, sourceRectangle);
 
                 using (PixelAccessor<TColor, TPacked> passPixels = pass.Lock())
                 using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock())
@@ -125,10 +131,12 @@ namespace ImageSharp.Processors
                         });
                 }
             }
+
+            source.SetPixels(source.Width, source.Height, target.Pixels);
         }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
         {
             if (this.Grayscale)
             {

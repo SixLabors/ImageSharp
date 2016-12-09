@@ -37,9 +37,10 @@ namespace ImageSharp.Processors
         protected override void Apply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle, int startY, int endY)
         {
             ImageBase<TColor, TPacked> temp = new Image<TColor, TPacked>(source.Width, source.Height);
+            temp.ClonePixels(source.Width, source.Height, source.Pixels);
 
             // Detect the edges.
-            new SobelProcessor<TColor, TPacked>().Apply(temp, source, sourceRectangle);
+            new SobelProcessor<TColor, TPacked>().Apply(temp, sourceRectangle);
 
             // Apply threshold binarization filter.
             new BinaryThresholdProcessor<TColor, TPacked>(this.Value).Apply(temp, sourceRectangle);

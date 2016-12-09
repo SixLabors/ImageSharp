@@ -10,7 +10,7 @@ namespace ImageSharp.Processors
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public abstract class EdgeDetectorProcessor<TColor, TPacked> : ImageSamplingProcessor<TColor, TPacked>, IEdgeDetectorProcessor<TColor, TPacked>
+    public abstract class EdgeDetectorProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>, IEdgeDetectorProcessor<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
         where TPacked : struct
     {
@@ -23,13 +23,13 @@ namespace ImageSharp.Processors
         public abstract float[][] KernelXY { get; }
 
         /// <inheritdoc/>
-        public override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle, int startY, int endY)
         {
-            new ConvolutionProcessor<TColor, TPacked>(this.KernelXY).Apply(target, source, targetRectangle, sourceRectangle, startY, endY);
+            new ConvolutionProcessor<TColor, TPacked>(this.KernelXY).Apply(source, sourceRectangle);
         }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
         {
             if (this.Grayscale)
             {

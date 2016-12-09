@@ -13,7 +13,7 @@ namespace ImageSharp.Processors
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class ConvolutionProcessor<TColor, TPacked> : ImageSamplingProcessor<TColor, TPacked>
+    public class ConvolutionProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
         where TPacked : struct
     {
@@ -32,7 +32,7 @@ namespace ImageSharp.Processors
         public virtual float[][] KernelXY { get; }
 
         /// <inheritdoc/>
-        public override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle, int startY, int endY)
         {
             float[][] kernelX = this.KernelXY;
             int kernelLength = kernelX.GetLength(0);
@@ -45,8 +45,9 @@ namespace ImageSharp.Processors
             int maxY = sourceBottom - 1;
             int maxX = endX - 1;
 
+            TColor[] target = new TColor[source.Width * source.Height];
             using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
-            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock())
+            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock<TColor, TPacked>(source.Width, source.Height))
             {
                 Parallel.For(
                 startY,
@@ -92,14 +93,15 @@ namespace ImageSharp.Processors
                             float green = gX;
                             float blue = bX;
 
-                            Vector4 targetColor = targetPixels[x, y].ToVector4();
                             TColor packed = default(TColor);
-                            packed.PackFromVector4(new Vector4(red, green, blue, targetColor.Z));
+                            packed.PackFromVector4(new Vector4(red, green, blue, sourcePixels[x, y].ToVector4().W));
                             targetPixels[x, y] = packed;
                         }
                     }
                 });
             }
+
+            source.SetPixels(source.Width, source.Height, target);
         }
     }
 }

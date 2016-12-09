@@ -8,6 +8,7 @@ namespace ImageSharp
     using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
+    using System.Linq;
     using System.Threading.Tasks;
 
     using Formats;
@@ -63,7 +64,10 @@ namespace ImageSharp
         /// <param name="format">The new format to add.</param>
         public void AddImageFormat(IImageFormat format)
         {
-            this.imageFormats.Add(format);
+            if (this.imageFormats.All(i => i.GetType() != format.GetType()))
+            {
+                this.imageFormats.Add(format);
+            }
         }
     }
 }

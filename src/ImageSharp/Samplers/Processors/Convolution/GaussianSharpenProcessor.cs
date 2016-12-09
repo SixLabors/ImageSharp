@@ -1,4 +1,4 @@
-﻿// <copyright file="GuassianSharpenProcessor.cs" company="James Jackson-South">
+﻿// <copyright file="GaussianSharpenProcessor.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -12,7 +12,7 @@ namespace ImageSharp.Processors
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class GuassianSharpenProcessor<TColor, TPacked> : ImageSamplingProcessor<TColor, TPacked>
+    public class GaussianSharpenProcessor<TColor, TPacked> : ImageSamplingProcessor<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
         where TPacked : struct
     {
@@ -27,12 +27,12 @@ namespace ImageSharp.Processors
         private readonly float sigma;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="GuassianSharpenProcessor{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="GaussianSharpenProcessor{TColor, TPacked}"/> class.
         /// </summary>
         /// <param name="sigma">
         /// The 'sigma' value representing the weight of the sharpening.
         /// </param>
-        public GuassianSharpenProcessor(float sigma = 3f)
+        public GaussianSharpenProcessor(float sigma = 3f)
         {
             this.kernelSize = ((int)Math.Ceiling(sigma) * 2) + 1;
             this.sigma = sigma;
@@ -41,12 +41,12 @@ namespace ImageSharp.Processors
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="GuassianSharpenProcessor{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="GaussianSharpenProcessor{TColor, TPacked}"/> class.
         /// </summary>
         /// <param name="radius">
         /// The 'radius' value representing the size of the area to sample.
         /// </param>
-        public GuassianSharpenProcessor(int radius)
+        public GaussianSharpenProcessor(int radius)
         {
             this.kernelSize = (radius * 2) + 1;
             this.sigma = radius;
@@ -55,7 +55,7 @@ namespace ImageSharp.Processors
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="GuassianSharpenProcessor{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="GaussianSharpenProcessor{TColor, TPacked}"/> class.
         /// </summary>
         /// <param name="sigma">
         /// The 'sigma' value representing the weight of the sharpen.
@@ -64,7 +64,7 @@ namespace ImageSharp.Processors
         /// The 'radius' value representing the size of the area to sample.
         /// This should be at least twice the sigma value.
         /// </param>
-        public GuassianSharpenProcessor(float sigma, int radius)
+        public GaussianSharpenProcessor(float sigma, int radius)
         {
             this.kernelSize = (radius * 2) + 1;
             this.sigma = sigma;

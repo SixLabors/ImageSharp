@@ -1,4 +1,4 @@
-﻿// <copyright file="GuassianSharpenTest.cs" company="James Jackson-South">
+﻿// <copyright file="GaussianBlurTest.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -9,9 +9,9 @@ namespace ImageSharp.Tests
 
     using Xunit;
 
-    public class GuassianSharpenTest : FileTestBase
+    public class GaussianBlurTest : FileTestBase
     {
-        public static readonly TheoryData<int> GuassianSharpenValues
+        public static readonly TheoryData<int> GaussianBlurValues
         = new TheoryData<int>
         {
             3 ,
@@ -19,10 +19,10 @@ namespace ImageSharp.Tests
         };
 
         [Theory]
-        [MemberData("GuassianSharpenValues")]
-        public void ImageShouldApplyGuassianSharpenFilter(int value)
+        [MemberData("GaussianBlurValues")]
+        public void ImageShouldApplyGaussianBlurFilter(int value)
         {
-            string path = CreateOutputDirectory("GuassianSharpen");
+            string path = CreateOutputDirectory("GaussianBlur");
 
             foreach (TestFile file in Files)
             {
@@ -31,7 +31,7 @@ namespace ImageSharp.Tests
 
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    image.GuassianSharpen(value)
+                    image.GaussianBlur(value)
                           .Save(output);
                 }
             }

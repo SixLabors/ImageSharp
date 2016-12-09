@@ -1,4 +1,4 @@
-﻿// <copyright file="GuassianBlurProcessor.cs" company="James Jackson-South">
+﻿// <copyright file="GaussianBlurProcessor.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -12,7 +12,7 @@ namespace ImageSharp.Processors
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class GuassianBlurProcessor<TColor, TPacked> : ImageSamplingProcessor<TColor, TPacked>
+    public class GaussianBlurProcessor<TColor, TPacked> : ImageSamplingProcessor<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
         where TPacked : struct
     {
@@ -27,10 +27,10 @@ namespace ImageSharp.Processors
         private readonly float sigma;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="GuassianBlurProcessor{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="GaussianBlurProcessor{TColor, TPacked}"/> class.
         /// </summary>
         /// <param name="sigma">The 'sigma' value representing the weight of the blur.</param>
-        public GuassianBlurProcessor(float sigma = 3f)
+        public GaussianBlurProcessor(float sigma = 3f)
         {
             this.kernelSize = ((int)Math.Ceiling(sigma) * 2) + 1;
             this.sigma = sigma;
@@ -39,12 +39,12 @@ namespace ImageSharp.Processors
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="GuassianBlurProcessor{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="GaussianBlurProcessor{TColor, TPacked}"/> class.
         /// </summary>
         /// <param name="radius">
         /// The 'radius' value representing the size of the area to sample.
         /// </param>
-        public GuassianBlurProcessor(int radius)
+        public GaussianBlurProcessor(int radius)
         {
             this.kernelSize = (radius * 2) + 1;
             this.sigma = radius;
@@ -53,7 +53,7 @@ namespace ImageSharp.Processors
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="GuassianBlurProcessor{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="GaussianBlurProcessor{TColor, TPacked}"/> class.
         /// </summary>
         /// <param name="sigma">
         /// The 'sigma' value representing the weight of the blur.
@@ -62,7 +62,7 @@ namespace ImageSharp.Processors
         /// The 'radius' value representing the size of the area to sample.
         /// This should be at least twice the sigma value.
         /// </param>
-        public GuassianBlurProcessor(float sigma, int radius)
+        public GaussianBlurProcessor(float sigma, int radius)
         {
             this.kernelSize = (radius * 2) + 1;
             this.sigma = sigma;

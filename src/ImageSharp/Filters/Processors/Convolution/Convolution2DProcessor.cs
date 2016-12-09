@@ -56,7 +56,6 @@ namespace ImageSharp.Processors
             int maxY = sourceBottom - 1;
             int maxX = endX - 1;
 
-
             TColor[] target = new TColor[source.Width * source.Height];
             using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
             using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock<TColor, TPacked>(source.Width, source.Height))

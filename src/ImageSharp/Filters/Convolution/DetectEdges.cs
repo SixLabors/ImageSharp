@@ -82,7 +82,7 @@ namespace ImageSharp
             switch (filter)
             {
                 case EdgeDetection.Kayyali:
-                    processor = new KayyaliSampler<TColor, TPacked> { Grayscale = grayscale };
+                    processor = new KayyaliProcessor<TColor, TPacked> { Grayscale = grayscale };
                     break;
 
                 case EdgeDetection.Kirsch:

@@ -42,17 +42,23 @@ namespace ImageSharp.IO
         private bool disposed;
 
         /// <summary>
-        /// Equivalent of System.IO.BinaryWriter, but with either endianness, depending on
+        /// Initializes a new instance of the <see cref="EndianBinaryReader"/> class.
+        /// Equivalent of <see cref="System.IO.BinaryWriter"/>, but with either endianness, depending on
         /// the EndianBitConverter it is constructed with.
         /// </summary>
-        /// <param name="bitConverter">Converter to use when reading data</param>
-        /// <param name="stream">Stream to read data from</param>
+        /// <param name="bitConverter">
+        /// Converter to use when reading data
+        /// </param>
+        /// <param name="stream">
+        /// Stream to read data from
+        /// </param>
         public EndianBinaryReader(EndianBitConverter bitConverter, Stream stream)
             : this(bitConverter, stream, Encoding.UTF8)
         {
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="EndianBinaryReader"/> class.
         /// Constructs a new binary reader with the given bit converter, reading
         /// to the given stream, using the given encoding.
         /// </summary>

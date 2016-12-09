@@ -32,7 +32,7 @@ namespace ImageSharp.Tests
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
                     image.Pixelate(value)
-                          .Save(output);
+                         .Save(output);
                 }
             }
         }
@@ -51,7 +51,7 @@ namespace ImageSharp.Tests
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
                     image.Pixelate(value, new Rectangle(10, 10, image.Width / 2, image.Height / 2))
-                          .Save(output);
+                         .Save(output);
                 }
             }
         }

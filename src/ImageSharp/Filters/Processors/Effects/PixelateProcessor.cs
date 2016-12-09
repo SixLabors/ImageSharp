@@ -1,4 +1,4 @@
-﻿// <copyright file="PixelateProcesso.cs" company="James Jackson-South">
+﻿// <copyright file="PixelateProcessor.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -14,18 +14,18 @@ namespace ImageSharp.Processors
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class PixelateProcesso<TColor, TPacked> : ImageSamplingProcessor<TColor, TPacked>
+    public class PixelateProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
         where TPacked : struct
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="PixelateProcesso{TColor,TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="PixelateProcessor{TColor,TPacked}"/> class.
         /// </summary>
         /// <param name="size">The size of the pixels. Must be greater than 0.</param>
         /// <exception cref="System.ArgumentException">
         /// <paramref name="size"/> is less than 0 or equal to 0.
         /// </exception>
-        public PixelateProcesso(int size)
+        public PixelateProcessor(int size)
         {
             Guard.MustBeGreaterThan(size, 0, nameof(size));
             this.Value = size;
@@ -37,7 +37,7 @@ namespace ImageSharp.Processors
         public int Value { get; }
 
         /// <inheritdoc/>
-        public override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle, int startY, int endY)
         {
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
@@ -63,9 +63,10 @@ namespace ImageSharp.Processors
 
             // Get the range on the y-plane to choose from.
             IEnumerable<int> range = EnumerableExtensions.SteppedRange(minY, i => i < maxY, size);
+            TColor[] target = new TColor[source.Width * source.Height];
 
             using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
-            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock())
+            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock<TColor, TPacked>(source.Width, source.Height))
             {
                 Parallel.ForEach(
                     range,
@@ -105,6 +106,8 @@ namespace ImageSharp.Processors
                                 }
                             }
                         });
+
+                source.SetPixels(source.Width, source.Height, target);
             }
         }
     }

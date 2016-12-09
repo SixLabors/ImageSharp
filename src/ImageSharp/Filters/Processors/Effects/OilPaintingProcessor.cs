@@ -15,12 +15,12 @@ namespace ImageSharp.Processors
     /// <remarks>Adapted from <see href="https://softwarebydefault.com/2013/06/29/oil-painting-cartoon-filter/"/> by Dewald Esterhuizen.</remarks>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class OilPaintingProcessor<TColor, TPacked> : ImageSamplingProcessor<TColor, TPacked>
+    public class OilPaintingProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
         where TPacked : struct
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="OilPaintingProcessor{TColor,TPacked}"/> class. 
+        /// Initializes a new instance of the <see cref="OilPaintingProcessor{TColor,TPacked}"/> class.
         /// </summary>
         /// <param name="levels">
         /// The number of intensity levels. Higher values result in a broader range of color intensities forming part of the result image.
@@ -48,7 +48,7 @@ namespace ImageSharp.Processors
         public int BrushSize { get; }
 
         /// <inheritdoc/>
-        public override void Apply(ImageBase<TColor, TPacked> target, ImageBase<TColor, TPacked> source, Rectangle targetRectangle, Rectangle sourceRectangle, int startY, int endY)
+        protected override void Apply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle, int startY, int endY)
         {
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
@@ -67,8 +67,9 @@ namespace ImageSharp.Processors
                 startX = 0;
             }
 
+            TColor[] target = new TColor[source.Width * source.Height];
             using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
-            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock())
+            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock<TColor, TPacked>(source.Width, source.Height))
             {
                 Parallel.For(
                     minY,
@@ -142,14 +143,15 @@ namespace ImageSharp.Processors
                                 float green = Math.Abs(greenBin[maxIndex] / maxIntensity);
                                 float blue = Math.Abs(blueBin[maxIndex] / maxIntensity);
 
-                                Vector4 targetColor = targetPixels[x, y].ToVector4();
                                 TColor packed = default(TColor);
-                                packed.PackFromVector4(new Vector4(red, green, blue, targetColor.Z));
+                                packed.PackFromVector4(new Vector4(red, green, blue, sourcePixels[x, y].ToVector4().W));
                                 targetPixels[x, y] = packed;
                             }
                         }
                     });
             }
+
+            source.SetPixels(source.Width, source.Height, target);
         }
     }
 }

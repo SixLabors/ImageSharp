@@ -10,7 +10,7 @@ namespace ImageSharp.Processors
     using System.Threading.Tasks;
 
     /// <summary>
-    /// An <see cref="IImageSamplingProcessor{TColor,TPacked}"/> to apply an oil painting effect to an <see cref="Image{TColor, TPacked}"/>.
+    /// An <see cref="IImageFilteringProcessor{TColor,TPacked}"/> to apply an oil painting effect to an <see cref="Image{TColor, TPacked}"/>.
     /// </summary>
     /// <remarks>Adapted from <see href="https://softwarebydefault.com/2013/06/29/oil-painting-cartoon-filter/"/> by Dewald Esterhuizen.</remarks>
     /// <typeparam name="TColor">The pixel format.</typeparam>

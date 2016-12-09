@@ -186,7 +186,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Linearly interpolates from one vector to another based on the given weighting. 
+        /// Linearly interpolates from one vector to another based on the given weighting.
         /// The two vectors are premultiplied before operating.
         /// </summary>
         /// <param name="backdrop">The backdrop vector.</param>
@@ -195,7 +195,7 @@ namespace ImageSharp
         /// A value between 0 and 1 indicating the weight of the second source vector.
         /// At amount = 0, "from" is returned, at amount = 1, "to" is returned.
         /// </param>
-        /// <returns> 
+        /// <returns>
         /// The <see cref="Vector4"/>
         /// </returns>
         public static Vector4 PremultipliedLerp(Vector4 backdrop, Vector4 source, float amount)
@@ -216,7 +216,7 @@ namespace ImageSharp
 
             // Premultiply the source vector.
             // Oddly premultiplying the background vector creates dark outlines when pixels
-            // Have low alpha values. 
+            // Have low alpha values.
             source = new Vector4(source.X, source.Y, source.Z, 1) * (source.W * amount);
 
             // This should be implementing the following formula

@@ -59,7 +59,8 @@ namespace ImageSharp.Processors
                 M23 = (float)(lumG - (cosradians * lumG) + (sinradians * lumG)),
                 M31 = (float)(lumB - (cosradians * lumB) + (sinradians * oneMinusLumB)),
                 M32 = (float)(lumB - (cosradians * lumB) - (sinradians * 0.283)),
-                M33 = (float)(lumB + (cosradians * oneMinusLumB) + (sinradians * lumB))
+                M33 = (float)(lumB + (cosradians * oneMinusLumB) + (sinradians * lumB)),
+                M44 = 1
             };
 
             this.Matrix = matrix4X4;

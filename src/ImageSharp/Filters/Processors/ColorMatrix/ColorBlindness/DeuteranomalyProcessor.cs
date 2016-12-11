@@ -19,12 +19,13 @@ namespace ImageSharp.Processors
         /// <inheritdoc/>
         public override Matrix4x4 Matrix => new Matrix4x4()
         {
-            M11 = 0.8f,
-            M12 = 0.258f,
-            M21 = 0.2f,
-            M22 = 0.742f,
-            M23 = 0.142f,
-            M33 = 0.858f
+            M11 = 0.8F,
+            M12 = 0.258F,
+            M21 = 0.2F,
+            M22 = 0.742F,
+            M23 = 0.142F,
+            M33 = 0.858F,
+            M44 = 1
         };
 
         /// <inheritdoc/>

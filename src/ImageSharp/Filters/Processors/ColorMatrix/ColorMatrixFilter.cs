@@ -86,8 +86,7 @@ namespace ImageSharp.Processors
                 vector = vector.Expand();
             }
 
-            Vector3 transformed = Vector3.Transform(new Vector3(vector.X, vector.Y, vector.Z), matrix);
-            vector = new Vector4(transformed, vector.W);
+            vector = Vector4.Transform(vector, matrix);
             TColor packed = default(TColor);
             packed.PackFromVector4(compand ? vector.Compress() : vector);
             return packed;

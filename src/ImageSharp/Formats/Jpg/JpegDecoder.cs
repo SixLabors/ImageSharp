@@ -21,33 +21,6 @@ namespace ImageSharp.Formats
 
         /// <summary>
         /// Indicates if the image decoder supports the specified
-        /// file extension.
-        /// </summary>
-        /// <param name="extension">The file extension.</param>
-        /// <returns>
-        /// <c>true</c>, if the decoder supports the specified
-        /// extensions; otherwise <c>false</c>.
-        /// </returns>
-        /// <exception cref="System.ArgumentNullException"><paramref name="extension"/>
-        /// is null (Nothing in Visual Basic).</exception>
-        /// <exception cref="System.ArgumentException"><paramref name="extension"/> is a string
-        /// of length zero or contains only blanks.</exception>
-        public bool IsSupportedFileExtension(string extension)
-        {
-            Guard.NotNullOrEmpty(extension, "extension");
-
-            if (extension.StartsWith("."))
-            {
-                extension = extension.Substring(1);
-            }
-
-            return extension.Equals("JPG", StringComparison.OrdinalIgnoreCase) ||
-                   extension.Equals("JPEG", StringComparison.OrdinalIgnoreCase) ||
-                   extension.Equals("JFIF", StringComparison.OrdinalIgnoreCase);
-        }
-
-        /// <summary>
-        /// Indicates if the image decoder supports the specified
         /// file header.
         /// </summary>
         /// <param name="header">The file header.</param>

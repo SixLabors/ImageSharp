@@ -32,21 +32,6 @@ namespace ImageSharp.Formats
         public IQuantizer Quantizer { get; set; }
 
         /// <inheritdoc/>
-        public string Extension => "gif";
-
-        /// <inheritdoc/>
-        public string MimeType => "image/gif";
-
-        /// <inheritdoc/>
-        public bool IsSupportedFileExtension(string extension)
-        {
-            Guard.NotNullOrEmpty(extension, nameof(extension));
-
-            extension = extension.StartsWith(".") ? extension.Substring(1) : extension;
-            return extension.Equals(this.Extension, StringComparison.OrdinalIgnoreCase);
-        }
-
-        /// <inheritdoc/>
         public void Encode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream)
         where TColor : struct, IPackedPixel<TPacked>
         where TPacked : struct, IEquatable<TPacked>

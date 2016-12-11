@@ -15,32 +15,9 @@ namespace ImageSharp.Formats
     public class BmpEncoder : IImageEncoder
     {
         /// <summary>
-        /// Gets or sets the quality of output for images.
-        /// </summary>
-        /// <remarks>Bitmap is a lossless format so this is not used in this encoder.</remarks>
-        public int Quality { get; set; }
-
-        /// <inheritdoc/>
-        public string MimeType => "image/bmp";
-
-        /// <inheritdoc/>
-        public string Extension => "bmp";
-
-        /// <summary>
         /// Gets or sets the number of bits per pixel.
         /// </summary>
         public BmpBitsPerPixel BitsPerPixel { get; set; } = BmpBitsPerPixel.Pixel24;
-
-        /// <inheritdoc/>
-        public bool IsSupportedFileExtension(string extension)
-        {
-            Guard.NotNullOrEmpty(extension, nameof(extension));
-
-            extension = extension.StartsWith(".") ? extension.Substring(1) : extension;
-
-            return extension.Equals(this.Extension, StringComparison.OrdinalIgnoreCase)
-                || extension.Equals("dip", StringComparison.OrdinalIgnoreCase);
-        }
 
         /// <inheritdoc/>
         public void Encode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream)

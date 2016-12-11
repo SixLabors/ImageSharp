@@ -61,27 +61,6 @@ namespace ImageSharp.Formats
         }
 
         /// <inheritdoc/>
-        public string MimeType => "image/jpeg";
-
-        /// <inheritdoc/>
-        public string Extension => "jpg";
-
-        /// <inheritdoc/>
-        public bool IsSupportedFileExtension(string extension)
-        {
-            Guard.NotNullOrEmpty(extension, "extension");
-
-            if (extension.StartsWith("."))
-            {
-                extension = extension.Substring(1);
-            }
-
-            return extension.Equals(this.Extension, StringComparison.OrdinalIgnoreCase) ||
-                   extension.Equals("jpeg", StringComparison.OrdinalIgnoreCase) ||
-                   extension.Equals("jfif", StringComparison.OrdinalIgnoreCase);
-        }
-
-        /// <inheritdoc/>
         public void Encode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct, IEquatable<TPacked>

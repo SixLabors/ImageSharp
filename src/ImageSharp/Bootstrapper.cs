@@ -64,9 +64,41 @@ namespace ImageSharp
         /// <param name="format">The new format to add.</param>
         public void AddImageFormat(IImageFormat format)
         {
-            if (this.imageFormats.All(i => i.GetType() != format.GetType()))
+            Guard.NotNull(format, nameof(format));
+            Guard.NotNull(format.Encoder, nameof(format), "The encoder should not be null.");
+            Guard.NotNull(format.Decoder, nameof(format), "The decoder should not be null.");
+            Guard.NotNullOrEmpty(format.MimeType, nameof(format), "The mime type should not be null or empty.");
+            Guard.NotNullOrEmpty(format.Extension, nameof(format), "The extension should not be null or empty.");
+            Guard.NotNullOrEmpty(format.SupportedExtensions, nameof(format), "The supported extensions not be null or empty.");
+
+            GuardDuplicate(format);
+
+            this.imageFormats.Add(format);
+        }
+
+        private void GuardDuplicate(IImageFormat format)
+        {
+            if (!format.SupportedExtensions.Contains(format.Extension, StringComparer.OrdinalIgnoreCase))
             {
-                this.imageFormats.Add(format);
+                throw new ArgumentException("The supported extensions should contain the default extension.", nameof(format));
+            }
+
+            if (format.SupportedExtensions.Any(e => string.IsNullOrWhiteSpace(e)))
+            {
+                throw new ArgumentException("The supported extensions should not contain empty values.", nameof(format));
+            }
+
+            foreach (var imageFormat in this.imageFormats)
+            {
+                if (imageFormat.Extension.Equals(format.Extension, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new ArgumentException("There is already a format with the same extension.", nameof(format));
+                }
+
+                if (imageFormat.SupportedExtensions.Intersect(format.SupportedExtensions, StringComparer.OrdinalIgnoreCase).Any())
+                {
+                    throw new ArgumentException("There is already a format that supports the same extension.", nameof(format));
+                }
             }
         }
     }

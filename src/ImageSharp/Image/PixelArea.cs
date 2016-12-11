@@ -1,4 +1,4 @@
-﻿// <copyright file="PixelRow.cs" company="James Jackson-South">
+﻿// <copyright file="PixelArea.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -6,16 +6,17 @@
 namespace ImageSharp
 {
     using System;
+    using System.Diagnostics;
     using System.IO;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
 
     /// <summary>
-    /// Represents a row of generic <see cref="Image{TColor,TPacked}"/> pixels.
+    /// Represents an area of generic <see cref="Image{TColor,TPacked}"/> pixels.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public sealed unsafe class PixelRow<TColor, TPacked> : IDisposable
+    public sealed unsafe class PixelArea<TColor, TPacked> : IDisposable
         where TColor : struct, IPackedPixel<TPacked>
         where TPacked : struct
     {
@@ -41,7 +42,7 @@ namespace ImageSharp
         private bool isDisposed;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PixelRow{TColor,TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="PixelArea{TColor,TPacked}"/> class.
         /// </summary>
         /// <param name="width">The width.</param>
         /// <param name="bytes">The bytes.</param>
@@ -49,15 +50,29 @@ namespace ImageSharp
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown if <paramref name="bytes"></paramref> is the incorrect length.
         /// </exception>
-        public PixelRow(int width, byte[] bytes, ComponentOrder componentOrder)
+        public PixelArea(int width, byte[] bytes, ComponentOrder componentOrder)
+            : this(width, 1, bytes, componentOrder)
         {
-            if (bytes.Length != width * GetComponentCount(componentOrder))
-            {
-                throw new ArgumentOutOfRangeException($"Invalid byte array length. Length {bytes.Length}; Should be {width * GetComponentCount(componentOrder)}.");
-            }
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PixelArea{TColor,TPacked}"/> class.
+        /// </summary>
+        /// <param name="width">The width.</param>
+        /// <param name="height">The height.</param>
+        /// <param name="bytes">The bytes.</param>
+        /// <param name="componentOrder">The component order.</param>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown if <paramref name="bytes"></paramref> is the incorrect length.
+        /// </exception>
+        public PixelArea(int width, int height, byte[] bytes, ComponentOrder componentOrder)
+        {
+            this.CheckBytesLength(width, height, bytes, componentOrder);
 
             this.Width = width;
+            this.Height = height;
             this.ComponentOrder = componentOrder;
+            this.RowByteCount = width * GetComponentCount(componentOrder);
             this.Bytes = bytes;
             this.pixelsHandle = GCHandle.Alloc(this.Bytes, GCHandleType.Pinned);
 
@@ -67,26 +82,40 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PixelRow{TColor,TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="PixelArea{TColor,TPacked}"/> class.
         /// </summary>
-        /// <param name="width">The width. </param>
+        /// <param name="width">The width.</param>
         /// <param name="componentOrder">The component order.</param>
-        public PixelRow(int width, ComponentOrder componentOrder)
-          : this(width, componentOrder, 0)
+        public PixelArea(int width, ComponentOrder componentOrder)
+          : this(width, 1, componentOrder, 0)
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PixelRow{TColor,TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="PixelArea{TColor,TPacked}"/> class.
         /// </summary>
         /// <param name="width">The width. </param>
         /// <param name="componentOrder">The component order.</param>
         /// <param name="padding">The number of bytes to pad each row.</param>
-        public PixelRow(int width, ComponentOrder componentOrder, int padding)
+        public PixelArea(int width, ComponentOrder componentOrder, int padding)
+          : this(width, 1, componentOrder, padding)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PixelArea{TColor,TPacked}"/> class.
+        /// </summary>
+        /// <param name="width">The width.</param>
+        /// <param name="height">The height.</param>
+        /// <param name="componentOrder">The component order.</param>
+        /// <param name="padding">The number of bytes to pad each row.</param>
+        public PixelArea(int width, int height, ComponentOrder componentOrder, int padding)
         {
             this.Width = width;
+            this.Height = height;
             this.ComponentOrder = componentOrder;
-            this.Bytes = new byte[(width * GetComponentCount(componentOrder)) + padding];
+            this.RowByteCount = (width * GetComponentCount(componentOrder)) + padding;
+            this.Bytes = new byte[this.RowByteCount * height];
             this.pixelsHandle = GCHandle.Alloc(this.Bytes, GCHandleType.Pinned);
 
             // TODO: Why is Resharper warning us about an impure method call?
@@ -95,9 +124,9 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Finalizes an instance of the <see cref="PixelRow{TColor,TPacked}"/> class.
+        /// Finalizes an instance of the <see cref="PixelArea{TColor,TPacked}"/> class.
         /// </summary>
-        ~PixelRow()
+        ~PixelArea()
         {
             this.Dispose();
         }
@@ -128,7 +157,17 @@ namespace ImageSharp
         public int Width { get; }
 
         /// <summary>
-        /// Reads the stream to the row.
+        /// Gets the height.
+        /// </summary>
+        public int Height { get; }
+
+        /// <summary>
+        /// Gets number of bytes in a row.
+        /// </summary>
+        public int RowByteCount { get; }
+
+        /// <summary>
+        /// Reads the stream to the area.
         /// </summary>
         /// <param name="stream">The stream.</param>
         public void Read(Stream stream)
@@ -137,7 +176,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Writes the row to the stream.
+        /// Writes the area to the stream.
         /// </summary>
         /// <param name="stream">The stream.</param>
         public void Write(Stream stream)
@@ -209,6 +248,16 @@ namespace ImageSharp
             }
 
             throw new NotSupportedException();
+        }
+
+        [Conditional("DEBUG")]
+        private void CheckBytesLength(int width, int height, byte[] bytes, ComponentOrder componentOrder)
+        {
+            int requiredLength = (width * GetComponentCount(componentOrder)) * height;
+            if (bytes.Length != requiredLength)
+            {
+                throw new ArgumentOutOfRangeException(nameof(bytes), $"Invalid byte array length. Length {bytes.Length}; Should be {requiredLength}.");
+            }
         }
     }
 }

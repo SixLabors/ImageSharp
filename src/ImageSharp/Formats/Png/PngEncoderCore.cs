@@ -322,7 +322,7 @@ namespace ImageSharp.Formats
             where TPacked : struct
         {
             // We can use the optimized PixelAccessor here and copy the bytes in unmanaged memory.
-            using (PixelRow<TColor, TPacked> pixelRow = new PixelRow<TColor, TPacked>(this.width, rawScanline, this.bytesPerPixel == 4 ? ComponentOrder.XYZW : ComponentOrder.XYZ))
+            using (PixelArea<TColor, TPacked> pixelRow = new PixelArea<TColor, TPacked>(this.width, rawScanline, this.bytesPerPixel == 4 ? ComponentOrder.XYZW : ComponentOrder.XYZ))
             {
                 pixels.CopyTo(pixelRow, row);
             }

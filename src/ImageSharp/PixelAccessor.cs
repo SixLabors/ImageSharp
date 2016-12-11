@@ -22,91 +22,111 @@ namespace ImageSharp
         }
 
         /// <inheritdoc />
-        protected override void CopyFromXYZW(PixelRow<Color, uint> row, int targetY, int targetX, int width)
+        protected override void CopyFromXYZW(PixelArea<Color, uint> area, int targetY, int targetX, int width, int height)
         {
-            byte* source = row.PixelBase;
-            byte* destination = this.GetRowPointer(targetY) + targetX;
+            uint byteCount = (uint)width * 4;
 
-            Unsafe.CopyBlock(destination, source, (uint)width * 4);
-        }
-
-        /// <inheritdoc />
-        protected override void CopyFromXYZ(PixelRow<Color, uint> row, int targetY, int targetX, int width)
-        {
-            byte* source = row.PixelBase;
-            byte* destination = this.GetRowPointer(targetY) + targetX;
-
-            for (int x = 0; x < width; x++)
+            for (int y = 0; y < height; y++)
             {
-                Unsafe.Write(destination, (uint)(*source << 0 | *(source + 1) << 8 | *(source + 2) << 16 | 255 << 24));
+                byte* source = area.PixelBase + (y * area.RowByteCount);
+                byte* destination = this.GetRowPointer(targetY + y) + targetX;
 
-                source += 3;
-                destination += 4;
+                Unsafe.CopyBlock(destination, source, byteCount);
             }
         }
 
         /// <inheritdoc />
-        protected override void CopyFromZYX(PixelRow<Color, uint> row, int targetY, int targetX, int width)
+        protected override void CopyFromXYZ(PixelArea<Color, uint> area, int targetY, int targetX, int width, int height)
         {
-            byte* source = row.PixelBase;
-            byte* destination = this.GetRowPointer(targetY) + targetX;
-
-            for (int x = 0; x < width; x++)
+            for (int y = 0; y < height; y++)
             {
-                Unsafe.Write(destination, (uint)(*(source + 2) << 0 | *(source + 1) << 8 | *source << 16 | 255 << 24));
+                byte* source = area.PixelBase + (y * area.RowByteCount);
+                byte* destination = this.GetRowPointer(targetY + y) + targetX;
 
-                source += 3;
-                destination += 4;
+                for (int x = 0; x < width; x++)
+                {
+                    Unsafe.Write(destination, (uint)(*source << 0 | *(source + 1) << 8 | *(source + 2) << 16 | 255 << 24));
+
+                    source += 3;
+                    destination += 4;
+                }
             }
         }
 
         /// <inheritdoc />
-        protected override void CopyFromZYXW(PixelRow<Color, uint> row, int targetY, int targetX, int width)
+        protected override void CopyFromZYX(PixelArea<Color, uint> area, int targetY, int targetX, int width, int height)
         {
-            byte* source = row.PixelBase;
-            byte* destination = this.GetRowPointer(targetY) + targetX;
-
-            for (int x = 0; x < width; x++)
+            for (int y = 0; y < height; y++)
             {
-                Unsafe.Write(destination, (uint)(*(source + 2) << 0 | *(source + 1) << 8 | *source << 16 | *(source + 3) << 24));
+                byte* source = area.PixelBase + (y * area.RowByteCount);
+                byte* destination = this.GetRowPointer(targetY + y) + targetX;
 
-                source += 4;
-                destination += 4;
+                for (int x = 0; x < width; x++)
+                {
+                    Unsafe.Write(destination, (uint)(*(source + 2) << 0 | *(source + 1) << 8 | *source << 16 | 255 << 24));
+
+                    source += 3;
+                    destination += 4;
+                }
             }
         }
 
         /// <inheritdoc />
-        protected override void CopyToZYX(PixelRow<Color, uint> row, int sourceY, int width)
+        protected override void CopyFromZYXW(PixelArea<Color, uint> area, int targetY, int targetX, int width, int height)
         {
-            byte* source = this.GetRowPointer(sourceY);
-            byte* destination = row.PixelBase;
-
-            for (int x = 0; x < width; x++)
+            for (int y = 0; y < height; y++)
             {
-                *destination = *(source + 2);
-                *(destination + 1) = *(source + 1);
-                *(destination + 2) = *(source + 0);
+                byte* source = area.PixelBase + (y * area.RowByteCount);
+                byte* destination = this.GetRowPointer(targetY + y) + targetX;
 
-                source += 4;
-                destination += 3;
+                for (int x = 0; x < width; x++)
+                {
+                    Unsafe.Write(destination, (uint)(*(source + 2) << 0 | *(source + 1) << 8 | *source << 16 | *(source + 3) << 24));
+
+                    source += 4;
+                    destination += 4;
+                }
             }
         }
 
         /// <inheritdoc />
-        protected override void CopyToZYXW(PixelRow<Color, uint> row, int sourceY, int width)
+        protected override void CopyToZYX(PixelArea<Color, uint> area, int sourceY, int sourceX, int width, int height)
         {
-            byte* source = this.GetRowPointer(sourceY);
-            byte* destination = row.PixelBase;
-
-            for (int x = 0; x < width; x++)
+            for (int y = 0; y < height; y++)
             {
-                *destination = *(source + 2);
-                *(destination + 1) = *(source + 1);
-                *(destination + 2) = *(source + 0);
-                *(destination + 3) = *(source + 3);
+                byte* source = this.GetRowPointer(sourceY + y) + sourceX;
+                byte* destination = area.PixelBase + (y * area.RowByteCount);
 
-                source += 4;
-                destination += 4;
+                for (int x = 0; x < width; x++)
+                {
+                    *destination = *(source + 2);
+                    *(destination + 1) = *(source + 1);
+                    *(destination + 2) = *(source + 0);
+
+                    source += 4;
+                    destination += 3;
+                }
+            }
+        }
+
+        /// <inheritdoc />
+        protected override void CopyToZYXW(PixelArea<Color, uint> area, int sourceY, int sourceX, int width, int height)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                byte* source = this.GetRowPointer(sourceY + y) + sourceX;
+                byte* destination = area.PixelBase + (y * area.RowByteCount);
+
+                for (int x = 0; x < width; x++)
+                {
+                    *destination = *(source + 2);
+                    *(destination + 1) = *(source + 1);
+                    *(destination + 2) = *(source + 0);
+                    *(destination + 3) = *(source + 3);
+
+                    source += 4;
+                    destination += 4;
+                }
             }
         }
     }

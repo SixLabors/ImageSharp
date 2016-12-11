@@ -339,7 +339,7 @@ namespace ImageSharp.Formats
 
             using (PixelAccessor<TColor, TPacked> pixelAccessor = image.Lock())
             {
-                using (PixelRow<TColor, TPacked> pixelRow = new PixelRow<TColor, TPacked>(imageWidth, ComponentOrder.XYZW))
+                using (PixelArea<TColor, TPacked> pixelRow = new PixelArea<TColor, TPacked>(imageWidth, ComponentOrder.XYZW))
                 {
                     for (int y = descriptor.Top; y < descriptor.Top + descriptor.Height; y++)
                     {
@@ -445,7 +445,7 @@ namespace ImageSharp.Formats
             }
             else
             {
-                using (PixelRow<TColor, TPacked> emptyRow = new PixelRow<TColor, TPacked>(this.restoreArea.Value.Width, ComponentOrder.XYZW))
+                using (PixelArea<TColor, TPacked> emptyRow = new PixelArea<TColor, TPacked>(this.restoreArea.Value.Width, ComponentOrder.XYZW))
                 {
                     using (PixelAccessor<TColor, TPacked> pixelAccessor = frame.Lock())
                     {

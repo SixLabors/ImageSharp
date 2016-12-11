@@ -281,7 +281,7 @@ namespace ImageSharp.Formats
             const int ComponentCount = 2;
 
             TColor color = default(TColor);
-            using (PixelRow<TColor, TPacked> row = new PixelRow<TColor, TPacked>(width, ComponentOrder.XYZ))
+            using (PixelArea<TColor, TPacked> row = new PixelArea<TColor, TPacked>(width, ComponentOrder.XYZ))
             {
                 for (int y = 0; y < height; y++)
                 {
@@ -320,7 +320,7 @@ namespace ImageSharp.Formats
             where TPacked : struct
         {
             int padding = CalculatePadding(width, 3);
-            using (PixelRow<TColor, TPacked> row = new PixelRow<TColor, TPacked>(width, ComponentOrder.ZYX, padding))
+            using (PixelArea<TColor, TPacked> row = new PixelArea<TColor, TPacked>(width, ComponentOrder.ZYX, padding))
             {
                 for (int y = 0; y < height; y++)
                 {
@@ -346,7 +346,7 @@ namespace ImageSharp.Formats
             where TPacked : struct
         {
             int padding = CalculatePadding(width, 4);
-            using (PixelRow<TColor, TPacked> row = new PixelRow<TColor, TPacked>(width, ComponentOrder.ZYXW, padding))
+            using (PixelArea<TColor, TPacked> row = new PixelArea<TColor, TPacked>(width, ComponentOrder.ZYXW, padding))
             {
                 for (int y = 0; y < height; y++)
                 {

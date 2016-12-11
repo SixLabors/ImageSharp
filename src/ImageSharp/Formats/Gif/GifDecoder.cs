@@ -23,22 +23,6 @@ namespace ImageSharp.Formats
         /// Returns a value indicating whether the <see cref="IImageDecoder"/> supports the specified
         /// file header.
         /// </summary>
-        /// <param name="extension">The <see cref="string"/> containing the file extension.</param>
-        /// <returns>
-        /// True if the decoder supports the file extension; otherwise, false.
-        /// </returns>
-        public bool IsSupportedFileExtension(string extension)
-        {
-            Guard.NotNullOrEmpty(extension, nameof(extension));
-
-            extension = extension.StartsWith(".") ? extension.Substring(1) : extension;
-            return extension.Equals("GIF", StringComparison.OrdinalIgnoreCase);
-        }
-
-        /// <summary>
-        /// Returns a value indicating whether the <see cref="IImageDecoder"/> supports the specified
-        /// file header.
-        /// </summary>
         /// <param name="header">The <see cref="T:byte[]"/> containing the file header.</param>
         /// <returns>
         /// True if the decoder supports the file header; otherwise, false.

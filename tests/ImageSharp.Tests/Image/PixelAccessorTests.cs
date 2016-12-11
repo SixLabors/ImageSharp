@@ -71,7 +71,7 @@ namespace ImageSharp.Tests
                 byte blue = 3;
                 byte alpha = 255;
 
-                using (PixelRow<TColor, TPacked> row = new PixelRow<TColor, TPacked>(1, ComponentOrder.ZYX))
+                using (PixelArea<TColor, TPacked> row = new PixelArea<TColor, TPacked>(1, ComponentOrder.ZYX))
                 {
                     row.Bytes[0] = blue;
                     row.Bytes[1] = green;
@@ -99,7 +99,7 @@ namespace ImageSharp.Tests
                 byte blue = 3;
                 byte alpha = 4;
 
-                using (PixelRow<TColor, TPacked> row = new PixelRow<TColor, TPacked>(1, ComponentOrder.ZYXW))
+                using (PixelArea<TColor, TPacked> row = new PixelArea<TColor, TPacked>(1, ComponentOrder.ZYXW))
                 {
                     row.Bytes[0] = blue;
                     row.Bytes[1] = green;
@@ -127,7 +127,7 @@ namespace ImageSharp.Tests
                 byte green = 2;
                 byte blue = 3;
 
-                using (PixelRow<TColor, TPacked> row = new PixelRow<TColor, TPacked>(1, ComponentOrder.ZYX))
+                using (PixelArea<TColor, TPacked> row = new PixelArea<TColor, TPacked>(1, ComponentOrder.ZYX))
                 {
                     pixels[0, 0] = (TColor) (object) new Color(red, green, blue);
 
@@ -151,7 +151,7 @@ namespace ImageSharp.Tests
                 byte blue = 3;
                 byte alpha = 4;
 
-                using (PixelRow<TColor, TPacked> row = new PixelRow<TColor, TPacked>(1, ComponentOrder.ZYXW))
+                using (PixelArea<TColor, TPacked> row = new PixelArea<TColor, TPacked>(1, ComponentOrder.ZYXW))
                 {
                     pixels[0, 0] = (TColor) (object) new Color(red, green, blue, alpha);
 

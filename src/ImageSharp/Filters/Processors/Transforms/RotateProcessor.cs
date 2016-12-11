@@ -34,7 +34,7 @@ namespace ImageSharp.Processors
         public bool Expand { get; set; } = true;
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle, int startY, int endY)
+        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
         {
             if (this.OptimizedApply(source))
             {
@@ -70,7 +70,7 @@ namespace ImageSharp.Processors
         }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
+        protected override void BeforeApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
         {
             const float Epsilon = .0001F;
 

@@ -34,7 +34,7 @@ namespace ImageSharp.Processors
         public float Value { get; }
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle, int startY, int endY)
+        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
         {
             ImageBase<TColor, TPacked> temp = new Image<TColor, TPacked>(source.Width, source.Height);
             temp.ClonePixels(source.Width, source.Height, source.Pixels);

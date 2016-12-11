@@ -32,17 +32,17 @@ namespace ImageSharp.Processors
         public virtual float[][] KernelXY { get; }
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle, int startY, int endY)
+        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
         {
             float[][] kernelX = this.KernelXY;
             int kernelLength = kernelX.GetLength(0);
             int radius = kernelLength >> 1;
 
-            int sourceY = sourceRectangle.Y;
-            int sourceBottom = sourceRectangle.Bottom;
+            int startY = sourceRectangle.Y;
+            int endY = sourceRectangle.Bottom;
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
-            int maxY = sourceBottom - 1;
+            int maxY = endY - 1;
             int maxX = endX - 1;
 
             TColor[] target = new TColor[source.Width * source.Height];
@@ -55,48 +55,45 @@ namespace ImageSharp.Processors
                 this.ParallelOptions,
                 y =>
                 {
-                    if (y >= sourceY && y < sourceBottom)
+                    for (int x = startX; x < endX; x++)
                     {
-                        for (int x = startX; x < endX; x++)
+                        float rX = 0;
+                        float gX = 0;
+                        float bX = 0;
+
+                        // Apply each matrix multiplier to the color components for each pixel.
+                        for (int fy = 0; fy < kernelLength; fy++)
                         {
-                            float rX = 0;
-                            float gX = 0;
-                            float bX = 0;
+                            int fyr = fy - radius;
+                            int offsetY = y + fyr;
 
-                            // Apply each matrix multiplier to the color components for each pixel.
-                            for (int fy = 0; fy < kernelLength; fy++)
+                            offsetY = offsetY.Clamp(0, maxY);
+
+                            for (int fx = 0; fx < kernelLength; fx++)
                             {
-                                int fyr = fy - radius;
-                                int offsetY = y + fyr;
+                                int fxr = fx - radius;
+                                int offsetX = x + fxr;
 
-                                offsetY = offsetY.Clamp(0, maxY);
+                                offsetX = offsetX.Clamp(0, maxX);
 
-                                for (int fx = 0; fx < kernelLength; fx++)
-                                {
-                                    int fxr = fx - radius;
-                                    int offsetX = x + fxr;
+                                Vector4 currentColor = sourcePixels[offsetX, offsetY].ToVector4();
+                                float r = currentColor.X;
+                                float g = currentColor.Y;
+                                float b = currentColor.Z;
 
-                                    offsetX = offsetX.Clamp(0, maxX);
-
-                                    Vector4 currentColor = sourcePixels[offsetX, offsetY].ToVector4();
-                                    float r = currentColor.X;
-                                    float g = currentColor.Y;
-                                    float b = currentColor.Z;
-
-                                    rX += kernelX[fy][fx] * r;
-                                    gX += kernelX[fy][fx] * g;
-                                    bX += kernelX[fy][fx] * b;
-                                }
+                                rX += kernelX[fy][fx] * r;
+                                gX += kernelX[fy][fx] * g;
+                                bX += kernelX[fy][fx] * b;
                             }
-
-                            float red = rX;
-                            float green = gX;
-                            float blue = bX;
-
-                            TColor packed = default(TColor);
-                            packed.PackFromVector4(new Vector4(red, green, blue, sourcePixels[x, y].ToVector4().W));
-                            targetPixels[x, y] = packed;
                         }
+
+                        float red = rX;
+                        float green = gX;
+                        float blue = bX;
+
+                        TColor packed = default(TColor);
+                        packed.PackFromVector4(new Vector4(red, green, blue, sourcePixels[x, y].ToVector4().W));
+                        targetPixels[x, y] = packed;
                     }
                 });
             }

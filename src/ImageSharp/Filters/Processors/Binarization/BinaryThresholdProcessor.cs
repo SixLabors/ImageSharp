@@ -56,17 +56,20 @@ namespace ImageSharp.Processors
         public TColor LowerColor { get; set; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
+        protected override void BeforeApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
         {
             new GrayscaleBt709Processor<TColor, TPacked>().Apply(source, sourceRectangle);
         }
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle, int startY, int endY)
+        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
         {
             float threshold = this.Value;
             TColor upper = this.UpperColor;
             TColor lower = this.LowerColor;
+
+            int startY = sourceRectangle.Y;
+            int endY = sourceRectangle.Bottom;
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
 

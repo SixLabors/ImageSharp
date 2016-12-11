@@ -18,17 +18,18 @@ namespace ImageSharp.Processors
         where TPacked : struct
     {
         /// <inheritdoc/>
-        public override Matrix4x4 Matrix => new Matrix4x4()
+        public override Matrix4x4 Matrix => new Matrix4x4
         {
-            M11 = .393f,
-            M12 = .349f,
-            M13 = .272f,
-            M21 = .769f,
-            M22 = .686f,
-            M23 = .534f,
-            M31 = .189f,
-            M32 = .168f,
-            M33 = .131f
+            M11 = .393F,
+            M12 = .349F,
+            M13 = .272F,
+            M21 = .769F,
+            M22 = .686F,
+            M23 = .534F,
+            M31 = .189F,
+            M32 = .168F,
+            M33 = .131F,
+            M44 = 1
         };
 
         /// <inheritdoc/>

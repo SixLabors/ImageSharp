@@ -26,7 +26,7 @@ namespace ImageSharp.Processors
         public SaturationProcessor(int saturation)
         {
             Guard.MustBeBetweenOrEqualTo(saturation, -100, 100, nameof(saturation));
-            float saturationFactor = saturation / 100f;
+            float saturationFactor = saturation / 100F;
 
             // Stop at -1 to prevent inversion.
             saturationFactor++;
@@ -40,7 +40,7 @@ namespace ImageSharp.Processors
             float saturationComplementG = 0.6094f * saturationComplement;
             float saturationComplementB = 0.0820f * saturationComplement;
 
-            Matrix4x4 matrix4X4 = new Matrix4x4()
+            Matrix4x4 matrix4X4 = new Matrix4x4
             {
                 M11 = saturationComplementR + saturationFactor,
                 M12 = saturationComplementR,
@@ -51,6 +51,7 @@ namespace ImageSharp.Processors
                 M31 = saturationComplementB,
                 M32 = saturationComplementB,
                 M33 = saturationComplementB + saturationFactor,
+                M44 = 1
             };
 
             this.Matrix = matrix4X4;

@@ -255,7 +255,7 @@ namespace ImageSharp
             {
                 this.Save(stream);
                 stream.Flush();
-                return $"data:{this.CurrentImageFormat.Encoder.MimeType};base64,{Convert.ToBase64String(stream.ToArray())}";
+                return $"data:{this.CurrentImageFormat.MimeType};base64,{Convert.ToBase64String(stream.ToArray())}";
             }
         }
 

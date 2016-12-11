@@ -14,31 +14,6 @@ namespace ImageSharp.Formats
     public interface IImageEncoder
     {
         /// <summary>
-        /// Gets or sets the quality of output for images.
-        /// </summary>
-        int Quality { get; set; }
-
-        /// <summary>
-        /// Gets the standard identifier used on the Internet to indicate the type of data that a file contains.
-        /// </summary>
-        string MimeType { get; }
-
-        /// <summary>
-        /// Gets the default file extension for this encoder.
-        /// </summary>
-        string Extension { get; }
-
-        /// <summary>
-        /// Returns a value indicating whether the <see cref="IImageEncoder"/> supports the specified
-        /// file header.
-        /// </summary>
-        /// <param name="extension">The <see cref="string"/> containing the file extension.</param>
-        /// <returns>
-        /// <c>True</c> if the decoder supports the file extension; otherwise, <c>false</c>.
-        /// </returns>
-        bool IsSupportedFileExtension(string extension);
-
-        /// <summary>
         /// Encodes the image to the specified stream from the <see cref="Image{TColor, TPacked}"/>.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>

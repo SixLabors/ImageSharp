@@ -25,12 +25,6 @@ namespace ImageSharp.Formats
         /// </summary>
         public PngColorType PngColorType { get; set; } = PngColorType.RgbWithAlpha;
 
-        /// <inheritdoc/>
-        public string MimeType => "image/png";
-
-        /// <inheritdoc/>
-        public string Extension => "png";
-
         /// <summary>
         /// Gets or sets the compression level 1-9.
         /// <remarks>Defaults to 6.</remarks>
@@ -60,16 +54,6 @@ namespace ImageSharp.Formats
         /// gamma information to the stream. The default value is false.
         /// </summary>
         public bool WriteGamma { get; set; }
-
-        /// <inheritdoc/>
-        public bool IsSupportedFileExtension(string extension)
-        {
-            Guard.NotNullOrEmpty(extension, nameof(extension));
-
-            extension = extension.StartsWith(".") ? extension.Substring(1) : extension;
-
-            return extension.Equals(this.Extension, StringComparison.OrdinalIgnoreCase);
-        }
 
         /// <inheritdoc/>
         public void Encode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream)

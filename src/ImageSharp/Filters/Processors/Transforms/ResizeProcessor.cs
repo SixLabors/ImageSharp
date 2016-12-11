@@ -47,7 +47,7 @@ namespace ImageSharp.Processors
         }
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle, int startY, int endY)
+        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
         {
             // Jump out, we'll deal with that later.
             if (source.Width == this.Width && source.Height == this.Height && sourceRectangle == this.ResizeRectangle)
@@ -55,12 +55,10 @@ namespace ImageSharp.Processors
                 return;
             }
 
-            // Reset the values as the rectangle can be altered by ResizeRectangle.
-            startY = this.ResizeRectangle.Y;
-            endY = this.ResizeRectangle.Bottom;
-
             int width = this.Width;
             int height = this.Height;
+            int startY = this.ResizeRectangle.Y;
+            int endY = this.ResizeRectangle.Bottom;
             int startX = this.ResizeRectangle.X;
             int endX = this.ResizeRectangle.Right;
 

@@ -28,13 +28,13 @@ namespace ImageSharp.Processors
         public bool Grayscale { get; set; }
 
         /// <inheritdoc />
-        protected override void Apply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle, int startY, int endY)
+        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
         {
             new Convolution2DProcessor<TColor, TPacked>(this.KernelX, this.KernelY).Apply(source, sourceRectangle);
         }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
+        protected override void BeforeApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
         {
             if (this.Grayscale)
             {

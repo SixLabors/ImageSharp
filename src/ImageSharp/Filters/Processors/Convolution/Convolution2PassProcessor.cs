@@ -39,7 +39,7 @@ namespace ImageSharp.Processors
         public float[][] KernelY { get; }
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle, int startY, int endY)
+        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
         {
             float[][] kernelX = this.KernelX;
             float[][] kernelY = this.KernelY;
@@ -49,8 +49,8 @@ namespace ImageSharp.Processors
             TColor[] target = new TColor[width * height];
             TColor[] firstPass = new TColor[width * height];
 
-            this.ApplyConvolution(width, height, firstPass, source.Pixels, sourceRectangle, startY, endY, kernelX);
-            this.ApplyConvolution(width, height, target, firstPass, sourceRectangle, startY, endY, kernelY);
+            this.ApplyConvolution(width, height, firstPass, source.Pixels, sourceRectangle, kernelX);
+            this.ApplyConvolution(width, height, target, firstPass, sourceRectangle, kernelY);
 
             source.SetPixels(width, height, target);
         }
@@ -66,20 +66,19 @@ namespace ImageSharp.Processors
         /// <param name="sourceRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
-        /// <param name="startY">The index of the row within the source image to start processing.</param>
-        /// <param name="endY">The index of the row within the source image to end processing.</param>
         /// <param name="kernel">The kernel operator.</param>
-        private void ApplyConvolution(int width, int height, TColor[] target, TColor[] source, Rectangle sourceRectangle, int startY, int endY, float[][] kernel)
+        private void ApplyConvolution(int width, int height, TColor[] target, TColor[] source, Rectangle sourceRectangle, float[][] kernel)
         {
             int kernelHeight = kernel.Length;
             int kernelWidth = kernel[0].Length;
             int radiusY = kernelHeight >> 1;
             int radiusX = kernelWidth >> 1;
 
-            int sourceBottom = sourceRectangle.Bottom;
+            int startY = sourceRectangle.Y;
+            int endY = sourceRectangle.Bottom;
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
-            int maxY = sourceBottom - 1;
+            int maxY = endY - 1;
             int maxX = endX - 1;
 
             using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock<TColor, TPacked>(width, height))

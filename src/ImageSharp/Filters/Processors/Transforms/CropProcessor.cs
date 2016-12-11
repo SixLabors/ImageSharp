@@ -32,15 +32,15 @@ namespace ImageSharp.Processors
         public Rectangle CropRectangle { get; }
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle, int startY, int endY)
+        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
         {
             if (this.CropRectangle == sourceRectangle)
             {
                 return;
             }
 
-            int minY = Math.Max(this.CropRectangle.Y, startY);
-            int maxY = Math.Min(this.CropRectangle.Bottom, endY);
+            int minY = Math.Max(this.CropRectangle.Y, sourceRectangle.Y);
+            int maxY = Math.Min(this.CropRectangle.Bottom, sourceRectangle.Bottom);
             int minX = Math.Max(this.CropRectangle.X, sourceRectangle.X);
             int maxX = Math.Min(this.CropRectangle.Right, sourceRectangle.Right);
 

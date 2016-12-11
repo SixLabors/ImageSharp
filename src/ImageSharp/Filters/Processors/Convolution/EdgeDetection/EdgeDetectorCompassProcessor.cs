@@ -62,10 +62,12 @@ namespace ImageSharp.Processors
         public bool Grayscale { get; set; }
 
         /// <inheritdoc />
-        protected override void Apply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle, int startY, int endY)
+        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
         {
             float[][][] kernels = { this.North, this.NorthWest, this.West, this.SouthWest, this.South, this.SouthEast, this.East, this.NorthEast };
 
+            int startY = sourceRectangle.Y;
+            int endY = sourceRectangle.Bottom;
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
 
@@ -136,7 +138,7 @@ namespace ImageSharp.Processors
         }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
+        protected override void BeforeApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
         {
             if (this.Grayscale)
             {

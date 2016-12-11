@@ -55,7 +55,7 @@ namespace ImageSharp.Processors
         public Point Location { get; }
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle, int startY, int endY)
+        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
         {
             if (this.Image.Bounds.Size != this.Size)
             {
@@ -66,8 +66,8 @@ namespace ImageSharp.Processors
             Rectangle bounds = this.Image.Bounds;
             int minX = Math.Max(this.Location.X, sourceRectangle.X);
             int maxX = Math.Min(this.Location.X + bounds.Width, sourceRectangle.Width);
-            int minY = Math.Max(this.Location.Y, startY);
-            int maxY = Math.Min(this.Location.Y + bounds.Height, endY);
+            int minY = Math.Max(this.Location.Y, sourceRectangle.Y);
+            int maxY = Math.Min(this.Location.Y + bounds.Height, sourceRectangle.Bottom);
 
             float alpha = this.Alpha / 100F;
 

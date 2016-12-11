@@ -15,8 +15,8 @@ namespace ImageSharp.Tests
         public static readonly TheoryData<Tuple<int, int>> OilPaintValues
             = new TheoryData<Tuple<int, int>>
             {
-                new Tuple<int, int>(15,10),
-                new Tuple<int, int>(6,5)
+                new Tuple<int, int>(15, 10),
+                new Tuple<int, int>(6, 5)
             };
 
         [Theory]
@@ -32,8 +32,11 @@ namespace ImageSharp.Tests
 
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    image.OilPaint(value.Item1, value.Item2)
-                          .Save(output);
+                    if (image.Width > value.Item2 && image.Height > value.Item2)
+                    {
+                        image.OilPaint(value.Item1, value.Item2)
+                             .Save(output);
+                    }
                 }
             }
         }
@@ -51,8 +54,10 @@ namespace ImageSharp.Tests
 
                 using (FileStream output = File.OpenWrite($"{path}/{filename}"))
                 {
-                    image.OilPaint(value.Item1, value.Item2, new Rectangle(10, 10, image.Width / 2, image.Height / 2))
-                          .Save(output);
+                    if (image.Width > value.Item2 && image.Height > value.Item2)
+                    {
+                        image.OilPaint(value.Item1, value.Item2, new Rectangle(10, 10, image.Width / 2, image.Height / 2)).Save(output);
+                    }
                 }
             }
         }

@@ -32,7 +32,7 @@ namespace ImageSharp.Processors
         public FlipType FlipType { get; }
 
         /// <inheritdoc/>
-        protected override void Apply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle, int startY, int endY)
+        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
         {
             switch (this.FlipType)
             {

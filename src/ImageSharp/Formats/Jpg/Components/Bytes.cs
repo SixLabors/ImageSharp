@@ -49,6 +49,7 @@ namespace ImageSharp.Formats
             {
                 ArrayPool.Return(this.Buffer);
             }
+
             this.Buffer = null;
         }
 

@@ -225,7 +225,6 @@ namespace ImageSharp.Formats
         internal enum ErrorCodes
         {
             NoError,
-            // ReSharper disable once InconsistentNaming
             MissingFF00
         }
 
@@ -1553,7 +1552,6 @@ namespace ImageSharp.Formats
                             var qtIndex = this.componentArray[compIndex].Selector;
 
                             // TODO: Find a way to clean up this mess
-
                             fixed (Block8x8F* qtp = &this.quantizationTables[qtIndex])
                             {
                                 // Load the previous partially decoded coefficients, if applicable.
@@ -1809,7 +1807,6 @@ namespace ImageSharp.Formats
             }
 
             // Level shift by +128, clip to [0, 255], and write to dst.
-
             temp1->CopyColorsTo(new MutableSpan<byte>(dst, offset), stride, temp2);
         }
 
@@ -1898,6 +1895,7 @@ namespace ImageSharp.Formats
 
                     // int stuff = (int)b[0];
                     stuff |= delta;
+
                     // b[0] = stuff;
                     Block8x8F.SetScalarAt(b, 0, stuff);
                 }

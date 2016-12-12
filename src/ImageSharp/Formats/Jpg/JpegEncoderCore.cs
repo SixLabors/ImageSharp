@@ -246,9 +246,7 @@ namespace ImageSharp.Formats
             /// <summary>
             /// The AC luminance huffman table index
             /// </summary>
-
             LuminanceAC = 1,
-            // ReSharper restore UnusedMember.Local
 
             /// <summary>
             /// The DC chrominance huffman table index

@@ -15,6 +15,9 @@ namespace ImageSharp.Formats
     /// </summary>
     internal partial struct Block8x8F
     {
+        public const int VectorCount = 16;
+        public const int ScalarCount = VectorCount * 4;
+
         public Vector4 V0L;
         public Vector4 V0R;
 
@@ -39,18 +42,43 @@ namespace ImageSharp.Formats
         public Vector4 V7L;
         public Vector4 V7R;
 
-        public const int VectorCount = 16;
-        public const int ScalarCount = VectorCount * 4;
+#pragma warning disable SA1310 // FieldNamesMustNotContainUnderscore
+        private static readonly Vector4 C_1_175876 = new Vector4(1.175876f);
+        private static readonly Vector4 C_1_961571 = new Vector4(-1.961571f);
+        private static readonly Vector4 C_0_390181 = new Vector4(-0.390181f);
+        private static readonly Vector4 C_0_899976 = new Vector4(-0.899976f);
+        private static readonly Vector4 C_2_562915 = new Vector4(-2.562915f);
+        private static readonly Vector4 C_0_298631 = new Vector4(0.298631f);
+        private static readonly Vector4 C_2_053120 = new Vector4(2.053120f);
+        private static readonly Vector4 C_3_072711 = new Vector4(3.072711f);
+        private static readonly Vector4 C_1_501321 = new Vector4(1.501321f);
+        private static readonly Vector4 C_0_541196 = new Vector4(0.541196f);
+        private static readonly Vector4 C_1_847759 = new Vector4(-1.847759f);
+        private static readonly Vector4 C_0_765367 = new Vector4(0.765367f);
 
-        /// <summary>
-        /// Load raw 32bit floating point data from source
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void LoadFrom(MutableSpan<float> source)
+        private static readonly Vector4 C_0_125 = new Vector4(0.1250f);
+#pragma warning restore SA1310 // FieldNamesMustNotContainUnderscore
+
+        public unsafe float this[int idx]
         {
-            fixed (void* ptr = &this.V0L)
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
             {
-                Marshal.Copy(source.Data, source.Offset, (IntPtr)ptr, ScalarCount);
+                fixed (Block8x8F* p = &this)
+                {
+                    float* fp = (float*)p;
+                    return fp[idx];
+                }
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            set
+            {
+                fixed (Block8x8F* p = &this)
+                {
+                    float* fp = (float*)p;
+                    fp[idx] = value;
+                }
             }
         }
 
@@ -64,17 +92,23 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
+        /// Copy raw 32bit floating point data to dest
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe void CopyTo(Block8x8F* blockPtr, MutableSpan<float> dest)
+        {
+            Marshal.Copy((IntPtr)blockPtr, dest.Data, dest.Offset, ScalarCount);
+        }
+
+        /// <summary>
         /// Load raw 32bit floating point data from source
         /// </summary>
-        internal unsafe void LoadFrom(MutableSpan<int> source)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe void LoadFrom(MutableSpan<float> source)
         {
-            fixed (Vector4* ptr = &this.V0L)
+            fixed (void* ptr = &this.V0L)
             {
-                float* fp = (float*)ptr;
-                for (int i = 0; i < ScalarCount; i++)
-                {
-                    fp[i] = source[i];
-                }
+                Marshal.Copy(source.Data, source.Offset, (IntPtr)ptr, ScalarCount);
             }
         }
 
@@ -99,30 +133,6 @@ namespace ImageSharp.Formats
             fixed (void* ptr = &this.V0L)
             {
                 Marshal.Copy((IntPtr)ptr, dest, 0, ScalarCount);
-            }
-        }
-
-        /// <summary>
-        /// Copy raw 32bit floating point data to dest
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void CopyTo(Block8x8F* blockPtr, MutableSpan<float> dest)
-        {
-            Marshal.Copy((IntPtr)blockPtr, dest.Data, dest.Offset, ScalarCount);
-        }
-
-        /// <summary>
-        /// Copy raw 32bit floating point data to dest
-        /// </summary>
-        internal unsafe void CopyTo(MutableSpan<int> dest)
-        {
-            fixed (Vector4* ptr = &this.V0L)
-            {
-                float* fp = (float*)ptr;
-                for (int i = 0; i < ScalarCount; i++)
-                {
-                    dest[i] = (int)fp[i];
-                }
             }
         }
 
@@ -163,23 +173,72 @@ namespace ImageSharp.Formats
             temp.IDCT8x4_LeftPart(ref dest);
             temp.IDCT8x4_RightPart(ref dest);
 
-            dest.MultiplyAllInplace(c_0_125);
+            dest.MultiplyAllInplace(C_0_125);
         }
 
-        private static readonly Vector4 c_1_175876 = new Vector4(1.175876f);
-        private static readonly Vector4 c_1_961571 = new Vector4(-1.961571f);
-        private static readonly Vector4 c_0_390181 = new Vector4(-0.390181f);
-        private static readonly Vector4 c_0_899976 = new Vector4(-0.899976f);
-        private static readonly Vector4 c_2_562915 = new Vector4(-2.562915f);
-        private static readonly Vector4 c_0_298631 = new Vector4(0.298631f);
-        private static readonly Vector4 c_2_053120 = new Vector4(2.053120f);
-        private static readonly Vector4 c_3_072711 = new Vector4(3.072711f);
-        private static readonly Vector4 c_1_501321 = new Vector4(1.501321f);
-        private static readonly Vector4 c_0_541196 = new Vector4(0.541196f);
-        private static readonly Vector4 c_1_847759 = new Vector4(-1.847759f);
-        private static readonly Vector4 c_0_765367 = new Vector4(0.765367f);
+        /// <summary>
+        /// Pointer-based "Indexer" (getter part)
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static unsafe float GetScalarAt(Block8x8F* blockPtr, int idx)
+        {
+            float* fp = (float*)blockPtr;
+            return fp[idx];
+        }
 
-        private static readonly Vector4 c_0_125 = new Vector4(0.1250f);
+        /// <summary>
+        /// Pointer-based "Indexer" (setter part)
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static unsafe void SetScalarAt(Block8x8F* blockPtr, int idx, float value)
+        {
+            float* fp = (float*)blockPtr;
+            fp[idx] = value;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static unsafe void UnZig(Block8x8F* block, Block8x8F* qt, int* unzigPtr)
+        {
+            float* b = (float*)block;
+            float* qtp = (float*)qt;
+            for (int zig = 0; zig < BlockF.BlockSize; zig++)
+            {
+                float* unzigPos = b + unzigPtr[zig];
+                float val = *unzigPos;
+                val *= qtp[zig];
+                *unzigPos = val;
+            }
+        }
+
+        /// <summary>
+        /// Copy raw 32bit floating point data to dest
+        /// </summary>
+        internal unsafe void CopyTo(MutableSpan<int> dest)
+        {
+            fixed (Vector4* ptr = &this.V0L)
+            {
+                float* fp = (float*)ptr;
+                for (int i = 0; i < ScalarCount; i++)
+                {
+                    dest[i] = (int)fp[i];
+                }
+            }
+        }
+
+        /// <summary>
+        /// Load raw 32bit floating point data from source
+        /// </summary>
+        internal unsafe void LoadFrom(MutableSpan<int> source)
+        {
+            fixed (Vector4* ptr = &this.V0L)
+            {
+                float* fp = (float*)ptr;
+                for (int i = 0; i < ScalarCount; i++)
+                {
+                    fp[i] = source[i];
+                }
+            }
+        }
 
         /// <summary>
         /// Do IDCT internal operations on the left part of the block. Original source:
@@ -199,28 +258,28 @@ namespace ImageSharp.Formats
             Vector4 mz1 = my3 + my5;
             Vector4 mz3 = my1 + my5;
 
-            Vector4 mz4 = ((mz0 + mz1) * c_1_175876);
+            Vector4 mz4 = (mz0 + mz1) * C_1_175876;
 
-            mz2 = (mz2 * c_1_961571) + mz4;
-            mz3 = (mz3 * c_0_390181) + mz4;
-            mz0 = mz0 * c_0_899976;
-            mz1 = mz1 * c_2_562915;
+            mz2 = (mz2 * C_1_961571) + mz4;
+            mz3 = (mz3 * C_0_390181) + mz4;
+            mz0 = mz0 * C_0_899976;
+            mz1 = mz1 * C_2_562915;
 
-            Vector4 mb3 = (my7 * c_0_298631) + mz0 + mz2;
-            Vector4 mb2 = (my5 * c_2_053120) + mz1 + mz3;
-            Vector4 mb1 = (my3 * c_3_072711) + mz1 + mz2;
-            Vector4 mb0 = (my1 * c_1_501321) + mz0 + mz3;
+            Vector4 mb3 = (my7 * C_0_298631) + mz0 + mz2;
+            Vector4 mb2 = (my5 * C_2_053120) + mz1 + mz3;
+            Vector4 mb1 = (my3 * C_3_072711) + mz1 + mz2;
+            Vector4 mb0 = (my1 * C_1_501321) + mz0 + mz3;
 
             Vector4 my2 = this.V2L;
             Vector4 my6 = this.V6L;
-            mz4 = (my2 + my6) * c_0_541196;
+            mz4 = (my2 + my6) * C_0_541196;
             Vector4 my0 = this.V0L;
             Vector4 my4 = this.V4L;
             mz0 = my0 + my4;
             mz1 = my0 - my4;
 
-            mz2 = mz4 + (my6 * c_1_847759);
-            mz3 = mz4 + (my2 * c_0_765367);
+            mz2 = mz4 + (my6 * C_1_847759);
+            mz3 = mz4 + (my2 * C_0_765367);
 
             my0 = mz0 + mz3;
             my3 = mz0 - mz3;
@@ -255,28 +314,28 @@ namespace ImageSharp.Formats
             Vector4 mz1 = my3 + my5;
             Vector4 mz3 = my1 + my5;
 
-            Vector4 mz4 = (mz0 + mz1) * c_1_175876;
+            Vector4 mz4 = (mz0 + mz1) * C_1_175876;
 
-            mz2 = (mz2 * c_1_961571) + mz4;
-            mz3 = (mz3 * c_0_390181) + mz4;
-            mz0 = mz0 * c_0_899976;
-            mz1 = mz1 * c_2_562915;
+            mz2 = (mz2 * C_1_961571) + mz4;
+            mz3 = (mz3 * C_0_390181) + mz4;
+            mz0 = mz0 * C_0_899976;
+            mz1 = mz1 * C_2_562915;
 
-            Vector4 mb3 = (my7 * c_0_298631) + mz0 + mz2;
-            Vector4 mb2 = (my5 * c_2_053120) + mz1 + mz3;
-            Vector4 mb1 = (my3 * c_3_072711) + mz1 + mz2;
-            Vector4 mb0 = (my1 * c_1_501321) + mz0 + mz3;
+            Vector4 mb3 = (my7 * C_0_298631) + mz0 + mz2;
+            Vector4 mb2 = (my5 * C_2_053120) + mz1 + mz3;
+            Vector4 mb1 = (my3 * C_3_072711) + mz1 + mz2;
+            Vector4 mb0 = (my1 * C_1_501321) + mz0 + mz3;
 
             Vector4 my2 = this.V2R;
             Vector4 my6 = this.V6R;
-            mz4 = (my2 + my6) * c_0_541196;
+            mz4 = (my2 + my6) * C_0_541196;
             Vector4 my0 = this.V0R;
             Vector4 my4 = this.V4R;
             mz0 = my0 + my4;
             mz1 = my0 - my4;
 
-            mz2 = mz4 + (my6 * c_1_847759);
-            mz3 = mz4 + (my2 * c_0_765367);
+            mz2 = mz4 + (my6 * C_1_847759);
+            mz3 = mz4 + (my2 * C_0_765367);
 
             my0 = mz0 + mz3;
             my3 = mz0 - mz3;
@@ -291,49 +350,6 @@ namespace ImageSharp.Formats
             d.V5R = my2 - mb2;
             d.V3R = my3 + mb3;
             d.V4R = my3 - mb3;
-        }
-
-        public unsafe float this[int idx]
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                fixed (Block8x8F* p = &this)
-                {
-                    float* fp = (float*)p;
-                    return fp[idx];
-                }
-            }
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set
-            {
-                fixed (Block8x8F* p = &this)
-                {
-                    float* fp = (float*)p;
-                    fp[idx] = value;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Pointer-based "Indexer" (getter part)
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static unsafe float GetScalarAt(Block8x8F* blockPtr, int idx)
-        {
-            float* fp = (float*)blockPtr;
-            return fp[idx];
-        }
-
-        /// <summary>
-        /// Pointer-based "Indexer" (setter part)
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static unsafe void SetScalarAt(Block8x8F* blockPtr, int idx, float value)
-        {
-            float* fp = (float*)blockPtr;
-            fp[idx] = value;
         }
 
         /// <summary>
@@ -385,20 +401,6 @@ namespace ImageSharp.Formats
                 buffer[7] = (byte)src[7];
                 buffer.AddOffset(stride);
                 src += 8;
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static unsafe void UnZig(Block8x8F* block, Block8x8F* qt, int* unzigPtr)
-        {
-            float* b = (float*)block;
-            float* qtp = (float*)qt;
-            for (int zig = 0; zig < BlockF.BlockSize; zig++)
-            {
-                float* unzigPos = b + unzigPtr[zig];
-                float val = *unzigPos;
-                val *= qtp[zig];
-                *unzigPos = val;
             }
         }
     }

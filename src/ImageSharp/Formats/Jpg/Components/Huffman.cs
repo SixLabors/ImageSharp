@@ -12,21 +12,6 @@ namespace ImageSharp.Formats
     /// </summary>
     internal struct Huffman : IDisposable
     {
-        private static ArrayPool<ushort> UshortBuffer = ArrayPool<ushort>.Create(1 << JpegDecoderCore.LutSize, 50);
-
-        private static ArrayPool<byte> ByteBuffer = ArrayPool<byte>.Create(JpegDecoderCore.MaxNCodes, 50);
-
-        private static readonly ArrayPool<int> IntBuffer = ArrayPool<int>.Create(JpegDecoderCore.MaxCodeLength, 50);
-
-        public void Init(int lutSize, int maxNCodes, int maxCodeLength)
-        {
-            this.Lut = UshortBuffer.Rent(1 << lutSize);
-            this.Values = ByteBuffer.Rent(maxNCodes);
-            this.MinCodes = IntBuffer.Rent(maxCodeLength);
-            this.MaxCodes = IntBuffer.Rent(maxCodeLength);
-            this.Indices = IntBuffer.Rent(maxCodeLength);
-        }
-
         /// <summary>
         /// Gets or sets the number of codes in the tree.
         /// </summary>
@@ -61,6 +46,21 @@ namespace ImageSharp.Formats
         /// Gets the array of indices. Indices[i] is the index into Values of MinCodes[i].
         /// </summary>
         public int[] Indices;
+
+        private static readonly ArrayPool<ushort> UshortBuffer = ArrayPool<ushort>.Create(1 << JpegDecoderCore.LutSize, 50);
+
+        private static readonly ArrayPool<byte> ByteBuffer = ArrayPool<byte>.Create(JpegDecoderCore.MaxNCodes, 50);
+
+        private static readonly ArrayPool<int> IntBuffer = ArrayPool<int>.Create(JpegDecoderCore.MaxCodeLength, 50);
+
+        public void Init(int lutSize, int maxNCodes, int maxCodeLength)
+        {
+            this.Lut = UshortBuffer.Rent(1 << lutSize);
+            this.Values = ByteBuffer.Rent(maxNCodes);
+            this.MinCodes = IntBuffer.Rent(maxCodeLength);
+            this.MaxCodes = IntBuffer.Rent(maxCodeLength);
+            this.Indices = IntBuffer.Rent(maxCodeLength);
+        }
 
         public void Dispose()
         {

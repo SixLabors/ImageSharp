@@ -44,7 +44,7 @@ namespace ImageSharp.Formats
             {
                 JpegDecoderCore.ErrorCodes errorCode;
 
-                byte c = decoder.bytes.ReadByteStuffedByte(decoder.inputStream, out errorCode);
+                byte c = decoder.Bytes.ReadByteStuffedByte(decoder.InputStream, out errorCode);
 
                 if (errorCode != JpegDecoderCore.ErrorCodes.NoError)
                 {

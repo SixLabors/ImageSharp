@@ -188,7 +188,7 @@ namespace ImageSharp
             int width = Math.Min(area.Width, this.Width - targetX);
             int height = Math.Min(area.Height, this.Height - targetY);
 
-            CheckDimensions(width, height);
+            this.CheckDimensions(width, height);
 
             switch (area.ComponentOrder)
             {
@@ -223,7 +223,7 @@ namespace ImageSharp
             int width = Math.Min(area.Width, this.Width - sourceX);
             int height = Math.Min(area.Height, this.Height - sourceY);
 
-            CheckDimensions(width, height);
+            this.CheckDimensions(width, height);
 
             switch (area.ComponentOrder)
             {

@@ -540,13 +540,10 @@ namespace ImageSharp.Formats
         /// <param name="yBlock">The luminance block.</param>
         /// <param name="cbBlock">The red chroma block.</param>
         /// <param name="crBlock">The blue chroma block.</param>
-        // ReSharper disable StyleCop.SA1305
         private void ToYCbCr<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, int x, int y, ref Block yBlock, ref Block cbBlock, ref Block crBlock)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
-
-            // ReSharper restore StyleCop.SA1305
             int xmax = pixels.Width - 1;
             int ymax = pixels.Height - 1;
             byte[] color = new byte[3];

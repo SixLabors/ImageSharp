@@ -16,16 +16,6 @@ namespace ImageSharp.Formats
     /// </summary>
     internal struct Bytes : IDisposable
     {
-        private static readonly ArrayPool<byte> ArrayPool = ArrayPool<byte>.Create(4096, 50);
-
-        /// <summary>
-        /// Creates a new instance of the <see cref="Bytes"/>, and initializes it's buffer.
-        /// </summary>
-        public static Bytes Create()
-        {
-            return new Bytes { Buffer = ArrayPool.Rent(4096) };
-        }
-
         /// <summary>
         /// Gets or sets the buffer.
         /// buffer[i:j] are the buffered bytes read from the underlying
@@ -43,9 +33,22 @@ namespace ImageSharp.Formats
         /// </summary>
         public int UnreadableBytes;
 
+        private static readonly ArrayPool<byte> ArrayPool = ArrayPool<byte>.Create(4096, 50);
+
+        /// <summary>
+        /// Creates a new instance of the <see cref="Bytes"/>, and initializes it's buffer.
+        /// </summary>
+        public static Bytes Create()
+        {
+            return new Bytes { Buffer = ArrayPool.Rent(4096) };
+        }
+
         public void Dispose()
         {
-            if (this.Buffer != null) ArrayPool.Return(this.Buffer);
+            if (this.Buffer != null)
+            {
+                ArrayPool.Return(this.Buffer);
+            }
             this.Buffer = null;
         }
 

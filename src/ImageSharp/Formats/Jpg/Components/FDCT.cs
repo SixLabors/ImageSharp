@@ -13,18 +13,20 @@ namespace ImageSharp.Formats
     {
         // Trigonometric constants in 13-bit fixed point format.
         // TODO: Rename and describe these.
-        private const int fix_0_298631336 = 2446;
-        private const int fix_0_390180644 = 3196;
-        private const int fix_0_541196100 = 4433;
-        private const int fix_0_765366865 = 6270;
-        private const int fix_0_899976223 = 7373;
-        private const int fix_1_175875602 = 9633;
-        private const int fix_1_501321110 = 12299;
-        private const int fix_1_847759065 = 15137;
-        private const int fix_1_961570560 = 16069;
-        private const int fix_2_053119869 = 16819;
-        private const int fix_2_562915447 = 20995;
-        private const int fix_3_072711026 = 25172;
+#pragma warning disable SA1310 // FieldNamesMustNotContainUnderscore
+        private const int Fix_0_298631336 = 2446;
+        private const int Fix_0_390180644 = 3196;
+        private const int Fix_0_541196100 = 4433;
+        private const int Fix_0_765366865 = 6270;
+        private const int Fix_0_899976223 = 7373;
+        private const int Fix_1_175875602 = 9633;
+        private const int Fix_1_501321110 = 12299;
+        private const int Fix_1_847759065 = 15137;
+        private const int Fix_1_961570560 = 16069;
+        private const int Fix_2_053119869 = 16819;
+        private const int Fix_2_562915447 = 20995;
+        private const int Fix_3_072711026 = 25172;
+#pragma warning restore SA1310 // FieldNamesMustNotContainUnderscore
 
         /// <summary>
         /// The number of bits
@@ -78,25 +80,25 @@ namespace ImageSharp.Formats
 
                 block[y8] = (tmp10 + tmp11 - (8 * CenterJSample)) << Pass1Bits;
                 block[y8 + 4] = (tmp10 - tmp11) << Pass1Bits;
-                int z1 = (tmp12 + tmp13) * fix_0_541196100;
+                int z1 = (tmp12 + tmp13) * Fix_0_541196100;
                 z1 += 1 << (Bits - Pass1Bits - 1);
-                block[y8 + 2] = (z1 + (tmp12 * fix_0_765366865)) >> (Bits - Pass1Bits);
-                block[y8 + 6] = (z1 - (tmp13 * fix_1_847759065)) >> (Bits - Pass1Bits);
+                block[y8 + 2] = (z1 + (tmp12 * Fix_0_765366865)) >> (Bits - Pass1Bits);
+                block[y8 + 6] = (z1 - (tmp13 * Fix_1_847759065)) >> (Bits - Pass1Bits);
 
                 tmp10 = tmp0 + tmp3;
                 tmp11 = tmp1 + tmp2;
                 tmp12 = tmp0 + tmp2;
                 tmp13 = tmp1 + tmp3;
-                z1 = (tmp12 + tmp13) * fix_1_175875602;
+                z1 = (tmp12 + tmp13) * Fix_1_175875602;
                 z1 += 1 << (Bits - Pass1Bits - 1);
-                tmp0 = tmp0 * fix_1_501321110;
-                tmp1 = tmp1 * fix_3_072711026;
-                tmp2 = tmp2 * fix_2_053119869;
-                tmp3 = tmp3 * fix_0_298631336;
-                tmp10 = tmp10 * -fix_0_899976223;
-                tmp11 = tmp11 * -fix_2_562915447;
-                tmp12 = tmp12 * -fix_0_390180644;
-                tmp13 = tmp13 * -fix_1_961570560;
+                tmp0 = tmp0 * Fix_1_501321110;
+                tmp1 = tmp1 * Fix_3_072711026;
+                tmp2 = tmp2 * Fix_2_053119869;
+                tmp3 = tmp3 * Fix_0_298631336;
+                tmp10 = tmp10 * -Fix_0_899976223;
+                tmp11 = tmp11 * -Fix_2_562915447;
+                tmp12 = tmp12 * -Fix_0_390180644;
+                tmp13 = tmp13 * -Fix_1_961570560;
 
                 tmp12 += z1;
                 tmp13 += z1;
@@ -128,25 +130,25 @@ namespace ImageSharp.Formats
                 block[x] = (tmp10 + tmp11) >> Pass1Bits;
                 block[32 + x] = (tmp10 - tmp11) >> Pass1Bits;
 
-                int z1 = (tmp12 + tmp13) * fix_0_541196100;
+                int z1 = (tmp12 + tmp13) * Fix_0_541196100;
                 z1 += 1 << (Bits + Pass1Bits - 1);
-                block[16 + x] = (z1 + (tmp12 * fix_0_765366865)) >> (Bits + Pass1Bits);
-                block[48 + x] = (z1 - (tmp13 * fix_1_847759065)) >> (Bits + Pass1Bits);
+                block[16 + x] = (z1 + (tmp12 * Fix_0_765366865)) >> (Bits + Pass1Bits);
+                block[48 + x] = (z1 - (tmp13 * Fix_1_847759065)) >> (Bits + Pass1Bits);
 
                 tmp10 = tmp0 + tmp3;
                 tmp11 = tmp1 + tmp2;
                 tmp12 = tmp0 + tmp2;
                 tmp13 = tmp1 + tmp3;
-                z1 = (tmp12 + tmp13) * fix_1_175875602;
+                z1 = (tmp12 + tmp13) * Fix_1_175875602;
                 z1 += 1 << (Bits + Pass1Bits - 1);
-                tmp0 = tmp0 * fix_1_501321110;
-                tmp1 = tmp1 * fix_3_072711026;
-                tmp2 = tmp2 * fix_2_053119869;
-                tmp3 = tmp3 * fix_0_298631336;
-                tmp10 = tmp10 * -fix_0_899976223;
-                tmp11 = tmp11 * -fix_2_562915447;
-                tmp12 = tmp12 * -fix_0_390180644;
-                tmp13 = tmp13 * -fix_1_961570560;
+                tmp0 = tmp0 * Fix_1_501321110;
+                tmp1 = tmp1 * Fix_3_072711026;
+                tmp2 = tmp2 * Fix_2_053119869;
+                tmp3 = tmp3 * Fix_0_298631336;
+                tmp10 = tmp10 * -Fix_0_899976223;
+                tmp11 = tmp11 * -Fix_2_562915447;
+                tmp12 = tmp12 * -Fix_0_390180644;
+                tmp13 = tmp13 * -Fix_1_961570560;
 
                 tmp12 += z1;
                 tmp13 += z1;

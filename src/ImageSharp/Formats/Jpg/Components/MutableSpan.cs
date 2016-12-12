@@ -22,8 +22,6 @@ namespace ImageSharp.Formats
 
         public int Offset;
 
-        public int TotalCount => this.Data.Length - this.Offset;
-
         public MutableSpan(int size, int offset = 0)
         {
             this.Data = new T[size];
@@ -35,6 +33,8 @@ namespace ImageSharp.Formats
             this.Data = data;
             this.Offset = offset;
         }
+
+        public int TotalCount => this.Data.Length - this.Offset;
 
         public T this[int idx]
         {
@@ -51,13 +51,13 @@ namespace ImageSharp.Formats
             }
         }
 
+        public static implicit operator MutableSpan<T>(T[] data) => new MutableSpan<T>(data, 0);
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public MutableSpan<T> Slice(int offset)
         {
             return new MutableSpan<T>(this.Data, this.Offset + offset);
         }
-
-        public static implicit operator MutableSpan<T>(T[] data) => new MutableSpan<T>(data, 0);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AddOffset(int offset)

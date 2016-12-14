@@ -7,8 +7,6 @@ namespace ImageSharp.Quantizers
 {
     using System;
     using System.Collections.Concurrent;
-    using System.Collections.Generic;
-    using System.Linq;
 
     /// <summary>
     /// Encapsulates methods to create a quantized image based upon the given palette.
@@ -20,6 +18,11 @@ namespace ImageSharp.Quantizers
         where TColor : struct, IPackedPixel<TPacked>
         where TPacked : struct
     {
+        /// <summary>
+        /// The pixel buffer, used to reduce allocations.
+        /// </summary>
+        private readonly byte[] pixelBuffer = new byte[4];
+
         /// <summary>
         /// A lookup table for colors
         /// </summary>
@@ -43,15 +46,18 @@ namespace ImageSharp.Quantizers
             if (palette == null)
             {
                 Color[] constants = ColorConstants.WebSafeColors;
-                List<TColor> safe = new List<TColor> { default(TColor) };
-                foreach (Color c in constants)
+                TColor[] safe = new TColor[constants.Length + 1];
+
+                for (int i = 0; i < constants.Length; i++)
                 {
+                    Color c = constants[i];
+                    c.ToBytes(this.pixelBuffer, 0, ComponentOrder.XYZW);
                     TColor packed = default(TColor);
-                    packed.PackFromVector4(c.ToVector4());
-                    safe.Add(packed);
+                    packed.PackFromBytes(this.pixelBuffer[0], this.pixelBuffer[0], this.pixelBuffer[0], this.pixelBuffer[0]);
+                    safe[i] = packed;
                 }
 
-                this.colors = safe.ToArray();
+                this.colors = safe;
             }
             else
             {
@@ -62,7 +68,7 @@ namespace ImageSharp.Quantizers
         /// <inheritdoc/>
         public override QuantizedImage<TColor, TPacked> Quantize(ImageBase<TColor, TPacked> image, int maxColors)
         {
-            Array.Resize(ref this.colors, maxColors.Clamp(1, 256));
+            Array.Resize(ref this.colors, maxColors.Clamp(1, 255));
             return base.Quantize(image, maxColors);
         }
 
@@ -80,21 +86,20 @@ namespace ImageSharp.Quantizers
             else
             {
                 // Not found - loop through the palette and find the nearest match.
-                Color color = new Color(pixel.ToVector4());
-
+                pixel.ToBytes(this.pixelBuffer, 0, ComponentOrder.XYZW);
                 int leastDistance = int.MaxValue;
-                int red = color.R;
-                int green = color.G;
-                int blue = color.B;
-                int alpha = color.A;
+                int red = this.pixelBuffer[0];
+                int green = this.pixelBuffer[1];
+                int blue = this.pixelBuffer[2];
+                int alpha = this.pixelBuffer[3];
 
                 for (int index = 0; index < this.colors.Length; index++)
                 {
-                    Color paletteColor = new Color(this.colors[index].ToVector4());
-                    int redDistance = paletteColor.R - red;
-                    int greenDistance = paletteColor.G - green;
-                    int blueDistance = paletteColor.B - blue;
-                    int alphaDistance = paletteColor.A - alpha;
+                    this.colors[index].ToBytes(this.pixelBuffer, 0, ComponentOrder.XYZW);
+                    int redDistance = this.pixelBuffer[0] - red;
+                    int greenDistance = this.pixelBuffer[1] - green;
+                    int blueDistance = this.pixelBuffer[2] - blue;
+                    int alphaDistance = this.pixelBuffer[3] - alpha;
 
                     int distance = (redDistance * redDistance) +
                                    (greenDistance * greenDistance) +
@@ -122,9 +127,9 @@ namespace ImageSharp.Quantizers
         }
 
         /// <inheritdoc/>
-        protected override List<TColor> GetPalette()
+        protected override TColor[] GetPalette()
         {
-            return this.colors.ToList();
+            return this.colors;
         }
     }
 }

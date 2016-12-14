@@ -5,7 +5,6 @@
 
 namespace ImageSharp.Quantizers
 {
-    using System.Collections.Generic;
     using System.Threading.Tasks;
 
     /// <summary>
@@ -47,7 +46,7 @@ namespace ImageSharp.Quantizers
             int height = image.Height;
             int width = image.Width;
             byte[] quantizedPixels = new byte[width * height];
-            List<TColor> palette;
+            TColor[] palette;
 
             using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
             {
@@ -65,7 +64,7 @@ namespace ImageSharp.Quantizers
                 this.SecondPass(pixels, quantizedPixels, width, height);
             }
 
-            return new QuantizedImage<TColor, TPacked>(width, height, palette.ToArray(), quantizedPixels);
+            return new QuantizedImage<TColor, TPacked>(width, height, palette, quantizedPixels);
         }
 
         /// <summary>
@@ -97,18 +96,14 @@ namespace ImageSharp.Quantizers
         /// <param name="height">The height in pixels of the image</param>
         protected virtual void SecondPass(PixelAccessor<TColor, TPacked> source, byte[] output, int width, int height)
         {
-            Parallel.For(
-                0,
-                source.Height,
-                Bootstrapper.Instance.ParallelOptions,
-                y =>
-                    {
-                        for (int x = 0; x < source.Width; x++)
-                        {
-                            TColor sourcePixel = source[x, y];
-                            output[(y * source.Width) + x] = this.QuantizePixel(sourcePixel);
-                        }
-                    });
+            for (int y = 0; y < height; y++)
+            {
+                // And loop through each column
+                for (int x = 0; x < width; x++)
+                {
+                    output[(y * source.Width) + x] = this.QuantizePixel(source[x, y]);
+                }
+            }
         }
 
         /// <summary>
@@ -138,6 +133,6 @@ namespace ImageSharp.Quantizers
         /// <returns>
         /// The new color palette
         /// </returns>
-        protected abstract List<TColor> GetPalette();
+        protected abstract TColor[] GetPalette();
     }
 }

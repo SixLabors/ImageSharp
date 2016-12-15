@@ -20,6 +20,6 @@ namespace ImageSharp.Drawing.Paths
         /// Converts the <see cref="ILineSegment" /> into a simple linear path..
         /// </summary>
         /// <returns>Returns the current <see cref="ILineSegment" /> as simple linear path.</returns>
-        IEnumerable<Vector2> AsSimpleLinearPath();
+        Vector2[] AsSimpleLinearPath(); // TODO move this over to ReadonlySpan<Vector2> once availible
     }
 }

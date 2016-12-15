@@ -37,12 +37,11 @@ namespace ImageSharp.Drawing.Shapes
         /// <summary>
         /// the distance of the point from the outline of the shape, if the value is negative it is inside the polygon bounds
         /// </summary>
-        /// <param name="x">The x.</param>
-        /// <param name="y">The y.</param>
+        /// <param name="point">The point.</param>
         /// <returns>
         /// Returns the distance from the shape to the point
         /// </returns>
-        public float Distance(int x, int y) => this.innerPolygon.Distance(x, y);
+        public float Distance(Vector2 point) => this.innerPolygon.Distance(point);
 
         /// <summary>
         /// Returns an enumerator that iterates through the collection.

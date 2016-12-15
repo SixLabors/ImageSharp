@@ -17,8 +17,6 @@ namespace ImageSharp.Tests.Drawing
 
     public class DrawPathTests : FileTestBase
     {
-
-
         [Fact]
         public void ImageShouldBeOverlayedByPath()
         {

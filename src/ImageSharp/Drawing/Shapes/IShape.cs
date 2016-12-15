@@ -6,7 +6,7 @@
 namespace ImageSharp.Drawing.Shapes
 {
     using System.Collections.Generic;
-
+    using System.Numerics;
     using Paths;
 
     /// <summary>
@@ -25,9 +25,10 @@ namespace ImageSharp.Drawing.Shapes
         /// <summary>
         /// the distance of the point from the outline of the shape, if the value is negative it is inside the polygon bounds
         /// </summary>
-        /// <param name="x">The x.</param>
-        /// <param name="y">The y.</param>
-        /// <returns>Returns the distance from the shape to the point</returns>
-        float Distance(int x, int y);
+        /// <param name="point">The point.</param>
+        /// <returns>
+        /// Returns the distance from the shape to the point
+        /// </returns>
+        float Distance(Vector2 point);
     }
 }

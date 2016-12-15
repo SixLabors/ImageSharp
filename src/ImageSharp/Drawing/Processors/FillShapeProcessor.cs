@@ -28,16 +28,18 @@ namespace ImageSharp.Drawing.Processors
         private const int DrawPadding = 1;
         private readonly IBrush<TColor, TPacked> fillColor;
         private readonly IShape poly;
+        private readonly GraphicsOptions options;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="FillShapeProcessor{TColor, TPacked}"/> class.
         /// </summary>
         /// <param name="brush">The brush.</param>
         /// <param name="shape">The shape.</param>
-        public FillShapeProcessor(IBrush<TColor, TPacked> brush, IShape shape)
+        public FillShapeProcessor(IBrush<TColor, TPacked> brush, IShape shape, GraphicsOptions options)
         {
             this.poly = shape;
             this.fillColor = brush;
+            this.options = options;
         }
 
         /// <inheritdoc/>
@@ -71,7 +73,7 @@ namespace ImageSharp.Drawing.Processors
             {
                 polyStartY = 0;
             }
-
+            
             using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
             using (IBrushApplicator<TColor, TPacked> applicator = this.fillColor.CreateApplicator(rect))
             {
@@ -84,13 +86,13 @@ namespace ImageSharp.Drawing.Processors
                     int offsetY = y - polyStartY;
 
                     Vector2 currentPoint = default(Vector2);
+                    Vector2 currentPointOffset = default(Vector2);
                     for (int x = minX; x < maxX; x++)
                     {
                         int offsetX = x - startX;
                         currentPoint.X = offsetX;
                         currentPoint.Y = offsetY;
-
-                        var dist = this.poly.Distance(offsetX, offsetY);
+                        var dist = this.poly.Distance(currentPoint);
                         var opacity = this.Opacity(dist);
 
                         if (opacity > Epsilon)
@@ -118,7 +120,7 @@ namespace ImageSharp.Drawing.Processors
             {
                 return 1;
             }
-            else if (distance < AntialiasFactor)
+            else if (this.options.Antialias && distance < AntialiasFactor)
             {
                 return 1 - (distance / AntialiasFactor);
             }

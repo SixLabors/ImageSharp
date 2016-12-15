@@ -56,15 +56,12 @@ namespace ImageSharp.Drawing.Shapes
         /// <summary>
         /// the distance of the point from the outline of the shape, if the value is negative it is inside the polygon bounds
         /// </summary>
-        /// <param name="x">The x.</param>
-        /// <param name="y">The y.</param>
+        /// <param name="point">The point.</param>
         /// <returns>
         /// The distance of the point away from the shape
         /// </returns>
-        public float Distance(int x, int y)
+        public float Distance(Vector2 point)
         {
-            var point = new Vector2(x, y);
-
             bool isInside = this.innerPath.PointInPolygon(point);
 
             var distance = this.innerPath.DistanceFromPath(point).DistanceFromPath;
@@ -106,9 +103,9 @@ namespace ImageSharp.Drawing.Shapes
         /// <returns>
         /// distance metadata about the point.
         /// </returns>
-        PointInfo IPath.Distance(int x, int y)
+        PointInfo IPath.Distance(Vector2 point)
         {
-            return this.innerPath.DistanceFromPath(new Vector2(x, y));
+            return this.innerPath.DistanceFromPath(point);
         }
 
         /// <summary>

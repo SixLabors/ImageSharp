@@ -191,25 +191,19 @@ namespace ImageSharp.Drawing.Brushes
         private static readonly bool[,] HorizontalPattern = new bool[,]
         {
             { false, true, false, false },
-            { false, true, false, false },
-            { false, true, false, false },
-            { false, true, false, false }
         };
 
         private static readonly bool[,] MinPattern = new bool[,]
         {
             { false, false, false, true },
-            { false, false, false, true },
-            { false, false, false, true },
-            { false, false, false, true }
         };
 
         private static readonly bool[,] VerticalPattern = new bool[,]
         {
-            { false, false, false, false },
-            { true, true, true, true },
-            { false, false, false, false },
-            { false, false, false, false }
+            { false },
+            { true },
+            { false },
+            { false }
         };
 
         private static readonly bool[,] ForwardDiagonalPattern = new bool[,]

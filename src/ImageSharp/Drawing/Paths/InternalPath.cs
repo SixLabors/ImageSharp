@@ -32,7 +32,7 @@ namespace ImageSharp.Drawing.Paths
         /// </summary>
         /// <param name="segments">The segments.</param>
         /// <param name="isClosedPath">if set to <c>true</c> [is closed path].</param>
-        internal InternalPath(IEnumerable<ILineSegment> segments, bool isClosedPath)
+        internal InternalPath(ILineSegment[] segments, bool isClosedPath)
         {
             Guard.NotNull(segments, nameof(segments));
 
@@ -158,9 +158,15 @@ namespace ImageSharp.Drawing.Paths
             return oddNodes;
         }
 
-        private Vector2[] Simplify(IEnumerable<ILineSegment> segments)
+        private Vector2[] Simplify(ILineSegment[] segments)
         {
-            return segments.SelectMany(x => x.AsSimpleLinearPath()).ToArray();
+            List<Vector2> points = new List<Vector2>();
+            foreach(var seg in segments)
+            {
+                points.AddRange(seg.AsSimpleLinearPath());
+            }
+
+            return points.ToArray();
         }
 
         private float CalculateLength()

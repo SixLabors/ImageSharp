@@ -126,7 +126,7 @@ namespace ImageSharp.Drawing.Shapes
         /// <returns>
         /// Returns the current <see cref="ILineSegment" /> as simple linear path.
         /// </returns>
-        public IEnumerable<Vector2> AsSimpleLinearPath()
+        public Vector2[] AsSimpleLinearPath()
         {
             return this.innerPath.Points;
         }

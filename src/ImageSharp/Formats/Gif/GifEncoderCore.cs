@@ -9,10 +9,9 @@ namespace ImageSharp.Formats
     using System.Buffers;
     using System.IO;
     using System.Linq;
-    using System.Threading.Tasks;
+    using System.Numerics;
 
     using IO;
-
     using Quantizers;
 
     /// <summary>
@@ -129,10 +128,15 @@ namespace ImageSharp.Formats
             float alpha = 1;
             for (int i = 0; i < quantized.Palette.Length; i++)
             {
-                float a = quantized.Palette[i].ToVector4().W;
-                if (a < alpha)
+                Vector4 vector = quantized.Palette[i].ToVector4();
+                if (vector == Vector4.Zero)
                 {
-                    alpha = a;
+                    return i;
+                }
+
+                if (vector.W < alpha)
+                {
+                    alpha = vector.W;
                     index = i;
                 }
             }
@@ -157,10 +161,9 @@ namespace ImageSharp.Formats
         /// <param name="image">The image to encode.</param>
         /// <param name="writer">The writer to write to the stream with.</param>
         /// <param name="tranparencyIndex">The transparency index to set the default background index to.</param>
-        private void WriteLogicalScreenDescriptor<TColor, TPacked>(
-            Image<TColor, TPacked> image,
-            EndianBinaryWriter writer,
-            int tranparencyIndex) where TColor : struct, IPackedPixel<TPacked> where TPacked : struct
+        private void WriteLogicalScreenDescriptor<TColor, TPacked>(Image<TColor, TPacked> image, EndianBinaryWriter writer, int tranparencyIndex)
+            where TColor : struct, IPackedPixel<TPacked>
+            where TPacked : struct
         {
             GifLogicalScreenDescriptor descriptor = new GifLogicalScreenDescriptor
             {
@@ -238,8 +241,8 @@ namespace ImageSharp.Formats
             // TODO: Check transparency logic.
             bool hasTransparent = transparencyIndex > -1;
             DisposalMethod disposalMethod = hasTransparent
-                                                ? DisposalMethod.RestoreToBackground
-                                                : DisposalMethod.Unspecified;
+                ? DisposalMethod.RestoreToBackground
+                : DisposalMethod.Unspecified;
 
             GifGraphicsControlExtension extension = new GifGraphicsControlExtension()
             {

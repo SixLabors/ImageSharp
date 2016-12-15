@@ -117,7 +117,7 @@ namespace ImageSharp.Drawing.Processors
                         {
                             int offsetX = x - startX;
 
-                            var dist = this.paths.Select(p => p.Distance(offsetX, offsetY)).OrderBy(p => p.DistanceFromPath).First();
+                            var dist = Closest(offsetX, offsetY);
 
                             var color = applicator.GetColor(dist);
 
@@ -141,6 +141,24 @@ namespace ImageSharp.Drawing.Processors
                     });
                 }
             }
+        }
+
+        private PointInfo Closest(int x, int y)
+        {
+            PointInfo result = default(PointInfo);
+            float distance = float.MaxValue;
+
+            for (int i = 0; i < this.paths.Length; i++)
+            {
+                var p = this.paths[i].Distance(x, y);
+                if (p.DistanceFromPath < distance)
+                {
+                    distance = p.DistanceFromPath;
+                    result = p;
+                }
+            }
+
+            return result;
         }
 
         private float Opacity(float distance)

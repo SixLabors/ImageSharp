@@ -33,8 +33,7 @@ namespace ImageSharp.Quantizers
 
             if (pixels.Length != width * height)
             {
-                throw new ArgumentException(
-                    $"Pixel array size must be {nameof(width)} * {nameof(height)}", nameof(pixels));
+                throw new ArgumentException($"Pixel array size must be {nameof(width)} * {nameof(height)}", nameof(pixels));
             }
 
             this.Width = width;

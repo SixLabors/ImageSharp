@@ -7,7 +7,6 @@ namespace ImageSharp.Quantizers
 {
     using System;
     using System.Collections.Generic;
-    using System.Numerics;
 
     /// <summary>
     /// Encapsulates methods to calculate the color palette if an image using an Octree pattern.
@@ -183,7 +182,8 @@ namespace ImageSharp.Quantizers
                 TPacked packed = pixel.PackedValue;
 
                 // Check if this request is for the same color as the last
-                if (this.previousColor.Equals(packed))
+                // TODO: We should change our TPacked signature to ensure we can compare values without boxing allocations. 
+                if (this.previousColor.Equals((IEquatable<TPacked>)packed))
                 {
                     // If so, check if I have a previous node setup. This will only occur if the first color in the image
                     // happens to be black, with an alpha component of zero.
@@ -282,11 +282,6 @@ namespace ImageSharp.Quantizers
             /// </summary>
             protected class OctreeNode
             {
-                /// <summary>
-                /// Vector representing the maximum number of bytes
-                /// </summary>
-                private static readonly Vector4 MaxBytes = new Vector4(255);
-
                 /// <summary>
                 /// Pointers to any child nodes
                 /// </summary>
@@ -481,7 +476,7 @@ namespace ImageSharp.Quantizers
                 /// <summary>
                 /// Return the palette index for the passed color
                 /// </summary>
-                /// <param name="pixel">The <typeparamref name="TColor"/> representing the pixel.</param>
+                /// <param name="pixel">The pixel data.</param>
                 /// <param name="level">The level.</param>
                 /// <param name="buffer">The buffer array.</param>
                 /// <returns>

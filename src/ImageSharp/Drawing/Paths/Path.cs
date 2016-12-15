@@ -25,7 +25,7 @@ namespace ImageSharp.Drawing.Paths
         /// Initializes a new instance of the <see cref="Path"/> class.
         /// </summary>
         /// <param name="segment">The segment.</param>
-        internal Path(params ILineSegment[] segment)
+        public Path(params ILineSegment[] segment)
         {
             this.innerPath = new InternalPath(segment, false);
         }

@@ -24,15 +24,6 @@ namespace ImageSharp.Drawing.Shapes
         /// </summary>
         /// <param name="segments">The segments.</param>
         public Polygon(params ILineSegment[] segments)
-            : this((IEnumerable<ILineSegment>)segments)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Polygon"/> class.
-        /// </summary>
-        /// <param name="segments">The segments.</param>
-        public Polygon(IEnumerable<ILineSegment> segments)
         {
             this.innerPath = new InternalPath(segments, true);
             this.pathCollection = new[] { this };

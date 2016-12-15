@@ -46,9 +46,7 @@ namespace ImageSharp.Drawing.Brushes
         where TColor : struct, IPackedPixel<TPacked>
         where TPacked : struct
     {
-        private readonly TColor foreColor;
-        private readonly TColor backColor;
-        private readonly bool[][] pattern;
+        private readonly TColor[][] pattern;
         private readonly int stride;
 
         /// <summary>
@@ -59,20 +57,23 @@ namespace ImageSharp.Drawing.Brushes
         /// <param name="pattern">The pattern.</param>
         public PatternBrush(TColor foreColor, TColor backColor, bool[,] pattern)
         {
-            this.foreColor = foreColor;
-            this.backColor = backColor;
-
             this.stride = pattern.GetLength(1);
 
             // convert the multidimension array into a jagged one.
             var height = pattern.GetLength(0);
-            this.pattern = new bool[height][];
+            this.pattern = new TColor[height][];
             for (var x = 0; x < height; x++)
             {
-                this.pattern[x] = new bool[stride];
+                this.pattern[x] = new TColor[stride];
                 for (var y = 0; y < stride; y++)
                 {
-                    this.pattern[x][y] = pattern[x, y];
+                    if (pattern[x, y])
+                    {
+                        this.pattern[x][y] = foreColor;
+                    }else
+                    {
+                        this.pattern[x][y] = backColor;
+                    }
                 }
             }
         }
@@ -83,8 +84,6 @@ namespace ImageSharp.Drawing.Brushes
         /// <param name="brush">The brush.</param>
         internal PatternBrush(PatternBrush<TColor, TPacked> brush)
         {
-            this.foreColor = brush.foreColor;
-            this.backColor = brush.backColor;
             this.pattern = brush.pattern;
             this.stride = brush.stride;
         }
@@ -102,16 +101,14 @@ namespace ImageSharp.Drawing.Brushes
         /// </remarks>
         public IBrushApplicator<TColor, TPacked> CreateApplicator(RectangleF region)
         {
-            return new PatternBrushApplicator(this.foreColor, this.backColor, this.pattern, this.stride);
+            return new PatternBrushApplicator(this.pattern, this.stride);
         }
 
         private class PatternBrushApplicator : IBrushApplicator<TColor, TPacked>
         {
             private readonly int xLength;
             private readonly int stride;
-            private readonly bool[][] pattern;
-            private readonly TColor backColor = default(TColor);
-            private readonly TColor foreColor = default(TColor);
+            private readonly TColor[][] pattern;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="PatternBrushApplicator" /> class.
@@ -120,10 +117,8 @@ namespace ImageSharp.Drawing.Brushes
             /// <param name="backColor">Color of the back.</param>
             /// <param name="pattern">The pattern.</param>
             /// <param name="stride">The stride.</param>
-            public PatternBrushApplicator(TColor foreColor, TColor backColor, bool[][] pattern, int stride)
+            public PatternBrushApplicator(TColor[][] pattern, int stride)
             {
-                this.foreColor = foreColor;
-                this.backColor = backColor;
                 this.pattern = pattern;
                 this.xLength = pattern.Length;
                 this.stride = stride;
@@ -141,14 +136,7 @@ namespace ImageSharp.Drawing.Brushes
                 var x = (int)point.X % this.xLength;
                 var y = (int)point.Y % this.stride;
 
-                if (this.pattern[x][y])
-                {
-                    return this.foreColor;
-                }
-                else
-                {
-                    return this.backColor;
-                }
+                return this.pattern[x][y];
             }
 
             /// <summary>

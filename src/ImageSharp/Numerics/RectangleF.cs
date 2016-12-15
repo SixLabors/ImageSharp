@@ -1,4 +1,4 @@
-﻿// <copyright file="Rectangle.cs" company="James Jackson-South">
+﻿// <copyright file="RectangleF.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -16,12 +16,12 @@ namespace ImageSharp
     /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
     /// as it avoids the need to create new values for modification operations.
     /// </remarks>
-    public struct Rectangle : IEquatable<Rectangle>
+    public struct RectangleF : IEquatable<RectangleF>
     {
         /// <summary>
         /// Represents a <see cref="Rectangle"/> that has X, Y, Width, and Height values set to zero.
         /// </summary>
-        public static readonly Rectangle Empty = default(Rectangle);
+        public static readonly RectangleF Empty = default(RectangleF);
 
         /// <summary>
         /// The backing vector for SIMD support.
@@ -29,48 +29,34 @@ namespace ImageSharp
         private Vector4 backingVector;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Rectangle"/> struct.
+        /// Initializes a new instance of the <see cref="RectangleF"/> struct.
         /// </summary>
         /// <param name="x">The horizontal position of the rectangle.</param>
         /// <param name="y">The vertical position of the rectangle.</param>
         /// <param name="width">The width of the rectangle.</param>
         /// <param name="height">The height of the rectangle.</param>
-        public Rectangle(int x, int y, int width, int height)
+        public RectangleF(float x, float y, float width, float height)
         {
             this.backingVector = new Vector4(x, y, width, height);
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Rectangle"/> struct.
-        /// </summary>
-        /// <param name="point">
-        /// The <see cref="Point"/> which specifies the rectangles point in a two-dimensional plane.
-        /// </param>
-        /// <param name="size">
-        /// The <see cref="Size"/> which specifies the rectangles height and width.
-        /// </param>
-        public Rectangle(Point point, Size size)
-        {
-            this.backingVector = new Vector4(point.X, point.Y, size.Width, size.Height);
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Rectangle"/> struct.
+        /// Initializes a new instance of the <see cref="RectangleF"/> struct.
         /// </summary>
         /// <param name="vector">The vector.</param>
-        public Rectangle(Vector4 vector)
+        public RectangleF(Vector4 vector)
         {
             this.backingVector = vector;
         }
 
         /// <summary>
-        /// Gets or sets the x-coordinate of this <see cref="Rectangle"/>.
+        /// Gets or sets the x-coordinate of this <see cref="RectangleF"/>.
         /// </summary>
-        public int X
+        public float X
         {
             get
             {
-                return (int)this.backingVector.X;
+                return this.backingVector.X;
             }
 
             set
@@ -80,13 +66,13 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Gets or sets the y-coordinate of this <see cref="Rectangle"/>.
+        /// Gets or sets the y-coordinate of this <see cref="RectangleF"/>.
         /// </summary>
-        public int Y
+        public float Y
         {
             get
             {
-                return (int)this.backingVector.Y;
+                return this.backingVector.Y;
             }
 
             set
@@ -96,13 +82,13 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Gets or sets the width of this <see cref="Rectangle"/>.
+        /// Gets or sets the width of this <see cref="RectangleF"/>.
         /// </summary>
-        public int Width
+        public float Width
         {
             get
             {
-                return (int)this.backingVector.Z;
+                return this.backingVector.Z;
             }
 
             set
@@ -112,13 +98,13 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Gets or sets the height of this <see cref="Rectangle"/>.
+        /// Gets or sets the height of this <see cref="RectangleF"/>.
         /// </summary>
-        public int Height
+        public float Height
         {
             get
             {
-                return (int)this.backingVector.W;
+                return this.backingVector.W;
             }
 
             set
@@ -128,35 +114,42 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Gets the size of this <see cref="Rectangle"/>.
-        /// </summary>
-        public Size Size => new Size(this.Width, this.Height);
-
-        /// <summary>
-        /// Gets a value indicating whether this <see cref="Rectangle"/> is empty.
+        /// Gets a value indicating whether this <see cref="RectangleF"/> is empty.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public bool IsEmpty => this.Equals(Empty);
 
         /// <summary>
-        /// Gets the y-coordinate of the top edge of this <see cref="Rectangle"/>.
+        /// Gets the y-coordinate of the top edge of this <see cref="RectangleF"/>.
         /// </summary>
-        public int Top => this.Y;
+        public float Top => this.Y;
 
         /// <summary>
-        /// Gets the x-coordinate of the right edge of this <see cref="Rectangle"/>.
+        /// Gets the x-coordinate of the right edge of this <see cref="RectangleF"/>.
         /// </summary>
-        public int Right => this.X + this.Width;
+        public float Right => this.X + this.Width;
 
         /// <summary>
-        /// Gets the y-coordinate of the bottom edge of this <see cref="Rectangle"/>.
+        /// Gets the y-coordinate of the bottom edge of this <see cref="RectangleF"/>.
         /// </summary>
-        public int Bottom => this.Y + this.Height;
+        public float Bottom => this.Y + this.Height;
 
         /// <summary>
-        /// Gets the x-coordinate of the left edge of this <see cref="Rectangle"/>.
+        /// Gets the x-coordinate of the left edge of this <see cref="RectangleF"/>.
         /// </summary>
-        public int Left => this.X;
+        public float Left => this.X;
+
+        /// <summary>
+        /// Performs an implicit conversion from <see cref="Rectangle"/> to <see cref="RectangleF"/>.
+        /// </summary>
+        /// <param name="d">The d.</param>
+        /// <returns>
+        /// The result of the conversion.
+        /// </returns>
+        public static implicit operator RectangleF(Rectangle d)
+        {
+            return new RectangleF(d.Left, d.Top, d.Width, d.Height);
+        }
 
         /// <summary>
         /// Computes the sum of adding two rectangles.
@@ -164,11 +157,11 @@ namespace ImageSharp
         /// <param name="left">The rectangle on the left hand of the operand.</param>
         /// <param name="right">The rectangle on the right hand of the operand.</param>
         /// <returns>
-        /// The <see cref="Rectangle"/>
+        /// The <see cref="RectangleF"/>
         /// </returns>
-        public static Rectangle operator +(Rectangle left, Rectangle right)
+        public static RectangleF operator +(RectangleF left, RectangleF right)
         {
-            return new Rectangle(left.backingVector + right.backingVector);
+            return new RectangleF(left.backingVector + right.backingVector);
         }
 
         /// <summary>
@@ -177,65 +170,97 @@ namespace ImageSharp
         /// <param name="left">The rectangle on the left hand of the operand.</param>
         /// <param name="right">The rectangle on the right hand of the operand.</param>
         /// <returns>
-        /// The <see cref="Rectangle"/>
+        /// The <see cref="RectangleF"/>
         /// </returns>
-        public static Rectangle operator -(Rectangle left, Rectangle right)
+        public static RectangleF operator -(RectangleF left, RectangleF right)
         {
-            return new Rectangle(left.backingVector - right.backingVector);
+            return new RectangleF(left.backingVector - right.backingVector);
         }
 
         /// <summary>
-        /// Compares two <see cref="Rectangle"/> objects for equality.
+        /// Compares two <see cref="RectangleF"/> objects for equality.
         /// </summary>
         /// <param name="left">
-        /// The <see cref="Rectangle"/> on the left side of the operand.
+        /// The <see cref="RectangleF"/> on the left side of the operand.
         /// </param>
         /// <param name="right">
-        /// The <see cref="Rectangle"/> on the right side of the operand.
+        /// The <see cref="RectangleF"/> on the right side of the operand.
         /// </param>
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        public static bool operator ==(Rectangle left, Rectangle right)
+        public static bool operator ==(RectangleF left, RectangleF right)
         {
             return left.Equals(right);
         }
 
         /// <summary>
-        /// Compares two <see cref="Rectangle"/> objects for inequality.
+        /// Compares two <see cref="RectangleF"/> objects for inequality.
         /// </summary>
         /// <param name="left">
-        /// The <see cref="Rectangle"/> on the left side of the operand.
+        /// The <see cref="RectangleF"/> on the left side of the operand.
         /// </param>
         /// <param name="right">
-        /// The <see cref="Rectangle"/> on the right side of the operand.
+        /// The <see cref="RectangleF"/> on the right side of the operand.
         /// </param>
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        public static bool operator !=(Rectangle left, Rectangle right)
+        public static bool operator !=(RectangleF left, RectangleF right)
         {
             return !left.Equals(right);
         }
 
         /// <summary>
-        /// Returns the center point of the given <see cref="Rectangle"/>
+        /// Returns the center point of the given <see cref="RectangleF"/>
         /// </summary>
         /// <param name="rectangle">The rectangle</param>
         /// <returns><see cref="Point"/></returns>
-        public static Point Center(Rectangle rectangle)
+        public static Vector2 Center(RectangleF rectangle)
         {
-            return new Point(rectangle.Left + (rectangle.Width / 2), rectangle.Top + (rectangle.Height / 2));
+            return new Vector2(rectangle.Left + (rectangle.Width / 2), rectangle.Top + (rectangle.Height / 2));
+        }
+
+        /// <summary>
+        /// Rounds the points away from the center this into a <see cref="Rectangle"/>
+        /// by rounding the dimensions to the nerent integer ensuring that the new rectangle is
+        /// never smaller than the source <see cref="RectangleF"/>
+        /// </summary>
+        /// <param name="source">The source area to round out</param>
+        /// <returns>
+        ///     The smallest <see cref="Rectangle"/> that the <see cref="RectangleF"/> will fit inside.
+        /// </returns>
+        public static Rectangle Ceiling(RectangleF source)
+        {
+            int y = (int)Math.Floor(source.Y);
+            int width = (int)Math.Ceiling(source.Width);
+            int x = (int)Math.Floor(source.X);
+            int height = (int)Math.Ceiling(source.Height);
+            return new Rectangle(x, y, width, height);
+        }
+
+        /// <summary>
+        /// Outsets the specified region.
+        /// </summary>
+        /// <param name="region">The region.</param>
+        /// <param name="width">The width.</param>
+        /// <returns>
+        /// The <see cref="RectangleF"/> with all dimensions move away from the center by the offset.
+        /// </returns>
+        public static RectangleF Outset(RectangleF region, float width)
+        {
+            var dblWidth = width * 2;
+            return new RectangleF(region.X - width, region.Y - width, region.Width + dblWidth, region.Height + dblWidth);
         }
 
         /// <summary>
         /// Determines if the specfied point is contained within the rectangular region defined by
-        /// this <see cref="Rectangle"/>.
+        /// this <see cref="RectangleF"/>.
         /// </summary>
         /// <param name="x">The x-coordinate of the given point.</param>
         /// <param name="y">The y-coordinate of the given point.</param>
         /// <returns>The <see cref="bool"/></returns>
-        public bool Contains(int x, int y)
+        public bool Contains(float x, float y)
         {
             // TODO: SIMD?
             return this.X <= x
@@ -250,7 +275,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="rect">The other Rectange </param>
         /// <returns>The <see cref="bool"/></returns>
-        public bool Intersects(Rectangle rect)
+        public bool Intersects(RectangleF rect)
         {
             return rect.Left <= this.Right && rect.Right >= this.Left
                 &&
@@ -278,16 +303,16 @@ namespace ImageSharp
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            if (obj is Rectangle)
+            if (obj is RectangleF)
             {
-                return this.Equals((Rectangle)obj);
+                return this.Equals((RectangleF)obj);
             }
 
             return false;
         }
 
         /// <inheritdoc/>
-        public bool Equals(Rectangle other)
+        public bool Equals(RectangleF other)
         {
             return this.backingVector.Equals(other.backingVector);
         }
@@ -296,12 +321,12 @@ namespace ImageSharp
         /// Returns the hash code for this instance.
         /// </summary>
         /// <param name="rectangle">
-        /// The instance of <see cref="Rectangle"/> to return the hash code for.
+        /// The instance of <see cref="RectangleF"/> to return the hash code for.
         /// </param>
         /// <returns>
         /// A 32-bit signed integer that is the hash code for this instance.
         /// </returns>
-        private int GetHashCode(Rectangle rectangle)
+        private int GetHashCode(RectangleF rectangle)
         {
             return rectangle.backingVector.GetHashCode();
         }

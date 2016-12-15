@@ -20,9 +20,9 @@ namespace ImageSharp.Tests.Drawing
         {
             string path = CreateOutputDirectory("Drawing", "FilledPolygons");
             var simplePath = new[] {
-                            new Point(10, 10),
-                            new Point(200, 150),
-                            new Point(50, 300)
+                            new Vector2(10, 10),
+                            new Vector2(200, 150),
+                            new Vector2(50, 300)
             };
             var image = new Image(500, 500);
 
@@ -51,9 +51,9 @@ namespace ImageSharp.Tests.Drawing
         {
             string path = CreateOutputDirectory("Drawing", "FilledPolygons");
             var simplePath = new[] {
-                            new Point(10, 10),
-                            new Point(200, 150),
-                            new Point(50, 300)
+                            new Vector2(10, 10),
+                            new Vector2(200, 150),
+                            new Vector2(50, 300)
             };
             var color = new Color(Color.HotPink.R, Color.HotPink.G, Color.HotPink.B, 150);
             
@@ -87,10 +87,10 @@ namespace ImageSharp.Tests.Drawing
         {
             string path = CreateOutputDirectory("Drawing", "FilledPolygons");
             var simplePath = new[] {
-                            new Point(10, 10),
-                            new Point(200, 10),
-                            new Point(200, 150),
-                            new Point(10, 150)
+                            new Vector2(10, 10),
+                            new Vector2(200, 10),
+                            new Vector2(200, 150),
+                            new Vector2(10, 150)
                             };
 
             var image = new Image(500, 500);

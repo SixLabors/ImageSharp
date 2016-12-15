@@ -21,14 +21,14 @@ namespace ImageSharp.Tests.Drawing
         {
             string path = CreateOutputDirectory("Drawing", "ComplexPolygon");
             var simplePath = new LinearPolygon(
-                            new Point(10, 10),
-                            new Point(200, 150),
-                            new Point(50, 300));
+                            new Vector2(10, 10),
+                            new Vector2(200, 150),
+                            new Vector2(50, 300));
 
             var hole1 = new LinearPolygon(
-                            new Point(37, 85),
-                            new Point(93, 85),
-                            new Point(65, 137));
+                            new Vector2(37, 85),
+                            new Vector2(93, 85),
+                            new Vector2(65, 137));
 
             var image = new Image(500, 500);
 
@@ -61,14 +61,14 @@ namespace ImageSharp.Tests.Drawing
         {
             string path = CreateOutputDirectory("Drawing", "ComplexPolygon");
             var simplePath = new LinearPolygon(
-                            new Point(10, 10),
-                            new Point(200, 150),
-                            new Point(50, 300));
+                            new Vector2(10, 10),
+                            new Vector2(200, 150),
+                            new Vector2(50, 300));
 
             var hole1 = new LinearPolygon(
-                            new Point(37, 85),
-                            new Point(130, 40),
-                            new Point(65, 137));
+                            new Vector2(37, 85),
+                            new Vector2(130, 40),
+                            new Vector2(65, 137));
 
             var image = new Image(500, 500);
 
@@ -100,14 +100,14 @@ namespace ImageSharp.Tests.Drawing
         {
             string path = CreateOutputDirectory("Drawing", "ComplexPolygon");
             var simplePath = new LinearPolygon(
-                            new Point(10, 10),
-                            new Point(200, 150),
-                            new Point(50, 300));
+                            new Vector2(10, 10),
+                            new Vector2(200, 150),
+                            new Vector2(50, 300));
 
             var hole1 = new LinearPolygon(
-                            new Point(37, 85),
-                            new Point(93, 85),
-                            new Point(65, 137));
+                            new Vector2(37, 85),
+                            new Vector2(93, 85),
+                            new Vector2(65, 137));
             var color = new Color(Color.HotPink.R, Color.HotPink.G, Color.HotPink.B, 150);
 
             var image = new Image(500, 500);

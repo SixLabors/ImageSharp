@@ -24,37 +24,10 @@ namespace ImageSharp.Drawing.Paths
         private Vector2[] linePoints;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="BezierLineSegment" /> class.
-        /// </summary>
-        /// <param name="points">The points.</param>
-        public BezierLineSegment(IEnumerable<PointF> points)
-            : this(points?.Select(x => x.ToVector2()).ToArray())
-        {
-        }
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="BezierLineSegment"/> class.
         /// </summary>
         /// <param name="points">The points.</param>
-        public BezierLineSegment(IEnumerable<Point> points)
-            : this(points?.Select(x => x.ToVector2()).ToArray())
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="BezierLineSegment"/> class.
-        /// </summary>
-        /// <param name="points">The points.</param>
-        public BezierLineSegment(params PointF[] points)
-            : this(points?.Select(x => x.ToVector2()).ToArray())
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="BezierLineSegment"/> class.
-        /// </summary>
-        /// <param name="points">The points.</param>
-        internal BezierLineSegment(Vector2[] points)
+        public BezierLineSegment(params Vector2[] points)
         {
             Guard.NotNull(points, nameof(points));
             Guard.MustBeGreaterThanOrEqualTo(points.Length, 4, nameof(points));

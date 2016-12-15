@@ -33,8 +33,8 @@ namespace ImageSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="CieXyz"/> struct.
         /// </summary>
-        /// <param name="y">The y luminance component.</param>
         /// <param name="x">X is a mix (a linear combination) of cone response curves chosen to be nonnegative</param>
+        /// <param name="y">The y luminance component.</param>
         /// <param name="z">Z is quasi-equal to blue stimulation, or the S cone of the human eye.</param>
         public CieXyz(float x, float y, float z)
             : this()

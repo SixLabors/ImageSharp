@@ -74,9 +74,7 @@ namespace ImageSharp.Formats
         {
             if (index < 0 || index > 7)
             {
-                string message
-                    = "Index must be between 0 and 7. Supplied index: "
-                    + index;
+                string message = $"Index must be between 0 and 7. Supplied index: {index}";
                 throw new ArgumentOutOfRangeException(nameof(index), message);
             }
 

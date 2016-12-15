@@ -94,7 +94,7 @@ namespace ImageSharp.Formats
         /// method will not dispose again. This help not to prolong the entity's
         /// life in the Garbage Collector.
         /// </remarks>
-        private bool isDisposed = false;
+        private bool isDisposed;
 
         /// <summary>
         /// The current pixel

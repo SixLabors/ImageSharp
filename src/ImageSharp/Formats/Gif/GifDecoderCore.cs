@@ -258,9 +258,11 @@ namespace ImageSharp.Formats
         private byte[] ReadFrameIndices(GifImageDescriptor imageDescriptor)
         {
             int dataSize = this.currentStream.ReadByte();
-            LzwDecoder lzwDecoder = new LzwDecoder(this.currentStream);
-
-            byte[] indices = lzwDecoder.DecodePixels(imageDescriptor.Width, imageDescriptor.Height, dataSize);
+            byte[] indices;
+            using (LzwDecoder lzwDecoder = new LzwDecoder(this.currentStream))
+            {
+                indices = lzwDecoder.DecodePixels(imageDescriptor.Width, imageDescriptor.Height, dataSize);
+            }
 
             return indices;
         }
@@ -355,17 +357,17 @@ namespace ImageSharp.Formats
                                 interlacePass++;
                                 switch (interlacePass)
                                 {
-                                  case 1:
-                                      interlaceY = 4;
-                                      break;
-                                  case 2:
-                                      interlaceY = 2;
-                                      interlaceIncrement = 4;
-                                      break;
-                                  case 3:
-                                      interlaceY = 1;
-                                      interlaceIncrement = 2;
-                                      break;
+                                    case 1:
+                                        interlaceY = 4;
+                                        break;
+                                    case 2:
+                                        interlaceY = 2;
+                                        interlaceIncrement = 4;
+                                        break;
+                                    case 3:
+                                        interlaceY = 1;
+                                        interlaceIncrement = 2;
+                                        break;
                                 }
                             }
 
@@ -411,14 +413,7 @@ namespace ImageSharp.Formats
                 return;
             }
 
-            if (currentFrame == null)
-            {
-                this.nextFrame = this.decodedImage.ToFrame();
-            }
-            else
-            {
-                this.nextFrame = currentFrame.Clone();
-            }
+            this.nextFrame = currentFrame == null ? this.decodedImage.ToFrame() : currentFrame.Clone();
 
             if (this.graphicsControlExtension != null &&
                 this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToBackground)
@@ -427,6 +422,10 @@ namespace ImageSharp.Formats
             }
         }
 
+        /// <summary>
+        /// Restores the current frame background.
+        /// </summary>
+        /// <param name="frame">The frame.</param>
         private void RestoreToBackground(ImageBase<TColor, TPacked> frame)
         {
             if (this.restoreArea == null)

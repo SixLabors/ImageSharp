@@ -21,9 +21,7 @@ namespace ImageSharp.Drawing.Paths
         // code for this taken from http://devmag.org.za/2011/04/05/bzier-curves-a-tutorial/
         private const int SegmentsPerCurve = 50;
 
-        private List<Vector2> linePoints;
-
-        private int curveCount; // how many bezier curves in this path?
+        private Vector2[] linePoints;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BezierLineSegment" /> class.
@@ -61,7 +59,6 @@ namespace ImageSharp.Drawing.Paths
             Guard.NotNull(points, nameof(points));
             Guard.MustBeGreaterThanOrEqualTo(points.Length, 4, nameof(points));
 
-            this.curveCount = (points.Length - 1) / 3;
             this.linePoints = this.GetDrawingPoints(points);
         }
 
@@ -76,14 +73,17 @@ namespace ImageSharp.Drawing.Paths
             return this.linePoints;
         }
 
-        private List<Vector2> GetDrawingPoints(Vector2[] controlPoints)
+        private Vector2[] GetDrawingPoints(Vector2[] controlPoints)
         {
             // TODO we need to calculate an optimal SegmentsPerCurve value
             // depending on the calcualted length of this curve
-            var maxPoints = (int)Math.Ceiling(SegmentsPerCurve * (float)this.curveCount);
 
-            List<Vector2> drawingPoints = new List<Vector2>(maxPoints); // set a default size to be efficient?
+            var curveCount = (controlPoints.Length - 1) / 3;
+            var finalPointCount = (SegmentsPerCurve * curveCount) + 1; // we have SegmentsPerCurve for each curve plus the origon point;
 
+            var drawingPoints = new Vector2[finalPointCount];
+
+            int position = 0;
             var targetPoint = controlPoints.Length - 3;
             for (int i = 0; i < targetPoint; i += 3)
             {
@@ -95,13 +95,13 @@ namespace ImageSharp.Drawing.Paths
                 // only do this for the first end point. When i != 0, this coincides with the end point of the previous segment,
                 if (i == 0)
                 {
-                    drawingPoints.Add(this.CalculateBezierPoint(0, p0, p1, p2, p3));
+                    drawingPoints[position++] = this.CalculateBezierPoint(0, p0, p1, p2, p3);
                 }
 
                 for (int j = 1; j <= SegmentsPerCurve; j++)
                 {
                     float t = j / (float)SegmentsPerCurve;
-                    drawingPoints.Add(this.CalculateBezierPoint(t, p0, p1, p2, p3));
+                    drawingPoints[position++] = this.CalculateBezierPoint(t, p0, p1, p2, p3);
                 }
             }
 

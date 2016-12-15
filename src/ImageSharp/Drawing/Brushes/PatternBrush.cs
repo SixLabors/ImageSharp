@@ -14,7 +14,7 @@ namespace ImageSharp.Drawing.Brushes
     /// <summary>
     /// Provides an implementaion of a pattern brush for painting patterns.
     /// </summary>
-    public partial class PatternBrush : PatternBrush<Color, uint>
+    public class PatternBrush : PatternBrush<Color, uint>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="PatternBrush"/> class.
@@ -48,7 +48,8 @@ namespace ImageSharp.Drawing.Brushes
     {
         private readonly TColor foreColor;
         private readonly TColor backColor;
-        private readonly bool[,] pattern;
+        private readonly bool[][] pattern;
+        private readonly int stride;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PatternBrush{TColor, TPacked}"/> class.
@@ -60,7 +61,20 @@ namespace ImageSharp.Drawing.Brushes
         {
             this.foreColor = foreColor;
             this.backColor = backColor;
-            this.pattern = pattern;
+
+            this.stride = pattern.GetLength(1);
+
+            // convert the multidimension array into a jagged one.
+            var height = pattern.GetLength(0);
+            this.pattern = new bool[height][];
+            for (var x = 0; x < height; x++)
+            {
+                this.pattern[x] = new bool[stride];
+                for (var y = 0; y < stride; y++)
+                {
+                    this.pattern[x][y] = pattern[x, y];
+                }
+            }
         }
 
         /// <summary>
@@ -68,8 +82,11 @@ namespace ImageSharp.Drawing.Brushes
         /// </summary>
         /// <param name="brush">The brush.</param>
         internal PatternBrush(PatternBrush<TColor, TPacked> brush)
-            : this(brush.foreColor, brush.backColor, brush.pattern)
         {
+            this.foreColor = brush.foreColor;
+            this.backColor = brush.backColor;
+            this.pattern = brush.pattern;
+            this.stride = brush.stride;
         }
 
         /// <summary>
@@ -85,31 +102,31 @@ namespace ImageSharp.Drawing.Brushes
         /// </remarks>
         public IBrushApplicator<TColor, TPacked> CreateApplicator(RectangleF region)
         {
-            return new PatternBrushApplicator(this.foreColor, this.backColor, this.pattern);
+            return new PatternBrushApplicator(this.foreColor, this.backColor, this.pattern, this.stride);
         }
 
         private class PatternBrushApplicator : IBrushApplicator<TColor, TPacked>
         {
             private readonly int xLength;
-            private readonly int yLength;
-            private readonly bool[,] pattern;
+            private readonly int stride;
+            private readonly bool[][] pattern;
             private readonly TColor backColor = default(TColor);
             private readonly TColor foreColor = default(TColor);
 
             /// <summary>
-            /// Initializes a new instance of the <see cref="PatternBrushApplicator"/> class.
+            /// Initializes a new instance of the <see cref="PatternBrushApplicator" /> class.
             /// </summary>
             /// <param name="foreColor">Color of the fore.</param>
             /// <param name="backColor">Color of the back.</param>
             /// <param name="pattern">The pattern.</param>
-            public PatternBrushApplicator(TColor foreColor, TColor backColor, bool[,] pattern)
+            /// <param name="stride">The stride.</param>
+            public PatternBrushApplicator(TColor foreColor, TColor backColor, bool[][] pattern, int stride)
             {
                 this.foreColor = foreColor;
                 this.backColor = backColor;
                 this.pattern = pattern;
-
-                this.xLength = this.pattern.GetLength(0);
-                this.yLength = this.pattern.GetLength(1);
+                this.xLength = pattern.Length;
+                this.stride = stride;
             }
 
             /// <summary>
@@ -122,9 +139,9 @@ namespace ImageSharp.Drawing.Brushes
             public TColor GetColor(Vector2 point)
             {
                 var x = (int)point.X % this.xLength;
-                var y = (int)point.Y % this.yLength;
+                var y = (int)point.Y % this.stride;
 
-                if (this.pattern[x, y])
+                if (this.pattern[x][y])
                 {
                     return this.foreColor;
                 }

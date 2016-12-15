@@ -172,6 +172,7 @@ namespace ImageSharp.Drawing.Brushes
         // ^
         // | X - axis
         // |
+        // see PatternBrush for details about how to make new patterns work
         private static readonly bool[,] Percent10Pattern = new bool[,]
         {
             { true, false, false, false },

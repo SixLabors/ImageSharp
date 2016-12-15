@@ -28,10 +28,10 @@ using (FileStream output = File.OpenWrite($"{path}/Simple.png"))
     image
         .BackgroundColor(Color.Blue)
         .DrawBeziers(Color.HotPink, 5, new[] {
-            new PointF(10, 400),
-            new PointF(30, 10),
-            new PointF(240, 30),
-            new PointF(300, 400)
+            new Vector2(10, 400),
+            new Vector2(30, 10),
+            new Vector2(240, 30),
+            new Vector2(300, 400)
         })
         .Save(output);
 }
@@ -70,10 +70,10 @@ using (FileStream output = File.OpenWrite($"{path}/Simple.png"))
                 image
                     .BackgroundColor(Color.Blue)
                     .DrawBeziers(color, 10, new[] {
-                        new PointF(10, 400),
-                        new PointF(30, 10),
-                        new PointF(240, 30),
-                        new PointF(300, 400)
+                        new Vector2(10, 400),
+                        new Vector2(30, 10),
+                        new Vector2(240, 30),
+                        new Vector2(300, 400)
                     })
                     .Save(output);
             }

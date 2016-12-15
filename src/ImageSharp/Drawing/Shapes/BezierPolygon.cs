@@ -7,7 +7,7 @@ namespace ImageSharp.Drawing.Shapes
 {
     using System.Collections;
     using System.Collections.Generic;
-
+    using System.Numerics;
     using Paths;
 
     /// <summary>
@@ -21,16 +21,7 @@ namespace ImageSharp.Drawing.Shapes
         /// Initializes a new instance of the <see cref="BezierPolygon"/> class.
         /// </summary>
         /// <param name="points">The points.</param>
-        public BezierPolygon(params Point[] points)
-        {
-            this.innerPolygon = new Polygon(new BezierLineSegment(points));
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="BezierPolygon"/> class.
-        /// </summary>
-        /// <param name="points">The points.</param>
-        public BezierPolygon(params PointF[] points)
+        public BezierPolygon(params Vector2[] points)
         {
             this.innerPolygon = new Polygon(new BezierLineSegment(points));
         }

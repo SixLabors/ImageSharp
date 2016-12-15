@@ -10,9 +10,9 @@ namespace ImageSharp.Benchmarks
 
     using BenchmarkDotNet.Attributes;
     using CoreImage = ImageSharp.Image;
-    using CorePoint = ImageSharp.Point;
     using CoreColor = ImageSharp.Color;
     using System.IO;
+    using System.Numerics;
 
     public class FillPolygon
     {
@@ -44,9 +44,9 @@ namespace ImageSharp.Benchmarks
             CoreImage image = new CoreImage(800, 800);
             image.FillPolygon(CoreColor.HotPink,
                  new[] {
-                     new CorePoint(10, 10),
-                     new CorePoint(550, 50),
-                     new CorePoint(200, 400)
+                     new Vector2(10, 10),
+                     new Vector2(550, 50),
+                     new Vector2(200, 400)
                  }
                 );
 

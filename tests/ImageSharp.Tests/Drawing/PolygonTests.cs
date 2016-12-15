@@ -19,25 +19,20 @@ namespace ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedByPolygonOutline()
         {
             string path = CreateOutputDirectory("Drawing", "Polygons");
-            var simplePath = new[] {
-                            new Point(10, 10),
-                            new Point(200, 150),
-                            new Point(50, 300)
-            };
 
-var image = new Image(500, 500);
+            var image = new Image(500, 500);
 
-using (FileStream output = File.OpenWrite($"{path}/Simple.png"))
-{
-    image
-        .BackgroundColor(Color.Blue)
-        .DrawPolygon(Color.HotPink, 5, new[] {
-                new Point(10, 10),
-                new Point(200, 150),
-                new Point(50, 300)
-        })
-        .Save(output);
-}
+            using (FileStream output = File.OpenWrite($"{path}/Simple.png"))
+            {
+                image
+                    .BackgroundColor(Color.Blue)
+                    .DrawPolygon(Color.HotPink, 5, new[] {
+                        new Vector2(10, 10),
+                        new Vector2(200, 150),
+                        new Vector2(50, 300)
+                    })
+                    .Save(output);
+            }
 
             using (var sourcePixels = image.Lock())
             {
@@ -57,9 +52,9 @@ using (FileStream output = File.OpenWrite($"{path}/Simple.png"))
         {
             string path = CreateOutputDirectory("Drawing", "Polygons");
             var simplePath = new[] {
-                            new Point(10, 10),
-                            new Point(200, 150),
-                            new Point(50, 300)
+                            new Vector2(10, 10),
+                            new Vector2(200, 150),
+                            new Vector2(50, 300)
             };
 
             var color = new Color(Color.HotPink.R, Color.HotPink.G, Color.HotPink.B, 150);
@@ -93,27 +88,21 @@ using (FileStream output = File.OpenWrite($"{path}/Simple.png"))
         public void ImageShouldBeOverlayedByRectangleOutline()
         {
             string path = CreateOutputDirectory("Drawing", "Polygons");
-            var simplePath = new[] {
-                            new Point(10, 10),
-                            new Point(200, 10),
-                            new Point(200, 150),
-                            new Point(10, 150)
-                            };
 
-var image = new Image(500, 500);
+            var image = new Image(500, 500);
 
-using (FileStream output = File.OpenWrite($"{path}/Rectangle.png"))
-{
-    image
-        .BackgroundColor(Color.Blue)
-        .DrawPolygon(Color.HotPink, 10, new[] {
-                new Point(10, 10),
-                new Point(200, 10),
-                new Point(200, 150),
-                new Point(10, 150)
-                })
-        .Save(output);
-}
+            using (FileStream output = File.OpenWrite($"{path}/Rectangle.png"))
+            {
+                image
+                    .BackgroundColor(Color.Blue)
+                    .DrawPolygon(Color.HotPink, 10, new[] {
+                                new Vector2(10, 10),
+                                new Vector2(200, 10),
+                                new Vector2(200, 150),
+                                new Vector2(10, 150)
+                            })
+                    .Save(output);
+            }
 
             using (var sourcePixels = image.Lock())
             {

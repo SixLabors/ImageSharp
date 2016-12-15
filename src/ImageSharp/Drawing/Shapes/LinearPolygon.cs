@@ -7,7 +7,7 @@ namespace ImageSharp.Drawing.Shapes
 {
     using System.Collections;
     using System.Collections.Generic;
-
+    using System.Numerics;
     using Paths;
 
     /// <summary>
@@ -21,20 +21,11 @@ namespace ImageSharp.Drawing.Shapes
         /// Initializes a new instance of the <see cref="LinearPolygon"/> class.
         /// </summary>
         /// <param name="points">The points.</param>
-        public LinearPolygon(params Point[] points)
+        public LinearPolygon(params Vector2[] points)
         {
             this.innerPolygon = new Polygon(new LinearLineSegment(points));
         }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="LinearPolygon"/> class.
-        /// </summary>
-        /// <param name="points">The points.</param>
-        public LinearPolygon(params PointF[] points)
-        {
-            this.innerPolygon = new Polygon(new LinearLineSegment(points));
-        }
-
+        
         /// <summary>
         /// Gets the bounding box of this shape.
         /// </summary>

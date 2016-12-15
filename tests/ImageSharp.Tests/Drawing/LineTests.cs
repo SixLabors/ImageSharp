@@ -29,9 +29,9 @@ namespace ImageSharp.Tests.Drawing
                 image
                     .BackgroundColor(Color.Blue)
                     .DrawLines(Color.HotPink, 5, new[] {
-                            new Point(10, 10),
-                            new Point(200, 150),
-                            new Point(50, 300)
+                            new Vector2(10, 10),
+                            new Vector2(200, 150),
+                            new Vector2(50, 300)
                     })
                     .Save(output);
             }
@@ -59,9 +59,9 @@ namespace ImageSharp.Tests.Drawing
                 image
                     .BackgroundColor(Color.Blue)
                     .DrawLines(Pens.Dash(Color.HotPink, 5), new[] {
-                            new Point(10, 10),
-                            new Point(200, 150),
-                            new Point(50, 300)
+                            new Vector2(10, 10),
+                            new Vector2(200, 150),
+                            new Vector2(50, 300)
                     })
                     .Save(output);
             }
@@ -79,9 +79,9 @@ namespace ImageSharp.Tests.Drawing
                 image
                     .BackgroundColor(Color.Blue)
                     .DrawLines(Pens.Dot(Color.HotPink, 5), new[] {
-                            new Point(10, 10),
-                            new Point(200, 150),
-                            new Point(50, 300)
+                            new Vector2(10, 10),
+                            new Vector2(200, 150),
+                            new Vector2(50, 300)
                     })
                     .Save(output);
             }
@@ -98,9 +98,9 @@ namespace ImageSharp.Tests.Drawing
                 image
                     .BackgroundColor(Color.Blue)
                     .DrawLines(Pens.DashDot(Color.HotPink, 5), new[] {
-                            new Point(10, 10),
-                            new Point(200, 150),
-                            new Point(50, 300)
+                            new Vector2(10, 10),
+                            new Vector2(200, 150),
+                            new Vector2(50, 300)
                     })
                     .Save(output);
             }
@@ -118,9 +118,9 @@ namespace ImageSharp.Tests.Drawing
                 image
                     .BackgroundColor(Color.Blue)
                     .DrawLines(Pens.DashDotDot(Color.HotPink, 5), new[] {
-                            new Point(10, 10),
-                            new Point(200, 150),
-                            new Point(50, 300)
+                            new Vector2(10, 10),
+                            new Vector2(200, 150),
+                            new Vector2(50, 300)
                     })
                     .Save(output);
             }
@@ -141,9 +141,9 @@ namespace ImageSharp.Tests.Drawing
                 image
                     .BackgroundColor(Color.Blue)
                     .DrawLines(color, 10, new[] {
-                            new Point(10, 10),
-                            new Point(200, 150),
-                            new Point(50, 300)
+                            new Vector2(10, 10),
+                            new Vector2(200, 150),
+                            new Vector2(50, 300)
                     })
                     .Save(output);
             }
@@ -173,10 +173,10 @@ namespace ImageSharp.Tests.Drawing
                 image
                     .BackgroundColor(Color.Blue)
                     .DrawLines(Color.HotPink, 10, new[] {
-                            new Point(10, 10),
-                            new Point(200, 10),
-                            new Point(200, 150),
-                            new Point(10, 150)
+                            new Vector2(10, 10),
+                            new Vector2(200, 10),
+                            new Vector2(200, 150),
+                            new Vector2(10, 150)
                         })
                     .Save(output);
             }

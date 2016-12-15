@@ -6,6 +6,7 @@
 namespace ImageSharp.Formats
 {
     using System;
+    using System.Buffers;
     using System.IO;
 
     /// <summary>
@@ -31,32 +32,69 @@ namespace ImageSharp.Formats
     ///              Joe Orost              (decvax!vax135!petsd!joe)
     /// </para>
     /// </remarks>
-    internal sealed class LzwEncoder
+    internal sealed class LzwEncoder : IDisposable
     {
+        /// <summary>
+        /// The end-of-file marker
+        /// </summary>
         private const int Eof = -1;
 
+        /// <summary>
+        /// The maximum number of bits.
+        /// </summary>
         private const int Bits = 12;
 
-        private const int HashSize = 5003; // 80% occupancy
+        /// <summary>
+        /// 80% occupancy
+        /// </summary>
+        private const int HashSize = 5003;
 
-        private readonly byte[] pixelArray;
-
-        private readonly int initialCodeSize;
-
-        private readonly int[] hashTable = new int[HashSize];
-
-        private readonly int[] codeTable = new int[HashSize];
-
-        private readonly int[] masks =
+        /// <summary>
+        /// Mask used when shifting pixel values
+        /// </summary>
+        private static readonly int[] Masks =
         {
             0x0000, 0x0001, 0x0003, 0x0007, 0x000F, 0x001F, 0x003F, 0x007F, 0x00FF,
             0x01FF, 0x03FF, 0x07FF, 0x0FFF, 0x1FFF, 0x3FFF, 0x7FFF, 0xFFFF
         };
 
         /// <summary>
+        /// The working pixel array
+        /// </summary>
+        private readonly byte[] pixelArray;
+
+        /// <summary>
+        /// The initial code size.
+        /// </summary>
+        private readonly int initialCodeSize;
+
+        /// <summary>
+        /// The hash table.
+        /// </summary>
+        private readonly int[] hashTable;
+
+        /// <summary>
+        /// The code table.
+        /// </summary>
+        private readonly int[] codeTable;
+
+        /// <summary>
         /// Define the storage for the packet accumulator.
         /// </summary>
         private readonly byte[] accumulators = new byte[256];
+
+        /// <summary>
+        /// A value indicating whether this instance of the given entity has been disposed.
+        /// </summary>
+        /// <value><see langword="true"/> if this instance has been disposed; otherwise, <see langword="false"/>.</value>
+        /// <remarks>
+        /// If the entity is disposed, it must not be disposed a second
+        /// time. The isDisposed field is set the first time the entity
+        /// is disposed. If the isDisposed field is true, then the Dispose()
+        /// method will not dispose again. This help not to prolong the entity's
+        /// life in the Garbage Collector.
+        /// </remarks>
+        private bool isDisposed = false;
 
         /// <summary>
         /// The current pixel
@@ -99,39 +137,50 @@ namespace ImageSharp.Formats
         /// </summary>
         private bool clearFlag;
 
-        // Algorithm:  use open addressing double hashing (no chaining) on the
-        // prefix code / next character combination.  We do a variant of Knuth's
-        // algorithm D (vol. 3, sec. 6.4) along with G. Knott's relatively-prime
-        // secondary probe.  Here, the modular division first probe is gives way
-        // to a faster exclusive-or manipulation.  Also do block compression with
-        // an adaptive reset, whereby the code table is cleared when the compression
-        // ratio decreases, but after the table fills.  The variable-length output
-        // codes are re-sized at this point, and a special CLEAR code is generated
-        // for the decompressor.  Late addition:  construct the table according to
-        // file size for noticeable speed improvement on small files.  Please direct
-        // questions about this implementation to ames!jaw.
+        /// <summary>
+        /// Algorithm:  use open addressing double hashing (no chaining) on the
+        /// prefix code / next character combination.  We do a variant of Knuth's
+        /// algorithm D (vol. 3, sec. 6.4) along with G. Knott's relatively-prime
+        /// secondary probe.  Here, the modular division first probe is gives way
+        /// to a faster exclusive-or manipulation.  Also do block compression with
+        /// an adaptive reset, whereby the code table is cleared when the compression
+        /// ratio decreases, but after the table fills.  The variable-length output
+        /// codes are re-sized at this point, and a special CLEAR code is generated
+        /// for the decompressor.  Late addition:  construct the table according to
+        /// file size for noticeable speed improvement on small files.  Please direct
+        /// questions about this implementation to ames!jaw.
+        /// </summary>
         private int globalInitialBits;
 
+        /// <summary>
+        /// The clear code.
+        /// </summary>
         private int clearCode;
 
+        /// <summary>
+        /// The end-of-file code.
+        /// </summary>
         private int eofCode;
 
-        // output
-        //
-        // Output the given code.
-        // Inputs:
-        //      code:   A bitCount-bit integer.  If == -1, then EOF.  This assumes
-        //              that bitCount =< wordsize - 1.
-        // Outputs:
-        //      Outputs code to the file.
-        // Assumptions:
-        //      Chars are 8 bits long.
-        // Algorithm:
-        //      Maintain a BITS character long buffer (so that 8 codes will
-        // fit in it exactly).  Use the VAX insv instruction to insert each
-        // code in turn.  When the buffer fills up empty it and start over.
+        /// <summary>
+        /// Output the given code.
+        /// Inputs:
+        ///      code:   A bitCount-bit integer.  If == -1, then EOF.  This assumes
+        ///              that bitCount =&lt; wordsize - 1.
+        /// Outputs:
+        ///      Outputs code to the file.
+        /// Assumptions:
+        ///      Chars are 8 bits long.
+        /// Algorithm:
+        ///      Maintain a BITS character long buffer (so that 8 codes will
+        /// fit in it exactly).  Use the VAX insv instruction to insert each
+        /// code in turn.  When the buffer fills up empty it and start over.
+        /// </summary>
         private int currentAccumulator;
 
+        /// <summary>
+        /// The current bits.
+        /// </summary>
         private int currentBits;
 
         /// <summary>
@@ -148,6 +197,9 @@ namespace ImageSharp.Formats
         {
             this.pixelArray = indexedPixels;
             this.initialCodeSize = Math.Max(2, colorDepth);
+
+            this.hashTable = ArrayPool<int>.Shared.Rent(HashSize);
+            this.codeTable = ArrayPool<int>.Shared.Rent(HashSize);
         }
 
         /// <summary>
@@ -166,6 +218,13 @@ namespace ImageSharp.Formats
 
             // Write block terminator
             stream.WriteByte(GifConstants.Terminator);
+        }
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            this.Dispose(true);
         }
 
         /// <summary>
@@ -348,11 +407,6 @@ namespace ImageSharp.Formats
                 return Eof;
             }
 
-            if (this.currentPixel == this.pixelArray.Length)
-            {
-                return Eof;
-            }
-
             this.currentPixel++;
             return this.pixelArray[this.currentPixel - 1] & 0xff;
         }
@@ -364,7 +418,7 @@ namespace ImageSharp.Formats
         /// <param name="outs">The stream to write to.</param>
         private void Output(int code, Stream outs)
         {
-            this.currentAccumulator &= this.masks[this.currentBits];
+            this.currentAccumulator &= Masks[this.currentBits];
 
             if (this.currentBits > 0)
             {
@@ -414,6 +468,26 @@ namespace ImageSharp.Formats
 
                 this.FlushPacket(outs);
             }
+        }
+
+        /// <summary>
+        /// Disposes the object and frees resources for the Garbage Collector.
+        /// </summary>
+        /// <param name="disposing">If true, the object gets disposed.</param>
+        private void Dispose(bool disposing)
+        {
+            if (this.isDisposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                ArrayPool<int>.Shared.Return(this.hashTable);
+                ArrayPool<int>.Shared.Return(this.codeTable);
+            }
+
+            this.isDisposed = true;
         }
     }
 }

@@ -73,9 +73,9 @@ namespace ImageSharp.Drawing.Paths
         /// <returns>
         /// Returns details about the point and its distance away from the path.
         /// </returns>
-        public PointInfo Distance(int x, int y)
+        public PointInfo Distance(Vector2 point)
         {
-            return this.innerPath.DistanceFromPath(new Vector2(x, y));
+            return this.innerPath.DistanceFromPath(point);
         }
     }
 }

@@ -65,24 +65,23 @@ namespace ImageSharp.Drawing.Shapes
         /// <summary>
         /// the distance of the point from the outline of the shape, if the value is negative it is inside the polygon bounds
         /// </summary>
-        /// <param name="x">The x.</param>
-        /// <param name="y">The y.</param>
+        /// <param name="point">The point.</param>
         /// <returns>
         /// Returns the distance from thr shape to the point
         /// </returns>
-        float IShape.Distance(int x, int y)
+        float IShape.Distance(Vector2 point)
         {
             // get the outline we are closest to the center of
             // by rights we should only be inside 1 outline
             // othersie we will start returning the distanct to the nearest shape
-            var dist = this.outlines.Select(o => o.Distance(x, y)).OrderBy(p => p).First();
+            var dist = this.outlines.Select(o => o.Distance(point)).OrderBy(p => p).First();
 
             if (dist <= 0)
             {
                 // inside poly
                 foreach (var hole in this.holes)
                 {
-                    var distFromHole = hole.Distance(x, y);
+                    var distFromHole = hole.Distance(point);
 
                     // less than zero we are inside shape
                     if (distFromHole <= 0)

@@ -16,8 +16,6 @@ namespace ImageSharp.Tests.Drawing
 
     public class LineTests : FileTestBase
     {
-
-
         [Fact]
         public void ImageShouldBeOverlayedByPath()
         {
@@ -44,9 +42,35 @@ namespace ImageSharp.Tests.Drawing
 
                 Assert.Equal(Color.Blue, sourcePixels[50, 50]);
             }
-
         }
 
+        [Fact]
+        public void ImageShouldBeOverlayedByPath_NoAntialias()
+        {
+            string path = CreateOutputDirectory("Drawing", "Lines");
+            var image = new Image(500, 500);
+
+            using (FileStream output = File.OpenWrite($"{path}/Simple_noantialias.png"))
+            {
+                image
+                    .BackgroundColor(Color.Blue)
+                    .DrawLines(Color.HotPink, 5, new[] {
+                            new Vector2(10, 10),
+                            new Vector2(200, 150),
+                            new Vector2(50, 300)
+                    }, new GraphicsOptions(false))
+                    .Save(output);
+            }
+
+            using (var sourcePixels = image.Lock())
+            {
+                Assert.Equal(Color.HotPink, sourcePixels[9, 9]);
+
+                Assert.Equal(Color.HotPink, sourcePixels[199, 149]);
+
+                Assert.Equal(Color.Blue, sourcePixels[50, 50]);
+            }
+        }
 
         [Fact]
         public void ImageShouldBeOverlayedByPathDashed()

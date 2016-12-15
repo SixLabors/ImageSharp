@@ -7,6 +7,7 @@ namespace ImageSharp.Quantizers
 {
     using System;
     using System.Collections.Generic;
+    using System.Numerics;
 
     /// <summary>
     /// Encapsulates methods to create a quantized image based upon the given palette.
@@ -85,25 +86,12 @@ namespace ImageSharp.Quantizers
             else
             {
                 // Not found - loop through the palette and find the nearest match.
-                pixel.ToBytes(this.pixelBuffer, 0, ComponentOrder.XYZW);
-                int leastDistance = int.MaxValue;
-                int red = this.pixelBuffer[0];
-                int green = this.pixelBuffer[1];
-                int blue = this.pixelBuffer[2];
-                int alpha = this.pixelBuffer[3];
+                float leastDistance = int.MaxValue;
+                Vector4 vector = pixel.ToVector4();
 
                 for (int index = 0; index < this.colors.Length; index++)
                 {
-                    this.colors[index].ToBytes(this.pixelBuffer, 0, ComponentOrder.XYZW);
-                    int redDistance = this.pixelBuffer[0] - red;
-                    int greenDistance = this.pixelBuffer[1] - green;
-                    int blueDistance = this.pixelBuffer[2] - blue;
-                    int alphaDistance = this.pixelBuffer[3] - alpha;
-
-                    int distance = (redDistance * redDistance) +
-                                   (greenDistance * greenDistance) +
-                                   (blueDistance * blueDistance) +
-                                   (alphaDistance * alphaDistance);
+                    float distance = Vector4.Distance(vector, this.colors[index].ToVector4());
 
                     if (distance < leastDistance)
                     {
@@ -111,7 +99,7 @@ namespace ImageSharp.Quantizers
                         leastDistance = distance;
 
                         // And if it's an exact match, exit the loop
-                        if (distance == 0)
+                        if (Math.Abs(distance) < .0001F)
                         {
                             break;
                         }

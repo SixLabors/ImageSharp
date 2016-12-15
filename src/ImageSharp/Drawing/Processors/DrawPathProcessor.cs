@@ -33,14 +33,16 @@ namespace ImageSharp.Drawing.Processors
         private readonly IPen<TColor, TPacked> pen;
         private readonly IPath[] paths;
         private readonly RectangleF region;
-
+        private readonly GraphicsOptions options;
+        
         /// <summary>
-        /// Initializes a new instance of the <see cref="DrawPathProcessor{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="DrawPathProcessor{TColor, TPacked}" /> class.
         /// </summary>
         /// <param name="pen">The pen.</param>
         /// <param name="shape">The shape.</param>
-        public DrawPathProcessor(IPen<TColor, TPacked> pen, IShape shape)
-            : this(pen, shape.ToArray())
+        /// <param name="options">The options.</param>
+        public DrawPathProcessor(IPen<TColor, TPacked> pen, IShape shape, GraphicsOptions options)
+            : this(pen, shape.ToArray(), options)
         {
         }
 
@@ -48,11 +50,24 @@ namespace ImageSharp.Drawing.Processors
         /// Initializes a new instance of the <see cref="DrawPathProcessor{TColor, TPacked}"/> class.
         /// </summary>
         /// <param name="pen">The pen.</param>
+        /// <param name="path">The path.</param>
+        /// <param name="options">The options.</param>
+        public DrawPathProcessor(IPen<TColor, TPacked> pen, IPath path, GraphicsOptions options)
+            : this(pen, new[] { path }, options)
+        {
+        }
+        
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DrawPathProcessor{TColor, TPacked}" /> class.
+        /// </summary>
+        /// <param name="pen">The pen.</param>
         /// <param name="paths">The paths.</param>
-        public DrawPathProcessor(IPen<TColor, TPacked> pen, params IPath[] paths)
+        /// <param name="options">The options.</param>
+        public DrawPathProcessor(IPen<TColor, TPacked> pen, IPath[] paths, GraphicsOptions options)
         {
             this.paths = paths;
             this.pen = pen;
+            this.options = options;
 
             if (paths.Length != 1)
             {
@@ -112,15 +127,17 @@ namespace ImageSharp.Drawing.Processors
                     y =>
                     {
                         int offsetY = y - polyStartY;
-
+                        var currentPoint = default(Vector2);
                         for (int x = minX; x < maxX; x++)
                         {
                             int offsetX = x - startX;
+                            currentPoint.X = offsetX;
+                            currentPoint.Y = offsetY;
 
-                            var dist = Closest(offsetX, offsetY);
+                            var dist = Closest(currentPoint);
 
                             var color = applicator.GetColor(dist);
-
+                            
                             var opacity = this.Opacity(color.DistanceFromElement);
 
                             if (opacity > Epsilon)
@@ -143,14 +160,14 @@ namespace ImageSharp.Drawing.Processors
             }
         }
 
-        private PointInfo Closest(int x, int y)
+        private PointInfo Closest(Vector2 point)
         {
             PointInfo result = default(PointInfo);
             float distance = float.MaxValue;
 
             for (int i = 0; i < this.paths.Length; i++)
             {
-                var p = this.paths[i].Distance(x, y);
+                var p = this.paths[i].Distance(point);
                 if (p.DistanceFromPath < distance)
                 {
                     distance = p.DistanceFromPath;
@@ -167,7 +184,7 @@ namespace ImageSharp.Drawing.Processors
             {
                 return 1;
             }
-            else if (distance < AntialiasFactor)
+            else if (this.options.Antialias && distance < AntialiasFactor)
             {
                 return 1 - (distance / AntialiasFactor);
             }

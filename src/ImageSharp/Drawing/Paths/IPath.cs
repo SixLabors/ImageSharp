@@ -43,9 +43,10 @@ namespace ImageSharp.Drawing.Paths
         /// <summary>
         /// Calcualtes the distance along and away from the path for a specified point.
         /// </summary>
-        /// <param name="x">The x.</param>
-        /// <param name="y">The y.</param>
-        /// <returns>Returns details about the point and its distance away from the path.</returns>
-        PointInfo Distance(int x, int y);
+        /// <param name="point">The point.</param>
+        /// <returns>
+        /// Returns details about the point and its distance away from the path.
+        /// </returns>
+        PointInfo Distance(Vector2 point);
     }
 }

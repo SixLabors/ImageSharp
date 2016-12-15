@@ -47,6 +47,37 @@ namespace ImageSharp.Tests.Drawing
         }
 
         [Fact]
+        public void ImageShouldBeOverlayedByFilledPolygon_NoAntialias()
+        {
+            string path = CreateOutputDirectory("Drawing", "FilledPolygons");
+            var simplePath = new[] {
+                            new Vector2(10, 10),
+                            new Vector2(200, 150),
+                            new Vector2(50, 300)
+            };
+            var image = new Image(500, 500);
+
+            using (FileStream output = File.OpenWrite($"{path}/Simple_NoAntialias.png"))
+            {
+                image
+                    .BackgroundColor(Color.Blue)
+                    .FillPolygon(Color.HotPink, simplePath, new GraphicsOptions(false))
+                    .Save(output);
+            }
+
+            using (var sourcePixels = image.Lock())
+            {
+                Assert.Equal(Color.HotPink, sourcePixels[11, 11]);
+
+                Assert.Equal(Color.HotPink, sourcePixels[200, 150]);
+
+                Assert.Equal(Color.HotPink, sourcePixels[50, 50]);
+
+                Assert.Equal(Color.Blue, sourcePixels[2, 2]);
+            }
+        }
+
+        [Fact]
         public void ImageShouldBeOverlayedByFilledPolygonOpacity()
         {
             string path = CreateOutputDirectory("Drawing", "FilledPolygons");

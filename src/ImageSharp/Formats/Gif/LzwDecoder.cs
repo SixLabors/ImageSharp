@@ -2,15 +2,16 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
-
 namespace ImageSharp.Formats
 {
+    using System;
+    using System.Buffers;
     using System.IO;
 
     /// <summary>
     /// Decompresses and decodes data using the dynamic LZW algorithms.
     /// </summary>
-    internal sealed class LzwDecoder
+    internal sealed class LzwDecoder : IDisposable
     {
         /// <summary>
         /// The max decoder pixel stack size.
@@ -28,6 +29,34 @@ namespace ImageSharp.Formats
         private readonly Stream stream;
 
         /// <summary>
+        /// The prefix buffer.
+        /// </summary>
+        private readonly int[] prefix;
+
+        /// <summary>
+        /// The suffix buffer.
+        /// </summary>
+        private readonly int[] suffix;
+
+        /// <summary>
+        /// The pixel stack buffer.
+        /// </summary>
+        private readonly int[] pixelStack;
+
+        /// <summary>
+        /// A value indicating whether this instance of the given entity has been disposed.
+        /// </summary>
+        /// <value><see langword="true"/> if this instance has been disposed; otherwise, <see langword="false"/>.</value>
+        /// <remarks>
+        /// If the entity is disposed, it must not be disposed a second
+        /// time. The isDisposed field is set the first time the entity
+        /// is disposed. If the isDisposed field is true, then the Dispose()
+        /// method will not dispose again. This help not to prolong the entity's
+        /// life in the Garbage Collector.
+        /// </remarks>
+        private bool isDisposed;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="LzwDecoder"/> class
         /// and sets the stream, where the compressed data should be read from.
         /// </summary>
@@ -38,6 +67,10 @@ namespace ImageSharp.Formats
             Guard.NotNull(stream, nameof(stream));
 
             this.stream = stream;
+
+            this.prefix = ArrayPool<int>.Shared.Rent(MaxStackSize);
+            this.suffix = ArrayPool<int>.Shared.Rent(MaxStackSize);
+            this.pixelStack = ArrayPool<int>.Shared.Rent(MaxStackSize + 1);
         }
 
         /// <summary>
@@ -72,10 +105,6 @@ namespace ImageSharp.Formats
             int codeMask = (1 << codeSize) - 1;
             int bits = 0;
 
-            int[] prefix = new int[MaxStackSize];
-            int[] suffix = new int[MaxStackSize];
-            int[] pixelStatck = new int[MaxStackSize + 1];
-
             int top = 0;
             int count = 0;
             int bi = 0;
@@ -86,8 +115,8 @@ namespace ImageSharp.Formats
 
             for (code = 0; code < clearCode; code++)
             {
-                prefix[code] = 0;
-                suffix[code] = (byte)code;
+                this.prefix[code] = 0;
+                this.suffix[code] = (byte)code;
             }
 
             byte[] buffer = new byte[255];
@@ -141,7 +170,7 @@ namespace ImageSharp.Formats
 
                     if (oldCode == NullCode)
                     {
-                        pixelStatck[top++] = suffix[code];
+                        this.pixelStack[top++] = this.suffix[code];
                         oldCode = code;
                         first = code;
                         continue;
@@ -150,27 +179,27 @@ namespace ImageSharp.Formats
                     int inCode = code;
                     if (code == availableCode)
                     {
-                        pixelStatck[top++] = (byte)first;
+                        this.pixelStack[top++] = (byte)first;
 
                         code = oldCode;
                     }
 
                     while (code > clearCode)
                     {
-                        pixelStatck[top++] = suffix[code];
-                        code = prefix[code];
+                        this.pixelStack[top++] = this.suffix[code];
+                        code = this.prefix[code];
                     }
 
-                    first = suffix[code];
+                    first = this.suffix[code];
 
-                    pixelStatck[top++] = suffix[code];
+                    this.pixelStack[top++] = this.suffix[code];
 
                     // Fix for Gifs that have "deferred clear code" as per here :
                     // https://bugzilla.mozilla.org/show_bug.cgi?id=55918
                     if (availableCode < MaxStackSize)
                     {
-                        prefix[availableCode] = oldCode;
-                        suffix[availableCode] = first;
+                        this.prefix[availableCode] = oldCode;
+                        this.suffix[availableCode] = first;
                         availableCode++;
                         if (availableCode == codeMask + 1 && availableCode < MaxStackSize)
                         {
@@ -186,10 +215,17 @@ namespace ImageSharp.Formats
                 top--;
 
                 // Clear missing pixels
-                pixels[xyz++] = (byte)pixelStatck[top];
+                pixels[xyz++] = (byte)this.pixelStack[top];
             }
 
             return pixels;
+        }
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            this.Dispose(true);
         }
 
         /// <summary>
@@ -210,6 +246,27 @@ namespace ImageSharp.Formats
 
             int count = this.stream.Read(buffer, 0, bufferSize);
             return count != bufferSize ? 0 : bufferSize;
+        }
+
+        /// <summary>
+        /// Disposes the object and frees resources for the Garbage Collector.
+        /// </summary>
+        /// <param name="disposing">If true, the object gets disposed.</param>
+        private void Dispose(bool disposing)
+        {
+            if (this.isDisposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                ArrayPool<int>.Shared.Return(this.prefix);
+                ArrayPool<int>.Shared.Return(this.suffix);
+                ArrayPool<int>.Shared.Return(this.pixelStack);
+            }
+
+            this.isDisposed = true;
         }
     }
 }

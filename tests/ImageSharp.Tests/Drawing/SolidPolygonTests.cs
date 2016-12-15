@@ -12,6 +12,7 @@ namespace ImageSharp.Tests.Drawing
     using System.IO;
     using System.Numerics;
     using Xunit;
+    using ImageSharp.Drawing.Brushes;
 
     public class SolidPolygonTests : FileTestBase
     {
@@ -78,6 +79,28 @@ namespace ImageSharp.Tests.Drawing
         }
 
         [Fact]
+        public void ImageShouldBeOverlayedByFilledPolygon_Image()
+        {
+            string path = CreateOutputDirectory("Drawing", "FilledPolygons");
+            var simplePath = new[] {
+                            new Vector2(10, 10),
+                            new Vector2(200, 150),
+                            new Vector2(50, 300)
+            };
+
+            var brush = new ImageBrush(Files[2].CreateImage());
+            var image = new Image(500, 500);
+
+            using (FileStream output = File.OpenWrite($"{path}/Image.png"))
+            {
+                image
+                    .BackgroundColor(Color.Blue)
+                    .FillPolygon(brush, simplePath)
+                    .Save(output);
+            }
+        }
+
+        [Fact]
         public void ImageShouldBeOverlayedByFilledPolygonOpacity()
         {
             string path = CreateOutputDirectory("Drawing", "FilledPolygons");
@@ -87,7 +110,7 @@ namespace ImageSharp.Tests.Drawing
                             new Vector2(50, 300)
             };
             var color = new Color(Color.HotPink.R, Color.HotPink.G, Color.HotPink.B, 150);
-            
+
             var image = new Image(500, 500);
 
             using (FileStream output = File.OpenWrite($"{path}/Opacity.png"))

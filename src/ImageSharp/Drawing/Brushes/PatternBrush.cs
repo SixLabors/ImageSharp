@@ -14,6 +14,32 @@ namespace ImageSharp.Drawing.Brushes
     /// <summary>
     /// Provides an implementaion of a pattern brush for painting patterns.
     /// </summary>
+    /// <remarks>
+    /// The patterns that are used to create a custom pattern brush are made up of a repeating matrix of flags,
+    /// where each flag denotes weather to draw the foregound color or the background color.
+    /// so to create a new bool[,] with your flags
+    /// 
+    /// For example if you wated to create a diagonal line that repeat every 4 pixels you would use a pattern like so
+    /// 1000
+    /// 0100
+    /// 0010
+    /// 0001
+    /// 
+    /// or you want a horrizontal stripe which is 3 pixels apart you would use a pattern like
+    ///  1
+    ///  0
+    ///  0
+    /// 
+    /// warning when use array initallzer across multiple lines the bools look inverted i.e. 
+    /// new bool[,]{
+    ///     {true, false, false},
+    ///     {false,true, false}
+    /// }
+    /// would be 
+    /// 10
+    /// 01
+    /// 00
+    /// </remarks>
     public class PatternBrush : PatternBrush<Color, uint>
     {
         /// <summary>

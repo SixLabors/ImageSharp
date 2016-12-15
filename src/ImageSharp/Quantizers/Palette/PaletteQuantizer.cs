@@ -6,7 +6,7 @@
 namespace ImageSharp.Quantizers
 {
     using System;
-    using System.Collections.Concurrent;
+    using System.Collections.Generic;
 
     /// <summary>
     /// Encapsulates methods to create a quantized image based upon the given palette.
@@ -26,7 +26,7 @@ namespace ImageSharp.Quantizers
         /// <summary>
         /// A lookup table for colors
         /// </summary>
-        private readonly ConcurrentDictionary<string, byte> colorMap = new ConcurrentDictionary<string, byte>();
+        private readonly Dictionary<int, byte> colorMap = new Dictionary<int, byte>();
 
         /// <summary>
         /// List of all colors in the palette
@@ -50,10 +50,9 @@ namespace ImageSharp.Quantizers
 
                 for (int i = 0; i < constants.Length; i++)
                 {
-                    Color c = constants[i];
-                    c.ToBytes(this.pixelBuffer, 0, ComponentOrder.XYZW);
+                    constants[i].ToBytes(this.pixelBuffer, 0, ComponentOrder.XYZW);
                     TColor packed = default(TColor);
-                    packed.PackFromBytes(this.pixelBuffer[0], this.pixelBuffer[0], this.pixelBuffer[0], this.pixelBuffer[0]);
+                    packed.PackFromBytes(this.pixelBuffer[0], this.pixelBuffer[1], this.pixelBuffer[2], this.pixelBuffer[3]);
                     safe[i] = packed;
                 }
 
@@ -76,7 +75,7 @@ namespace ImageSharp.Quantizers
         protected override byte QuantizePixel(TColor pixel)
         {
             byte colorIndex = 0;
-            string colorHash = pixel.ToString();
+            int colorHash = pixel.GetHashCode();
 
             // Check if the color is in the lookup table
             if (this.colorMap.ContainsKey(colorHash))
@@ -120,7 +119,7 @@ namespace ImageSharp.Quantizers
                 }
 
                 // Now I have the color, pop it into the cache for next time
-                this.colorMap.TryAdd(colorHash, colorIndex);
+                this.colorMap.Add(colorHash, colorIndex);
             }
 
             return colorIndex;

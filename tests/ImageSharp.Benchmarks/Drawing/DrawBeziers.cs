@@ -11,10 +11,10 @@ namespace ImageSharp.Benchmarks
     using BenchmarkDotNet.Attributes;
     using CoreImage = ImageSharp.Image;
     using CorePoint = ImageSharp.Point;
-    using CorePointF= ImageSharp.PointF;
-    using CoreColor= ImageSharp.Color;
+    using CoreColor = ImageSharp.Color;
     using System.IO;
-    
+    using System.Numerics;
+
     public class DrawBeziers
     {
         [Benchmark(Baseline = true, Description = "System.Drawing Draw Beziers")]
@@ -49,10 +49,10 @@ namespace ImageSharp.Benchmarks
             CoreImage image = new CoreImage(800, 800);
             
             image.DrawBeziers(CoreColor.HotPink, 10, new[] {
-                        new CorePointF(10, 500),
-                        new CorePointF(30, 10),
-                        new CorePointF(240, 30),
-                        new CorePointF(300, 500)
+                        new Vector2(10, 500),
+                        new Vector2(30, 10),
+                        new Vector2(240, 30),
+                        new Vector2(300, 500)
             });
 
             using (MemoryStream ms = new MemoryStream())

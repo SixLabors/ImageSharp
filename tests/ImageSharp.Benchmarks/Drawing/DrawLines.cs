@@ -11,10 +11,10 @@ namespace ImageSharp.Benchmarks
     using BenchmarkDotNet.Attributes;
     using CoreImage = ImageSharp.Image;
     using CorePoint = ImageSharp.Point;
-    using CorePointF= ImageSharp.PointF;
-    using CoreColor= ImageSharp.Color;
+    using CoreColor = ImageSharp.Color;
     using System.IO;
-    
+    using System.Numerics;
+
     public class DrawLines
     {
         [Benchmark(Baseline = true, Description = "System.Drawing Draw Lines")]
@@ -48,9 +48,9 @@ namespace ImageSharp.Benchmarks
             CoreImage image = new CoreImage(800, 800);
 
             image.DrawLines(CoreColor.HotPink, 10, new[] {
-                     new CorePointF(10, 10),
-                     new CorePointF(550, 50),
-                     new CorePointF(200, 400)
+                     new Vector2(10, 10),
+                     new Vector2(550, 50),
+                     new Vector2(200, 400)
             });
 
             using (MemoryStream ms = new MemoryStream())

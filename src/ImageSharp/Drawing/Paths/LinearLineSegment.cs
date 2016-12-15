@@ -23,36 +23,9 @@ namespace ImageSharp.Drawing.Paths
         /// <summary>
         /// Initializes a new instance of the <see cref="LinearLineSegment"/> class.
         /// </summary>
-        /// <param name="points">The points.</param>
-        public LinearLineSegment(IEnumerable<PointF> points)
-            : this(points?.Select(x => x.ToVector2()).ToArray())
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="LinearLineSegment"/> class.
-        /// </summary>
-        /// <param name="points">The points.</param>
-        public LinearLineSegment(IEnumerable<Point> points)
-            : this(points?.Select(x => x.ToVector2()).ToArray())
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="LinearLineSegment"/> class.
-        /// </summary>
-        /// <param name="points">The points.</param>
-        public LinearLineSegment(params PointF[] points)
-            : this(points?.Select(x => x.ToVector2()).ToArray())
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="LinearLineSegment"/> class.
-        /// </summary>
         /// <param name="start">The start.</param>
         /// <param name="end">The end.</param>
-        internal LinearLineSegment(Vector2 start, Vector2 end)
+        public LinearLineSegment(Vector2 start, Vector2 end)
             : this(new[] { start, end })
         {
         }
@@ -61,7 +34,7 @@ namespace ImageSharp.Drawing.Paths
         /// Initializes a new instance of the <see cref="LinearLineSegment"/> class.
         /// </summary>
         /// <param name="points">The points.</param>
-        internal LinearLineSegment(Vector2[] points)
+        public LinearLineSegment(params Vector2[] points)
         {
             Guard.NotNull(points, nameof(points));
             Guard.MustBeGreaterThanOrEqualTo(points.Count(), 2, nameof(points));

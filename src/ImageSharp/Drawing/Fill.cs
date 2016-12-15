@@ -5,6 +5,7 @@
 
 namespace ImageSharp
 {
+    using System.Numerics;
     using Drawing;
     using Drawing.Brushes;
     using Drawing.Paths;
@@ -88,7 +89,7 @@ namespace ImageSharp
         /// <param name="brush">The brush.</param>
         /// <param name="points">The points.</param>
         /// <returns>The Image</returns>
-        public static Image<TColor, TPacked> FillPolygon<TColor, TPacked>(this Image<TColor, TPacked> source, IBrush<TColor, TPacked> brush, PointF[] points)
+        public static Image<TColor, TPacked> FillPolygon<TColor, TPacked>(this Image<TColor, TPacked> source, IBrush<TColor, TPacked> brush, Vector2[] points)
            where TColor : struct, IPackedPixel<TPacked>
            where TPacked : struct
         {
@@ -105,43 +106,9 @@ namespace ImageSharp
         /// <param name="color">The color.</param>
         /// <param name="points">The points.</param>
         /// <returns>The Image</returns>
-        public static Image<TColor, TPacked> FillPolygon<TColor, TPacked>(this Image<TColor, TPacked> source, TColor color, PointF[] points)
+        public static Image<TColor, TPacked> FillPolygon<TColor, TPacked>(this Image<TColor, TPacked> source, TColor color, Vector2[] points)
            where TColor : struct, IPackedPixel<TPacked>
            where TPacked : struct
-        {
-            // using Polygon directly instead of LinearPolygon as its will have less indirection
-            return source.Fill(new SolidBrush<TColor, TPacked>(color), new Polygon(new LinearLineSegment(points)));
-        }
-
-        /// <summary>
-        /// Flood fills the image in the shape of a Linear polygon described by the points
-        /// </summary>
-        /// <typeparam name="TColor">The type of the color.</typeparam>
-        /// <typeparam name="TPacked">The type of the packed.</typeparam>
-        /// <param name="source">The source.</param>
-        /// <param name="brush">The brush.</param>
-        /// <param name="points">The points.</param>
-        /// <returns>The Image</returns>
-        public static Image<TColor, TPacked> FillPolygon<TColor, TPacked>(this Image<TColor, TPacked> source, IBrush<TColor, TPacked> brush, Point[] points)
-         where TColor : struct, IPackedPixel<TPacked>
-         where TPacked : struct
-        {
-            // using Polygon directly instead of LinearPolygon as its will have less indirection
-            return source.Fill(brush, new Polygon(new LinearLineSegment(points)));
-        }
-
-        /// <summary>
-        /// Flood fills the image in the shape of a Linear polygon described by the points
-        /// </summary>
-        /// <typeparam name="TColor">The type of the color.</typeparam>
-        /// <typeparam name="TPacked">The type of the packed.</typeparam>
-        /// <param name="source">The source.</param>
-        /// <param name="color">The color.</param>
-        /// <param name="points">The points.</param>
-        /// <returns>The Image</returns>
-        public static Image<TColor, TPacked> FillPolygon<TColor, TPacked>(this Image<TColor, TPacked> source, TColor color, Point[] points)
-         where TColor : struct, IPackedPixel<TPacked>
-         where TPacked : struct
         {
             // using Polygon directly instead of LinearPolygon as its will have less indirection
             return source.Fill(new SolidBrush<TColor, TPacked>(color), new Polygon(new LinearLineSegment(points)));

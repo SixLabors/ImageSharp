@@ -21,10 +21,10 @@ namespace ImageSharp.Tests.Drawing
         {
             string path = CreateOutputDirectory("Drawing", "FilledBezier");
             var simplePath = new[] {
-                        new PointF(10, 400),
-                        new PointF(30, 10),
-                        new PointF(240, 30),
-                        new PointF(300, 400)
+                        new Vector2(10, 400),
+                        new Vector2(30, 10),
+                        new Vector2(240, 30),
+                        new Vector2(300, 400)
             };
             var image = new Image(500, 500);
 
@@ -59,10 +59,10 @@ namespace ImageSharp.Tests.Drawing
         {
             string path = CreateOutputDirectory("Drawing", "FilledBezier");
             var simplePath = new[] {
-                        new PointF(10, 400),
-                        new PointF(30, 10),
-                        new PointF(240, 30),
-                        new PointF(300, 400)
+                        new Vector2(10, 400),
+                        new Vector2(30, 10),
+                        new Vector2(240, 30),
+                        new Vector2(300, 400)
             };
             var color = new Color(Color.HotPink.R, Color.HotPink.G, Color.HotPink.B, 150);
 

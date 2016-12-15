@@ -6,11 +6,13 @@
 namespace ImageSharp.Formats
 {
     using System;
+    using System.Buffers;
     using System.IO;
     using System.Linq;
     using System.Threading.Tasks;
 
     using IO;
+
     using Quantizers;
 
     /// <summary>
@@ -18,6 +20,11 @@ namespace ImageSharp.Formats
     /// </summary>
     internal sealed class GifEncoderCore
     {
+        /// <summary>
+        /// The pixel buffer, used to reduce allocations.
+        /// </summary>
+        private readonly byte[] pixelBuffer = new byte[3];
+
         /// <summary>
         /// The number of bits requires to store the image palette.
         /// </summary>
@@ -47,8 +54,7 @@ namespace ImageSharp.Formats
         /// <param name="image">The <see cref="Image{TColor, TPacked}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
         public void Encode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TColor : struct, IPackedPixel<TPacked> where TPacked : struct
         {
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
@@ -116,11 +122,10 @@ namespace ImageSharp.Formats
         /// The <see cref="int"/>.
         /// </returns>
         private static int GetTransparentIndex<TColor, TPacked>(QuantizedImage<TColor, TPacked> quantized)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TColor : struct, IPackedPixel<TPacked> where TPacked : struct
         {
             // Find the lowest alpha value and make it the transparent index.
-            int index = 255;
+            int index = -1;
             float alpha = 1;
             for (int i = 0; i < quantized.Palette.Length; i++)
             {
@@ -152,9 +157,10 @@ namespace ImageSharp.Formats
         /// <param name="image">The image to encode.</param>
         /// <param name="writer">The writer to write to the stream with.</param>
         /// <param name="tranparencyIndex">The transparency index to set the default background index to.</param>
-        private void WriteLogicalScreenDescriptor<TColor, TPacked>(Image<TColor, TPacked> image, EndianBinaryWriter writer, int tranparencyIndex)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+        private void WriteLogicalScreenDescriptor<TColor, TPacked>(
+            Image<TColor, TPacked> image,
+            EndianBinaryWriter writer,
+            int tranparencyIndex) where TColor : struct, IPackedPixel<TPacked> where TPacked : struct
         {
             GifLogicalScreenDescriptor descriptor = new GifLogicalScreenDescriptor
             {
@@ -169,18 +175,17 @@ namespace ImageSharp.Formats
             writer.Write((ushort)descriptor.Height);
 
             PackedField field = default(PackedField);
-            field.SetBit(0, descriptor.GlobalColorTableFlag); // 1   : Global color table flag = 1 || 0 (GCT used/ not used)
+            field.SetBit(0, descriptor.GlobalColorTableFlag);  // 1   : Global color table flag = 1 || 0 (GCT used/ not used)
             field.SetBits(1, 3, descriptor.GlobalColorTableSize); // 2-4 : color resolution
             field.SetBit(4, false); // 5   : GCT sort flag = 0
             field.SetBits(5, 3, descriptor.GlobalColorTableSize); // 6-8 : GCT size. 2^(N+1)
 
             // Reduce the number of writes
             byte[] arr =
-            {
-                field.Byte,
-                descriptor.BackgroundColorIndex, // Background Color Index
-                descriptor.PixelAspectRatio // Pixel aspect ratio. Assume 1:1
-            };
+                {
+                    field.Byte, descriptor.BackgroundColorIndex, // Background Color Index
+                    descriptor.PixelAspectRatio // Pixel aspect ratio. Assume 1:1
+                };
 
             writer.Write(arr);
         }
@@ -197,11 +202,10 @@ namespace ImageSharp.Formats
             if (repeatCount != 1 && frames > 0)
             {
                 byte[] ext =
-                {
-                    GifConstants.ExtensionIntroducer,
-                    GifConstants.ApplicationExtensionLabel,
-                    GifConstants.ApplicationBlockSize
-                };
+                    {
+                        GifConstants.ExtensionIntroducer, GifConstants.ApplicationExtensionLabel,
+                        GifConstants.ApplicationBlockSize
+                    };
 
                 writer.Write(ext);
 
@@ -226,15 +230,16 @@ namespace ImageSharp.Formats
         /// <param name="image">The <see cref="ImageBase{TColor, TPacked}"/> to encode.</param>
         /// <param name="writer">The stream to write to.</param>
         /// <param name="transparencyIndex">The index of the color in the color palette to make transparent.</param>
-        private void WriteGraphicalControlExtension<TColor, TPacked>(ImageBase<TColor, TPacked> image, EndianBinaryWriter writer, int transparencyIndex)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+        private void WriteGraphicalControlExtension<TColor, TPacked>(
+            ImageBase<TColor, TPacked> image,
+            EndianBinaryWriter writer,
+            int transparencyIndex) where TColor : struct, IPackedPixel<TPacked> where TPacked : struct
         {
             // TODO: Check transparency logic.
             bool hasTransparent = transparencyIndex > -1;
             DisposalMethod disposalMethod = hasTransparent
-                ? DisposalMethod.RestoreToBackground
-                : DisposalMethod.Unspecified;
+                                                ? DisposalMethod.RestoreToBackground
+                                                : DisposalMethod.Unspecified;
 
             GifGraphicsControlExtension extension = new GifGraphicsControlExtension()
             {
@@ -247,10 +252,8 @@ namespace ImageSharp.Formats
             // Reduce the number of writes.
             byte[] intro =
                 {
-                GifConstants.ExtensionIntroducer,
-                GifConstants.GraphicControlLabel,
-                4 // Size
-            };
+                    GifConstants.ExtensionIntroducer, GifConstants.GraphicControlLabel, 4 // Size
+                };
 
             writer.Write(intro);
 
@@ -275,8 +278,7 @@ namespace ImageSharp.Formats
         /// <param name="image">The <see cref="ImageBase{TColor, TPacked}"/> to be encoded.</param>
         /// <param name="writer">The stream to write to.</param>
         private void WriteImageDescriptor<TColor, TPacked>(ImageBase<TColor, TPacked> image, EndianBinaryWriter writer)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TColor : struct, IPackedPixel<TPacked> where TPacked : struct
         {
             writer.Write(GifConstants.ImageDescriptorLabel); // 2c
             // TODO: Can we capture this?
@@ -306,27 +308,29 @@ namespace ImageSharp.Formats
             where TPacked : struct
         {
             // Grab the palette and write it to the stream.
-            TColor[] palette = image.Palette;
-            int pixelCount = palette.Length;
+            int pixelCount = image.Palette.Length;
 
             // Get max colors for bit depth.
             int colorTableLength = (int)Math.Pow(2, this.bitDepth) * 3;
-            byte[] colorTable = new byte[colorTableLength];
+            byte[] colorTable = ArrayPool<byte>.Shared.Rent(colorTableLength);
 
-            Parallel.For(
-                0,
-                pixelCount,
-                i =>
-                    {
+            try
+            {
+                for (int i = 0; i < pixelCount; i++)
+                {
                     int offset = i * 3;
-                    Color color = new Color(palette[i].ToVector4());
+                    image.Palette[i].ToBytes(this.pixelBuffer, 0, ComponentOrder.XYZ);
+                    colorTable[offset] = this.pixelBuffer[0];
+                    colorTable[offset + 1] = this.pixelBuffer[1];
+                    colorTable[offset + 2] = this.pixelBuffer[2];
+                }
 
-                    colorTable[offset] = color.R;
-                    colorTable[offset + 1] = color.G;
-                    colorTable[offset + 2] = color.B;
-                });
-
-            writer.Write(colorTable, 0, colorTableLength);
+                writer.Write(colorTable, 0, colorTableLength);
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(colorTable);
+            }
         }
 
         /// <summary>
@@ -340,10 +344,10 @@ namespace ImageSharp.Formats
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
-            byte[] indexedPixels = image.Pixels;
-
-            LzwEncoder encoder = new LzwEncoder(indexedPixels, (byte)this.bitDepth);
-            encoder.Encode(writer.BaseStream);
+            using (LzwEncoder encoder = new LzwEncoder(image.Pixels, (byte)this.bitDepth))
+            {
+                encoder.Encode(writer.BaseStream);
+            }
         }
     }
 }

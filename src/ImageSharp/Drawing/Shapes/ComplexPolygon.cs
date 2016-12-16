@@ -7,6 +7,7 @@ namespace ImageSharp.Drawing.Shapes
 {
     using System.Collections;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Numerics;
 
     using Paths;
@@ -19,8 +20,7 @@ namespace ImageSharp.Drawing.Shapes
     public sealed class ComplexPolygon : IShape
     {
         private const float ClipperScaleFactor = 100f;
-        private IShape[] holes;
-        private IShape[] outlines;
+        private IShape[] shapes;
         private IEnumerable<IPath> paths;
 
         /// <summary>
@@ -41,14 +41,14 @@ namespace ImageSharp.Drawing.Shapes
         public ComplexPolygon(IShape[] outlines, IShape[] holes)
         {
             Guard.NotNull(outlines, nameof(outlines));
-            Guard.MustBeGreaterThanOrEqualTo(outlines.Count(), 1, nameof(outlines));
+            Guard.MustBeGreaterThanOrEqualTo(outlines.Length, 1, nameof(outlines));
 
             this.FixAndSetShapes(outlines, holes);
 
-            var minX = outlines.Min(x => x.Bounds.Left);
-            var maxX = outlines.Max(x => x.Bounds.Right);
-            var minY = outlines.Min(x => x.Bounds.Top);
-            var maxY = outlines.Max(x => x.Bounds.Bottom);
+            var minX = this.shapes.Min(x => x.Bounds.Left);
+            var maxX = this.shapes.Max(x => x.Bounds.Right);
+            var minY = this.shapes.Min(x => x.Bounds.Top);
+            var maxY = this.shapes.Max(x => x.Bounds.Bottom);
 
             this.Bounds = new RectangleF(minX, minY, maxX - minX, maxY - minY);
         }
@@ -68,28 +68,34 @@ namespace ImageSharp.Drawing.Shapes
         /// <returns>
         /// Returns the distance from thr shape to the point
         /// </returns>
+        /// <remarks> 
+        /// Due to the clipping we did during construction we know that out shapes do not overlap at there edges 
+        /// therefore for apoint to be in more that one we must be in a hole of another, theoretically this could 
+        /// then flip again to be in a outlin inside a hole inside an outline :)
+        /// </remarks>
         float IShape.Distance(Vector2 point)
         {
-            // get the outline we are closest to the center of
-            // by rights we should only be inside 1 outline
-            // othersie we will start returning the distanct to the nearest shape
-            var dist = this.outlines.Select(o => o.Distance(point)).OrderBy(p => p).First();
-
-            if (dist <= 0 && this.holes != null)
+            float dist = float.MaxValue;
+            bool inside = false;
+            foreach (IShape shape in this.shapes)
             {
-                // inside poly
-                foreach (var hole in this.holes)
-                {
-                    var distFromHole = hole.Distance(point);
+                var d = shape.Distance(point);
 
-                    // less than zero we are inside shape
-                    if (distFromHole <= 0)
-                    {
-                        // invert distance
-                        dist = distFromHole * -1;
-                        break;
-                    }
+                if(d <= 0)
+                {
+                    // we are inside a poly
+                    d = -d;  // flip the sign
+                    inside ^= true; // flip the inside flag 
                 }
+
+                if(d < dist)
+                {
+                    dist = d;
+                }
+            }
+
+            if (inside) {
+                return -dist;
             }
 
             return dist;
@@ -149,7 +155,7 @@ namespace ImageSharp.Drawing.Shapes
         }
 
         
-        private void ExtractOutlines(ClipperLib.PolyNode tree, List<IShape> outlines, List<IShape> holes)
+        private void ExtractOutlines(ClipperLib.PolyNode tree, List<IShape> shapes)
         {
             if (tree.Contour.Any())
             {
@@ -164,19 +170,12 @@ namespace ImageSharp.Drawing.Shapes
 
                 var polygon = new Polygon(new LinearLineSegment(vectors));
 
-                if (tree.IsHole)
-                {
-                    holes.Add(polygon);
-                }
-                else
-                {
-                    outlines.Add(polygon);
-                }
+                shapes.Add(polygon);
             }
 
             foreach (var c in tree.Childs)
             {
-                this.ExtractOutlines(c, outlines, holes);
+                this.ExtractOutlines(c, shapes);
             }
         }
 
@@ -198,7 +197,7 @@ namespace ImageSharp.Drawing.Shapes
             // as sending then though clipper will turn them into generic polygons and loose thier shape specific optimisations
 
             int outlineLength = outlines.Length;
-            int holesLength = holes.Length;
+            int holesLength = holes?.Length ?? 0;
             bool[] overlappingOutlines = new bool[outlineLength];
             bool[] overlappingHoles = new bool[holesLength];
             bool anyOutlinesOverlapping = false;
@@ -249,43 +248,32 @@ namespace ImageSharp.Drawing.Shapes
                 var tree = new ClipperLib.PolyTree();
                 clipper.Execute(ClipperLib.ClipType.ctDifference, tree);
 
-                List<IShape> newOutlines = new List<IShape>();
-                List<IShape> newHoles = new List<IShape>();
+                List<IShape> newShapes = new List<IShape>();
 
                 // convert the 'tree' back to shapes
-                this.ExtractOutlines(tree, newOutlines, newHoles);
+                this.ExtractOutlines(tree, newShapes);
 
                 // add the origional outlines that where not overlapping
                 for (int i = 0; i < outlineLength - 1; i++)
                 {
                     if (!overlappingOutlines[i])
                     {
-                        newOutlines.Add(outlines[i]);
+                        newShapes.Add(outlines[i]);
                     }
                 }
 
-                this.outlines = newOutlines.ToArray();
-                if (newHoles.Count > 0)
-                {
-                    this.holes = newHoles.ToArray();
-                }
+                this.shapes = newShapes.ToArray();
             }else
             {
-                this.outlines = outlines;
+                this.shapes = outlines;
             }
 
             var paths = new List<IPath>();
-            foreach (var o in this.outlines)
+            foreach (var o in this.shapes)
             {
                 paths.AddRange(o);
             }
-            if (this.holes != null)
-            {
-                foreach (var o in this.holes)
-                {
-                    paths.AddRange(o);
-                }
-            }
+
             this.paths = paths;
         }
     }

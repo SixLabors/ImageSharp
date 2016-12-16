@@ -66,6 +66,55 @@ namespace ImageSharp.Tests.Drawing
             }
         }
 
+        [Fact]
+        public void ImageShouldBeOverlayedByPolygonOutlineNoOverlapping()
+        {
+            string path = CreateOutputDirectory("Drawing", "LineComplexPolygon");
+            var simplePath = new LinearPolygon(
+                            new Vector2(10, 10),
+                            new Vector2(200, 150),
+                            new Vector2(50, 300));
+
+            var hole1 = new LinearPolygon(
+                            new Vector2(207, 25),
+                            new Vector2(263, 25),
+                            new Vector2(235, 57));
+
+            var image = new Image(500, 500);
+
+            using (FileStream output = File.OpenWrite($"{path}/SimpleVanishHole.png"))
+            {
+                image
+                .BackgroundColor(Color.Blue)
+                .DrawPolygon(Color.HotPink, 5, new ComplexPolygon(simplePath, hole1))
+                .Save(output);
+            }
+
+            using (var sourcePixels = image.Lock())
+            {
+                Assert.Equal(Color.HotPink, sourcePixels[10, 10]);
+
+                Assert.Equal(Color.HotPink, sourcePixels[200, 150]);
+
+                Assert.Equal(Color.HotPink, sourcePixels[50, 300]);
+
+
+                //Assert.Equal(Color.HotPink, sourcePixels[37, 85]);
+
+                //Assert.Equal(Color.HotPink, sourcePixels[93, 85]);
+
+                //Assert.Equal(Color.HotPink, sourcePixels[65, 137]);
+
+                Assert.Equal(Color.Blue, sourcePixels[2, 2]);
+
+                //inside hole
+                Assert.Equal(Color.Blue, sourcePixels[57, 99]);
+
+                //inside shape
+                Assert.Equal(Color.Blue, sourcePixels[100, 192]);
+            }
+        }
+
 
         [Fact]
         public void ImageShouldBeOverlayedByPolygonOutlineOverlapping()

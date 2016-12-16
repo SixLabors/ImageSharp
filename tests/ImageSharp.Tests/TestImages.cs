@@ -70,10 +70,13 @@ namespace ImageSharp.Tests
 
             public static string F => folder + "F.bmp";
 
+            // ReSharper disable once InconsistentNaming
+            public static string RGB3x3 => folder + "RGB3x3.bmp";
+
             public static string NegHeight => folder + "neg_height.bmp";
 
             public static readonly string[] All = {
-                Car, F, NegHeight
+                Car, F, NegHeight, RGB3x3
             };
         }
 

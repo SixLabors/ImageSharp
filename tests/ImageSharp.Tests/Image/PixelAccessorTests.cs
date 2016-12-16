@@ -12,6 +12,7 @@ namespace ImageSharp.Tests
     /// </summary>
     public class PixelAccessorTests
     {
+        
         [Fact]
         public void CopyFromZYX()
         {

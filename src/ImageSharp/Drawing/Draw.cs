@@ -12,7 +12,6 @@ namespace ImageSharp
     using Drawing.Pens;
     using Drawing.Processors;
     using Drawing.Shapes;
-    using Processors;
 
     /// <summary>
     /// Extension methods for the <see cref="Image{TColor, TPacked}"/> type.

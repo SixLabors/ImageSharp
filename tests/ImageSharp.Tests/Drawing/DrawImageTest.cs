@@ -10,12 +10,12 @@ namespace ImageSharp.Tests
 
     using Xunit;
 
-    public class BlendTest : FileTestBase
+    public class DrawImageTest : FileTestBase
     {
         [Fact]
-        public void ImageShouldApplyBlendFilter()
+        public void ImageShouldApplyDrawImageFilter()
         {
-            string path = CreateOutputDirectory("Blend");
+            string path = CreateOutputDirectory("Drawing", "DrawImage");
 
             Image blend;// = new Image(400, 400);
                         // blend.BackgroundColor(Color.RebeccaPurple);
@@ -31,7 +31,7 @@ namespace ImageSharp.Tests
 
                 using (FileStream output = File.OpenWrite($"{path}/{file.FileName}"))
                 {
-                    image.Blend(blend, 75, new Size(image.Width / 2, image.Height / 2), new Point(image.Width / 4, image.Height / 4))
+                    image.DrawImage(blend, 75, new Size(image.Width / 2, image.Height / 2), new Point(image.Width / 4, image.Height / 4))
                          .Save(output);
                 }
             }

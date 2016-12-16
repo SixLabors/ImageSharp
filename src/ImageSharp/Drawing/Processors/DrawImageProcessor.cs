@@ -1,4 +1,4 @@
-﻿// <copyright file="BlendProcessor.cs" company="James Jackson-South">
+﻿// <copyright file="DrawImageProcessor.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -14,18 +14,18 @@ namespace ImageSharp.Processors
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class BlendProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>
+    public class DrawImageProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
         where TPacked : struct
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="BlendProcessor{TColor,TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="DrawImageProcessor{TColor,TPacked}"/> class.
         /// </summary>
         /// <param name="image">The image to blend with the currently processing image.</param>
         /// <param name="size">The size to draw the blended image.</param>
         /// <param name="location">The location to draw the blended image.</param>
         /// <param name="alpha">The opacity of the image to blend. Between 0 and 100.</param>
-        public BlendProcessor(Image<TColor, TPacked> image, Size size, Point location, int alpha = 100)
+        public DrawImageProcessor(Image<TColor, TPacked> image, Size size, Point location, int alpha = 100)
         {
             Guard.MustBeBetweenOrEqualTo(alpha, 0, 100, nameof(alpha));
             this.Image = image;

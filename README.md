@@ -147,7 +147,6 @@ git clone https://github.com/JimBobSquarePants/ImageSharp
  - [x] BackgroundColor
  - [x] Brightness
  - [x] Pixelate
- - [x] Blend
  - [ ] Mask
  - [x] Oil Painting
  - [x] Vignette
@@ -161,6 +160,7 @@ git clone https://github.com/JimBobSquarePants/ImageSharp
  - [x] Pen (Solid, Dash, Custom)
  - [x] Line drawing
  - [x] Complex Polygons (Fill, draw)
+ - [x] DrawImage
  - [ ] Gradient brush (Need help)
 - Other stuff I haven't thought of.
  

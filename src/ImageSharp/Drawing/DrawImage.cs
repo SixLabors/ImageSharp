@@ -13,7 +13,7 @@ namespace ImageSharp
     public static partial class ImageExtensions
     {
         /// <summary>
-        /// Combines the given image together with the current one by blending their pixels.
+        /// Draws the given image together with the current one by blending their pixels.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
@@ -25,11 +25,11 @@ namespace ImageSharp
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
-            return Blend(source, image, percent, default(Size), default(Point));
+            return DrawImage(source, image, percent, default(Size), default(Point));
         }
 
         /// <summary>
-        /// Combines the given image together with the current one by blending their pixels.
+        /// Draws the given image together with the current one by blending their pixels.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="image">The image to blend with the currently processing image.</param>
@@ -39,7 +39,7 @@ namespace ImageSharp
         /// <param name="size">The size to draw the blended image.</param>
         /// <param name="location">The location to draw the blended image.</param>
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
-        public static Image<TColor, TPacked> Blend<TColor, TPacked>(this Image<TColor, TPacked> source, Image<TColor, TPacked> image, int percent, Size size, Point location)
+        public static Image<TColor, TPacked> DrawImage<TColor, TPacked>(this Image<TColor, TPacked> source, Image<TColor, TPacked> image, int percent, Size size, Point location)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct
         {
@@ -53,7 +53,7 @@ namespace ImageSharp
                 location = Point.Empty;
             }
 
-            return source.Process(source.Bounds, new BlendProcessor<TColor, TPacked>(image, size, location, percent));
+            return source.Process(source.Bounds, new DrawImageProcessor<TColor, TPacked>(image, size, location, percent));
         }
     }
 }

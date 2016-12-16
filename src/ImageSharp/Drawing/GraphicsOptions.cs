@@ -1,12 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿// <copyright file="GraphicsOptions.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
 
 namespace ImageSharp.Drawing
 {
     /// <summary>
-    /// Options for influancing the drawing functions.
+    /// Options for influencing the drawing functions.
     /// </summary>
     public struct GraphicsOptions
     {
@@ -16,17 +16,17 @@ namespace ImageSharp.Drawing
         public static readonly GraphicsOptions Default = new GraphicsOptions(true);
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="GraphicsOptions"/> struct.
-        /// </summary>
-        /// <param name="enableAntialiasing">if set to <c>true</c> [enable antialiasing].</param>
-        public GraphicsOptions(bool enableAntialiasing)
-        {
-            Antialias = enableAntialiasing;
-        }
-
-        /// <summary>
-        /// Should antialias be applied.
+        /// Whether antialiasing should be applied.
         /// </summary>
         public bool Antialias;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GraphicsOptions"/> struct.
+        /// </summary>
+        /// <param name="enableAntialiasing">If set to <c>true</c> [enable antialiasing].</param>
+        public GraphicsOptions(bool enableAntialiasing)
+        {
+            this.Antialias = enableAntialiasing;
+        }
     }
 }

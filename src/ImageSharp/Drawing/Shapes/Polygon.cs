@@ -30,6 +30,16 @@ namespace ImageSharp.Drawing.Shapes
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="Polygon" /> class.
+        /// </summary>
+        /// <param name="segment">The segment.</param>
+        public Polygon(ILineSegment segment)
+        {
+            this.innerPath = new InternalPath(segment, true);
+            this.pathCollection = new[] { this };
+        }
+
+        /// <summary>
         /// Gets the bounding box of this shape.
         /// </summary>
         /// <value>

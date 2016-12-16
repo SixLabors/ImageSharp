@@ -34,6 +34,8 @@
       <Value>cmyk</Value>
       <Value>Paeth</Value>
       <Value>th</Value>
+      <Value>bool</Value>
+      <Value>bools</Value>
       <Value>desensitivity</Value>
       <Value>premultiplied</Value>
     </CollectionProperty>

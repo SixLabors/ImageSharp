@@ -9,10 +9,10 @@ namespace ImageSharp.Drawing.Processors
     using System.Numerics;
 
     /// <summary>
-    /// primitive that converts a point in to a color for discoving the fill color based on an implmentation
+    /// primitive that converts a point in to a color for discovering the fill color based on an implementation
     /// </summary>
-    /// <typeparam name="TColor">The type of the color.</typeparam>
-    /// <typeparam name="TPacked">The type of the packed.</typeparam>
+    /// <typeparam name="TColor">The pixel format.</typeparam>
+    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     /// <seealso cref="System.IDisposable" />
     public interface IBrushApplicator<TColor, TPacked> : IDisposable // disposable will be required if/when there is an ImageBrush
         where TColor : struct, IPackedPixel<TPacked>

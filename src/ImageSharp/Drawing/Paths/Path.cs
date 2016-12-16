@@ -5,20 +5,17 @@
 
 namespace ImageSharp.Drawing.Paths
 {
-    using System;
-    using System.Collections;
-    using System.Collections.Generic;
-    using System.Collections.ObjectModel;
-    using System.Linq;
     using System.Numerics;
-    using System.Threading.Tasks;
 
     /// <summary>
-    /// A aggragate of <see cref="ILineSegment"/>s making a single logical path
+    /// A aggregate of <see cref="ILineSegment"/>s making a single logical path
     /// </summary>
-    /// <seealso cref="ImageSharp.Drawing.Paths.IPath" />
+    /// <seealso cref="IPath" />
     public class Path : IPath
     {
+        /// <summary>
+        /// The inner path.
+        /// </summary>
         private readonly InternalPath innerPath;
 
         /// <summary>
@@ -30,49 +27,22 @@ namespace ImageSharp.Drawing.Paths
             this.innerPath = new InternalPath(segment, false);
         }
 
-        /// <summary>
-        /// Gets the bounds enclosing the path
-        /// </summary>
-        /// <value>
-        /// The bounds.
-        /// </value>
+        /// <inheritdoc />
         public RectangleF Bounds => this.innerPath.Bounds;
 
-        /// <summary>
-        /// Gets a value indicating whether this instance is closed.
-        /// </summary>
-        /// <value>
-        ///   <c>true</c> if this instance is closed; otherwise, <c>false</c>.
-        /// </value>
+        /// <inheritdoc />
         public bool IsClosed => false;
 
-        /// <summary>
-        /// Gets the length of the path
-        /// </summary>
-        /// <value>
-        /// The length.
-        /// </value>
+        /// <inheritdoc />
         public float Length => this.innerPath.Length;
 
-        /// <summary>
-        /// Returns the current <see cref="ILineSegment" /> a simple linear path.
-        /// </summary>
-        /// <returns>
-        /// Returns the current <see cref="ILineSegment" /> as simple linear path.
-        /// </returns>
+        /// <inheritdoc />
         public Vector2[] AsSimpleLinearPath()
         {
             return this.innerPath.Points;
         }
 
-        /// <summary>
-        /// Calcualtes the distance along and away from the path for a specified point.
-        /// </summary>
-        /// <param name="x">The x.</param>
-        /// <param name="y">The y.</param>
-        /// <returns>
-        /// Returns details about the point and its distance away from the path.
-        /// </returns>
+        /// <inheritdoc />
         public PointInfo Distance(Vector2 point)
         {
             return this.innerPath.DistanceFromPath(point);

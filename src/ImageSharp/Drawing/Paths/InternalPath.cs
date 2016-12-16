@@ -2,29 +2,56 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
-
 namespace ImageSharp.Drawing.Paths
 {
     using System;
     using System.Collections.Generic;
-    using System.Collections.ObjectModel;
     using System.Linq;
     using System.Numerics;
-    using System.Threading.Tasks;
 
     /// <summary>
-    /// Internal logic for interigating linear paths.
+    /// Internal logic for integrating linear paths.
     /// </summary>
     internal class InternalPath
     {
+        /// <summary>
+        /// The locker.
+        /// </summary>
+        private static readonly object Locker = new object();
+
+        /// <summary>
+        /// The points.
+        /// </summary>
         private readonly Vector2[] points;
+
+        /// <summary>
+        /// The closed path.
+        /// </summary>
         private readonly bool closedPath;
+
+        /// <summary>
+        /// The total distance.
+        /// </summary>
         private readonly Lazy<float> totalDistance;
 
+        /// <summary>
+        /// The constant.
+        /// </summary>
         private float[] constant;
+
+        /// <summary>
+        /// The multiples.
+        /// </summary>
         private float[] multiple;
+
+        /// <summary>
+        /// The distances.
+        /// </summary>
         private float[] distance;
-        private object locker = new object();
+
+        /// <summary>
+        /// The calculated.
+        /// </summary>
         private bool calculated = false;
 
         /// <summary>
@@ -39,10 +66,10 @@ namespace ImageSharp.Drawing.Paths
             this.points = this.Simplify(segments);
             this.closedPath = isClosedPath;
 
-            var minX = this.points.Min(x => x.X);
-            var maxX = this.points.Max(x => x.X);
-            var minY = this.points.Min(x => x.Y);
-            var maxY = this.points.Max(x => x.Y);
+            float minX = this.points.Min(x => x.X);
+            float maxX = this.points.Max(x => x.X);
+            float minY = this.points.Min(x => x.Y);
+            float maxY = this.points.Max(x => x.Y);
 
             this.Bounds = new RectangleF(minX, minY, maxX - minX, maxY - minY);
             this.totalDistance = new Lazy<float>(this.CalculateLength);
@@ -84,10 +111,10 @@ namespace ImageSharp.Drawing.Paths
         {
             this.CalculateConstants();
 
-            var internalInfo = default(PointInfoInternal);
-            internalInfo.DistanceSquared = float.MaxValue; // set it to max so that CalculateShorterDistance can reduce it back down
+            PointInfoInternal internalInfo = default(PointInfoInternal);
+            internalInfo.DistanceSquared = float.MaxValue; // Set it to max so that CalculateShorterDistance can reduce it back down
 
-            var polyCorners = this.points.Length;
+            int polyCorners = this.points.Length;
 
             if (!this.closedPath)
             {
@@ -95,9 +122,9 @@ namespace ImageSharp.Drawing.Paths
             }
 
             int closestPoint = 0;
-            for (var i = 0; i < polyCorners; i++)
+            for (int i = 0; i < polyCorners; i++)
             {
-                var next = i + 1;
+                int next = i + 1;
                 if (this.closedPath && next == polyCorners)
                 {
                     next = 0;
@@ -125,7 +152,7 @@ namespace ImageSharp.Drawing.Paths
         /// <returns>Returns true if the point is inside the closed path.</returns>
         public bool PointInPolygon(Vector2 point)
         {
-            // you can only be inside a path if its "closed"
+            // You can only be inside a path if its "closed"
             if (!this.closedPath)
             {
                 return false;
@@ -138,13 +165,13 @@ namespace ImageSharp.Drawing.Paths
 
             this.CalculateConstants();
 
-            var poly = this.points;
-            var polyCorners = poly.Length;
+            Vector2[] poly = this.points;
+            int polyCorners = poly.Length;
 
-            var j = polyCorners - 1;
+            int j = polyCorners - 1;
             bool oddNodes = false;
 
-            for (var i = 0; i < polyCorners; i++)
+            for (int i = 0; i < polyCorners; i++)
             {
                 if ((poly[i].Y < point.Y && poly[j].Y >= point.Y)
                 || (poly[j].Y < point.Y && poly[i].Y >= point.Y))
@@ -158,30 +185,43 @@ namespace ImageSharp.Drawing.Paths
             return oddNodes;
         }
 
+        /// <summary>
+        /// Simplifies the collection of segments.
+        /// </summary>
+        /// <param name="segments">The segments.</param>
+        /// <returns>
+        /// The <see cref="T:Vector2[]"/>.
+        /// </returns>
         private Vector2[] Simplify(ILineSegment[] segments)
         {
-            List<Vector2> points = new List<Vector2>();
-            foreach(var seg in segments)
+            List<Vector2> simplified = new List<Vector2>();
+            foreach (ILineSegment seg in segments)
             {
-                points.AddRange(seg.AsSimpleLinearPath());
+                simplified.AddRange(seg.AsSimpleLinearPath());
             }
 
-            return points.ToArray();
+            return simplified.ToArray();
         }
 
+        /// <summary>
+        /// Returns the length of the path.
+        /// </summary>
+        /// <returns>
+        /// The <see cref="float"/>.
+        /// </returns>
         private float CalculateLength()
         {
             float length = 0;
-            var polyCorners = this.points.Length;
+            int polyCorners = this.points.Length;
 
             if (!this.closedPath)
             {
                 polyCorners -= 1;
             }
 
-            for (var i = 0; i < polyCorners; i++)
+            for (int i = 0; i < polyCorners; i++)
             {
-                var next = i + 1;
+                int next = i + 1;
                 if (this.closedPath && next == polyCorners)
                 {
                     next = 0;
@@ -193,6 +233,9 @@ namespace ImageSharp.Drawing.Paths
             return length;
         }
 
+        /// <summary>
+        /// Calculate the constants.
+        /// </summary>
         private void CalculateConstants()
         {
             // http://alienryderflex.com/polygon/ source for point in polygon logic
@@ -201,15 +244,15 @@ namespace ImageSharp.Drawing.Paths
                 return;
             }
 
-            lock (this.locker)
+            lock (Locker)
             {
                 if (this.calculated)
                 {
                     return;
                 }
 
-                var poly = this.points;
-                var polyCorners = poly.Length;
+                Vector2[] poly = this.points;
+                int polyCorners = poly.Length;
                 this.constant = new float[polyCorners];
                 this.multiple = new float[polyCorners];
                 this.distance = new float[polyCorners];
@@ -227,7 +270,7 @@ namespace ImageSharp.Drawing.Paths
                     }
                     else
                     {
-                        var subtracted = poly[j] - poly[i];
+                        Vector2 subtracted = poly[j] - poly[i];
                         this.constant[i] = (poly[i].X - ((poly[i].Y * poly[j].X) / subtracted.Y)) + ((poly[i].Y * poly[i].X) / subtracted.Y);
                         this.multiple[i] = subtracted.X / subtracted.Y;
                     }
@@ -239,15 +282,25 @@ namespace ImageSharp.Drawing.Paths
             }
         }
 
+        /// <summary>
+        /// Calculate any shorter distances along the path.
+        /// </summary>
+        /// <param name="start">The start position.</param>
+        /// <param name="end">The end position.</param>
+        /// <param name="point">The current point.</param>
+        /// <param name="info">The info.</param>
+        /// <returns>
+        /// The <see cref="bool"/>.
+        /// </returns>
         private bool CalculateShorterDistance(Vector2 start, Vector2 end, Vector2 point, ref PointInfoInternal info)
         {
-            var diffEnds = end - start;
+            Vector2 diffEnds = end - start;
 
             float lengthSquared = diffEnds.LengthSquared();
-            var diff = point - start;
+            Vector2 diff = point - start;
 
-            var multiplied = diff * diffEnds;
-            var u = (multiplied.X + multiplied.Y) / lengthSquared;
+            Vector2 multiplied = diff * diffEnds;
+            float u = (multiplied.X + multiplied.Y) / lengthSquared;
 
             if (u > 1)
             {
@@ -258,13 +311,13 @@ namespace ImageSharp.Drawing.Paths
                 u = 0;
             }
 
-            var multipliedByU = diffEnds * u;
+            Vector2 multipliedByU = diffEnds * u;
 
-            var pointOnLine = start + multipliedByU;
+            Vector2 pointOnLine = start + multipliedByU;
 
-            var d = pointOnLine - point;
+            Vector2 d = pointOnLine - point;
 
-            var dist = d.LengthSquared();
+            float dist = d.LengthSquared();
 
             if (info.DistanceSquared > dist)
             {
@@ -276,9 +329,19 @@ namespace ImageSharp.Drawing.Paths
             return false;
         }
 
+        /// <summary>
+        /// Contains information about the current point.
+        /// </summary>
         private struct PointInfoInternal
         {
+            /// <summary>
+            /// The distance squared.
+            /// </summary>
             public float DistanceSquared;
+
+            /// <summary>
+            /// The point on the current line.
+            /// </summary>
             public Vector2 PointOnLine;
         }
     }

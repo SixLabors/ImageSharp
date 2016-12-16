@@ -5,11 +5,7 @@
 
 namespace ImageSharp.Drawing.Paths
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
     using System.Numerics;
-    using System.Threading.Tasks;
 
     /// <summary>
     /// Represents a simple path segment
@@ -20,6 +16,6 @@ namespace ImageSharp.Drawing.Paths
         /// Converts the <see cref="ILineSegment" /> into a simple linear path..
         /// </summary>
         /// <returns>Returns the current <see cref="ILineSegment" /> as simple linear path.</returns>
-        Vector2[] AsSimpleLinearPath(); // TODO move this over to ReadonlySpan<Vector2> once availible
+        Vector2[] AsSimpleLinearPath(); // TODO move this over to ReadonlySpan<Vector2> once available
     }
 }

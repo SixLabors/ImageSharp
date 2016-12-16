@@ -154,9 +154,13 @@ git clone https://github.com/JimBobSquarePants/ImageSharp
  - [x] Glow
  - [x] Threshold
 - Drawing
- - [ ] Path brush (Need help) 
- - [ ] Hatch brush (Need help)
- - [ ] Elliptical brush (Need help)
+ - [x] Image brush
+ - [x] Pattern brush
+ - [x] Solid brush 
+ - [X] Hatch brush (Partial copy of System.Drawing brushes)
+ - [x] Pen (Solid, Dash, Custom)
+ - [x] Line drawing
+ - [x] Complex Polygons (Fill, draw)
  - [ ] Gradient brush (Need help)
 - Other stuff I haven't thought of.
  

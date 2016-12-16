@@ -5,14 +5,10 @@
 
 namespace ImageSharp.Drawing.Paths
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
     using System.Numerics;
-    using System.Threading.Tasks;
 
     /// <summary>
-    /// Returns some meta data about the nearest point on a path from a vector
+    /// Returns meta data about the nearest point on a path from a vector
     /// </summary>
     public struct PointInfo
     {

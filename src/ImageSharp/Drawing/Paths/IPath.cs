@@ -5,11 +5,7 @@
 
 namespace ImageSharp.Drawing.Paths
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
     using System.Numerics;
-    using System.Threading.Tasks;
 
     /// <summary>
     /// Represents a logic path that can be drawn
@@ -41,9 +37,9 @@ namespace ImageSharp.Drawing.Paths
         float Length { get; }
 
         /// <summary>
-        /// Calcualtes the distance along and away from the path for a specified point.
+        /// Calculates the distance along and away from the path for a specified point.
         /// </summary>
-        /// <param name="point">The point.</param>
+        /// <param name="point">The point along the path.</param>
         /// <returns>
         /// Returns details about the point and its distance away from the path.
         /// </returns>

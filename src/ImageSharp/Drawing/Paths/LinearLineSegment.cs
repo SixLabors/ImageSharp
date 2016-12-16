@@ -5,20 +5,19 @@
 
 namespace ImageSharp.Drawing.Paths
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Collections.ObjectModel;
     using System.Linq;
     using System.Numerics;
-    using System.Threading.Tasks;
 
     /// <summary>
-    /// Represents a seriese of control points that will be joined by staight lines
+    /// Represents a series of control points that will be joined by straight lines
     /// </summary>
-    /// <seealso cref="ImageSharp.Drawing.Paths.ILineSegment" />
+    /// <seealso cref="ILineSegment" />
     public class LinearLineSegment : ILineSegment
     {
-        private Vector2[] points;
+        /// <summary>
+        /// The collection of points.
+        /// </summary>
+        private readonly Vector2[] points;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LinearLineSegment"/> class.

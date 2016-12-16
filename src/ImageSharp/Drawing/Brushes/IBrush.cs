@@ -5,21 +5,20 @@
 
 namespace ImageSharp.Drawing
 {
-    using System;
     using Processors;
 
     /// <summary>
-    /// Brush represents a logical configuration of a brush whcih can be used to source pixel colors
+    /// Brush represents a logical configuration of a brush which can be used to source pixel colors
     /// </summary>
-    /// <typeparam name="TColor">The type of the color.</typeparam>
-    /// <typeparam name="TPacked">The type of the packed.</typeparam>
+    /// <typeparam name="TColor">The pixel format.</typeparam>
+    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     /// <remarks>
     /// A brush is a simple class that will return an <see cref="IBrushApplicator{TColor, TPacked}" /> that will perform the
     /// logic for converting a pixel location to a <typeparamref name="TColor"/>.
     /// </remarks>
     public interface IBrush<TColor, TPacked>
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+        where TColor : struct, IPackedPixel<TPacked>
+        where TPacked : struct
     {
         /// <summary>
         /// Creates the applicator for this brush.

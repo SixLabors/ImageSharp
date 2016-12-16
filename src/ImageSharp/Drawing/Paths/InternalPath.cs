@@ -70,10 +70,9 @@ namespace ImageSharp.Drawing.Paths
         /// <param name="segment">The segment.</param>
         /// <param name="isClosedPath">if set to <c>true</c> [is closed path].</param>
         internal InternalPath(ILineSegment segment, bool isClosedPath)
-            :this(segment.AsSimpleLinearPath(), isClosedPath)
+            : this(segment.AsSimpleLinearPath(), isClosedPath)
         {
         }
-
 
         /// <summary>
         /// Initializes a new instance of the <see cref="InternalPath" /> class.

@@ -108,8 +108,7 @@ namespace ImageSharp.Drawing.Shapes
         /// <summary>
         /// Calcualtes the distance along and away from the path for a specified point.
         /// </summary>
-        /// <param name="x">The x.</param>
-        /// <param name="y">The y.</param>
+        /// <param name="point">The point along the path.</param>
         /// <returns>
         /// distance metadata about the point.
         /// </returns>

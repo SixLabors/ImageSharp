@@ -68,9 +68,9 @@ namespace ImageSharp.Drawing.Shapes
         /// <returns>
         /// Returns the distance from thr shape to the point
         /// </returns>
-        /// <remarks> 
-        /// Due to the clipping we did during construction we know that out shapes do not overlap at there edges 
-        /// therefore for apoint to be in more that one we must be in a hole of another, theoretically this could 
+        /// <remarks>
+        /// Due to the clipping we did during construction we know that out shapes do not overlap at there edges
+        /// therefore for apoint to be in more that one we must be in a hole of another, theoretically this could
         /// then flip again to be in a outlin inside a hole inside an outline :)
         /// </remarks>
         float IShape.Distance(Vector2 point)
@@ -81,20 +81,21 @@ namespace ImageSharp.Drawing.Shapes
             {
                 var d = shape.Distance(point);
 
-                if(d <= 0)
+                if (d <= 0)
                 {
                     // we are inside a poly
                     d = -d;  // flip the sign
-                    inside ^= true; // flip the inside flag 
+                    inside ^= true; // flip the inside flag
                 }
 
-                if(d < dist)
+                if (d < dist)
                 {
                     dist = d;
                 }
             }
 
-            if (inside) {
+            if (inside)
+            {
                 return -dist;
             }
 
@@ -145,7 +146,7 @@ namespace ImageSharp.Drawing.Shapes
 
         private void AddPoints(ClipperLib.Clipper clipper, IShape[] shapes, bool[] shouldInclude, ClipperLib.PolyType polyType)
         {
-            for(var i =0; i< shapes.Length; i++)
+            for (var i = 0; i < shapes.Length; i++)
             {
                 if (shouldInclude[i])
                 {
@@ -154,7 +155,6 @@ namespace ImageSharp.Drawing.Shapes
             }
         }
 
-        
         private void ExtractOutlines(ClipperLib.PolyNode tree, List<IShape> shapes)
         {
             if (tree.Contour.Any())
@@ -162,7 +162,7 @@ namespace ImageSharp.Drawing.Shapes
                 // convert the Clipper Contour from scaled ints back down to the origional size (this is going to be lossy but not significantly)
                 var pointCount = tree.Contour.Count;
                 var vectors = new Vector2[pointCount];
-                for(var i=0; i< pointCount; i++)
+                for (var i = 0; i < pointCount; i++)
                 {
                     var p = tree.Contour[i];
                     vectors[i] = new Vector2(p.X, p.Y) / ClipperScaleFactor;
@@ -184,18 +184,16 @@ namespace ImageSharp.Drawing.Shapes
         /// </summary>
         /// <param name="source">The source.</param>
         /// <param name="target">The target.</param>
-        /// <returns></returns>
+        /// <returns>true if the 2 shapes bounding boxes overlap.</returns>
         private bool OverlappingBoundingBoxes(IShape source, IShape target)
         {
             return source.Bounds.Intersects(target.Bounds);
         }
 
-
         private void FixAndSetShapes(IShape[] outlines, IShape[] holes)
         {
             // if any outline doesn't overlap another shape then we don't have to bother with sending them through clipper
             // as sending then though clipper will turn them into generic polygons and loose thier shape specific optimisations
-
             int outlineLength = outlines.Length;
             int holesLength = holes?.Length ?? 0;
             bool[] overlappingOutlines = new bool[outlineLength];
@@ -207,10 +205,10 @@ namespace ImageSharp.Drawing.Shapes
             {
                 for (int j = i + 1; j < outlineLength; j++)
                 {
-                    //skip the bounds check if they are already tested
+                    // skip the bounds check if they are already tested
                     if (overlappingOutlines[i] == false || overlappingOutlines[j] == false)
                     {
-                        if (OverlappingBoundingBoxes(outlines[i], outlines[j]))
+                        if (this.OverlappingBoundingBoxes(outlines[i], outlines[j]))
                         {
                             overlappingOutlines[i] = true;
                             overlappingOutlines[j] = true;
@@ -223,7 +221,7 @@ namespace ImageSharp.Drawing.Shapes
                 {
                     if (overlappingOutlines[i] == false || overlappingHoles[k] == false)
                     {
-                        if (OverlappingBoundingBoxes(outlines[i], holes[k]))
+                        if (this.OverlappingBoundingBoxes(outlines[i], holes[k]))
                         {
                             overlappingOutlines[i] = true;
                             overlappingHoles[k] = true;
@@ -263,7 +261,8 @@ namespace ImageSharp.Drawing.Shapes
                 }
 
                 this.shapes = newShapes.ToArray();
-            }else
+            }
+            else
             {
                 this.shapes = outlines;
             }

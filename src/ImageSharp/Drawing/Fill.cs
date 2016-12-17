@@ -56,6 +56,7 @@ namespace ImageSharp
         /// <param name="source">The source.</param>
         /// <param name="brush">The brush.</param>
         /// <param name="shape">The shape.</param>
+        /// <param name="options">The graphics options.</param>
         /// <returns>The Image</returns>
         public static Image<TColor, TPacked> Fill<TColor, TPacked>(this Image<TColor, TPacked> source, IBrush<TColor, TPacked> brush, IShape shape, GraphicsOptions options)
           where TColor : struct, IPackedPixel<TPacked>

@@ -60,10 +60,28 @@ namespace ImageSharp.Drawing.Paths
         /// <param name="segments">The segments.</param>
         /// <param name="isClosedPath">if set to <c>true</c> [is closed path].</param>
         internal InternalPath(ILineSegment[] segments, bool isClosedPath)
+            : this(Simplify(segments), isClosedPath)
         {
-            Guard.NotNull(segments, nameof(segments));
+        }
 
-            this.points = this.Simplify(segments);
+        /// <summary>
+        /// Initializes a new instance of the <see cref="InternalPath" /> class.
+        /// </summary>
+        /// <param name="segment">The segment.</param>
+        /// <param name="isClosedPath">if set to <c>true</c> [is closed path].</param>
+        internal InternalPath(ILineSegment segment, bool isClosedPath)
+            : this(segment.AsSimpleLinearPath(), isClosedPath)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="InternalPath" /> class.
+        /// </summary>
+        /// <param name="points">The points.</param>
+        /// <param name="isClosedPath">if set to <c>true</c> [is closed path].</param>
+        internal InternalPath(Vector2[] points, bool isClosedPath)
+        {
+            this.points = points;
             this.closedPath = isClosedPath;
 
             float minX = this.points.Min(x => x.X);
@@ -192,7 +210,7 @@ namespace ImageSharp.Drawing.Paths
         /// <returns>
         /// The <see cref="T:Vector2[]"/>.
         /// </returns>
-        private Vector2[] Simplify(ILineSegment[] segments)
+        private static Vector2[] Simplify(ILineSegment[] segments)
         {
             List<Vector2> simplified = new List<Vector2>();
             foreach (ILineSegment seg in segments)

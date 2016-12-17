@@ -5,6 +5,8 @@
 
 namespace ImageSharp.Drawing
 {
+    using System;
+
     using Processors;
 
     /// <summary>
@@ -18,7 +20,7 @@ namespace ImageSharp.Drawing
     /// </remarks>
     public interface IBrush<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct
+        where TPacked : struct, IEquatable<TPacked>
     {
         /// <summary>
         /// Creates the applicator for this brush.

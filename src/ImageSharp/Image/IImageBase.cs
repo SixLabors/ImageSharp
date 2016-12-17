@@ -5,6 +5,8 @@
 
 namespace ImageSharp
 {
+    using System;
+
     /// <summary>
     /// Encapsulates the basic properties and methods required to manipulate images in varying formats.
     /// </summary>
@@ -12,7 +14,7 @@ namespace ImageSharp
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public interface IImageBase<TColor, TPacked> : IImageBase
         where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct
+        where TPacked : struct, IEquatable<TPacked>
     {
         /// <summary>
         /// Gets the pixels as an array of the given packed pixel format.

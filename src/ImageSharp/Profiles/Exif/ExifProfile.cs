@@ -5,6 +5,7 @@
 
 namespace ImageSharp
 {
+    using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.IO;
@@ -122,7 +123,7 @@ namespace ImageSharp
         /// </returns>
         public Image<TColor, TPacked> CreateThumbnail<TColor, TPacked>()
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             this.InitializeValues();
 

@@ -33,7 +33,7 @@ namespace ImageSharp.Quantizers
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public sealed class WuQuantizer<TColor, TPacked> : IQuantizer<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct
+        where TPacked : struct, IEquatable<TPacked>
     {
         /// <summary>
         /// The epsilon for comparing floating point numbers.

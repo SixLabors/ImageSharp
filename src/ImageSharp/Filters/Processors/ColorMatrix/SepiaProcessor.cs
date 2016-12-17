@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Processors
 {
+    using System;
     using System.Numerics;
 
     /// <summary>
@@ -15,7 +16,7 @@ namespace ImageSharp.Processors
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public class SepiaProcessor<TColor, TPacked> : ColorMatrixFilter<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct
+        where TPacked : struct, IEquatable<TPacked>
     {
         /// <inheritdoc/>
         public override Matrix4x4 Matrix => new Matrix4x4

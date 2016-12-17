@@ -18,7 +18,7 @@ namespace ImageSharp
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public sealed unsafe class PixelArea<TColor, TPacked> : IDisposable
         where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct
+        where TPacked : struct, IEquatable<TPacked>
     {
         /// <summary>
         /// Provides a way to access the pixels from unmanaged memory.

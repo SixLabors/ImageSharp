@@ -17,7 +17,7 @@ namespace ImageSharp
     [DebuggerDisplay("Image: {Width}x{Height}")]
     public abstract class ImageBase<TColor, TPacked> : IImageBase<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct
+        where TPacked : struct, IEquatable<TPacked>
     {
         /// <summary>
         /// The image pixels

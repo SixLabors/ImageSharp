@@ -5,6 +5,8 @@
 
 namespace ImageSharp.Tests
 {
+    using System;
+
     using Xunit;
 
     /// <summary>
@@ -62,7 +64,7 @@ namespace ImageSharp.Tests
 
         private static void CopyFromZYX<TColor, TPacked>(Image<TColor, TPacked> image)
             where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct
+        where TPacked : struct, IEquatable<TPacked>
         {
             using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
             {
@@ -79,7 +81,7 @@ namespace ImageSharp.Tests
 
                     pixels.CopyFrom(row, 0);
 
-                    Color color = (Color) (object) pixels[0, 0];
+                    Color color = (Color)(object)pixels[0, 0];
                     Assert.Equal(red, color.R);
                     Assert.Equal(green, color.G);
                     Assert.Equal(blue, color.B);
@@ -90,7 +92,7 @@ namespace ImageSharp.Tests
 
         private static void CopyFromZYXW<TColor, TPacked>(Image<TColor, TPacked> image)
             where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct
+        where TPacked : struct, IEquatable<TPacked>
         {
             using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
             {
@@ -108,7 +110,7 @@ namespace ImageSharp.Tests
 
                     pixels.CopyFrom(row, 0);
 
-                    Color color = (Color) (object) pixels[0, 0];
+                    Color color = (Color)(object)pixels[0, 0];
                     Assert.Equal(red, color.R);
                     Assert.Equal(green, color.G);
                     Assert.Equal(blue, color.B);
@@ -119,7 +121,7 @@ namespace ImageSharp.Tests
 
         private static void CopyToZYX<TColor, TPacked>(Image<TColor, TPacked> image)
           where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
             {
@@ -129,7 +131,7 @@ namespace ImageSharp.Tests
 
                 using (PixelArea<TColor, TPacked> row = new PixelArea<TColor, TPacked>(1, ComponentOrder.ZYX))
                 {
-                    pixels[0, 0] = (TColor) (object) new Color(red, green, blue);
+                    pixels[0, 0] = (TColor)(object)new Color(red, green, blue);
 
                     pixels.CopyTo(row, 0);
 
@@ -141,8 +143,8 @@ namespace ImageSharp.Tests
         }
 
         private static void CopyToZYXW<TColor, TPacked>(Image<TColor, TPacked> image)
-          where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TColor : struct, IPackedPixel<TPacked>
+            where TPacked : struct, IEquatable<TPacked>
         {
             using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
             {
@@ -153,7 +155,7 @@ namespace ImageSharp.Tests
 
                 using (PixelArea<TColor, TPacked> row = new PixelArea<TColor, TPacked>(1, ComponentOrder.ZYXW))
                 {
-                    pixels[0, 0] = (TColor) (object) new Color(red, green, blue, alpha);
+                    pixels[0, 0] = (TColor)(object)new Color(red, green, blue, alpha);
 
                     pixels.CopyTo(row, 0);
 

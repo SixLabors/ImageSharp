@@ -16,7 +16,7 @@ namespace ImageSharp.Processors
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public abstract class ColorMatrixFilter<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>, IColorMatrixFilter<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct
+        where TPacked : struct, IEquatable<TPacked>
     {
         /// <inheritdoc/>
         public abstract Matrix4x4 Matrix { get; }

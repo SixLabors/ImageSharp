@@ -24,7 +24,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Pixelate<TColor, TPacked>(this Image<TColor, TPacked> source, int size = 4)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             return Pixelate(source, size, source.Bounds);
         }
@@ -42,7 +42,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Pixelate<TColor, TPacked>(this Image<TColor, TPacked> source, int size, Rectangle rectangle)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             if (size <= 0 || size > source.Height || size > source.Width)
             {

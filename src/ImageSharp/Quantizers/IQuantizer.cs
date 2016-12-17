@@ -5,6 +5,8 @@
 
 namespace ImageSharp.Quantizers
 {
+    using System;
+
     /// <summary>
     /// Provides methods for allowing quantization of images pixels.
     /// </summary>
@@ -12,7 +14,7 @@ namespace ImageSharp.Quantizers
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public interface IQuantizer<TColor, TPacked> : IQuantizer
         where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct
+        where TPacked : struct, IEquatable<TPacked>
     {
         /// <summary>
         /// Quantize an image and return the resulting output pixels.

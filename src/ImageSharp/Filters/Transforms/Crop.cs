@@ -5,6 +5,8 @@
 
 namespace ImageSharp
 {
+    using System;
+
     using Processors;
 
     /// <summary>
@@ -23,7 +25,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor, TPacked}"/></returns>
         public static Image<TColor, TPacked> Crop<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             return Crop(source, new Rectangle(0, 0, width, height));
         }
@@ -40,7 +42,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image"/></returns>
         public static Image<TColor, TPacked> Crop<TColor, TPacked>(this Image<TColor, TPacked> source, Rectangle cropRectangle)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             CropProcessor<TColor, TPacked> processor = new CropProcessor<TColor, TPacked>(cropRectangle);
             return source.Process(source.Bounds, processor);

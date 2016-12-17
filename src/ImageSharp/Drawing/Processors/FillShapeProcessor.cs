@@ -20,7 +20,7 @@ namespace ImageSharp.Drawing.Processors
     /// <seealso cref="ImageSharp.Processors.ImageFilteringProcessor{TColor, TPacked}" />
     public class FillShapeProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct
+        where TPacked : struct, IEquatable<TPacked>
     {
         private const float Epsilon = 0.001f;
 

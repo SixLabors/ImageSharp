@@ -25,7 +25,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> OilPaint<TColor, TPacked>(this Image<TColor, TPacked> source, int levels = 10, int brushSize = 15)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             return OilPaint(source, levels, brushSize, source.Bounds);
         }
@@ -44,7 +44,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> OilPaint<TColor, TPacked>(this Image<TColor, TPacked> source, int levels, int brushSize, Rectangle rectangle)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             Guard.MustBeGreaterThan(levels, 0, nameof(levels));
 

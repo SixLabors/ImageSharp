@@ -5,6 +5,8 @@
 
 namespace ImageSharp.Processors
 {
+    using System;
+
     /// <summary>
     /// Defines a sampler that detects edges within an image using two one-dimensional matrices.
     /// </summary>
@@ -12,7 +14,7 @@ namespace ImageSharp.Processors
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public abstract class EdgeDetector2DProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>, IEdgeDetectorProcessor<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct
+        where TPacked : struct, IEquatable<TPacked>
     {
         /// <summary>
         /// Gets the horizontal gradient operator.

@@ -24,7 +24,7 @@ namespace ImageSharp.Drawing.Processors
     /// <seealso cref="ImageSharp.Processors.ImageFilteringProcessor{TColor, TPacked}" />
     public class DrawPathProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct
+        where TPacked : struct, IEquatable<TPacked>
     {
         private const float AntialiasFactor = 1f;
         private const int PaddingFactor = 1; // needs to been the same or greater than AntialiasFactor

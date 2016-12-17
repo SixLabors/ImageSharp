@@ -286,7 +286,7 @@ namespace ImageSharp.Formats
         /// <param name="sample">The subsampling mode.</param>
         public void Encode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream, int quality, JpegSubsample sample)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
@@ -540,7 +540,7 @@ namespace ImageSharp.Formats
         /// <param name="crBlock">The blue chroma block.</param>
         private void ToYCbCr<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, int x, int y, ref Block yBlock, ref Block cbBlock, ref Block crBlock)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             int xmax = pixels.Width - 1;
             int ymax = pixels.Height - 1;
@@ -639,7 +639,7 @@ namespace ImageSharp.Formats
         /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         private void WriteProfiles<TColor, TPacked>(Image<TColor, TPacked> image)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             this.WriteProfile(image.ExifProfile);
         }
@@ -815,7 +815,7 @@ namespace ImageSharp.Formats
         /// </param>
         private void WriteStartOfScan<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             // TODO: We should allow grayscale writing.
             this.outputStream.Write(this.sosHeaderYCbCr, 0, this.sosHeaderYCbCr.Length);
@@ -842,7 +842,7 @@ namespace ImageSharp.Formats
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
         private void Encode444<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             Block b = Block.Create();
             Block cb = Block.Create();
@@ -876,7 +876,7 @@ namespace ImageSharp.Formats
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
         private void Encode420<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             Block b = Block.Create();
             Block[] cb = Block.CreateArray(4);

@@ -72,9 +72,9 @@ namespace ImageSharp.Drawing.Pens
     /// section 3 will be width/2 long and will be filled
     /// the the pattern will imidiatly repeat without gap.
     /// </remarks>
-    public partial class Pen<TColor, TPacked> : IPen<TColor, TPacked>
+    public class Pen<TColor, TPacked> : IPen<TColor, TPacked>
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
     {
         private static readonly float[] EmptyPattern = new float[0];
         private readonly float[] pattern;

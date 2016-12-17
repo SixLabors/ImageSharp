@@ -239,7 +239,7 @@ namespace ImageSharp.Formats
         /// <param name="configOnly">Whether to decode metadata only.</param>
         public void Decode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream, bool configOnly)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             this.InputStream = stream;
 
@@ -465,7 +465,7 @@ namespace ImageSharp.Formats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void PackYcbCr<TColor, TPacked>(ref TColor packed, byte y, byte cb, byte cr)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             int ccb = cb - 128;
             int ccr = cr - 128;
@@ -1118,7 +1118,7 @@ namespace ImageSharp.Formats
         /// <param name="image">The image.</param>
         private void ProcessApp1Marker<TColor, TPacked>(int remaining, Image<TColor, TPacked> image)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             if (remaining < 6)
             {
@@ -1176,7 +1176,7 @@ namespace ImageSharp.Formats
         /// <param name="image">The image.</param>
         private void ConvertFromCmyk<TColor, TPacked>(int width, int height, Image<TColor, TPacked> image)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             if (!this.adobeTransformValid)
             {
@@ -1233,7 +1233,7 @@ namespace ImageSharp.Formats
         /// <param name="image">The image.</param>
         private void ConvertFromGrayScale<TColor, TPacked>(int width, int height, Image<TColor, TPacked> image)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             image.InitPixels(width, height);
 
@@ -1270,7 +1270,7 @@ namespace ImageSharp.Formats
         /// <param name="image">The image.</param>
         private void ConvertFromYCbCr<TColor, TPacked>(int width, int height, Image<TColor, TPacked> image)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             int scale = this.componentArray[0].HorizontalFactor / this.componentArray[1].HorizontalFactor;
             image.InitPixels(width, height);
@@ -1312,7 +1312,7 @@ namespace ImageSharp.Formats
         /// <param name="image">The image.</param>
         private void ConvertFromRGB<TColor, TPacked>(int width, int height, Image<TColor, TPacked> image)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             int scale = this.componentArray[0].HorizontalFactor / this.componentArray[1].HorizontalFactor;
             image.InitPixels(width, height);
@@ -1352,7 +1352,7 @@ namespace ImageSharp.Formats
         /// <param name="image">The image to assign the resolution to.</param>
         private void AssignResolution<TColor, TPacked>(Image<TColor, TPacked> image)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             if (this.isJfif && this.horizontalResolution > 0 && this.verticalResolution > 0)
             {
@@ -2114,7 +2114,7 @@ namespace ImageSharp.Formats
         /// <param name="yy">The y-position within the image.</param>
         private void PackCmyk<TColor, TPacked>(ref TColor packed, byte y, byte cb, byte cr, int xx, int yy)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             // TODO: We can speed this up further with Vector4
             int ccb = cb - 128;

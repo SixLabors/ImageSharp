@@ -5,13 +5,13 @@
 
 namespace ImageSharp
 {
+    using System;
     using System.Numerics;
     using Drawing;
     using Drawing.Brushes;
     using Drawing.Paths;
     using Drawing.Processors;
     using Drawing.Shapes;
-    using Processors;
 
     /// <summary>
     /// Extension methods for the <see cref="Image{TColor, TPacked}"/> type.
@@ -28,7 +28,7 @@ namespace ImageSharp
         /// <returns>The Image</returns>
         public static Image<TColor, TPacked> Fill<TColor, TPacked>(this Image<TColor, TPacked> source, IBrush<TColor, TPacked> brush)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             return source.Process(new FillProcessor<TColor, TPacked>(brush));
         }
@@ -43,7 +43,7 @@ namespace ImageSharp
         /// <returns>The Image</returns>
         public static Image<TColor, TPacked> Fill<TColor, TPacked>(this Image<TColor, TPacked> source, TColor color)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             return source.Fill(new SolidBrush<TColor, TPacked>(color));
         }
@@ -59,7 +59,7 @@ namespace ImageSharp
         /// <returns>The Image</returns>
         public static Image<TColor, TPacked> Fill<TColor, TPacked>(this Image<TColor, TPacked> source, IBrush<TColor, TPacked> brush, IShape shape, GraphicsOptions options)
           where TColor : struct, IPackedPixel<TPacked>
-          where TPacked : struct
+          where TPacked : struct, IEquatable<TPacked>
         {
             return source.Process(new FillShapeProcessor<TColor, TPacked>(brush, shape, options));
         }
@@ -75,7 +75,7 @@ namespace ImageSharp
         /// <returns>The Image</returns>
         public static Image<TColor, TPacked> Fill<TColor, TPacked>(this Image<TColor, TPacked> source, IBrush<TColor, TPacked> brush, IShape shape)
           where TColor : struct, IPackedPixel<TPacked>
-          where TPacked : struct
+          where TPacked : struct, IEquatable<TPacked>
         {
             return source.Process(new FillShapeProcessor<TColor, TPacked>(brush, shape, GraphicsOptions.Default));
         }
@@ -94,7 +94,7 @@ namespace ImageSharp
         /// </returns>
         public static Image<TColor, TPacked> Fill<TColor, TPacked>(this Image<TColor, TPacked> source, TColor color, IShape shape, GraphicsOptions options)
           where TColor : struct, IPackedPixel<TPacked>
-          where TPacked : struct
+          where TPacked : struct, IEquatable<TPacked>
         {
             return source.Fill(new SolidBrush<TColor, TPacked>(color), shape, options);
         }
@@ -110,7 +110,7 @@ namespace ImageSharp
         /// <returns>The Image</returns>
         public static Image<TColor, TPacked> Fill<TColor, TPacked>(this Image<TColor, TPacked> source, TColor color, IShape shape)
           where TColor : struct, IPackedPixel<TPacked>
-          where TPacked : struct
+          where TPacked : struct, IEquatable<TPacked>
         {
             return source.Fill(new SolidBrush<TColor, TPacked>(color), shape);
         }
@@ -129,7 +129,7 @@ namespace ImageSharp
         /// </returns>
         public static Image<TColor, TPacked> FillPolygon<TColor, TPacked>(this Image<TColor, TPacked> source, IBrush<TColor, TPacked> brush, Vector2[] points, GraphicsOptions options)
            where TColor : struct, IPackedPixel<TPacked>
-           where TPacked : struct
+           where TPacked : struct, IEquatable<TPacked>
         {
             // using Polygon directly instead of LinearPolygon as its will have less indirection
             return source.Fill(brush, new Polygon(new LinearLineSegment(points)), options);
@@ -146,7 +146,7 @@ namespace ImageSharp
         /// <returns>The Image</returns>
         public static Image<TColor, TPacked> FillPolygon<TColor, TPacked>(this Image<TColor, TPacked> source, IBrush<TColor, TPacked> brush, Vector2[] points)
            where TColor : struct, IPackedPixel<TPacked>
-           where TPacked : struct
+           where TPacked : struct, IEquatable<TPacked>
         {
             // using Polygon directly instead of LinearPolygon as its will have less indirection
             return source.Fill(brush, new Polygon(new LinearLineSegment(points)));
@@ -166,7 +166,7 @@ namespace ImageSharp
         /// </returns>
         public static Image<TColor, TPacked> FillPolygon<TColor, TPacked>(this Image<TColor, TPacked> source, TColor color, Vector2[] points, GraphicsOptions options)
            where TColor : struct, IPackedPixel<TPacked>
-           where TPacked : struct
+           where TPacked : struct, IEquatable<TPacked>
         {
             // using Polygon directly instead of LinearPolygon as its will have less indirection
             return source.Fill(new SolidBrush<TColor, TPacked>(color), new Polygon(new LinearLineSegment(points)), options);
@@ -183,7 +183,7 @@ namespace ImageSharp
         /// <returns>The Image</returns>
         public static Image<TColor, TPacked> FillPolygon<TColor, TPacked>(this Image<TColor, TPacked> source, TColor color, Vector2[] points)
            where TColor : struct, IPackedPixel<TPacked>
-           where TPacked : struct
+           where TPacked : struct, IEquatable<TPacked>
         {
             // using Polygon directly instead of LinearPolygon as its will have less indirection
             return source.Fill(new SolidBrush<TColor, TPacked>(color), new Polygon(new LinearLineSegment(points)));

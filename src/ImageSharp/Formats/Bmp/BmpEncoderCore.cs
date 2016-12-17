@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Formats
 {
+    using System;
     using System.IO;
 
     using IO;
@@ -34,7 +35,7 @@ namespace ImageSharp.Formats
         /// <param name="bitsPerPixel">The <see cref="BmpBitsPerPixel"/></param>
         public void Encode<TColor, TPacked>(ImageBase<TColor, TPacked> image, Stream stream, BmpBitsPerPixel bitsPerPixel)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
@@ -127,7 +128,7 @@ namespace ImageSharp.Formats
         /// </param>
         private void WriteImage<TColor, TPacked>(EndianBinaryWriter writer, ImageBase<TColor, TPacked> image)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
             {
@@ -153,7 +154,7 @@ namespace ImageSharp.Formats
         /// <param name="pixels">The <see cref="PixelAccessor{TColor,TPacked}"/> containing pixel data.</param>
         private void Write32Bit<TColor, TPacked>(EndianBinaryWriter writer, PixelAccessor<TColor, TPacked> pixels)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             using (PixelArea<TColor, TPacked> row = new PixelArea<TColor, TPacked>(pixels.Width, ComponentOrder.ZYXW, this.padding))
             {
@@ -174,7 +175,7 @@ namespace ImageSharp.Formats
         /// <param name="pixels">The <see cref="PixelAccessor{TColor,TPacked}"/> containing pixel data.</param>
         private void Write24Bit<TColor, TPacked>(EndianBinaryWriter writer, PixelAccessor<TColor, TPacked> pixels)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             using (PixelArea<TColor, TPacked> row = new PixelArea<TColor, TPacked>(pixels.Width, ComponentOrder.ZYX, this.padding))
             {

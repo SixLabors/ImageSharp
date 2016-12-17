@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Formats
 {
+    using System;
     using System.IO;
 
     /// <summary>
@@ -46,6 +47,6 @@ namespace ImageSharp.Formats
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
         void Encode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct;
+            where TPacked : struct, IEquatable<TPacked>;
     }
 }

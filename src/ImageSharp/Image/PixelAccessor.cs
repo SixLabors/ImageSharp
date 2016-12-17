@@ -17,7 +17,7 @@ namespace ImageSharp
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public unsafe class PixelAccessor<TColor, TPacked> : IDisposable
         where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct
+        where TPacked : struct, IEquatable<TPacked>
     {
         /// <summary>
         /// The pointer to the pixel buffer.

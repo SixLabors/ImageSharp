@@ -15,7 +15,7 @@ namespace ImageSharp.Formats
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     internal class GifDecoderCore<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct
+        where TPacked : struct, IEquatable<TPacked>
     {
         /// <summary>
         /// The image to decode the information to.

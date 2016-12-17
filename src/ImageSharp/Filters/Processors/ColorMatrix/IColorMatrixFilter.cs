@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Processors
 {
+    using System;
     using System.Numerics;
 
     /// <summary>
@@ -15,7 +16,7 @@ namespace ImageSharp.Processors
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public interface IColorMatrixFilter<TColor, TPacked> : IImageFilteringProcessor<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct
+        where TPacked : struct, IEquatable<TPacked>
     {
         /// <summary>
         /// Gets the <see cref="Matrix4x4"/> used to alter the image.

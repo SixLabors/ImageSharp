@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Processors
 {
+    using System;
     using System.Threading.Tasks;
 
     /// <summary>
@@ -14,7 +15,7 @@ namespace ImageSharp.Processors
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public abstract class ImageProcessor<TColor, TPacked> : IImageProcessor
         where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct
+        where TPacked : struct, IEquatable<TPacked>
     {
         /// <inheritdoc/>
         public virtual ParallelOptions ParallelOptions { get; set; } = Bootstrapper.Instance.ParallelOptions;

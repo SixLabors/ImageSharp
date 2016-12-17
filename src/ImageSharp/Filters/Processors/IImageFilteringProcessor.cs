@@ -5,6 +5,8 @@
 
 namespace ImageSharp.Processors
 {
+    using System;
+
     /// <summary>
     /// Encapsulates methods to alter the pixels of an image. The processor operates on the original source pixels.
     /// </summary>
@@ -12,7 +14,7 @@ namespace ImageSharp.Processors
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public interface IImageFilteringProcessor<TColor, TPacked> : IImageProcessor
         where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct
+        where TPacked : struct, IEquatable<TPacked>
     {
         /// <summary>
         /// Applies the process to the specified portion of the specified <see cref="ImageBase{T, TP}"/>.

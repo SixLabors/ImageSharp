@@ -182,8 +182,7 @@ namespace ImageSharp.Quantizers
                 TPacked packed = pixel.PackedValue;
 
                 // Check if this request is for the same color as the last
-                // TODO: We should change our TPacked signature to ensure we can compare values without boxing allocations. 
-                if (this.previousColor.Equals((IEquatable<TPacked>)packed))
+                if (this.previousColor.Equals(packed))
                 {
                     // If so, check if I have a previous node setup. This will only occur if the first color in the image
                     // happens to be black, with an alpha component of zero.

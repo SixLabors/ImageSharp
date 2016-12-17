@@ -53,7 +53,8 @@ namespace ImageSharp.Formats
         /// <param name="image">The <see cref="Image{TColor, TPacked}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
         public void Encode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream)
-            where TColor : struct, IPackedPixel<TPacked> where TPacked : struct, IEquatable<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
+            where TPacked : struct, IEquatable<TPacked>
         {
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
@@ -121,7 +122,8 @@ namespace ImageSharp.Formats
         /// The <see cref="int"/>.
         /// </returns>
         private static int GetTransparentIndex<TColor, TPacked>(QuantizedImage<TColor, TPacked> quantized)
-            where TColor : struct, IPackedPixel<TPacked> where TPacked : struct, IEquatable<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
+            where TPacked : struct, IEquatable<TPacked>
         {
             // Find the lowest alpha value and make it the transparent index.
             int index = -1;
@@ -236,7 +238,9 @@ namespace ImageSharp.Formats
         private void WriteGraphicalControlExtension<TColor, TPacked>(
             ImageBase<TColor, TPacked> image,
             EndianBinaryWriter writer,
-            int transparencyIndex) where TColor : struct, IPackedPixel<TPacked> where TPacked : struct, IEquatable<TPacked>
+            int transparencyIndex)
+            where TColor : struct, IPackedPixel<TPacked>
+            where TPacked : struct, IEquatable<TPacked>
         {
             // TODO: Check transparency logic.
             bool hasTransparent = transparencyIndex > -1;
@@ -281,7 +285,8 @@ namespace ImageSharp.Formats
         /// <param name="image">The <see cref="ImageBase{TColor, TPacked}"/> to be encoded.</param>
         /// <param name="writer">The stream to write to.</param>
         private void WriteImageDescriptor<TColor, TPacked>(ImageBase<TColor, TPacked> image, EndianBinaryWriter writer)
-            where TColor : struct, IPackedPixel<TPacked> where TPacked : struct, IEquatable<TPacked>
+            where TColor : struct, IPackedPixel<TPacked>
+            where TPacked : struct, IEquatable<TPacked>
         {
             writer.Write(GifConstants.ImageDescriptorLabel); // 2c
             // TODO: Can we capture this?

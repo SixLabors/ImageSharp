@@ -38,6 +38,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Creates a new instance of the <see cref="Bytes"/>, and initializes it's buffer.
         /// </summary>
+        /// <returns>the bytes created</returns>
         public static Bytes Create()
         {
             return new Bytes { Buffer = ArrayPool.Rent(4096) };

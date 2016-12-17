@@ -36,7 +36,8 @@ namespace ImageSharp.Formats
         /// the caller is the one responsible for first checking that bits.UnreadBits &lt; n.
         /// </summary>
         /// <param name="n">The number of bits to ensure.</param>
-        /// <param name="decoder"></param>
+        /// <param name="decoder">Jpeg decoder</param>
+        /// <returns>Error code</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal JpegDecoderCore.ErrorCodes EnsureNBits(int n, JpegDecoderCore decoder)
         {
@@ -69,6 +70,12 @@ namespace ImageSharp.Formats
             }
         }
 
+        /// <summary>
+        /// Receive extend
+        /// </summary>
+        /// <param name="t">byte</param>
+        /// <param name="decoder">Jpeg decoder</param>
+        /// <returns>Read bits value</returns>
         internal int ReceiveExtend(byte t, JpegDecoderCore decoder)
         {
             if (this.UnreadBits < t)

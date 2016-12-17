@@ -188,6 +188,7 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="blockPtr">block pointer</param>
         /// <param name="idx">index</param>
+        /// <returns>the scalar value at the specified index</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static unsafe float GetScalarAt(Block8x8F* blockPtr, int idx)
         {
@@ -386,7 +387,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// TODO: Should be removed when BlockF goes away
         /// </summary>
-        /// <param name="legacyBlock"></param>
+        /// <param name="legacyBlock">legacy block</param>
         internal void LoadFrom(ref BlockF legacyBlock)
         {
             this.LoadFrom(legacyBlock.Data);
@@ -395,7 +396,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// TODO: Should be removed when BlockF goes away
         /// </summary>
-        /// <param name="legacyBlock"></param>
+        /// <param name="legacyBlock">legacy block</param>
         internal void CopyTo(ref BlockF legacyBlock)
         {
             this.CopyTo(legacyBlock.Data);

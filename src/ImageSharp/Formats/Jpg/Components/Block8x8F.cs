@@ -85,8 +85,8 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Load raw 32bit floating point data from source
         /// </summary>
-        /// <param name="blockPtr">block pointer</param>
-        /// <param name="source">source</param>
+        /// <param name="blockPtr">Block pointer</param>
+        /// <param name="source">Source</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe void LoadFrom(Block8x8F* blockPtr, MutableSpan<float> source)
         {
@@ -96,8 +96,8 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Copy raw 32bit floating point data to dest
         /// </summary>
-        /// <param name="blockPtr">block pointer</param>
-        /// <param name="dest">destination</param>
+        /// <param name="blockPtr">Block pointer</param>
+        /// <param name="dest">Destination</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe void CopyTo(Block8x8F* blockPtr, MutableSpan<float> dest)
         {
@@ -107,7 +107,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Load raw 32bit floating point data from source
         /// </summary>
-        /// <param name="source">source</param>
+        /// <param name="source">Source</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void LoadFrom(MutableSpan<float> source)
         {
@@ -120,7 +120,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Copy raw 32bit floating point data to dest
         /// </summary>
-        /// <param name="dest">destination</param>
+        /// <param name="dest">Destination</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void CopyTo(MutableSpan<float> dest)
         {
@@ -133,7 +133,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Copy raw 32bit floating point data to dest
         /// </summary>
-        /// <param name="dest">destination</param>
+        /// <param name="dest">Destination</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void CopyTo(float[] dest)
         {
@@ -186,9 +186,9 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Pointer-based "Indexer" (getter part)
         /// </summary>
-        /// <param name="blockPtr">block pointer</param>
-        /// <param name="idx">index</param>
-        /// <returns>the scalar value at the specified index</returns>
+        /// <param name="blockPtr">Block pointer</param>
+        /// <param name="idx">Index</param>
+        /// <returns>The scalar value at the specified index</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static unsafe float GetScalarAt(Block8x8F* blockPtr, int idx)
         {
@@ -199,9 +199,9 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Pointer-based "Indexer" (setter part)
         /// </summary>
-        /// <param name="blockPtr">block pointer</param>
-        /// <param name="idx">index</param>
-        /// <param name="value">value</param>
+        /// <param name="blockPtr">Block pointer</param>
+        /// <param name="idx">Index</param>
+        /// <param name="value">Value</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static unsafe void SetScalarAt(Block8x8F* blockPtr, int idx, float value)
         {
@@ -212,9 +212,9 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Un-zig
         /// </summary>
-        /// <param name="blockPtr">block pointer</param>
-        /// <param name="qtPtr">qt pointer</param>
-        /// <param name="unzigPtr">unzig pointer</param>
+        /// <param name="blockPtr">Block pointer</param>
+        /// <param name="qtPtr">Qt pointer</param>
+        /// <param name="unzigPtr">Unzig pointer</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static unsafe void UnZig(Block8x8F* blockPtr, Block8x8F* qtPtr, int* unzigPtr)
         {
@@ -232,7 +232,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Copy raw 32bit floating point data to dest
         /// </summary>
-        /// <param name="dest">destination</param>
+        /// <param name="dest">Destination</param>
         internal unsafe void CopyTo(MutableSpan<int> dest)
         {
             fixed (Vector4* ptr = &this.V0L)
@@ -248,7 +248,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Load raw 32bit floating point data from source
         /// </summary>
-        /// <param name="source">source</param>
+        /// <param name="source">Source</param>
         internal unsafe void LoadFrom(MutableSpan<int> source)
         {
             fixed (Vector4* ptr = &this.V0L)
@@ -322,7 +322,7 @@ namespace ImageSharp.Formats
         /// Original source:
         /// https://github.com/norishigefukushima/dct_simd/blob/master/dct/dct8x8_simd.cpp#L261
         /// </summary>
-        /// <param name="destBlockPtr">destination block pointer</param>
+        /// <param name="destBlockPtr">Destination Block pointer</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void IDCT8x4_RightPart(ref Block8x8F destBlockPtr)
         {
@@ -387,7 +387,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// TODO: Should be removed when BlockF goes away
         /// </summary>
-        /// <param name="legacyBlock">legacy block</param>
+        /// <param name="legacyBlock">Legacy block</param>
         internal void LoadFrom(ref BlockF legacyBlock)
         {
             this.LoadFrom(legacyBlock.Data);
@@ -396,7 +396,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// TODO: Should be removed when BlockF goes away
         /// </summary>
-        /// <param name="legacyBlock">legacy block</param>
+        /// <param name="legacyBlock">Legacy block</param>
         internal void CopyTo(ref BlockF legacyBlock)
         {
             this.CopyTo(legacyBlock.Data);
@@ -405,9 +405,9 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Level shift by +128, clip to [0, 255], and write to buffer.
         /// </summary>
-        /// <param name="buffer">color buffer</param>
-        /// <param name="stride">stride offset</param>
-        /// <param name="tempBlockPtr">temp block pointer</param>
+        /// <param name="buffer">Color buffer</param>
+        /// <param name="stride">Stride offset</param>
+        /// <param name="tempBlockPtr">Temp Block pointer</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal unsafe void CopyColorsTo(MutableSpan<byte> buffer, int stride, Block8x8F* tempBlockPtr)
         {

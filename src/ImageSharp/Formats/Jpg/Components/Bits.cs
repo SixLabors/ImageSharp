@@ -73,7 +73,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Receive extend
         /// </summary>
-        /// <param name="t">byte</param>
+        /// <param name="t">Byte</param>
         /// <param name="decoder">Jpeg decoder</param>
         /// <returns>Read bits value</returns>
         internal int ReceiveExtend(byte t, JpegDecoderCore decoder)

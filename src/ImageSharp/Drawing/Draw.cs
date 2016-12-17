@@ -220,6 +220,7 @@ namespace ImageSharp
         {
             return source.DrawPolygon(pen, new Polygon(new LinearLineSegment(points)), options);
         }
+
         /// <summary>
         /// Draws the provided Points as a closed Linear Polygon with the provided Pen.
         /// </summary>

@@ -6,6 +6,7 @@
 namespace ImageSharp
 {
     using System;
+
     /// <summary>
     /// An interface that represents a packed pixel type.
     /// </summary>

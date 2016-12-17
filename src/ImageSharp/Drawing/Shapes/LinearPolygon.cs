@@ -25,7 +25,7 @@ namespace ImageSharp.Drawing.Shapes
         {
             this.innerPolygon = new Polygon(new LinearLineSegment(points));
         }
-        
+
         /// <summary>
         /// Gets the bounding box of this shape.
         /// </summary>

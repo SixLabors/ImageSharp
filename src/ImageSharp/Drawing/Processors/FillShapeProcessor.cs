@@ -73,7 +73,7 @@ namespace ImageSharp.Drawing.Processors
             {
                 polyStartY = 0;
             }
-            
+
             using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
             using (IBrushApplicator<TColor, TPacked> applicator = this.fillColor.CreateApplicator(rect))
             {

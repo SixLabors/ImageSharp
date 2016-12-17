@@ -3,10 +3,10 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-using System;
-
 namespace ImageSharp.Drawing.Brushes
 {
+    using System;
+
     /// <summary>
     /// A collection of methods for creating generic brushes.
     /// </summary>

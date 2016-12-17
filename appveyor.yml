@@ -43,7 +43,8 @@ build_script:
 - cmd: >-
     dotnet pack src\ImageSharp --configuration Release --output "artifacts\bin\ImageSharp"
 
-test: off
+test_script:
+- tests\CodeCoverage\CodeCoverage.cmd
 
 artifacts:
 - path: artifacts\bin\ImageSharp\**\*.nupkg

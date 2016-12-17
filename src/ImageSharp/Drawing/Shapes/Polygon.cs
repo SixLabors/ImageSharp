@@ -30,6 +30,16 @@ namespace ImageSharp.Drawing.Shapes
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="Polygon" /> class.
+        /// </summary>
+        /// <param name="segment">The segment.</param>
+        public Polygon(ILineSegment segment)
+        {
+            this.innerPath = new InternalPath(segment, true);
+            this.pathCollection = new[] { this };
+        }
+
+        /// <summary>
         /// Gets the bounding box of this shape.
         /// </summary>
         /// <value>
@@ -98,8 +108,7 @@ namespace ImageSharp.Drawing.Shapes
         /// <summary>
         /// Calcualtes the distance along and away from the path for a specified point.
         /// </summary>
-        /// <param name="x">The x.</param>
-        /// <param name="y">The y.</param>
+        /// <param name="point">The point along the path.</param>
         /// <returns>
         /// distance metadata about the point.
         /// </returns>

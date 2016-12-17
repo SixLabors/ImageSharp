@@ -5,6 +5,8 @@
 
 namespace ImageSharp
 {
+    using System;
+
     using ImageSharp.Quantizers;
 
     /// <summary>
@@ -23,7 +25,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Quantize<TColor, TPacked>(this Image<TColor, TPacked> source, Quantization mode = Quantization.Octree, int maxColors = 256)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             IQuantizer<TColor, TPacked> quantizer;
             switch (mode)
@@ -55,7 +57,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Quantize<TColor, TPacked>(this Image<TColor, TPacked> source, IQuantizer<TColor, TPacked> quantizer, int maxColors)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             QuantizedImage<TColor, TPacked> quantizedImage = quantizer.Quantize(source, maxColors);
             source.SetPixels(source.Width, source.Height, quantizedImage.ToImage().Pixels);

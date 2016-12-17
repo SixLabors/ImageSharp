@@ -5,6 +5,8 @@
 
 namespace ImageSharp
 {
+    using System;
+
     using Processors;
 
     /// <summary>
@@ -23,7 +25,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Blend<TColor, TPacked>(this Image<TColor, TPacked> source, Image<TColor, TPacked> image, int percent = 50)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             return DrawImage(source, image, percent, default(Size), default(Point));
         }
@@ -41,7 +43,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> DrawImage<TColor, TPacked>(this Image<TColor, TPacked> source, Image<TColor, TPacked> image, int percent, Size size, Point location)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             if (size == default(Size))
             {

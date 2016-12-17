@@ -5,6 +5,7 @@
 
 namespace ImageSharp
 {
+    using System;
     using System.IO;
 
     using Formats;
@@ -27,7 +28,7 @@ namespace ImageSharp
         /// </returns>
         public static Image<TColor, TPacked> SaveAsBmp<TColor, TPacked>(this Image<TColor, TPacked> source, Stream stream)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
             => source.Save(stream, new BmpEncoder());
 
         /// <summary>
@@ -46,7 +47,7 @@ namespace ImageSharp
         /// </returns>
         public static Image<TColor, TPacked> SaveAsPng<TColor, TPacked>(this Image<TColor, TPacked> source, Stream stream, int quality = int.MaxValue)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
             => source.Save(stream, new PngEncoder { Quality = quality });
 
         /// <summary>
@@ -63,7 +64,7 @@ namespace ImageSharp
         /// </returns>
         public static Image<TColor, TPacked> SaveAsJpeg<TColor, TPacked>(this Image<TColor, TPacked> source, Stream stream, int quality = 75)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
             => source.Save(stream, new JpegEncoder { Quality = quality });
 
         /// <summary>
@@ -80,7 +81,7 @@ namespace ImageSharp
         /// </returns>
         public static Image<TColor, TPacked> SaveAsGif<TColor, TPacked>(this Image<TColor, TPacked> source, Stream stream, int quality = 256)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
             => source.Save(stream, new GifEncoder { Quality = quality });
     }
 }

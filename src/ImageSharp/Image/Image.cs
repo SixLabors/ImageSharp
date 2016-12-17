@@ -24,7 +24,7 @@ namespace ImageSharp
     [DebuggerDisplay("Image: {Width}x{Height}")]
     public class Image<TColor, TPacked> : ImageBase<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct
+        where TPacked : struct, IEquatable<TPacked>
     {
         /// <summary>
         /// The default horizontal resolution value (dots per inch) in x direction.
@@ -268,7 +268,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor2, TPacked2}"/></returns>
         public Image<TColor2, TPacked2> To<TColor2, TPacked2>(Func<Vector4, Vector4> scaleFunc = null)
             where TColor2 : struct, IPackedPixel<TPacked2>
-            where TPacked2 : struct
+            where TPacked2 : struct, IEquatable<TPacked2>
         {
             scaleFunc = PackedPixelConverterHelper.ComputeScaleFunction<TColor, TColor2>(scaleFunc);
 

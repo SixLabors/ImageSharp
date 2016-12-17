@@ -15,7 +15,7 @@ namespace ImageSharp.Drawing.Pens
     /// <typeparam name="TPacked">The type of the packed.</typeparam>
     public interface IPen<TColor, TPacked>
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
     {
         /// <summary>
         /// Creates the applicator for applying this pen to an Image

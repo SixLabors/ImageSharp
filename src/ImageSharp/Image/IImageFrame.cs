@@ -5,6 +5,8 @@
 
 namespace ImageSharp
 {
+    using System;
+
     /// <summary>
     /// Represents a single frame in a animation.
     /// </summary>
@@ -12,7 +14,7 @@ namespace ImageSharp
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public interface IImageFrame<TColor, TPacked> : IImageBase<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct
+        where TPacked : struct, IEquatable<TPacked>
     {
     }
 }

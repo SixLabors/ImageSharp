@@ -5,6 +5,8 @@
 
 namespace ImageSharp
 {
+    using System;
+
     using Processors;
 
     /// <summary>
@@ -22,7 +24,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Grayscale<TColor, TPacked>(this Image<TColor, TPacked> source, GrayscaleMode mode = GrayscaleMode.Bt709)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             return Grayscale(source, source.Bounds, mode);
         }
@@ -40,7 +42,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Grayscale<TColor, TPacked>(this Image<TColor, TPacked> source, Rectangle rectangle, GrayscaleMode mode = GrayscaleMode.Bt709)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             IImageFilteringProcessor<TColor, TPacked> processor = mode == GrayscaleMode.Bt709
                 ? (IImageFilteringProcessor<TColor, TPacked>)new GrayscaleBt709Processor<TColor, TPacked>()

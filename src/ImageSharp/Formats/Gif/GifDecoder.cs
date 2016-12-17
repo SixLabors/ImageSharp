@@ -57,7 +57,7 @@ namespace ImageSharp.Formats
         /// <inheritdoc/>
         public void Decode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             new GifDecoderCore<TColor, TPacked>().Decode(image, stream);
         }

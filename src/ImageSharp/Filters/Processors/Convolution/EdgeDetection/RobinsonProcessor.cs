@@ -4,6 +4,7 @@
 // </copyright>
 namespace ImageSharp.Processors
 {
+    using System;
     using System.Diagnostics.CodeAnalysis;
 
     /// <summary>
@@ -15,7 +16,7 @@ namespace ImageSharp.Processors
     [SuppressMessage("ReSharper", "StaticMemberInGenericType", Justification = "We want to use only one instance of each array field for each generic type.")]
     public class RobinsonProcessor<TColor, TPacked> : EdgeDetectorCompassProcessor<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct
+        where TPacked : struct, IEquatable<TPacked>
     {
         /// <summary>
         /// The North gradient operator

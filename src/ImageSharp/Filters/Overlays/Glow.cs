@@ -5,6 +5,8 @@
 
 namespace ImageSharp
 {
+    using System;
+
     using Processors;
 
     /// <summary>
@@ -21,7 +23,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Glow<TColor, TPacked>(this Image<TColor, TPacked> source)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             return Glow(source, default(TColor), source.Bounds.Width * .5F, source.Bounds);
         }
@@ -36,7 +38,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Glow<TColor, TPacked>(this Image<TColor, TPacked> source, TColor color)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             return Glow(source, color, source.Bounds.Width * .5F, source.Bounds);
         }
@@ -51,7 +53,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Glow<TColor, TPacked>(this Image<TColor, TPacked> source, float radius)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             return Glow(source, default(TColor), radius, source.Bounds);
         }
@@ -68,7 +70,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Glow<TColor, TPacked>(this Image<TColor, TPacked> source, Rectangle rectangle)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             return Glow(source, default(TColor), 0, rectangle);
         }
@@ -87,7 +89,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> Glow<TColor, TPacked>(this Image<TColor, TPacked> source, TColor color, float radius, Rectangle rectangle)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             GlowProcessor<TColor, TPacked> processor = new GlowProcessor<TColor, TPacked> { Radius = radius, };
 

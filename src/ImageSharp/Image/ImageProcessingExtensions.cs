@@ -24,7 +24,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         internal static Image<TColor, TPacked> Process<TColor, TPacked>(this Image<TColor, TPacked> source, IImageFilteringProcessor<TColor, TPacked> processor)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             return Process(source, source.Bounds, processor);
         }
@@ -43,7 +43,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         internal static Image<TColor, TPacked> Process<TColor, TPacked>(this Image<TColor, TPacked> source, Rectangle sourceRectangle, IImageFilteringProcessor<TColor, TPacked> processor)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             return PerformAction(source, (sourceImage) => processor.Apply(sourceImage, sourceRectangle));
         }
@@ -58,7 +58,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         private static Image<TColor, TPacked> PerformAction<TColor, TPacked>(Image<TColor, TPacked> source, Action<ImageBase<TColor, TPacked>> action)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             action(source);
 

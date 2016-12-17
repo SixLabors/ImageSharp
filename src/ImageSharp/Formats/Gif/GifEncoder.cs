@@ -49,7 +49,7 @@ namespace ImageSharp.Formats
         /// <inheritdoc/>
         public void Encode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream)
         where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct
+        where TPacked : struct, IEquatable<TPacked>
         {
             GifEncoderCore encoder = new GifEncoderCore
             {

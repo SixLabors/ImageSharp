@@ -17,7 +17,7 @@ namespace ImageSharp.Drawing.Brushes
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public class ImageBrush<TColor, TPacked> : IBrush<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct
+        where TPacked : struct, IEquatable<TPacked>
     {
         /// <summary>
         /// The image to paint.

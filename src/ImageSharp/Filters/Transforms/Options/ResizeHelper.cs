@@ -26,7 +26,7 @@ namespace ImageSharp
         /// </returns>
         public static Rectangle CalculateTargetLocationAndBounds<TColor, TPacked>(ImageBase<TColor, TPacked> source, ResizeOptions options)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             switch (options.Mode)
             {
@@ -59,7 +59,7 @@ namespace ImageSharp
         /// </returns>
         private static Rectangle CalculateCropRectangle<TColor, TPacked>(ImageBase<TColor, TPacked> source, ResizeOptions options)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             int width = options.Size.Width;
             int height = options.Size.Height;
@@ -180,7 +180,7 @@ namespace ImageSharp
         /// </returns>
         private static Rectangle CalculatePadRectangle<TColor, TPacked>(ImageBase<TColor, TPacked> source, ResizeOptions options)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             int width = options.Size.Width;
             int height = options.Size.Height;
@@ -263,7 +263,7 @@ namespace ImageSharp
         /// </returns>
         private static Rectangle CalculateBoxPadRectangle<TColor, TPacked>(ImageBase<TColor, TPacked> source, ResizeOptions options)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             int width = options.Size.Width;
             int height = options.Size.Height;
@@ -352,7 +352,7 @@ namespace ImageSharp
         /// </returns>
         private static Rectangle CalculateMaxRectangle<TColor, TPacked>(ImageBase<TColor, TPacked> source, ResizeOptions options)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             int width = options.Size.Width;
             int height = options.Size.Height;
@@ -395,7 +395,7 @@ namespace ImageSharp
         /// </returns>
         private static Rectangle CalculateMinRectangle<TColor, TPacked>(ImageBase<TColor, TPacked> source, ResizeOptions options)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             int width = options.Size.Width;
             int height = options.Size.Height;

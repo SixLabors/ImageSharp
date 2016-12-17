@@ -5,6 +5,8 @@
 
 namespace ImageSharp
 {
+    using System;
+
     using Processors;
 
     /// <summary>
@@ -22,7 +24,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> DetectEdges<TColor, TPacked>(this Image<TColor, TPacked> source)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             return DetectEdges(source, source.Bounds, new SobelProcessor<TColor, TPacked> { Grayscale = true });
         }
@@ -40,7 +42,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> DetectEdges<TColor, TPacked>(this Image<TColor, TPacked> source, Rectangle rectangle)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             return DetectEdges(source, rectangle, new SobelProcessor<TColor, TPacked> { Grayscale = true });
         }
@@ -56,7 +58,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> DetectEdges<TColor, TPacked>(this Image<TColor, TPacked> source, EdgeDetection filter, bool grayscale = true)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             return DetectEdges(source, filter, source.Bounds, grayscale);
         }
@@ -75,7 +77,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> DetectEdges<TColor, TPacked>(this Image<TColor, TPacked> source, EdgeDetection filter, Rectangle rectangle, bool grayscale = true)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             IEdgeDetectorProcessor<TColor, TPacked> processor;
 
@@ -135,7 +137,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> DetectEdges<TColor, TPacked>(this Image<TColor, TPacked> source, IEdgeDetectorProcessor<TColor, TPacked> filter)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             return DetectEdges(source, source.Bounds, filter);
         }
@@ -153,7 +155,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> DetectEdges<TColor, TPacked>(this Image<TColor, TPacked> source, Rectangle rectangle, IEdgeDetectorProcessor<TColor, TPacked> filter)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             return source.Process(rectangle, filter);
         }

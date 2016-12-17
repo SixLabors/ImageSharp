@@ -5,6 +5,8 @@
 
 namespace ImageSharp
 {
+    using System;
+
     using Processors;
 
     /// <summary>
@@ -22,7 +24,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image"/></returns>
         public static Image<TColor, TPacked> Rotate<TColor, TPacked>(this Image<TColor, TPacked> source, float degrees)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             return Rotate(source, degrees, true);
         }
@@ -37,7 +39,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image"/></returns>
         public static Image<TColor, TPacked> Rotate<TColor, TPacked>(this Image<TColor, TPacked> source, RotateType rotateType)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             return Rotate(source, (float)rotateType, false);
         }
@@ -53,7 +55,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image"/></returns>
         public static Image<TColor, TPacked> Rotate<TColor, TPacked>(this Image<TColor, TPacked> source, float degrees, bool expand)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             RotateProcessor<TColor, TPacked> processor = new RotateProcessor<TColor, TPacked> { Angle = degrees, Expand = expand };
             return source.Process(source.Bounds, processor);

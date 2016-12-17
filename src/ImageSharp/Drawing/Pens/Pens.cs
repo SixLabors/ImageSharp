@@ -5,6 +5,8 @@
 
 namespace ImageSharp.Drawing.Pens
 {
+    using System;
+
     /// <summary>
     /// Common Pen styles
     /// </summary>
@@ -108,7 +110,7 @@ namespace ImageSharp.Drawing.Pens
     /// <typeparam name="TPacked">The type of the packed.</typeparam>
     public partial class Pens<TColor, TPacked>
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
     {
         private static readonly float[] DashDotPattern = new[] { 3f, 1f, 1f, 1f };
         private static readonly float[] DashDotDotPattern = new[] { 3f, 1f, 1f, 1f, 1f, 1f };

@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Processors
 {
+    using System;
     using System.Numerics;
     using System.Threading.Tasks;
 
@@ -15,7 +16,7 @@ namespace ImageSharp.Processors
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public class Convolution2PassProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct
+        where TPacked : struct, IEquatable<TPacked>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Convolution2PassProcessor{TColor,TPacked}"/> class.

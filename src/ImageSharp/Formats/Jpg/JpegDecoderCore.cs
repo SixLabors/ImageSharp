@@ -1874,7 +1874,7 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="b">The block of coefficients</param>
         /// <param name="h">The Huffman tree</param>
-        /// <param name="unzigPtr"></param>
+        /// <param name="unzigPtr">Unzig ptr</param>
         /// <param name="zigStart">The zig-zag start index</param>
         /// <param name="zigEnd">The zig-zag end index</param>
         /// <param name="delta">The low transform offset</param>

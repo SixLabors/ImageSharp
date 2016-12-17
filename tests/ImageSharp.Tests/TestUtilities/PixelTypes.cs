@@ -1,0 +1,33 @@
+﻿namespace ImageSharp.Tests.TestUtilities
+{
+    using System;
+
+    
+    [Flags]
+    public enum PixelTypes : uint
+    {
+        None = 0,
+
+        Alpha8 = 1 << 0,
+        Argb = 1 << 1,
+        Bgr565 = 1 << 2,
+        Bgra4444 = 1 << 3,
+        Byte4 = 1 << 4,
+        Color = 1 << 5,
+        HalfSingle = 1 << 6,
+        HalfVector2 = 1 << 7,
+        HalfVector4 = 1 << 8,
+        NormalizedByte2 = 1 << 9,
+        NormalizedByte4 = 1 << 10,
+        NormalizedShort4 = 1 << 11,
+        Rg32 = 1 << 12,
+        Rgba1010102 = 1 << 13,
+        Rgba64 = 1 << 14,
+        Short2 = 1 << 15,
+        Short4 = 1 << 16,
+
+        // TODO: Add multi-flag entries by rules defined in PackedPixelConverterHelper
+
+        All = 30
+    }
+}

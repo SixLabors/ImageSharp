@@ -3,9 +3,14 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+// ReSharper disable InconsistentNaming
 namespace ImageSharp.Tests
 {
     using System;
+    using System.Numerics;
+
+    using ImageSharp.Drawing.Shapes;
+    using ImageSharp.Tests.TestUtilities;
 
     using Xunit;
 
@@ -14,7 +19,115 @@ namespace ImageSharp.Tests
     /// </summary>
     public class PixelAccessorTests
     {
-        
+        public static Image<TColor, TPacked> CreateTestImage<TColor, TPacked>()
+            where TColor : struct, IPackedPixel<TPacked> where TPacked : struct, IEquatable<TPacked>
+        {
+            Image<TColor, TPacked> image = new Image<TColor, TPacked>(10, 10);
+
+            using (var pixels = image.Lock())
+            {
+                for (int i = 0; i < 10; i++)
+                {
+                    for (int j = 0; j < 10; j++)
+                    {
+                        Vector4 v = new Vector4(i, j, 0, 1);
+                        v /= 10;
+
+                        TColor color = default(TColor);
+                        color.PackFromVector4(v);
+
+                        pixels[i, j] = color;
+                    }
+                }
+            }
+            return image;
+        }
+
+        [Theory]
+        [WithMemberFactory(nameof(CreateTestImage), PixelTypes.All, ComponentOrder.XYZ)]
+        [WithMemberFactory(nameof(CreateTestImage), PixelTypes.All, ComponentOrder.ZYX)]
+        [WithMemberFactory(nameof(CreateTestImage), PixelTypes.All, ComponentOrder.XYZW)]
+        [WithMemberFactory(nameof(CreateTestImage), PixelTypes.All, ComponentOrder.ZYXW)]
+        public void CopyTo_Then_CopyFrom_OnFullImageRect<TColor, TPacked>(TestImageFactory<TColor, TPacked> factory, ComponentOrder order)
+            where TColor : struct, IPackedPixel<TPacked> where TPacked : struct, IEquatable<TPacked>
+        {
+            var src = factory.Create();
+
+            var dest = new Image<TColor,TPacked>(src.Width, src.Height);
+
+            using (PixelArea<TColor, TPacked> area = new PixelArea<TColor, TPacked>(src.Width, src.Height, order))
+            {
+                using (var srcPixels = src.Lock())
+                {
+                    srcPixels.CopyTo(area, 0, 0);
+                }
+
+                using (var destPixels = dest.Lock())
+                {
+                    destPixels.CopyFrom(area, 0, 0);
+                }
+            }
+            
+            Assert.True(src.IsEquivalentTo(dest, false));
+        }
+
+        // TODO: Need a processor in the library with this signature
+        private static void Fill<TColor, TPacked>(Image<TColor, TPacked> image, Rectangle region, TColor color)
+             where TColor : struct, IPackedPixel<TPacked> where TPacked : struct, IEquatable<TPacked>
+        {
+            using (var pixels = image.Lock())
+            {
+                for (int y = region.Top; y < region.Bottom; y++)
+                {
+                    for (int x = region.Left; x < region.Right; x++)
+                    {
+                        pixels[x, y] = color;
+                    }
+                }
+            }
+        }
+
+        [Theory]
+        [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.XYZ)]
+        [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.ZYX)]
+        [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.XYZW)]
+        [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.ZYXW)]
+        public void CopyTo_Then_CopyFrom_WithOffset<TColor, TPacked>(TestImageFactory<TColor, TPacked> factory, ComponentOrder order)
+            where TColor : struct, IPackedPixel<TPacked> where TPacked : struct, IEquatable<TPacked>
+
+        {
+            var srcImage = factory.Create();
+
+            var color = default(TColor);
+            color.PackFromBytes(255, 0, 0, 255);
+
+            Fill(srcImage, new Rectangle(4, 4, 8, 8), color);
+
+            var destImage = new Image<TColor, TPacked>(8, 8);
+
+            using (var srcPixels = srcImage.Lock())
+            {
+                using (var area = new PixelArea<TColor, TPacked>(8, 8, order))
+                {
+                    srcPixels.CopyTo(area, 4, 4);
+
+                    using (var destPixels = destImage.Lock())
+                    {
+                        destPixels.CopyFrom(area, 0, 0);
+                    }
+                }
+            }
+
+            factory.Utility.SourceFileOrDescription = order.ToString();
+            factory.Utility.SaveTestOutputFile(destImage, "bmp");
+
+            var expectedImage = new Image<TColor, TPacked>(8, 8).Fill(color);
+            
+            Assert.True(destImage.IsEquivalentTo(expectedImage));
+        }
+
+
+
         [Fact]
         public void CopyFromZYX()
         {
@@ -44,6 +157,12 @@ namespace ImageSharp.Tests
         {
             CopyToZYX(new Image<Color, uint>(1, 1));
         }
+        
+        [Fact]
+        public void CopyToXYZ()
+        {
+            CopyToXYZ(new Image<Color, uint>(1, 1));
+        }
 
         [Fact]
         public void CopyToZYXOptimized()
@@ -64,8 +183,7 @@ namespace ImageSharp.Tests
         }
 
         private static void CopyFromZYX<TColor, TPacked>(Image<TColor, TPacked> image)
-            where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+            where TColor : struct, IPackedPixel<TPacked> where TPacked : struct, IEquatable<TPacked>
         {
             using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
             {
@@ -82,7 +200,7 @@ namespace ImageSharp.Tests
 
                     pixels.CopyFrom(row, 0);
 
-                    Color color = (Color)(object)pixels[0, 0];
+                    Color color = (Color) (object) pixels[0, 0];
                     Assert.Equal(red, color.R);
                     Assert.Equal(green, color.G);
                     Assert.Equal(blue, color.B);
@@ -92,8 +210,7 @@ namespace ImageSharp.Tests
         }
 
         private static void CopyFromZYXW<TColor, TPacked>(Image<TColor, TPacked> image)
-            where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+            where TColor : struct, IPackedPixel<TPacked> where TPacked : struct, IEquatable<TPacked>
         {
             using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
             {
@@ -111,7 +228,7 @@ namespace ImageSharp.Tests
 
                     pixels.CopyFrom(row, 0);
 
-                    Color color = (Color)(object)pixels[0, 0];
+                    Color color = (Color) (object) pixels[0, 0];
                     Assert.Equal(red, color.R);
                     Assert.Equal(green, color.G);
                     Assert.Equal(blue, color.B);
@@ -121,8 +238,7 @@ namespace ImageSharp.Tests
         }
 
         private static void CopyToZYX<TColor, TPacked>(Image<TColor, TPacked> image)
-          where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+          where TColor : struct, IPackedPixel<TPacked> where TPacked : struct, IEquatable<TPacked>
         {
             using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
             {
@@ -132,7 +248,7 @@ namespace ImageSharp.Tests
 
                 using (PixelArea<TColor, TPacked> row = new PixelArea<TColor, TPacked>(1, ComponentOrder.ZYX))
                 {
-                    pixels[0, 0] = (TColor)(object)new Color(red, green, blue);
+                    pixels[0, 0] = (TColor) (object) new Color(red, green, blue);
 
                     pixels.CopyTo(row, 0);
 
@@ -143,9 +259,31 @@ namespace ImageSharp.Tests
             }
         }
 
+        private static void CopyToXYZ<TColor, TPacked>(Image<TColor, TPacked> image)
+          where TColor : struct, IPackedPixel<TPacked> where TPacked : struct, IEquatable<TPacked>
+        {
+            using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
+            {
+                byte red = 1;
+                byte green = 2;
+                byte blue = 3;
+
+                using (PixelArea<TColor, TPacked> row = new PixelArea<TColor, TPacked>(image.Width, image.Height, ComponentOrder.XYZ))
+                {
+                    pixels[0, 0] = (TColor)(object)new Color(red, green, blue);
+
+                    pixels.CopyTo(row, 0);
+
+                    Assert.Equal(red, row.Bytes[0]);
+                    Assert.Equal(green, row.Bytes[1]);
+                    Assert.Equal(blue, row.Bytes[2]);
+                }
+            }
+        }
+
+
         private static void CopyToZYXW<TColor, TPacked>(Image<TColor, TPacked> image)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+          where TColor : struct, IPackedPixel<TPacked> where TPacked : struct, IEquatable<TPacked>
         {
             using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
             {
@@ -156,7 +294,7 @@ namespace ImageSharp.Tests
 
                 using (PixelArea<TColor, TPacked> row = new PixelArea<TColor, TPacked>(1, ComponentOrder.ZYXW))
                 {
-                    pixels[0, 0] = (TColor)(object)new Color(red, green, blue, alpha);
+                    pixels[0, 0] = (TColor) (object) new Color(red, green, blue, alpha);
 
                     pixels.CopyTo(row, 0);
 

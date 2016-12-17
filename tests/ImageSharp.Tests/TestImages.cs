@@ -64,16 +64,16 @@ namespace ImageSharp.Tests
 
         public static class Bmp
         {
-            private static readonly string folder = "TestImages/Formats/Bmp/";
+            private const string Folder = "TestImages/Formats/Bmp/";
 
-            public static string Car => folder + "Car.bmp";
+            public const string Car = Folder + "Car.bmp";
 
-            public static string F => folder + "F.bmp";
+            public const string F = Folder + "F.bmp";
 
             // ReSharper disable once InconsistentNaming
-            public static string RGB3x3 => folder + "RGB3x3.bmp";
+            public const string RGB3x3 = Folder + "RGB3x3.bmp";
 
-            public static string NegHeight => folder + "neg_height.bmp";
+            public const string NegHeight = Folder + "neg_height.bmp";
 
             public static readonly string[] All = {
                 Car, F, NegHeight, RGB3x3

@@ -5,6 +5,8 @@
 
 namespace ImageSharp
 {
+    using System;
+
     using Processors;
 
     /// <summary>
@@ -22,7 +24,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> BinaryThreshold<TColor, TPacked>(this Image<TColor, TPacked> source, float threshold)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             return BinaryThreshold(source, threshold, source.Bounds);
         }
@@ -40,7 +42,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image{TColor, TPacked}"/>.</returns>
         public static Image<TColor, TPacked> BinaryThreshold<TColor, TPacked>(this Image<TColor, TPacked> source, float threshold, Rectangle rectangle)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             return source.Process(rectangle, new BinaryThresholdProcessor<TColor, TPacked>(threshold));
         }

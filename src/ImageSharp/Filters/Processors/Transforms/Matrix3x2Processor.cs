@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Processors
 {
+    using System;
     using System.Numerics;
 
     /// <summary>
@@ -14,7 +15,7 @@ namespace ImageSharp.Processors
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public abstract class Matrix3x2Processor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct
+        where TPacked : struct, IEquatable<TPacked>
     {
         /// <summary>
         /// Gets the rectangle designating the target canvas.

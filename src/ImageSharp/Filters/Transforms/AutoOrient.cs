@@ -5,6 +5,8 @@
 
 namespace ImageSharp
 {
+    using System;
+
     /// <summary>
     /// Extension methods for the <see cref="Image{TColor, TPacked}"/> type.
     /// </summary>
@@ -19,7 +21,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image"/></returns>
         public static Image<TColor, TPacked> AutoOrient<TColor, TPacked>(this Image<TColor, TPacked> source)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             Orientation orientation = GetExifOrientation(source);
 
@@ -64,7 +66,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Orientation"/></returns>
         private static Orientation GetExifOrientation<TColor, TPacked>(Image<TColor, TPacked> source)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             if (source.ExifProfile == null)
             {

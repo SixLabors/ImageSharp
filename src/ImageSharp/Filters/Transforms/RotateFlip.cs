@@ -5,6 +5,8 @@
 
 namespace ImageSharp
 {
+    using System;
+
     /// <summary>
     /// Extension methods for the <see cref="Image{TColor, TPacked}"/> type.
     /// </summary>
@@ -21,7 +23,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image"/></returns>
         public static Image<TColor, TPacked> RotateFlip<TColor, TPacked>(this Image<TColor, TPacked> source, RotateType rotateType, FlipType flipType)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             return source.Rotate(rotateType).Flip(flipType);
         }

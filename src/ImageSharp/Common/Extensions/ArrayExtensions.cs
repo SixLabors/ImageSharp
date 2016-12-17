@@ -5,6 +5,8 @@
 
 namespace ImageSharp
 {
+    using System;
+
     /// <summary>
     /// Extension methods for arrays.
     /// </summary>
@@ -21,7 +23,7 @@ namespace ImageSharp
         /// <returns>The <see cref="PixelAccessor{TColor,TPacked}"/></returns>
         public static PixelAccessor<TColor, TPacked> Lock<TColor, TPacked>(this TColor[] pixels, int width, int height)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             return new PixelAccessor<TColor, TPacked>(width, height, pixels);
         }

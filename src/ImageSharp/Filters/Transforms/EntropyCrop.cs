@@ -5,6 +5,8 @@
 
 namespace ImageSharp
 {
+    using System;
+
     using Processors;
 
     /// <summary>
@@ -22,7 +24,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image"/></returns>
         public static Image<TColor, TPacked> EntropyCrop<TColor, TPacked>(this Image<TColor, TPacked> source, float threshold = .5f)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             EntropyCropProcessor<TColor, TPacked> processor = new EntropyCropProcessor<TColor, TPacked>(threshold);
             return source.Process(source.Bounds, processor);

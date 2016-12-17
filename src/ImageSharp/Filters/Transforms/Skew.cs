@@ -5,6 +5,8 @@
 
 namespace ImageSharp
 {
+    using System;
+
     using Processors;
 
     /// <summary>
@@ -23,7 +25,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image"/></returns>
         public static Image<TColor, TPacked> Skew<TColor, TPacked>(this Image<TColor, TPacked> source, float degreesX, float degreesY)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             return Skew(source, degreesX, degreesY, true);
         }
@@ -40,7 +42,7 @@ namespace ImageSharp
         /// <returns>The <see cref="Image"/></returns>
         public static Image<TColor, TPacked> Skew<TColor, TPacked>(this Image<TColor, TPacked> source, float degreesX, float degreesY, bool expand)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             SkewProcessor<TColor, TPacked> processor = new SkewProcessor<TColor, TPacked> { AngleX = degreesX, AngleY = degreesY, Expand = expand };
             return source.Process(source.Bounds, processor);

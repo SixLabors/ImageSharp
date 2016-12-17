@@ -17,7 +17,7 @@ namespace ImageSharp
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public unsafe class PixelAccessor<TColor, TPacked> : IDisposable
         where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct
+        where TPacked : struct, IEquatable<TPacked>
     {
         /// <summary>
         /// The pointer to the pixel buffer.
@@ -297,7 +297,7 @@ namespace ImageSharp
             for (int y = 0; y < height; y++)
             {
                 byte* source = area.PixelBase + (y * area.RowByteCount);
-                byte* destination = this.GetRowPointer(targetY + y) + targetX;
+                byte* destination = this.GetRowPointer(targetX, targetY + y);
 
                 for (int x = 0; x < width; x++)
                 {
@@ -326,7 +326,7 @@ namespace ImageSharp
             for (int y = 0; y < height; y++)
             {
                 byte* source = area.PixelBase + (y * area.RowByteCount);
-                byte* destination = this.GetRowPointer(targetY + y) + targetX;
+                byte* destination = this.GetRowPointer(targetX, targetY + y);
 
                 for (int x = 0; x < width; x++)
                 {
@@ -355,7 +355,7 @@ namespace ImageSharp
             for (int y = 0; y < height; y++)
             {
                 byte* source = area.PixelBase + (y * area.RowByteCount);
-                byte* destination = this.GetRowPointer(targetY + y) + targetX;
+                byte* destination = this.GetRowPointer(targetX, targetY + y);
 
                 for (int x = 0; x < width; x++)
                 {
@@ -384,7 +384,7 @@ namespace ImageSharp
             for (int y = 0; y < height; y++)
             {
                 byte* source = area.PixelBase + (y * area.RowByteCount);
-                byte* destination = this.GetRowPointer(targetY + y) + targetX;
+                byte* destination = this.GetRowPointer(targetX, targetY + y);
 
                 for (int x = 0; x < width; x++)
                 {
@@ -484,13 +484,14 @@ namespace ImageSharp
         /// <summary>
         /// Gets the pointer at the specified row.
         /// </summary>
-        /// <param name="targetY">The target row index.</param>
+        /// <param name="x">The column index.</param>
+        /// <param name="y">The row index.</param>
         /// <returns>
         /// The <see cref="T:byte*"/>.
         /// </returns>
-        protected byte* GetRowPointer(int targetY)
+        protected byte* GetRowPointer(int x, int y)
         {
-            return this.pixelsBase + ((targetY * this.Width) * Unsafe.SizeOf<TColor>());
+            return this.pixelsBase + (((y * this.Width) + x) * Unsafe.SizeOf<TColor>());
         }
 
         [Conditional("DEBUG")]

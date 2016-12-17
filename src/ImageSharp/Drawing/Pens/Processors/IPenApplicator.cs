@@ -15,7 +15,7 @@ namespace ImageSharp.Drawing.Pens.Processors
     /// <typeparam name="TPacked">The type of the packed.</typeparam>
     public interface IPenApplicator<TColor, TPacked> : IDisposable
         where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct
+        where TPacked : struct, IEquatable<TPacked>
     {
         /// <summary>
         /// Gets the required region.

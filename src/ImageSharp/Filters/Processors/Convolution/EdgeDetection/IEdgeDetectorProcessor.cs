@@ -5,6 +5,8 @@
 
 namespace ImageSharp.Processors
 {
+    using System;
+
     /// <summary>
     /// Provides properties and methods allowing the detection of edges within an image.
     /// </summary>
@@ -12,7 +14,7 @@ namespace ImageSharp.Processors
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public interface IEdgeDetectorProcessor<TColor, TPacked> : IImageFilteringProcessor<TColor, TPacked>, IEdgeDetectorProcessor
         where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct
+        where TPacked : struct, IEquatable<TPacked>
     {
     }
 

@@ -60,7 +60,7 @@ namespace ImageSharp.Formats
         /// </exception>
         public void Decode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             this.currentStream = stream;
 
@@ -216,7 +216,7 @@ namespace ImageSharp.Formats
         /// <param name="inverted">Whether the bitmap is inverted.</param>
         private void ReadRgbPalette<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, byte[] colors, int width, int height, int bits, bool inverted)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             // Pixels per byte (bits per pixel)
             int ppb = 8 / bits;
@@ -273,7 +273,7 @@ namespace ImageSharp.Formats
         /// <param name="inverted">Whether the bitmap is inverted.</param>
         private void ReadRgb16<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, int width, int height, bool inverted)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             // We divide here as we will store the colors in our floating point format.
             const int ScaleR = 8; // 256/32
@@ -317,7 +317,7 @@ namespace ImageSharp.Formats
         /// <param name="inverted">Whether the bitmap is inverted.</param>
         private void ReadRgb24<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, int width, int height, bool inverted)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             int padding = CalculatePadding(width, 3);
             using (PixelArea<TColor, TPacked> row = new PixelArea<TColor, TPacked>(width, ComponentOrder.ZYX, padding))
@@ -343,7 +343,7 @@ namespace ImageSharp.Formats
         /// <param name="inverted">Whether the bitmap is inverted.</param>
         private void ReadRgb32<TColor, TPacked>(PixelAccessor<TColor, TPacked> pixels, int width, int height, bool inverted)
             where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct
+            where TPacked : struct, IEquatable<TPacked>
         {
             int padding = CalculatePadding(width, 4);
             using (PixelArea<TColor, TPacked> row = new PixelArea<TColor, TPacked>(width, ComponentOrder.ZYXW, padding))

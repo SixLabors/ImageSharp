@@ -16,7 +16,7 @@ namespace ImageSharp.Processors
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public class SkewProcessor<TColor, TPacked> : Matrix3x2Processor<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct
+        where TPacked : struct, IEquatable<TPacked>
     {
         /// <summary>
         /// The transform matrix to apply.

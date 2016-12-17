@@ -3,6 +3,8 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+using System;
+
 namespace ImageSharp.Drawing.Brushes
 {
     /// <summary>
@@ -13,7 +15,7 @@ namespace ImageSharp.Drawing.Brushes
     /// <returns>A Brush</returns>
     public class Brushes<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct
+        where TPacked : struct, IEquatable<TPacked>
     {
         /// <summary>
         /// Percent10 Hatch Pattern

@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Quantizers
 {
+    using System;
     using System.Threading.Tasks;
 
     /// <summary>
@@ -14,7 +15,7 @@ namespace ImageSharp.Quantizers
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public abstract class Quantizer<TColor, TPacked> : IQuantizer<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct
+        where TPacked : struct, IEquatable<TPacked>
     {
         /// <summary>
         /// Flag used to indicate whether a single pass or two passes are needed for quantization.

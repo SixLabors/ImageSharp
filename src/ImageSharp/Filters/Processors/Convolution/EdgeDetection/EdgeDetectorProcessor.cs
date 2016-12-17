@@ -5,6 +5,8 @@
 
 namespace ImageSharp.Processors
 {
+    using System;
+
     /// <summary>
     /// Defines a sampler that detects edges within an image using a single two dimensional matrix.
     /// </summary>
@@ -12,7 +14,7 @@ namespace ImageSharp.Processors
     /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
     public abstract class EdgeDetectorProcessor<TColor, TPacked> : ImageFilteringProcessor<TColor, TPacked>, IEdgeDetectorProcessor<TColor, TPacked>
         where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct
+        where TPacked : struct, IEquatable<TPacked>
     {
         /// <inheritdoc/>
         public bool Grayscale { get; set; }

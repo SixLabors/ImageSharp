@@ -18,31 +18,31 @@ namespace ImageSharp.Tests
         /// </summary>
         protected static readonly List<TestFile> Files = new List<TestFile>
         {
-            // new TestFile(TestImages.Png.P1), // Perf: Enable for local testing only
-            // new TestFile(TestImages.Png.Pd), // Perf: Enable for local testing only
-            // new TestFile(TestImages.Jpeg.Floorplan), // Perf: Enable for local testing only
-            new TestFile(TestImages.Jpeg.Calliphora),
-            // new TestFile(TestImages.Jpeg.Ycck), // Perf: Enable for local testing only
-            // new TestFile(TestImages.Jpeg.Cmyk), // Perf: Enable for local testing only
-            new TestFile(TestImages.Jpeg.Turtle),
-            // new TestFile(TestImages.Jpeg.Fb), // Perf: Enable for local testing only
-            // new TestFile(TestImages.Jpeg.Progress), // Perf: Enable for local testing only
-            // new TestFile(TestImages.Jpeg.GammaDalaiLamaGray), // Perf: Enable for local testing only
-            new TestFile(TestImages.Bmp.Car),
-            // new TestFile(TestImages.Bmp.Neg_height), // Perf: Enable for local testing only
-            // new TestFile(TestImages.Png.Blur), // Perf: Enable for local testing only
-            // new TestFile(TestImages.Png.Indexed), // Perf: Enable for local testing only
-            new TestFile(TestImages.Png.Splash),
-            new TestFile(TestImages.Png.SplashInterlaced),
-            new TestFile(TestImages.Png.Interlaced),
-            // new TestFile(TestImages.Png.Filter0), // Perf: Enable for local testing only
-            // new TestFile(TestImages.Png.Filter1), // Perf: Enable for local testing only
-            // new TestFile(TestImages.Png.Filter2), // Perf: Enable for local testing only
-            // new TestFile(TestImages.Png.Filter3), // Perf: Enable for local testing only
-            // new TestFile(TestImages.Png.Filter4), // Perf: Enable for local testing only
-            // new TestFile(TestImages.Png.FilterVar), // Perf: Enable for local testing only
-            new TestFile(TestImages.Gif.Rings),
-            // new TestFile(TestImages.Gif.Giphy) // Perf: Enable for local testing only
+            // TestImages.Png.P1, // Perf: Enable for local testing only
+            // TestImages.Png.Pd, // Perf: Enable for local testing only
+            // TestImages.Jpeg.Floorplan, // Perf: Enable for local testing only
+            TestImages.Jpeg.Calliphora,
+            // TestImages.Jpeg.Ycck, // Perf: Enable for local testing only
+            // TestImages.Jpeg.Cmyk, // Perf: Enable for local testing only
+            TestImages.Jpeg.Turtle,
+            // TestImages.Jpeg.Fb, // Perf: Enable for local testing only
+            // TestImages.Jpeg.Progress, // Perf: Enable for local testing only
+            // TestImages.Jpeg.GammaDalaiLamaGray, // Perf: Enable for local testing only
+            TestImages.Bmp.Car,
+            // TestImages.Bmp.Neg_height, // Perf: Enable for local testing only
+            // TestImages.Png.Blur, // Perf: Enable for local testing only
+            // TestImages.Png.Indexed, // Perf: Enable for local testing only
+            TestImages.Png.Splash,
+            TestImages.Png.SplashInterlaced,
+            TestImages.Png.Interlaced,
+            // TestImages.Png.Filter0, // Perf: Enable for local testing only
+            // TestImages.Png.Filter1, // Perf: Enable for local testing only
+            // TestImages.Png.Filter2, // Perf: Enable for local testing only
+            // TestImages.Png.Filter3, // Perf: Enable for local testing only
+            // TestImages.Png.Filter4, // Perf: Enable for local testing only
+            // TestImages.Png.FilterVar, // Perf: Enable for local testing only
+            TestImages.Gif.Rings,
+            // TestImages.Gif.Giphy // Perf: Enable for local testing only
         };
 
         protected string CreateOutputDirectory(string path, params string[] pathParts)

@@ -41,6 +41,7 @@ namespace ImageSharp.Tests
             public static string Exif => folder + "exif.jpg";
             public static string Floorplan => folder + "Floorplan.jpg";
             public static string Calliphora => folder + "Calliphora.jpg";
+            public static string Ycck => folder + "ycck.jpg";
             public static string Turtle => folder + "turtle.jpg";
             public static string Fb => folder + "fb.jpg";
             public static string Progress => folder + "progress.jpg";

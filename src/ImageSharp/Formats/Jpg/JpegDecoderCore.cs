@@ -408,7 +408,24 @@ namespace ImageSharp.Formats
             {
                 if (this.componentCount == 4)
                 {
-                    this.ConvertFromCmyk(this.imageWidth, this.imageHeight, image);
+                    if (!this.adobeTransformValid)
+                    {
+                        throw new ImageFormatException("Unknown color model: 4-component JPEG doesn't have Adobe APP14 metadata");
+                    }
+
+                    // See http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html#Adobe
+                    // See https://docs.oracle.com/javase/8/docs/api/javax/imageio/metadata/doc-files/jpeg_metadata.html
+                    // TODO: YCbCrA?
+                    if (this.adobeTransform == JpegConstants.Adobe.ColorTransformYcck)
+                    {
+                        this.ConvertFromYcck(this.imageWidth, this.imageHeight, image);
+                    }
+                    else if (this.adobeTransform == JpegConstants.Adobe.ColorTransformUnknown)
+                    {
+                        // Assume CMYK
+                        this.ConvertFromCmyk(this.imageWidth, this.imageHeight, image);
+                    }
+
                     return;
                 }
 
@@ -1167,6 +1184,48 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
+        /// Converts the image from the original YCCK image pixels.
+        /// </summary>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+        /// <param name="width">The image width.</param>
+        /// <param name="height">The image height.</param>
+        /// <param name="image">The image.</param>
+        private void ConvertFromYcck<TColor, TPacked>(int width, int height, Image<TColor, TPacked> image)
+            where TColor : struct, IPackedPixel<TPacked>
+            where TPacked : struct, IEquatable<TPacked>
+        {
+            int scale = this.componentArray[0].HorizontalFactor / this.componentArray[1].HorizontalFactor;
+
+            image.InitPixels(width, height);
+
+            using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
+            {
+                Parallel.For(
+                    0,
+                    height,
+                    y =>
+                        {
+                            int yo = this.ycbcrImage.GetRowYOffset(y);
+                            int co = this.ycbcrImage.GetRowCOffset(y);
+
+                            for (int x = 0; x < width; x++)
+                            {
+                                byte yy = this.ycbcrImage.YChannel[yo + x];
+                                byte cb = this.ycbcrImage.CbChannel[co + (x / scale)];
+                                byte cr = this.ycbcrImage.CrChannel[co + (x / scale)];
+
+                                TColor packed = default(TColor);
+                                this.PackYcck<TColor, TPacked>(ref packed, yy, cb, cr, x, y);
+                                pixels[x, y] = packed;
+                            }
+                        });
+            }
+
+            this.AssignResolution(image);
+        }
+
+        /// <summary>
         /// Converts the image from the original CMYK image pixels.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
@@ -1178,49 +1237,34 @@ namespace ImageSharp.Formats
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct, IEquatable<TPacked>
         {
-            if (!this.adobeTransformValid)
+            int scale = this.componentArray[0].HorizontalFactor / this.componentArray[1].HorizontalFactor;
+
+            image.InitPixels(width, height);
+
+            using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
             {
-                throw new ImageFormatException(
-                          "Unknown color model: 4-component JPEG doesn't have Adobe APP14 metadata");
+                Parallel.For(
+                    0,
+                    height,
+                    y =>
+                    {
+                        int yo = this.ycbcrImage.GetRowYOffset(y);
+                        int co = this.ycbcrImage.GetRowCOffset(y);
+
+                        for (int x = 0; x < width; x++)
+                        {
+                            byte cyan = this.ycbcrImage.YChannel[yo + x];
+                            byte magenta = this.ycbcrImage.CbChannel[co + (x / scale)];
+                            byte yellow = this.ycbcrImage.CrChannel[co + (x / scale)];
+
+                            TColor packed = default(TColor);
+                            this.PackCmyk<TColor, TPacked>(ref packed, cyan, magenta, yellow, x, y);
+                            pixels[x, y] = packed;
+                        }
+                    });
             }
 
-            // If the 4-component JPEG image isn't explicitly marked as "Unknown (RGB
-            // or CMYK)" as per http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html#Adobe
-            if (this.adobeTransform != JpegConstants.Adobe.ColorTransformUnknown)
-            {
-                int scale = this.componentArray[0].HorizontalFactor / this.componentArray[1].HorizontalFactor;
-
-                image.InitPixels(width, height);
-
-                using (PixelAccessor<TColor, TPacked> pixels = image.Lock())
-                {
-                    // Convert the YCbCr part of the YCbCrK to RGB, invert the RGB to get
-                    // CMY, and patch in the original K. The RGB to CMY inversion cancels
-                    // out the 'Adobe inversion' described in the applyBlack doc comment
-                    // above, so in practice, only the fourth channel (black) is inverted.
-                    Parallel.For(
-                        0,
-                        height,
-                        y =>
-                            {
-                                int yo = this.ycbcrImage.GetRowYOffset(y);
-                                int co = this.ycbcrImage.GetRowCOffset(y);
-
-                                for (int x = 0; x < width; x++)
-                                {
-                                    byte yy = this.ycbcrImage.YChannel[yo + x];
-                                    byte cb = this.ycbcrImage.CbChannel[co + (x / scale)];
-                                    byte cr = this.ycbcrImage.CrChannel[co + (x / scale)];
-
-                                    TColor packed = default(TColor);
-                                    this.PackCmyk<TColor, TPacked>(ref packed, yy, cb, cr, x, y);
-                                    pixels[x, y] = packed;
-                                }
-                            });
-                }
-
-                this.AssignResolution(image);
-            }
+            this.AssignResolution(image);
         }
 
         /// <summary>
@@ -2101,7 +2145,7 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Optimized method to pack bytes to the image from the CMYK color space.
+        /// Optimized method to pack bytes to the image from the YCCK color space.
         /// This is faster than implicit casting as it avoids double packing.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
@@ -2112,10 +2156,14 @@ namespace ImageSharp.Formats
         /// <param name="cr">The cr chroma component.</param>
         /// <param name="xx">The x-position within the image.</param>
         /// <param name="yy">The y-position within the image.</param>
-        private void PackCmyk<TColor, TPacked>(ref TColor packed, byte y, byte cb, byte cr, int xx, int yy)
+        private void PackYcck<TColor, TPacked>(ref TColor packed, byte y, byte cb, byte cr, int xx, int yy)
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct, IEquatable<TPacked>
         {
+            // Convert the YCbCr part of the YCbCrK to RGB, invert the RGB to get
+            // CMY, and patch in the original K. The RGB to CMY inversion cancels
+            // out the 'Adobe inversion' described in the applyBlack doc comment
+            // above, so in practice, only the fourth channel (black) is inverted.
             // TODO: We can speed this up further with Vector4
             int ccb = cb - 128;
             int ccr = cr - 128;
@@ -2132,6 +2180,33 @@ namespace ImageSharp.Formats
             byte r = (byte)(((1 - cyan) * (1 - keyline)).Clamp(0, 1) * 255);
             byte g = (byte)(((1 - magenta) * (1 - keyline)).Clamp(0, 1) * 255);
             byte b = (byte)(((1 - yellow) * (1 - keyline)).Clamp(0, 1) * 255);
+
+            packed.PackFromBytes(r, g, b, 255);
+        }
+
+        /// <summary>
+        /// Optimized method to pack bytes to the image from the CMYK color space.
+        /// This is faster than implicit casting as it avoids double packing.
+        /// </summary>
+        /// <typeparam name="TColor">The pixel format.</typeparam>
+        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
+        /// <param name="packed">The packed pixel.</param>
+        /// <param name="c">The cyan component.</param>
+        /// <param name="m">The magenta component.</param>
+        /// <param name="y">The yellow component.</param>
+        /// <param name="xx">The x-position within the image.</param>
+        /// <param name="yy">The y-position within the image.</param>
+        private void PackCmyk<TColor, TPacked>(ref TColor packed, byte c, byte m, byte y, int xx, int yy)
+            where TColor : struct, IPackedPixel<TPacked>
+            where TPacked : struct, IEquatable<TPacked>
+        {
+            // Get keyline
+            float keyline = (255 - this.blackPixels[(yy * this.blackStride) + xx]) / 255F;
+
+            // Convert back to RGB. CMY are not inverted
+            byte r = (byte)(((c / 255F) * (1F - keyline)).Clamp(0, 1) * 255);
+            byte g = (byte)(((m / 255F) * (1F - keyline)).Clamp(0, 1) * 255);
+            byte b = (byte)(((y / 255F) * (1F - keyline)).Clamp(0, 1) * 255);
 
             packed.PackFromBytes(r, g, b, 255);
         }

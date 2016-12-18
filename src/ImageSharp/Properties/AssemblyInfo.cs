@@ -36,4 +36,5 @@ using System.Runtime.CompilerServices;
 
 // Ensure the internals can be tested.
 [assembly: InternalsVisibleTo("ImageSharp.Benchmarks")]
+[assembly: InternalsVisibleTo("ImageSharp.Drawing.Text")]
 [assembly: InternalsVisibleTo("ImageSharp.Tests")]

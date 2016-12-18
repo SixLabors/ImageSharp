@@ -54,6 +54,15 @@ namespace ImageSharp.Drawing.Shapes
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="ComplexPolygon" /> class.
+        /// </summary>
+        /// <param name="outlines">The outlines.</param>
+        public ComplexPolygon(IShape[] outlines)
+            : this(outlines, null)
+        {
+        }
+
+        /// <summary>
         /// Gets the bounding box of this shape.
         /// </summary>
         /// <value>

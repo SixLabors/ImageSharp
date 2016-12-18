@@ -40,6 +40,17 @@ namespace ImageSharp.Drawing.Shapes
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="Polygon" /> class.
+        /// </summary>
+        /// <param name="sourcePolygon">The source polygon.</param>
+        /// <param name="offset">The offset.</param>
+        public Polygon(Polygon sourcePolygon, Vector2 offset)
+        {
+            this.innerPath = new InternalPath(sourcePolygon.innerPath, true, offset);
+            this.pathCollection = new[] { this };
+        }
+
+        /// <summary>
         /// Gets the bounding box of this shape.
         /// </summary>
         /// <value>

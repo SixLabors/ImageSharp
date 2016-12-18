@@ -6,6 +6,7 @@
 namespace ImageSharp.Drawing.Processors
 {
     using System;
+    using System.Linq;
     using System.Numerics;
     using System.Threading.Tasks;
     using Drawing;
@@ -25,93 +26,148 @@ namespace ImageSharp.Drawing.Processors
         private const float Epsilon = 0.001f;
 
         private const float AntialiasFactor = 1f;
-        private const int DrawPadding = 1;
+        private const int DrawPadding = 2;
         private readonly IBrush<TColor, TPacked> fillColor;
-        private readonly IShape poly;
+        private readonly IShape[] polys;
         private readonly GraphicsOptions options;
+        private readonly Vector2 origon;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="FillShapeProcessor{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="FillShapeProcessor{TColor, TPacked}" /> class.
+        /// </summary>
+        /// <param name="brush">The brush.</param>
+        /// <param name="shapes">The shapes.</param>
+        /// <param name="origon">The origon.</param>
+        /// <param name="options">The options.</param>
+        public FillShapeProcessor(IBrush<TColor, TPacked> brush, IShape[] shapes, Vector2 origon, GraphicsOptions options)
+        {
+            this.polys = shapes;
+            this.fillColor = brush;
+            this.options = options;
+            this.origon = origon;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FillShapeProcessor{TColor, TPacked}" /> class.
         /// </summary>
         /// <param name="brush">The brush.</param>
         /// <param name="shape">The shape.</param>
-        /// <param name="options">The graphics options.</param>
-        public FillShapeProcessor(IBrush<TColor, TPacked> brush, IShape shape, GraphicsOptions options)
+        /// <param name="origon">The origon.</param>
+        /// <param name="options">The options.</param>
+        public FillShapeProcessor(IBrush<TColor, TPacked> brush, IShape shape, Vector2 origon, GraphicsOptions options)
+            : this(brush, new[] { shape }, origon, options)
         {
-            this.poly = shape;
-            this.fillColor = brush;
-            this.options = options;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FillShapeProcessor{TColor, TPacked}" /> class.
+        /// </summary>
+        /// <param name="brush">The brush.</param>
+        /// <param name="shape">The shape.</param>
+        /// <param name="options">The options.</param>
+        public FillShapeProcessor(IBrush<TColor, TPacked> brush, IShape shape, GraphicsOptions options)
+            : this(brush, shape, Vector2.Zero, options)
+        {
         }
 
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
         {
-            var rect = RectangleF.Ceiling(this.poly.Bounds); // rounds the points out away from the center
-
-            int polyStartY = rect.Y - DrawPadding;
-            int polyEndY = rect.Bottom + DrawPadding;
-            int startX = rect.X - DrawPadding;
-            int endX = rect.Right + DrawPadding;
-
-            int minX = Math.Max(sourceRectangle.Left, startX);
-            int maxX = Math.Min(sourceRectangle.Right, endX);
-            int minY = Math.Max(sourceRectangle.Top, polyStartY);
-            int maxY = Math.Min(sourceRectangle.Bottom, polyEndY);
-
-            // Align start/end positions.
-            minX = Math.Max(0, minX);
-            maxX = Math.Min(source.Width, maxX);
-            minY = Math.Max(0, minY);
-            maxY = Math.Min(source.Height, maxY);
-
-            // Reset offset if necessary.
-            if (minX > 0)
+            RectangleF fillBounds;
+            if (this.polys.Length == 1)
             {
-                startX = 0;
+                fillBounds = this.polys[0].Bounds;
+            }
+            else
+            {
+                var polysmaxX = this.polys.Max(x => x.Bounds.Right);
+                var polysminX = this.polys.Min(x => x.Bounds.Left);
+                var polysmaxY = this.polys.Max(x => x.Bounds.Bottom);
+                var polysminY = this.polys.Min(x => x.Bounds.Top);
+
+                fillBounds = new RectangleF(polysminX, polysminY, polysmaxX - polysminX, polysmaxY - polysminY);
             }
 
-            if (minY > 0)
-            {
-                polyStartY = 0;
-            }
+            fillBounds = new RectangleF(fillBounds.X + this.origon.X, fillBounds.Y + this.origon.Y, fillBounds.Width, fillBounds.Height);
+
+            var fillRect = RectangleF.Ceiling(fillBounds); // rounds the points out away from the center
+
+            fillRect = Rectangle.Outset(fillRect, DrawPadding);
 
             using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
-            using (IBrushApplicator<TColor, TPacked> applicator = this.fillColor.CreateApplicator(rect))
+            using (IBrushApplicator<TColor, TPacked> applicator = this.fillColor.CreateApplicator(fillRect))
             {
-                Parallel.For(
-                minY,
-                maxY,
-                this.ParallelOptions,
-                y =>
+                foreach (var poly in this.polys)
                 {
-                    int offsetY = y - polyStartY;
+                    var bounds = poly.Bounds;
+                    bounds = new RectangleF(bounds.X + this.origon.X, bounds.Y + this.origon.Y, bounds.Width, bounds.Height);
+                    var rect = RectangleF.Ceiling(bounds); // rounds the points out away from the center
 
-                    Vector2 currentPoint = default(Vector2);
-                    Vector2 currentPointOffset = default(Vector2);
-                    for (int x = minX; x < maxX; x++)
+                    rect = Rectangle.Outset(rect, DrawPadding);
+
+                    int startY = rect.Y;
+                    int endY = rect.Bottom;
+                    int startX = rect.X;
+                    int endX = rect.Right;
+
+                    int minX = Math.Max(sourceRectangle.Left, startX);
+                    int maxX = Math.Min(sourceRectangle.Right, endX);
+                    int minY = Math.Max(sourceRectangle.Top, startY);
+                    int maxY = Math.Min(sourceRectangle.Bottom, endY);
+
+                    // Align start/end positions.
+                    minX = Math.Max(0, minX);
+                    maxX = Math.Min(source.Width, maxX);
+                    minY = Math.Max(0, minY);
+                    maxY = Math.Min(source.Height, maxY);
+
+                    // Reset offset if necessary.
+                    if (minX > 0)
                     {
-                        int offsetX = x - startX;
-                        currentPoint.X = offsetX;
-                        currentPoint.Y = offsetY;
-                        var dist = this.poly.Distance(currentPoint);
-                        var opacity = this.Opacity(dist);
-
-                        if (opacity > Epsilon)
-                        {
-                            int offsetColorX = x - minX;
-
-                            Vector4 backgroundVector = sourcePixels[offsetX, offsetY].ToVector4();
-                            Vector4 sourceVector = applicator.GetColor(currentPoint).ToVector4();
-
-                            var finalColor = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, opacity);
-                            finalColor.W = backgroundVector.W;
-
-                            TColor packed = default(TColor);
-                            packed.PackFromVector4(finalColor);
-                            sourcePixels[offsetX, offsetY] = packed;
-                        }
+                        startX = 0;
                     }
-                });
+
+                    if (minY > 0)
+                    {
+                        startY = 0;
+                    }
+
+                    Parallel.For(
+                    minY,
+                    maxY,
+                    this.ParallelOptions,
+                    y =>
+                    {
+                        int offsetY = y - startY;
+
+                        Vector2 currentPoint = default(Vector2);
+                        for (int x = minX; x < maxX; x++)
+                        {
+                            int offsetX = x - startX;
+                            currentPoint.X = offsetX;
+                            currentPoint.Y = offsetY;
+
+                            var dist = poly.Distance(currentPoint - this.origon);
+
+                            var opacity = this.Opacity(dist);
+
+                            if (opacity > Epsilon)
+                            {
+                                int offsetColorX = x - minX;
+
+                                Vector4 backgroundVector = sourcePixels[offsetX, offsetY].ToVector4();
+                                Vector4 sourceVector = applicator.GetColor(currentPoint).ToVector4();
+
+                                var finalColor = Vector4BlendTransforms.PremultipliedLerp(backgroundVector, sourceVector, opacity);
+                                finalColor.W = backgroundVector.W;
+
+                                TColor packed = default(TColor);
+                                packed.PackFromVector4(finalColor);
+                                sourcePixels[offsetX, offsetY] = packed;
+                            }
+                        }
+                    });
+                }
             }
         }
 

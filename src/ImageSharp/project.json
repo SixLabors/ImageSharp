@@ -23,7 +23,6 @@
   },
   "buildOptions": {
     "allowUnsafe": true,
-    "debugType": "portable",
     "xmlDoc": true,
     "additionalArguments": [ "/additionalfile:stylecop.json" ]
   },

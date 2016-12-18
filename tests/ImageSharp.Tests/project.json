@@ -10,7 +10,6 @@
     ]
   },
   "buildOptions": {
-    "debugType": "portable",
     "allowUnsafe": true
   },
   "dependencies": {
@@ -26,7 +25,8 @@
           "version": "1.0.0-*"
         }
       }
-    }
+    },
+    "net451": {}
   },
   "testRunner": "xunit"
 }

@@ -94,6 +94,17 @@ namespace ImageSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="PixelArea{TColor,TPacked}"/> class.
         /// </summary>
+        /// <param name="width">The width.</param>
+        /// <param name="height">The height.</param>
+        /// <param name="componentOrder">The component order.</param>
+        public PixelArea(int width, int height, ComponentOrder componentOrder)
+            : this(width, height, componentOrder, 0)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PixelArea{TColor,TPacked}"/> class.
+        /// </summary>
         /// <param name="width">The width. </param>
         /// <param name="componentOrder">The component order.</param>
         /// <param name="padding">The number of bytes to pad each row.</param>

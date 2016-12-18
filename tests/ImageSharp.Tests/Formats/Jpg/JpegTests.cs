@@ -5,81 +5,72 @@ using System.Linq;
 using ImageSharp.Formats;
 using Xunit;
 using Xunit.Abstractions;
+// ReSharper disable InconsistentNaming
 
 namespace ImageSharp.Tests.Formats.Jpg
 {
+    using ImageSharp.Tests.TestUtilities;
+
     public class JpegTests
     {
-        
-        public const string TestOutputDirectory = "TestOutput/Jpeg";
-
         private ITestOutputHelper Output { get; }
 
         public JpegTests(ITestOutputHelper output)
         {
             Output = output;
         }
-
-        protected string CreateTestOutputFile(string fileName)
-        {
-            if (!Directory.Exists(TestOutputDirectory))
-            {
-                Directory.CreateDirectory(TestOutputDirectory);
-            }
-
-            //string id = Guid.NewGuid().ToString().Substring(0, 4);
-
-            string ext = Path.GetExtension(fileName);
-            fileName = Path.GetFileNameWithoutExtension(fileName);
-
-            return $"{TestOutputDirectory}/{fileName}{ext}";
-        }
-
-        protected Stream CreateOutputStream(string fileName)
-        {
-            fileName = CreateTestOutputFile(fileName);
-            Output?.WriteLine("Opened for write: "+fileName);
-            return File.OpenWrite(fileName);
-        }
-
-        public static IEnumerable<object[]> AllJpegFiles
-            => TestImages.Jpeg.All.Select(fn => new object[] {fn});
+        
+        public static IEnumerable<string> AllJpegFiles => TestImages.Jpeg.All;
 
         [Theory]
-        [MemberData(nameof(AllJpegFiles))]
-        public void OpenJpeg_SaveBmp(string jpegPath)
+        //[WithFileCollection(nameof(AllJpegFiles), PixelTypes.All)] // TODO: Turned off to be kind to AppVeyor, should I re-enable?
+        [WithFileCollection(nameof(AllJpegFiles), PixelTypes.Color | PixelTypes.Argb)]
+        public void OpenJpeg_SaveBmp<TColor, TPacked>(TestImageFactory<TColor, TPacked> factory)
+            where TColor : struct, IPackedPixel<TPacked> where TPacked : struct, IEquatable<TPacked>
         {
-            string bmpFileName = Path.GetFileNameWithoutExtension(jpegPath) + ".bmp";
-
-            using (var inputStream = File.OpenRead(jpegPath))
-            {
-                var image = new Image(inputStream);
-                
-                using (var outputStream = CreateOutputStream(bmpFileName))
-                {
-                    image.Save(outputStream, new BmpFormat());
-                }
-            }
+            var image = factory.Create();
+            
+            factory.Utility.SaveTestOutputFile(image, "bmp");
         }
+        
 
-        public static IEnumerable<object[]> AllBmpFiles
-            => TestImages.Bmp.All.Select(fn => new object[] {fn});
+        public static IEnumerable<string> AllBmpFiles => TestImages.Bmp.All;
 
         [Theory]
-        [MemberData(nameof(AllBmpFiles))]
-        public void OpenBmp_SaveJpeg(string bmpPath)
+        [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Color | PixelTypes.Argb, JpegSubsample.Ratio420, 75)]
+        [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Color | PixelTypes.Argb, JpegSubsample.Ratio444, 75)]
+        public void OpenBmp_SaveJpeg<TColor, TPacked>(TestImageFactory<TColor, TPacked> factory, JpegSubsample subSample, int quality)
+           where TColor : struct, IPackedPixel<TPacked> where TPacked : struct, IEquatable<TPacked>
         {
-            string jpegPath = Path.GetFileNameWithoutExtension(bmpPath) + ".jpeg";
+            var image = factory.Create();
 
-            using (var inputStream = File.OpenRead(bmpPath))
+            var utility = factory.Utility;
+            utility.TestName += "_"+subSample + "_Q" + quality;
+
+            using (var outputStream = File.OpenWrite(utility.GetTestOutputFileName("jpg")))
             {
-                var image = new Image(inputStream);
-
-                using (var outputStream = CreateOutputStream(jpegPath))
+                var encoder = new JpegEncoder()
                 {
-                    image.Save(outputStream, new JpegFormat());
-                }
+                    Subsample = subSample,
+                    Quality = quality
+                };
+
+                image.Save(outputStream, encoder);
             }
+        }
+        
+        private static void AssertSamePixels(PixelArea<Color, uint> data, int x1, int y1, int x2, int y2)
+        {
+            int idx1 = data.RowByteCount * y1 + x1*3;
+            byte r1 = data.Bytes[idx1];
+            byte g1 = data.Bytes[idx1+1];
+
+            int idx2 = data.RowByteCount * y2 + x2*3;
+            byte r2 = data.Bytes[idx2];
+            byte g2 = data.Bytes[idx2 + 1];
+
+            Assert.Equal(r1, r2);
+            Assert.Equal(g1, g2);
         }
     }
 }

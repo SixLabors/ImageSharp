@@ -5,14 +5,29 @@
 
 namespace ImageSharp.Tests
 {
+    using System.IO;
+
     /// <summary>
     /// Class that contains all the test images.
     /// </summary>
     public static class TestImages
     {
+        private static readonly string FormatsDirectory = GetFormatsDirectory();
+
+        private static string GetFormatsDirectory()
+        {
+          // Here for code coverage tests.
+          string directory = "TestImages/Formats/";
+          if (Directory.Exists(directory))
+          {
+              return directory;
+          }
+          return "../../../../TestImages/Formats/";
+        }
+
         public static class Png
         {
-            private static readonly string folder = "TestImages/Formats/Png/";
+            private static readonly string folder = FormatsDirectory + "Png/";
 
             public static TestFile P1 => new TestFile(folder + "pl.png");
             public static TestFile Pd => new TestFile(folder + "pd.png");
@@ -37,7 +52,7 @@ namespace ImageSharp.Tests
 
         public static class Jpeg
         {
-            private static readonly string folder = "TestImages/Formats/Jpg/";
+            private static readonly string folder = FormatsDirectory + "Jpg/";
 
             public static TestFile Cmyk => new TestFile(folder + "cmyk.jpg");
             public static TestFile Exif => new TestFile(folder + "exif.jpg");
@@ -67,7 +82,7 @@ namespace ImageSharp.Tests
 
         public static class Bmp
         {
-            private static readonly string folder = "TestImages/Formats/Bmp/";
+            private static readonly string folder = FormatsDirectory + "Bmp/";
 
             public static TestFile Car => new TestFile(folder + "Car.bmp");
 
@@ -82,7 +97,7 @@ namespace ImageSharp.Tests
 
         public static class Gif
         {
-            private static readonly string folder = "TestImages/Formats/Gif/";
+            private static readonly string folder = FormatsDirectory + "Gif/";
 
             public static TestFile Rings => new TestFile(folder + "rings.gif");
             public static TestFile Giphy => new TestFile(folder + "giphy.gif");

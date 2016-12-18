@@ -34,7 +34,7 @@ namespace ImageSharp.Drawing.Processors
         private readonly IPath[] paths;
         private readonly RectangleF region;
         private readonly GraphicsOptions options;
-        
+
         /// <summary>
         /// Initializes a new instance of the <see cref="DrawPathProcessor{TColor, TPacked}" /> class.
         /// </summary>
@@ -56,7 +56,7 @@ namespace ImageSharp.Drawing.Processors
             : this(pen, new[] { path }, options)
         {
         }
-        
+
         /// <summary>
         /// Initializes a new instance of the <see cref="DrawPathProcessor{TColor, TPacked}" /> class.
         /// </summary>
@@ -134,10 +134,10 @@ namespace ImageSharp.Drawing.Processors
                             currentPoint.X = offsetX;
                             currentPoint.Y = offsetY;
 
-                            var dist = Closest(currentPoint);
+                            var dist = this.Closest(currentPoint);
 
                             var color = applicator.GetColor(dist);
-                            
+
                             var opacity = this.Opacity(color.DistanceFromElement);
 
                             if (opacity > Epsilon)

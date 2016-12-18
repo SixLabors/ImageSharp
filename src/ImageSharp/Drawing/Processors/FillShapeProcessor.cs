@@ -35,6 +35,7 @@ namespace ImageSharp.Drawing.Processors
         /// </summary>
         /// <param name="brush">The brush.</param>
         /// <param name="shape">The shape.</param>
+        /// <param name="options">The graphics options.</param>
         public FillShapeProcessor(IBrush<TColor, TPacked> brush, IShape shape, GraphicsOptions options)
         {
             this.poly = shape;
@@ -73,7 +74,7 @@ namespace ImageSharp.Drawing.Processors
             {
                 polyStartY = 0;
             }
-            
+
             using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
             using (IBrushApplicator<TColor, TPacked> applicator = this.fillColor.CreateApplicator(rect))
             {

@@ -17,13 +17,7 @@ namespace ImageSharp.Tests
         {
             string path = CreateOutputDirectory("Drawing", "DrawImage");
 
-            Image blend;// = new Image(400, 400);
-                        // blend.BackgroundColor(Color.RebeccaPurple);
-
-            using (FileStream stream = File.OpenRead(TestImages.Bmp.Car))
-            {
-                blend = new Image(stream);
-            }
+            Image blend = TestImages.Bmp.Car.CreateImage();
 
             foreach (TestFile file in Files)
             {

@@ -38,6 +38,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Creates a new instance of the <see cref="Bytes"/>, and initializes it's buffer.
         /// </summary>
+        /// <returns>The bytes created</returns>
         public static Bytes Create()
         {
             return new Bytes { Buffer = ArrayPool.Rent(4096) };
@@ -56,6 +57,8 @@ namespace ImageSharp.Formats
         /// <summary>
         /// ReadByteStuffedByte is like ReadByte but is for byte-stuffed Huffman data.
         /// </summary>
+        /// <param name="inputStream">Input stream</param>
+        /// <param name="errorCode">Error code</param>
         /// <returns>The <see cref="byte"/></returns>
         internal byte ReadByteStuffedByte(Stream inputStream, out JpegDecoderCore.ErrorCodes errorCode)
         {
@@ -112,6 +115,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Returns the next byte, whether buffered or not buffered. It does not care about byte stuffing.
         /// </summary>
+        /// <param name="inputStream">Input stream</param>
         /// <returns>The <see cref="byte"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal byte ReadByte(Stream inputStream)
@@ -131,6 +135,7 @@ namespace ImageSharp.Formats
         /// Fills up the bytes buffer from the underlying stream.
         /// It should only be called when there are no unread bytes in bytes.
         /// </summary>
+        /// <param name="inputStream">Input stream</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void Fill(Stream inputStream)
         {

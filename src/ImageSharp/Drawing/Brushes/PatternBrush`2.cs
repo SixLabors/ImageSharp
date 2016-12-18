@@ -5,10 +5,10 @@
 
 namespace ImageSharp.Drawing.Brushes
 {
+    using System;
     using System.Numerics;
 
     using Processors;
-    using System;
 
     /// <summary>
     /// Provides an implementation of a pattern brush for painting patterns.
@@ -30,12 +30,12 @@ namespace ImageSharp.Drawing.Brushes
     ///  0
     ///  0
     /// </para>
-    /// Warning when use array initializer across multiple lines the bools look inverted i.e. 
+    /// Warning when use array initializer across multiple lines the bools look inverted i.e.
     /// new bool[,]{
     ///     {true, false, false},
     ///     {false,true, false}
     /// }
-    /// would be 
+    /// would be
     /// 10
     /// 01
     /// 00

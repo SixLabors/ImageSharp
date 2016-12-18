@@ -5,7 +5,6 @@
 
 namespace ImageSharp.Tests
 {
-    using System.IO;
     using System.Linq;
     using Xunit;
 
@@ -13,15 +12,12 @@ namespace ImageSharp.Tests
     {
         private static ExifValue GetExifValue()
         {
-            using (FileStream stream = File.OpenRead(TestImages.Jpeg.Floorplan))
-            {
-                Image image = new Image(stream);
+            Image image = TestImages.Jpeg.Floorplan.CreateImage();
 
-                ExifProfile profile = image.ExifProfile;
-                Assert.NotNull(profile);
+            ExifProfile profile = image.ExifProfile;
+            Assert.NotNull(profile);
 
-                return profile.Values.First();
-            }
+            return profile.Values.First();
         }
 
         [Fact]

@@ -43,42 +43,36 @@ namespace ImageSharp.Tests.Formats.Jpg
         }
 
         public static IEnumerable<object[]> AllJpegFiles
-            => TestImages.Jpeg.All.Select(fn => new object[] {fn});
+            => TestImages.Jpeg.All.Select(file => new object[] {file});
 
         [Theory]
         [MemberData(nameof(AllJpegFiles))]
-        public void OpenJpeg_SaveBmp(string jpegPath)
+        public void OpenJpeg_SaveBmp(TestFile file)
         {
-            string bmpFileName = Path.GetFileNameWithoutExtension(jpegPath) + ".bmp";
+            string bmpFileName = file.FileNameWithoutExtension + ".bmp";
 
-            using (var inputStream = File.OpenRead(jpegPath))
-            {
-                var image = new Image(inputStream);
+            var image = file.CreateImage();
                 
-                using (var outputStream = CreateOutputStream(bmpFileName))
-                {
-                    image.Save(outputStream, new BmpFormat());
-                }
+            using (var outputStream = CreateOutputStream(bmpFileName))
+            {
+                image.Save(outputStream, new BmpFormat());
             }
         }
 
         public static IEnumerable<object[]> AllBmpFiles
-            => TestImages.Bmp.All.Select(fn => new object[] {fn});
+            => TestImages.Bmp.All.Select(file => new object[] {file});
 
         [Theory]
         [MemberData(nameof(AllBmpFiles))]
-        public void OpenBmp_SaveJpeg(string bmpPath)
+        public void OpenBmp_SaveJpeg(TestFile file)
         {
-            string jpegPath = Path.GetFileNameWithoutExtension(bmpPath) + ".jpeg";
+            string jpegPath = file.FileNameWithoutExtension + ".jpeg";
 
-            using (var inputStream = File.OpenRead(bmpPath))
+            var image = file.CreateImage();
+
+            using (var outputStream = CreateOutputStream(jpegPath))
             {
-                var image = new Image(inputStream);
-
-                using (var outputStream = CreateOutputStream(jpegPath))
-                {
-                    image.Save(outputStream, new JpegFormat());
-                }
+                image.Save(outputStream, new JpegFormat());
             }
         }
     }

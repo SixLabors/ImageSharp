@@ -27,7 +27,7 @@ namespace ImageSharp.Quantizers
         /// <summary>
         /// A lookup table for colors
         /// </summary>
-        private readonly Dictionary<int, byte> colorMap = new Dictionary<int, byte>();
+        private readonly Dictionary<TPacked, byte> colorMap = new Dictionary<TPacked, byte>();
 
         /// <summary>
         /// List of all colors in the palette
@@ -76,7 +76,7 @@ namespace ImageSharp.Quantizers
         protected override byte QuantizePixel(TColor pixel)
         {
             byte colorIndex = 0;
-            int colorHash = pixel.GetHashCode();
+            TPacked colorHash = pixel.PackedValue;
 
             // Check if the color is in the lookup table
             if (this.colorMap.ContainsKey(colorHash))

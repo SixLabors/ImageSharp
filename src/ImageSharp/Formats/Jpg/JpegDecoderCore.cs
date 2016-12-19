@@ -32,16 +32,6 @@ namespace ImageSharp.Formats
         internal const int LutSize = 8;
 
         /// <summary>
-        /// The input stream.
-        /// </summary>
-        internal Stream InputStream;
-
-        /// <summary>
-        /// Holds the unprocessed bits that have been taken from the byte-stream.
-        /// </summary>
-        internal Bits Bits;
-
-        /// <summary>
         /// The maximum number of color components
         /// </summary>
         private const int MaxComponents = 4;
@@ -115,6 +105,16 @@ namespace ImageSharp.Formats
         /// The byte buffer.
         /// </summary>
         private Bytes bytes;
+
+        /// <summary>
+        /// The byte buffer.
+        /// </summary>
+        private Stream inputStream;
+
+        /// <summary>
+        /// Holds the unprocessed bits that have been taken from the byte-stream.
+        /// </summary>
+        private Bits bits;
 
         /// <summary>
         /// The image width
@@ -205,7 +205,7 @@ namespace ImageSharp.Formats
             this.temp = new byte[2 * BlockF.BlockSize];
             this.componentArray = new Component[MaxComponents];
             this.progCoeffs = new Block8x8F[MaxComponents][];
-            this.Bits = default(Bits);
+            this.bits = default(Bits);
             this.bytes = Bytes.Create();
 
             // TODO: This looks like it could be static.
@@ -247,6 +247,17 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
+        /// Gets the input stream.
+        /// </summary>
+        public Stream InputStream
+        {
+            get
+            {
+                return this.inputStream;
+            }
+        }
+
+        /// <summary>
         /// Decodes the image from the specified this._stream and sets
         /// the data to image.
         /// </summary>
@@ -259,7 +270,7 @@ namespace ImageSharp.Formats
             where TColor : struct, IPackedPixel<TPacked>
             where TPacked : struct, IEquatable<TPacked>
         {
-            this.InputStream = stream;
+            this.inputStream = stream;
 
             // Check for the Start Of Image marker.
             this.ReadFull(this.temp, 0, 2);
@@ -487,7 +498,7 @@ namespace ImageSharp.Formats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal byte ReadByte()
         {
-            return this.bytes.ReadByte(this.InputStream);
+            return this.bytes.ReadByte(this.inputStream);
         }
 
         /// <summary>
@@ -648,19 +659,19 @@ namespace ImageSharp.Formats
                 throw new ImageFormatException("Uninitialized Huffman table");
             }
 
-            if (this.Bits.UnreadBits < 8)
+            if (this.bits.UnreadBits < 8)
             {
-                var errorCode = this.Bits.EnsureNBits(8, this);
+                var errorCode = this.bits.EnsureNBits(8, this);
 
                 if (errorCode == ErrorCodes.NoError)
                 {
-                    ushort v = huffman.Lut[(this.Bits.Accumulator >> (this.Bits.UnreadBits - LutSize)) & 0xff];
+                    ushort v = huffman.Lut[(this.bits.Accumulator >> (this.bits.UnreadBits - LutSize)) & 0xff];
 
                     if (v != 0)
                     {
                         byte n = (byte)((v & 0xff) - 1);
-                        this.Bits.UnreadBits -= n;
-                        this.Bits.Mask >>= n;
+                        this.bits.UnreadBits -= n;
+                        this.bits.Mask >>= n;
                         return (byte)(v >> 8);
                     }
                 }
@@ -673,22 +684,22 @@ namespace ImageSharp.Formats
             int code = 0;
             for (int i = 0; i < MaxCodeLength; i++)
             {
-                if (this.Bits.UnreadBits == 0)
+                if (this.bits.UnreadBits == 0)
                 {
-                    var errorCode = this.Bits.EnsureNBits(1, this);
+                    var errorCode = this.bits.EnsureNBits(1, this);
                     if (errorCode != ErrorCodes.NoError)
                     {
                         throw new MissingFF00Exception();
                     }
                 }
 
-                if ((this.Bits.Accumulator & this.Bits.Mask) != 0)
+                if ((this.bits.Accumulator & this.bits.Mask) != 0)
                 {
                     code |= 1;
                 }
 
-                this.Bits.UnreadBits--;
-                this.Bits.Mask >>= 1;
+                this.bits.UnreadBits--;
+                this.bits.Mask >>= 1;
 
                 if (code <= huffman.MaxCodes[i])
                 {
@@ -707,18 +718,18 @@ namespace ImageSharp.Formats
         /// <returns>The <see cref="bool"/></returns>
         private bool DecodeBit()
         {
-            if (this.Bits.UnreadBits == 0)
+            if (this.bits.UnreadBits == 0)
             {
-                var errorCode = this.Bits.EnsureNBits(1, this);
+                var errorCode = this.bits.EnsureNBits(1, this);
                 if (errorCode != ErrorCodes.NoError)
                 {
                     throw new MissingFF00Exception();
                 }
             }
 
-            bool ret = (this.Bits.Accumulator & this.Bits.Mask) != 0;
-            this.Bits.UnreadBits--;
-            this.Bits.Mask >>= 1;
+            bool ret = (this.bits.Accumulator & this.bits.Mask) != 0;
+            this.bits.UnreadBits--;
+            this.bits.Mask >>= 1;
             return ret;
         }
 
@@ -729,19 +740,19 @@ namespace ImageSharp.Formats
         /// <returns>The <see cref="uint"/></returns>
         private uint DecodeBits(int count)
         {
-            if (this.Bits.UnreadBits < count)
+            if (this.bits.UnreadBits < count)
             {
-                var errorCode = this.Bits.EnsureNBits(count, this);
+                var errorCode = this.bits.EnsureNBits(count, this);
                 if (errorCode != ErrorCodes.NoError)
                 {
                     throw new MissingFF00Exception();
                 }
             }
 
-            uint ret = this.Bits.Accumulator >> (this.Bits.UnreadBits - count);
+            uint ret = this.bits.Accumulator >> (this.bits.UnreadBits - count);
             ret = (uint)(ret & ((1 << count) - 1));
-            this.Bits.UnreadBits -= count;
-            this.Bits.Mask >>= count;
+            this.bits.UnreadBits -= count;
+            this.bits.Mask >>= count;
             return ret;
         }
 
@@ -756,11 +767,11 @@ namespace ImageSharp.Formats
         {
             this.bytes.I -= this.bytes.UnreadableBytes;
             this.bytes.UnreadableBytes = 0;
-            if (this.Bits.UnreadBits >= 8)
+            if (this.bits.UnreadBits >= 8)
             {
-                this.Bits.Accumulator >>= 8;
-                this.Bits.UnreadBits -= 8;
-                this.Bits.Mask >>= 8;
+                this.bits.Accumulator >>= 8;
+                this.bits.UnreadBits -= 8;
+                this.bits.Mask >>= 8;
             }
         }
 
@@ -775,7 +786,7 @@ namespace ImageSharp.Formats
             // Unread the overshot bytes, if any.
             if (this.bytes.UnreadableBytes != 0)
             {
-                if (this.Bits.UnreadBits >= 8)
+                if (this.bits.UnreadBits >= 8)
                 {
                     this.UnreadByteStuffedByte();
                 }
@@ -798,7 +809,7 @@ namespace ImageSharp.Formats
                     length -= this.bytes.J - this.bytes.I;
                     this.bytes.I += this.bytes.J - this.bytes.I;
 
-                    this.bytes.Fill(this.InputStream);
+                    this.bytes.Fill(this.inputStream);
                 }
             }
         }
@@ -812,7 +823,7 @@ namespace ImageSharp.Formats
             // Unread the overshot bytes, if any.
             if (this.bytes.UnreadableBytes != 0)
             {
-                if (this.Bits.UnreadBits >= 8)
+                if (this.bits.UnreadBits >= 8)
                 {
                     this.UnreadByteStuffedByte();
                 }
@@ -835,7 +846,7 @@ namespace ImageSharp.Formats
                     break;
                 }
 
-                this.bytes.Fill(this.InputStream);
+                this.bytes.Fill(this.inputStream);
             }
         }
 
@@ -1541,7 +1552,7 @@ namespace ImageSharp.Formats
                 }
             }
 
-            this.Bits = default(Bits);
+            this.bits = default(Bits);
 
             int mcu = 0;
             byte expectedRst = JpegConstants.Markers.RST0;
@@ -1694,7 +1705,7 @@ namespace ImageSharp.Formats
                         }
 
                         // Reset the Huffman decoder.
-                        this.Bits = default(Bits);
+                        this.bits = default(Bits);
 
                         // Reset the DC components, as per section F.2.1.3.1.
                         dc = new int[MaxComponents];
@@ -1749,7 +1760,7 @@ namespace ImageSharp.Formats
                         throw new ImageFormatException("Excessive DC component");
                     }
 
-                    int deltaDC = this.Bits.ReceiveExtend(value, this);
+                    int deltaDC = this.bits.ReceiveExtend(value, this);
                     dc[compIndex] += deltaDC;
 
                     // b[0] = dc[compIndex] << al;
@@ -1777,7 +1788,7 @@ namespace ImageSharp.Formats
                                 break;
                             }
 
-                            int ac = this.Bits.ReceiveExtend(val1, this);
+                            int ac = this.bits.ReceiveExtend(val1, this);
 
                             // b[Unzig[zig]] = ac << al;
                             Block8x8F.SetScalarAt(b, unzigPtr[zig], ac << al);

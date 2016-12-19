@@ -6,6 +6,7 @@
 namespace ImageSharp
 {
     using System;
+    using System.Buffers;
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.IO;
@@ -15,7 +16,6 @@ namespace ImageSharp
     using System.Threading.Tasks;
 
     using Formats;
-    using System.Buffers;
 
     /// <summary>
     /// Encapsulates an image, which consists of the pixel data for a graphics image and its attributes.

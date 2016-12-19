@@ -6,6 +6,7 @@
 namespace ImageSharp.Tests.TestUtilities
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Reflection;
 
     /// <summary>
@@ -83,6 +84,9 @@ namespace ImageSharp.Tests.TestUtilities
 
         private class FileFactory : TestImageFactory<TColor, TPacked>
         {
+            private static ConcurrentDictionary<string, Image<TColor, TPacked>> cache =
+                new ConcurrentDictionary<string, Image<TColor, TPacked>>();
+
             private string filePath;
 
             public FileFactory(string filePath)
@@ -94,10 +98,16 @@ namespace ImageSharp.Tests.TestUtilities
 
             public override Image<TColor, TPacked> Create()
             {
-                using (var stream = System.IO.File.OpenRead(this.filePath))
+                Image<TColor, TPacked> result;
+                if (!cache.TryGetValue(this.filePath, out result))
                 {
-                    return new Image<TColor, TPacked>(stream);
+                    using (var stream = System.IO.File.OpenRead(this.filePath))
+                    {
+                        result = new Image<TColor, TPacked>(stream);
+                        cache[this.filePath] = result;
+                    }
                 }
+                return new Image<TColor, TPacked>(result);
             }
         }
 

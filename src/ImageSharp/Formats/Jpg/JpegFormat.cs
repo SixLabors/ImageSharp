@@ -33,20 +33,8 @@ namespace ImageSharp.Formats
         /// <inheritdoc/>
         public bool IsSupportedFileFormat(byte[] header)
         {
-            Guard.NotNull(header, "header");
-
-            bool isSupported = false;
-
-            if (header.Length >= this.HeaderSize)
-            {
-                bool isJfif = IsJfif(header);
-                bool isExif = IsExif(header);
-                bool isJpeg = IsJpeg(header);
-
-                isSupported = isJfif || isExif || isJpeg;
-            }
-
-            return isSupported;
+            return header.Length >= this.HeaderSize &&
+                   (IsJfif(header) || IsExif(header) || IsJpeg(header));
         }
 
         /// <summary>

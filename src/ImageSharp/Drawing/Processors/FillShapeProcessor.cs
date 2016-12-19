@@ -88,7 +88,7 @@ namespace ImageSharp.Drawing.Processors
                     int offsetY = y - polyStartY;
 
                     Vector2 currentPoint = default(Vector2);
-                    Vector2 currentPointOffset = default(Vector2);
+
                     for (int x = minX; x < maxX; x++)
                     {
                         int offsetX = x - startX;

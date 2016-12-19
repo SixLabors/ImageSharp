@@ -6,6 +6,7 @@
 namespace ImageSharp.Benchmarks
 {
     using BenchmarkDotNet.Running;
+    using System.Linq;
 
     public class Program
     {
@@ -17,6 +18,7 @@ namespace ImageSharp.Benchmarks
         /// </param>
         public static void Main(string[] args)
         {
+          
             new BenchmarkSwitcher(typeof(Program).Assembly).Run(args);
         }
     }

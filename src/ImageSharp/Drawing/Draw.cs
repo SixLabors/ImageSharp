@@ -35,7 +35,7 @@ namespace ImageSharp
            where TColor : struct, IPackedPixel<TPacked>
            where TPacked : struct, IEquatable<TPacked>
         {
-            return source.Process(new DrawPathProcessor<TColor, TPacked>(pen, shape, options));
+            return source.Process(new DrawPathProcessor<TColor, TPacked>(pen, shape, Vector2.Zero, options));
         }
 
         /// <summary>
@@ -253,7 +253,7 @@ namespace ImageSharp
            where TColor : struct, IPackedPixel<TPacked>
            where TPacked : struct, IEquatable<TPacked>
         {
-            return source.Process(new DrawPathProcessor<TColor, TPacked>(pen, path, options));
+            return source.Process(new DrawPathProcessor<TColor, TPacked>(pen, new[] { path }, options));
         }
 
         /// <summary>
@@ -269,7 +269,7 @@ namespace ImageSharp
            where TColor : struct, IPackedPixel<TPacked>
            where TPacked : struct, IEquatable<TPacked>
         {
-            return source.Process(new DrawPathProcessor<TColor, TPacked>(pen, path, GraphicsOptions.Default));
+            return source.Process(new DrawPathProcessor<TColor, TPacked>(pen, new[] { path }, GraphicsOptions.Default));
         }
 
         /// <summary>

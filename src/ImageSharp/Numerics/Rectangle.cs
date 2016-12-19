@@ -229,6 +229,20 @@ namespace ImageSharp
         }
 
         /// <summary>
+        /// Outsets the specified region.
+        /// </summary>
+        /// <param name="region">The region.</param>
+        /// <param name="width">The width.</param>
+        /// <returns>
+        /// The <see cref="Rectangle"/> with all dimensions move away from the center by the offset.
+        /// </returns>
+        public static Rectangle Outset(Rectangle region, int width)
+        {
+            var dblWidth = width * 2;
+            return new Rectangle(region.X - width, region.Y - width, region.Width + dblWidth, region.Height + dblWidth);
+        }
+
+        /// <summary>
         /// Determines if the specfied point is contained within the rectangular region defined by
         /// this <see cref="Rectangle"/>.
         /// </summary>

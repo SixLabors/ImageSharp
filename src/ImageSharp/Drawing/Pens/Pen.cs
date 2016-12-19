@@ -175,18 +175,16 @@ namespace ImageSharp.Drawing.Pens
         {
             private readonly IBrushApplicator<TColor, TPacked> brush;
             private readonly float halfWidth;
+            private readonly int width;
 
             public SolidPenApplicator(IBrush<TColor, TPacked> brush, RectangleF region, float width)
             {
                 this.brush = brush.CreateApplicator(region);
                 this.halfWidth = width / 2;
-                this.RequiredRegion = RectangleF.Outset(region, width);
+                this.width = (int)Math.Ceiling(width);
             }
 
-            public RectangleF RequiredRegion
-            {
-                get;
-            }
+            public int DrawingPadding => this.width;
 
             public void Dispose()
             {
@@ -218,13 +216,14 @@ namespace ImageSharp.Drawing.Pens
             private readonly float halfWidth;
             private readonly float[] pattern;
             private readonly float totalLength;
+            private readonly int width;
 
             public PatternPenApplicator(IBrush<TColor, TPacked> brush, RectangleF region, float width, float[] pattern)
             {
                 this.brush = brush.CreateApplicator(region);
                 this.halfWidth = width / 2;
                 this.totalLength = 0;
-
+                this.width = (int)Math.Ceiling(width);
                 this.pattern = new float[pattern.Length + 1];
                 this.pattern[0] = 0;
                 for (var i = 0; i < pattern.Length; i++)
@@ -232,14 +231,9 @@ namespace ImageSharp.Drawing.Pens
                     this.totalLength += pattern[i] * width;
                     this.pattern[i + 1] = this.totalLength;
                 }
-
-                this.RequiredRegion = RectangleF.Outset(region, width);
             }
 
-            public RectangleF RequiredRegion
-            {
-                get;
-            }
+            public int DrawingPadding => this.width;
 
             public void Dispose()
             {

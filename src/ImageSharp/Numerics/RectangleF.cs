@@ -82,6 +82,14 @@ namespace ImageSharp
         }
 
         /// <summary>
+        /// Gets the size.
+        /// </summary>
+        /// <value>
+        /// The size.
+        /// </value>
+        public SizeF Size => new SizeF(this.backingVector.Z, this.backingVector.W);
+
+        /// <summary>
         /// Gets or sets the width of this <see cref="RectangleF"/>.
         /// </summary>
         public float Width

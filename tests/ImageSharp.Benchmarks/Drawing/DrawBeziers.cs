@@ -22,7 +22,7 @@ namespace ImageSharp.Benchmarks
         {
             using (Bitmap destination = new Bitmap(800, 800))
             {
-
+                
                 using (Graphics graphics = Graphics.FromImage(destination))
                 {
                     graphics.InterpolationMode = InterpolationMode.Default;

@@ -23,7 +23,7 @@ namespace ImageSharp.Drawing.Pens.Processors
         /// <value>
         /// The required region.
         /// </value>
-        RectangleF RequiredRegion { get; }
+        int DrawingPadding { get; }
 
         /// <summary>
         /// Gets a <see cref="ColoredPointInfo{TColor, TPacked}" /> from a point represented by a <see cref="PointInfo" />.

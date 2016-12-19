@@ -15,6 +15,7 @@ namespace ImageSharp
     using System.Threading.Tasks;
 
     using Formats;
+    using System.Buffers;
 
     /// <summary>
     /// Encapsulates an image, which consists of the pixel data for a graphics image and its attributes.
@@ -399,25 +400,34 @@ namespace ImageSharp
         /// </returns>
         private bool Decode(Stream stream)
         {
-            int maxHeaderSize = Bootstrapper.ImageFormats.Max(x => x.HeaderSize);
-            if (maxHeaderSize > 0)
+            int maxHeaderSize = Bootstrapper.MaxHeaderSize;
+            if (maxHeaderSize <= 0)
             {
-                byte[] header = new byte[maxHeaderSize];
-
-                stream.Position = 0;
-                stream.Read(header, 0, maxHeaderSize);
-                stream.Position = 0;
-
-                IImageFormat format = Bootstrapper.ImageFormats.FirstOrDefault(x => x.IsSupportedFileFormat(header));
-                if (format != null)
-                {
-                    format.Decoder.Decode(this, stream);
-                    this.CurrentImageFormat = format;
-                    return true;
-                }
+                return false;
             }
 
-            return false;
+            IImageFormat format = null;
+            byte[] header = ArrayPool<byte>.Shared.Rent(maxHeaderSize);
+            try
+            {
+                long startPosition = stream.Position;
+                stream.Read(header, 0, maxHeaderSize);
+                stream.Position = 0;
+                format = Bootstrapper.ImageFormats.FirstOrDefault(x => x.IsSupportedFileFormat(header));
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(header);
+            }
+
+            if (format == null)
+            {
+                return false;
+            }
+
+            format.Decoder.Decode(this, stream);
+            this.CurrentImageFormat = format;
+            return true;
         }
     }
 }

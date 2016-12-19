@@ -15,9 +15,17 @@ namespace ImageSharp.Formats
     /// </summary>
     internal partial struct Block8x8F
     {
+        /// <summary>
+        /// Vector count
+        /// </summary>
         public const int VectorCount = 16;
+
+        /// <summary>
+        /// Scalar count
+        /// </summary>
         public const int ScalarCount = VectorCount * 4;
 
+#pragma warning disable SA1600 // ElementsMustBeDocumented
         public Vector4 V0L;
         public Vector4 V0R;
 
@@ -41,6 +49,7 @@ namespace ImageSharp.Formats
 
         public Vector4 V7L;
         public Vector4 V7R;
+#pragma warning restore SA1600 // ElementsMustBeDocumented
 
 #pragma warning disable SA1310 // FieldNamesMustNotContainUnderscore
         private static readonly Vector4 C_1_175876 = new Vector4(1.175876f);
@@ -59,6 +68,11 @@ namespace ImageSharp.Formats
         private static readonly Vector4 C_0_125 = new Vector4(0.1250f);
 #pragma warning restore SA1310 // FieldNamesMustNotContainUnderscore
 
+        /// <summary>
+        /// Index into the block
+        /// </summary>
+        /// <param name="idx">The index</param>
+        /// <returns>The float value at the specified index</returns>
         public unsafe float this[int idx]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -143,25 +157,29 @@ namespace ImageSharp.Formats
             }
         }
 
+        /// <summary>
+        /// Multiply in place
+        /// </summary>
+        /// <param name="scalar">Scalar to multiply by</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void MultiplyAllInplace(Vector4 s)
+        public void MultiplyAllInplace(Vector4 scalar)
         {
-            this.V0L *= s;
-            this.V0R *= s;
-            this.V1L *= s;
-            this.V1R *= s;
-            this.V2L *= s;
-            this.V2R *= s;
-            this.V3L *= s;
-            this.V3R *= s;
-            this.V4L *= s;
-            this.V4R *= s;
-            this.V5L *= s;
-            this.V5R *= s;
-            this.V6L *= s;
-            this.V6R *= s;
-            this.V7L *= s;
-            this.V7R *= s;
+            this.V0L *= scalar;
+            this.V0R *= scalar;
+            this.V1L *= scalar;
+            this.V1R *= scalar;
+            this.V2L *= scalar;
+            this.V2R *= scalar;
+            this.V3L *= scalar;
+            this.V3R *= scalar;
+            this.V4L *= scalar;
+            this.V4R *= scalar;
+            this.V5L *= scalar;
+            this.V5R *= scalar;
+            this.V6L *= scalar;
+            this.V6R *= scalar;
+            this.V7L *= scalar;
+            this.V7R *= scalar;
         }
 
         /// <summary>
@@ -381,7 +399,7 @@ namespace ImageSharp.Formats
         internal void Clear()
         {
             // The cheapest way to do this in C#:
-            this = new Block8x8F();
+            this = default(Block8x8F);
         }
 
         /// <summary>

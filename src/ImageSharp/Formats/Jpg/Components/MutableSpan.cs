@@ -5,7 +5,6 @@
 
 namespace ImageSharp.Formats
 {
-    using System.Numerics;
     using System.Runtime.CompilerServices;
 
     /// <summary>
@@ -18,24 +17,48 @@ namespace ImageSharp.Formats
     /// <typeparam name="T"></typeparam>
     internal struct MutableSpan<T>
     {
+        /// <summary>
+        /// Data
+        /// </summary>
         public T[] Data;
 
+        /// <summary>
+        /// Offset
+        /// </summary>
         public int Offset;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MutableSpan{T}"/> struct.
+        /// </summary>
+        /// <param name="size">The size of the span</param>
+        /// <param name="offset">The offset (defaults to 0)</param>
         public MutableSpan(int size, int offset = 0)
         {
             this.Data = new T[size];
             this.Offset = offset;
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MutableSpan{T}"/> struct.
+        /// </summary>
+        /// <param name="data">The data</param>
+        /// <param name="offset">The offset (defaults to 0)</param>
         public MutableSpan(T[] data, int offset = 0)
         {
             this.Data = data;
             this.Offset = offset;
         }
 
+        /// <summary>
+        /// Gets the total count of data
+        /// </summary>
         public int TotalCount => this.Data.Length - this.Offset;
 
+        /// <summary>
+        /// Index into the data
+        /// </summary>
+        /// <param name="idx">The data</param>
+        /// <returns>The value at the specified index</returns>
         public T this[int idx]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -53,57 +76,25 @@ namespace ImageSharp.Formats
 
         public static implicit operator MutableSpan<T>(T[] data) => new MutableSpan<T>(data, 0);
 
+        /// <summary>
+        /// Slice the data
+        /// </summary>
+        /// <param name="offset">The offset</param>
+        /// <returns>The new <see cref="MutableSpan{T}"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public MutableSpan<T> Slice(int offset)
         {
             return new MutableSpan<T>(this.Data, this.Offset + offset);
         }
 
+        /// <summary>
+        /// Add to the offset
+        /// </summary>
+        /// <param name="offset">The additional offset</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AddOffset(int offset)
         {
             this.Offset += offset;
-        }
-    }
-
-    internal static class MutableSpanExtensions
-    {
-        public static MutableSpan<T> Slice<T>(this T[] array, int offset) => new MutableSpan<T>(array, offset);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void SaveTo(this MutableSpan<float> data, ref Vector4 v)
-        {
-            v.X = data[0];
-            v.Y = data[1];
-            v.Z = data[2];
-            v.W = data[3];
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void SaveTo(this MutableSpan<int> data, ref Vector4 v)
-        {
-            v.X = data[0];
-            v.Y = data[1];
-            v.Z = data[2];
-            v.W = data[3];
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void LoadFrom(this MutableSpan<float> data, ref Vector4 v)
-        {
-            data[0] = v.X;
-            data[1] = v.Y;
-            data[2] = v.Z;
-            data[3] = v.W;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void LoadFrom(this MutableSpan<int> data, ref Vector4 v)
-        {
-            data[0] = (int)v.X;
-            data[1] = (int)v.Y;
-            data[2] = (int)v.Z;
-            data[3] = (int)v.W;
         }
     }
 }

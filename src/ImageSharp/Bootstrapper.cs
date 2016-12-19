@@ -39,6 +39,11 @@ namespace ImageSharp
         private readonly object syncRoot = new object();
 
         /// <summary>
+        /// The maximum header size of all formats.
+        /// </summary>
+        private int maxHeaderSize;
+
+        /// <summary>
         /// Prevents a default instance of the <see cref="Bootstrapper"/> class from being created.
         /// </summary>
         private Bootstrapper()
@@ -50,6 +55,7 @@ namespace ImageSharp
                 new PngFormat(),
                 new GifFormat()
             };
+            this.SetMaxHeaderSize();
             this.parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount };
         }
 
@@ -62,6 +68,11 @@ namespace ImageSharp
         /// Gets the global parallel options for processing tasks in parallel.
         /// </summary>
         public static ParallelOptions ParallelOptions => Instance.parallelOptions;
+
+        /// <summary>
+        /// Gets the maximum header size of all formats.
+        /// </summary>
+        internal static int MaxHeaderSize => Instance.maxHeaderSize;
 
         /// <summary>
         /// Adds a new <see cref="IImageFormat"/> to the collection of supported image formats.
@@ -86,6 +97,8 @@ namespace ImageSharp
                 this.GuardDuplicate(format);
 
                 this.imageFormats.Add(format);
+
+                this.SetMaxHeaderSize();
             }
         }
 
@@ -113,6 +126,11 @@ namespace ImageSharp
                     throw new ArgumentException("There is already a format that supports the same extension.", nameof(format));
                 }
             }
+        }
+
+        private void SetMaxHeaderSize()
+        {
+            this.maxHeaderSize = imageFormats.Max(x => x.HeaderSize);
         }
     }
 }

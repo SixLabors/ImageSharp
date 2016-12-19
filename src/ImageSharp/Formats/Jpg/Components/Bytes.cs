@@ -23,8 +23,14 @@ namespace ImageSharp.Formats
         /// </summary>
         public byte[] Buffer;
 
+        /// <summary>
+        /// Start of bytes read
+        /// </summary>
         public int I;
 
+        /// <summary>
+        /// End of bytes read
+        /// </summary>
         public int J;
 
         /// <summary>
@@ -44,6 +50,9 @@ namespace ImageSharp.Formats
             return new Bytes { Buffer = ArrayPool.Rent(4096) };
         }
 
+        /// <summary>
+        /// Disposes of the underlying buffer
+        /// </summary>
         public void Dispose()
         {
             if (this.Buffer != null)

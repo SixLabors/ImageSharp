@@ -71,7 +71,7 @@ namespace ImageSharp
             Guard.NotNullOrEmpty(format.Extension, nameof(format), "The extension should not be null or empty.");
             Guard.NotNullOrEmpty(format.SupportedExtensions, nameof(format), "The supported extensions not be null or empty.");
 
-            GuardDuplicate(format);
+            this.GuardDuplicate(format);
 
             this.imageFormats.Add(format);
         }

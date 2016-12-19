@@ -46,7 +46,6 @@ namespace ImageSharp.Tests.Drawing
             }
         }
 
-
         [Fact]
         public void ImageShouldBeOverlayedPolygonOutlineWithOpacity()
         {
@@ -95,12 +94,7 @@ namespace ImageSharp.Tests.Drawing
             {
                 image
                     .BackgroundColor(Color.Blue)
-                    .DrawPolygon(Color.HotPink, 10, new[] {
-                                new Vector2(10, 10),
-                                new Vector2(200, 10),
-                                new Vector2(200, 150),
-                                new Vector2(10, 150)
-                            })
+                    .DrawPolygon(Color.HotPink, 10, new Rectangle(10, 10, 190, 140))
                     .Save(output);
             }
 

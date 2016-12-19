@@ -14,6 +14,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionIt
 		build\appveyor-project-version-patch.js = build\appveyor-project-version-patch.js
 		build\appveyor-semver.ps1 = build\appveyor-semver.ps1
 		appveyor.yml = appveyor.yml
+		CodeCoverage.runsettings = CodeCoverage.runsettings
 		build\dotnet-latest.ps1 = build\dotnet-latest.ps1
 		global.json = global.json
 		build\package.json = build\package.json

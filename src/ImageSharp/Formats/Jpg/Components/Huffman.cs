@@ -53,6 +53,12 @@ namespace ImageSharp.Formats
 
         private static readonly ArrayPool<int> IntBuffer = ArrayPool<int>.Create(JpegDecoderCore.MaxCodeLength, 50);
 
+        /// <summary>
+        /// Initializes the Huffman tree
+        /// </summary>
+        /// <param name="lutSize">Lut size</param>
+        /// <param name="maxNCodes">Max N codes</param>
+        /// <param name="maxCodeLength">Max code length</param>
         public void Init(int lutSize, int maxNCodes, int maxCodeLength)
         {
             this.Lut = UshortBuffer.Rent(1 << lutSize);
@@ -62,6 +68,9 @@ namespace ImageSharp.Formats
             this.Indices = IntBuffer.Rent(maxCodeLength);
         }
 
+        /// <summary>
+        /// Disposes the underlying buffers
+        /// </summary>
         public void Dispose()
         {
             UshortBuffer.Return(this.Lut, true);

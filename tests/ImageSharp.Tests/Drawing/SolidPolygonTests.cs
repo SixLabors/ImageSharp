@@ -153,7 +153,7 @@ namespace ImageSharp.Tests.Drawing
             {
                 image
                     .BackgroundColor(Color.Blue)
-                    .FillPolygon(Color.HotPink, simplePath)
+                    .Fill(Color.HotPink, new ImageSharp.Drawing.Shapes.RectangularPolygon(new Rectangle(10,10, 190, 140)))
                     .Save(output);
             }
 

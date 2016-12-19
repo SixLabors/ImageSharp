@@ -15,6 +15,7 @@ namespace ImageSharp.Drawing.Processors
     using Pens;
     using Pens.Processors;
     using Shapes;
+    using Rectangle = ImageSharp.Rectangle;
 
     /// <summary>
     /// Draws a path using the processor pipeline

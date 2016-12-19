@@ -969,11 +969,6 @@ namespace ImageSharp.Formats
         private class HuffmanLut
         {
             /// <summary>
-            /// The collection of huffman values.
-            /// </summary>
-            public readonly uint[] Values;
-
-            /// <summary>
             /// Initializes a new instance of the <see cref="HuffmanLut"/> class.
             /// </summary>
             /// <param name="spec">The encoding specifications.</param>
@@ -1007,6 +1002,11 @@ namespace ImageSharp.Formats
                     code <<= 1;
                 }
             }
+
+            /// <summary>
+            /// Gets the collection of huffman values.
+            /// </summary>
+            public uint[] Values { get; }
         }
     }
 }

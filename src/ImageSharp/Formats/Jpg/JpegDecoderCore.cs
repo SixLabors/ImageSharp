@@ -449,6 +449,9 @@ namespace ImageSharp.Formats
             }
         }
 
+        /// <summary>
+        /// Dispose
+        /// </summary>
         public void Dispose()
         {
             for (int i = 0; i < this.huffmanTrees.Length; i++)

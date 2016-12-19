@@ -11,6 +11,7 @@ namespace ImageSharp.Drawing.Shapes
     using System.Numerics;
 
     using Paths;
+    using PolygonClipper;
 
     /// <summary>
     /// Represents a complex polygon made up of one or more outline
@@ -124,156 +125,78 @@ namespace ImageSharp.Drawing.Shapes
             return this.GetEnumerator();
         }
 
-        private void AddPoints(ClipperLib.Clipper clipper, IShape shape, ClipperLib.PolyType polyType)
+        private void AddPoints(Clipper clipper, IShape shape, PolyType polyType)
         {
-            foreach (var path in shape)
+            // if the path is already the shape use it directly and skip the path loop.
+            if (shape is IPath)
             {
-                var points = path.AsSimpleLinearPath();
-                var clipperPoints = new List<ClipperLib.IntPoint>();
-                foreach (var point in points)
-                {
-                    var p = point * ClipperScaleFactor;
-
-                    clipperPoints.Add(new ClipperLib.IntPoint((long)p.X, (long)p.Y));
-                }
-
                 clipper.AddPath(
-                    clipperPoints,
-                    polyType,
-                    path.IsClosed);
-            }
-        }
-
-        private void AddPoints(ClipperLib.Clipper clipper, IShape[] shapes, bool[] shouldInclude, ClipperLib.PolyType polyType)
-        {
-            for (var i = 0; i < shapes.Length; i++)
-            {
-                if (shouldInclude[i])
-                {
-                    this.AddPoints(clipper, shapes[i], polyType);
-                }
-            }
-        }
-
-        private void ExtractOutlines(ClipperLib.PolyNode tree, List<IShape> shapes)
-        {
-            if (tree.Contour.Any())
-            {
-                // convert the Clipper Contour from scaled ints back down to the origional size (this is going to be lossy but not significantly)
-                var pointCount = tree.Contour.Count;
-                var vectors = new Vector2[pointCount];
-                for (var i = 0; i < pointCount; i++)
-                {
-                    var p = tree.Contour[i];
-                    vectors[i] = new Vector2(p.X, p.Y) / ClipperScaleFactor;
-                }
-
-                var polygon = new Polygon(new LinearLineSegment(vectors));
-
-                shapes.Add(polygon);
-            }
-
-            foreach (var c in tree.Childs)
-            {
-                this.ExtractOutlines(c, shapes);
-            }
-        }
-
-        /// <summary>
-        /// Determines if the <see cref="IShape"/>s bounding boxes overlap.
-        /// </summary>
-        /// <param name="source">The source.</param>
-        /// <param name="target">The target.</param>
-        /// <returns>true if the 2 shapes bounding boxes overlap.</returns>
-        private bool OverlappingBoundingBoxes(IShape source, IShape target)
-        {
-            return source.Bounds.Intersects(target.Bounds);
-        }
-
-        private void FixAndSetShapes(IShape[] outlines, IShape[] holes)
-        {
-            // if any outline doesn't overlap another shape then we don't have to bother with sending them through clipper
-            // as sending then though clipper will turn them into generic polygons and loose thier shape specific optimisations
-            int outlineLength = outlines.Length;
-            int holesLength = holes?.Length ?? 0;
-            bool[] overlappingOutlines = new bool[outlineLength];
-            bool[] overlappingHoles = new bool[holesLength];
-            bool anyOutlinesOverlapping = false;
-            bool anyHolesOverlapping = false;
-
-            for (int i = 0; i < outlineLength; i++)
-            {
-                for (int j = i + 1; j < outlineLength; j++)
-                {
-                    // skip the bounds check if they are already tested
-                    if (overlappingOutlines[i] == false || overlappingOutlines[j] == false)
-                    {
-                        if (this.OverlappingBoundingBoxes(outlines[i], outlines[j]))
-                        {
-                            overlappingOutlines[i] = true;
-                            overlappingOutlines[j] = true;
-                            anyOutlinesOverlapping = true;
-                        }
-                    }
-                }
-
-                for (int k = 0; k < holesLength; k++)
-                {
-                    if (overlappingOutlines[i] == false || overlappingHoles[k] == false)
-                    {
-                        if (this.OverlappingBoundingBoxes(outlines[i], holes[k]))
-                        {
-                            overlappingOutlines[i] = true;
-                            overlappingHoles[k] = true;
-                            anyOutlinesOverlapping = true;
-                            anyHolesOverlapping = true;
-                        }
-                    }
-                }
-            }
-
-            if (anyOutlinesOverlapping)
-            {
-                var clipper = new ClipperLib.Clipper();
-
-                // add the outlines and the holes to clipper, scaling up from the float source to the int based system clipper uses
-                this.AddPoints(clipper, outlines, overlappingOutlines, ClipperLib.PolyType.ptSubject);
-                if (anyHolesOverlapping)
-                {
-                    this.AddPoints(clipper, holes, overlappingHoles, ClipperLib.PolyType.ptClip);
-                }
-
-                var tree = new ClipperLib.PolyTree();
-                clipper.Execute(ClipperLib.ClipType.ctDifference, tree);
-
-                List<IShape> newShapes = new List<IShape>();
-
-                // convert the 'tree' back to shapes
-                this.ExtractOutlines(tree, newShapes);
-
-                // add the origional outlines that where not overlapping
-                for (int i = 0; i < outlineLength - 1; i++)
-                {
-                    if (!overlappingOutlines[i])
-                    {
-                        newShapes.Add(outlines[i]);
-                    }
-                }
-
-                this.shapes = newShapes.ToArray();
+                      (IPath)shape,
+                      polyType);
             }
             else
             {
-                this.shapes = outlines;
+                foreach (var path in shape)
+                {
+                    clipper.AddPath(
+                        path,
+                        polyType);
+                }
             }
+        }
 
-            var paths = new List<IPath>();
-            foreach (var o in this.shapes)
+        private void AddPoints(Clipper clipper, IEnumerable<IShape> shapes, PolyType polyType)
+        {
+            foreach (var shape in shapes)
             {
-                paths.AddRange(o);
+                this.AddPoints(clipper, shape, polyType);
+            }
+        }
+
+        private void ExtractOutlines(PolyNode tree, List<IShape> shapes, List<IPath> paths)
+        {
+            if (tree.Contour.Any())
+            {
+                // if the source path is set then we clipper retained the full path intact thus we can freely
+                // use it and get any shape optimisations that are availible.
+                if (tree.SourcePath != null)
+                {
+                    shapes.Add((IShape)tree.SourcePath);
+                    paths.Add(tree.SourcePath);
+                }
+                else
+                {
+                    // convert the Clipper Contour from scaled ints back down to the origional size (this is going to be lossy but not significantly)
+                    var polygon = new Polygon(new Paths.LinearLineSegment(tree.Contour.ToArray()));
+
+                    shapes.Add(polygon);
+                    paths.Add(polygon);
+                }
             }
 
-            this.paths = paths;
+            foreach (var c in tree.Children)
+            {
+                this.ExtractOutlines(c, shapes, paths);
+            }
+        }
+
+        private void FixAndSetShapes(IEnumerable<IShape> outlines, IEnumerable<IShape> holes)
+        {
+            var clipper = new Clipper();
+
+            // add the outlines and the holes to clipper, scaling up from the float source to the int based system clipper uses
+            this.AddPoints(clipper, outlines, PolyType.Subject);
+            this.AddPoints(clipper, holes, PolyType.Clip);
+
+            var tree = clipper.Execute();
+
+            List<IShape> shapes = new List<IShape>();
+            List<IPath> paths = new List<IPath>();
+
+            // convert the 'tree' back to paths
+            this.ExtractOutlines(tree, shapes, paths);
+            this.shapes = shapes.ToArray();
+            this.paths = paths.ToArray();
         }
     }
 }

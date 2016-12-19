@@ -26,5 +26,21 @@ namespace ImageSharp.Formats
 
         /// <inheritdoc/>
         public IImageEncoder Encoder => new BmpEncoder();
+
+        /// <inheritdoc/>
+        public int HeaderSize => 2;
+
+        /// <inheritdoc/>
+        public bool IsSupportedFileFormat(byte[] header)
+        {
+            bool isBmp = false;
+            if (header.Length >= this.HeaderSize)
+            {
+                isBmp = header[0] == 0x42 && // B
+                        header[1] == 0x4D;   // M
+            }
+
+            return isBmp;
+        }
     }
 }

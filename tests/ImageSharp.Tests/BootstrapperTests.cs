@@ -39,6 +39,10 @@ namespace ImageSharp.Tests
             public string Extension { get { return this.extension; } set { this.extension = value; } }
 
             public IEnumerable<string> SupportedExtensions { get { return this.supportedExtensions; } set { this.supportedExtensions = value; } }
+
+            public int HeaderSize { get { throw new NotImplementedException(); } }
+
+            public bool IsSupportedFileFormat(byte[] header) { throw new NotImplementedException(); }
         }
 
         [Fact]

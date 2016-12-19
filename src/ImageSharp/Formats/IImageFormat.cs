@@ -39,5 +39,21 @@ namespace ImageSharp.Formats
         /// Gets the image decoder for decoding an image from a stream.
         /// </summary>
         IImageDecoder Decoder { get; }
+
+        /// <summary>
+        /// Gets the size of the header for this image type.
+        /// </summary>
+        /// <value>The size of the header.</value>
+        int HeaderSize { get; }
+
+        /// <summary>
+        /// Returns a value indicating whether the <see cref="IImageDecoder"/> supports the specified
+        /// file header.
+        /// </summary>
+        /// <param name="header">The <see cref="T:byte[]"/> containing the file header.</param>
+        /// <returns>
+        /// True if the decoder supports the file header; otherwise, false.
+        /// </returns>
+        bool IsSupportedFileFormat(byte[] header);
     }
 }

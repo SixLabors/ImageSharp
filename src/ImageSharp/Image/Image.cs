@@ -43,7 +43,7 @@ namespace ImageSharp
         /// </summary>
         public Image()
         {
-            this.CurrentImageFormat = Bootstrapper.Instance.ImageFormats.First(f => f.GetType() == typeof(PngFormat));
+            this.CurrentImageFormat = Bootstrapper.ImageFormats.First(f => f.GetType() == typeof(PngFormat));
         }
 
         /// <summary>
@@ -55,7 +55,7 @@ namespace ImageSharp
         public Image(int width, int height)
             : base(width, height)
         {
-            this.CurrentImageFormat = Bootstrapper.Instance.ImageFormats.First(f => f.GetType() == typeof(PngFormat));
+            this.CurrentImageFormat = Bootstrapper.ImageFormats.First(f => f.GetType() == typeof(PngFormat));
         }
 
         /// <summary>
@@ -90,11 +90,6 @@ namespace ImageSharp
 
             this.CopyProperties(other);
         }
-
-        /// <summary>
-        /// Gets a list of supported image formats.
-        /// </summary>
-        public IReadOnlyCollection<IImageFormat> Formats { get; } = Bootstrapper.Instance.ImageFormats;
 
         /// <summary>
         /// Gets or sets the resolution of the image in x- direction. It is defined as
@@ -288,7 +283,7 @@ namespace ImageSharp
                 Parallel.For(
                     0,
                     target.Height,
-                    Bootstrapper.Instance.ParallelOptions,
+                    Bootstrapper.ParallelOptions,
                     y =>
                         {
                             for (int x = 0; x < target.Width; x++)
@@ -352,7 +347,7 @@ namespace ImageSharp
         /// </exception>
         private void Load(Stream stream)
         {
-            if (!this.Formats.Any())
+            if (!Bootstrapper.ImageFormats.Any())
             {
                 return;
             }
@@ -387,7 +382,7 @@ namespace ImageSharp
             StringBuilder stringBuilder = new StringBuilder();
             stringBuilder.AppendLine("Image cannot be loaded. Available formats:");
 
-            foreach (IImageFormat format in this.Formats)
+            foreach (IImageFormat format in Bootstrapper.ImageFormats)
             {
                 stringBuilder.AppendLine("-" + format);
             }
@@ -404,7 +399,7 @@ namespace ImageSharp
         /// </returns>
         private bool Decode(Stream stream)
         {
-            int maxHeaderSize = this.Formats.Max(x => x.Decoder.HeaderSize);
+            int maxHeaderSize = Bootstrapper.ImageFormats.Max(x => x.Decoder.HeaderSize);
             if (maxHeaderSize > 0)
             {
                 byte[] header = new byte[maxHeaderSize];
@@ -413,7 +408,7 @@ namespace ImageSharp
                 stream.Read(header, 0, maxHeaderSize);
                 stream.Position = 0;
 
-                IImageFormat format = this.Formats.FirstOrDefault(x => x.Decoder.IsSupportedFileFormat(header));
+                IImageFormat format = Bootstrapper.ImageFormats.FirstOrDefault(x => x.Decoder.IsSupportedFileFormat(header));
                 if (format != null)
                 {
                     format.Decoder.Decode(this, stream);

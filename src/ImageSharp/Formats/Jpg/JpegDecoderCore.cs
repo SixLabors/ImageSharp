@@ -1286,7 +1286,7 @@ namespace ImageSharp.Formats
                 Parallel.For(
                     0,
                     height,
-                    Bootstrapper.Instance.ParallelOptions,
+                    Bootstrapper.ParallelOptions,
                     y =>
                         {
                             int yoff = this.grayImage.GetRowOffset(y);
@@ -1324,7 +1324,7 @@ namespace ImageSharp.Formats
                 Parallel.For(
                     0,
                     height,
-                    Bootstrapper.Instance.ParallelOptions,
+                    Bootstrapper.ParallelOptions,
                     y =>
                         {
                             int yo = this.ycbcrImage.GetRowYOffset(y);
@@ -1366,7 +1366,7 @@ namespace ImageSharp.Formats
                 Parallel.For(
                     0,
                     height,
-                    Bootstrapper.Instance.ParallelOptions,
+                    Bootstrapper.ParallelOptions,
                     y =>
                         {
                             int yo = this.ycbcrImage.GetRowYOffset(y);

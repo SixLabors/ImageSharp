@@ -381,7 +381,7 @@ namespace ImageSharp.Formats
         internal void Clear()
         {
             // The cheapest way to do this in C#:
-            this = new Block8x8F();
+            this = default(Block8x8F);
         }
 
         /// <summary>

@@ -6,13 +6,13 @@
         <Configuration>	
           <CodeCoverage>
             <ModulePaths>
-				<Include>
-					<ModulePath>.*ImageSharp.dll</ModulePath>
-				</Include>
-				<Exclude>
-					<ModulePath>.*tests*</ModulePath>
-					<ModulePath>.*Tests*</ModulePath>
-				</Exclude>
+				      <Include>
+					      <ModulePath>.*ImageSharp.dll</ModulePath>
+				      </Include>
+				      <Exclude>
+					      <ModulePath>.*tests*</ModulePath>
+					      <ModulePath>.*Tests*</ModulePath>
+				      </Exclude>
             </ModulePaths>
           </CodeCoverage>
         </Configuration>

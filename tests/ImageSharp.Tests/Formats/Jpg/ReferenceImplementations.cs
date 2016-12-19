@@ -56,11 +56,9 @@ namespace ImageSharp.Tests.Formats.Jpg
             float a0, a1, a2, a3, b0, b1, b2, b3;
             float z0, z1, z2, z3, z4;
 
-            float r0 = 1.414214f;
             float r1 = 1.387040f;
             float r2 = 1.306563f;
             float r3 = 1.175876f;
-            float r4 = 1.000000f;
             float r5 = 0.785695f;
             float r6 = 0.541196f;
             float r7 = 0.275899f;

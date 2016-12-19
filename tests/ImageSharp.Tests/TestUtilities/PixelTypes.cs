@@ -6,6 +6,10 @@ namespace ImageSharp.Tests.TestUtilities
 {
     using System;
 
+    /// <summary>
+    /// Flags that are mapped to PackedPixel types. 
+    /// They trigger the desired parametrization for <see cref="TestImageFactory{TColor,TPacked}"/>.
+    /// </summary>
     [Flags]
     public enum PixelTypes : uint
     {

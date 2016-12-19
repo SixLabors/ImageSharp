@@ -10,6 +10,9 @@ namespace ImageSharp.Tests.TestUtilities
     using System.Linq;
     using System.Reflection;
 
+    /// <summary>
+    /// Extension methods for TestUtilities
+    /// </summary>
     public static class TestUtilityExtensions
     {
         private static readonly Assembly ImageSharpAssembly = typeof(Color).GetTypeInfo().Assembly;

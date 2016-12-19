@@ -8,6 +8,11 @@ namespace ImageSharp.Tests.TestUtilities
     using System;
     using System.Reflection;
 
+    /// <summary>
+    /// Provides <see cref="Image{TColor,TPacked}" /> instances for parametric unit tests.
+    /// </summary>
+    /// <typeparam name="TColor">The pixel format of the image</typeparam>
+    /// <typeparam name="TPacked">The packed format of the image</typeparam>
     public abstract class TestImageFactory<TColor, TPacked> : ITestImageFactory
         where TPacked : struct, IEquatable<TPacked> where TColor : struct, IPackedPixel<TPacked>
     {
@@ -15,6 +20,9 @@ namespace ImageSharp.Tests.TestUtilities
 
         public virtual string SourceFileOrDescription => "";
 
+        /// <summary>
+        /// Utility instance to provide informations about the test image & manage input/output
+        /// </summary>
         public ImagingTestCaseUtility Utility { get; private set; }
 
         protected TestImageFactory()

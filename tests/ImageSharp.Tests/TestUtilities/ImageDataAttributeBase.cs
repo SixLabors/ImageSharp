@@ -11,6 +11,9 @@ namespace ImageSharp.Tests.TestUtilities
 
     using Xunit.Sdk;
 
+    /// <summary>
+    /// Base class for Theory Data attributes which pass an instance of <see cref="TestImageFactory{TColor,TPacked}"/> to the test cases.
+    /// </summary>
     public abstract class ImageDataAttributeBase : DataAttribute
     {
         protected readonly object[] AdditionalParameters;

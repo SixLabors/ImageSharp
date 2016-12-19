@@ -11,6 +11,7 @@ namespace ImageSharp.Drawing.Processors
     using Drawing;
     using ImageSharp.Processors;
     using Shapes;
+    using Rectangle = ImageSharp.Rectangle;
 
     /// <summary>
     /// Usinf a brsuh and a shape fills shape with contents of brush the

@@ -78,23 +78,23 @@ namespace ImageSharp.Tests.Colors
                 { new Bgr565(Vector3.One), new Bgr565(Vector3.Zero) },
                 { new Bgra4444(Vector4.One), new Bgra4444(Vector4.Zero) },
                 { new Bgra5551(Vector4.One), new Bgra5551(Vector4.Zero) },
-                { new Byte4(Vector4.One * 255), new Byte4(Vector4.Zero * 255) },
+                { new Byte4(Vector4.One * 255), new Byte4(Vector4.Zero) },
                 { new HalfSingle(-1F), new HalfSingle(1F) },
                 { new HalfVector2(0.1f, -0.3f), new HalfVector2(0.1f, 0.3f) },
-                //{ new HalfVector4(Vector4.One), new HalfVector4(Vector4.Zero) }, // same hashcode??
+                { new HalfVector4(Vector4.One), new HalfVector4(Vector4.Zero) },
                 { new NormalizedByte2(-Vector2.One), new NormalizedByte2(-Vector2.Zero) },
                 { new NormalizedByte4(Vector4.One), new NormalizedByte4(Vector4.Zero) },
                 { new NormalizedShort2(Vector2.One), new NormalizedShort2(Vector2.Zero) },
-                //{ new NormalizedShort4(Vector4.One), new NormalizedShort4(Vector4.Zero) }, // same hashcode??
+                { new NormalizedShort4(Vector4.One), new NormalizedShort4(Vector4.Zero) },
                 { new Rg32(Vector2.One), new Rg32(Vector2.Zero) },
                 { new Rgba1010102(Vector4.One), new Rgba1010102(Vector4.Zero) },
-                //{ new Rgba64(Vector4.One), new Rgba64(Vector4.Zero) }, // same hashcode??
-                //{ new Short2(Vector2.One * 0x7FFF), new Short2(Vector2.Zero * 0x7FFF) }, // same hashcode??
-                //{ new Short4(Vector4.One * 0x7FFF), new Short4(Vector4.Zero * 0x7FFF) }, // same hashcode??
+                { new Rgba64(Vector4.One), new Rgba64(Vector4.Zero) },
+                { new Short2(Vector2.One * 0x7FFF), new Short2(Vector2.Zero) },
+                { new Short4(Vector4.One * 0x7FFF), new Short4(Vector4.Zero) },
            };
 
         [Theory]
-        [MemberData("EqualityData")]
+        [MemberData(nameof(EqualityData))]
         public void Equality(object first, object second)
         {
             // Act
@@ -105,9 +105,9 @@ namespace ImageSharp.Tests.Colors
         }
 
         [Theory]
-        [MemberData("NotEqualityDataNulls")]
-        [MemberData("NotEqualityDataDifferentObjects")]
-        [MemberData("NotEqualityData")]
+        [MemberData(nameof(NotEqualityDataNulls))]
+        [MemberData(nameof(NotEqualityDataDifferentObjects))]
+        [MemberData(nameof(NotEqualityData))]
         public void NotEquality(object first, object second)
         {
             // Act
@@ -118,7 +118,7 @@ namespace ImageSharp.Tests.Colors
         }
 
         [Theory]
-        [MemberData("EqualityData")]
+        [MemberData(nameof(EqualityData))]
         public void HashCodeEqual(object first, object second)
         {
             // Act
@@ -129,8 +129,7 @@ namespace ImageSharp.Tests.Colors
         }
 
         [Theory]
-        [MemberData("NotEqualityData")]
-        [MemberData("NotEqualityDataDifferentObjects")]
+        [MemberData(nameof(NotEqualityDataDifferentObjects))]
         public void HashCodeNotEqual(object first, object second)
         {
             // Act

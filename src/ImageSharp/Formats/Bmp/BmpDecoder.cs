@@ -25,32 +25,6 @@ namespace ImageSharp.Formats
     /// </remarks>
     public class BmpDecoder : IImageDecoder
     {
-        /// <summary>
-        /// Gets the size of the header for this image type.
-        /// </summary>
-        /// <value>The size of the header.</value>
-        public int HeaderSize => 2;
-
-        /// <summary>
-        /// Returns a value indicating whether the <see cref="IImageDecoder"/> supports the specified
-        /// file header.
-        /// </summary>
-        /// <param name="header">The <see cref="T:byte[]"/> containing the file header.</param>
-        /// <returns>
-        /// True if the decoder supports the file header; otherwise, false.
-        /// </returns>
-        public bool IsSupportedFileFormat(byte[] header)
-        {
-            bool isBmp = false;
-            if (header.Length >= 2)
-            {
-                isBmp = header[0] == 0x42 && // B
-                        header[1] == 0x4D;   // M
-            }
-
-            return isBmp;
-        }
-
         /// <inheritdoc/>
         public void Decode<TColor, TPacked>(Image<TColor, TPacked> image, Stream stream)
         where TColor : struct, IPackedPixel<TPacked>

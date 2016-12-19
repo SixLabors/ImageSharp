@@ -16,63 +16,48 @@ namespace ImageSharp
     /// <summary>
     /// Provides initialization code which allows extending the library.
     /// </summary>
-    public class Bootstrapper
+    public static class Bootstrapper
     {
-        /// <summary>
-        /// A singleton of the <see cref="Bootstrapper"/> class.
-        /// </summary>
-        private static readonly Bootstrapper Instance = new Bootstrapper();
-
         /// <summary>
         /// The list of supported <see cref="IImageFormat"/>.
         /// </summary>
-        private readonly List<IImageFormat> imageFormats;
-
-        /// <summary>
-        /// The parallel options for processing tasks in parallel.
-        /// </summary>
-        private readonly ParallelOptions parallelOptions;
+        private static readonly List<IImageFormat> ImageFormatsList;
 
         /// <summary>
         /// An object that can be used to synchronize access to the <see cref="Bootstrapper"/>.
         /// </summary>
-        private readonly object syncRoot = new object();
+        private static readonly object SyncRoot = new object();
 
         /// <summary>
-        /// The maximum header size of all formats.
+        /// Initializes static members of the <see cref="Bootstrapper"/> class.
         /// </summary>
-        private int maxHeaderSize;
-
-        /// <summary>
-        /// Prevents a default instance of the <see cref="Bootstrapper"/> class from being created.
-        /// </summary>
-        private Bootstrapper()
+        static Bootstrapper()
         {
-            this.imageFormats = new List<IImageFormat>
+            ImageFormatsList = new List<IImageFormat>
             {
                 new BmpFormat(),
                 new JpegFormat(),
                 new PngFormat(),
                 new GifFormat()
             };
-            this.SetMaxHeaderSize();
-            this.parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount };
+            SetMaxHeaderSize();
+            ParallelOptions = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount };
         }
 
         /// <summary>
         /// Gets the collection of supported <see cref="IImageFormat"/>
         /// </summary>
-        public static IReadOnlyCollection<IImageFormat> ImageFormats => new ReadOnlyCollection<IImageFormat>(Instance.imageFormats);
+        public static IReadOnlyCollection<IImageFormat> ImageFormats => new ReadOnlyCollection<IImageFormat>(ImageFormatsList);
 
         /// <summary>
         /// Gets the global parallel options for processing tasks in parallel.
         /// </summary>
-        public static ParallelOptions ParallelOptions => Instance.parallelOptions;
+        public static ParallelOptions ParallelOptions { get; }
 
         /// <summary>
         /// Gets the maximum header size of all formats.
         /// </summary>
-        internal static int MaxHeaderSize => Instance.maxHeaderSize;
+        internal static int MaxHeaderSize { get; private set; }
 
         /// <summary>
         /// Adds a new <see cref="IImageFormat"/> to the collection of supported image formats.
@@ -87,22 +72,22 @@ namespace ImageSharp
             Guard.NotNullOrEmpty(format.Extension, nameof(format), "The extension should not be null or empty.");
             Guard.NotNullOrEmpty(format.SupportedExtensions, nameof(format), "The supported extensions not be null or empty.");
 
-            Instance.AddImageFormatLocked(format);
+            AddImageFormatLocked(format);
         }
 
-        private void AddImageFormatLocked(IImageFormat format)
+        private static void AddImageFormatLocked(IImageFormat format)
         {
-            lock (this.syncRoot)
+            lock (SyncRoot)
             {
-                this.GuardDuplicate(format);
+                GuardDuplicate(format);
 
-                this.imageFormats.Add(format);
+                ImageFormatsList.Add(format);
 
-                this.SetMaxHeaderSize();
+                SetMaxHeaderSize();
             }
         }
 
-        private void GuardDuplicate(IImageFormat format)
+        private static void GuardDuplicate(IImageFormat format)
         {
             if (!format.SupportedExtensions.Contains(format.Extension, StringComparer.OrdinalIgnoreCase))
             {
@@ -114,7 +99,7 @@ namespace ImageSharp
                 throw new ArgumentException("The supported extensions should not contain empty values.", nameof(format));
             }
 
-            foreach (var imageFormat in this.imageFormats)
+            foreach (var imageFormat in ImageFormatsList)
             {
                 if (imageFormat.Extension.Equals(format.Extension, StringComparison.OrdinalIgnoreCase))
                 {
@@ -128,9 +113,9 @@ namespace ImageSharp
             }
         }
 
-        private void SetMaxHeaderSize()
+        private static void SetMaxHeaderSize()
         {
-            this.maxHeaderSize = imageFormats.Max(x => x.HeaderSize);
+            MaxHeaderSize = ImageFormatsList.Max(x => x.HeaderSize);
         }
     }
 }

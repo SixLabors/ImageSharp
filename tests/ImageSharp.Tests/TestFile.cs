@@ -16,11 +16,11 @@ namespace ImageSharp.Tests
         {
             this.file = file;
 
-            using (FileStream stream = File.OpenRead(file))
-            {
-                this.image = new Image(stream);
-            }
+            this.Bytes = File.ReadAllBytes(file);
+            this.image = new Image(this.Bytes);
         }
+
+        public byte[] Bytes { get; }
 
         public string FileName
         {

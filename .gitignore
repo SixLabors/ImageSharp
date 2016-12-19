@@ -210,3 +210,6 @@ artifacts/
 
 #BenchmarkDotNet
 **/BenchmarkDotNet.Artifacts/
+
+#CodeCoverage
+**/CodeCoverage/*

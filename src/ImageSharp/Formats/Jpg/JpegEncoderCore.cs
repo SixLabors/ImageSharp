@@ -31,6 +31,7 @@ namespace ImageSharp.Formats
             39, 46, 53, 60, 61, 54, 47, 55, 62, 63,
         };
 
+#pragma warning disable SA1118 // ParameterMustNotSpanMultipleLines
         /// <summary>
         /// The Huffman encoding specifications.
         /// This encoder uses the same Huffman encoding for all images.
@@ -43,7 +44,10 @@ namespace ImageSharp.Formats
                 {
                     0, 1, 5, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0
                 },
-                new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 }),
+                new byte[]
+                {
+                    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
+                }),
             new HuffmanSpec(
                 new byte[]
                 {
@@ -75,7 +79,10 @@ namespace ImageSharp.Formats
                 {
                     0, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0
                 },
-                new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 }),
+                new byte[]
+                {
+                    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
+                }),
 
             // Chrominance AC.
             new HuffmanSpec(
@@ -105,6 +112,7 @@ namespace ImageSharp.Formats
                     0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9, 0xfa
                 })
         };
+#pragma warning restore SA1118 // ParameterMustNotSpanMultipleLines
 
         /// <summary>
         /// The compiled representations of theHuffmanSpec.

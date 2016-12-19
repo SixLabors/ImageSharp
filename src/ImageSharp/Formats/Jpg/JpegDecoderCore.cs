@@ -388,7 +388,7 @@ namespace ImageSharp.Formats
                         this.ProcessApp14Marker(remaining);
                         break;
                     default:
-                        if ((JpegConstants.Markers.APP0 <= marker && marker <= JpegConstants.Markers.APP15)
+                        if ((marker >= JpegConstants.Markers.APP0 && marker <= JpegConstants.Markers.APP15)
                             || marker == JpegConstants.Markers.COM)
                         {
                             this.Skip(remaining);
@@ -1488,7 +1488,7 @@ namespace ImageSharp.Formats
                 ah = this.temp[3 + scanComponentCountX2] >> 4;
                 al = this.temp[3 + scanComponentCountX2] & 0x0f;
 
-                if ((zigStart == 0 && zigEnd != 0) || zigStart > zigEnd || BlockF.BlockSize <= zigEnd)
+                if ((zigStart == 0 && zigEnd != 0) || zigStart > zigEnd || zigEnd >= BlockF.BlockSize)
                 {
                     throw new ImageFormatException("Bad spectral selection bounds");
                 }

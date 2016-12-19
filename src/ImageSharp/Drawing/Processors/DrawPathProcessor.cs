@@ -88,9 +88,6 @@ namespace ImageSharp.Drawing.Processors
         /// <inheritdoc/>
         protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
         {
-#if DEBUG
-            this.ParallelOptions.MaxDegreeOfParallelism = 1;
-#endif
             using (IPenApplicator<TColor, TPacked> applicator = this.pen.CreateApplicator(this.region))
             {
                 var rect = RectangleF.Ceiling(applicator.RequiredRegion);

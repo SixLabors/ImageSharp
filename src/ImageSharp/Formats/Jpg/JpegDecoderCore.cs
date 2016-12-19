@@ -224,7 +224,14 @@ namespace ImageSharp.Formats
         /// </summary>
         internal enum ErrorCodes
         {
+            /// <summary>
+            /// NoError
+            /// </summary>
             NoError,
+
+            /// <summary>
+            /// MissingFF00
+            /// </summary>
             MissingFF00
         }
 

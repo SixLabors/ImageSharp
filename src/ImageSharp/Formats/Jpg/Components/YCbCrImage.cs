@@ -44,16 +44,34 @@ namespace ImageSharp.Formats
         /// </summary>
         public enum YCbCrSubsampleRatio
         {
+            /// <summary>
+            /// YCbCrSubsampleRatio444
+            /// </summary>
             YCbCrSubsampleRatio444,
 
+            /// <summary>
+            /// YCbCrSubsampleRatio422
+            /// </summary>
             YCbCrSubsampleRatio422,
 
+            /// <summary>
+            /// YCbCrSubsampleRatio420
+            /// </summary>
             YCbCrSubsampleRatio420,
 
+            /// <summary>
+            /// YCbCrSubsampleRatio440
+            /// </summary>
             YCbCrSubsampleRatio440,
 
+            /// <summary>
+            /// YCbCrSubsampleRatio411
+            /// </summary>
             YCbCrSubsampleRatio411,
 
+            /// <summary>
+            /// YCbCrSubsampleRatio410
+            /// </summary>
             YCbCrSubsampleRatio410,
         }
 

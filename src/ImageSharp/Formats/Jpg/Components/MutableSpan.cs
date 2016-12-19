@@ -14,7 +14,7 @@ namespace ImageSharp.Formats
     /// <see>
     ///     <cref>https://github.com/dotnet/corefxlab/blob/master/src/System.Slices/System/Span.cs</cref>
     /// </see>
-    /// <typeparam name="T"></typeparam>
+    /// <typeparam name="T">The type of the data in the span</typeparam>
     internal struct MutableSpan<T>
     {
         /// <summary>

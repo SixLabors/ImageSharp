@@ -14,52 +14,21 @@ namespace ImageSharp.Tests.TestUtilities
 
     public class TestImageFactoryTests
     {
-        public static readonly TheoryData<ITestImageFactory> BasicData = new TheoryData<ITestImageFactory>()
-                                                                             {
-                                                                                 TestImageFactory<Color, uint>.Blank(10, 20),
-                                                                                 TestImageFactory<HalfVector4, ulong>.Blank(
-                                                                                     10,
-                                                                                     20)
-                                                                             };
-
-        public static readonly TheoryData<ITestImageFactory> FileData = new TheoryData<ITestImageFactory>()
-                                                                            {
-                                                                                TestImageFactory<Color, uint>.File(
-                                                                                    TestImages.Bmp.Car),
-                                                                                TestImageFactory<HalfVector4, ulong>.File(
-                                                                                    TestImages.Bmp.F)
-                                                                            };
-
+      
         public TestImageFactoryTests(ITestOutputHelper output)
         {
             this.Output = output;
         }
 
-        public static string[] AllBmpFiles => TestImages.Bmp.All;
-
         private ITestOutputHelper Output { get; }
 
-        public static Image<TColor, TPacked> TestMemberFactory<TColor, TPacked>()
-            where TColor : struct, IPackedPixel<TPacked> where TPacked : struct, IEquatable<TPacked>
-        {
-            return new Image<TColor, TPacked>(3, 3);
-        }
-
-        [Theory]
-        [MemberData(nameof(BasicData))]
-        public void Empty<TColor, TPacked>(TestImageFactory<TColor, TPacked> factory)
-            where TColor : struct, IPackedPixel<TPacked> where TPacked : struct, IEquatable<TPacked>
-        {
-            var img = factory.Create();
-
-            Assert.True(img.Width * img.Height > 0);
-        }
 
         [Theory]
         [WithBlankImages(42, 666, PixelTypes.Color | PixelTypes.Argb | PixelTypes.HalfSingle, "hello")]
-        public void Empty_WithEmptyImageAttribute<TColor, TPacked>(
+        public void Use_WithEmptyImageAttribute<TColor, TPacked>(
             TestImageFactory<TColor, TPacked> factory,
-            string message) where TColor : struct, IPackedPixel<TPacked> where TPacked : struct, IEquatable<TPacked>
+            string message) 
+            where TColor : struct, IPackedPixel<TPacked> where TPacked : struct, IEquatable<TPacked>
         {
             var img = factory.Create();
 
@@ -70,9 +39,10 @@ namespace ImageSharp.Tests.TestUtilities
 
         [Theory]
         [WithBlankImages(42, 666, PixelTypes.All, "hello")]
-        public void Empty_WithEmptyImageAttribute_WithAllPixelTypes<TColor, TPacked>(
+        public void Use_WithBlankImagesAttribute_WithAllPixelTypes<TColor, TPacked>(
             TestImageFactory<TColor, TPacked> factory,
-            string message) where TColor : struct, IPackedPixel<TPacked> where TPacked : struct, IEquatable<TPacked>
+            string message) 
+            where TColor : struct, IPackedPixel<TPacked> where TPacked : struct, IEquatable<TPacked>
         {
             var img = factory.Create();
 
@@ -81,25 +51,7 @@ namespace ImageSharp.Tests.TestUtilities
             Assert.Equal("hello", message);
         }
 
-        [Theory]
-        [MemberData(nameof(FileData))]
-        public void File<TColor, TPacked>(TestImageFactory<TColor, TPacked> factory)
-            where TColor : struct, IPackedPixel<TPacked> where TPacked : struct, IEquatable<TPacked>
-        {
-            this.Output.WriteLine("SRC: " + factory.Utility.SourceFileOrDescription);
-            this.Output.WriteLine("OUT: " + factory.Utility.GetTestOutputFileName());
-
-            var img = factory.Create();
-
-            Assert.True(img.Width * img.Height > 0);
-        }
-
-        [Fact]
-        public void Rrr()
-        {
-            this.Output.WriteLine(Path.GetExtension("asdads.bmp"));
-        }
-
+        // TODO: @dlemstra this works only with constant strings!
         [Theory]
         [WithFile(TestImages.Bmp.Car, PixelTypes.All, 88)]
         [WithFile(TestImages.Bmp.F, PixelTypes.All, 88)]
@@ -116,6 +68,8 @@ namespace ImageSharp.Tests.TestUtilities
             this.Output.WriteLine(fn);
         }
 
+        public static string[] AllBmpFiles => TestImages.Bmp.All;
+
         [Theory]
         [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Color | PixelTypes.Argb)]
         public void Use_WithFileCollection<TColor, TPacked>(TestImageFactory<TColor, TPacked> factory)
@@ -125,16 +79,7 @@ namespace ImageSharp.Tests.TestUtilities
             var image = factory.Create();
             factory.Utility.SaveTestOutputFile(image, "png");
         }
-
-        [Theory]
-        [WithMemberFactory(nameof(TestMemberFactory), PixelTypes.All)]
-        public void Use_WithMemberFactoryAttribute<TColor, TPacked>(TestImageFactory<TColor, TPacked> factory)
-            where TColor : struct, IPackedPixel<TPacked> where TPacked : struct, IEquatable<TPacked>
-        {
-            var img = factory.Create();
-            Assert.Equal(img.Width, 3);
-        }
-
+        
         [Theory]
         [WithSolidFilledImages(10, 20, 255, 100, 50, 200, PixelTypes.Color | PixelTypes.Argb)]
         public void Use_WithSolidFilledImagesAttribute<TColor, TPacked>(TestImageFactory<TColor, TPacked> factory)
@@ -161,6 +106,62 @@ namespace ImageSharp.Tests.TestUtilities
                     }
                 }
             }
+        }
+
+        public static Image<TColor, TPacked> TestMemberFactory<TColor, TPacked>()
+            where TColor : struct, IPackedPixel<TPacked> where TPacked : struct, IEquatable<TPacked>
+        {
+            return new Image<TColor, TPacked>(3, 3);
+        }
+
+        [Theory]
+        [WithMemberFactory(nameof(TestMemberFactory), PixelTypes.All)]
+        public void Use_WithMemberFactoryAttribute<TColor, TPacked>(TestImageFactory<TColor, TPacked> factory)
+            where TColor : struct, IPackedPixel<TPacked> where TPacked : struct, IEquatable<TPacked>
+        {
+            var img = factory.Create();
+            Assert.Equal(img.Width, 3);
+        }
+
+
+        public static readonly TheoryData<ITestImageFactory> BasicData = new TheoryData<ITestImageFactory>()
+                                                                             {
+                                                                                 TestImageFactory<Color, uint>.Blank(10, 20),
+                                                                                 TestImageFactory<HalfVector4, ulong>.Blank(
+                                                                                     10,
+                                                                                     20)
+                                                                             };
+
+
+        [Theory]
+        [MemberData(nameof(BasicData))]
+        public void Blank_MemberData<TColor, TPacked>(TestImageFactory<TColor, TPacked> factory)
+            where TColor : struct, IPackedPixel<TPacked> where TPacked : struct, IEquatable<TPacked>
+        {
+            var img = factory.Create();
+
+            Assert.True(img.Width * img.Height > 0);
+        }
+
+        public static readonly TheoryData<ITestImageFactory> FileData = new TheoryData<ITestImageFactory>()
+                                                                            {
+                                                                                TestImageFactory<Color, uint>.File(
+                                                                                    TestImages.Bmp.Car),
+                                                                                TestImageFactory<HalfVector4, ulong>.File(
+                                                                                    TestImages.Bmp.F)
+                                                                            };
+
+        [Theory]
+        [MemberData(nameof(FileData))]
+        public void File_MemberData<TColor, TPacked>(TestImageFactory<TColor, TPacked> factory)
+            where TColor : struct, IPackedPixel<TPacked> where TPacked : struct, IEquatable<TPacked>
+        {
+            this.Output.WriteLine("SRC: " + factory.Utility.SourceFileOrDescription);
+            this.Output.WriteLine("OUT: " + factory.Utility.GetTestOutputFileName());
+
+            var img = factory.Create();
+
+            Assert.True(img.Width * img.Height > 0);
         }
     }
 }

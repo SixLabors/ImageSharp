@@ -1533,12 +1533,12 @@ namespace ImageSharp.Formats
             // blocks: the third block in the first row has (bx, by) = (2, 0).
             int bx, by, blockCount = 0;
 
-            Block8x8F b = new Block8x8F();
-            Block8x8F temp1 = new Block8x8F();
-            Block8x8F temp2 = new Block8x8F();
+            Block8x8F b = default(Block8x8F);
+            Block8x8F temp1 = default(Block8x8F);
+            Block8x8F temp2 = default(Block8x8F);
 
             // Tricky way to copy contents of the Unzig static variable to the stack:
-            StackallocUnzigData unzigOnStack = new StackallocUnzigData();
+            StackallocUnzigData unzigOnStack = default(StackallocUnzigData);
             int* unzigPtr = unzigOnStack.Data;
             Marshal.Copy(Unzig, 0, (IntPtr)unzigPtr, 64);
 

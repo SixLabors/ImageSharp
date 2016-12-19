@@ -32,11 +32,6 @@ namespace ImageSharp.Formats
         internal const int LutSize = 8;
 
         /// <summary>
-        /// The byte buffer.
-        /// </summary>
-        internal Bytes Bytes;
-
-        /// <summary>
         /// The input stream.
         /// </summary>
         internal Stream InputStream;
@@ -115,6 +110,11 @@ namespace ImageSharp.Formats
         /// A temporary buffer for holding pixels
         /// </summary>
         private readonly byte[] temp;
+
+        /// <summary>
+        /// The byte buffer.
+        /// </summary>
+        private Bytes bytes;
 
         /// <summary>
         /// The image width
@@ -206,7 +206,7 @@ namespace ImageSharp.Formats
             this.componentArray = new Component[MaxComponents];
             this.progCoeffs = new Block8x8F[MaxComponents][];
             this.Bits = default(Bits);
-            this.Bytes = Bytes.Create();
+            this.bytes = Bytes.Create();
 
             // TODO: This looks like it could be static.
             for (int i = 0; i < MaxTc + 1; i++)
@@ -233,6 +233,17 @@ namespace ImageSharp.Formats
             /// MissingFF00
             /// </summary>
             MissingFF00
+        }
+
+        /// <summary>
+        /// Gets the byte buffer.
+        /// </summary>
+        public Bytes Bytes
+        {
+            get
+            {
+                return this.bytes;
+            }
         }
 
         /// <summary>
@@ -466,7 +477,7 @@ namespace ImageSharp.Formats
                 this.huffmanTrees[i].Dispose();
             }
 
-            this.Bytes.Dispose();
+            this.bytes.Dispose();
         }
 
         /// <summary>
@@ -476,7 +487,7 @@ namespace ImageSharp.Formats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal byte ReadByte()
         {
-            return this.Bytes.ReadByte(this.InputStream);
+            return this.bytes.ReadByte(this.InputStream);
         }
 
         /// <summary>
@@ -743,8 +754,8 @@ namespace ImageSharp.Formats
         /// </summary>
         private void UnreadByteStuffedByte()
         {
-            this.Bytes.I -= this.Bytes.UnreadableBytes;
-            this.Bytes.UnreadableBytes = 0;
+            this.bytes.I -= this.bytes.UnreadableBytes;
+            this.bytes.UnreadableBytes = 0;
             if (this.Bits.UnreadBits >= 8)
             {
                 this.Bits.Accumulator >>= 8;
@@ -762,32 +773,32 @@ namespace ImageSharp.Formats
         private void ReadFull(byte[] data, int offset, int length)
         {
             // Unread the overshot bytes, if any.
-            if (this.Bytes.UnreadableBytes != 0)
+            if (this.bytes.UnreadableBytes != 0)
             {
                 if (this.Bits.UnreadBits >= 8)
                 {
                     this.UnreadByteStuffedByte();
                 }
 
-                this.Bytes.UnreadableBytes = 0;
+                this.bytes.UnreadableBytes = 0;
             }
 
             while (length > 0)
             {
-                if (this.Bytes.J - this.Bytes.I >= length)
+                if (this.bytes.J - this.bytes.I >= length)
                 {
-                    Array.Copy(this.Bytes.Buffer, this.Bytes.I, data, offset, length);
-                    this.Bytes.I += length;
+                    Array.Copy(this.bytes.Buffer, this.bytes.I, data, offset, length);
+                    this.bytes.I += length;
                     length -= length;
                 }
                 else
                 {
-                    Array.Copy(this.Bytes.Buffer, this.Bytes.I, data, offset, this.Bytes.J - this.Bytes.I);
-                    offset += this.Bytes.J - this.Bytes.I;
-                    length -= this.Bytes.J - this.Bytes.I;
-                    this.Bytes.I += this.Bytes.J - this.Bytes.I;
+                    Array.Copy(this.bytes.Buffer, this.bytes.I, data, offset, this.bytes.J - this.bytes.I);
+                    offset += this.bytes.J - this.bytes.I;
+                    length -= this.bytes.J - this.bytes.I;
+                    this.bytes.I += this.bytes.J - this.bytes.I;
 
-                    this.Bytes.Fill(this.InputStream);
+                    this.bytes.Fill(this.InputStream);
                 }
             }
         }
@@ -799,32 +810,32 @@ namespace ImageSharp.Formats
         private void Skip(int count)
         {
             // Unread the overshot bytes, if any.
-            if (this.Bytes.UnreadableBytes != 0)
+            if (this.bytes.UnreadableBytes != 0)
             {
                 if (this.Bits.UnreadBits >= 8)
                 {
                     this.UnreadByteStuffedByte();
                 }
 
-                this.Bytes.UnreadableBytes = 0;
+                this.bytes.UnreadableBytes = 0;
             }
 
             while (true)
             {
-                int m = this.Bytes.J - this.Bytes.I;
+                int m = this.bytes.J - this.bytes.I;
                 if (m > count)
                 {
                     m = count;
                 }
 
-                this.Bytes.I += m;
+                this.bytes.I += m;
                 count -= m;
                 if (count == 0)
                 {
                     break;
                 }
 
-                this.Bytes.Fill(this.InputStream);
+                this.bytes.Fill(this.InputStream);
             }
         }
 

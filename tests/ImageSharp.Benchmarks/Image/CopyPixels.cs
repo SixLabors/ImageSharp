@@ -25,7 +25,7 @@ namespace ImageSharp.Benchmarks.Image
                 Parallel.For(
                     0,
                     source.Height,
-                    Bootstrapper.Instance.ParallelOptions,
+                    Bootstrapper.ParallelOptions,
                     y =>
                     {
                         for (int x = 0; x < source.Width; x++)
@@ -49,7 +49,7 @@ namespace ImageSharp.Benchmarks.Image
                 Parallel.For(
                     0,
                     source.Height,
-                    Bootstrapper.Instance.ParallelOptions,
+                    Bootstrapper.ParallelOptions,
                     y =>
                     {
                         sourcePixels.CopyBlock(0, y, targetPixels, 0, y, source.Width);

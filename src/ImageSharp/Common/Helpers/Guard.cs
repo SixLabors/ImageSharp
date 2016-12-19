@@ -65,6 +65,7 @@ namespace ImageSharp
         /// <summary>
         /// Verifies, that the enumeration is not null and not empty.
         /// </summary>
+        /// <typeparam name="T">The type of objects in the <paramref name="target"/></typeparam>
         /// <param name="target">The target enumeration, which should be checked against being null or empty.</param>
         /// <param name="parameterName">Name of the parameter.</param>
         /// <param name="message">The error message, if any to add to the exception.</param>

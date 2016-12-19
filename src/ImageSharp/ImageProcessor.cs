@@ -18,7 +18,7 @@ namespace ImageSharp.Processors
         where TPacked : struct, IEquatable<TPacked>
     {
         /// <inheritdoc/>
-        public virtual ParallelOptions ParallelOptions { get; set; } = Bootstrapper.Instance.ParallelOptions;
+        public virtual ParallelOptions ParallelOptions { get; set; } = Bootstrapper.ParallelOptions;
 
         /// <inheritdoc/>
         public virtual bool Compand { get; set; } = false;

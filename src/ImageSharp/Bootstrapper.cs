@@ -19,15 +19,24 @@ namespace ImageSharp
     public class Bootstrapper
     {
         /// <summary>
-        /// A new instance Initializes a new instance of the <see cref="Bootstrapper"/> class.
-        /// with lazy initialization.
+        /// A singleton of the <see cref="Bootstrapper"/> class.
         /// </summary>
-        private static readonly Lazy<Bootstrapper> Lazy = new Lazy<Bootstrapper>(() => new Bootstrapper());
+        private static readonly Bootstrapper Instance = new Bootstrapper();
 
         /// <summary>
-        /// The default list of supported <see cref="IImageFormat"/>
+        /// The list of supported <see cref="IImageFormat"/>.
         /// </summary>
         private readonly List<IImageFormat> imageFormats;
+
+        /// <summary>
+        /// The parallel options for processing tasks in parallel.
+        /// </summary>
+        private readonly ParallelOptions parallelOptions;
+
+        /// <summary>
+        /// An object that can be used to synchronize access to the <see cref="Bootstrapper"/>.
+        /// </summary>
+        private readonly object syncRoot = new object();
 
         /// <summary>
         /// Prevents a default instance of the <see cref="Bootstrapper"/> class from being created.
@@ -41,28 +50,24 @@ namespace ImageSharp
                 new PngFormat(),
                 new GifFormat()
             };
+            this.parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount };
         }
-
-        /// <summary>
-        /// Gets the current bootstrapper instance.
-        /// </summary>
-        public static Bootstrapper Instance => Lazy.Value;
 
         /// <summary>
         /// Gets the collection of supported <see cref="IImageFormat"/>
         /// </summary>
-        public IReadOnlyCollection<IImageFormat> ImageFormats => new ReadOnlyCollection<IImageFormat>(this.imageFormats);
+        public static IReadOnlyCollection<IImageFormat> ImageFormats => new ReadOnlyCollection<IImageFormat>(Instance.imageFormats);
 
         /// <summary>
-        /// Gets or sets the global parallel options for processing tasks in parallel.
+        /// Gets the global parallel options for processing tasks in parallel.
         /// </summary>
-        public ParallelOptions ParallelOptions { get; set; } = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount };
+        public static ParallelOptions ParallelOptions => Instance.parallelOptions;
 
         /// <summary>
         /// Adds a new <see cref="IImageFormat"/> to the collection of supported image formats.
         /// </summary>
         /// <param name="format">The new format to add.</param>
-        public void AddImageFormat(IImageFormat format)
+        public static void AddImageFormat(IImageFormat format)
         {
             Guard.NotNull(format, nameof(format));
             Guard.NotNull(format.Encoder, nameof(format), "The encoder should not be null.");
@@ -71,9 +76,17 @@ namespace ImageSharp
             Guard.NotNullOrEmpty(format.Extension, nameof(format), "The extension should not be null or empty.");
             Guard.NotNullOrEmpty(format.SupportedExtensions, nameof(format), "The supported extensions not be null or empty.");
 
-            GuardDuplicate(format);
+            Instance.AddImageFormatLocked(format);
+        }
 
-            this.imageFormats.Add(format);
+        private void AddImageFormatLocked(IImageFormat format)
+        {
+            lock (this.syncRoot)
+            {
+                this.GuardDuplicate(format);
+
+                this.imageFormats.Add(format);
+            }
         }
 
         private void GuardDuplicate(IImageFormat format)

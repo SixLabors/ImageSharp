@@ -67,7 +67,7 @@ namespace ImageSharp
                 Parallel.For(
                     0,
                     target.Height,
-                    Bootstrapper.Instance.ParallelOptions,
+                    Bootstrapper.ParallelOptions,
                     y =>
                     {
                         for (int x = 0; x < target.Width; x++)

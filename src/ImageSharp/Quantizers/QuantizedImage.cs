@@ -79,7 +79,7 @@ namespace ImageSharp.Quantizers
             Parallel.For(
                 0,
                 pixelCount,
-                Bootstrapper.Instance.ParallelOptions,
+                Bootstrapper.ParallelOptions,
                 i =>
                     {
                         TColor color = this.Palette[Math.Min(palletCount, this.Pixels[i])];

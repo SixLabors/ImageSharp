@@ -236,13 +236,18 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Gets the byte buffer.
+        /// Gets or sets the byte buffer.
         /// </summary>
         public Bytes Bytes
         {
             get
             {
                 return this.bytes;
+            }
+
+            set
+            {
+                this.bytes = value;
             }
         }
 

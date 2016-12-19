@@ -26,6 +26,13 @@
     "xmlDoc": true,
     "additionalArguments": [ "/additionalfile:stylecop.json" ]
   },
+  "configurations": {
+    "Release": {
+      "buildOptions": {
+        "warningsAsErrors": true
+      }
+    }
+  },
   "dependencies": {
     "StyleCop.Analyzers": {
       "version": "1.0.0",

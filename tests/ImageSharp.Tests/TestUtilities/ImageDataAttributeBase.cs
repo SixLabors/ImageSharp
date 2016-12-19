@@ -1,4 +1,8 @@
-﻿namespace ImageSharp.Tests.TestUtilities
+﻿// <copyright file="ImageDataAttributeBase.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+namespace ImageSharp.Tests.TestUtilities
 {
     using System;
     using System.Collections.Generic;
@@ -9,29 +13,15 @@
 
     public abstract class ImageDataAttributeBase : DataAttribute
     {
-        protected readonly PixelTypes PixelTypes;
-
         protected readonly object[] AdditionalParameters;
+
+        protected readonly PixelTypes PixelTypes;
 
         protected ImageDataAttributeBase(PixelTypes pixelTypes, object[] additionalParameters)
         {
             this.PixelTypes = pixelTypes;
             this.AdditionalParameters = additionalParameters;
         }
-
-        protected virtual object[] GetFactoryMethodArgs(MethodInfo testMethod, Type factoryType)
-        {
-            throw new InvalidOperationException("Semi-abstract method");
-        }
-
-        protected abstract string GetFactoryMethodName(MethodInfo testMethod);
-
-        protected virtual IEnumerable<object[]> GetAllFactoryMethodArgs(MethodInfo testMethod, Type factoryType)
-        {
-            var args = this.GetFactoryMethodArgs(testMethod, factoryType);
-            return Enumerable.Repeat(args, 1);
-        }
-
 
         public override IEnumerable<object[]> GetData(MethodInfo testMethod)
         {
@@ -54,15 +44,29 @@
                         Array.Copy(originalFacoryMethodArgs, actualFactoryMethodArgs, originalFacoryMethodArgs.Length);
                         actualFactoryMethodArgs[actualFactoryMethodArgs.Length - 1] = testMethod;
 
-                        var factory = factoryType.GetMethod(this.GetFactoryMethodName(testMethod)).Invoke(null, actualFactoryMethodArgs);
+                        var factory = factoryType.GetMethod(this.GetFactoryMethodName(testMethod))
+                            .Invoke(null, actualFactoryMethodArgs);
 
                         object[] result = new object[this.AdditionalParameters.Length + 1];
                         result[0] = factory;
                         Array.Copy(this.AdditionalParameters, 0, result, 1, this.AdditionalParameters.Length);
                         yield return result;
-                    }      
+                    }
                 }
             }
         }
+
+        protected virtual IEnumerable<object[]> GetAllFactoryMethodArgs(MethodInfo testMethod, Type factoryType)
+        {
+            var args = this.GetFactoryMethodArgs(testMethod, factoryType);
+            return Enumerable.Repeat(args, 1);
+        }
+
+        protected virtual object[] GetFactoryMethodArgs(MethodInfo testMethod, Type factoryType)
+        {
+            throw new InvalidOperationException("Semi-abstract method");
+        }
+
+        protected abstract string GetFactoryMethodName(MethodInfo testMethod);
     }
 }

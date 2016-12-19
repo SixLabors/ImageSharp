@@ -1,4 +1,9 @@
-﻿namespace ImageSharp.Tests.TestUtilities
+﻿// <copyright file="TestImageFactory.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
+namespace ImageSharp.Tests.TestUtilities
 {
     using System;
     using System.Reflection;

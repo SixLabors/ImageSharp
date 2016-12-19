@@ -17,14 +17,14 @@ namespace ImageSharp.Tests.Formats.Jpg
 
         public JpegTests(ITestOutputHelper output)
         {
-            Output = output;
+            this.Output = output;
         }
         
         public static IEnumerable<string> AllJpegFiles => TestImages.Jpeg.All;
 
         [Theory]
-        //[WithFileCollection(nameof(AllJpegFiles), PixelTypes.All)] // TODO: Turned off to be kind to AppVeyor, should I re-enable?
-        [WithFileCollection(nameof(AllJpegFiles), PixelTypes.Color | PixelTypes.Argb)]
+        [WithFileCollection(nameof(AllJpegFiles), PixelTypes.All)] // TODO: Turned off to be kind to AppVeyor, should I re-enable?
+        //[WithFileCollection(nameof(AllJpegFiles), PixelTypes.Color | PixelTypes.Argb)]
         public void OpenJpeg_SaveBmp<TColor, TPacked>(TestImageFactory<TColor, TPacked> factory)
             where TColor : struct, IPackedPixel<TPacked> where TPacked : struct, IEquatable<TPacked>
         {

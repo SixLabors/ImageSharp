@@ -252,7 +252,7 @@ namespace ImageSharp.Formats
             /// The DC chrominance huffman table index
             /// </summary>
             ChrominanceDC = 2,
-
+            
             /// <summary>
             /// The AC chrominance huffman table index
             /// </summary>

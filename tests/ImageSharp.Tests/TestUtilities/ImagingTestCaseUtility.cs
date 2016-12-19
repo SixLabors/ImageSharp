@@ -1,4 +1,8 @@
-﻿namespace ImageSharp.Tests.TestUtilities
+﻿// <copyright file="ImagingTestCaseUtility.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+namespace ImageSharp.Tests.TestUtilities
 {
     using System;
     using System.IO;
@@ -7,21 +11,15 @@
 
     public class ImagingTestCaseUtility
     {
+        public string PixelTypeName { get; set; } = string.Empty;
+
+        public string SourceFileOrDescription { get; set; } = string.Empty;
+
+        public string TestGroupName { get; set; } = string.Empty;
+
+        public string TestName { get; set; } = string.Empty;
+
         public string TestOutputRoot { get; set; } = FileTestBase.TestOutputRoot;
-
-        public string TestGroupName { get; set; } = "";
-
-        public string SourceFileOrDescription { get; set; } = "";
-
-        public string TestName { get; set; } = "";
-
-        public string PixelTypeName { get; set; } = "";
-
-        internal void Init(MethodInfo method)
-        {
-            this.TestGroupName = method.DeclaringType.Name;
-            this.TestName = method.Name;
-        }
 
         public string GetTestOutputDir()
         {
@@ -34,7 +32,7 @@
 
         public string GetTestOutputFileName(string extension = null)
         {
-            string fn = "";
+            string fn = string.Empty;
 
             fn = Path.GetFileNameWithoutExtension(this.SourceFileOrDescription);
             extension = extension ?? Path.GetExtension(this.SourceFileOrDescription);
@@ -45,10 +43,10 @@
                 extension = '.' + extension;
             }
 
-            if (fn != "") fn = '_' + fn;
+            if (fn != string.Empty) fn = '_' + fn;
 
             string pixName = this.PixelTypeName;
-            if (pixName != "")
+            if (pixName != string.Empty)
             {
                 pixName = '_' + pixName + ' ';
             }
@@ -57,7 +55,6 @@
         }
 
         // TODO: This is messy, need to refactor all the output writing logic out from TestImageFactory
-
         public void SaveTestOutputFile<TColor, TPacked>(Image<TColor, TPacked> image, string extension = null)
             where TColor : struct, IPackedPixel<TPacked> where TPacked : struct, IEquatable<TPacked>
         {
@@ -69,6 +66,12 @@
             {
                 image.Save(stream, format);
             }
+        }
+
+        internal void Init(MethodInfo method)
+        {
+            this.TestGroupName = method.DeclaringType.Name;
+            this.TestName = method.Name;
         }
     }
 }

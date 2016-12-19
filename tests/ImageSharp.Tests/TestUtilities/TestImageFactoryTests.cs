@@ -1,22 +1,19 @@
-﻿// ReSharper disable InconsistentNaming
+﻿// <copyright file="TestImageFactoryTests.cs" company="James Jackson-South">
+// Copyright (c) James Jackson-South and contributors.
+// Licensed under the Apache License, Version 2.0.
+// </copyright>
+
+// ReSharper disable InconsistentNaming
 namespace ImageSharp.Tests.TestUtilities
 {
     using System;
     using System.IO;
-    using System.Runtime.InteropServices;
 
     using Xunit;
     using Xunit.Abstractions;
 
     public class TestImageFactoryTests
     {
-        private ITestOutputHelper Output { get; }
-
-        public TestImageFactoryTests(ITestOutputHelper output)
-        {
-            this.Output = output;
-        }
-
         public static readonly TheoryData<ITestImageFactory> BasicData = new TheoryData<ITestImageFactory>()
                                                                              {
                                                                                  TestImageFactory<Color, uint>.Blank(10, 20),
@@ -24,6 +21,29 @@ namespace ImageSharp.Tests.TestUtilities
                                                                                      10,
                                                                                      20)
                                                                              };
+
+        public static readonly TheoryData<ITestImageFactory> FileData = new TheoryData<ITestImageFactory>()
+                                                                            {
+                                                                                TestImageFactory<Color, uint>.File(
+                                                                                    TestImages.Bmp.Car),
+                                                                                TestImageFactory<HalfVector4, ulong>.File(
+                                                                                    TestImages.Bmp.F)
+                                                                            };
+
+        public TestImageFactoryTests(ITestOutputHelper output)
+        {
+            this.Output = output;
+        }
+
+        public static string[] AllBmpFiles => TestImages.Bmp.All;
+
+        private ITestOutputHelper Output { get; }
+
+        public static Image<TColor, TPacked> TestMemberFactory<TColor, TPacked>()
+            where TColor : struct, IPackedPixel<TPacked> where TPacked : struct, IEquatable<TPacked>
+        {
+            return new Image<TColor, TPacked>(3, 3);
+        }
 
         [Theory]
         [MemberData(nameof(BasicData))]
@@ -48,7 +68,6 @@ namespace ImageSharp.Tests.TestUtilities
             Assert.Equal("hello", message);
         }
 
-
         [Theory]
         [WithBlankImages(42, 666, PixelTypes.All, "hello")]
         public void Empty_WithEmptyImageAttribute_WithAllPixelTypes<TColor, TPacked>(
@@ -62,20 +81,6 @@ namespace ImageSharp.Tests.TestUtilities
             Assert.Equal("hello", message);
         }
 
-        [Fact]
-        public void Rrr()
-        {
-            this.Output.WriteLine(Path.GetExtension("asdads.bmp"));
-        }
-
-        public static readonly TheoryData<ITestImageFactory> FileData = new TheoryData<ITestImageFactory>()
-                                                                            {
-                                                                                TestImageFactory<Color, uint>.File(
-                                                                                    TestImages.Bmp.Car),
-                                                                                TestImageFactory<HalfVector4, ulong>.File(
-                                                                                    TestImages.Bmp.F)
-                                                                            };
-
         [Theory]
         [MemberData(nameof(FileData))]
         public void File<TColor, TPacked>(TestImageFactory<TColor, TPacked> factory)
@@ -87,6 +92,12 @@ namespace ImageSharp.Tests.TestUtilities
             var img = factory.Create();
 
             Assert.True(img.Width * img.Height > 0);
+        }
+
+        [Fact]
+        public void Rrr()
+        {
+            this.Output.WriteLine(Path.GetExtension("asdads.bmp"));
         }
 
         [Theory]
@@ -105,10 +116,14 @@ namespace ImageSharp.Tests.TestUtilities
             this.Output.WriteLine(fn);
         }
 
-        public static Image<TColor, TPacked> TestMemberFactory<TColor, TPacked>()
+        [Theory]
+        [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Color | PixelTypes.Argb)]
+        public void Use_WithFileCollection<TColor, TPacked>(TestImageFactory<TColor, TPacked> factory)
             where TColor : struct, IPackedPixel<TPacked> where TPacked : struct, IEquatable<TPacked>
         {
-            return new Image<TColor, TPacked>(3, 3);
+            Assert.NotNull(factory.Utility.SourceFileOrDescription);
+            var image = factory.Create();
+            factory.Utility.SaveTestOutputFile(image, "png");
         }
 
         [Theory]
@@ -146,18 +161,6 @@ namespace ImageSharp.Tests.TestUtilities
                     }
                 }
             }
-        }
-
-        public static string[] AllBmpFiles => TestImages.Bmp.All;
-
-        [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Color | PixelTypes.Argb)]
-        public void Use_WithFileCollection<TColor, TPacked>(TestImageFactory<TColor, TPacked> factory)
-            where TColor : struct, IPackedPixel<TPacked> where TPacked : struct, IEquatable<TPacked>
-        {
-            Assert.NotNull(factory.Utility.SourceFileOrDescription);
-            var image = factory.Create();
-            factory.Utility.SaveTestOutputFile(image, "png");
         }
     }
 }

@@ -399,7 +399,7 @@ namespace ImageSharp
         /// </returns>
         private bool Decode(Stream stream)
         {
-            int maxHeaderSize = Bootstrapper.ImageFormats.Max(x => x.Decoder.HeaderSize);
+            int maxHeaderSize = Bootstrapper.ImageFormats.Max(x => x.HeaderSize);
             if (maxHeaderSize > 0)
             {
                 byte[] header = new byte[maxHeaderSize];
@@ -408,7 +408,7 @@ namespace ImageSharp
                 stream.Read(header, 0, maxHeaderSize);
                 stream.Position = 0;
 
-                IImageFormat format = Bootstrapper.ImageFormats.FirstOrDefault(x => x.Decoder.IsSupportedFileFormat(header));
+                IImageFormat format = Bootstrapper.ImageFormats.FirstOrDefault(x => x.IsSupportedFileFormat(header));
                 if (format != null)
                 {
                     format.Decoder.Decode(this, stream);

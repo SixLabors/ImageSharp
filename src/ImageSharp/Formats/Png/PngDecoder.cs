@@ -31,33 +31,6 @@ namespace ImageSharp.Formats
     public class PngDecoder : IImageDecoder
     {
         /// <summary>
-        /// Gets the size of the header for this image type.
-        /// </summary>
-        /// <value>The size of the header.</value>
-        public int HeaderSize => 8;
-
-        /// <summary>
-        /// Returns a value indicating whether the <see cref="IImageDecoder"/> supports the specified
-        /// file header.
-        /// </summary>
-        /// <param name="header">The <see cref="T:byte[]"/> containing the file header.</param>
-        /// <returns>
-        /// True if the decoder supports the file header; otherwise, false.
-        /// </returns>
-        public bool IsSupportedFileFormat(byte[] header)
-        {
-            return header.Length >= 8 &&
-                   header[0] == 0x89 &&
-                   header[1] == 0x50 && // P
-                   header[2] == 0x4E && // N
-                   header[3] == 0x47 && // G
-                   header[4] == 0x0D && // CR
-                   header[5] == 0x0A && // LF
-                   header[6] == 0x1A && // EOF
-                   header[7] == 0x0A;   // LF
-        }
-
-        /// <summary>
         /// Decodes the image from the specified stream to the <see cref="ImageBase{TColor, TPacked}"/>.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>

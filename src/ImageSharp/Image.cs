@@ -46,6 +46,18 @@ namespace ImageSharp
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="Image"/> class.
+        /// </summary>
+        /// <param name="bytes">
+        /// The byte array containing image information.
+        /// </param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="bytes"/> is null.</exception>
+        public Image(byte[] bytes)
+            : base(bytes)
+        {
+        }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="Image"/> class
         /// by making a copy from another image.
         /// </summary>

@@ -73,6 +73,23 @@ namespace ImageSharp
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="Image{TColor, TPacked}"/> class.
+        /// </summary>
+        /// <param name="bytes">
+        /// The byte array containing image information.
+        /// </param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the <paramref name="bytes"/> is null.</exception>
+        public Image(byte[] bytes)
+        {
+            Guard.NotNull(bytes, nameof(bytes));
+
+            using (MemoryStream stream = new MemoryStream(bytes, false))
+            {
+                this.Load(stream);
+            }
+        }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="Image{TColor, TPacked}"/> class
         /// by making a copy from another image.
         /// </summary>

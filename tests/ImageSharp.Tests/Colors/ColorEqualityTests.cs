@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Tests.Colors
 {
+    using System;
     using System.Numerics;
     using Xunit;
 
@@ -13,27 +14,27 @@ namespace ImageSharp.Tests.Colors
     /// </summary>
     public class ColorEqualityTests
     {
-        public static readonly TheoryData<object, object> EqualityData =
-           new TheoryData<object, object>()
+        public static readonly TheoryData<object, object, Type> EqualityData =
+           new TheoryData<object, object, Type>()
            {
-               { new Alpha8(.5F), new Alpha8(.5F) },
-               { new Argb(Vector4.One), new Argb(Vector4.One) },
-               { new Bgr565(Vector3.One), new Bgr565(Vector3.One) },
-               { new Bgra4444(Vector4.One), new Bgra4444(Vector4.One) },
-               { new Bgra5551(Vector4.One), new Bgra5551(Vector4.One) },
-               { new Byte4(Vector4.One * 255), new Byte4(Vector4.One * 255) },
-               { new HalfSingle(-1F), new HalfSingle(-1F) },
-               { new HalfVector2(0.1f, -0.3f), new HalfVector2(0.1f, -0.3f) },
-               { new HalfVector4(Vector4.One), new HalfVector4(Vector4.One) },
-               { new NormalizedByte2(-Vector2.One), new NormalizedByte2(-Vector2.One) },
-               { new NormalizedByte4(Vector4.One), new NormalizedByte4(Vector4.One) },
-               { new NormalizedShort2(Vector2.One), new NormalizedShort2(Vector2.One) },
-               { new NormalizedShort4(Vector4.One), new NormalizedShort4(Vector4.One) },
-               { new Rg32(Vector2.One), new Rg32(Vector2.One) },
-               { new Rgba1010102(Vector4.One), new Rgba1010102(Vector4.One) },
-               { new Rgba64(Vector4.One), new Rgba64(Vector4.One) },
-               { new Short2(Vector2.One * 0x7FFF), new Short2(Vector2.One * 0x7FFF) },
-               { new Short4(Vector4.One * 0x7FFF), new Short4(Vector4.One * 0x7FFF) },
+               { new Alpha8(.5F), new Alpha8(.5F), typeof(Alpha8) },
+               { new Argb(Vector4.One), new Argb(Vector4.One), typeof(Argb) },
+               { new Bgr565(Vector3.One), new Bgr565(Vector3.One), typeof(Bgr565) },
+               { new Bgra4444(Vector4.One), new Bgra4444(Vector4.One), typeof(Bgra4444) },
+               { new Bgra5551(Vector4.One), new Bgra5551(Vector4.One), typeof(Bgra5551) },
+               { new Byte4(Vector4.One * 255), new Byte4(Vector4.One * 255), typeof(Byte4) },
+               { new HalfSingle(-1F), new HalfSingle(-1F), typeof(HalfSingle) },
+               { new HalfVector2(0.1f, -0.3f), new HalfVector2(0.1f, -0.3f), typeof(HalfVector2) },
+               { new HalfVector4(Vector4.One), new HalfVector4(Vector4.One), typeof(HalfVector4) },
+               { new NormalizedByte2(-Vector2.One), new NormalizedByte2(-Vector2.One), typeof(NormalizedByte2) },
+               { new NormalizedByte4(Vector4.One), new NormalizedByte4(Vector4.One), typeof(NormalizedByte4) },
+               { new NormalizedShort2(Vector2.One), new NormalizedShort2(Vector2.One), typeof(NormalizedShort2) },
+               { new NormalizedShort4(Vector4.One), new NormalizedShort4(Vector4.One), typeof(NormalizedShort4) },
+               { new Rg32(Vector2.One), new Rg32(Vector2.One), typeof(Rg32) },
+               { new Rgba1010102(Vector4.One), new Rgba1010102(Vector4.One), typeof(Rgba1010102) },
+               { new Rgba64(Vector4.One), new Rgba64(Vector4.One), typeof(Rgba64) },
+               { new Short2(Vector2.One * 0x7FFF), new Short2(Vector2.One * 0x7FFF), typeof(Short2) },
+               { new Short4(Vector4.One * 0x7FFF), new Short4(Vector4.One * 0x7FFF), typeof(Short4) },
            };
 
         public static readonly TheoryData<object, object> NotEqualityDataNulls =
@@ -95,7 +96,7 @@ namespace ImageSharp.Tests.Colors
 
         [Theory]
         [MemberData(nameof(EqualityData))]
-        public void Equality(object first, object second)
+        public void Equality(object first, object second, Type type)
         {
             // Act
             var equal = first.Equals(second);
@@ -119,7 +120,7 @@ namespace ImageSharp.Tests.Colors
 
         [Theory]
         [MemberData(nameof(EqualityData))]
-        public void HashCodeEqual(object first, object second)
+        public void HashCodeEqual(object first, object second, Type type)
         {
             // Act
             var equal = first.GetHashCode() == second.GetHashCode();
@@ -137,6 +138,20 @@ namespace ImageSharp.Tests.Colors
 
             // Assert
             Assert.False(equal);
+        }
+
+        [Theory]
+        [MemberData(nameof(EqualityData))]
+        public void EqualityOperator(object first, object second, Type type)
+        {
+            // Arrange 
+            // Cast to the known object types 
+
+            // Act
+            var equal = first.Equals(second);
+
+            // Assert
+            Assert.True(equal);
         }
     }
 }

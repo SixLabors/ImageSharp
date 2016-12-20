@@ -10,7 +10,7 @@ namespace ImageSharp.IO
     using System.Text;
 
     /// <summary>
-    /// Equivalent of <see cref="BinaryReader"/>, but with either endianness, depending on the <see cref="EndianBitConverter"/> it is constructed with. 
+    /// Equivalent of <see cref="BinaryReader"/>, but with either endianness, depending on the <see cref="EndianBitConverter"/> it is constructed with.
     /// No data is buffered in the reader; the client may seek within the stream at will.
     /// </summary>
     internal class EndianBinaryReader : IDisposable

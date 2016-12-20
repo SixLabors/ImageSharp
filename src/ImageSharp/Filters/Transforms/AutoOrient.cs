@@ -8,7 +8,7 @@ namespace ImageSharp
     using System;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image{TColor, TPacked}"/> type.
+    /// Extension methods for the <see cref="Image{TColor}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
@@ -16,12 +16,10 @@ namespace ImageSharp
         /// Adjusts an image so that its orientation is suitable for viewing. Adjustments are based on EXIF metadata embedded in the image.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image to auto rotate.</param>
         /// <returns>The <see cref="Image"/></returns>
-        public static Image<TColor, TPacked> AutoOrient<TColor, TPacked>(this Image<TColor, TPacked> source)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        public static Image<TColor> AutoOrient<TColor>(this Image<TColor> source)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             Orientation orientation = GetExifOrientation(source);
 
@@ -61,12 +59,10 @@ namespace ImageSharp
         /// Returns the current EXIF orientation
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image to auto rotate.</param>
         /// <returns>The <see cref="Orientation"/></returns>
-        private static Orientation GetExifOrientation<TColor, TPacked>(Image<TColor, TPacked> source)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        private static Orientation GetExifOrientation<TColor>(Image<TColor> source)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             if (source.ExifProfile == null)
             {

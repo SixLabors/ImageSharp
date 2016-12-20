@@ -1,4 +1,4 @@
-﻿// <copyright file="PatternBrush{TColor,TPacked}.cs" company="James Jackson-South">
+﻿// <copyright file="PatternBrush{TColor}.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -41,10 +41,8 @@ namespace ImageSharp.Drawing.Brushes
     /// 00
     /// </remarks>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class PatternBrush<TColor, TPacked> : IBrush<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public class PatternBrush<TColor> : IBrush<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
         /// The pattern.
@@ -57,7 +55,7 @@ namespace ImageSharp.Drawing.Brushes
         private readonly int stride;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PatternBrush{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="PatternBrush{TColor}"/> class.
         /// </summary>
         /// <param name="foreColor">Color of the fore.</param>
         /// <param name="backColor">Color of the back.</param>
@@ -87,17 +85,17 @@ namespace ImageSharp.Drawing.Brushes
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PatternBrush{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="PatternBrush{TColor}"/> class.
         /// </summary>
         /// <param name="brush">The brush.</param>
-        internal PatternBrush(PatternBrush<TColor, TPacked> brush)
+        internal PatternBrush(PatternBrush<TColor> brush)
         {
             this.pattern = brush.pattern;
             this.stride = brush.stride;
         }
 
         /// <inheritdoc />
-        public IBrushApplicator<TColor, TPacked> CreateApplicator(RectangleF region)
+        public IBrushApplicator<TColor> CreateApplicator(RectangleF region)
         {
             return new PatternBrushApplicator(this.pattern, this.stride);
         }
@@ -105,7 +103,7 @@ namespace ImageSharp.Drawing.Brushes
         /// <summary>
         /// The pattern brush applicator.
         /// </summary>
-        private class PatternBrushApplicator : IBrushApplicator<TColor, TPacked>
+        private class PatternBrushApplicator : IBrushApplicator<TColor>
         {
             /// <summary>
             /// The patter x-length.

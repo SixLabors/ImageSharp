@@ -8,7 +8,7 @@ namespace ImageSharp.Drawing.Brushes
     /// <summary>
     /// Provides an implementation of a pattern brush for painting patterns. The brush use <see cref="Color"/> for painting.
     /// </summary>
-    public class PatternBrush : PatternBrush<Color, uint>
+    public class PatternBrush : PatternBrush<Color>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="PatternBrush"/> class.
@@ -25,7 +25,7 @@ namespace ImageSharp.Drawing.Brushes
         /// Initializes a new instance of the <see cref="PatternBrush"/> class.
         /// </summary>
         /// <param name="brush">The brush.</param>
-        internal PatternBrush(PatternBrush<Color, uint> brush)
+        internal PatternBrush(PatternBrush<Color> brush)
             : base(brush)
         {
         }

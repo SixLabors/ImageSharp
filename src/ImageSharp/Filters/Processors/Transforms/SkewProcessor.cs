@@ -13,10 +13,8 @@ namespace ImageSharp.Processors
     /// Provides methods that allow the skewing of images.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class SkewProcessor<TColor, TPacked> : Matrix3x2Processor<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public class SkewProcessor<TColor> : Matrix3x2Processor<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
         /// The transform matrix to apply.
@@ -39,15 +37,15 @@ namespace ImageSharp.Processors
         public bool Expand { get; set; } = true;
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
             int height = this.CanvasRectangle.Height;
             int width = this.CanvasRectangle.Width;
             Matrix3x2 matrix = this.GetCenteredMatrix(source, this.processMatrix);
             TColor[] target = new TColor[width * height];
 
-            using (PixelAccessor<TColor, TPacked> sourcePixels = source.Lock())
-            using (PixelAccessor<TColor, TPacked> targetPixels = target.Lock<TColor, TPacked>(width, height))
+            using (PixelAccessor<TColor> sourcePixels = source.Lock())
+            using (PixelAccessor<TColor> targetPixels = target.Lock<TColor>(width, height))
             {
                 Parallel.For(
                     0,
@@ -70,7 +68,7 @@ namespace ImageSharp.Processors
         }
 
         /// <inheritdoc/>
-        protected override void BeforeApply(ImageBase<TColor, TPacked> source, Rectangle sourceRectangle)
+        protected override void BeforeApply(ImageBase<TColor> source, Rectangle sourceRectangle)
         {
             this.processMatrix = Point.CreateSkew(new Point(0, 0), -this.AngleX, -this.AngleY);
             if (this.Expand)

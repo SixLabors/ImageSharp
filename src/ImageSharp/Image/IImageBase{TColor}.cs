@@ -1,4 +1,4 @@
-﻿// <copyright file="IImageBase.cs" company="James Jackson-South">
+﻿// <copyright file="IImageBase{TColor}.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -11,10 +11,8 @@ namespace ImageSharp
     /// Encapsulates the basic properties and methods required to manipulate images in varying formats.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public interface IImageBase<TColor, TPacked> : IImageBase
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public interface IImageBase<TColor> : IImageBase
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
         /// Gets the pixels as an array of the given packed pixel format.
@@ -66,8 +64,8 @@ namespace ImageSharp
         /// It is imperative that the accessor is correctly disposed off after use.
         /// </remarks>
         /// </summary>
-        /// <returns>The <see cref="PixelAccessor{TColor,TPacked}"/></returns>
-        PixelAccessor<TColor, TPacked> Lock();
+        /// <returns>The <see cref="PixelAccessor{TColor}"/></returns>
+        PixelAccessor<TColor> Lock();
     }
 
     /// <summary>

@@ -11,10 +11,8 @@ namespace ImageSharp.Drawing.Pens.Processors
     /// Returns details about how far away from the inside of a shape and the color the pixel could be.
     /// </summary>
     /// <typeparam name="TColor">The type of the color.</typeparam>
-    /// <typeparam name="TPacked">The type of the packed.</typeparam>
-    public struct ColoredPointInfo<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public struct ColoredPointInfo<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
         /// The color

@@ -1,4 +1,4 @@
-﻿// <copyright file="SolidBrush{TColor,TPacked}.cs" company="James Jackson-South">
+﻿// <copyright file="SolidBrush{TColor}.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -14,10 +14,8 @@ namespace ImageSharp.Drawing.Brushes
     /// Provides an implementation of a solid brush for painting solid color areas.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public class SolidBrush<TColor, TPacked> : IBrush<TColor, TPacked>
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public class SolidBrush<TColor> : IBrush<TColor>
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
         /// The color to paint.
@@ -25,7 +23,7 @@ namespace ImageSharp.Drawing.Brushes
         private readonly TColor color;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="SolidBrush{TColor, TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="SolidBrush{TColor}"/> class.
         /// </summary>
         /// <param name="color">The color.</param>
         public SolidBrush(TColor color)
@@ -42,7 +40,7 @@ namespace ImageSharp.Drawing.Brushes
         public TColor Color => this.color;
 
         /// <inheritdoc />
-        public IBrushApplicator<TColor, TPacked> CreateApplicator(RectangleF region)
+        public IBrushApplicator<TColor> CreateApplicator(RectangleF region)
         {
             return new SolidBrushApplicator(this.color);
         }
@@ -50,7 +48,7 @@ namespace ImageSharp.Drawing.Brushes
         /// <summary>
         /// The solid brush applicator.
         /// </summary>
-        private class SolidBrushApplicator : IBrushApplicator<TColor, TPacked>
+        private class SolidBrushApplicator : IBrushApplicator<TColor>
         {
             /// <summary>
             /// The solid color.

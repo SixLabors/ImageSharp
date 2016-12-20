@@ -1,4 +1,4 @@
-﻿// <copyright file="PixelAccessor.cs" company="James Jackson-South">
+﻿// <copyright file="PixelAccessor{TColor}.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
@@ -11,13 +11,11 @@ namespace ImageSharp
     using System.Runtime.InteropServices;
 
     /// <summary>
-    /// Provides per-pixel access to generic <see cref="Image{TColor,TPacked}"/> pixels.
+    /// Provides per-pixel access to generic <see cref="Image{TColor}"/> pixels.
     /// </summary>
     /// <typeparam name="TColor">The pixel format.</typeparam>
-    /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
-    public unsafe class PixelAccessor<TColor, TPacked> : IDisposable
-        where TColor : struct, IPackedPixel<TPacked>
-        where TPacked : struct, IEquatable<TPacked>
+    public unsafe class PixelAccessor<TColor> : IDisposable
+        where TColor : struct, IPackedPixel, IEquatable<TColor>
     {
         /// <summary>
         /// The pointer to the pixel buffer.
@@ -46,10 +44,10 @@ namespace ImageSharp
         private bool isDisposed;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PixelAccessor{TColor,TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="PixelAccessor{TColor}"/> class.
         /// </summary>
         /// <param name="image">The image to provide pixel access for.</param>
-        public PixelAccessor(ImageBase<TColor, TPacked> image)
+        public PixelAccessor(ImageBase<TColor> image)
         {
             Guard.NotNull(image, nameof(image));
             Guard.MustBeGreaterThan(image.Width, 0, "image width");
@@ -60,12 +58,12 @@ namespace ImageSharp
             this.pixelsHandle = GCHandle.Alloc(image.Pixels, GCHandleType.Pinned);
             this.dataPointer = this.pixelsHandle.AddrOfPinnedObject();
             this.pixelsBase = (byte*)this.dataPointer.ToPointer();
-            this.PixelSize = Unsafe.SizeOf<TPacked>();
+            this.PixelSize = Unsafe.SizeOf<TColor>();
             this.RowStride = this.Width * this.PixelSize;
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PixelAccessor{TColor,TPacked}"/> class.
+        /// Initializes a new instance of the <see cref="PixelAccessor{TColor}"/> class.
         /// </summary>
         /// <param name="width">Gets the width of the image represented by the pixel buffer.</param>
         /// <param name="height">The height of the image represented by the pixel buffer.</param>
@@ -86,12 +84,12 @@ namespace ImageSharp
             this.pixelsHandle = GCHandle.Alloc(pixels, GCHandleType.Pinned);
             this.dataPointer = this.pixelsHandle.AddrOfPinnedObject();
             this.pixelsBase = (byte*)this.dataPointer.ToPointer();
-            this.PixelSize = Unsafe.SizeOf<TPacked>();
+            this.PixelSize = Unsafe.SizeOf<TColor>();
             this.RowStride = this.Width * this.PixelSize;
         }
 
         /// <summary>
-        /// Finalizes an instance of the <see cref="PixelAccessor{TColor,TPacked}"/> class.
+        /// Finalizes an instance of the <see cref="PixelAccessor{TColor}"/> class.
         /// </summary>
         ~PixelAccessor()
         {
@@ -155,7 +153,7 @@ namespace ImageSharp
         /// <param name="targetX">The x-coordinate of the target image.</param>
         /// <param name="targetY">The y-coordinate of the target image.</param>
         /// <param name="pixelCount">The number of pixels to copy</param>
-        public void CopyBlock(int sourceX, int sourceY, PixelAccessor<TColor, TPacked> target, int targetX, int targetY, int pixelCount)
+        public void CopyBlock(int sourceX, int sourceY, PixelAccessor<TColor> target, int targetX, int targetY, int pixelCount)
         {
             int size = Unsafe.SizeOf<TColor>();
             byte* sourcePtr = this.pixelsBase + (((sourceY * this.Width) + sourceX) * size);
@@ -169,7 +167,7 @@ namespace ImageSharp
         /// Copies an entire image.
         /// </summary>
         /// <param name="target">The target pixel buffer accessor.</param>
-        public void CopyImage(PixelAccessor<TColor, TPacked> target)
+        public void CopyImage(PixelAccessor<TColor> target)
         {
             this.CopyBlock(0, 0, target, 0, 0, target.Width * target.Height);
         }
@@ -183,7 +181,7 @@ namespace ImageSharp
         /// <exception cref="NotSupportedException">
         /// Thrown when an unsupported component order value is passed.
         /// </exception>
-        public void CopyFrom(PixelArea<TColor, TPacked> area, int targetY, int targetX = 0)
+        public void CopyFrom(PixelArea<TColor> area, int targetY, int targetX = 0)
         {
             int width = Math.Min(area.Width, this.Width - targetX);
             int height = Math.Min(area.Height, this.Height - targetY);
@@ -218,7 +216,7 @@ namespace ImageSharp
         /// <exception cref="NotSupportedException">
         /// Thrown when an unsupported component order value is passed.
         /// </exception>
-        public void CopyTo(PixelArea<TColor, TPacked> area, int sourceY, int sourceX = 0)
+        public void CopyTo(PixelArea<TColor> area, int sourceY, int sourceX = 0)
         {
             int width = Math.Min(area.Width, this.Width - sourceX);
             int height = Math.Min(area.Height, this.Height - sourceY);
@@ -289,7 +287,7 @@ namespace ImageSharp
         /// <param name="targetX">The target column index.</param>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
-        protected virtual void CopyFromZYX(PixelArea<TColor, TPacked> area, int targetY, int targetX, int width, int height)
+        protected virtual void CopyFromZYX(PixelArea<TColor> area, int targetY, int targetX, int width, int height)
         {
             TColor packed = default(TColor);
             int size = Unsafe.SizeOf<TColor>();
@@ -318,7 +316,7 @@ namespace ImageSharp
         /// <param name="targetX">The target column index.</param>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
-        protected virtual void CopyFromZYXW(PixelArea<TColor, TPacked> area, int targetY, int targetX, int width, int height)
+        protected virtual void CopyFromZYXW(PixelArea<TColor> area, int targetY, int targetX, int width, int height)
         {
             TColor packed = default(TColor);
             int size = Unsafe.SizeOf<TColor>();
@@ -347,7 +345,7 @@ namespace ImageSharp
         /// <param name="targetX">The target column index.</param>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
-        protected virtual void CopyFromXYZ(PixelArea<TColor, TPacked> area, int targetY, int targetX, int width, int height)
+        protected virtual void CopyFromXYZ(PixelArea<TColor> area, int targetY, int targetX, int width, int height)
         {
             TColor packed = default(TColor);
             int size = Unsafe.SizeOf<TColor>();
@@ -376,7 +374,7 @@ namespace ImageSharp
         /// <param name="targetX">The target column index.</param>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
-        protected virtual void CopyFromXYZW(PixelArea<TColor, TPacked> area, int targetY, int targetX, int width, int height)
+        protected virtual void CopyFromXYZW(PixelArea<TColor> area, int targetY, int targetX, int width, int height)
         {
             TColor packed = default(TColor);
             int size = Unsafe.SizeOf<TColor>();
@@ -405,7 +403,7 @@ namespace ImageSharp
         /// <param name="sourceX">The source column index.</param>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
-        protected virtual void CopyToZYX(PixelArea<TColor, TPacked> area, int sourceY, int sourceX, int width, int height)
+        protected virtual void CopyToZYX(PixelArea<TColor> area, int sourceY, int sourceX, int width, int height)
         {
             for (int y = 0; y < height; y++)
             {
@@ -426,7 +424,7 @@ namespace ImageSharp
         /// <param name="sourceX">The source column index.</param>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
-        protected virtual void CopyToZYXW(PixelArea<TColor, TPacked> area, int sourceY, int sourceX, int width, int height)
+        protected virtual void CopyToZYXW(PixelArea<TColor> area, int sourceY, int sourceX, int width, int height)
         {
             for (int y = 0; y < height; y++)
             {
@@ -447,7 +445,7 @@ namespace ImageSharp
         /// <param name="sourceX">The source column index.</param>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
-        protected virtual void CopyToXYZ(PixelArea<TColor, TPacked> area, int sourceY, int sourceX, int width, int height)
+        protected virtual void CopyToXYZ(PixelArea<TColor> area, int sourceY, int sourceX, int width, int height)
         {
             for (int y = 0; y < height; y++)
             {
@@ -468,7 +466,7 @@ namespace ImageSharp
         /// <param name="sourceX">The source column index.</param>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
-        protected virtual void CopyToXYZW(PixelArea<TColor, TPacked> area, int sourceY, int sourceX, int width, int height)
+        protected virtual void CopyToXYZW(PixelArea<TColor> area, int sourceY, int sourceX, int width, int height)
         {
             for (int y = 0; y < height; y++)
             {
@@ -494,6 +492,14 @@ namespace ImageSharp
             return this.pixelsBase + (((y * this.Width) + x) * Unsafe.SizeOf<TColor>());
         }
 
+        /// <summary>
+        /// Checks that the given dimensions are within the bounds of the image.
+        /// </summary>
+        /// <param name="width">The width.</param>
+        /// <param name="height">The height.</param>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown if the dimensions are not within the bounds of the image.
+        /// </exception>
         [Conditional("DEBUG")]
         private void CheckDimensions(int width, int height)
         {

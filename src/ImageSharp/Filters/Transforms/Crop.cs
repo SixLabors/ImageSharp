@@ -10,7 +10,7 @@ namespace ImageSharp
     using Processors;
 
     /// <summary>
-    /// Extension methods for the <see cref="Image{TColor, TPacked}"/> type.
+    /// Extension methods for the <see cref="Image{TColor}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
@@ -18,14 +18,12 @@ namespace ImageSharp
         /// Crops an image to the given width and height.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image to resize.</param>
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
-        /// <returns>The <see cref="Image{TColor, TPacked}"/></returns>
-        public static Image<TColor, TPacked> Crop<TColor, TPacked>(this Image<TColor, TPacked> source, int width, int height)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        /// <returns>The <see cref="Image{TColor}"/></returns>
+        public static Image<TColor> Crop<TColor>(this Image<TColor> source, int width, int height)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
             return Crop(source, new Rectangle(0, 0, width, height));
         }
@@ -34,17 +32,15 @@ namespace ImageSharp
         /// Crops an image to the given rectangle.
         /// </summary>
         /// <typeparam name="TColor">The pixel format.</typeparam>
-        /// <typeparam name="TPacked">The packed format. <example>uint, long, float.</example></typeparam>
         /// <param name="source">The image to crop.</param>
         /// <param name="cropRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to retain.
         /// </param>
         /// <returns>The <see cref="Image"/></returns>
-        public static Image<TColor, TPacked> Crop<TColor, TPacked>(this Image<TColor, TPacked> source, Rectangle cropRectangle)
-            where TColor : struct, IPackedPixel<TPacked>
-            where TPacked : struct, IEquatable<TPacked>
+        public static Image<TColor> Crop<TColor>(this Image<TColor> source, Rectangle cropRectangle)
+            where TColor : struct, IPackedPixel, IEquatable<TColor>
         {
-            CropProcessor<TColor, TPacked> processor = new CropProcessor<TColor, TPacked>(cropRectangle);
+            CropProcessor<TColor> processor = new CropProcessor<TColor>(cropRectangle);
             return source.Process(source.Bounds, processor);
         }
     }

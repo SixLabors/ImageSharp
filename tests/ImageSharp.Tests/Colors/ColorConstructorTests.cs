@@ -94,10 +94,34 @@ namespace ImageSharp.Tests.Colors
             }
         }
 
+        public static IEnumerable<object[]> Float3Data
+        {
+            get
+            {
+                var vector3Values = new Dictionary<Vector3, Vector4>()
+                    {
+                        { Vector3.One, Vector4.One },
+                        { Vector3.Zero, new Vector4(0, 0, 0, 1) },
+                        { Vector3.UnitX, new Vector4(1, 0, 0, 1) },
+                        { Vector3.UnitY, new Vector4(0, 1, 0, 1) },
+                        { Vector3.UnitZ, new Vector4(0, 0, 1, 1) },
+                    };
+
+                foreach (var vector3 in vector3Values.Keys)
+                {
+                    var vector4 = vector3Values[vector3];
+
+                    yield return new object[] { new Argb(vector3.X, vector3.Y, vector3.Z), vector4 };
+                    yield return new object[] { new Bgr565(vector3.X, vector3.Y, vector3.Z), vector4 };
+                }
+            }
+        }
+
         [Theory]
         [MemberData(nameof(Vector4Data))]
         [MemberData(nameof(Vector3Data))]
         [MemberData(nameof(Float4Data))]
+        [MemberData(nameof(Float3Data))]
         public void ConstructorToVector4(IPackedVector packedVector, Vector4 expectedVector4)
         {
             // Arrange

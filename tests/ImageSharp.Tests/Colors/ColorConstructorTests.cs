@@ -64,16 +64,47 @@ namespace ImageSharp.Tests.Colors
             }
         }
 
+        public static IEnumerable<object[]> Float4Data
+        {
+            get
+            {
+                var vector4Values = new Vector4[]
+                    {
+                        Vector4.Zero,
+                        Vector4.One,
+                        Vector4.UnitX,
+                        Vector4.UnitY,
+                        Vector4.UnitZ,
+                        Vector4.UnitW,
+                    };
+
+                foreach (var vector4 in vector4Values)
+                {
+                    yield return new object[] { new Argb(vector4.X, vector4.Y, vector4.Z, vector4.W), vector4 };
+                    yield return new object[] { new Bgra4444(vector4.X, vector4.Y, vector4.Z, vector4.W), vector4 };
+                    yield return new object[] { new Bgra5551(vector4.X, vector4.Y, vector4.Z, vector4.W), vector4 };
+                    yield return new object[] { new Byte4(vector4.X, vector4.Y, vector4.Z, vector4.W), vector4 };
+                    yield return new object[] { new HalfVector4(vector4.X, vector4.Y, vector4.Z, vector4.W), vector4 };
+                    yield return new object[] { new NormalizedByte4(vector4.X, vector4.Y, vector4.Z, vector4.W), vector4 };
+                    yield return new object[] { new NormalizedShort4(vector4.X, vector4.Y, vector4.Z, vector4.W), vector4 };
+                    yield return new object[] { new Rgba1010102(vector4.X, vector4.Y, vector4.Z, vector4.W), vector4 };
+                    yield return new object[] { new Rgba64(vector4.X, vector4.Y, vector4.Z, vector4.W), vector4 };
+                    yield return new object[] { new Short4(vector4.X, vector4.Y, vector4.Z, vector4.W), vector4 };
+                }
+            }
+        }
+
         [Theory]
         [MemberData(nameof(Vector4Data))]
         [MemberData(nameof(Vector3Data))]
-        public void ConstructorToVector4(IPackedVector color, Vector4 expectedVector4)
+        [MemberData(nameof(Float4Data))]
+        public void ConstructorToVector4(IPackedVector packedVector, Vector4 expectedVector4)
         {
             // Arrange
             var precision = 2;
 
             // Act
-            var vector4 = color.ToVector4();
+            var vector4 = packedVector.ToVector4();
 
             // Assert
             Assert.Equal(expectedVector4.X, vector4.X, precision);
